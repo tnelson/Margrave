@@ -44,11 +44,57 @@
 ;****************************************************************
 ;;Java Connection
 
+; Figure it out if running windows or *nix
+(define windows? 
+  (if (string=? (path->string (current-directory)) "file:.")
+      true
+      false))
+
+(define java-class-separator
+  (if windows?
+      ";"
+      ":"))
+
 ; windows
-(define margrave-command-line "java -cp .\\lib\\margrave.jar;.\\lib\\kodkod.jar;.\\lib\\org.sat4j.core.jar;.\\lib\\sunxacml.jar;.\\lib\\java-cup-11a.jar;.\\lib\\json.jar edu.wpi.margrave.MCommunicator")
+;(define margrave-command-line "java -cp .\\lib\\margrave.jar;.\\lib\\kodkod.jar;.\\lib\\org.sat4j.core.jar;.\\lib\\sunxacml.jar;.\\lib\\java-cup-11a.jar;.\\lib\\json.jar edu.wpi.margrave.MCommunicator")
 
 ; *nix
 ;(define margrave-command-line "java -cp ./lib/margrave.jar:./lib/kodkod.jar:./lib/org.sat4j.core.jar:./lib/sunxacml.jar:./lib/java_cup.jar:./lib/json.jar edu.wpi.margrave.MCommunicator")
+
+(define margrave-command-line
+  (string-append
+   "java -cp "
+   (path->string
+    (build-path (current-directory)
+                "lib"
+                "margrave.jar"))
+    java-class-separator
+    (path->string
+    (build-path (current-directory)
+                "lib"
+                "kodkod.jar"))
+    java-class-separator
+    (path->string
+    (build-path (current-directory)
+                "lib"
+                "org.sat4j.core.jar"))
+    java-class-separator
+    (path->string
+    (build-path (current-directory)
+                "lib"
+                "sunxacml.jar"))
+    java-class-separator
+    (path->string
+    (build-path (current-directory)
+                "lib"
+                "java_cup.jar"))
+    java-class-separator
+    (path->string
+    (build-path (current-directory)
+                "lib"
+                "json.jar"))
+    " edu.wpi.margrave.MCommunicator"))
+                
 
 
 (define java-process-list (process margrave-command-line))
