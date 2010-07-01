@@ -22,21 +22,6 @@
 
 (require racket/system)
 
-;(import s2j)
-
-; NOTE
-; At the moment, need to have the folder with all the Margrave
-; .class files added to classpath
-
-;(define-java-class <MVocab> |edu.wpi.margrave.MVocab|)
-;(define-java-class <MPolicyLeaf> |edu.wpi.margrave.MPolicyLeaf|)
-;(define-java-class <MPolicySet> |edu.wpi.margrave.MPolicySet|)
-;(define-java-class <MPolicy> |edu.wpi.margrave.MPolicy|)
-;(define-java-class <MCustomIDB> |edu.wpi.margrave.MCustomIDB|)
-;(define-java-class <MQuery> |edu.wpi.margrave.MQuery|)
-;(define-java-class <MREPL> |edu.wpi.margrave.MREPL|)
-;(define-java-class <ArrayList> |java.util.ArrayList|)
-
 ; Save the current directory when this file is loaded.
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
@@ -48,12 +33,6 @@
   (if (equal? 'unix (system-path-convention-type))
       ":"
       ";"))
-
-; windows
-;(define margrave-command-line "java -cp .\\lib\\margrave.jar;.\\lib\\kodkod.jar;.\\lib\\org.sat4j.core.jar;.\\lib\\sunxacml.jar;.\\lib\\java-cup-11a.jar;.\\lib\\json.jar edu.wpi.margrave.MCommunicator")
-
-; *nix
-;(define margrave-command-line "java -cp ./lib/margrave.jar:./lib/kodkod.jar:./lib/org.sat4j.core.jar:./lib/sunxacml.jar:./lib/java_cup.jar:./lib/json.jar edu.wpi.margrave.MCommunicator")
 
 (define margrave-command-line
   (string-append
@@ -99,11 +78,13 @@
                                                                                   (fifth java-process-list)))
 
 ; Need to
-; (0 - t) get request vector as list? 
+; (0 - tim) (GET REQUEST VECTOR) and XACML/SQS loading   
+
 ; (1) Any way to hook drracket exit and close ports + process? 
 ; (2) hook re-run and close ports + process?
 ; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
 ; (4) update policy load process (probably some command strings to correct, too)
+; [DONE?] (5) build paths using DrRacket's library... paths&dirs handling
 
 
 
@@ -119,29 +100,9 @@
 ; see normalize-url
 (define local-policy-filename ".")
 
+; removeall is remove* in Racket, no need to define it here. Removed. -- TN
+
 ; Helper functions for MVocab and MPolicy objects
-
-(define (contains theElement theList)
-  (if (eqv? '() theList)
-      #f
-      (if (equal? theElement (car theList)) 
-          #t
-          (contains theElement (cdr theList)))))
-
-
-(define (removeall toRemove sourceList)
-  (filter-helper (lambda (element)
-                   (not (contains element toRemove)))
-                 sourceList))
-
-; Filter isn't implemented in SISC
-; Inefficient replacement for now
-(define (filter-helper fun thelist)
-  (if (eqv? '() thelist)
-      thelist ; empty, no change
-      (if (fun (car thelist))
-          (cons (car thelist) (filter-helper fun (cdr thelist)))
-          (filter-helper fun (cdr thelist)))))
 
 ; listsubs contains a list of the subsorts for this sort. 
 ; However, it may be nested: subsorts may themselves have subsorts.
@@ -167,52 +128,6 @@
                 listsubs)
       void))
 
-; list->jlist: scheme-list-of-strings-or-symbols -> jlist
-; Does the obvious.
-;(define (list->jlist thelist)
-;  ; Instantiate an empty list
-;  (let ((jlst (java-new <ArrayList>)))
-;    ; Copy the scheme list into the java list
-;    (map (lambda (x) ((generic-java-method '|add|)
-;                      jlst
-;                      (->jstring x))) 
-;         thelist)
-;    ; Return the filled list
-;    jlst))
-
-; jlist->list: java-list-of-strings -> list
-; Does the obvious.
-;(define (jlist-helper thejlist idx)
-;  (if (< idx 0)
-;      '()
-;      (cons (->string ((generic-java-method '|get|) thejlist (->jint idx)))
-;            (jlist-helper thejlist (- idx 1)))))
-;  
-;(define (jlist->list thejlist)  
-;    (jlist-helper thejlist (- (->number ((generic-java-method '|size|) thejlist)) 1)))
-;
-;
-;; Same as list->jlist but doesn't try to pass the list
-;; elements through ->jstring
-;(define (list->jlistx thelist)
-;  (let ((jlst (java-new <ArrayList>)))
-;    (map (lambda (x) ((generic-java-method '|add|)
-;                     jlst
-;                     x))
-;         thelist)
-;    jlst))
-;
-;; list->jstring: scheme-list -> scheme-string
-;; Flattens the list into a scheme-string, with spaces between
-;; the elements.
-;(define (list->string thelist)
-;  (cond [(eqv? '() thelist) ""]
-;        [(not (list? thelist)) (symbol->string thelist)]
-;        [else (string-append (symbol->string (car thelist)) 
-;                     (if (eqv? '() (cdr thelist))
-;                         ""
-;                         " ")
-;                     (list->string (cdr thelist)))]))
 
 (define (add-constraint vocab typename listrels)
   ; Switch by typename:
@@ -340,11 +255,10 @@
                             local-policy-filename 
                             (string-append (symbol->string 'vocabname) ".v"))))))) 
          (begin (if (< (length mychildren) 1)
-                    (m "CREATE POLICY LEAF " 'policyname " " 'myvocab)
-                    (m "CREATE POLICY SET " 'policyname " " 'myvocab))
+                    (m "CREATE POLICY LEAF " 'policyname " " myvocab)
+                    (m "CREATE POLICY SET " 'policyname " " myvocab))
                 
-                ; !!! Resolve this - TN
-                (let ((myvarorder (->string ((generic-java-method '|getExpectedRequestVarOrder|) myvocab))))
+                (let ((myvarorder (m "GET REQUEST VECTOR " myvocab)))
                   
                   
                   ; Set the policy target (if any)
@@ -398,16 +312,6 @@
   (let ([pol ((eval (read (open-input-file fn))) fn)])
     ; (case-sensitive #f)
     pol))
-
-; define-policy
-; string MPolicy -> void
-; Saves the given policy under the given identifier in the Java env
-; does NOT save the policy in scheme!
-; (define (define-policy pname thepol)
-;   (->boolean ((generic-java-method '|savePolicyAs|) myMargrave (->jstring pname) thepol)))
-
-
-; the above doesn't quite work. scope of def?
 
 ; m
 ; string -> void
