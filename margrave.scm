@@ -104,7 +104,6 @@
 ; (2) hook re-run and close ports + process?
 ; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
 ; (4) update policy load process (probably some command strings to correct, too)
-; (5) build paths using DrRacket's library... paths&dirs handling
 
 
 
