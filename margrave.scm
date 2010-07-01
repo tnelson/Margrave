@@ -39,32 +39,32 @@
    "java -cp "
    (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "margrave.jar"))
     java-class-separator
     (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "kodkod.jar"))
     java-class-separator
     (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "org.sat4j.core.jar"))
     java-class-separator
     (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "sunxacml.jar"))
     java-class-separator
     (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "java_cup.jar"))
     java-class-separator
     (path->string
     (build-path (current-directory)
-                "lib"
+                "bin"
                 "json.jar"))
     " edu.wpi.margrave.MCommunicator"))
                 
@@ -321,9 +321,10 @@
     (display (string-append cmd ";") output-port)
     (flush-output output-port)
     (local ((define (helper)
-              (if (char-ready? input-port)
-                  (string-append (read-line input-port) (helper))
-                  "")))
+              (let ((next-char (read-char input-port)))
+                (if (equal? next-char #\nul)
+                    ""
+                    (string-append (string next-char) (helper))))))
       (helper))))
 
 
