@@ -22,6 +22,8 @@
 
 (require racket/system)
 
+(require framework)
+
 ; Save the current directory when this file is loaded.
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
@@ -29,10 +31,35 @@
 ;****************************************************************
 ;;Java Connection
 
+(define windows? (equal? 'windows (system-path-convention-type)))
+
 (define java-class-separator
-  (if (equal? 'unix (system-path-convention-type))
-      ":"
-      ";"))
+  (if windows?
+      ";"
+      ":"))
+
+;pid should be the process number of the process to kill
+(define (close-last pid)
+  (if windows?
+        ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
+        (process (string-append "taskkill /pid " (number->string pid) " /t"))
+        (process (string-append "kill " (number->string pid)))))
+
+;Name for file that contains the last process ID started
+(define pid-file-name
+  (string-append 
+                  (path->string (build-path (current-directory)))
+                  ".lastProcessID"))
+
+;Close last process
+;Read in PID
+(when (file-exists? pid-file-name)
+  (begin
+    (let* ((in-pid-file (open-input-file pid-file-name #:mode 'text))
+           (last-pid (read-line in-pid-file)))
+      (close-last (string->number last-pid))
+      (display last-pid)
+      (close-input-port in-pid-file))))
 
 (define margrave-command-line
   (string-append
@@ -41,41 +68,63 @@
     (build-path (current-directory)
                 "bin"
                 "margrave.jar"))
-    java-class-separator
-    (path->string
+   java-class-separator
+   (path->string
     (build-path (current-directory)
                 "bin"
                 "kodkod.jar"))
-    java-class-separator
-    (path->string
+   java-class-separator
+   (path->string
     (build-path (current-directory)
                 "bin"
                 "org.sat4j.core.jar"))
-    java-class-separator
-    (path->string
+   java-class-separator
+   (path->string
     (build-path (current-directory)
                 "bin"
                 "sunxacml.jar"))
-    java-class-separator
-    (path->string
+   java-class-separator
+   (path->string
     (build-path (current-directory)
                 "bin"
                 "java_cup.jar"))
-    java-class-separator
-    (path->string
+   java-class-separator
+   (path->string
     (build-path (current-directory)
                 "bin"
                 "json.jar"))
-    " edu.wpi.margrave.MCommunicator"))
-                
-
+   " edu.wpi.margrave.MCommunicator"))
 
 (define java-process-list (process margrave-command-line))
-(define-values (input-port output-port process-id err-port ctrl-function) (values (first java-process-list)
-                                                                                  (second java-process-list)
-                                                                                  (third java-process-list)
-                                                                                  (fourth java-process-list)
-                                                                                  (fifth java-process-list)))
+
+(define-values (input-port output-port process-id err-port ctrl-function) 
+  (values (first java-process-list)
+          (second java-process-list)
+          (third java-process-list)
+          (fourth java-process-list)
+          (fifth java-process-list)))
+
+;Save pid to kill
+(define out-pid (open-output-file 
+                 (string-append 
+                  (path->string (build-path (current-directory)))
+                  ".lastProcessID") #:mode 'text #:exists 'replace))
+
+(display process-id out-pid)
+(close-output-port out-pid)
+  
+(define (close)
+  (begin
+    (close-input-port input-port)
+    (close-output-port output-port)
+    (close-input-port err-port)
+    (if windows?
+        ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
+        (process (string-append "taskkill /pid " process-id " /t"))
+        (ctrl-function 'kill))))
+
+;Kill process on exit
+;(exit:insert-on-callback close)
 
 ; Need to
 ; (0 - tim) (GET REQUEST VECTOR) and XACML/SQS loading   
@@ -122,7 +171,7 @@
                         ; Check for list size;
                         ; someone may have used parens without meaning to.
                         (when (> (length s) 1)
-                            (add-subtypes-of vocab (car s) (cdr s))))
+                          (add-subtypes-of vocab (car s) (cdr s))))
                       
                       (m (string-append "ADD TO " 'vocab " SUBSORT " 'parent " " 's))))
                 listsubs)
@@ -133,22 +182,22 @@
   ; Switch by typename:
   ; (Assume user is passing appropriate number of arguments)
   
-    (cond 
-      ; typename is a symbol at this point, not a string    
-      ((eqv? typename 'disjoint) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT " (car listrels) " " (car (cdr listrels)))))
-      ((eqv? typename 'disjoint-all) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT ALL " (car listrels))))
-      ((eqv? typename 'nonempty) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY " (car listrels))))
-      ((eqv? typename 'nonempty-all) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY ALL " (car listrels))))
-      ((eqv? typename 'singleton) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON " (car listrels))))
-      ((eqv? typename 'singleton-all) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON ALL " (car listrels))))
-      ((eqv? typename 'atmostone) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE " (car listrels))))
-      ((eqv? typename 'atmostone-all) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE ALL " (car listrels))))
-      ((eqv? typename 'partial-function) (m (string-append "ADD TO " vocab " CONSTRAINT PARTIAL FUNCTION " (car listrels))))
-      ((eqv? typename 'total-function) (m (string-append "ADD TO " vocab " CONSTRAINT TOTAL FUNCTION " (car listrels))))
-      ((eqv? typename 'abstract) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT " (car listrels))))
-      ((eqv? typename 'abstract-all) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT ALL " (car listrels))))
-      ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
-      (else (display " Error! Unsupported constraint type"))))
+  (cond 
+    ; typename is a symbol at this point, not a string    
+    ((eqv? typename 'disjoint) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT " (car listrels) " " (car (cdr listrels)))))
+    ((eqv? typename 'disjoint-all) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT ALL " (car listrels))))
+    ((eqv? typename 'nonempty) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY " (car listrels))))
+    ((eqv? typename 'nonempty-all) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY ALL " (car listrels))))
+    ((eqv? typename 'singleton) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON " (car listrels))))
+    ((eqv? typename 'singleton-all) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON ALL " (car listrels))))
+    ((eqv? typename 'atmostone) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE " (car listrels))))
+    ((eqv? typename 'atmostone-all) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE ALL " (car listrels))))
+    ((eqv? typename 'partial-function) (m (string-append "ADD TO " vocab " CONSTRAINT PARTIAL FUNCTION " (car listrels))))
+    ((eqv? typename 'total-function) (m (string-append "ADD TO " vocab " CONSTRAINT TOTAL FUNCTION " (car listrels))))
+    ((eqv? typename 'abstract) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT " (car listrels))))
+    ((eqv? typename 'abstract-all) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT ALL " (car listrels))))
+    ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
+    (else (display " Error! Unsupported constraint type"))))
 
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value
@@ -241,7 +290,7 @@
              (RComb rcstr ...) ; rule combination alg?
              (PComb pcstr ...) ; policy combination alg?
              (Children child ...)) ; child policies? 
-          
+     
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
      (lambda (local-policy-filename) 
