@@ -58,8 +58,18 @@
                                                                                   (fourth java-process-list)
                                                                                   (fifth java-process-list)))
 
-(display "INFO;" output-port)
-(flush-output output-port)
+; Need to
+; (0 - t) get request vector as list? 
+; (1) Any way to hook drracket exit and close ports + process? 
+; (2) hook re-run and close ports + process?
+; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
+; (4) update policy load process (probably some command strings to correct, too)
+; (5) build paths using DrRacket's library... paths&dirs handling
+
+
+
+;(display "INFO;" output-port)
+;(flush-output output-port)
 
 
 ;****************************************************************
@@ -277,9 +287,7 @@
              (RComb rcstr ...) ; rule combination alg?
              (PComb pcstr ...) ; policy combination alg?
              (Children child ...)) ; child policies? 
-     
-     ; Is the vocab named 'vocabname defined? If so, use it. If not, open it and add it to the list.   
-     
+          
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
      (lambda (local-policy-filename) 
@@ -295,6 +303,8 @@
          (begin (if (< (length mychildren) 1)
                     (m "CREATE POLICY LEAF " 'policyname " " 'myvocab)
                     (m "CREATE POLICY SET " 'policyname " " 'myvocab))
+                
+                ; !!! Resolve this - TN
                 (let ((myvarorder (->string ((generic-java-method '|getExpectedRequestVarOrder|) myvocab))))
                   
                   
@@ -389,28 +399,33 @@
 ;  ((generic-java-method '|loadSQS|) (java-null <MPolicy>) (->jstring fn) ))
 
 
+
+
+
+
+
 ; MPolicy -> void
-(define (print-policy-info pol)
-  (m (string-append "PRINT POLICY INFO " pol)))
+;(define (print-policy-info pol)
+;  (m (string-append "PRINT POLICY INFO " pol)))
 
 ; MPolicy string string -> void
-(define (assume-disjoint pol sort1 sort2)
-  (m (string-append "ADD TO " pol " DISJOINT ASSUMPTION " sort1 " " sort2)))
+;(define (assume-disjoint pol sort1 sort2)
+;  (m (string-append "ADD TO " pol " DISJOINT ASSUMPTION " sort1 " " sort2)))
+;
+;(define (assume-subset pol sortchild sortparent)
+;  (m (string-append "ADD TO " pol " SUBSET ASSUMPTION " sortchild " " sortparent)))
+;
+;(define (assume-disjoint-with-prefix pol sortprefix)
+;  (m (string-append "ADD TO " pol " DISJOINT PREFIX ASSUMPTION " sortprefix)))
 
-(define (assume-subset pol sortchild sortparent)
-  (m (string-append "ADD TO " pol " SUBSET ASSUMPTION " sortchild " " sortparent)))
-
-(define (assume-disjoint-with-prefix pol sortprefix)
-  (m (string-append "ADD TO " pol " DISJOINT PREFIX ASSUMPTION " sortprefix)))
-
-; MPolicy string
-(define (assume-singleton pol sortname)
-  (m (string-append "ADD TO " pol " SINGLETON ASSUMPTION " sortname)))
+;; MPolicy string
+;(define (assume-singleton pol sortname)
+;  (m (string-append "ADD TO " pol " SINGLETON ASSUMPTION " sortname)))
 
 ; MPolicy string -> MQuery
 ; Creates an MQuery object representing the query string given being run on the given MPolicy.
-(define (query-policy p str)
-  (m (string-append "QUERY POLICY " p (string-downcase str))))
+;(define (query-policy p str)
+;  (m (string-append "QUERY POLICY " p (string-downcase str))))
 
 ; MQuery -> int
 ; Returns the number of solutions the query has.
