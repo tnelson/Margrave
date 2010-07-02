@@ -377,7 +377,7 @@
     (read-line input-port) ;Get rid of first XML version line
     (local ((define (helper)
               (let ((next-char (read-char input-port)))
-                (if (equal? next-char eof)
+                (if (equal? next-char #\nul)
                     ""
                     (string-append (string next-char) (helper))))))
       (read-xml (helper)))))
