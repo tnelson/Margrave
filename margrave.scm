@@ -24,6 +24,8 @@
 
 (require framework)
 
+(require xml)
+
 ; Save the current directory when this file is loaded.
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
@@ -53,10 +55,10 @@
 
 ;Close last process
 ;Read in PID
-(when (file-exists? input-file-name)
+#;(when (file-exists? input-file-name)
   (begin
-      (display last-pid)
-      (close-input-port in-pid-file)))
+      ;(display last-pid)
+      (close-input-port input-file-name)))
 
 (define margrave-command-line
   (string-append
@@ -137,6 +139,11 @@
 ; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
 ; (4) update policy load process (probably some command strings to correct, too)
 ; [DONE?] (5) build paths using DrRacket's library... paths&dirs handling
+
+
+;****************************************************************
+;;XML
+
 
 
 ;****************************************************************
@@ -367,13 +374,16 @@
   (begin 
     (display (string-append cmd ";") output-port)
     (flush-output output-port)
-    (local ((define (helper)
+    (read-xml input-port)    
+    ))
+
+;deprecated
+#;(local ((define (helper)
               (let ((next-char (read-char input-port)))
                 (if (equal? next-char #\nul)
                     ""
                     (string-append (string next-char) (helper))))))
-      (helper))))
-
+      (helper))
 
 
 ; !!!
