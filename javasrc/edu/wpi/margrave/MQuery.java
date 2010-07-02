@@ -2961,13 +2961,14 @@ public class MQuery extends MIDBCollection
 	public boolean runTestCase(int expected_size, int expected_sols,
 			int expected_hbu) throws MGEUnsortedVariable, MGEUnknownIdentifier,
 			MGEArityMismatch, MGEBadQueryString, MGEManagerException,
-			MGEBadIdentifierName {
-		MInstanceIterator sols = runQuery().getTotalIterator();
+			MGEBadIdentifierName
+	{
+		MQueryResult res = runQuery();
 
-		int count = countSolutionsAtSize(expected_size);
+		int count = res.countModelsAtSize(expected_size);
 
 		return (expected_sols == count)
-				&& (sols.fromResult.get_hu_ceiling() == expected_hbu);
+				&& (res.get_hu_ceiling() == expected_hbu);
 	}
 
 	/**
@@ -3600,8 +3601,6 @@ public class MQuery extends MIDBCollection
 		Instance sol = aSolution.getFacts();
 
 		String pmod = "";
-		//if (this.otSpec.itDefault == MQueryOutputSpec.DefaultIteratorType.outIteratePartial)
-		//	pmod = "CLASS ";
 
 		theResult.append("----------------------------------------"+MEnvironment.eol);
 		theResult.append("*** SOLUTION " + pmod + "FOUND at size = "
@@ -3728,11 +3727,8 @@ public class MQuery extends MIDBCollection
 		// **********************************************************
 		// Don't Cares for partial models. Stop if the user asked for full
 		// output.
-		//if (this.otSpec.itDefault != MQueryOutputSpec.DefaultIteratorType.outIteratePartial)
-		//{
 			theResult.append("----------------------------------------"+MEnvironment.eol);
 			return theResult.toString();
-		//}
 		// **********************************************************
 
 			/*
@@ -3824,39 +3820,6 @@ public class MQuery extends MIDBCollection
 	//	otSpec.itDefault = savedCondense;
 	}
 
-	public int countSatisfyingSolutions() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
-		return countSolutionsAtSize(0);
-	}
-
-	// TODO this method (and many others) should be removed, if they are truly replaced by new methods
-	// (this one is replaced by the count methods in MQuerySolution, which avoid the runQuery call.)
-	public int countSolutionsAtSize(int desired_size)
-			throws MGEUnsortedVariable, MGEUnknownIdentifier, MGEArityMismatch,
-			MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
-	{
-		// If size is less than 1, will just count ALL the solutions.
-		
-		MInstanceIterator it = runQuery().getTotalIterator();
-		  
-		int count = 0; 
-		while(it.hasNext()) 
-		{ 
-			try 
-			{ 
-				 Instance sol = it.next().getFacts();
-				 //System.out.println("Sol size "+sol.universe().size());
-				 //System.out.println(sol);
-				 if(desired_size < 1 || sol.universe().size() == desired_size)
-					 count++;
-			}
-			catch(MGENoMoreSolutions e)
-			{} 
-		} 
-		return count;
-		 
-	}
 
 	public void prettyPrintSolutions(int max_to_print)
 			throws MGEUnsortedVariable, MGEUnknownIdentifier, MGEArityMismatch,
@@ -3932,10 +3895,6 @@ public class MQuery extends MIDBCollection
 
 		String pmod = "";
 		String pluralpmod = "s";
-	//	if (this.otSpec.itDefault == MQueryOutputSpec.DefaultIteratorType.outIteratePartial) {
-	//		pmod = " class";
-	//		pluralpmod = "es";
-	//	}
 
 		if (counter == 1)
 			MEnvironment.outStream.println("\n1 solution" + pmod

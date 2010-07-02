@@ -131,97 +131,6 @@ class MVariableVectorAssertion
 	}
 }
 
-class MQueryOutputSpec
-{
-	public enum DefaultOutputType {outAll, outOne, outSat, outSilent, outPopulated, outUnpopulated };
-	public enum DefaultIteratorType {outIterateTotal, outIteratePartial};
-	
-	public Map<String, Set<List<String>>> populatedCandidates = new HashMap<String, Set<List<String>>>();
-	
-	// FOR CASES is _disjunctive_. Candidates will be evaluated with respect to each separately.
-	// In future, may allow a richer set of atom cases. (Negation, conjunction)
-	public Map<String, Set<List<String>>> forCasesOr = new HashMap<String, Set<List<String>>>();
-	
-	
-	public DefaultOutputType otDefault = DefaultOutputType.outAll;
-	public DefaultIteratorType itDefault = DefaultIteratorType.outIterateTotal;	
-	
-	MQueryOutputSpec()
-	{
-		
-	}
-	
-	MQueryOutputSpec(String arg)
-	{
-		if("all".equals(arg))
-		{
-			otDefault = DefaultOutputType.outAll;
-			itDefault = DefaultIteratorType.outIterateTotal;			
-		}
-		else if("one".equals(arg))
-		{
-			otDefault = DefaultOutputType.outOne;
-			itDefault = DefaultIteratorType.outIterateTotal;	
-		}
-		else if("collapse one".equals(arg))
-		{
-			otDefault = DefaultOutputType.outOne;
-			itDefault = DefaultIteratorType.outIteratePartial;
-		}
-		else if("collapse all".equals(arg))
-		{
-			otDefault = DefaultOutputType.outAll;
-			itDefault = DefaultIteratorType.outIteratePartial;
-
-		}
-		else if("populated".equals(arg))
-		{
-			otDefault = DefaultOutputType.outPopulated;
-		}
-		else if("unpopulated".equals(arg))
-		{
-			otDefault = DefaultOutputType.outUnpopulated;			
-		}
-		else if("?".equals(arg))
-		{
-			otDefault = DefaultOutputType.outSat;			
-		}
-		else
-		{
-			otDefault = DefaultOutputType.outAll;
-			itDefault = DefaultIteratorType.outIterateTotal;	
-		}
-
-	}
-	
-	public String toString()
-	{
-		if(otDefault == DefaultOutputType.outSilent)
-			return " SILENT ";
-		if(otDefault == DefaultOutputType.outSat)
-			return " IS POSSIBLE? ";
-		
-		
-		// Don't need this yet
-		/*if(otDefault == DefaultOutputType.outPopulated)
-			return " POPULATED ";
-		if(otDefault == DefaultOutputType.outUnpopulated)
-			return " UNPOPULATED ";*/
-		
-		
-		if(otDefault == DefaultOutputType.outAll && itDefault == DefaultIteratorType.outIteratePartial)
-			return " SHOW ALL COLLAPSE ";
-		if(otDefault == DefaultOutputType.outAll && itDefault == DefaultIteratorType.outIterateTotal)
-			return " SHOW ALL";
-		if(otDefault == DefaultOutputType.outOne && itDefault == DefaultIteratorType.outIteratePartial)
-			return " SHOW ONE COLLAPSE ";
-		if(otDefault == DefaultOutputType.outOne && itDefault == DefaultIteratorType.outIteratePartial)
-			return " SHOW ONE ";
-		
-		return " SHOW ALL ";
-	}
-}
-
 
 class MExploreCondition
 {
@@ -1242,7 +1151,8 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document loadSQS(String fname) {
+	public static Document loadSQS(String fname)
+	{
 		// TODO Auto-generated method stub
 		return unsupportedResponse();
 	}

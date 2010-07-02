@@ -1690,6 +1690,12 @@ class MQueryResult
 		return new MPopulatedRelationFinder(this);
 	}
 
+	public int countModels() 
+	{
+		return countModelsAtSize(0);
+	}
+	
+	
 	public int countModelsAtSize(Integer n)
 	{	
 		try

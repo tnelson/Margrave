@@ -1240,14 +1240,7 @@ public class MFormulaManager
 		
 		// -----------------------------------
 		
-		return conjunction;
-		
-		
-		// TODO
-		// goal is to remove simplifier visitor.
-		
-		
-		
+		return conjunction;		
 		
 		// TODO
 		// promotion of existentials when safe; substitution for it
@@ -1540,14 +1533,41 @@ public class MFormulaManager
 	
 		MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
-		// TODO break this memory usage object down more
 		thisElement = xmldoc.createElementNS(null, "HEAP-USAGE");
-		thisElement.appendChild(xmldoc.createTextNode(memoryBean.getHeapMemoryUsage().toString()));
-		theResult.appendChild(thisElement);			
+		
+		MemoryUsage mu = memoryBean.getHeapMemoryUsage();
+		Element initElement = xmldoc.createElementNS(null, "INIT");
+		initElement.setAttribute("units", "bytes");
+		initElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getInit())));
+		thisElement.appendChild(initElement);
+		Element usedElement = xmldoc.createElementNS(null, "USED");
+		usedElement.setAttribute("units", "bytes");
+		usedElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getUsed())));		
+		thisElement.appendChild(usedElement);
+		Element maxElement = xmldoc.createElementNS(null, "MAX");
+		maxElement.setAttribute("units", "bytes");
+		maxElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getMax())));
+		thisElement.appendChild(maxElement);
+
+		theResult.appendChild(thisElement);		
 
 		
 		thisElement = xmldoc.createElementNS(null, "NON-HEAP-USAGE");
-		thisElement.appendChild(xmldoc.createTextNode(memoryBean.getNonHeapMemoryUsage().toString()));
+
+		mu = memoryBean.getNonHeapMemoryUsage();
+		initElement = xmldoc.createElementNS(null, "INIT");
+		initElement.setAttribute("units", "bytes");
+		initElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getInit())));
+		thisElement.appendChild(initElement);
+		usedElement = xmldoc.createElementNS(null, "USED");
+		usedElement.setAttribute("units", "bytes");
+		usedElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getUsed())));		
+		thisElement.appendChild(usedElement);
+		maxElement = xmldoc.createElementNS(null, "MAX");
+		maxElement.setAttribute("units", "bytes");
+		maxElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getMax())));
+		thisElement.appendChild(maxElement);
+
 		theResult.appendChild(thisElement);			
 
 		

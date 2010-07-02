@@ -2304,49 +2304,49 @@ public class MJavaTests
 		
 		//myInterface.debugParser = true;
 
-		testCommandOutput(myInterface, "Query 1", query1, query1Result);
-		testCommandOutput(myInterface, "Query 2", query2, query2Result);
-		testCommandCount(myInterface, "Query 2a", query2a, query2aResult);
-		testCommandOutput(myInterface, "Query 2b", query2b, query2bResult);
-		testCommandOutput(myInterface, "Query 3", query3, query3Result);
-		testCommandCount(myInterface, "Query 4", query4, query4Result);
+		testCommandOutput("Query 1", query1, query1Result);
+		testCommandOutput("Query 2", query2, query2Result);
+		testCommandCount("Query 2a", query2a, query2aResult);
+		testCommandOutput("Query 2b", query2b, query2bResult);
+		testCommandOutput("Query 3", query3, query3Result);
+		testCommandCount("Query 4", query4, query4Result);
 				
-		testCommandOutput(myInterface, "Query 4a", query4a, query4aResult);
+		testCommandOutput("Query 4a", query4a, query4aResult);
 		
-		testCommandOutput(myInterface, "Query 4b", query4b, query4bResult);
-		testCommandCount(myInterface, "Query 4c", query4c, query4cResult);		
+		testCommandOutput("Query 4b", query4b, query4bResult);
+		testCommandCount("Query 4c", query4c, query4cResult);		
 		
-		testCommandCount(myInterface, "Query 5", query5, query5Result);
-		testCommandCount(myInterface, "Query 6", query6, query6Result);
-		testCommandCount(myInterface, "Query 7", query7, query7Result);
-		//testCommandOutput(myInterface, "Query 8", query8, query8Result);
+		testCommandCount("Query 5", query5, query5Result);
+		testCommandCount("Query 6", query6, query6Result);
+		testCommandCount("Query 7", query7, query7Result);
+		//testCommandOutput("Query 8", query8, query8Result);
 		
-		testCommandOutput(myInterface, "Query 8a", query8a, query8aResult);
-		testCommandCount(myInterface, "Query 9", query9, query9Result);
-		testCommandCount(myInterface, "Query 10", query10, query10Result);
+		testCommandOutput("Query 8a", query8a, query8aResult);
+		testCommandCount("Query 9", query9, query9Result);
+		testCommandCount("Query 10", query10, query10Result);
 		
-		testCommandCount(myInterface, "Query 11", query11, query11Result);
-		testCommandCount(myInterface, "Query 12", query12, query12Result);
-		testCommandCount(myInterface, "Query 13", query13, query13Result);
-		testCommandCount(myInterface, "Query 14", query14, query14Result);
+		testCommandCount("Query 11", query11, query11Result);
+		testCommandCount("Query 12", query12, query12Result);
+		testCommandCount("Query 13", query13, query13Result);
+		testCommandCount("Query 14", query14, query14Result);
 		
 		// Populated/Unpopulated
-		testCommandPop(myInterface, "Query 15", query15, query15Result);		
-		testCommandOutput(myInterface, "Query 15error", query15error, query15errorResult);		
-		testCommandPop(myInterface, "Query 15a", query15a, query15aResult);		
-		testCommandPop(myInterface, "Query 16", query16, query16Result);
-		testCommandPop(myInterface, "Query 17", query17, query17Result);
-		testCommandPop(myInterface, "Query 18", query18, query18Result);
-		testCommandPop(myInterface, "Query 19", query19, query19Result);
-		testCommandPop(myInterface, "Query 20", query20, query20Result);
+		testCommandPop("Query 15", query15, query15Result);		
+		testCommandOutput("Query 15error", query15error, query15errorResult);		
+		testCommandPop("Query 15a", query15a, query15aResult);		
+		testCommandPop("Query 16", query16, query16Result);
+		testCommandPop("Query 17", query17, query17Result);
+		testCommandPop("Query 18", query18, query18Result);
+		testCommandPop("Query 19", query19, query19Result);
+		testCommandPop("Query 20", query20, query20Result);
 		
 		System.exit(1);
 		
 	}
 	
-	public static boolean testCommandPop(MEnvironment iface, String desc, String cmd, Map<String, Set<String>> expected)
+	public static boolean testCommandPop(String desc, String cmd, Map<String, Set<String>> expected)
 	{
-		Object result = iface.commandSilent(cmd);
+		Object result = MEnvironment.commandSilent(cmd);
 		if(result instanceof Map<?, ?>)
 		{
 			Map<?, ?> resultmap = (Map<?, ?>) result;
@@ -2365,16 +2365,16 @@ public class MJavaTests
 		return false;
 	}
 	
-	public static boolean testCommandCount(MEnvironment iface, String desc, String cmd, int expectedModels)
+	public static boolean testCommandCount(String desc, String cmd, int expectedModels)
 	{
 		
-		Object result = iface.commandSilent(cmd);
+		Object result = MEnvironment.commandSilent(cmd);
 		if(result instanceof MQuery)
 		{
 			MQuery qry = (MQuery) result;
 			try
 			{
-				int actualModels = qry.countSatisfyingSolutions();
+				int actualModels = qry.runQuery().countModels();
 				if(actualModels != expectedModels)
 				{
 					System.out.println("***FAILED***: "+desc);
@@ -2395,25 +2395,25 @@ public class MJavaTests
 		return false;
 	}
 	
-	public static boolean testCommandOutput(MEnvironment iface, String desc, String cmd, String expectedPrint)
+	public static boolean testCommandOutput( String desc, String cmd, String expectedPrint)
 	{
 		
-		PrintStream saveErr = iface.errorStream;
-		PrintStream saveOut = iface.outStream;
+		PrintStream saveErr = MEnvironment.errorStream;
+		PrintStream saveOut = MEnvironment.outStream;
 		
 		OutputStream testOutputStream = new ByteArrayOutputStream();
 		PrintStream testPrintStream = new PrintStream(testOutputStream);
-		iface.outStream = testPrintStream;
-		iface.errorStream = testPrintStream;
+		MEnvironment.outStream = testPrintStream;
+		MEnvironment.errorStream = testPrintStream;
 
 		// NOT silent
-		iface.command(cmd);
+		MEnvironment.command(cmd);
 		
 		String printed = testOutputStream.toString().trim();
 		boolean result = printed.equals(expectedPrint);
 		
-		iface.outStream = saveOut;
-		iface.errorStream = saveErr;
+		MEnvironment.outStream = saveOut;
+		MEnvironment.errorStream = saveErr;
 		
 		if(result)
 			System.out.println("Passed: "+desc);
@@ -3034,7 +3034,7 @@ public class MJavaTests
 		
 		
 		
-		System.out.println("\n\n\n"+qry.countSatisfyingSolutions()+"\n\n\n");
+		System.out.println("\n\n\n"+qry.runQuery().countModels()+"\n\n\n");
 		// affected by all the new equality preds?
 		// Actually 1560 possible solutions? yes. but are they all equality-variants?
 		//qry.prettyPrintOneSolution();
