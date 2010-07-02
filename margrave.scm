@@ -112,16 +112,16 @@
 (display "true" out-file)
 (close-output-port out-file)
   
-(define (close)
+(define (close-margrave)
   (begin
-    (display "QUIT" output-port)
+    (display "QUIT;" output-port) ; semicolon is necessary
     (flush-output output-port)
     (close-input-port input-port)
     (close-output-port output-port)
     (close-input-port err-port)
     (ctrl-function 'kill)
     ))
-  
+
 ;Deprecated
   #;(if windows?
         ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
@@ -129,17 +129,14 @@
         (ctrl-function 'kill))
 
 ;Kill process on exit
-(exit:insert-on-callback close)
+(exit:insert-on-callback close-margrave)
 
 ; Need to
-; (0 - tim) (GET REQUEST VECTOR) and XACML/SQS loading   
+; (0 - tim) XACML/SQS loading   
 
 ; (1) Any way to hook drracket exit and close ports + process? 
 ; (2) hook re-run and close ports + process?
-; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
 ; (4) update policy load process (probably some command strings to correct, too)
-; [DONE?] (5) build paths using DrRacket's library... paths&dirs handling
-
 
 ;****************************************************************
 ;;XML
