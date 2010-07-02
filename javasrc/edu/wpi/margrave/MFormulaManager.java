@@ -43,6 +43,9 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import kodkod.ast.*;
 import kodkod.ast.operator.FormulaOperator;
 import kodkod.ast.operator.Multiplicity;
@@ -1464,6 +1467,115 @@ public class MFormulaManager
 		Variable var = vars.get(varname);
 		//System.out.println("Searching for "+varname+" got "+var);
 		return var != null;		
+	}
+
+	public static Element getStatisticsNode(Document xmldoc)
+	{
+		// Return a structured object with statistics, instead of a string.
+		if(!hasBeenInitialized)
+			initialize();
+			
+		Element theResult = xmldoc.createElementNS(null, "MANAGER");
+			
+		Element thisElement; 
+		
+		thisElement = xmldoc.createElementNS(null, "VARIABLES");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(vars.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "VARIABLE-TUPLES");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(varTuples.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "RELATIONS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(relations.size())));
+		theResult.appendChild(thisElement);			
+		
+		thisElement = xmldoc.createElementNS(null, "DECLS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(declNodes.size())));
+		theResult.appendChild(thisElement);			
+						          			
+		int iTotalMultip = someMultiplicities.size() +
+		                   noMultiplicities.size() +
+		                   loneMultiplicities.size() +
+		                   oneMultiplicities.size();
+		
+		thisElement = xmldoc.createElementNS(null, "MULTIPLICITY");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(iTotalMultip)));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "ATOMS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(atomFormulas.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "NEGATIONS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(negFormulas.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "CONJUNCTIONS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(andFormulas.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "DISJUNCTIONS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(orFormulas.size())));
+		theResult.appendChild(thisElement);			
+		
+		thisElement = xmldoc.createElementNS(null, "Q-EXISTS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(existsFormulas.size())));
+		theResult.appendChild(thisElement);			
+
+		thisElement = xmldoc.createElementNS(null, "Q-FORALL");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(forallFormulas.size())));
+		theResult.appendChild(thisElement);			
+				
+		int iTotalFormulas = atomFormulas.size() +
+		                     negFormulas.size() +
+		                     andFormulas.size() +
+		                     orFormulas.size() + existsFormulas.size() + forallFormulas.size();
+
+		thisElement = xmldoc.createElementNS(null, "TOTAL-FORMULAS");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(iTotalFormulas)));
+		theResult.appendChild(thisElement);			
+
+	
+		MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+
+		// TODO break this memory usage object down more
+		thisElement = xmldoc.createElementNS(null, "HEAP-USAGE");
+		thisElement.appendChild(xmldoc.createTextNode(memoryBean.getHeapMemoryUsage().toString()));
+		theResult.appendChild(thisElement);			
+
+		
+		thisElement = xmldoc.createElementNS(null, "NON-HEAP-USAGE");
+		thisElement.appendChild(xmldoc.createTextNode(memoryBean.getNonHeapMemoryUsage().toString()));
+		theResult.appendChild(thisElement);			
+
+		
+		long lReclaimed = 
+			someMultiplicities.countReclaimed +
+	       noMultiplicities.countReclaimed +
+	       loneMultiplicities.countReclaimed +
+	       oneMultiplicities.countReclaimed +
+	       vars.countReclaimed +
+	       varTuples.countReclaimed +
+	       relations.countReclaimed +
+	       atomFormulas.countReclaimed +
+	       negFormulas.countReclaimed +
+	       andFormulas.countReclaimed +
+	       orFormulas.countReclaimed +
+	       forallFormulas.countReclaimed +
+	       existsFormulas.countReclaimed;
+			
+		thisElement = xmldoc.createElementNS(null, "RECLAIMED");
+		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(lReclaimed)));
+		theResult.appendChild(thisElement);			
+
+	                
+			
+			
+		return theResult;
+
+		
 	}
 }
 

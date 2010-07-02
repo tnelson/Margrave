@@ -24,6 +24,15 @@ import java.lang.*;
 import java.util.*;
 import java.io.*;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Text;
+
 import kodkod.ast.*;
 import kodkod.instance.Instance;
 import kodkod.instance.Tuple;
@@ -519,19 +528,34 @@ public class MEnvironment
 	public static boolean debugParser = false;
 	
 	public static String eol = System.getProperty("line.separator");
-	public static String sUnknownIdMessage = "Unknown result ID.";
-	public static String sNoIterator = "Cannot get NEXT model before getting a first ONE.";
+	public static String sNoIterator = "no iterator";
 	public static String sFalse = String.valueOf(false);
 	public static String sTrue = String.valueOf(true);
-	public static String sUnknownVocabMessage = "Unknown vocabulary.";		
-	public static String sIdentifierUsedMessage = "Identifier was already in use.";
-	public static String sUnknownPolicyMessage = "Unknown policy.";
-	public static String sNotAPolicyLeafMessage = "Policy was not a leaf.";
-	public static String sNotAPolicySetMessage = "Policy was not a set.";
-	public static String sNotAPolicyMessage = "Not a policy identifier.";
-	public static String sUnsupportedCommand = "Command is not yet supported.";
-	public static String sNoMoreSolutions = sFalse;
+	public static String sUnknown = "unknown";
+	public static String sNotExpected = "not expected type";
+	public static String sVocabulary = "vocabulary";
+	public static String sPolicy = "policy";
+	public static String sPolicySet = "policyset";
+	public static String sPolicyLeaf = "policyleaf";
+	public static String sIdentifier = "identifier";
+	public static String sIDBCollection = "idb collection";
+	public static String sQuery = "query";
+	public static String sResultID = "result ID";
+	public static String sUsed = "used";
+	public static String sReserved = "reserved";
+	public static String sReqVector = "request vector";	
+	public static String sNotDocument = "value not XML document";
+	public static String sFailure = "failure";
 	
+	public static String sShow = "show";
+	public static String sNext = "next";
+	public static String sGet = "get";
+	public static String sFirst = "first";	
+	
+	public static String sTopQualifiedName = "MARGRAVE-RESPONSE";
+	public static String sSuccess = "success";
+	public static String sQuitMargrave = "quit";
+		
 	static MIDBCollection getPolicyOrView(String str)
 	{
 		
@@ -589,13 +613,13 @@ public class MEnvironment
 		return null;
 	}
 	
-	static public String commandSilent(String cmd)
+	static public Document commandSilent(String cmd)
 	{
 		// Don't print anything
 		return command(cmd, true);
 	}
 	
-	static public String command(String cmd)
+	static public Document command(String cmd)
 	{
 		// Default to non-silent
 		return command(cmd, false);
@@ -607,12 +631,12 @@ public class MEnvironment
 			outStream.println(out.toString());
 	}
 	
-	static String getNextModel(int numResult)
+	static Document getNextModel(int numResult)
 	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
 	{
 		// Do we have a result for this num?
 		if(!envQueryResults.containsKey(numResult))
-			return "";
+			return errorResponse(sUnknown, sResultID, numResult);
 		
 		if(!envIterators.containsKey(numResult))
 			return getFirstModel(numResult);
@@ -621,21 +645,21 @@ public class MEnvironment
 			// Return next model in the iterator.
 			try
 			{
-				return convertSolutionToSexp(envQueryResults.get(numResult), envIterators.get(numResult).next());
+				return scenarioResponse(envQueryResults.get(numResult), envIterators.get(numResult).next());
 			}
 			catch(MGENoMoreSolutions e)
 			{
-				return sFalse;
+				return noSolutionResponse(numResult);
 			}
 		}		
 	}
 				
-	static String getFirstModel(int numResult) 
+	static Document getFirstModel(int numResult) 
 	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
 	{
 		// Do we have a result for this num?
 		if(!envQueryResults.containsKey(numResult))
-			return "";
+			return errorResponse(sUnknown, sResultID, numResult);
 
 		// Reset the iterator (or create it if new)
 		MInstanceIterator it = envQueryResults.get(numResult).getTotalIterator();
@@ -643,16 +667,17 @@ public class MEnvironment
 		
 		try
 		{
-			return convertSolutionToSexp(envQueryResults.get(numResult), it.next());
+			return scenarioResponse(envQueryResults.get(numResult), it.next());
 		}
 		catch(MGENoMoreSolutions e)
 		{
-			return sFalse;
+			return noSolutionResponse(numResult);
 		}
 		
 	}
 	
-	static public String command(String cmd, boolean silent)
+
+	static public Document command(String cmd, boolean silent)
 	{
 		Reader reader = new StringReader(cmd);
 		MCommandLexer theLexer = new MCommandLexer(reader);
@@ -679,7 +704,7 @@ public class MEnvironment
 				if(qry == null)
 				{
 					errorStream.println("-> Command failed.");
-					return "";
+					return errorResponse(sFailure, sQuery, cmd);
 				}
 				
 				// Compile the query and get the result handle.
@@ -687,111 +712,197 @@ public class MEnvironment
 				
 				// TODO Don't store more than one for now.
 				envQueryResults.put(0, qryResult);
-				return "0";
+				return resultHandleResponse(0);
 												
 			}  // end: a query
 			
 			// Else, it's an INFO command etc.
 			else
 			{
-				String resStr = result.value.toString();
-				//System.err.println(resStr);
+				Document resDoc;
+				if(result.value instanceof Document)
+					resDoc = (Document) result.value;
+				else
+					resDoc = errorResponse(sNotDocument, "", "");
+
 				
-				return resStr;
+				return resDoc;
 			}
 
 		}
 		catch(MParserException e)
 		{
-			// TODO When real repl, SHOW the error with underlining
-			perror("Error when parsing command. Row: "+e.row+", Column: "+e.col);
-			return e.getLocalizedMessage();			
+			return exceptionResponse(e);		
 		}
 		catch(MLexerException e)
 		{
-			// TODO When real repl, SHOW the error with underlining
-			perror("Error when lexing command. Row: "+e.row+", Column: "+e.col+" At: "+e.at);		
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}		
 		catch(MSemanticException e)
 		{
-			// TODO When real repl, SHOW the error with underlining
-			if(e.errorValue != null)
-				perror(e.problem+" at Row: "+e.row+", Column: "+e.col+". This was around: "+((Symbol)e.errorValue).value);
-			else
-			{
-				// MSemanticException can also be used to indicate a problem without including a row/col.
-				perror(e.problem);
-			}
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 		catch(Exception e)
 		{
-			// Unexpected! Bad exception
-			perror("Unexpected exception when reading command: "+e.getClass()+"\n------------------------------\n");			
-			e.printStackTrace(errorStream);
-			perror("------------------------------");
-			return e.getLocalizedMessage();
+			// Unexpected! Bad exception			
+			return exceptionResponse(e);
 		}
 		
 	}
 	
-	static public String printInfo(String id)
+	static public Document printInfo(String id)
 	{
 		MIDBCollection coll = getPolicyOrView(id);
 		if(coll != null)
-			return coll.getInfo();
+			return getCollectionInfo(coll);
 		else
 		{
 			MVocab voc = envVocabularies.get(id);
 			if(voc != null)
-				return voc.getInfo();
+			{
+				return getVocabInfo(voc);
+			}
 		}
-		
-		return "Unknown identifier";
+				
+		return errorResponse(sUnknown, sIdentifier, id);
 	}
 	
 	
+	private static Document getCollectionInfo(MIDBCollection coll)
+	{	
+		// TODO This should be broken out into methods of each subclass.
+		// TODO should also give more info
+			
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		
+		if(coll instanceof MPolicyLeaf)
+		{
+			MPolicyLeaf pleaf = (MPolicyLeaf) coll;
+			Element theElement = xmldoc.createElementNS(null, "POLICY-LEAF");
+			theElement.setAttribute("name", pleaf.name);
+			theElement.setAttribute("rule-combine", pleaf.rCombine);
+			
+			for(String key : coll.idbs.keySet())
+			{
+				Element idbElement = xmldoc.createElementNS(null, "IDB");
+				idbElement.setAttribute("base-name", key);
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				theElement.appendChild(idbElement);
+			}
+						
+			xmldoc.getDocumentElement().appendChild(theElement);
+		}
+		else if(coll instanceof MPolicySet)
+		{
+			MPolicySet pset = (MPolicySet) coll;
+			Element theElement = xmldoc.createElementNS(null, "POLICY-SET");
+			theElement.setAttribute("name", pset.name);
+			theElement.setAttribute("policy-combine", pset.pCombine);
+			
+			for(String key : coll.idbs.keySet())
+			{
+				Element idbElement = xmldoc.createElementNS(null, "IDB");
+				idbElement.setAttribute("base-name", key);
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				theElement.appendChild(idbElement);
+			}
+			
+			xmldoc.getDocumentElement().appendChild(theElement);
+		}
+		else
+		{
+			MQuery qry = (MQuery) coll;
+			Element theElement = xmldoc.createElementNS(null, "SAVED-QUERY");
+			theElement.setAttribute("name", qry.name);
+			
+			for(String key : coll.idbs.keySet())
+			{
+				Element idbElement = xmldoc.createElementNS(null, "IDB");
+				idbElement.setAttribute("base-name", key);
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				theElement.appendChild(idbElement);
+			}
+			
+			xmldoc.getDocumentElement().appendChild(theElement);
+		}
+					
+		
+		return xmldoc;
+	}
+
+	private static Document getVocabInfo(MVocab voc) 
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element theElement = xmldoc.createElementNS(null, "VOCABULARY");
+		theElement.setAttribute("name", voc.vocab_name);
+		
+		Element sortsElement = xmldoc.createElementNS(null, "SORTS");
+		Element reqElement = xmldoc.createElementNS(null, "REQ-VECTOR");
+		
+		// TODO add more info
+		
+		for(String sname : voc.sorts.keySet())
+		{
+			Element sortElement = xmldoc.createElementNS(null, "SORT");
+			sortElement.appendChild(xmldoc.createTextNode(sname));
+			sortsElement.appendChild(sortElement);
+		}
+		
+		int iOrder = 1;
+		for(Variable var : voc.requestVectorOrder)
+		{
+			Element varElement = xmldoc.createElement("VARIABLE");
+			varElement.setAttribute("order", String.valueOf(iOrder));
+			varElement.appendChild(xmldoc.createTextNode(var.name()));
+			reqElement.appendChild(varElement);	
+			iOrder++;
+		}
+		
+		theElement.appendChild(sortsElement);
+		theElement.appendChild(reqElement);
+		xmldoc.getDocumentElement().appendChild(theElement);		
+		return xmldoc;
+	}
+
 	// Returns true if overwriting existing identifier
 	// Assume that the policy is already loaded FOR NOW. 
 	// Later we will add a LOAD POLICY keyword.
-	static public boolean savePolicyAs(String ident, MPolicy pol)
+	static public Document savePolicyAs(String ident, MPolicy pol)
 	{
 		ident = ident.toLowerCase();
 		
 		if("last".equals(ident))
 		{						
-			errorStream.println("The keyword LAST is reserved. Could not load policy and name it `LAST'.");
-			return false;
+			errorResponse(sReserved, sIDBCollection, ident);
 		}
 				
-		return envIDBCollections.put(ident, pol) != null;			
+		return boolResponse(envIDBCollections.put(ident, pol) != null);			
 	}
 	
-	static public String renameIDBCollection(String identold, String identnew)
+	static public Document renameIDBCollection(String identold, String identnew)
 	{
 		identold = identold.toLowerCase();
 		identnew = identnew.toLowerCase();
 		
 		if("last".equals(identnew))
 		{						
-			perror("The keyword LAST is reserved. Could not rename to `LAST'.");
-			return "ERROR: The keyword LAST is reserved. Could not rename to `LAST'.";
+			return errorResponse(sReserved, sIDBCollection, identnew);
 		}
 		
 		if(!envIDBCollections.containsKey(identold))
-		{
-			perror("Could not find a collection with identifier: "+identold);
-			return "ERROR: Could not find a collection with identifier: "+identold;		
+		{			
+			return errorResponse(sUnknown, sIDBCollection, identold);		
 		}
 		
 		
 		boolean overwrote = envIDBCollections.put(identnew, envIDBCollections.get(identold)) != null;
 		envIDBCollections.remove(identold);
-		return String.valueOf(overwrote);		
+		return boolResponse(overwrote);		
 	}
 	
-	static public Object doCompare(String pol1, String pol2, Map<String, Set<List<String>>> idbOutputMap,
+	static public Document doCompare(String pol1, String pol2, Map<String, Set<List<String>>> idbOutputMap,
 			Boolean tupling, Integer debuglevel, Integer sizeceiling)
 	{
 		// Pol1 and Pol2 are policies to compare.
@@ -861,15 +972,6 @@ public class MEnvironment
 	}
 	
 	
-	static private void perror(String msg)
-	{
-		errorStream.println("\nMARGRAVE ERROR: \n"+msg+"\n");
-		
-		outStream.flush();
-		if(outStream != errorStream)
-			errorStream.flush();	
-	}
-	
 	public static String foldConcatWithSpaces(List<String> idl)
 	{
 		StringBuffer result = new StringBuffer();
@@ -886,131 +988,34 @@ public class MEnvironment
 		return result.toString();		
 	}
 	
-	static public String convertSetToSexp(Set<?> theSet)
-	{
-		// Gives a warning, but won't let me instantiate ArrayList<?> (which is only to be expected)
-		return convertListToSexp(new ArrayList(theSet));
-	}
-	
-	static public String convertListToSexp(List<?> theList)
-	{		
-		StringBuffer buf = new StringBuffer();		
-		buf.append("( ");
-				
-		for(Object o : theList)
-		{			
-			buf.append(o.toString());		
-			buf.append(" ");
-		}
-		
-		buf.append(")");
-		return buf.toString();
-	}
-	
-	static public String convertMapToSexp(Map<?, ?> theMap)
-	{
-		StringBuffer buf = new StringBuffer();		
-		buf.append("( ");
-				
-		for(Object o : theMap.keySet())
-		{
-			Object v = theMap.get(o);
-			
-			buf.append(" ( ");
-			buf.append(o.toString());
-			buf.append(" ");
-			
-			if(v instanceof List<?>)
-				buf.append(convertListToSexp((List<?>)v));
-			else
-				buf.append(v.toString());
-			
-			buf.append(" ) ");
-		}
-		
-		buf.append(")");
-		return buf.toString();
-	}
-	
-	public static String printSystemInfo()
-	{		
-		StringBuffer theResult = new StringBuffer();
-		theResult.append(MFormulaManager.getStatisticsString());
-		
-		theResult.append(eol+eol);
-		theResult.append("Number of vocabularies: "+envVocabularies.size()); theResult.append(eol);
-		theResult.append("Number of IDB Collections (policies + saved queries): "+envIDBCollections.size()); theResult.append(eol);
-		theResult.append("Number of cached query results: "+envQueryResults.size()); theResult.append(eol);
-		return theResult.toString();
-	}
-	
-	static public String convertSolutionToSexp(MQueryResult forResult, MSolutionInstance sol)
-	{
-		StringBuffer result = new StringBuffer();
-		
-		result.append("(model ");
-		Instance facts = sol.getFacts();
-		result.append(facts.universe().size());
-		result.append(" ");
-		
-		// For each relation, what's in it?
-		for(Relation r : facts.relations())
-		{
-			result.append("("+r.name()+" "+r.arity()+" (");
-			
-			for(Tuple t : facts.relationTuples().get(r))
-			{
-				result.append(t.toString());			
-			}
-			
-			result.append(")) ");
-		}
-		
-		result.append(")");
-		return result.toString();
-	}
 
-	public static String showNextModel(Integer id)
+	public static Document showNextModel(Integer id)
 	{
 		MQueryResult aResult = getResultObject(id);
 		MInstanceIterator anIterator = getIteratorFor(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 		if(anIterator == null)
-			return sNoIterator;
+			return errorResponse(sNoIterator, "", id);
 		
 		try
 		{
 			MSolutionInstance sol = anIterator.next();
 			String str = aResult.getPrettySolution(sol, anIterator);
-			return str;
+			return stringResponse(str);
 		}
 		catch(MGENoMoreSolutions e)
 		{
-			return sNoMoreSolutions;
+			return noSolutionResponse(id);
 		}
 
 	}
-
-	public static String getNextModel(String id) 
-	{
-		// TODO Auto-generated method stub
-		return sUnsupportedCommand;
-	}
-
-	public static String getFirstModel(String id)
-	{
-		
-		// TODO only SHOW for now 
-		return sUnsupportedCommand;
-		
-	}
 	
-	public static String showFirstModel(Integer id)
+	public static Document showFirstModel(Integer id)
 	{
 		MQueryResult aResult = getResultObject(id);		
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 		
 		try
 		{	
@@ -1022,16 +1027,16 @@ public class MEnvironment
 			
 			// return the first model
 			MSolutionInstance sol = anIterator.next();
-			String str = aResult.getPrettySolution(sol, anIterator);
-			return str;
+			String str = aResult.getPrettySolution(sol, anIterator);			
+			return stringResponse(str);
 		}
 		catch(MGENoMoreSolutions e)
 		{
-			return sNoMoreSolutions;
+			return noSolutionResponse(id);
 		}
 		catch(MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 		 
 	}
@@ -1041,13 +1046,13 @@ public class MEnvironment
 		return envIterators.get(id);
 	}
 	
-	public static String showPopulated(Integer id,
+	public static Document showPopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist) 
 	{
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 				
 		Map<String, Set<String>> outsets;
 		try
@@ -1055,34 +1060,34 @@ public class MEnvironment
 			outsets = aResult.getPopulatedRelationFinder().getPopulatedRelations(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
-				return convertSetToSexp(outsets.get(""));
-			return convertMapToSexp(outsets);
+				return setResponse(outsets.get(""));
+			return mapResponse(outsets);
 			
 		}
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String showNextCollapse(Integer id) 
+	public static Document showNextCollapse(Integer id) 
 	{
 		// TODO No support for partial models yet
-		return sUnsupportedCommand;
+		return unsupportedResponse();
 	}
 
-	public static String showPopulated(Integer id, Map<String, Set<List<String>>> rlist)
+	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist)
 	{
 		return showPopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static String showUnpopulated(Integer id,
+	public static Document showUnpopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist)
 	{
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 				
 		Map<String, Set<String>> outsets;
 		try
@@ -1090,468 +1095,469 @@ public class MEnvironment
 			outsets = aResult.getPopulatedRelationFinder().getUnpopulatedRelations(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
-				return convertSetToSexp(outsets.get(""));
-			return convertMapToSexp(outsets);
+				return setResponse(outsets.get(""));
+			return mapResponse(outsets);
 			
 		}
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 	
-	public static String showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) 
+	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) 
 	{
 		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static String countModels(Integer id, Integer n)
+	public static Document countModels(Integer id, Integer n)
 	{
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
-		return String.valueOf(aResult.countModelsAtSize(n));				
+			return errorResponse(sUnknown, sResultID, id);
+		return intResponse(aResult.countModelsAtSize(n));				
 	}
 
-	public static String countModels(Integer id)
+	public static Document countModels(Integer id)
 	{
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
-	public static String isGuar(Integer id)
+	public static Document isGuar(Integer id)
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 		if(aResult.get_hu_ceiling() > aResult.get_universe_max())
-			return sFalse;
-		return sTrue;
+			return boolResponse(false);
+		return boolResponse(true);
 	}
 
-	public static String isPoss(Integer id) 
+	public static Document isPoss(Integer id) 
 	{	
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
+			return errorResponse(sUnknown, sResultID, id);
 		try
 		{
-			return String.valueOf(aResult.isSatisfiable());
+			return boolResponse(aResult.isSatisfiable());
 		}
 		catch(MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String showCeiling(Integer id)
+	public static Document showCeiling(Integer id)
 	{
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
-			return sUnknownIdMessage;
-		return String.valueOf(aResult.get_universe_max());
+			return errorResponse(sUnknown, sResultID, id);
+		return intResponse(aResult.get_universe_max());
 	}
+
+
 
 	private static MQueryResult getResultObject(Integer id)
 	{
 		return envQueryResults.get(id);		  	
 	}
 	
-	public static String createPolicySet(String pname, String vname) 
+	public static Document createPolicySet(String pname, String vname) 
 	{
 		// Create a new Policy Set with name pname, vocab vname...
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		if(envIDBCollections.containsKey(pname))
-			return sIdentifierUsedMessage;
+			return errorResponse(sUsed, sPolicy, vname);
 		
 		MVocab voc = envVocabularies.get(vname);
 		MPolicySet pol = new MPolicySet(pname, voc);
 		envIDBCollections.put(pname, pol);
-		return sTrue;
+		return successResponse();
 	}
 
-	static String getRequestVector(String vname)
+	static Document getRequestVector(String vname)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		
-		return voc.getExpectedRequestVarOrder();
+		return stringResponse(voc.getExpectedRequestVarOrder());
 	}
 
 	
-	public static String createPolicyLeaf(String pname, String vname)
+	public static Document createPolicyLeaf(String pname, String vname)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		if(envIDBCollections.containsKey(pname))
-			return sIdentifierUsedMessage;
+			return errorResponse(sUsed, sPolicy, pname);
 		
 		MVocab voc = envVocabularies.get(vname);
 		MPolicyLeaf pol = new MPolicyLeaf(pname, voc);
 		envIDBCollections.put(pname, pol);
-		return sTrue;
+		return successResponse();
 	}
 
-	public static String createVocabulary(String vname)
+	public static Document createVocabulary(String vname)
 	{
 		if(envVocabularies.containsKey(vname))
-			return sIdentifierUsedMessage;
+			return errorResponse(sUsed, sVocabulary, vname);
 		
 		MVocab voc = new MVocab(vname);
 		envVocabularies.put(vname, voc);
-		return sTrue;
+		return successResponse();
 	}
 
-	public static String preparePolicy(String pname)
+	public static Document preparePolicy(String pname)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;
+			return errorResponse(sUnknown, sPolicy, pname);
 		MIDBCollection pol = envIDBCollections.get(pname);
 		if(pol instanceof MPolicy)
 		{
 			try
 			{
 				((MPolicy)pol).initIDBs();
-				return sTrue;
+				return successResponse();
 			}
 			catch(MGException e)
 			{
-				return e.getLocalizedMessage();
+				return exceptionResponse(e);
 			}
 		}
 		else
-			return sNotAPolicyMessage;
+			return errorResponse(sNotExpected, sPolicy, pname);
 	}
 
-	public static String loadXACML(String fname, String sfname)
+	public static Document loadXACML(String fname, String sfname)
 	{
 		//MPolicy pol = MPolicy.readXACML(fname, sfname);
 	
 		// TODO
 		// Get name from where? Filename? Can't use internal name since its often duplicated in our tests
 		
-		return sUnsupportedCommand;
+		return unsupportedResponse();
 	}
 
-	public static String loadSQS(String fname) {
+	public static Document loadSQS(String fname) {
 		// TODO Auto-generated method stub
-		return sUnsupportedCommand;
+		return unsupportedResponse();
 	}
 
-	public static String addSubsort(String vname, String parent, String child)
+	public static Document addSubsort(String vname, String parent, String child)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.addSubSort(parent, child);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addSort(String vname, String sname) {
+	public static Document addSort(String vname, String sname) {
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.addSort(sname);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintAbstract(String vname, String s)
+	public static Document addConstraintAbstract(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintAbstract(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintAbstractAll(String vname, String s) 
+	public static Document addConstraintAbstractAll(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintAbstractAll(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintTotalFunction(String vname, String s) 
+	public static Document addConstraintTotalFunction(String vname, String s) 
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintTotalFunction(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintPartialFunction(String vname, String s) 
+	public static Document addConstraintPartialFunction(String vname, String s) 
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintPartialFunction(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintSubset(String vname, String parent, String child)
+	public static Document addConstraintSubset(String vname, String parent, String child)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintSubset(child, parent); // reverse of how it usually is?
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintNonemptyAll(String vname, String s)
+	public static Document addConstraintNonemptyAll(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintNonemptyAll(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintNonempty(String vname, String s)
+	public static Document addConstraintNonempty(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintNonempty(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintAtMostOneAll(String vname, String s)
+	public static Document addConstraintAtMostOneAll(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintAtMostOneAll(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintAtMostOne(String vname, String s) 
+	public static Document addConstraintAtMostOne(String vname, String s) 
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintAtMostOne(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintSingletonAll(String vname, String s)
+	public static Document addConstraintSingletonAll(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintSingletonAll(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintSingleton(String vname, String s)
+	public static Document addConstraintSingleton(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintSingleton(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintDisjointAll(String vname, String s)
+	public static Document addConstraintDisjointAll(String vname, String s)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintDisjointAll(s);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addConstraintDisjoint(String vname, String s1, String s2)
+	public static Document addConstraintDisjoint(String vname, String s1, String s2)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.axioms.addConstraintDisjoint(s1, s2);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addDecision(String vname, String decname)
+	public static Document addDecision(String vname, String decname)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.addDecision(decname);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addOtherVariable(String vname, String varname, String domainsort)
+	public static Document addOtherVariable(String vname, String varname, String domainsort)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.addOtherVar(varname, domainsort);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addRequestVariable(String vname, String varname, String domainsort)
+	public static Document addRequestVariable(String vname, String varname, String domainsort)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			voc.addRequestVar(varname, domainsort);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-	public static String addPredicate(String vname, String sname, List<String> constr)
+	public static Document addPredicate(String vname, String sname, List<String> constr)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return sUnknownVocabMessage;
+			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
 			String constructstr = foldConcatWithSpaces(constr);
 			voc.addPredicate(sname, constructstr);
-			return sTrue;
+			return successResponse();
 		} 
 		catch (MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
 	}
 
-
-	public static String addRule(String pname, String rname, String decision, List<String> cc)
+	public static Document addRule(String pname, String rname, String decision, List<String> cc)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicyLeaf))
-			return sNotAPolicyLeafMessage;
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		try
 		{
@@ -1559,18 +1565,18 @@ public class MEnvironment
 		}
 		catch(MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
-		return sTrue;
+		return successResponse();
 	}
 	
-	public static String setPolicyTarget(String pname, List<String> cc)
+	public static Document setPolicyTarget(String pname, List<String> cc)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicy))
-			return sNotAPolicyMessage;
+			return errorResponse(sNotExpected, sPolicy, pname);
 		MPolicy pol = (MPolicy) coll;
 		try
 		{
@@ -1578,67 +1584,67 @@ public class MEnvironment
 		}
 		catch(MGException e)
 		{
-			return e.getLocalizedMessage();
+			return exceptionResponse(e);
 		}
-		return sTrue;
+		return successResponse();
 	}
 
-	public static String setRCombine(String pname, List<String> idl)
+	public static Document setRCombine(String pname, List<String> idl)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicyLeaf))
-			return sNotAPolicyLeafMessage;
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		pol.rCombine = foldConcatWithSpaces(idl);
-		return sTrue;
+		return successResponse();
 	}
 
-	public static String setPCombine(String pname, List<String> idl) 
+	public static Document setPCombine(String pname, List<String> idl) 
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicySet))
-			return sNotAPolicySetMessage;
+			return errorResponse(sNotExpected, sPolicySet, pname);
 		MPolicySet pol = (MPolicySet) coll;
 		pol.pCombine = foldConcatWithSpaces(idl);
-		return sTrue;
+		return successResponse();
 	}
 
-	public static String getDecisionFor(String pname, String rname)
+	public static Document getDecisionFor(String pname, String rname)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicyLeaf))
-			return sNotAPolicyLeafMessage;
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
-		return pol.getDecisionForRuleIDBName(rname);		
+		return stringResponse(pol.getDecisionForRuleIDBName(rname));		
 	}
 
-	public static String getHigherPriorityThan(String pname, String rname)
+	public static Document getHigherPriorityThan(String pname, String rname)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicyLeaf))
-			return sNotAPolicyLeafMessage;
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
 		List<String> res = pol.ruleIDBsWithHigherPriorityThan(rname);
-		return convertListToSexp(res);
+		return listResponse(res);
 	}
 
-	public static String getRulesIn(String pname, boolean b)
+	public static Document getRulesIn(String pname, boolean b)
 	{
 		if(!envIDBCollections.containsKey(pname))
-			return sUnknownPolicyMessage;;			
+			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
 		if(!(coll instanceof MPolicyLeaf))
-			return sNotAPolicyLeafMessage;
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
 		List<String> res;
@@ -1647,22 +1653,332 @@ public class MEnvironment
 		else
 			res = pol.getQualifiedIDBNameList();
 		
-		return convertListToSexp(res);
+		return listResponse(res);
 	}
 
-	public static String addChild(String parent, String child)
+	public static Document addChild(String parent, String child)
 	{
 		MIDBCollection pcoll = envIDBCollections.get(parent);
 		MIDBCollection ccoll = envIDBCollections.get(child);
-		if(pcoll == null || ccoll == null)
-			return sUnknownPolicyMessage;
-		if(!(pcoll instanceof MPolicySet) || !(ccoll instanceof MPolicy))
-			return sNotAPolicySetMessage;
+		if(pcoll == null) 
+			return errorResponse(sUnknown, sPolicy, parent);
+		if(ccoll == null)
+			return errorResponse(sUnknown, sPolicy, child);
+		
+		if(!(pcoll instanceof MPolicySet)) 
+			return errorResponse(sNotExpected, sPolicySet, parent);
+		if(!(ccoll instanceof MPolicy))
+			return errorResponse(sNotExpected, sPolicy, child);
 		
 		MPolicySet polparent = (MPolicySet) pcoll;
 		MPolicy polchild = (MPolicy) ccoll;
 		polparent.addChild(polchild);			
-		return sTrue;
+		return successResponse();
+	}
+
+
+	/* Response functions: encode response as XML document for streaming back to Racket. */
+	
+	
+	public static Document printSystemInfo()
+	{				
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+	
+		Element statsElement = MFormulaManager.getStatisticsNode(xmldoc);
+		
+		// TODO give more detail here later
+		Element vocabElement = xmldoc.createElementNS(null, "VOCABULARIES");
+		vocabElement.appendChild(xmldoc.createTextNode(String.valueOf(envVocabularies.size())));		
+		
+		Element idbCollElement = xmldoc.createElementNS(null, "COLLECTIONS");
+		idbCollElement.appendChild(xmldoc.createTextNode(String.valueOf(envIDBCollections.size())));
+		
+		Element cachedElement = xmldoc.createElementNS(null, "CACHED-RESULTS");
+		cachedElement.appendChild(xmldoc.createTextNode(String.valueOf(envQueryResults.size())));
+
+		xmldoc.getDocumentElement().appendChild(statsElement);
+		xmldoc.getDocumentElement().appendChild(vocabElement);
+		xmldoc.getDocumentElement().appendChild(idbCollElement);
+		xmldoc.getDocumentElement().appendChild(cachedElement);
+					
+		return xmldoc;
 	}
 	
+	
+	private static Document errorResponse(String errorType, String errorSubtype, String desc) 
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		
+		Element errorElement = xmldoc.createElementNS(null, "ERROR");
+		
+		errorElement.setAttribute("type", errorType);
+		errorElement.setAttribute("subtype", errorSubtype);
+		errorElement.appendChild(xmldoc.createTextNode(desc));	
+		xmldoc.getDocumentElement().appendChild(errorElement);
+		
+		return xmldoc;
+	}
+	private static Document errorResponse(String errorType, String errorSubtype, Integer desc) 
+	{
+		return errorResponse(errorType, errorSubtype, desc.toString());
+	}
+
+	
+	private static Document exceptionResponse(Exception e)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		
+		Element errorElement = xmldoc.createElementNS(null, "EXCEPTION");
+		
+		errorElement.setAttribute("class", e.getClass().getCanonicalName());
+		errorElement.setAttribute("stack-trace", Arrays.toString(e.getStackTrace()));
+
+		Element msgElement = xmldoc.createElementNS(null, "MESSAGE");
+		msgElement.appendChild(xmldoc.createTextNode(e.getLocalizedMessage()));
+		errorElement.appendChild(msgElement);
+		
+		if(e instanceof MParserException)
+		{
+			MParserException ex = (MParserException) e;
+			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
+			placeElement.setAttribute("row", String.valueOf(ex.row));
+			placeElement.setAttribute("col", String.valueOf(ex.col));
+			placeElement.appendChild(xmldoc.createTextNode(ex.errorValue.toString()));
+			errorElement.appendChild(placeElement);
+		}
+		else if(e instanceof MLexerException)
+		{
+			MLexerException ex = (MLexerException) e;
+			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
+			placeElement.setAttribute("row", String.valueOf(ex.row));
+			placeElement.setAttribute("col", String.valueOf(ex.col));
+			placeElement.appendChild(xmldoc.createTextNode(ex.at));
+			errorElement.appendChild(placeElement);
+		}
+		else if(e instanceof MSemanticException)
+		{
+			MSemanticException ex = (MSemanticException) e;
+			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
+			placeElement.setAttribute("row", String.valueOf(ex.row));
+			placeElement.setAttribute("col", String.valueOf(ex.col));
+			placeElement.setAttribute("problem", String.valueOf(ex.problem));
+			placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
+			errorElement.appendChild(placeElement);
+		}
+		
+		xmldoc.getDocumentElement().appendChild(errorElement);
+		
+		return xmldoc;
+	}
+	
+	
+	private static Document noSolutionResponse(Integer id)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element unsatElement = xmldoc.createElementNS(null, "UNSAT");		
+		xmldoc.getDocumentElement().appendChild(unsatElement);		
+		return xmldoc;
+	}
+
+	private static Document successResponse()
+	{
+		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
+	
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		Text val = xmldoc.createTextNode(sSuccess);
+		xmldoc.getDocumentElement().appendChild(val);			
+		return xmldoc;
+	}
+	
+	private static Document makeInitialResponse() 
+	{
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try
+		{
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			DOMImplementation impl = builder.getDOMImplementation();
+		
+			return impl.createDocument(null, sTopQualifiedName, null);
+		}
+		catch(Exception e)
+		{
+			return null;
+		}
+	}
+
+	private static Document unsupportedResponse()
+	{
+		return errorResponse("unsupported operation", "", "");
+	}
+	
+	private static Document resultHandleResponse(Integer id)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element handleElement = xmldoc.createElementNS(null, "RESULT-HANDLE");
+		handleElement.appendChild(xmldoc.createTextNode(id.toString()));
+		xmldoc.getDocumentElement().appendChild(handleElement);		
+		return xmldoc;
+	}
+	
+	private static Document boolResponse(boolean b)
+	{		
+		return stringResponse(String.valueOf(b));	
+	}
+	private static Document intResponse(int theInt)
+	{
+		return stringResponse(String.valueOf(theInt));
+	}
+	
+	private static Document stringResponse(String str)
+	{
+		// <MARGRAVE-RESPONSE>Hello</MARGRAVE-RESPONSE>
+		
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		Text val = xmldoc.createTextNode(str);
+		xmldoc.getDocumentElement().appendChild(val);			
+		return xmldoc;
+	}
+
+	public static Document quitMargrave()
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc != null)
+		{
+			Text val = xmldoc.createTextNode(sQuitMargrave);
+			xmldoc.getDocumentElement().appendChild(val);	
+			byte[] theBytes = MCommunicator.transformXML(xmldoc);
+			try
+			{
+				MCommunicator.out.write(theBytes);
+			} catch (IOException e)
+			{										
+			}
+			MCommunicator.out.flush();
+		}
+		System.exit(0);
+		return null;
+	}
+
+	private static Document scenarioResponse(MQueryResult mQueryResult,
+			MSolutionInstance next)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element modelElement = xmldoc.createElementNS(null, "MODEL");
+		
+		Instance facts = next.getFacts();
+		
+		modelElement.setAttribute("size", String.valueOf(facts.universe().size()));
+				
+		// For each relation, what's in it?
+		for(Relation r : facts.relations())
+		{
+			Element relationElement = xmldoc.createElementNS(null, "RELATION");
+			relationElement.setAttribute("name", r.name());
+			relationElement.setAttribute("arity", String.valueOf(r.arity()));
+			
+			for(Tuple t : facts.relationTuples().get(r))
+			{
+				Element tupleElement = xmldoc.createElementNS(null, "TUPLE");
+								
+				for(int ii = 0; ii<t.arity();ii++)
+				{
+					Element atomElement = xmldoc.createElementNS(null, "ATOM");
+					Object theAtom = t.atom(ii);
+					atomElement.appendChild(xmldoc.createTextNode(theAtom.toString()));	
+					tupleElement.appendChild(atomElement);
+				}				
+				
+				relationElement.appendChild(tupleElement);
+			}
+			
+			modelElement.appendChild(relationElement);
+		}
+		
+		
+		xmldoc.getDocumentElement().appendChild(modelElement);		
+		return xmldoc;
+	}
+	
+	private static Document listResponse(List<?> res)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element listElement = xmldoc.createElementNS(null, "LIST");
+		listElement.setAttribute("size", String.valueOf(res.size()));
+		
+		int iOrder = 1;
+		for(Object obj : res)
+		{
+			Element objElement = xmldoc.createElementNS(null, "ITEM");
+			objElement.setAttribute("type", obj.getClass().getCanonicalName());
+			objElement.setAttribute("order", String.valueOf(iOrder));
+			
+			// TODO potential info loss in the toString call here. 
+			objElement.appendChild(xmldoc.createTextNode(obj.toString()));
+			listElement.appendChild(objElement);
+			iOrder++;
+		}
+				
+		xmldoc.getDocumentElement().appendChild(listElement);		
+		return xmldoc;
+	}
+	
+	private static Document setResponse(Set<String> set)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element setElement = xmldoc.createElementNS(null, "SET");
+		setElement.setAttribute("size", String.valueOf(set.size()));
+		
+		for(Object obj : set)
+		{
+			Element objElement = xmldoc.createElementNS(null, "ITEM");
+			objElement.setAttribute("type", obj.getClass().getCanonicalName());
+			
+			// TODO potential info loss in the toString call here. 
+			objElement.appendChild(xmldoc.createTextNode(obj.toString()));
+			setElement.appendChild(objElement);			
+		}
+		
+		xmldoc.getDocumentElement().appendChild(setElement);		
+		return xmldoc;
+	}
+
+	private static Document mapResponse(Map<String, Set<String>> outsets)
+	{
+		Document xmldoc = makeInitialResponse();
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element mapElement = xmldoc.createElementNS(null, "MAP");
+				
+		for(Object key : outsets.keySet())
+		{
+			Element entryElement = xmldoc.createElementNS(null, "ENTRY");
+			entryElement.setAttribute("key type", key.getClass().getCanonicalName());
+			entryElement.setAttribute("key", key.toString());
+			
+			// TODO some info lost in the toString calls here.
+			for(Object obj : outsets.get(key))
+			{
+				Element valueElement = xmldoc.createElementNS(null, "VALUE");	
+				entryElement.setAttribute("type", key.getClass().getCanonicalName());
+				valueElement.appendChild(xmldoc.createTextNode(obj.toString()));
+				entryElement.appendChild(valueElement);
+			}
+			
+			mapElement.appendChild(entryElement);			
+		}
+		
+		
+		xmldoc.getDocumentElement().appendChild(mapElement);		
+		return xmldoc;
+	}
 }
+

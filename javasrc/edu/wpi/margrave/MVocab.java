@@ -1435,15 +1435,5 @@ public class MVocab {
 		return true;
 	}
 
-	public String getInfo()
-	{		
-		List<String> outList = new ArrayList<String>();				
-		outList.add("VOCABULARY");
-		outList.add(vocab_name);
-		outList.add(MEnvironment.convertSetToSexp(sorts.keySet()));
-	
-		
-		return MEnvironment.convertListToSexp(outList);
-	}
 	
 }

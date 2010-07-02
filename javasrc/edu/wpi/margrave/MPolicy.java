@@ -25,6 +25,7 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 
+import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import kodkod.ast.*;
@@ -233,56 +234,7 @@ abstract class MIDBCollection
 		}
 		
 		return new RelationAndVariableReplacementV(relpairs, varpairs);
-	}
-
-	public String getInfo()
-	{
-		/*MEnvironment.outStream.println("\n--------------------------------------------------");
-		if(this instanceof MPolicy)
-			MEnvironment.outStream.println("This is a POLICY.");
-		else
-			MEnvironment.outStream.println("This is a SAVED QUERY.");
-		MEnvironment.outStream.println("Parameters:");
-		int iCount = 1;
-		for(Variable v : varOrdering)
-		{
-			MEnvironment.outStream.println("("+iCount+") "+v.name() +": "+varSorts.get(v));			
-			iCount++;
-		}
-		MEnvironment.outStream.println("--------------------------------------------------\n");*/
-		
-		// TODO This should be broken out into methods of each subclass.
-		
-		String typeStr = "";
-		String combStr = "";
-		String childStr = "";
-		if(this instanceof MPolicyLeaf)
-		{
-			typeStr = "POLICYLEAF";
-			combStr = "\"" +((MPolicyLeaf)this).rCombine+"\"";
-			childStr = MEnvironment.convertListToSexp(((MPolicyLeaf) this).getQualifiedIDBNameList());
-		}
-		else if(this instanceof MPolicySet)
-		{
-			typeStr = "POLICYSET";
-			combStr = "\"" +((MPolicySet)this).pCombine +"\"";
-			childStr = MEnvironment.convertListToSexp(((MPolicyLeaf) this).getQualifiedIDBNameList());
-		}
-		else
-			typeStr = "QUERY";
-		
-		List<String> outList = new ArrayList<String>();
-		outList.add(typeStr);
-		outList.add(MEnvironment.convertListToSexp(varOrdering));
-		outList.add(MEnvironment.convertMapToSexp(varSorts));
-		if(combStr.length() > 0)
-			outList.add(combStr);
-		outList.add("\"" +vocab.vocab_name+"\"");
-		if(childStr.length() > 0)
-			outList.add(childStr);
-		
-		return MEnvironment.convertListToSexp(outList);
-	}		
+	}	
 
 }
 

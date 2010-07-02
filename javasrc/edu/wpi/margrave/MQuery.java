@@ -3597,17 +3597,15 @@ public class MQuery extends MIDBCollection
 
 		StringBuffer theResult = new StringBuffer();
 		
-		// TODO change to building string
-		
 		Instance sol = aSolution.getFacts();
 
 		String pmod = "";
 		//if (this.otSpec.itDefault == MQueryOutputSpec.DefaultIteratorType.outIteratePartial)
 		//	pmod = "CLASS ";
 
-		MEnvironment.outStream.println("----------------------------------------");
-		MEnvironment.outStream.println("*** SOLUTION " + pmod + "FOUND at size = "
-				+ sol.universe().size() + ".");
+		theResult.append("----------------------------------------"+MEnvironment.eol);
+		theResult.append("*** SOLUTION " + pmod + "FOUND at size = "
+				+ sol.universe().size() + "."+MEnvironment.eol);
 
 		Set<Relation> alreadyprinted = new HashSet<Relation>();
 
@@ -3633,7 +3631,7 @@ public class MQuery extends MIDBCollection
 			//replacements.put("Atom" + ii, disp);
 			replacements.put(sol.universe().atom(ii).toString(), disp);
 
-			MEnvironment.outStream.print(disp + ": ");
+			theResult.append(disp + ": ");
 
 			// For each unary predicate corresponding to a TYPE
 			// (only display the most specific types -- but don't print nothing
@@ -3660,10 +3658,9 @@ public class MQuery extends MIDBCollection
 						if (!someChildContainsTuple(sol, thetype, theTuple))
 							if (sol.relationTuples().get(r).contains(theTuple)) {
 								if (thetype.subsorts.size() == 0)
-									MEnvironment.outStream.print(r.name() + " ");
+									theResult.append(r.name() + " ");
 								else
-									MEnvironment.outStream
-											.print(r.name()
+									theResult.append(r.name()
 													+ "(but none of: "
 													+ prettyPrintSortNames(thetype.subsorts)
 													+ ") ");
@@ -3678,7 +3675,7 @@ public class MQuery extends MIDBCollection
 
 				}
 			}
-			MEnvironment.outStream.print("\n");
+			theResult.append(MEnvironment.eol);
 		} // end for each atom
 
 		// For each relation that isn't a sort...
@@ -3689,31 +3686,31 @@ public class MQuery extends MIDBCollection
 				// with meaningful bindings when able.
 				
 				if(getIDBNamesToOutput().contains(r.name()))
-					MEnvironment.outStream.print(r.name() + "["+ solnSet.idbToTup.get(r.name()) + "] = {");
+					theResult.append(r.name() + "["+ solnSet.idbToTup.get(r.name()) + "] = {");
 				else
-					MEnvironment.outStream.print(r.name() + " = {");
+					theResult.append(r.name() + " = {");
 				boolean firsttuple = true;
 				for (Tuple t : sol.relationTuples().get(r)) {
 					if (firsttuple)
 						firsttuple = false;
 					else
-						MEnvironment.outStream.print(" ");
-					MEnvironment.outStream.print("[");
+						theResult.append(" ");
+					theResult.append("[");
 					for (int jj = 0; jj < t.arity(); jj++) {
 						if (replacements.keySet().contains(t.atom(jj)))
-							MEnvironment.outStream.print(replacements.get(t.atom(jj)));
+							theResult.append(replacements.get(t.atom(jj)));
 						else
-							MEnvironment.outStream.print(t.atom(jj));
+							theResult.append(t.atom(jj));
 						if (jj < t.arity() - 1)
-							MEnvironment.outStream.print(", ");
+							theResult.append(", ");
 					}
 
-					MEnvironment.outStream.print("]");
+					theResult.append("]");
 
 				}
-				MEnvironment.outStream.print("}\n");
+				theResult.append("}"+MEnvironment.eol);
 			}
-		MEnvironment.outStream.println("");
+		theResult.append("");
 
 		// **********************************************************
 		// **********************************************************
@@ -3721,10 +3718,10 @@ public class MQuery extends MIDBCollection
 		List<String> annotations = aSolution.getAnnotations();
 		for(String annotation : annotations)
 		{
-			MEnvironment.outStream.println(annotation);
+			theResult.append(annotation);
 		}
 		if(annotations.size() > 0)
-			MEnvironment.outStream.println("");
+			theResult.append("");
 		
 		
 		// **********************************************************
@@ -3733,7 +3730,7 @@ public class MQuery extends MIDBCollection
 		// output.
 		//if (this.otSpec.itDefault != MQueryOutputSpec.DefaultIteratorType.outIteratePartial)
 		//{
-			MEnvironment.outStream.println("----------------------------------------");
+			theResult.append("----------------------------------------"+MEnvironment.eol);
 			return theResult.toString();
 		//}
 		// **********************************************************
@@ -3775,16 +3772,16 @@ public class MQuery extends MIDBCollection
 
 				dcOutput.append("]");
 			}
-			dcOutput.append("}\n");
+			dcOutput.append("}"+MEnvironment.eol);
 		}
 
 		if (dcCount > 0) {
-			MEnvironment.outStream.println(dcOutput.toString());
-			MEnvironment.outStream.println("This partial solution includes "
+			theResult.append(dcOutput.toString());
+			theResult.append("This partial solution includes "
 					+ Math.round(Math.pow(2, dcCount)) + " total solutions.");
 		}
 
-		MEnvironment.outStream.println("----------------------------------------");
+		theResult.append("----------------------------------------");
 
 		return theResult.toString();*/
 		

@@ -25,7 +25,7 @@ import kodkod.ast.*;
 import java.io.*;
 import java.util.*;
 
-
+import org.w3c.dom.Document;
 
 
 parser code {:
@@ -302,7 +302,7 @@ terminal ADD, SUBSORT, SORT, CONSTRAINT, DISJOINT, NONEMPTY, SINGLETON, ATMOSTON
 		RULE, TO, CREATE, VOCABULARY, DECISION, REQUESTVAR, OTHERVAR, POLICY,
 		LEAF, RCOMBINE, PCOMBINE, PREPARE, LOAD, XACML, SQS, GET, COUNT, SIZE,
 		RULES, HIGHER, PRIORITY, THAN, QUALIFIED, NEXT, GUARANTEEDQMARK, IN,
-		AT, CHILD, REQUEST, VECTOR; 
+		AT, CHILD, REQUEST, VECTOR, QUIT; 
 
 
 // WITH, IDBS, SILENT       
@@ -325,25 +325,25 @@ non terminal						EMPTY;
 /* Convoluted type, but we want to allow multiple var vectors per relation name */ 
 
 non terminal    Map<String, Set<List<String>>>			DBOPTINDEXLIST;
-
+non terminal	Map<String, Set<List<String>>>			IDBCLAUSE;
 non terminal	Integer				DEBUGSWITCH;
 non terminal	Boolean				TUPLINGSWITCH;
 non terminal	Integer				CEILINGSWITCH;
 
-non terminal	String				RENAMESTMT;
-non terminal	String				INFOSTMT;		
-non terminal	Object				COMPARESTMT;
+/* Statements return an XML document */
+
+non terminal	Document			RENAMESTMT;
+non terminal	Document			INFOSTMT;		
+non terminal	Document			COMPARESTMT;
 
 /* New data-manipulation commands */
-non terminal	String				CREATESTMT; // includes load
-non terminal	String				SETSTMT;    // includes prepare
-non terminal	String				ADDSTMT;
-non terminal	String				RESULTSSTMT; // show next, get next, count...
-non terminal 	String				GETSTMT; // non-model-related
+non terminal	Document			CREATESTMT; // includes load
+non terminal	Document			SETSTMT;    // includes prepare
+non terminal	Document			ADDSTMT;
+non terminal	Document			RESULTSSTMT; // show next, get next, count...
+non terminal 	Document			GETSTMT; // non-model-related
 
-
-non terminal	Map<String, Set<List<String>>>			IDBCLAUSE;
-
+/* May be an MQuery, may be a Document... */
 non terminal 	Object				MARGRAVECOMMAND;	
 
 /* Lower in this list == higher precedence */
@@ -390,6 +390,9 @@ MARGRAVECOMMAND ::=
 		|
 		RESULTSSTMT:r
 		{: RESULT = r; :}
+		|
+		QUIT
+		{: RESULT = MEnvironment.quitMargrave(); :}
 		;
 
 		
