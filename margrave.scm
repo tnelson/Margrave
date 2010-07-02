@@ -46,20 +46,17 @@
         (process (string-append "kill " (number->string pid)))))
 
 ;Name for file that contains the last process ID started
-(define pid-file-name
+(define input-file-name
   (string-append 
                   (path->string (build-path (current-directory)))
-                  ".lastProcessID"))
+                  ".javaIsStarted"))
 
 ;Close last process
 ;Read in PID
-(when (file-exists? pid-file-name)
+(when (file-exists? input-file-name)
   (begin
-    (let* ((in-pid-file (open-input-file pid-file-name #:mode 'text))
-           (last-pid (read-line in-pid-file)))
-      (close-last (string->number last-pid))
       (display last-pid)
-      (close-input-port in-pid-file))))
+      (close-input-port in-pid-file)))
 
 (define margrave-command-line
   (string-append
@@ -105,26 +102,32 @@
           (fifth java-process-list)))
 
 ;Save pid to kill
-(define out-pid (open-output-file 
+(define out-file (open-output-file 
                  (string-append 
                   (path->string (build-path (current-directory)))
-                  ".lastProcessID") #:mode 'text #:exists 'replace))
+                  ".javaIsStarted") #:mode 'text #:exists 'replace))
 
-(display process-id out-pid)
-(close-output-port out-pid)
+(display "true" out-file)
+(close-output-port out-file)
   
 (define (close)
   (begin
+    (display "QUIT" output-port)
+    (flush-output output-port)
     (close-input-port input-port)
     (close-output-port output-port)
     (close-input-port err-port)
-    (if windows?
+    (ctrl-function 'kill)
+    ))
+  
+;Deprecated
+  #;(if windows?
         ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
         (process (string-append "taskkill /pid " process-id " /t"))
-        (ctrl-function 'kill))))
+        (ctrl-function 'kill))
 
 ;Kill process on exit
-;(exit:insert-on-callback close)
+(exit:insert-on-callback close)
 
 ; Need to
 ; (0 - tim) (GET REQUEST VECTOR) and XACML/SQS loading   
@@ -134,11 +137,6 @@
 ; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
 ; (4) update policy load process (probably some command strings to correct, too)
 ; [DONE?] (5) build paths using DrRacket's library... paths&dirs handling
-
-
-
-;(display "INFO;" output-port)
-;(flush-output output-port)
 
 
 ;****************************************************************
