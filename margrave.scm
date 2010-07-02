@@ -380,7 +380,7 @@
                 (if (equal? next-char #\nul)
                     ""
                     (string-append (string next-char) (helper))))))
-      (read-xml (helper)))))
+      (read-xml (open-input-string (helper))))))
 
 
 ; !!!
