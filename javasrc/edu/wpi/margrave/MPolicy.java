@@ -1199,3 +1199,21 @@ class MXACMLPolicyFinderModule extends PolicyFinderModule
 	}
 	
 }
+
+//Used for tupling
+class MInternalIDBCollection extends MIDBCollection
+{
+	
+	protected MInternalIDBCollection(String n, MVocab voc)
+	{
+		idbs = new HashMap<String, Formula>();
+		name = n;		
+		vocab = voc;
+	}
+
+	protected void addIDB(String idbname, Formula idb)
+	{
+		idbs.put(idbname, idb);
+	}
+	
+}

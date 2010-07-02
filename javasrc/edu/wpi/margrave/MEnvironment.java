@@ -692,13 +692,24 @@ public class MEnvironment
 			theElement.setAttribute("name", pleaf.name);
 			theElement.setAttribute("rule-combine", pleaf.rCombine);
 			
+			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
-				theElement.appendChild(idbElement);
+				idbsElement.appendChild(idbElement);
 			}
+			theElement.appendChild(idbsElement);
+			
+			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
+			for(Variable v : coll.varOrdering)
+			{
+				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+				varElement.appendChild(xmldoc.createTextNode(v.name()));
+				varsElement.appendChild(varElement);
+			}
+			theElement.appendChild(varsElement);
 						
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}
@@ -709,13 +720,24 @@ public class MEnvironment
 			theElement.setAttribute("name", pset.name);
 			theElement.setAttribute("policy-combine", pset.pCombine);
 			
+			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
-				theElement.appendChild(idbElement);
+				idbsElement.appendChild(idbElement);
 			}
+			theElement.appendChild(idbsElement);
+			
+			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
+			for(Variable v : coll.varOrdering)
+			{
+				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+				varElement.appendChild(xmldoc.createTextNode(v.name()));
+				varsElement.appendChild(varElement);
+			}
+			theElement.appendChild(varsElement);
 			
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}
@@ -724,14 +746,25 @@ public class MEnvironment
 			MQuery qry = (MQuery) coll;
 			Element theElement = xmldoc.createElementNS(null, "SAVED-QUERY");
 			theElement.setAttribute("name", qry.name);
-			
+
+			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
-				theElement.appendChild(idbElement);
+				idbsElement.appendChild(idbElement);
 			}
+			theElement.appendChild(idbsElement);
+			
+			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
+			for(Variable v : coll.varOrdering)
+			{
+				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+				varElement.appendChild(xmldoc.createTextNode(v.name()));
+				varsElement.appendChild(varElement);
+			}
+			theElement.appendChild(varsElement);
 			
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}

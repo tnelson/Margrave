@@ -19,7 +19,8 @@ public class MCommunicator
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
 	static final char semicolon = ';';
-	static final String lastResortError = "<ERROR>Unable to produce XML document.</ERROR>";
+	static final String lastResortError = "<MARGRAVE-RESPONSE><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
+	static final String setupError = "<MARGRAVE-RESPONSE><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
 
 	public static void main(String[] args) 
 	{
@@ -50,17 +51,14 @@ public class MCommunicator
 				}
 				else
 				{
-					// Need to cast 
-					// because otherwise it will append the integer as a string.
+					// Need to cast, because otherwise it will append the integer as a string.
 					theCommand.append((char)theChar);
-					//System.err.println((char)theChar);
 				}					
 			} // end loop while(true)
 		}
 		catch(IOException e)
 		{
-			System.err.println(e.getLocalizedMessage());
-			//System.err.println(e.getStackTrace());
+			System.out.println(setupError);			
 		}
 	}
 
@@ -81,8 +79,7 @@ public class MCommunicator
 		}
 		catch(Exception e)
 		{
-			// Will hit this if theResponse is null.
-			
+			// Will hit this if theResponse is null.			
 			return lastResortError.getBytes();
 		}
 	}

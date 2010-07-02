@@ -2874,7 +2874,8 @@ public class MQuery extends MIDBCollection
 	}
 	
 	public void addIDBOutputIndexing(String idbname, List<String> indexing)
-			throws MGEArityMismatch, MGEUnknownIdentifier {
+			throws MGEArityMismatch, MGEUnknownIdentifier 
+	{
 		// CHECK: the indexing Strings must actually be integers
 		for (String inlist : indexing) {
 			try {
@@ -2911,13 +2912,13 @@ public class MQuery extends MIDBCollection
 					"Given indexing did not match IDB arity: " + idbname + ", "
 							+ indexing + "." + " Arity of IDB was: "
 							+ coll.vocab.requestVectorOrder.size());
-		if (coll instanceof MCustomIDB) {
-			MCustomIDB custom_coll = (MCustomIDB) coll;
-			if (custom_coll.varOrdering.size() != indexing.size())
+		if (coll instanceof MQuery) // used to be MCustomIDB
+		{
+			if (coll.varOrdering.size() != indexing.size())
 				throw new MGEArityMismatch(
 						"Given indexing did not match IDB arity: " + idbname
 								+ ", " + indexing + "." + " Arity of IDB was: "
-								+ custom_coll.varOrdering.size());
+								+ coll.varOrdering.size());
 		}
 		
 		// Add to indexing map
@@ -3308,7 +3309,8 @@ public class MQuery extends MIDBCollection
 	private static Formula doVariableRenaming(MIDBCollection idbs,
 			String idbname, List<String> breakdownlist, String qryString,
 			Stack<Variable> ql, String treatment) throws MGEBadQueryString,
-			MGEUnknownIdentifier, MGEBadIdentifierName {
+			MGEUnknownIdentifier, MGEBadIdentifierName
+	{
 		HashMap<Variable, Variable> newvars = new HashMap<Variable, Variable>();
 
 		// Which variables should be replaced with which?
@@ -3327,7 +3329,8 @@ public class MQuery extends MIDBCollection
 		// after all!)
 		// Hence the try/catches below.
 
-		if (idbs instanceof MPolicy) {
+		if (idbs instanceof MPolicy) 
+		{
 			if (breakdownlist.size() != idbs.vocab.requestVariables.size() + 1)
 				throw new MGEBadQueryString(
 						"Incorrect number of arguments in: " + qryString);
@@ -3350,12 +3353,12 @@ public class MQuery extends MIDBCollection
 				iIndex++;
 			}
 		} 
-		else if (idbs instanceof MCustomIDB)
+		else if (idbs instanceof MQuery) // used to be MCustomIDB
 		{
 			// Use the custom IDBs internal var ordering.
 
 			// Check for proper arity
-			if (breakdownlist.size() != ((MCustomIDB) idbs).varOrdering.size() + 1)
+			if (breakdownlist.size() != (idbs.varOrdering.size() + 1))
 				throw new MGEBadQueryString(
 						"Incorrect number of arguments in: " + qryString);
 
@@ -3477,6 +3480,8 @@ public class MQuery extends MIDBCollection
 				if (v.name().equals(varname))
 					return v;
 
+			// TODO is this business still needed? No more parsing parenthetical syntax...
+			
 			// Not found. Create at BEGINNING OF STACK (global scope within this
 			// view)
 			Variable newv = MFormulaManager.makeVariable(varname); // FREE
