@@ -374,16 +374,13 @@
   (begin 
     (display (string-append cmd ";") output-port)
     (flush-output output-port)
-    (read-xml input-port)    
-    ))
-
-;deprecated
-#;(local ((define (helper)
+    (read-line input-port) ;Get rid of first XML version line
+    (local ((define (helper)
               (let ((next-char (read-char input-port)))
-                (if (equal? next-char #\nul)
+                (if (equal? next-char eof)
                     ""
                     (string-append (string next-char) (helper))))))
-      (helper))
+      (read-xml (helper)))))
 
 
 ; !!!
