@@ -784,6 +784,8 @@ public class MJavaTests
 		List<String> varorder = new ArrayList<String>();
 		varorder.add("x");
 
+		/* Removed custom IDB since it uses only old query language. Should re-write these tests. TODO */
+		/*
 		// UNARY predicate, no dependencies
 		MCustomIDB cust1 = new MCustomIDB(polparent.vocab, "Custom1", new ArrayList<MIDBCollection>(), varorder, "(and (rangexy x) (not (IPAddress x)))");
 		
@@ -817,7 +819,7 @@ public class MJavaTests
 		MQuery.queryThesePolicies("(forsome ipin IPAddress (forsome ipout IPAddress (and (Custom3:view ipin ipout) (EMPTY Hackerlist) (EMPTY Conversation))))", idbCollections);
 		
 		//query3.prettyPrintSolutions();
-		
+		*/
 		// Tests to make sure predicates are being taken from BOTH vocabs when combining
 		// Create a 2nd vocabulary that is missing one of the above predicates, but has a third.
 		// Then run a change-impact on policies over both... should see all 3 predicates in new vocab.

@@ -1955,7 +1955,7 @@ public abstract class MInstanceIterator
 					// IDB set is Policy: Just assume that this IDB has the same order of variable as a decision must.
 					// IDB set is CustomIDB set: we get an ordering from the custom idb set
 					
-					// TODO This isn't needed anymore, is it? Can just use varOrdering?
+					// TODO This isn't needed anymore, is it? Can just use varOrdering? Double-check...
 					
 					Expression tup;
 					if(idbs instanceof MPolicy)
@@ -1975,13 +1975,13 @@ public abstract class MInstanceIterator
 						//ordered_tempvars = idbs.vocab.requestVectorOrder;						
 						tup = MFormulaManager.makeVarTuple(varnameorder);
 					}
-					else if(idbs instanceof MCustomIDB)// CustomIDB
+					else if(idbs instanceof MQuery) // used to be MCustomIDB
 					{
-						if(idbArity != ((MCustomIDB) idbs).varOrdering.size())
+						if(idbArity != idbs.varOrdering.size())
 							throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
 						
-						//ordered_tempvars = ((MGCustomIDB) idbs).varOrdering;
-						tup = MFormulaManager.makeVarTupleV( ((MCustomIDB) idbs).varOrdering );
+						// Use internal ordering
+						tup = MFormulaManager.makeVarTupleV( idbs.varOrdering );
 					}
 					else if(idbs instanceof MInternalIDBCollection)
 					{
@@ -1995,7 +1995,7 @@ public abstract class MInstanceIterator
 						tup = itv.next();
 					}
 					else
-						throw new MGEUnknownIdentifier("Bad MGIDBs type: "+idbs.getClass().getName());
+						throw new MGEUnknownIdentifier("Bad IDB collection type: "+idbs.getClass().getName());
 					
 					 
 					
