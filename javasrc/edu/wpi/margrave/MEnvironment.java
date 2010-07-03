@@ -68,7 +68,12 @@ class MParserException extends IOException
 		super("Margrave encountered an error while parsing...");
 		this.row = row;
 		this.col = col;
-		errorValue = val;
+		
+		// This is called by the parser. If no data, can pass a null for val.
+		if(val != null)
+			errorValue = val;
+		else
+			errorValue = "";
 	}
 }
 
@@ -89,8 +94,12 @@ class MSemanticException extends IOException
 		super("Margrave could not understand...");
 		this.row = row;
 		this.col = col;
-		errorValue = val;
 		this.problem = problem;
+		
+		if(val != null)
+			errorValue = val;
+		else
+			errorValue = "";
 	}
 }
 
