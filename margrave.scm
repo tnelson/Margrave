@@ -30,15 +30,6 @@
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
 
-
-; Identifiers for vocabs and policies we have loaded so far.
-; Since java maintains the environment, don't want to end up
-; creating duplicate rules, variables, etc. if trying to (e.g.)
-; load 2 policies that use the same vocab.
-; (!!! If someone renames a policy, could this cause problems?)
-(define my-vocab-list '())
-(define my-policy-list '())
-
 ;****************************************************************
 ;;Java Connection
 
@@ -51,17 +42,17 @@
       ":"))
 
 ;Name for file that contains the last process ID started
-(define input-file-name
-  (string-append 
-                  (path->string (build-path (current-directory)))
-                  ".javaIsStarted"))
+;(define input-file-name
+;  (string-append 
+;                  (path->string (build-path (current-directory)))
+;                  ".javaIsStarted"))
 
 ;Close last process
 ;Read in PID
-#;(when (file-exists? input-file-name)
-  (begin
-      ;(display last-pid)
-      (close-input-port input-file-name)))
+;(when (file-exists? input-file-name)
+;  (begin
+;      ;(display last-pid)
+;      (close-input-port input-file-name)))
 
 (define margrave-command-line
   (string-append
@@ -95,8 +86,8 @@
     (build-path (current-directory)
                 "bin"
                 "json.jar"))
-   " edu.wpi.margrave.MCommunicator"))
-
+   " edu.wpi.margrave.MCommunicator"))    
+    
 (define java-process-list (process margrave-command-line))
 
 (define-values (input-port output-port process-id err-port ctrl-function) 
@@ -107,13 +98,13 @@
           (fifth java-process-list)))
 
 ;Save pid to kill
-(define out-file (open-output-file 
-                 (string-append 
-                  (path->string (build-path (current-directory)))
-                  ".javaIsStarted") #:mode 'text #:exists 'replace))
+;(define out-file (open-output-file 
+;                 (string-append 
+;                  (path->string (build-path (current-directory)))
+;                  ".javaIsStarted") #:mode 'text #:exists 'replace))
 
-(display "true" out-file)
-(close-output-port out-file)
+;(display "true" out-file)
+;(close-output-port out-file)
   
 (define (stop-margrave-engine)
   (begin
@@ -146,14 +137,55 @@
 ; * Test cases
 ; * Human-readable output from the XML. 
 
+; Next phase 
 ; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
-; Move to language-level sooner, rather than later?
+; Move to language-level sooner, rather than later.
 ; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
 
 
 
 ;****************************************************************
 ;;XML
+
+; Get list of child elements with name = name-symbol.
+; Element -> Symbol -> List(Element)
+(define (get-element-children-named ele name-symbol)
+  (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
+          (element-content ele)))
+
+; Get value for attribute name-symbol of element ele
+; Element -> Symbol -> String
+(define (get-attribute-value ele name-symbol)
+    (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
+                                  (element-attributes ele)))))
+
+
+; Get the response type of a MARGRAVE-RESPONSE element:
+; Document -> String
+(define (get-response-type doc)
+  (get-attribute-value (document-element doc) 'type))
+
+
+; Document -> Boolean
+(define (response-is-success? doc)
+  (equal? (get-response-type doc)
+          "success"))
+(define (response-is-error? doc)
+  (equal? (get-response-type doc)
+          "error"))
+(define (response-is-exception? doc)
+  (equal? (get-response-type doc)
+          "exception"))
+
+; Fetch various error properties
+; Document -> String
+(define (get-response-error-type doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'type))
+(define (get-response-error-subtype doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'subtype))
+(define (get-response-error-descriptor doc)
+  (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
+
 
 ; Placeholder
 (define (pretty-xml doc)
@@ -175,7 +207,10 @@
 
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
 
-; Helper functions for MVocab and MPolicy objects
+
+
+;****************************************************************
+; Helper functions 
 
 ; listsubs contains a list of the subsorts for this sort. 
 ; However, it may be nested: subsorts may themselves have subsorts.
@@ -289,8 +324,16 @@
                   (ReqVariables (rvname : rvsort) ...)
                   (OthVariables (ovname : ovsort) ...)
                   (Constraints (ctype crel ...) ...) )
-     (begin 
-       (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname))) ; Instantiate a new MVocab object  
+     (begin
+       
+       ; Instantiate a new MVocab object
+       ; If already created, wipe and start over.
+       (let ([ create-reply-doc 
+               (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname)))])
+         (when (response-is-error? create-reply-doc)
+           (begin 
+             (m (string-append "DELETE VOCABULARY " (symbol->string 'myvocabname)))
+             (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname))))))
        
        ; These sections must be in order.                     
        ; Types
@@ -362,9 +405,7 @@
          (begin (if (< (length mychildren) 1)
                     (m (string-append "CREATE POLICY LEAF " (symbol->string 'policyname) " " myvocab))
                     (m (string-append "CREATE POLICY SET " (symbol->string 'policyname) " " myvocab)))
-                
-                
-                (set! my-vocab-list (cons myvocab my-vocab-list))
+                              
                 
                 ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
                 ; Either fix the language, or fix the hack.
@@ -431,7 +472,6 @@
   ; (case-sensitive #t)
   (let ([pol ((eval (read (open-input-file fn))) fn)])
     ; (case-sensitive #f)
-    (set! my-policy-list (cons pol my-policy-list))
     pol))
 
 ; m

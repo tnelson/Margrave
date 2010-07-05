@@ -19,8 +19,8 @@ public class MCommunicator
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
 	static final char semicolon = ';';
-	static final String lastResortError = "<MARGRAVE-RESPONSE><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
-	static final String setupError = "<MARGRAVE-RESPONSE><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
+	static final String lastResortError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
+	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
 	static final char cEOF = (char)0;
 	
 	public static void main(String[] args) 

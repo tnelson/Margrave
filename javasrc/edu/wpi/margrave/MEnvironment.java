@@ -472,6 +472,7 @@ public class MEnvironment
 	
 	public static String sTopQualifiedName = "MARGRAVE-RESPONSE";
 	public static String sSuccess = "success";
+	public static String sUnsat = "unsat";
 	public static String sQuitMargrave = "quit";
 		
 	static MIDBCollection getPolicyOrView(String str)
@@ -691,9 +692,9 @@ public class MEnvironment
 		// TODO This should be broken out into methods of each subclass.
 		// TODO should also give more info
 			
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("collection-info");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
-		
+				
 		if(coll instanceof MPolicyLeaf)
 		{
 			MPolicyLeaf pleaf = (MPolicyLeaf) coll;
@@ -784,7 +785,7 @@ public class MEnvironment
 
 	private static Document getVocabInfo(MVocab voc) 
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("vocabulary-info");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element theElement = xmldoc.createElementNS(null, "VOCABULARY");
 		theElement.setAttribute("name", voc.vocab_name);
@@ -1159,6 +1160,15 @@ public class MEnvironment
 		
 		MVocab voc = new MVocab(vname);
 		envVocabularies.put(vname, voc);
+		return successResponse();
+	}
+	
+	public static Document deleteVocabulary(String vname)
+	{
+		if(!envVocabularies.containsKey(vname))
+			return errorResponse(sUnknown, sVocabulary, vname);
+		
+		envVocabularies.remove(vname);
 		return successResponse();
 	}
 
@@ -1634,20 +1644,21 @@ public class MEnvironment
 	
 	public static Document printSystemInfo()
 	{				
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("sysinfo");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 	
 		Element statsElement = MFormulaManager.getStatisticsNode(xmldoc);
 		
-		// TODO give more detail here later
+		// TODO give more detail here later. These elements will be more than just counters.
+		// (will want to list vocabs/collections saved by name.)
 		Element vocabElement = xmldoc.createElementNS(null, "VOCABULARIES");
-		vocabElement.appendChild(xmldoc.createTextNode(String.valueOf(envVocabularies.size())));		
+		vocabElement.setAttribute("count", String.valueOf(envVocabularies.size()));		
 		
 		Element idbCollElement = xmldoc.createElementNS(null, "COLLECTIONS");
-		idbCollElement.appendChild(xmldoc.createTextNode(String.valueOf(envIDBCollections.size())));
+		idbCollElement.setAttribute("count", String.valueOf(envIDBCollections.size()));
 		
 		Element cachedElement = xmldoc.createElementNS(null, "CACHED-RESULTS");
-		cachedElement.appendChild(xmldoc.createTextNode(String.valueOf(envQueryResults.size())));
+		cachedElement.setAttribute("count", String.valueOf(envQueryResults.size()));
 
 		xmldoc.getDocumentElement().appendChild(statsElement);
 		xmldoc.getDocumentElement().appendChild(vocabElement);
@@ -1660,7 +1671,7 @@ public class MEnvironment
 	
 	private static Document errorResponse(String errorType, String errorSubtype, String desc) 
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("error");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
 		Element errorElement = xmldoc.createElementNS(null, "ERROR");
@@ -1680,7 +1691,7 @@ public class MEnvironment
 	
 	private static Document exceptionResponse(Exception e)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("exception");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
 		Element errorElement = xmldoc.createElementNS(null, "EXCEPTION");
@@ -1729,10 +1740,8 @@ public class MEnvironment
 	
 	private static Document noSolutionResponse(Integer id)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse(sUnsat);
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
-		Element unsatElement = xmldoc.createElementNS(null, "UNSAT");		
-		xmldoc.getDocumentElement().appendChild(unsatElement);		
 		return xmldoc;
 	}
 
@@ -1740,14 +1749,12 @@ public class MEnvironment
 	{
 		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
 	
-		Document xmldoc = makeInitialResponse();
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
-		Text val = xmldoc.createTextNode(sSuccess);
-		xmldoc.getDocumentElement().appendChild(val);			
+		Document xmldoc = makeInitialResponse(sSuccess);
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)				
 		return xmldoc;
 	}
 	
-	private static Document makeInitialResponse() 
+	private static Document makeInitialResponse(String type) 
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
@@ -1755,7 +1762,9 @@ public class MEnvironment
 			DocumentBuilder builder = factory.newDocumentBuilder();
 			DOMImplementation impl = builder.getDOMImplementation();
 		
-			return impl.createDocument(null, sTopQualifiedName, null);
+			Document thedoc = impl.createDocument(null, sTopQualifiedName, null);
+			thedoc.getDocumentElement().setAttribute("type", type);
+			return thedoc;
 		}
 		catch(Exception e)
 		{
@@ -1770,7 +1779,7 @@ public class MEnvironment
 	
 	private static Document resultHandleResponse(Integer id)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("explore-result");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element handleElement = xmldoc.createElementNS(null, "RESULT-HANDLE");
 		handleElement.appendChild(xmldoc.createTextNode(id.toString()));
@@ -1791,7 +1800,7 @@ public class MEnvironment
 	{
 		// <MARGRAVE-RESPONSE>Hello</MARGRAVE-RESPONSE>
 		
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("string");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		Text val = xmldoc.createTextNode(str);
 		xmldoc.getDocumentElement().appendChild(val);			
@@ -1800,7 +1809,7 @@ public class MEnvironment
 
 	public static Document quitMargrave()
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("quit");
 		if(xmldoc != null)
 		{
 			Text val = xmldoc.createTextNode(sQuitMargrave);
@@ -1821,7 +1830,7 @@ public class MEnvironment
 	private static Document scenarioResponse(MQueryResult mQueryResult,
 			MSolutionInstance next)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("model");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element modelElement = xmldoc.createElementNS(null, "MODEL");
 		
@@ -1861,7 +1870,7 @@ public class MEnvironment
 	
 	private static Document listResponse(List<?> res)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("list");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element listElement = xmldoc.createElementNS(null, "LIST");
 		listElement.setAttribute("size", String.valueOf(res.size()));
@@ -1885,7 +1894,7 @@ public class MEnvironment
 	
 	private static Document setResponse(Set<String> set)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("set");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element setElement = xmldoc.createElementNS(null, "SET");
 		setElement.setAttribute("size", String.valueOf(set.size()));
@@ -1906,7 +1915,7 @@ public class MEnvironment
 
 	private static Document mapResponse(Map<String, Set<String>> outsets)
 	{
-		Document xmldoc = makeInitialResponse();
+		Document xmldoc = makeInitialResponse("map");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element mapElement = xmldoc.createElementNS(null, "MAP");
 				
@@ -1932,5 +1941,6 @@ public class MEnvironment
 		xmldoc.getDocumentElement().appendChild(mapElement);		
 		return xmldoc;
 	}
+
 }
 
