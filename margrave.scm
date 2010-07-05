@@ -16,7 +16,7 @@
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
 ; tn
-; Modifications by TN and VS, June 2010
+; Modifications by TN and VS, Summer 2010
 
 #lang racket
 
@@ -29,6 +29,15 @@
 ; Save the current directory when this file is loaded.
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
+
+
+; Identifiers for vocabs and policies we have loaded so far.
+; Since java maintains the environment, don't want to end up
+; creating duplicate rules, variables, etc. if trying to (e.g.)
+; load 2 policies that use the same vocab.
+; (!!! If someone renames a policy, could this cause problems?)
+(define my-vocab-list '())
+(define my-policy-list '())
 
 ;****************************************************************
 ;;Java Connection
@@ -146,7 +155,15 @@
 ;****************************************************************
 ;;XML
 
+; Placeholder
+(define (pretty-xml doc)
+  (xexpr->string (xml->xexpr (document-element doc))))
 
+(define (mx cmd)
+  (pretty-xml (m cmd)))
+
+(define (mxout cmd)
+  (display (mx cmd)) (newline))
 
 ;****************************************************************
 
@@ -170,7 +187,7 @@
                   (if (list? s)                       
                       (begin
                         ; Add subtype relationship between parent and s
-                        (m (string-append "ADD TO " vocab " SUBSORT " parent " " (car s)))
+                        (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string (car s))))
                         
                         ; Is this a nested subtype? If so, we must
                         ; deal with s's subtypes.
@@ -178,10 +195,10 @@
                         ; Check for list size;
                         ; someone may have used parens without meaning to.
                         (when (> (length s) 1)
-                          (add-subtypes-of vocab (car s) (cdr s))))
+                          (add-subtypes-of vocab (safe-symbol->string (car s)) (cdr s))))
                       
                       ; Bottom of sort tree. 
-                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " s))))
+                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string s)))))
                 listsubs)))
 
 
@@ -206,18 +223,28 @@
     ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
-; may be symbol too, deal with it
-(define (fold-append-with-spaces thelist)
-  (foldr (lambda (s t) 
-           (cond
-             [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) " " (symbol->string t))]
-             [(and (symbol? s) (string=? t "")) (symbol->string s)] 
-             [(symbol? s) (string-append (symbol->string s) " " t)] 
-             [(symbol? t) (string-append s " " (symbol->string t))] 
-             [(string=? t "") s]
-             [else (string-append s " " t)]))
-         ""
-         thelist))
+
+(define (safe-symbol->string s)
+  (if (symbol? s)
+      (symbol->string s)
+      s))
+
+; May be a list, may not be a list
+(define (fold-append-with-spaces posslist)
+  (if (list? posslist)
+      (foldr (lambda (s t) 
+               (cond
+                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) " " (symbol->string t))]
+                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
+                 [(symbol? s) (string-append (symbol->string s) " " t)] 
+                 [(symbol? t) (string-append s " " (symbol->string t))] 
+                 [(string=? t "") s]
+                 [else (string-append s " " t)]))
+             ""
+             posslist)
+      (if (symbol? posslist)
+          (symbol->string posslist)
+          posslist)))
 
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value
@@ -269,7 +296,7 @@
        ; Types
        (begin
          (m (string-append "ADD TO " (symbol->string 'myvocabname) " SORT " (symbol->string 't)))
-         (add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list (symbol->string 'subt) ...))         
+         (add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
          )
        ... ; for each type/subtype set
        
@@ -336,6 +363,9 @@
                     (m (string-append "CREATE POLICY LEAF " (symbol->string 'policyname) " " myvocab))
                     (m (string-append "CREATE POLICY SET " (symbol->string 'policyname) " " myvocab)))
                 
+                
+                (set! my-vocab-list (cons myvocab my-vocab-list))
+                
                 ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
                 ; Either fix the language, or fix the hack.
                 ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
@@ -401,6 +431,7 @@
   ; (case-sensitive #t)
   (let ([pol ((eval (read (open-input-file fn))) fn)])
     ; (case-sensitive #f)
+    (set! my-policy-list (cons pol my-policy-list))
     pol))
 
 ; m
@@ -410,7 +441,11 @@
   (begin 
     (display (string-append cmd ";") output-port)
     (flush-output output-port)
-    (read-line input-port) ;Get rid of first XML version line
+    
+    ; !!! We're ok without ignoring this line now.
+    ; (read-line input-port) ;Get rid of first XML version line
+    
+    
     (local ((define (helper)
               (let ((next-char (read-char input-port)))
                 (if (equal? next-char #\nul)
