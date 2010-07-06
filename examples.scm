@@ -53,7 +53,7 @@
 ; Basic predicate conference policy: When can someone read a paper?
 
 (mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
-;(mxout "SHOW ONE 0")
+(mxout "SHOW ONE 0")
 (mxout "SHOW NEXT 0")
 (mxout "SHOW NEXT 0")
 (mxout "SHOW NEXT 0")
@@ -209,7 +209,6 @@
 
 
 
-
 ; ***********************************************************************************************
 
 ; You aren't restricted to simple "Permit" and "Deny" either. This
@@ -239,8 +238,6 @@
 (pause-for-user)
 
 
-
-
 ; That is a lot of packet types, and so not very useful. Let's narrow the scope a bit.
 ; What packets are allowed through using TCP to port 21?
 (mxout "EXPLORE Firewall1:Accept(ipsrc, ipdest, portsrc, portdest, pro) 
@@ -248,8 +245,6 @@
 (mxout "COUNT 0")
 (mxout "get one 0")
 (pause-for-user)
-
-
 
 
 

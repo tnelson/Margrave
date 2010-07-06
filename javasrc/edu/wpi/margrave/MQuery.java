@@ -1856,7 +1856,8 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
-
+			
+				
 				// tupled sorts will be in mtup.newvocab
 
 				// Deal with the abstract constraint
@@ -1913,6 +1914,8 @@ public class MQuery extends MIDBCollection
 					}
 				}
 
+
+				
 				// 1/28/10 subsort exhaustiveness no longer required. leaving
 				// code commented out!
 				// Instead, do the above
@@ -2049,6 +2052,12 @@ public class MQuery extends MIDBCollection
 					{
 						//System.err.println("Must assert that "+sortname+" in index "+index);
 						
+						if("univ".equals(sortname))
+						{
+							// Do nothing. No axiom needed, since no sort for this element.
+							continue;
+						}
+						
 						if (!mtup.newvocab.isSort(sortname + "_" + index))
 						{
 							mtup.newvocab.addSort(sortname + "_" + index);
@@ -2087,7 +2096,7 @@ public class MQuery extends MIDBCollection
 						.makeConjunction(respected_2);
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						respected_2_fmla);
-
+				
 				if (debug_verbosity >= 2)
 					MEnvironment.outStream
 							.println("DEBUG: Size of tupling axioms to make prefix sort respected: "
@@ -2685,6 +2694,7 @@ public class MQuery extends MIDBCollection
 				internalTupledQuery = tupledQuery; // allow access to creator's vocab, etc. for output
 				internalTuplingVisitor = mtup;
 				tupledQuery.internalTuplingVisitor = mtup;
+				tupledQuery.internalTupledQuery = this;
 
 				if (debug_verbosity >= 2)
 					MEnvironment.outStream.println("Tupled query object created. Time: "
@@ -3860,7 +3870,8 @@ public class MQuery extends MIDBCollection
 
 		while (it.hasNext() && ((max_to_print == -1) || (max_to_print > 0))) 
 		{
-			try {
+			try 
+			{
 				// Interaction with KodKod. Clock this. But it's very quick. So
 				// subtract OUT the I/O delays
 
@@ -3871,13 +3882,25 @@ public class MQuery extends MIDBCollection
 				//prettyPrintSolution(it.forQuery.vocab, partialInstance);
 				
 				// Output routines
-				if(internalTupledQuery != null)
+				System.err.println(internalTupledQuery);
+				System.err.println(doTupling);
+				System.err.println(tupled);
+				
+				if(tupled)
 				{
-					MSolutionInstance s = processTupledSolutionForThis(partialInstance);
+					// Ask parent to convert
+					MSolutionInstance s = internalTupledQuery.processTupledSolutionForThis(partialInstance);
 					prettyPrintSolution(vocab, s, it);
 				}
+				else if(internalTupledQuery != null)
+				{
+					// If tupled, but somehow this is the parent
+					MSolutionInstance s = processTupledSolutionForThis(partialInstance);
+					prettyPrintSolution(vocab, s, it);
+
+				}					
 				else
-				{									
+				{						
 					prettyPrintSolution(it.fromResult.forQuery.vocab, partialInstance, it);
 				}
 				

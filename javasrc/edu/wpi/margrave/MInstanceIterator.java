@@ -1740,9 +1740,15 @@ class MQueryResult
 	{
 		// TODO Extremely tangled. Fix the design of MQuery vs. MQueryResult vs. MInstanceIterator
 		
-		if(forQuery.internalTupledQuery != null)
+		if(forQuery.tupled)
 		{
-			// This solution is tupled.
+			// This solution is tupled, and forQuery is the inner query
+			MSolutionInstance unTupledSol = forQuery.internalTupledQuery.processTupledSolutionForThis(sol);
+			return forQuery.getPrettyPrintForSolution(forQuery.internalTupledQuery.vocab, unTupledSol, fromIterator);
+		}
+		else if(forQuery.internalTupledQuery != null)
+		{
+			// This solution is tupled, and somehow forQuery is the outer query
 			MSolutionInstance unTupledSol = forQuery.processTupledSolutionForThis(sol);
 			return forQuery.getPrettyPrintForSolution(forQuery.vocab, unTupledSol, fromIterator);
 		}

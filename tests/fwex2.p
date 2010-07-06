@@ -2,7 +2,7 @@
 ; Additions from Example 2: *Set* of IP Addresses (dmzset, containing 3 servers and possibly more)
 ; Uses our intermediate language, but would not be difficult to translate IOS ACLs.
 
-(Policy FWEx2 uses ExampleFW2
+(Policy FWEx2 uses examplefw2
         ; No target (not a hierarchical policy.)
 	(Target )
 

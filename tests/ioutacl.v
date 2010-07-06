@@ -1,4 +1,4 @@
-(PolicyVocab IOutACL
+(PolicyVocab ioutacl
              (Types
               (IPAddress : ftpserver ftpclient)
               (Port : port21 port20)

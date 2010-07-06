@@ -1,7 +1,7 @@
 ; Example 1: A small firewall policy. No state, and traffic in only one direction.
 ; Uses our intermediate language, but would not be difficult to translate IOS ACLs.
 
-(Policy FWEx1a uses ExampleFW1
+(Policy FWEx1a uses examplefw1
         ; No target (not a hierarchical policy.)
 	(Target )
 

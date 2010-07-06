@@ -1,4 +1,4 @@
-(PolicyVocab ExampleFirewall
+(PolicyVocab examplefw1
              (Types
 
 	     ; An IP address is one of the following. 

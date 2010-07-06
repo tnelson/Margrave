@@ -1,4 +1,4 @@
-(PolicyVocab PhonePolicy
+(PolicyVocab phonepolicy
              (Types
               (Number : InService OutOfService)
               (Exchange : AnExchange )) ; need to have 1 subsort FOR NOW

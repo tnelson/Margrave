@@ -1,4 +1,4 @@
-(PolicyVocab ExampleFirewall
+(PolicyVocab examplefw2
              (Types
 
               ; Note that we now have a *set* of IPs defined explicitly: dmz.

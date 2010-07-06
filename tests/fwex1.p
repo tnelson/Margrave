@@ -3,7 +3,7 @@
 ;  simulates the inbound interface coming into the firewall itself.)
 ; Uses our intermediate language, but would not be difficult to translate IOS ACLs.
 
-(Policy FWEx1 uses ExampleFW1
+(Policy FWEx1 uses examplefw1
         ; No target (not a hierarchical policy.)
 	(Target )
 

@@ -1,4 +1,4 @@
-(PolicyVocab ExampleFirewall
+(PolicyVocab examplefw3
              (Types
 
               (IPAddress : blacklistaddr 
