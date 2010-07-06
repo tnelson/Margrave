@@ -1,4 +1,4 @@
-(PolicyVocab ExtConference
+(PolicyVocab ConferencePolicy
              (Types
               (Subject : Author Reviewer)
               (Action : SubmitPaper ReadPaper SubmitReview)
