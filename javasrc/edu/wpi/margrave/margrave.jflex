@@ -151,6 +151,7 @@ child           { return newSym(MCommandSym.CHILD); }
 request           { return newSym(MCommandSym.REQUEST); }
 vector           { return newSym(MCommandSym.VECTOR); }
 quit           { return newSym(MCommandSym.QUIT); }
+delete           { return newSym(MCommandSym.DELETE); }
 
 
 

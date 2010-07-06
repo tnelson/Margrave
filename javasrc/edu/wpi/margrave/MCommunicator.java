@@ -19,9 +19,10 @@ public class MCommunicator
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
 	static final char semicolon = ';';
-	static final String lastResortError = "<MARGRAVE-RESPONSE><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
-	static final String setupError = "<MARGRAVE-RESPONSE><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
-
+	static final String lastResortError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
+	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
+	static final char cEOF = (char)0;
+	
 	public static void main(String[] args) 
 	{
 		if(args.length > 0 && args[0].toLowerCase().equals("debug"))
@@ -58,7 +59,7 @@ public class MCommunicator
 		}
 		catch(IOException e)
 		{
-			System.out.println(setupError);			
+			System.out.println(setupError+cEOF);			
 		}
 	}
 
@@ -75,12 +76,13 @@ public class MCommunicator
 			transformer.transform(source, result);
 
 			String xmlString = result.getWriter().toString();
+			xmlString += cEOF;
 			return xmlString.getBytes();
 		}
 		catch(Exception e)
 		{
 			// Will hit this if theResponse is null.			
-			return lastResortError.getBytes();
+			return (lastResortError+cEOF).getBytes();
 		}
 	}
 }

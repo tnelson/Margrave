@@ -1470,104 +1470,49 @@ public class MFormulaManager
 			
 		Element theResult = xmldoc.createElementNS(null, "MANAGER");
 			
-		Element thisElement; 
-		
-		thisElement = xmldoc.createElementNS(null, "VARIABLES");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(vars.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "VARIABLE-TUPLES");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(varTuples.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "RELATIONS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(relations.size())));
-		theResult.appendChild(thisElement);			
-		
-		thisElement = xmldoc.createElementNS(null, "DECLS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(declNodes.size())));
-		theResult.appendChild(thisElement);			
-						          			
+		theResult.setAttribute("num-variables", String.valueOf(vars.size()));
+		theResult.setAttribute("variable-tuples", String.valueOf(varTuples.size()));
+		theResult.setAttribute("relations", String.valueOf(relations.size()));
+		theResult.setAttribute("decls", String.valueOf(declNodes.size()));
+										          			
 		int iTotalMultip = someMultiplicities.size() +
 		                   noMultiplicities.size() +
 		                   loneMultiplicities.size() +
 		                   oneMultiplicities.size();
 		
-		thisElement = xmldoc.createElementNS(null, "MULTIPLICITY");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(iTotalMultip)));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "ATOMS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(atomFormulas.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "NEGATIONS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(negFormulas.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "CONJUNCTIONS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(andFormulas.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "DISJUNCTIONS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(orFormulas.size())));
-		theResult.appendChild(thisElement);			
-		
-		thisElement = xmldoc.createElementNS(null, "Q-EXISTS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(existsFormulas.size())));
-		theResult.appendChild(thisElement);			
-
-		thisElement = xmldoc.createElementNS(null, "Q-FORALL");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(forallFormulas.size())));
-		theResult.appendChild(thisElement);			
-				
+		theResult.setAttribute("multiplicity", String.valueOf(iTotalMultip));
+		theResult.setAttribute("atoms", String.valueOf(atomFormulas.size()));
+		theResult.setAttribute("negations", String.valueOf(negFormulas.size()));
+		theResult.setAttribute("conjunctions", String.valueOf(andFormulas.size()));
+		theResult.setAttribute("disjunctions", String.valueOf(orFormulas.size()));
+		theResult.setAttribute("q-exists", String.valueOf(existsFormulas.size()));
+		theResult.setAttribute("q-forall", String.valueOf(forallFormulas.size()));
+									
 		int iTotalFormulas = atomFormulas.size() +
 		                     negFormulas.size() +
 		                     andFormulas.size() +
 		                     orFormulas.size() + existsFormulas.size() + forallFormulas.size();
 
-		thisElement = xmldoc.createElementNS(null, "TOTAL-FORMULAS");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(iTotalFormulas)));
-		theResult.appendChild(thisElement);			
-
+		theResult.setAttribute("total-formulas", String.valueOf(iTotalFormulas));
 	
 		MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
+		Element thisElement;
 		thisElement = xmldoc.createElementNS(null, "HEAP-USAGE");
-		
+		thisElement.setAttribute("units", "bytes");		
 		MemoryUsage mu = memoryBean.getHeapMemoryUsage();
-		Element initElement = xmldoc.createElementNS(null, "INIT");
-		initElement.setAttribute("units", "bytes");
-		initElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getInit())));
-		thisElement.appendChild(initElement);
-		Element usedElement = xmldoc.createElementNS(null, "USED");
-		usedElement.setAttribute("units", "bytes");
-		usedElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getUsed())));		
-		thisElement.appendChild(usedElement);
-		Element maxElement = xmldoc.createElementNS(null, "MAX");
-		maxElement.setAttribute("units", "bytes");
-		maxElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getMax())));
-		thisElement.appendChild(maxElement);
-
+		thisElement.setAttribute("init", String.valueOf(mu.getInit()));
+		thisElement.setAttribute("used", String.valueOf(mu.getUsed()));
+		thisElement.setAttribute("max", String.valueOf(mu.getMax()));
 		theResult.appendChild(thisElement);		
 
 		
 		thisElement = xmldoc.createElementNS(null, "NON-HEAP-USAGE");
-
+		thisElement.setAttribute("units", "bytes");		
 		mu = memoryBean.getNonHeapMemoryUsage();
-		initElement = xmldoc.createElementNS(null, "INIT");
-		initElement.setAttribute("units", "bytes");
-		initElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getInit())));
-		thisElement.appendChild(initElement);
-		usedElement = xmldoc.createElementNS(null, "USED");
-		usedElement.setAttribute("units", "bytes");
-		usedElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getUsed())));		
-		thisElement.appendChild(usedElement);
-		maxElement = xmldoc.createElementNS(null, "MAX");
-		maxElement.setAttribute("units", "bytes");
-		maxElement.appendChild(xmldoc.createTextNode(String.valueOf(mu.getMax())));
-		thisElement.appendChild(maxElement);
-
+		thisElement.setAttribute("init", String.valueOf(mu.getInit()));
+		thisElement.setAttribute("used", String.valueOf(mu.getUsed()));
+		thisElement.setAttribute("max", String.valueOf(mu.getMax()));
 		theResult.appendChild(thisElement);			
 
 		
@@ -1586,16 +1531,9 @@ public class MFormulaManager
 	       forallFormulas.countReclaimed +
 	       existsFormulas.countReclaimed;
 			
-		thisElement = xmldoc.createElementNS(null, "RECLAIMED");
-		thisElement.appendChild(xmldoc.createTextNode(String.valueOf(lReclaimed)));
-		theResult.appendChild(thisElement);			
-
-	                
+		theResult.setAttribute("total-reclaimed", String.valueOf(lReclaimed));		
 			
-			
-		return theResult;
-
-		
+		return theResult;		
 	}
 }
 

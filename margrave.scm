@@ -16,7 +16,7 @@
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
 ; tn
-; Modifications by TN and VS, June 2010
+; Modifications by TN and VS, Summer 2010
 
 #lang racket
 
@@ -33,6 +33,7 @@
 ;****************************************************************
 ;;Java Connection
 
+
 (define windows? (equal? 'windows (system-path-convention-type)))
 
 (define java-class-separator
@@ -40,25 +41,18 @@
       ";"
       ":"))
 
-;pid should be the process number of the process to kill
-(define (close-last pid)
-  (if windows?
-        ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
-        (process (string-append "taskkill /pid " (number->string pid) " /t"))
-        (process (string-append "kill " (number->string pid)))))
-
 ;Name for file that contains the last process ID started
-(define input-file-name
-  (string-append 
-                  (path->string (build-path (current-directory)))
-                  ".javaIsStarted"))
+;(define input-file-name
+;  (string-append 
+;                  (path->string (build-path (current-directory)))
+;                  ".javaIsStarted"))
 
 ;Close last process
 ;Read in PID
-#;(when (file-exists? input-file-name)
-  (begin
-      ;(display last-pid)
-      (close-input-port input-file-name)))
+;(when (file-exists? input-file-name)
+;  (begin
+;      ;(display last-pid)
+;      (close-input-port input-file-name)))
 
 (define margrave-command-line
   (string-append
@@ -92,8 +86,8 @@
     (build-path (current-directory)
                 "bin"
                 "json.jar"))
-   " edu.wpi.margrave.MCommunicator"))
-
+   " edu.wpi.margrave.MCommunicator"))    
+    
 (define java-process-list (process margrave-command-line))
 
 (define-values (input-port output-port process-id err-port ctrl-function) 
@@ -104,24 +98,30 @@
           (fifth java-process-list)))
 
 ;Save pid to kill
-(define out-file (open-output-file 
-                 (string-append 
-                  (path->string (build-path (current-directory)))
-                  ".javaIsStarted") #:mode 'text #:exists 'replace))
+;(define out-file (open-output-file 
+;                 (string-append 
+;                  (path->string (build-path (current-directory)))
+;                  ".javaIsStarted") #:mode 'text #:exists 'replace))
 
-(display "true" out-file)
-(close-output-port out-file)
+;(display "true" out-file)
+;(close-output-port out-file)
   
-(define (close)
+(define (stop-margrave-engine)
   (begin
-    (display "QUIT" output-port)
+    (display "QUIT;" output-port) ; semicolon is necessary
     (flush-output output-port)
+    
     (close-input-port input-port)
     (close-output-port output-port)
     (close-input-port err-port)
     (ctrl-function 'kill)
     ))
-  
+
+
+; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
+; (exit:insert-on-callback) doesn't work for some reason either
+
+
 ;Deprecated
   #;(if windows?
         ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
@@ -129,22 +129,73 @@
         (ctrl-function 'kill))
 
 ;Kill process on exit
-(exit:insert-on-callback close)
+(exit:insert-on-callback stop-margrave-engine)
 
-; Need to
-; (0 - tim) (GET REQUEST VECTOR) and XACML/SQS loading   
+; !! TODO
+; * (Tim) XACML/SQS loading   
+; * Close java gracefully. (The current method isn't working.)
+; * Test cases
+; * Human-readable output from the XML. 
 
-; (1) Any way to hook drracket exit and close ports + process? 
-; (2) hook re-run and close ports + process?
-; (3) Need to auto-get/save the reply from server (via m? return the string from stdout. what about stderr?)
-; (4) update policy load process (probably some command strings to correct, too)
-; [DONE?] (5) build paths using DrRacket's library... paths&dirs handling
+; Next phase 
+; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
+; Move to language-level sooner, rather than later.
+; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
+
 
 
 ;****************************************************************
 ;;XML
 
+; Get list of child elements with name = name-symbol.
+; Element -> Symbol -> List(Element)
+(define (get-element-children-named ele name-symbol)
+  (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
+          (element-content ele)))
 
+; Get value for attribute name-symbol of element ele
+; Element -> Symbol -> String
+(define (get-attribute-value ele name-symbol)
+    (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
+                                  (element-attributes ele)))))
+
+
+; Get the response type of a MARGRAVE-RESPONSE element:
+; Document -> String
+(define (get-response-type doc)
+  (get-attribute-value (document-element doc) 'type))
+
+
+; Document -> Boolean
+(define (response-is-success? doc)
+  (equal? (get-response-type doc)
+          "success"))
+(define (response-is-error? doc)
+  (equal? (get-response-type doc)
+          "error"))
+(define (response-is-exception? doc)
+  (equal? (get-response-type doc)
+          "exception"))
+
+; Fetch various error properties
+; Document -> String
+(define (get-response-error-type doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'type))
+(define (get-response-error-subtype doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'subtype))
+(define (get-response-error-descriptor doc)
+  (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
+
+
+; Placeholder
+(define (pretty-xml doc)
+  (xexpr->string (xml->xexpr (document-element doc))))
+
+(define (mx cmd)
+  (pretty-xml (m cmd)))
+
+(define (mxout cmd)
+  (display (mx cmd)) (newline))
 
 ;****************************************************************
 
@@ -156,31 +207,34 @@
 
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
 
-; Helper functions for MVocab and MPolicy objects
+
+
+;****************************************************************
+; Helper functions 
 
 ; listsubs contains a list of the subsorts for this sort. 
 ; However, it may be nested: subsorts may themselves have subsorts.
 (define (add-subtypes-of vocab parent listsubs)  
-  ; listsubs may be empty -- if so, do nothing (already added parent)
-  (if (> (length listsubs) 0)            
-      ; Subtypes exist -- Add each subtype
+  ; listsubs may be empty -- if so, do nothing (we already added parent)
+  (when (> (length listsubs) 0)            
       (for-each (lambda (s) 
-                  (if (list? s) 
-                      
+                  ; Is this a sort with subsorts itself?
+                  (if (list? s)                       
                       (begin
                         ; Add subtype relationship between parent and s
-                        (m (string-append "ADD TO " 'vocab " SUBSORT " 'parent " " '(car s)))
+                        (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string (car s))))
                         
                         ; Is this a nested subtype? If so, we must
                         ; deal with s's subtypes.
+                        
                         ; Check for list size;
                         ; someone may have used parens without meaning to.
                         (when (> (length s) 1)
-                          (add-subtypes-of vocab (car s) (cdr s))))
+                          (add-subtypes-of vocab (safe-symbol->string (car s)) (cdr s))))
                       
-                      (m (string-append "ADD TO " 'vocab " SUBSORT " 'parent " " 's))))
-                listsubs)
-      void))
+                      ; Bottom of sort tree. 
+                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string s)))))
+                listsubs)))
 
 
 (define (add-constraint vocab typename listrels)
@@ -202,32 +256,63 @@
     ((eqv? typename 'abstract) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT " (car listrels))))
     ((eqv? typename 'abstract-all) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT ALL " (car listrels))))
     ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
-    (else (display " Error! Unsupported constraint type"))))
+    (else (printf " Error! Unsupported constraint type~n"))))
+
+
+(define (safe-symbol->string s)
+  (if (symbol? s)
+      (symbol->string s)
+      s))
+
+; May be a list, may not be a list
+(define (fold-append-with-spaces posslist)
+  (if (list? posslist)
+      (foldr (lambda (s t) 
+               (cond
+                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) " " (symbol->string t))]
+                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
+                 [(symbol? s) (string-append (symbol->string s) " " t)] 
+                 [(symbol? t) (string-append s " " (symbol->string t))] 
+                 [(string=? t "") s]
+                 [else (string-append s " " t)]))
+             ""
+             posslist)
+      (if (symbol? posslist)
+          (symbol->string posslist)
+          posslist)))
 
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value
 (define (add-predicate vocab predname listrels)
-  (m (string-append "ADD TO " vocab " PREDICATE " predname " " (list->string listrels))))
+  (m (string-append "ADD TO " vocab " PREDICATE " predname " " (fold-append-with-spaces listrels))))
 
 ; Sets the target property of a policy object
 (define (set-target mypolicy conjlist)
-  (m (string-append "SET TARGET FOR POLICY " mypolicy " " conjlist)))
+  (m (string-append "SET TARGET FOR POLICY " mypolicy " " (fold-append-with-spaces conjlist))))
 
+(define (wrap-list-parens lst)
+  (fold-append-with-spaces (map (lambda (str) (string-append "(" str ")")) lst)))
+
+; !!! TODO This will be much nicer once we're sending XML         
+         
 ; Add a rule of the form rulename = (dtype reqvars) :- conjlist
-(define (add-rule mypolicy myvarorder rulename dtype reqvars conjlist)
-  (if (not (string=? myvarorder 
-                     (apply string-append (map 
-                                           (lambda (x) (string-append x " ")) ; leave trailing whitespace in java api too.
-                                           (map symbol->string reqvars))))) 
-      (begin (display "Error: Unable to add rule. Variable ordering ")
-             (display reqvars)
-             (newline)
-             (display "did not agree with vocabulary, which expected ")
-             (display myvarorder) 
-             (display ".")
-             (newline))
+(define (add-rule mypolicy 
+                  ;myvarorder 
+                  rulename dtype reqvars conjlist)
+;  (if (not (string=? myvarorder 
+;                     (apply string-append (map 
+;                                           (lambda (x) (string-append x " ")) ; leave trailing whitespace in java api too.
+;                                           reqvars)))) 
+;      (begin (display "Error: Unable to add rule. Variable ordering ")
+;             (display reqvars)
+;             (newline)
+;             (display "did not agree with vocabulary, which expected ")
+;             (display myvarorder) 
+;             (display ".")
+;             (newline))
       
-      (m (string-append "ADD RULE TO " mypolicy " " rulename " " dtype " " conjlist))))
+      (m (string-append "ADD RULE TO " mypolicy " " rulename " " dtype " " (wrap-list-parens conjlist))))
+  ;)
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax PolicyVocab
@@ -239,47 +324,47 @@
                   (ReqVariables (rvname : rvsort) ...)
                   (OthVariables (ovname : ovsort) ...)
                   (Constraints (ctype crel ...) ...) )
-     (begin 
-       (m (string-append "CREATE VOCABULARY " 'myvocabname)) ; Instantiate a new MVocab object  
+     (begin
        
-       ; These sections must be in order.
+       ; Instantiate a new MVocab object
+       ; If already created, wipe and start over.
+       (let ([ create-reply-doc 
+               (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname)))])
+         (when (response-is-error? create-reply-doc)
+           (begin 
+             (m (string-append "DELETE VOCABULARY " (symbol->string 'myvocabname)))
+             (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname))))))
        
-       ; (display "Parsing Types") (newline)       
+       ; These sections must be in order.                     
        ; Types
-       (m (string-append "ADD TO " 'myvocabname " SORT " 't...))
-       (add-subtypes-of thisvocab 't (list 'subt ...))         
+       (begin
+         (m (string-append "ADD TO " (symbol->string 'myvocabname) " SORT " (symbol->string 't)))
+         (add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
+         )
        ... ; for each type/subtype set
        
-       ; (display "Parsing Decisions") (newline)
-       
-       
        ; Decisions               
-       (m (string-append "ADD TO " 'myvocabname " DECISION " 'r)) 
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " DECISION " (symbol->string 'r))) 
        ...
        
-       ; (display "Parsing Predicates") (newline)
        ; Predicates
-       (add-predicate thisvocab 'pname (list 'prel ...))
+       (add-predicate (symbol->string 'myvocabname) (symbol->string 'pname) (list (symbol->string 'prel) ...))
        ... ; for each custom predicate
-       
-       ; (display "Parsing Variables") (newline)       
+              
        ; Request Variables
-       (m (string-append "ADD TO " 'myvocabname " REQUESTVAR " 'rvname " " 'rvsort))
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " REQUESTVAR " (symbol->string 'rvname) " " (symbol->string 'rvsort)))
        ... ; for each req var
        
-       ; (display "Parsing Other Variables") (newline)
        ; Other Variables
-       (m (string-append "ADD TO " 'myvocabname " OTHERVAR " 'ovname " " 'ovsort))
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " OTHERVAR " (symbol->string 'ovname) " " (symbol->string 'ovsort)))
        ... ; for each oth var
        
-       ;(display "Parsing Constraints") (newline)
        ; Constraints
-       (add-constraint thisvocab 'ctype (list 'crel ...))       
+       (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
        ... ; for each constraint
-       
-       ; (display "Vocab parsed") (newline)
+              
        ; Return the object for use by the policy macro
-       thisvocab)))) 
+       'myvocabname)))) 
 
 
 
@@ -300,45 +385,64 @@
      ; This is so we know where to find the vocabulary file.
      (lambda (local-policy-filename) 
        (let ((mychildren (list child ...))
-             (myvocab              
-              ; they all must be lower-case file names.                    
-              ; Eval to trigger the macro
-              (eval (read (open-input-file
-                           (normalize-url 
-                            ; Make sure we look in the correct directory!
-                            local-policy-filename 
-                            (string-append (symbol->string 'vocabname) ".v"))))))) 
+             
+             ; !!! TODO: Is there a safer alternative to eval here? Look into sandboxing?
+             (myvocab                            
+              (symbol->string (call-with-input-file 
+                                  (build-path (path-only local-policy-filename) 
+                                              (string-append (symbol->string 'vocabname) ".v"))
+                                (lambda (in-port) (eval (read in-port)))))))
+         
+; In SISC, the above was: 
+;                       (eval (read (open-input-file
+;                           (normalize-url 
+;                            ; Make sure we look in the correct directory!
+;                            local-policy-filename 
+;                            (string-append (symbol->string 'vocabname) ".v")))))))
+
+         
+         
          (begin (if (< (length mychildren) 1)
-                    (m "CREATE POLICY LEAF " 'policyname " " myvocab)
-                    (m "CREATE POLICY SET " 'policyname " " myvocab))
+                    (m (string-append "CREATE POLICY LEAF " (symbol->string 'policyname) " " myvocab))
+                    (m (string-append "CREATE POLICY SET " (symbol->string 'policyname) " " myvocab)))
+                              
                 
-                (let ((myvarorder (m "GET REQUEST VECTOR " myvocab)))
+                ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
+                ; Either fix the language, or fix the hack.
+                ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
                   
                   
                   ; Set the policy target (if any)
-                  (set-target mypolicy (list 'tconj ...))
+                  (let ((the-target (list (symbol->string 'tconj) ...)))
+                    (when (> (length the-target) 0)
+                      (set-target (symbol->string 'policyname) the-target)))
                   
                   ; Add the rules to the policy. 'true is dealt with in the back-end.         
-                  (add-rule mypolicy myvarorder 'rulename 'dtype (list 'v ...) (list (list->string 'conj) ...))
+                  (add-rule (symbol->string 'policyname)
+                            ;myvarorder 
+                            (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces 'conj) ...))
                   ...
                   
                   ; Set the rule and policy combinator (depending on type)
                   (if (< (length mychildren) 1)
-                      (m (string-append "SET RCOMBINE FOR POLICY " mypolicy " " (list->string (list 'rcstr ...))))
-                      (m (string-append "SET PCOMBINE FOR POLICY " mypolicy " " (list->string (list 'pcstr ...)))))
+                      (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'rcstr ...))))
+                      (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'pcstr ...)))))
+                  
+                  ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
                   
                   ; Each child is a Policy
                   (let ((cpol child))
-                    (m (string-append "ADD CHILD TO " mypolicy " " cpol))
+                    (m (string-append "ADD CHILD TO " (symbol->string 'policyname) " " cpol))
                     )
                   ...
                   
                   ; Trigger IDB calculation
                   (begin 
-                    (m "PREPARE 'mypolicy")
+                    (m (string-append "PREPARE " (symbol->string 'policyname)))
                     
                     
-                    mypolicy)))))))) ; Return this policy object (used by policy hierarchy code above)
+                    (symbol->string 'policyname))   ; close paren for above GET REQUEST VECTOR commented out )
+                )))))) ; Return this policy object (used by policy hierarchy code above)
 
 
 
@@ -355,6 +459,9 @@
 ; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
 ; to the backend in lower-case.
 (define (load-policy fn)
+  
+  ; !!! TODO Check whether case-sensitivity problems remain in DrRacket
+  
   ;  (case-sensitive #t)
   ;  (display (read (open-input-file fn))) (newline)
   ;  (case-sensitive #f)  
@@ -374,13 +481,17 @@
   (begin 
     (display (string-append cmd ";") output-port)
     (flush-output output-port)
-    (read-line input-port) ;Get rid of first XML version line
+    
+    ; !!! We're ok without ignoring this line now.
+    ; (read-line input-port) ;Get rid of first XML version line
+    
+    
     (local ((define (helper)
               (let ((next-char (read-char input-port)))
                 (if (equal? next-char #\nul)
                     ""
                     (string-append (string next-char) (helper))))))
-      (read-xml (helper)))))
+      (read-xml (open-input-string (helper))))))
 
 
 ; !!!
@@ -605,21 +716,5 @@
 
 (define (pause-for-user) 
   (display "======================== Hit enter to continue. ========================") (newline) (newline) (read-char))
-
-;(define-java-class <MFormulaManager> |edu.wpi.margrave.MFormulaManager|)
-;(define-java-class <System> |java.lang.System|)
-
-; Should only be used for testing purposes:
-
-;(define (run-gc)
-;  ((generic-java-method '|gc|) (java-null <System>)))
-
-;(define (print-cache-info)
-;  ((generic-java-method '|printStatistics|) (java-null <MFormulaManager>)))
-
-;(define (get-system-clock-ms)
-;  (->number ((generic-java-method '|currentTimeMillis|) (java-null <System>))))
-; *************************************************************
-
 
 
