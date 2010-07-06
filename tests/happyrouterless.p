@@ -11,7 +11,7 @@
 ;permit tcp 10.1.1.0 0.0.0.255 eq smtp host 192.168.1.201
 ;permit tcp 10.1.1.0 0.0.0.255 eq pop3 host 192.168.1.201
 
-(Policy HappyRouterLess uses HappyRouterACL
+(Policy HappyRouterLess uses happyrouteracl
 	(Target )
 
 	(Rules

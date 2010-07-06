@@ -2,7 +2,7 @@
 ; This means a LOT of potentially accepted packets. Beware permissive queries.
 ; Uses our intermediate language, but would not be difficult to translate IOS ACLs.
 
-(Policy FWEx3 uses ExampleFW3
+(Policy FWEx3 uses examplefw3
         ; No target (not a hierarchical policy.)
 	(Target )
 

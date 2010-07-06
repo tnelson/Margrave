@@ -474,7 +474,11 @@ public class MEnvironment
 	public static String sSuccess = "success";
 	public static String sUnsat = "unsat";
 	public static String sQuitMargrave = "quit";
-		
+
+	// Used in exception output
+	static String lastCommandReceived = "";
+	
+	
 	static MIDBCollection getPolicyOrView(String str)
 	{
 		
@@ -598,6 +602,7 @@ public class MEnvironment
 
 	static public Document command(String cmd, boolean silent)
 	{
+		lastCommandReceived = cmd.trim();
 		Reader reader = new StringReader(cmd);
 		MCommandLexer theLexer = new MCommandLexer(reader);
 		MCommandParser theParser = new MCommandParser(theLexer);			
@@ -900,7 +905,7 @@ public class MEnvironment
 		}
 		
 		// Add stock publish statement 
-		theCmd += "PUBLISH "+reqvars;							
+		theCmd += " PUBLISH "+reqvars;							
 		
 		if(tupling)
 			theCmd += " TUPLING ";
@@ -908,7 +913,7 @@ public class MEnvironment
 		if(debuglevel > 0)
 			theCmd += " DEBUG "+debuglevel+" ";
 		
-		theCmd += "CEILING "+sizeceiling+" ";
+		theCmd += " CEILING "+sizeceiling+" ";
 
 		//System.out.println("---- ");
 		//System.out.println(thePol1.varOrdering);
@@ -1680,6 +1685,7 @@ public class MEnvironment
 		errorElement.setAttribute("subtype", errorSubtype);
 		errorElement.appendChild(xmldoc.createTextNode(desc));	
 		xmldoc.getDocumentElement().appendChild(errorElement);
+				
 		
 		return xmldoc;
 	}
@@ -1731,6 +1737,11 @@ public class MEnvironment
 			placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
 			errorElement.appendChild(placeElement);
 		}
+		
+		// Include the query that caused the problem.
+		Element queryElement = xmldoc.createElementNS(null, "COMMAND");
+		queryElement.appendChild(xmldoc.createTextNode(lastCommandReceived));
+		errorElement.appendChild(queryElement);
 		
 		xmldoc.getDocumentElement().appendChild(errorElement);
 		
@@ -1828,13 +1839,22 @@ public class MEnvironment
 	}
 
 	private static Document scenarioResponse(MQueryResult mQueryResult,
-			MSolutionInstance next)
+			MSolutionInstance nextPreTup)
 	{
+		MSolutionInstance next;
+		
+		// If this query was tupled, don't forget to convert back to the original signature.		
+		if(mQueryResult.forQuery.tupled) 
+			next = mQueryResult.forQuery.internalTupledQuery.processTupledSolutionForThis(nextPreTup);
+		else
+			next = nextPreTup;
+						
 		Document xmldoc = makeInitialResponse("model");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element modelElement = xmldoc.createElementNS(null, "MODEL");
 		
 		Instance facts = next.getFacts();
+		List<String> annotations = next.getAnnotations();
 		
 		modelElement.setAttribute("size", String.valueOf(facts.universe().size()));
 				
@@ -1863,6 +1883,14 @@ public class MEnvironment
 			modelElement.appendChild(relationElement);
 		}
 		
+		// !!! TODO: s is a string here, e.g.  "Rel is true of: [x, y]".
+		// Should be structured so Racket can display however it wants.
+		for(String s : annotations)
+		{
+			Element annElement = xmldoc.createElementNS(null, "ANNOTATION");
+			annElement.appendChild(xmldoc.createTextNode(s));				
+			modelElement.appendChild(annElement);
+		}
 		
 		xmldoc.getDocumentElement().appendChild(modelElement);		
 		return xmldoc;

@@ -6,7 +6,7 @@
 ;remark allow PC full access to make requests to less secure network
 ;permit tcp host 192.168.1.201 10.1.1.0 0.0.0.255
 
-(Policy HappyRouterMore uses HappyRouterACL
+(Policy HappyRouterMore uses happyrouteracl
 	(Target )
 
 	(Rules

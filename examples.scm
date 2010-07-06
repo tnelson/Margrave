@@ -248,8 +248,6 @@
 
 
 
-
-
 ; Now suppose we changed this policy a bit. What has changed?
 ; (This doesn't break out by what *kind* of change. Can run separate queries if needed.)
 (mxout "COMPARE Firewall1 Firewall1a")

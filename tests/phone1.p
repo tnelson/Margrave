@@ -1,4 +1,4 @@
-(Policy Phone1 uses PhonePolicy
+(Policy Phone1 uses phonepolicy
         (Target )
 
 ; Note the use of different variable names across rules. This is temporarily required. 

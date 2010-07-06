@@ -1,4 +1,4 @@
-(Policy IOut uses IOutACL 
+(Policy IOut uses ioutacl
 	(Target )
 
 	(Rules

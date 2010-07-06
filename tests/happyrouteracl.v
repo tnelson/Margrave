@@ -2,7 +2,7 @@
 ; http://happyrouter.com/free-video-harden-your-cisco-router-with-ios-acls
 
 
-(PolicyVocab HappyRouterACL
+(PolicyVocab happyrouteracl
              (Types
               (IPAddress : 10network webserver pc )
               (Port : http https ftp ftpdata pop3 smtp )
