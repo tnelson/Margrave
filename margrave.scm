@@ -26,9 +26,13 @@
 
 (require xml)
 
+
+
 ; Save the current directory when this file is loaded.
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
+
+(load "./examples.scm")
 
 ;****************************************************************
 ;;Java Connection

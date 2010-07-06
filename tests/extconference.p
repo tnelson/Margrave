@@ -1,4 +1,4 @@
-(Policy ExtConferencePolicy uses ExtConference
+(Policy extconferencePolicy uses extconferencea
         (Target )
         (Rules 
   	  (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
