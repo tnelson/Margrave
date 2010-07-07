@@ -32,7 +32,7 @@
 ; (Will be our absolute Margrave path.)
 (define my-directory (path->string (current-directory)))
 
-(load "./examples.scm")
+
 
 ;****************************************************************
 ;;Java Connection
@@ -91,7 +91,7 @@
                 "bin"
                 "json.jar"))
    " edu.wpi.margrave.MCommunicator"))    
-    
+
 (define java-process-list (process margrave-command-line))
 
 (define-values (input-port output-port process-id err-port ctrl-function) 
@@ -109,7 +109,7 @@
 
 ;(display "true" out-file)
 ;(close-output-port out-file)
-  
+
 (define (stop-margrave-engine)
   (begin
     (display "QUIT;" output-port) ; semicolon is necessary
@@ -127,10 +127,10 @@
 
 
 ;Deprecated
-  #;(if windows?
-        ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
-        (process (string-append "taskkill /pid " process-id " /t"))
-        (ctrl-function 'kill))
+#;(if windows?
+      ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
+      (process (string-append "taskkill /pid " process-id " /t"))
+      (ctrl-function 'kill))
 
 ;Kill process on exit
 (exit:insert-on-callback stop-margrave-engine)
@@ -160,7 +160,7 @@
 ; Get value for attribute name-symbol of element ele
 ; Element -> Symbol -> String
 (define (get-attribute-value ele name-symbol)
-    (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
+  (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
                                   (element-attributes ele)))))
 
 
@@ -212,6 +212,160 @@
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
 
 
+;****************************************************************
+;;Pretty Printing returned XML
+
+(define testXML (read-xml (open-input-string
+                           "<MARGRAVE-RESPONSE type=\"model\">
+<MODEL size=\"3\">
+<RELATION arity=\"1\" name=\"author\">
+<TUPLE>
+<ATOM>Atom0</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"paper\">
+<TUPLE>
+<ATOM>Atom1</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"subject\">
+<TUPLE>
+<ATOM>Atom0</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"resource\">
+<TUPLE>
+<ATOM>Atom1</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"submitreview\" />
+<RELATION arity=\"1\" name=\"action\">
+<TUPLE>
+<ATOM>Atom2</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"reviewer\" />
+<RELATION arity=\"1\" name=\"readpaper\">
+<TUPLE>
+<ATOM>Atom2</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"review\" />
+<RELATION arity=\"1\" name=\"submitpaper\" />
+<RELATION arity=\"2\" name=\"conflicted\">
+<TUPLE>
+<ATOM>Atom0</ATOM>
+<ATOM>Atom1</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"2\" name=\"assigned\" />
+<RELATION arity=\"1\" name=\"$r\">
+<TUPLE>
+<ATOM>Atom1</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"$a\">
+<TUPLE>
+<ATOM>Atom2</ATOM>
+</TUPLE>
+</RELATION>
+<RELATION arity=\"1\" name=\"$s\">
+<TUPLE>
+<ATOM>Atom0</ATOM>
+</TUPLE>
+</RELATION>
+</MODEL>
+</MARGRAVE-RESPONSE>")))
+
+;name is the name of the atom, such as "s" or "r" (doesn't include the $), and list of types is a list of types (which are really predicates that have only one atom in (predicate-list-of-atoms))
+(define-struct atom (name list-of-types) #:mutable)
+
+;Note that a type is also a predicate, but with only one atom
+(define-struct predicate (name list-of-atoms) #:mutable)
+
+;Maps strings (such as "s") to their corresponding atoms
+(define atom-hash (make-hash))
+
+;Maps name of predicates (strings) to their corresponding predicate structs
+(define predicate-hash (make-hash))
+
+(define (pretty-print-next-model id) 
+  "")
+
+;Takes a document with <MODEL> as its outer type
+(define (pretty-print-model xml-model)
+  ;First, go through the XML and update the 2 hashes. Then print them out.
+  (local [(define (helper content) ;content is a list of alternating pcdatas and RELATION elements
+            (cond [(empty? content) void]
+                  [(pcdata? (first content)) (helper (rest content))]
+                  [(element? (first content))
+                   (let* ((relation (first content))
+                          (relation-arity (attribute-value (first  (element-attributes relation))))
+                          (relation-name  (attribute-value (second (element-attributes relation)))))
+                     (begin
+                       (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
+                         (hash-set! predicate-hash relation-name (make-predicate relation-name empty)))
+                       (let ((predicate-struct (hash-ref predicate-hash relation-name))) ;should definitely exist, since we just created it if it didn't
+                         (when (not (empty? (element-content relation))) ;if there is at least one atom that satisfies this relation
+                           (let ((tuple-content (element-content (second (element-content relation)))))
+                             (local [(define (parse-tuple t-cont)
+                                       (cond [(empty? t-cont) void]
+                                             [(pcdata? (first t-cont)) (parse-tuple (rest t-cont))]
+                                             [(element? (first t-cont))
+                                              (let* ((atom (first t-cont))
+                                                     (atom-name (pcdata-string (first (element-content atom)))))
+                                                (begin 
+                                                  (when (not (hash-ref atom-hash atom-name #f)) ;if the atom doesn't exist in the hash yet, create it
+                                                    (hash-set! atom-hash atom-name (make-atom atom-name empty)))
+                                                  (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                                    (if (equal? (string-ref relation-name 0) #\$)
+                                                        (set-atom-name! atom-struct (make-string 1 (string-ref relation-name 1))) ;Have to turn the char into a string
+                                                        (if (= (string->number relation-arity) 1) ;If relation is a type
+                                                            (begin 
+                                                              (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
+                                                              (set-predicate-list-of-atoms! predicate-struct (cons atom-name (predicate-list-of-atoms predicate-struct))))
+                                                            (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-name (predicate-list-of-atoms predicate-struct)))
+                                                                   (parse-tuple (rest t-cont))))))))]
+                                             [else "Error in pretty-print-model!"]))]
+                               (parse-tuple tuple-content)))))
+                       (helper (rest content))))]
+                  [else "Error in pretty-print-model!!"]))]
+    (begin (helper (element-content xml-model))
+           (display (string-from-hash)))))
+
+;Returns a string to display based on atom-hash and predicate-hash
+(define (string-from-hash)
+  (local [(define (atom-helper hash-pos)
+            (cond [(false? hash-pos) ""]
+                  [else (let ((atom (hash-iterate-value atom-hash hash-pos)))
+                          (string-append
+                           (atom-name atom)
+                           ": "
+                           (foldl (λ(type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
+                           "\n"
+                           (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
+          (define (predicate-helper hash-pos)
+            (cond [(false? hash-pos) ""]
+                  [else (let ((predicate (hash-iterate-value predicate-hash hash-pos)))
+                          (if (> (length (predicate-list-of-atoms predicate)) 1) ;Only for non-unary predicates
+                            (string-append
+                             (predicate-name predicate)
+                             " = {["
+                             (foldl (λ(type rest) (string-append type 
+                                                                 (if (not (equal? rest ""))
+                                                                   ", "
+                                                                   "") 
+                                                                 rest)) "" (predicate-list-of-atoms predicate))
+                             "]}"
+                             "\n"
+                             (predicate-helper (hash-iterate-next predicate-hash hash-pos)))
+                            (predicate-helper (hash-iterate-next predicate-hash hash-pos))))]))]
+    (string-append (atom-helper (hash-iterate-first atom-hash))
+                   (predicate-helper (hash-iterate-first predicate-hash)))))
+
+(define test-model-xml (second (element-content (document-element testXML))))
+
+
 
 ;****************************************************************
 ; Helper functions 
@@ -221,24 +375,24 @@
 (define (add-subtypes-of vocab parent listsubs)  
   ; listsubs may be empty -- if so, do nothing (we already added parent)
   (when (> (length listsubs) 0)            
-      (for-each (lambda (s) 
-                  ; Is this a sort with subsorts itself?
-                  (if (list? s)                       
-                      (begin
-                        ; Add subtype relationship between parent and s
-                        (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string (car s))))
-                        
-                        ; Is this a nested subtype? If so, we must
-                        ; deal with s's subtypes.
-                        
-                        ; Check for list size;
-                        ; someone may have used parens without meaning to.
-                        (when (> (length s) 1)
-                          (add-subtypes-of vocab (safe-symbol->string (car s)) (cdr s))))
+    (for-each (lambda (s) 
+                ; Is this a sort with subsorts itself?
+                (if (list? s)                       
+                    (begin
+                      ; Add subtype relationship between parent and s
+                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string (car s))))
                       
-                      ; Bottom of sort tree. 
-                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string s)))))
-                listsubs)))
+                      ; Is this a nested subtype? If so, we must
+                      ; deal with s's subtypes.
+                      
+                      ; Check for list size;
+                      ; someone may have used parens without meaning to.
+                      (when (> (length s) 1)
+                        (add-subtypes-of vocab (safe-symbol->string (car s)) (cdr s))))
+                    
+                    ; Bottom of sort tree. 
+                    (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string s)))))
+              listsubs)))
 
 
 (define (add-constraint vocab typename listrels)
@@ -298,25 +452,25 @@
   (fold-append-with-spaces (map (lambda (str) (string-append "(" str ")")) lst)))
 
 ; !!! TODO This will be much nicer once we're sending XML         
-         
+
 ; Add a rule of the form rulename = (dtype reqvars) :- conjlist
 (define (add-rule mypolicy 
                   ;myvarorder 
                   rulename dtype reqvars conjlist)
-;  (if (not (string=? myvarorder 
-;                     (apply string-append (map 
-;                                           (lambda (x) (string-append x " ")) ; leave trailing whitespace in java api too.
-;                                           reqvars)))) 
-;      (begin (display "Error: Unable to add rule. Variable ordering ")
-;             (display reqvars)
-;             (newline)
-;             (display "did not agree with vocabulary, which expected ")
-;             (display myvarorder) 
-;             (display ".")
-;             (newline))
-      
-      (m (string-append "ADD RULE TO " mypolicy " " rulename " " dtype " " (wrap-list-parens conjlist))))
-  ;)
+  ;  (if (not (string=? myvarorder 
+  ;                     (apply string-append (map 
+  ;                                           (lambda (x) (string-append x " ")) ; leave trailing whitespace in java api too.
+  ;                                           reqvars)))) 
+  ;      (begin (display "Error: Unable to add rule. Variable ordering ")
+  ;             (display reqvars)
+  ;             (newline)
+  ;             (display "did not agree with vocabulary, which expected ")
+  ;             (display myvarorder) 
+  ;             (display ".")
+  ;             (newline))
+  
+  (m (string-append "ADD RULE TO " mypolicy " " rulename " " dtype " " (wrap-list-parens conjlist))))
+;)
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax PolicyVocab
@@ -354,7 +508,7 @@
        ; Predicates
        (add-predicate (symbol->string 'myvocabname) (symbol->string 'pname) (list (symbol->string 'prel) ...))
        ... ; for each custom predicate
-              
+       
        ; Request Variables
        (m (string-append "ADD TO " (symbol->string 'myvocabname) " REQUESTVAR " (symbol->string 'rvname) " " (symbol->string 'rvsort)))
        ... ; for each req var
@@ -366,7 +520,7 @@
        ; Constraints
        (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
        ... ; for each constraint
-              
+       
        ; Return the object for use by the policy macro
        'myvocabname)))) 
 
@@ -397,55 +551,55 @@
                                               (string-append (symbol->string 'vocabname) ".v"))
                                 (lambda (in-port) (eval (read in-port)))))))
          
-; In SISC, the above was: 
-;                       (eval (read (open-input-file
-;                           (normalize-url 
-;                            ; Make sure we look in the correct directory!
-;                            local-policy-filename 
-;                            (string-append (symbol->string 'vocabname) ".v")))))))
-
+         ; In SISC, the above was: 
+         ;                       (eval (read (open-input-file
+         ;                           (normalize-url 
+         ;                            ; Make sure we look in the correct directory!
+         ;                            local-policy-filename 
+         ;                            (string-append (symbol->string 'vocabname) ".v")))))))
+         
          
          
          (begin (if (< (length mychildren) 1)
                     (m (string-append "CREATE POLICY LEAF " (symbol->string 'policyname) " " myvocab))
                     (m (string-append "CREATE POLICY SET " (symbol->string 'policyname) " " myvocab)))
-                              
+                
                 
                 ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
                 ; Either fix the language, or fix the hack.
                 ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
+                
+                
+                ; Set the policy target (if any)
+                (let ((the-target (list (symbol->string 'tconj) ...)))
+                  (when (> (length the-target) 0)
+                    (set-target (symbol->string 'policyname) the-target)))
+                
+                ; Add the rules to the policy. 'true is dealt with in the back-end.         
+                (add-rule (symbol->string 'policyname)
+                          ;myvarorder 
+                          (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces 'conj) ...))
+                ...
+                
+                ; Set the rule and policy combinator (depending on type)
+                (if (< (length mychildren) 1)
+                    (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'rcstr ...))))
+                    (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'pcstr ...)))))
+                
+                ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
+                
+                ; Each child is a Policy
+                (let ((cpol child))
+                  (m (string-append "ADD CHILD TO " (symbol->string 'policyname) " " cpol))
+                  )
+                ...
+                
+                ; Trigger IDB calculation
+                (begin 
+                  (m (string-append "PREPARE " (symbol->string 'policyname)))
                   
                   
-                  ; Set the policy target (if any)
-                  (let ((the-target (list (symbol->string 'tconj) ...)))
-                    (when (> (length the-target) 0)
-                      (set-target (symbol->string 'policyname) the-target)))
-                  
-                  ; Add the rules to the policy. 'true is dealt with in the back-end.         
-                  (add-rule (symbol->string 'policyname)
-                            ;myvarorder 
-                            (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces 'conj) ...))
-                  ...
-                  
-                  ; Set the rule and policy combinator (depending on type)
-                  (if (< (length mychildren) 1)
-                      (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'rcstr ...))))
-                      (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'pcstr ...)))))
-                  
-                  ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
-                  
-                  ; Each child is a Policy
-                  (let ((cpol child))
-                    (m (string-append "ADD CHILD TO " (symbol->string 'policyname) " " cpol))
-                    )
-                  ...
-                  
-                  ; Trigger IDB calculation
-                  (begin 
-                    (m (string-append "PREPARE " (symbol->string 'policyname)))
-                    
-                    
-                    (symbol->string 'policyname))   ; close paren for above GET REQUEST VECTOR commented out )
+                  (symbol->string 'policyname))   ; close paren for above GET REQUEST VECTOR commented out )
                 )))))) ; Return this policy object (used by policy hierarchy code above)
 
 
