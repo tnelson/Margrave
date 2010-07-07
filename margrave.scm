@@ -280,14 +280,16 @@
 ;name is the name of the atom, such as "s" or "r" (doesn't include the $), and list of types is a list of types (which are really predicates that have only one atom in (predicate-list-of-atoms))
 (define-struct atom (name list-of-types) #:mutable)
 
-;Note that a type is also a predicate, but with only one atom
-(define-struct predicate (name list-of-atoms) #:mutable)
+;Note that a type is also a predicate, but with only one atom.
+(define-struct predicate (name arity list-of-atoms) #:mutable)
 
 ;Maps strings (such as "s") to their corresponding atoms
 (define atom-hash (make-hash))
 
 ;Maps name of predicates (strings) to their corresponding predicate structs
 (define predicate-hash (make-hash))
+
+(define model-size 0)
 
 (define (pretty-print-next-model id) 
   "")
@@ -300,11 +302,11 @@
                   [(pcdata? (first content)) (helper (rest content))]
                   [(element? (first content))
                    (let* ((relation (first content))
-                          (relation-arity (attribute-value (first  (element-attributes relation))))
+                          (relation-arity (string->number (attribute-value (first  (element-attributes relation)))))
                           (relation-name  (attribute-value (second (element-attributes relation)))))
                      (begin
                        (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
-                         (hash-set! predicate-hash relation-name (make-predicate relation-name empty)))
+                         (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
                        (let ((predicate-struct (hash-ref predicate-hash relation-name))) ;should definitely exist, since we just created it if it didn't
                          (when (not (empty? (element-content relation))) ;if there is at least one atom that satisfies this relation
                            (let ((tuple-content (element-content (second (element-content relation)))))
@@ -320,17 +322,20 @@
                                                   (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
                                                     (if (equal? (string-ref relation-name 0) #\$)
                                                         (set-atom-name! atom-struct (make-string 1 (string-ref relation-name 1))) ;Have to turn the char into a string
-                                                        (if (= (string->number relation-arity) 1) ;If relation is a type
+                                                        (if (=  relation-arity 1) ;If relation is a type
                                                             (begin 
                                                               (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                              (set-predicate-list-of-atoms! predicate-struct (cons atom-name (predicate-list-of-atoms predicate-struct))))
-                                                            (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-name (predicate-list-of-atoms predicate-struct)))
+                                                              (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
+                                                            (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
                                                                    (parse-tuple (rest t-cont))))))))]
                                              [else "Error in pretty-print-model!"]))]
                                (parse-tuple tuple-content)))))
                        (helper (rest content))))]
                   [else "Error in pretty-print-model!!"]))]
-    (begin (helper (element-content xml-model))
+    (begin (set! atom-hash (make-hash)) ;First reset the hashes
+           (set! predicate-hash (make-hash))
+           (set! model-size (attribute-value (first (element-attributes xml-model))))
+           (helper (element-content xml-model))
            (display (string-from-hash)))))
 
 ;Returns a string to display based on atom-hash and predicate-hash
@@ -347,20 +352,21 @@
           (define (predicate-helper hash-pos)
             (cond [(false? hash-pos) ""]
                   [else (let ((predicate (hash-iterate-value predicate-hash hash-pos)))
-                          (if (> (length (predicate-list-of-atoms predicate)) 1) ;Only for non-unary predicates
-                            (string-append
+                          (if (= (predicate-arity predicate) 1) ;If type, continue, otherwise print
+                              (predicate-helper (hash-iterate-next predicate-hash hash-pos))
+                              (string-append
                              (predicate-name predicate)
                              " = {["
-                             (foldl (λ(type rest) (string-append type 
+                             (foldl (λ(atom rest) (string-append (atom-name atom)
                                                                  (if (not (equal? rest ""))
                                                                    ", "
                                                                    "") 
                                                                  rest)) "" (predicate-list-of-atoms predicate))
                              "]}"
                              "\n"
-                             (predicate-helper (hash-iterate-next predicate-hash hash-pos)))
-                            (predicate-helper (hash-iterate-next predicate-hash hash-pos))))]))]
-    (string-append (atom-helper (hash-iterate-first atom-hash))
+                             (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
+    (string-append "********* SOLUTION FOUND at size = " model-size " ******************\n"
+                   (atom-helper (hash-iterate-first atom-hash))
                    (predicate-helper (hash-iterate-first predicate-hash)))))
 
 (define test-model-xml (second (element-content (document-element testXML))))
