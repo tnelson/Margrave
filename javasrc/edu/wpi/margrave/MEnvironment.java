@@ -797,14 +797,22 @@ public class MEnvironment
 		
 		Element sortsElement = xmldoc.createElementNS(null, "SORTS");
 		Element reqElement = xmldoc.createElementNS(null, "REQ-VECTOR");
+		Element axiomsElement = xmldoc.createElementNS(null, "AXIOMS");
 		
-		// TODO add more info
-		
-		for(String sname : voc.sorts.keySet())
+		// List each sort with its subsorts
+		// Better to do it this way than tree-like, just in case 2 sorts have a common subsort.
+		for(MSort s : voc.sorts.values())
 		{
-			Element sortElement = xmldoc.createElementNS(null, "SORT");
-			sortElement.appendChild(xmldoc.createTextNode(sname));
-			sortsElement.appendChild(sortElement);
+				Element sortElement = xmldoc.createElementNS(null, "SORT");
+				sortElement.setAttribute("name", s.name);				
+				sortsElement.appendChild(sortElement);
+				
+				for(MSort child : s.subsorts)
+				{
+					Element childElement = xmldoc.createElementNS(null, "SORT");
+					childElement.setAttribute("name", child.name);
+					sortElement.appendChild(childElement);
+				}
 		}
 		
 		int iOrder = 1;
@@ -817,8 +825,35 @@ public class MEnvironment
 			iOrder++;
 		}
 		
+		// AXIOMS
+		// TODO more axioms
+		
+		
+		Element disjElement = xmldoc.createElementNS(null, "DISJOINT");
+		
+		
+		for(MSort s : voc.axioms.axiomDisjoints.keySet())
+		{
+			if(voc.axioms.axiomDisjoints.get(s).size() < 1)
+				continue;
+			
+			Element firstElement = xmldoc.createElementNS(null, "SORT");
+			firstElement.setAttribute("name", s.name);
+			
+			for(MSort t : voc.axioms.axiomDisjoints.get(s))
+			{
+				Element secondElement = xmldoc.createElementNS(null, "SORT");
+				secondElement.setAttribute("name", t.name);
+				firstElement.appendChild(secondElement);
+			}
+			
+			disjElement.appendChild(firstElement);
+		}		
+		axiomsElement.appendChild(disjElement);
+		
 		theElement.appendChild(sortsElement);
 		theElement.appendChild(reqElement);
+		theElement.appendChild(axiomsElement);
 		xmldoc.getDocumentElement().appendChild(theElement);		
 		return xmldoc;
 	}
