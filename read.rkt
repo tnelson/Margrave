@@ -165,7 +165,7 @@
 255 255 1 -1 0 1 #"\0"
 0 -1 1 #"\0"
 1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 200 0 0 0 0 0 -1 -1
-          0 1434 0 26 3 12 #"#lang scheme"
+          0 1435 0 26 3 12 #"#lang racket"
 0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
 0 0 17 3 42 #";; Import the parser and lexer generators."
@@ -1970,11 +1970,12 @@
 0 0 22 3 1 #"("
 0 0 14 3 17 #"open-input-string"
 0 0 4 3 1 #" "
-0 0 19 3 117
+0 0 19 3 103
 (
  #"\" ( EXPLORE FOO(x) AND mypolicy:deny(x, y, z) AND NOT mypolicy:perm"
- #"it(z, y, x)) OR \\\"idb-name-with:in_it\\\" CEILING 5\""
-) 0 0 22 3 2 #"))"
+ #"it(z, y, x)) OR \\\"idb-name-with:and'"
+) 0 0 19 3 18 #"in_it\\\" CEILING 5\""
+0 0 22 3 2 #"))"
 0 0 19 29 1 #"\n"
 0 0 22 3 1 #"("
 0 0 14 3 3 #"lex"
