@@ -10,7 +10,7 @@
 ; todo: changes to margrave source to make it a module (on the way to becoming a lang?)
 ; todo: response-result-id, response-list, response-map
 
-(require margrave)
+(require "./margrave")
 
 ; Easy timer function
 ; Initial value
@@ -67,7 +67,8 @@
   (define listOfApplied (filter-helper (lambda (idbname)
                                          (string-endswith idbname "_applies"))
                                        allIDBs))
-  (define listOfNonApplied (removeall (append listOfApplied (list "inboundacl:permit" "inboundacl:deny")) allIDBs))
+  (define listOfNonApplied (removeall (append li
+  (printf "Loading took: ~a milliseconds.~n" loadedTime) stOfApplied (list "inboundacl:permit" "inboundacl:deny")) allIDBs))
   
   ; get-decision-for-rule-idbname works only for the base rule name IDB
   (define listOfPermitNonApplied (filter-helper (lambda (idbname) (string=? (get-decision-for-rule-idbname polobj idbname) "permit")) listOfNonApplied))
