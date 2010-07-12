@@ -10,7 +10,8 @@
 ; todo: changes to margrave source to make it a module (on the way to becoming a lang?)
 ; todo: response-result-id, response-list, response-map
 
-(require margrave)
+; TEMPORARY! Will be a nice module path soon.
+(require (file "M:\\RktMargrave\\margrave.scm"))
 
 ; Easy timer function
 ; Initial value

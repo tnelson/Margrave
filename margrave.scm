@@ -21,22 +21,18 @@
 #lang racket
 
 (require racket/system)
-
 (require framework)
-
 (require xml)
 
-
-
-; Save the current directory when this file is loaded.
-; (Will be our absolute Margrave path.)
-(define my-directory (path->string (current-directory)))
-
-
+; todo: more later
+(provide stop-margrave-engine
+         start-margrave-engine
+         m
+         pretty-print-model
+         load-policy)
 
 ;****************************************************************
 ;;Java Connection
-
 
 (define windows? (equal? 'windows (system-path-convention-type)))
 
@@ -44,19 +40,6 @@
   (if windows?
       ";"
       ":"))
-
-;Name for file that contains the last process ID started
-;(define input-file-name
-;  (string-append 
-;                  (path->string (build-path (current-directory)))
-;                  ".javaIsStarted"))
-
-;Close last process
-;Read in PID
-;(when (file-exists? input-file-name)
-;  (begin
-;      ;(display last-pid)
-;      (close-input-port input-file-name)))
 
 (define margrave-command-line
   (string-append
@@ -92,58 +75,57 @@
                 "json.jar"))
    " edu.wpi.margrave.MCommunicator"))    
 
-(define java-process-list (process margrave-command-line))
+; Initial values
+(define java-process-list #f)
+(define input-port #f)
+(define output-port #f)
+(define process-id #f)
+(define err-port #f)
+(define ctrl-function #f)
 
-(define-values (input-port output-port process-id err-port ctrl-function) 
-  (values (first java-process-list)
-          (second java-process-list)
-          (third java-process-list)
-          (fourth java-process-list)
-          (fifth java-process-list)))
-
-;Save pid to kill
-;(define out-file (open-output-file 
-;                 (string-append 
-;                  (path->string (build-path (current-directory)))
-;                  ".javaIsStarted") #:mode 'text #:exists 'replace))
-
-;(display "true" out-file)
-;(close-output-port out-file)
-
+(define (start-margrave-engine)
+  (if (eq? java-process-list #f)
+      (begin
+        (set! java-process-list (process margrave-command-line))
+        (set! input-port (first java-process-list))
+        (set! output-port (second java-process-list))
+        (set! process-id (third java-process-list))
+        (set! err-port (fourth java-process-list))
+        (set! ctrl-function (fifth java-process-list))
+        #t)
+      #f))
+  
 (define (stop-margrave-engine)
-  (begin
-    (display "QUIT;" output-port) ; semicolon is necessary
-    (flush-output output-port)
-    
-    (close-input-port input-port)
-    (close-output-port output-port)
-    (close-input-port err-port)
-    (ctrl-function 'kill)
-    ))
+  (display "QUIT;" output-port) ; semicolon is necessary
+  (flush-output output-port)    
+  (close-input-port input-port)
+  (close-output-port output-port)
+  (close-input-port err-port)
+  (ctrl-function 'kill)
+
+  ; allow restart of the engine
+  (set! java-process-list #f)
+  (set! input-port #f)
+  (set! output-port #f)
+  (set! process-id #f)
+  (set! err-port #f)
+  (set! ctrl-function #f)) 
 
 
 ; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
 ; (exit:insert-on-callback) doesn't work for some reason either
-
-
-;Deprecated
-#;(if windows?
-      ;On Windows, need to kill all child process (java.exe). Automatically happens on *nix
-      (process (string-append "taskkill /pid " process-id " /t"))
-      (ctrl-function 'kill))
-
 ;Kill process on exit
-(exit:insert-on-callback stop-margrave-engine)
+; (exit:insert-on-callback stop-margrave-engine)
 
 ; !! TODO
 ; * (Tim) XACML/SQS loading   
 ; * Close java gracefully. (The current method isn't working.)
 ; * Test cases
+; More helper functions (see supnew.rkt as a use case)
 ; * Human-readable output from the XML. 
 
 ; Next phase 
 ; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
-; Move to language-level sooner, rather than later.
 ; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
 
 
@@ -642,21 +624,24 @@
 ; string -> void
 ; Runs the given Margrave query or command.
 (define (m cmd)
-  (begin 
-    (display (string-append cmd ";") output-port)
-    (flush-output output-port)
+  (if (equal? java-process-list #f) 
+      (begin
+        (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
+        #f)
+      (begin 
+        (display (string-append cmd ";") output-port)
+        (flush-output output-port)
     
-    ; !!! We're ok without ignoring this line now.
-    ; (read-line input-port) ;Get rid of first XML version line
-    
-    
-    (local ((define (helper)
-              (let ((next-char (read-char input-port)))
-                (if (equal? next-char #\nul)
-                    ""
-                    (string-append (string next-char) (helper))))))
-      (read-xml (open-input-string (helper))))))
-
+        ; !!! We're ok without ignoring this line now.
+        ; (read-line input-port) ;Get rid of first XML version line
+        
+        (local ((define (helper)
+                  (let ((next-char (read-char input-port)))
+                    (if (equal? next-char #\nul)
+                        ""
+                        (string-append (string next-char) (helper))))))
+          (read-xml (open-input-string (helper)))))))
+  
 
 ; !!!
 ; Need to support these once more. Commands exist, need to route them in java. - TN
@@ -677,146 +662,14 @@
 
 
 
-; MPolicy -> void
-;(define (print-policy-info pol)
-;  (m (string-append "PRINT POLICY INFO " pol)))
-
-; MPolicy string string -> void
-;(define (assume-disjoint pol sort1 sort2)
-;  (m (string-append "ADD TO " pol " DISJOINT ASSUMPTION " sort1 " " sort2)))
-;
-;(define (assume-subset pol sortchild sortparent)
-;  (m (string-append "ADD TO " pol " SUBSET ASSUMPTION " sortchild " " sortparent)))
-;
-;(define (assume-disjoint-with-prefix pol sortprefix)
-;  (m (string-append "ADD TO " pol " DISJOINT PREFIX ASSUMPTION " sortprefix)))
-
-;; MPolicy string
-;(define (assume-singleton pol sortname)
-;  (m (string-append "ADD TO " pol " SINGLETON ASSUMPTION " sortname)))
-
-; MPolicy string -> MQuery
-; Creates an MQuery object representing the query string given being run on the given MPolicy.
-;(define (query-policy p str)
-;  (m (string-append "QUERY POLICY " p (string-downcase str))))
-
-; MQuery -> int
-; Returns the number of solutions the query has.
-;(define (count-solutions qry)
-;  (->number ((generic-java-method '|countSatisfyingSolutions|) ((generic-java-method '|runQuery|) qry))))
-
-; MQuery list-of-strings -> list-of-strings
-
-; set-idb-output-indexing: MQuery string list-of-strings -> void
-; Tells Margrave how to index an IDB for output when tupling a query.
-;(define (set-idb-output-indexing qry idbname indexing)
-;  (m (string-append "SET IDB OUTPUT INDEXING " qry " " idbname " " indexing)))
-
-; MPolicy MPolicy -> void
-; Out-of-the-box change impact function: No need to enter a cumbersome query.
-;(define (get-policy-differences pol1 pol2)
-;  (m (string-append "COMPARE WITH POLICY " pol1 " " pol2)))
-
-; MPolicy string -> void
-;(define (set-policy-name pol name)
-;  (m (string-append "SET NAME " pol " " name)))
-
-; MPolicy string -> void
-; Using the Margrave query language, state a general assumption that any query involving this policy 
-; must respect. (For instance : "(forall s Subject (or (isconflicted=true s) (isconflicted=false s)))")
-;(define (add-custom-assumption pol str)
-;  ((generic-java-method '|addCustomConstraint|)
-;   ((generic-java-field-accessor '|assumptions|) pol)
-;   (->jstring str)))
-
-; list-of-MPolicies string -> MQuery
-; Same as above, except the MQuery "sees" all policies in the given list. 
-; (For instance, given 2 policies, exactly when will one render permit but the other render deny?)
-;(define (query-policies plist str)
-;  ((generic-java-method '|queryThesePolicies|) (java-null <MQuery>) (->jstring (string-downcase str)) (list->jlistx plist)))
-
-
-; MQuery query-string -> MQuery
-; Returns a newly made query object whose formula is the conjunction of the given query's and the new string.
-;(define (refine-query qryobj str)
-;  (m (string-append "REFINE QUERY " qryobj " " (string-downcase str))))
-
-; MQuery -> boolean
-; Returns whether KodKod returns any satisfying instances for this query.
-; (Note the conversion back into scheme booleans.)
-;(define (is-query-satisfiable? qry)
-;  (->boolean ((generic-java-method '|isQuerySatisfiable|) qry)))
-
-; MQuery -> void
-; Pretty prints the query results (if any)
-;(define (pretty-print-results qry)
-;  (m (string-append "PRETTY PRINT SOLUTIONS " qry )))
-
-; MQuery -> void
-; Outputs the query results in block format, with don't care literals treated properly.
-; Calling this can be *much* more succinct than pretty-print-results.
-;(define (pretty-print-results-condensed qry)
-;  (m (string-append "PRETTY PRINT SOLUTIONS CONDENSED " qry )))
-
-; MQuery -> void
-; Prints ONE solution.
-;(define (pretty-print-one-solution qry)
-;  (m (string-append "PRETTY PRINT ONE SOLUTION " qry )))
-
-; MQuery int -> void
-; Sets debugging info level. See README.
-;(define (set-debug-level qry level)
-;  (m (string-append "DEBUG VERBOSITY " qry " " level)))
-
-; MQuery bool -> void
-; Activates use of tupling query optimization
-;(define (set-tupling qry b)
-;  (m (string-append "DO TUPLING " qry " " b)))
-
-
-; MQuery -> void
-; Flags certain IDB names for output. Will provide more output information,
-; but may make query execution slower.
-;(define (set-idb-output-list qry lst)
-;  (m (string-append "IDB NAMED TO OUTPUT " qry " " lst)))
-
 ; !!! This is now an argument to the java invocation. pass "debug" after the class name to activate it - TN
 ;(define (parser-debug b)
 ;  (m (string-append "DEBUG PARSER " myMargrave " " b)))
 
 
-; string list-of-MIDBs list-of-strings string -> MCustomIDB
-; Creates a custom IDB object. Use in place of Policy objects when running queries.
-;(define (make-custom-idb idbname list-of-other-idbsets list-varorder viewstring)
-;  (java-new <MCustomIDB> (->jstring idbname) (list->jlistx list-of-other-idbsets) (list->jlist list-varorder) (->jstring viewstring)))
-
-; MQuery int -> void
-; Sets the model size ceiling
-;(define (set-size-ceiling qry n)
-;  (m (string-append "SIZE CEILING " qry " " n)))
-
-; MQuery -> void
-; Prints out the Query object's current settings
-;(define (print-query-settings qry)
-;  (m (string-append "PRINT SETTINGS " qry )))
-
 
 ; !!! We now have sat4j-specific code. Not sure if it can be extended to minisat. Maybe.
 ; !!!  -- the new code was worthwhile (huge speed up for populated/unpopulated). - TN
-; MQuery symbol -> void
-; Sets the given MQuery object's satsolver. Allowed:
-; 'defaultsat4j 
-; 'minisat
-;(define (set-query-satsolver qry sym)
-;  (cond [(eqv? sym 'minisat) (m (string-append "USE MINISAT " qry ))]
-;        [(eqv? sym 'sat4j) (m (string-append "USE SAT4J " qry ))]
-;        [else (begin (display "Error! Unknown satsolver type.") (newline))]))
-;
-;(define (set-default-satsolver sym)
-;  (cond [(eqv? sym 'minisat) (m (string-append "USE MINISAT AS DEFAULT" qry ))]
-;        [(eqv? sym 'sat4j) (m (string-append "USE SAT4J AS DEFAULT" qry ))]
-;        [else (begin (display "Error! Unknown satsolver type.") (newline))]))
-
 
 ; Functions to support easier query string creation
 
@@ -879,6 +732,7 @@
 ;  (newline))
 
 (define (pause-for-user) 
-  (display "======================== Hit enter to continue. ========================") (newline) (newline) (read-char))
+  (printf "======================== Hit enter to continue. ========================~n~n")
+  (read-char))
 
 
