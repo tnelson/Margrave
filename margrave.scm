@@ -24,12 +24,36 @@
 (require framework)
 (require xml)
 
+
+
+; **********************************************************
+; TODO
+; **********************************************************
+; * (Tim) XACML/SQS loading   
+; * (Tim) colons in some sort names created by IOS parser. Need to quote them in query text or change parser to allow for it.
+; * Close java gracefully and automatically. 
+; * Test cases
+; * More helper functions (see supnew.rkt as a use case)
+; * More Human-readable output from the XML. 
+
+; Next phase 
+; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
+; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
+; **********************************************************
+
+
+
 ; todo: more later
 (provide stop-margrave-engine
          start-margrave-engine
          m
          pretty-print-model
-         load-policy)
+         load-policy
+         get-idbname-list
+         get-qualified-idbname-list
+         get-decision-for-rule-idbname
+         PolicyVocab
+         Policy)
 
 ;****************************************************************
 ;;Java Connection
@@ -116,18 +140,6 @@
 ; (exit:insert-on-callback) doesn't work for some reason either
 ;Kill process on exit
 ; (exit:insert-on-callback stop-margrave-engine)
-
-; !! TODO
-; * (Tim) XACML/SQS loading   
-; * Close java gracefully. (The current method isn't working.)
-; * Test cases
-; More helper functions (see supnew.rkt as a use case)
-; * Human-readable output from the XML. 
-
-; Next phase 
-; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
-; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
-
 
 
 ;****************************************************************
@@ -621,27 +633,49 @@
     pol))
 
 ; m
-; string -> void
-; Runs the given Margrave query or command.
+; string -> document or #f
+; Runs the given Margrave query or command. Returns #f if the engine has not been started.
+; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 (define (m cmd)
   (if (equal? java-process-list #f) 
       (begin
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
+        ;(printf "~a;~n" cmd)
         (display (string-append cmd ";") output-port)
-        (flush-output output-port)
-    
-        ; !!! We're ok without ignoring this line now.
-        ; (read-line input-port) ;Get rid of first XML version line
-        
-        (local ((define (helper)
-                  (let ((next-char (read-char input-port)))
-                    (if (equal? next-char #\nul)
-                        ""
-                        (string-append (string next-char) (helper))))))
-          (read-xml (open-input-string (helper)))))))
-  
+        (flush-output output-port)        
+                
+        (let ([command-buffer (open-output-string)]
+              [error-buffer (open-output-string)]) 
+          (local ((define (clear-error)
+                    (when (char-ready? err-port) ; Is there a character waiting? If so, read it.
+                      (let ([next-char (read-char err-port)])                                                
+                        (write-string (string next-char) error-buffer)
+                        (clear-error))))
+                  
+                  (define (helper)
+                    (let ([next-char (read-char input-port)])
+                      (when (not (equal? next-char #\nul)) ; Read until we see a NUL.
+                        (begin
+                          (write-string (string next-char) command-buffer)
+                          (helper))))))
+            
+            ; Populate the buffered ports
+            (clear-error)
+            (helper)
+            
+            ; Handle the results
+            (let ([result (get-output-string command-buffer)]
+                  [error-str (get-output-string error-buffer)])
+              (when (> (string-length error-str) 0)
+                (printf "Additional ERROR information received:~n ~a~n" error-str))
+              (read-xml (open-input-string result))))))))  
+
+
+
+
+
 
 ; !!!
 ; Need to support these once more. Commands exist, need to route them in java. - TN

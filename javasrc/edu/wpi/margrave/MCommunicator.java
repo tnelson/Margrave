@@ -43,6 +43,7 @@ public class MCommunicator
 
 					out.write(transformXML(theResponse));	
 					out.flush(); // ALWAYS FLUSH!	
+					System.err.flush(); // just in case
 					
 					theCommand = new StringBuffer(); 				
 				}
@@ -59,7 +60,9 @@ public class MCommunicator
 		}
 		catch(IOException e)
 		{
-			System.out.println(setupError+cEOF);			
+			System.out.println(setupError+cEOF);	
+			out.flush();
+			System.err.flush();
 		}
 	}
 

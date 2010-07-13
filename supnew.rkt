@@ -4,14 +4,33 @@
 ; Re-written for Racket by tn
 
 ; IN PROGRESS
-; todo: set all the queries up in order
 ; todo: string buffer in Racket (stream?) to avoid long query-creation time
 ; todo: limit by superfluous
-; todo: changes to margrave source to make it a module (on the way to becoming a lang?)
-; todo: response-result-id, response-list, response-map
+; todo: xml-list->list
+;       xml-map->map
+;       xml-id->id
 
 ; TEMPORARY! Will be a nice module path soon.
 (require (file "M:\\RktMargrave\\margrave.scm"))
+;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
+
+
+
+; Why ref. to identifier before its definition? We are calling load-policy (which is exported), so should know about the macros?
+
+
+;; todo
+
+(define (xml-list->list xmldoc)
+  '())
+
+(define (xml-map->map xmldoc)
+  '())
+
+; for now
+(define (xml-id->id xmldoc)
+  0)
+
 
 ; Easy timer function
 ; Initial value
@@ -50,122 +69,87 @@
 
 ; *********************************************************************
 
+(define (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn idblistdn)
+  (let* ([permitOverlapDenyId (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                             " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                             " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                             " Protocol(protocol) AND Hostname(hostname)  "
+                                             "UNDER inboundacl "
+                                             "IDBOUTPUT " (string-append idblistpa ", " idblistdn)
+                                             " TUPLING")]
+         [denyOverlapPermitId (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                             " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                             " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                             " Protocol(protocol) AND Hostname(hostname)  "
+                                             "UNDER inboundacl "
+                                             "IDBOUTPUT " (string-append idblistda ", " idblistpn)
+                                             " TUPLING")]
+         
+         [permitOverlapDenyGet (string-append "SHOW POPULATED " idblistpa " FOR CASES " idblistdn)]
+         [denyOverlapPermitGet (string-append "SHOW POPULATED " idblistda " FOR CASES " idblistpn)])
+    
+    (printf "P overlap Superf. D: ~a ~n" (xml-map->map (m permitOverlapDenyGet)))
+    (printf "Time: ~a~n" (time-since-last))
+    
+    (printf "D overlap Superf. P: ~a ~n" (xml-map->map (m denyOverlapPermitGet)))
+    (printf "Time: ~a~n" (time-since-last))
+    
+    ; !!! todo: limit cases by neverapplylist
+    
+    ))
+
+
 (define (run-timed-script pFileName)
   ; Start the Java process
   (start-margrave-engine)
   
   ; Start the timer
   (time-since-last)
-
+  
   ; Load the policy
-  (load-policy pFileName)
-  
-  (define loadedTime (time-since-last))
-  (printf "Loading took: ~a milliseconds.~n" loadedTime) 
-  
-  
-  (define allIDBs (get-qualified-idbname-list polobj))
-  (define listOfApplied (filter-helper (lambda (idbname)
-                                         (string-endswith idbname "_applies"))
-                                       allIDBs))
-  (define listOfNonApplied (removeall (append listOfApplied (list "inboundacl:permit" "inboundacl:deny")) allIDBs))
-  
-  ; get-decision-for-rule-idbname works only for the base rule name IDB
-  (define listOfPermitNonApplied (filter-helper (lambda (idbname) (string=? (get-decision-for-rule-idbname polobj idbname) "permit")) listOfNonApplied))
-  (define listOfDenyNonApplied (filter-helper (lambda (idbname) (string=? (get-decision-for-rule-idbname polobj idbname) "deny")) listOfNonApplied))
-  
-  (define listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied))
-  (define listOfDenyApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfDenyNonApplied))
-  
-  
-  ;(define allPriorIDBs (rule-idbs-with-higher-priority polobj "ace-line-512"))
-  
-  
-  (printf "Computing IDB strings.~n") 
-  (define idblistrules (makeIdbList listOfNonApplied))
-  (define idblistapplied (makeIdbList listOfApplied))
-  (define idblistpa (makeIdbList listOfPermitApplied))
-  (define idblistdn (makeIdbList listOfDenyNonApplied))
-  (define idblistda (makeIdbList listOfDenyApplied))
-  (define idblistpn (makeIdbList listOfPermitNonApplied))
-  
-  (define makeStringTime (time-since-last))
-  (printf "Time to make lists, strings, etc.: ~a~n." makeStringTime )
-  
-  ; **********************************************************************************************************
-  
-  
-  ;Which rules never apply?
-  (define neverApplyQuery (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                         " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                         " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                         " Protocol(protocol) AND Hostname(hostname)  "
-                                         "UNDER inboundacl "
-                                         "IDBOUTPUT " idblistapplied
-                                         " TUPLING"))
-  (define neverApplyShow (string-append "SHOW UNPOPULATED " idblistapplied))
-  (printf "Running superfluous-rule finder.~n")
-  
-  ; Create the query
-  (define superResult (response-result-id (m neverApplyQuery)))
-  ; Run the query
-  (define superfluouslist (response-list (m neverApplyShow)))
-  (define superFindTime (time-since-last))
-  (printf "Query took: ~n ~n" superFindTime)
-  
-  ; **********************************************************************************************************
-  
-  
-  ; Which overlap which?
-  ;(define theQuery (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-  ;                                " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-  ;                                " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-  ;                                " Protocol(protocol) AND Hostname(hostname)  "
-  ;                                "UNDER inboundacl "
-  ;                                "SHOW POPULATED " idblistapplied
-  ;                                "FOR CASES " idblistrules
-  ;                                "IDBOUTPUT " idblistall
-  ;                                " TUPLING"))
-  
-  
-  
-  ; !!!
-  ; Need to limit by the superfluous ones?
-  
-  ; Permit overlapping Deny
-  (define theQuery1 (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                   " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                   " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                   " Protocol(protocol) AND Hostname(hostname)  "
-                                   "UNDER inboundacl "
-                                   "SHOW POPULATED " idblistpa
-                                   "FOR CASES " idblistdn
-                                   "IDBOUTPUT " (string-append idblistpa ", " idblistdn)
-                                   " TUPLING"))
-  
-  ; Deny overriding Permit
-  (define theQuery2 (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                   " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                   " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                   " Protocol(protocol) AND Hostname(hostname)  "
-                                   "UNDER inboundacl "
-                                   "SHOW POPULATED " idblistda
-                                   "FOR CASES " idblistpn
-                                   "IDBOUTPUT " (string-append idblistda ", " idblistpn)
-                                   " TUPLING"))
-  
-  
-  
-  (display "Running query...") (newline)
-  ;(define qStartTime (get-system-clock-ms))
-  ;(display theQuery) (newline)
-  (define qResult1 (m theQuery1))
-  (define qResult2 (m theQuery2))
-  ;(define qEndTime (get-system-clock-ms))
-  (display "Queries took: ") (display (- qEndTime qStartTime)) (display " ms.") (newline)
-  
-  
-  (stop-margrave-engine) ) ; close JVM and end function
+  (let ([polname (load-policy pFileName)])
+        
+    (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
+    
+    (let* ([ allIDBs (get-qualified-idbname-list polname)]
+           [listOfApplied (filter (lambda (idbname)
+                                    (string-endswith idbname "_applies"))
+                                  allIDBs)]
+           [listOfNonApplied (remove* (append listOfApplied (list "inboundacl:permit" "inboundacl:deny")) allIDBs)]
+           
+           ; get-decision-for-rule-idbname works only for the base rule name IDB
+           [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname idbname) "permit")) listOfNonApplied)]
+           [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname idbname) "deny")) listOfNonApplied)]
+           [listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied)]
+           [listOfDenyApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfDenyNonApplied)]
+           [idblistrules (makeIdbList listOfNonApplied)]
+           [idblistapplied (makeIdbList listOfApplied)]
+           [idblistpa (makeIdbList listOfPermitApplied)]
+           [idblistdn (makeIdbList listOfDenyNonApplied)]
+           [idblistda (makeIdbList listOfDenyApplied)]
+           [idblistpn (makeIdbList listOfPermitNonApplied)]
+           [neverApplyId (xml-id->id (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                                    " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                                    " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                                    " Protocol(protocol) AND Hostname(hostname)  "
+                                                    "UNDER inboundacl "
+                                                    "IDBOUTPUT " idblistapplied
+                                                    " TUPLING"))])
+      
+      
+      (printf "Time to make lists, strings, etc.: ~a~n." (time-since-last))
+      (printf "Running superfluous-rule finder...~n")
+      
+      ; **********************************************************************************************************
+      (let ([neverApplyList (xml-list->list (m (string-append "GET UNPOPULATED " idblistapplied " " neverApplyId)))])
+        
+        (printf "superfluous-rule finder took: ~n ~n" (time-since-last))
+        
+        ; Look for permits overlapping denies (and vice versa)
+        (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn idblistdn)
+        
+        
+        (stop-margrave-engine))))) ; close JVM and end function
 
 ; bugs
 ; (2) have to use all vars in the condition? can't introduce in idbout/pop clauses
