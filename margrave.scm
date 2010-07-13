@@ -52,6 +52,9 @@
          get-idbname-list
          get-qualified-idbname-list
          get-decision-for-rule-idbname
+         mxout
+         pause-for-user
+         
          PolicyVocab
          Policy)
 
@@ -204,6 +207,13 @@
 (define local-policy-filename ".")
 
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
+
+; symbol or string -> string
+; Returns the argument, quoted, as a string.
+(define (symbol->quoted-string arg)
+  (if (symbol? arg)
+      (string-append "\"" (symbol->string arg)"\"")
+      (string-append "\"" arg "\"")))
 
 
 ;****************************************************************
@@ -380,7 +390,7 @@
                 (if (list? s)                       
                     (begin
                       ; Add subtype relationship between parent and s
-                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string (car s))))
+                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (symbol->quoted-string (car s))))
                       
                       ; Is this a nested subtype? If so, we must
                       ; deal with s's subtypes.
@@ -388,10 +398,10 @@
                       ; Check for list size;
                       ; someone may have used parens without meaning to.
                       (when (> (length s) 1)
-                        (add-subtypes-of vocab (safe-symbol->string (car s)) (cdr s))))
+                        (add-subtypes-of vocab (symbol->quoted-string (car s)) (cdr s))))
                     
                     ; Bottom of sort tree. 
-                    (m (string-append "ADD TO " vocab " SUBSORT " parent " " (safe-symbol->string s)))))
+                    (m (string-append "ADD TO " vocab " SUBSORT " parent " " (symbol->quoted-string s)))))
               listsubs)))
 
 
@@ -416,12 +426,6 @@
     ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
-
-(define (safe-symbol->string s)
-  (if (symbol? s)
-      (symbol->string s)
-      s))
-
 ; May be a list, may not be a list
 (define (fold-append-with-spaces posslist)
   (if (list? posslist)
@@ -438,6 +442,12 @@
       (if (symbol? posslist)
           (symbol->string posslist)
           posslist)))
+
+(define (fold-append-with-spaces-quotes posslist)
+  (fold-append-with-spaces (if (list? posslist)
+                               (map symbol->quoted-string posslist)
+                               posslist)))
+
 
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value
@@ -496,8 +506,8 @@
        ; These sections must be in order.                     
        ; Types
        (begin
-         (m (string-append "ADD TO " (symbol->string 'myvocabname) " SORT " (symbol->string 't)))
-         (add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
+         (m (string-append "ADD TO " (symbol->string 'myvocabname) " SORT " (symbol->quoted-string 't)))
+         (add-subtypes-of (symbol->string 'myvocabname) (symbol->quoted-string 't) (list 'subt ...))         
          )
        ... ; for each type/subtype set
        
@@ -518,7 +528,7 @@
        ... ; for each oth var
        
        ; Constraints
-       (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
+       (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->quoted-string 'crel) ...))       
        ... ; for each constraint
        
        ; Return the object for use by the policy macro
@@ -578,7 +588,7 @@
                 ; Add the rules to the policy. 'true is dealt with in the back-end.         
                 (add-rule (symbol->string 'policyname)
                           ;myvarorder 
-                          (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces 'conj) ...))
+                          (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces-quotes 'conj) ...))
                 ...
                 
                 ; Set the rule and policy combinator (depending on type)
@@ -628,8 +638,14 @@
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. Is there a fix for this?
   ; (case-sensitive #t)
-  (let ([pol ((eval (read (open-input-file fn))) fn)])
+  (let* ([file-port (open-input-file fn)]
+         [pol ((eval (read file-port)) fn)])
     ; (case-sensitive #f)
+    
+    ; don't keep the handle open! call-with-input-file would be better here.
+    (close-input-port file-port)
+    
+    ; return the policy identifier
     pol))
 
 ; m

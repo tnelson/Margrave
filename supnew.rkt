@@ -15,10 +15,6 @@
 ;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
 
-
-; Why ref. to identifier before its definition? We are calling load-policy (which is exported), so should know about the macros?
-
-
 ;; todo
 
 (define (xml-list->list xmldoc)
@@ -29,7 +25,7 @@
 
 ; for now
 (define (xml-id->id xmldoc)
-  0)
+  "0")
 
 
 ; Easy timer function
@@ -111,7 +107,7 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([ allIDBs (get-qualified-idbname-list polname)]
+    (let* ([ allIDBs (xml-list->list (get-qualified-idbname-list polname))]
            [listOfApplied (filter (lambda (idbname)
                                     (string-endswith idbname "_applies"))
                                   allIDBs)]
@@ -143,7 +139,7 @@
       ; **********************************************************************************************************
       (let ([neverApplyList (xml-list->list (m (string-append "GET UNPOPULATED " idblistapplied " " neverApplyId)))])
         
-        (printf "superfluous-rule finder took: ~n ~n" (time-since-last))
+        (printf "superfluous-rule finder took: ~a ~n" (time-since-last))        
         
         ; Look for permits overlapping denies (and vice versa)
         (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn idblistdn)
