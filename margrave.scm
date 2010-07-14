@@ -56,6 +56,7 @@
          pause-for-user
          
          xml-list->list
+         xml-set->list
          xml-id->id
          xml-map->map
          xml-string->string
@@ -222,9 +223,51 @@
         (printf "xml-list->list: Got a non-list response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
         #f)))
 
-; doc -> 
+; doc -> list/bool
+; #f if not that kind of document
+(define (xml-set->list xmldoc)
+  (if (equal? (get-response-type xmldoc) "set")
+      (let ([list-elements (get-element-children-named (document-element xmldoc) 'SET)])
+        (if (equal? (length list-elements) 1)
+            (let ([item-elements (get-element-children-named (first list-elements) 'ITEM)])
+              (map (lambda (ele) (pcdata-string (first (element-content ele)))) item-elements))
+            (begin
+              (printf "xml-set->list: Wrong number of content elements. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+              #f)))
+      (begin 
+        (printf "xml-set->list: Got a non-list response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+        #f)))
+
+
+; doc -> hash table
+(define (helper-entry-to-list entry)
+  (let ([value-elements (get-element-children-named entry 'VALUE)])
+    ;(printf "Value elements: ~a ~n" value-elements)
+    (map (lambda (valelement) 
+           ;(printf "A value: ~a ~n" (pcdata-string (first (element-content valelement))))
+          (pcdata-string (first (element-content valelement))))
+         value-elements)))
+
 (define (xml-map->map xmldoc)
-  '())
+  ;(display-xml xmldoc)
+  (if (equal? (get-response-type xmldoc) "map")
+      (let ([map-elements (get-element-children-named (document-element xmldoc) 'MAP)])
+        (if (equal? (length map-elements) 1)
+            (let ([entry-elements (get-element-children-named (first map-elements) 'ENTRY)]
+                  [the-hash (make-hash)])
+              (for-each (lambda (entry)
+                          ; Handle this entry
+                          (let ([key (get-attribute-value entry 'key)]
+                                [value-list (helper-entry-to-list entry)]) 
+                            (hash-set! the-hash key value-list)))
+                        entry-elements)
+              the-hash)
+            (begin
+              (printf "xml-map->map: Wrong number of map elements. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+              #f)))
+      (begin
+        (printf "xml-map->map: Got a non-map response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+        #f)))
 
 ; doc -> string/bool
 (define (xml-string->string xmldoc)
@@ -716,7 +759,7 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-        ;(printf "~a;~n" cmd)
+       ; (printf "~a;~n" cmd)
         (display (string-append cmd ";") output-port)
         (flush-output output-port)        
                 

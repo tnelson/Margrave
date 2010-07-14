@@ -294,8 +294,11 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 	
 	
 	public Map<String, Set<String>> getPopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases)
+	throws MSemanticException
 	{
+								
 		// This version contains indexings for tupling
+		// TODO strings everywhere; should be more structured?
 
 		Map<String, String> originalPreds = new HashMap<String, String>();
 		Map<String, List<String>> originalIndexing = new HashMap<String, List<String>>();
@@ -304,6 +307,28 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		List<String> indexedCandidates = applyIndexing(candidates, originalPreds, originalIndexing);
 		List<String> indexedCases = applyIndexing(cases, originalPreds, originalIndexing);
 						
+		
+		
+		
+		// *********************************************************************************
+		// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.					
+		for(String predname : indexedCandidates)
+		{
+			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
+				throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+		}
+		for(String predname : indexedCases)
+		{
+			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
+				throw new MSemanticException("Case in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());	
+		} 	
+		// TODO de-index the error messages
+		// *********************************************************************************
+		
+		
+		
+		
+		
 		// *** (2) Invoke the sat solver
 		Map<String, Set<String>> results = getPopulatedRelations(indexedCandidates, indexedCases); 
 				
@@ -328,7 +353,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			
 	}
 	
-	public Set<String> getPopulatedRelations(Map<String, Set<List<String>>> candidates)
+	public Set<String> getPopulatedRelations(Map<String, Set<List<String>>> candidates) throws MSemanticException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getPopulatedRelations(candidates, cases).get("");
@@ -340,7 +365,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		return getPopulatedRelations(candidates, cases).get("");		
 	}
 
-	public Set<String> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates)
+	public Set<String> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates) throws MSemanticException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getUnpopulatedRelations(candidates, cases).get("");
@@ -415,7 +440,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		return result;				
 	}
 	
-	public Map<String, Set<String>> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases )
+	public Map<String, Set<String>> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases ) throws MSemanticException
 	{
 		Map<String, String> originalPreds = new HashMap<String, String>();
 		Map<String, List<String>> originalIndexing = new HashMap<String, List<String>>();
@@ -423,6 +448,23 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		// *** (1) Convert to indexed form
 		List<String> indexedCandidates = applyIndexing(candidates, originalPreds, originalIndexing);
 		List<String> indexedCases = applyIndexing(cases, originalPreds, originalIndexing);
+		
+		// *********************************************************************************
+		// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.					
+		for(String predname : indexedCandidates)
+		{
+			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
+				throw new MSemanticException("Candidate in SHOW UNPOPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+		}
+		for(String predname : indexedCases)
+		{
+			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
+				throw new MSemanticException("Case in SHOW UNPOPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());	
+		} 	
+		// TODO de-index the error messages
+		// *********************************************************************************
+		
+		
 		
 		// *** (2) Invoke the sat solver
 		// UN-populated

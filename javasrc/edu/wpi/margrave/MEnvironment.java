@@ -86,6 +86,7 @@ class MSemanticException extends IOException
 
 	MSemanticException(String problem)
 	{
+		super("Margrave could not understand..."); // don't have a null message
 		this.problem = problem;
 	}
 	
@@ -615,7 +616,7 @@ public class MEnvironment
 			else
 				result = theParser.parse();	
 			
-			// May not be a query. May be something else (RENAME or INFO command)					
+			// May not be a query. May be something else (RENAME or INFO command)							
 			
 			// EXPLORE
 			// or 
@@ -1060,6 +1061,10 @@ public class MEnvironment
 		{
 			return exceptionResponse(e);
 		}
+		catch (IOException e)
+		{
+			return exceptionResponse(e);
+		}
 	}
 
 	public static Document showNextCollapse(Integer id) 
@@ -1075,7 +1080,7 @@ public class MEnvironment
 	
 	public static Document showUnpopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist)
+			Map<String, Set<List<String>>> clist) throws MSemanticException
 	{
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
@@ -1097,7 +1102,7 @@ public class MEnvironment
 		}
 	}
 	
-	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) 
+	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MSemanticException 
 	{
 		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
@@ -1710,7 +1715,7 @@ public class MEnvironment
 	
 	
 	private static Document errorResponse(String errorType, String errorSubtype, String desc) 
-	{
+	{	
 		Document xmldoc = makeInitialResponse("error");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
@@ -1718,7 +1723,10 @@ public class MEnvironment
 		
 		errorElement.setAttribute("type", errorType);
 		errorElement.setAttribute("subtype", errorSubtype);
-		errorElement.appendChild(xmldoc.createTextNode(desc));	
+		if(desc.length() > 0)
+		{
+			errorElement.appendChild(xmldoc.createTextNode(desc));
+		}
 		xmldoc.getDocumentElement().appendChild(errorElement);
 				
 		
@@ -1732,6 +1740,7 @@ public class MEnvironment
 	
 	private static Document exceptionResponse(Exception e)
 	{
+		
 		Document xmldoc = makeInitialResponse("exception");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
@@ -1741,7 +1750,8 @@ public class MEnvironment
 		errorElement.setAttribute("stack-trace", Arrays.toString(e.getStackTrace()));
 
 		Element msgElement = xmldoc.createElementNS(null, "MESSAGE");
-		msgElement.appendChild(xmldoc.createTextNode(e.getLocalizedMessage()));
+		if(e.getLocalizedMessage() != null && e.getLocalizedMessage().length() > 0 )
+			msgElement.appendChild(xmldoc.createTextNode(e.getLocalizedMessage()));
 		errorElement.appendChild(msgElement);
 		
 		if(e instanceof MParserException)
@@ -1750,7 +1760,8 @@ public class MEnvironment
 			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
 			placeElement.setAttribute("row", String.valueOf(ex.row));
 			placeElement.setAttribute("col", String.valueOf(ex.col));
-			placeElement.appendChild(xmldoc.createTextNode(ex.errorValue.toString()));
+			if(ex.errorValue.toString().length() > 0)
+				placeElement.appendChild(xmldoc.createTextNode(ex.errorValue.toString()));
 			errorElement.appendChild(placeElement);
 		}
 		else if(e instanceof MLexerException)
@@ -1759,7 +1770,8 @@ public class MEnvironment
 			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
 			placeElement.setAttribute("row", String.valueOf(ex.row));
 			placeElement.setAttribute("col", String.valueOf(ex.col));
-			placeElement.appendChild(xmldoc.createTextNode(ex.at));
+			if(ex.at.length() > 0)
+				placeElement.appendChild(xmldoc.createTextNode(ex.at));
 			errorElement.appendChild(placeElement);
 		}
 		else if(e instanceof MSemanticException)
@@ -1769,13 +1781,16 @@ public class MEnvironment
 			placeElement.setAttribute("row", String.valueOf(ex.row));
 			placeElement.setAttribute("col", String.valueOf(ex.col));
 			placeElement.setAttribute("problem", String.valueOf(ex.problem));
-			placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
+			
+			if(String.valueOf(ex.errorValue).length() > 0)
+				placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
 			errorElement.appendChild(placeElement);
 		}
 		
 		// Include the query that caused the problem.
 		Element queryElement = xmldoc.createElementNS(null, "COMMAND");
-		queryElement.appendChild(xmldoc.createTextNode(lastCommandReceived));
+		if(lastCommandReceived.length() > 0)
+			queryElement.appendChild(xmldoc.createTextNode(lastCommandReceived));
 		errorElement.appendChild(queryElement);
 		
 		xmldoc.getDocumentElement().appendChild(errorElement);
@@ -1824,7 +1839,7 @@ public class MEnvironment
 	}
 	
 	private static Document resultHandleResponse(Integer id)
-	{
+	{			
 		Document xmldoc = makeInitialResponse("explore-result");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element handleElement = xmldoc.createElementNS(null, "RESULT-HANDLE");
@@ -1848,8 +1863,12 @@ public class MEnvironment
 		
 		Document xmldoc = makeInitialResponse("string");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
-		Text val = xmldoc.createTextNode(str);
-		xmldoc.getDocumentElement().appendChild(val);			
+		if(str.length() > 0)
+		{
+			// Empty text nodes WILL cause problems in XML transformation
+			Text val = xmldoc.createTextNode(str);
+			xmldoc.getDocumentElement().appendChild(val);
+		}
 		return xmldoc;
 	}
 
@@ -1985,14 +2004,14 @@ public class MEnvironment
 		for(Object key : outsets.keySet())
 		{
 			Element entryElement = xmldoc.createElementNS(null, "ENTRY");
-			entryElement.setAttribute("key type", key.getClass().getCanonicalName());
+			entryElement.setAttribute("key-type", key.getClass().getCanonicalName());
 			entryElement.setAttribute("key", key.toString());
 			
 			// TODO some info lost in the toString calls here.
 			for(Object obj : outsets.get(key))
 			{
 				Element valueElement = xmldoc.createElementNS(null, "VALUE");	
-				entryElement.setAttribute("type", key.getClass().getCanonicalName());
+				valueElement.setAttribute("type", obj.getClass().getCanonicalName());
 				valueElement.appendChild(xmldoc.createTextNode(obj.toString()));
 				entryElement.appendChild(valueElement);
 			}

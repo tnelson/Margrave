@@ -19,9 +19,14 @@ public class MCommunicator
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
 	static final char semicolon = ';';
-	static final String lastResortError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document.</ERROR></MARGRAVE-RESPONSE>";
+	
 	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
 	static final char cEOF = (char)0;
+	
+	static String makeLastResortError(Document theResponse)
+	{
+		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document</ERROR></MARGRAVE-RESPONSE>";
+	}
 	
 	public static void main(String[] args) 
 	{
@@ -72,20 +77,26 @@ public class MCommunicator
 		{
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-
+			
 			//initialize StreamResult with File object to save to file
 			StreamResult result = new StreamResult(new StringWriter());
 			DOMSource source = new DOMSource(theResponse);
-			transformer.transform(source, result);
-
+			
+			// If this line causes a null pointer exception, there is an empty text element somewhere.
+			// For some reason the transformer can't handle text elements with "" in them.
+			transformer.transform(source, result);			
+			
+			
 			String xmlString = result.getWriter().toString();
 			xmlString += cEOF;
 			return xmlString.getBytes();
 		}
 		catch(Exception e)
 		{
-			// Will hit this if theResponse is null.			
-			return (lastResortError+cEOF).getBytes();
+			// Will hit this if theResponse is null.		
+			System.err.println(e.getLocalizedMessage());
+			//e.printStackTrace();
+			return (makeLastResortError(theResponse)+cEOF).getBytes();
 		}
 	}
 }
