@@ -55,6 +55,11 @@
          mxout
          pause-for-user
          
+         xml-list->list
+         xml-id->id
+         xml-map->map
+         xml-string->string
+         
          PolicyVocab
          Policy)
 
@@ -68,9 +73,11 @@
       ";"
       ":"))
 
-(define margrave-command-line
+(define (margrave-command-line args)
   (string-append
-   "java -cp "
+   "java "
+   args
+   " -cp "
    (path->string
     (build-path (current-directory)
                 "bin"
@@ -110,17 +117,29 @@
 (define err-port #f)
 (define ctrl-function #f)
 
-(define (start-margrave-engine)
+(define (start-margrave-engine (args ""))
   (if (eq? java-process-list #f)
       (begin
-        (set! java-process-list (process margrave-command-line))
+        (set! java-process-list (process (margrave-command-line args)))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
         (set! process-id (third java-process-list))
         (set! err-port (fourth java-process-list))
         (set! ctrl-function (fifth java-process-list))
-        #t)
-      #f))
+        
+        ; Did the command line execute? (Note that a bad parameter will still execute!)
+        ; ... so this bit isn't too useful. !!! todo
+        (if (equal? (ctrl-function 'status ) 'running)
+            #t ; yes
+            (begin ; no
+              (set! java-process-list #f)
+              (set! input-port #f)
+              (set! output-port #f)
+              (set! process-id #f)
+              (set! err-port #f)
+              (set! ctrl-function #f) 
+              #f)))
+        #f))
   
 (define (stop-margrave-engine)
   (display "QUIT;" output-port) ; semicolon is necessary
@@ -187,6 +206,45 @@
 (define (get-response-error-descriptor doc)
   (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
 
+
+; doc -> list/bool
+; #f if not that kind of document
+(define (xml-list->list xmldoc)
+  (if (equal? (get-response-type xmldoc) "list")
+      (let ([list-elements (get-element-children-named (document-element xmldoc) 'LIST)])
+        (if (equal? (length list-elements) 1)
+            (let ([item-elements (get-element-children-named (first list-elements) 'ITEM)])
+              (map (lambda (ele) (pcdata-string (first (element-content ele)))) item-elements))
+            (begin
+              (printf "xml-list->list: Wrong number of content elements. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+              #f)))
+      (begin 
+        (printf "xml-list->list: Got a non-list response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+        #f)))
+
+; doc -> 
+(define (xml-map->map xmldoc)
+  '())
+
+; doc -> string/bool
+(define (xml-string->string xmldoc)
+    (if (and (equal? (get-response-type xmldoc) "string")
+             (equal? (length (element-content (document-element xmldoc))) 1))
+        (pcdata-string (first (element-content (document-element xmldoc))))
+        (begin 
+          (printf "xml-string->string: Got a non-string response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+          #f)))
+
+; doc -> string/bool
+(define (xml-id->id xmldoc)
+  (if (and (equal? (get-response-type xmldoc) "explore-result")
+           (equal? (length (get-element-children-named (document-element xmldoc) 'RESULT-HANDLE)) 1))
+      (pcdata-string (first (element-content (first (get-element-children-named (document-element xmldoc) 'RESULT-HANDLE)))))
+      (begin 
+        (printf "xml-id->id: Got a non-result-handle response. Response was: ~a~n." (xml->xexpr (document-element xmldoc)))
+        (printf "Result type: ~a ~n" (get-response-type xmldoc))
+        (printf "Number of elements: ~a ~n" (length (element-content (document-element xmldoc))))
+        #f)))
 
 ; Placeholder
 (define (pretty-xml doc)
@@ -670,12 +728,26 @@
                         (write-string (string next-char) error-buffer)
                         (clear-error))))
                   
+                  (define (clear-all-error) ; block until EOF                    
+                      (let ([next-char (read-char err-port)])   
+                        (when (not (eof-object? next-char)) 
+                          (write-string (string next-char) error-buffer)
+                          (clear-all-error))))
+                  
                   (define (helper)
                     (let ([next-char (read-char input-port)])
-                      (when (not (equal? next-char #\nul)) ; Read until we see a NUL.
-                        (begin
-                          (write-string (string next-char) command-buffer)
-                          (helper))))))
+                      
+                      (cond [(equal? next-char #\nul) void] ; NUL: end of response.                             
+                            
+                            [(eof-object? next-char) 
+                             (printf "Java engine terminated, received EOF.~n")
+                             ; clear command buffer to warn
+                            ; (get-output-string command-buffer)
+                             (clear-all-error) ] ; EOF: something happened to java. get everything from err-port.
+                            
+                            [else (begin
+                                    (write-string (string next-char) command-buffer)
+                                    (helper))]))))
             
             ; Populate the buffered ports
             (clear-error)
@@ -737,12 +809,12 @@
 
 ; get-idbname-list
 (define (get-idbname-list pol)
-  (m (string-append "GET RULES IN  " pol)))
+  (xml-list->list (m (string-append "GET RULES IN  " pol))))
 
 ; get-qualified-idbname-list
 ; Same as get-idbname-list but includes policy name prefix
 (define (get-qualified-idbname-list pol)
-  (m (string-append "GET QUALIFIED RULES IN " pol)))
+  (xml-list->list (m (string-append "GET QUALIFIED RULES IN " pol))))
 
 ; get-request-var-list
 ;(define (get-request-var-list pol)
@@ -752,7 +824,7 @@
 ; Policy String -> String
 ; Given an idbname, policy will report its decision if a rule, or the empty string otherwise
 (define (get-decision-for-rule-idbname policy idbname)
-  (m (string-append "GET DECISION FOR " policy " " idbname)))
+  (xml-string->string (m (string-append "GET DECISION FOR " policy " " idbname))))
 
 ; rules-with-higher-priority
 ; Policy String -> List
@@ -761,7 +833,7 @@
 ;  given by combining algs.) Names are qualified with policyname:.
 ;; TODO: Only works for Leaves, not Sets so far.
 (define (rule-idbs-with-higher-priority pol rulename)
-  (m (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
+  (xml-list->list (m (string-append "GET HIGHER PRIORITY THAN " pol " " rulename))))
 
 
 ; **************************************************************

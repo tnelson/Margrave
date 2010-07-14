@@ -11,21 +11,8 @@
 ;       xml-id->id
 
 ; TEMPORARY! Will be a nice module path soon.
-(require (file "M:\\RktMargrave\\margrave.scm"))
-;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
-
-
-;; todo
-
-(define (xml-list->list xmldoc)
-  '())
-
-(define (xml-map->map xmldoc)
-  '())
-
-; for now
-(define (xml-id->id xmldoc)
-  "0")
+;(require (file "M:\\RktMargrave\\margrave.scm"))
+(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
 
 ; Easy timer function
@@ -94,10 +81,18 @@
     
     ))
 
+; Strip everything up to and including the last :
+(define (unqualified-part idbname)
+  (last (regexp-split ":" idbname)))
+
+(define (unqualified-non-applied-part idbname)
+  (unqualified-part (if (string-endswith idbname "_applies")
+                        (substring idbname 0 (- (string-length idbname) 8))
+                        idbname)))
 
 (define (run-timed-script pFileName)
   ; Start the Java process
-  (start-margrave-engine)
+  (start-margrave-engine "-Xss2048k -Xmx1g")
   
   ; Start the timer
   (time-since-last)
@@ -107,15 +102,20 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([ allIDBs (xml-list->list (get-qualified-idbname-list polname))]
+    (let* ([ allIDBs (get-qualified-idbname-list polname)]
+         ;  [dbg (printf "~a~n" allIDBs)]
            [listOfApplied (filter (lambda (idbname)
                                     (string-endswith idbname "_applies"))
                                   allIDBs)]
-           [listOfNonApplied (remove* (append listOfApplied (list "inboundacl:permit" "inboundacl:deny")) allIDBs)]
            
-           ; get-decision-for-rule-idbname works only for the base rule name IDB
-           [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname idbname) "permit")) listOfNonApplied)]
-           [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname idbname) "deny")) listOfNonApplied)]
+           ; (filter (lambda (idbname) (not (string?  (get-decision-for-rule-idbname "inboundacl" (unqualified-non-applied-part idbname))))) (get-qualified-idbname-list "inboundacl"))
+           [listOfNonApplied (remove* (append listOfApplied 
+                                              (list "inboundacl:permit" "inboundacl:deny" "inboundacl:drop" "inboundacl:advertise" 
+                                                    "inboundacl:forward" "inboundacl:translate" "inboundacl:pass" "inboundacl:encrypt" "inboundacl:route")) allIDBs)]
+           
+           ; get-decision-for-rule-idbname works only for the base rule name IDB, no idb collection name, no _applies
+           [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "permit")) listOfNonApplied)]
+           [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "deny")) listOfNonApplied)]
            [listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied)]
            [listOfDenyApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfDenyNonApplied)]
            [idblistrules (makeIdbList listOfNonApplied)]
@@ -124,23 +124,28 @@
            [idblistdn (makeIdbList listOfDenyNonApplied)]
            [idblistda (makeIdbList listOfDenyApplied)]
            [idblistpn (makeIdbList listOfPermitNonApplied)]
-           [neverApplyId (xml-id->id (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                                    " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                                    " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                                    " Protocol(protocol) AND Hostname(hostname)  "
-                                                    "UNDER inboundacl "
-                                                    "IDBOUTPUT " idblistapplied
-                                                    " TUPLING"))])
+           [neverApplyId (xml-id->id (m (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                                       " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                                       " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                                       " Protocol(protocol) AND Hostname(hostname)  "
+                                                       "UNDER inboundacl "
+                                                       "IDBOUTPUT " idblistapplied
+                                                       " TUPLING")))])
       
       
       (printf "Time to make lists, strings, etc.: ~a~n." (time-since-last))
       (printf "Running superfluous-rule finder...~n")
+     ; (printf "List of all IDBs: ~a~n" allIDBs)
       
       ; **********************************************************************************************************
-      (let ([neverApplyList (xml-list->list (m (string-append "GET UNPOPULATED " idblistapplied " " neverApplyId)))])
+      ;; !!! todo: needs to be SHOW (a bit confusing); also id comes first...
+      (let ([neverApplyList (xml-list->list (m (string-append "SHOW UNPOPULATED " neverApplyId " "idblistapplied )))])
+        
+        
+        ;; !!! todo it's a SET, not a LIST.
         
         (printf "superfluous-rule finder took: ~a ~n" (time-since-last))        
-        
+        (printf "Results:~n~n~a~n" neverApplyList)
         ; Look for permits overlapping denies (and vice versa)
         (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn idblistdn)
         
