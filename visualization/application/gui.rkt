@@ -26,21 +26,20 @@
 (define myng (new netgraph%))
 ; Create some positional nodes
 (define n1 (new pos-node% [name "Some Host"] [x 20] [y 30]))
-(define n2 (new pos-node% [name "Web Server"] [x 300] [y 30] [result (list icon-accept icon-modify)]))
+(define n2 (new pos-node% [name "Web Server"] [x 300] [y 30]))
 (define n3 (new pos-node% [name "Something"] [x 120] [y 240]))
 
 ; Add them to the netgraph (using mutation)
 (send myng add-node! n1)
 (send myng add-node! n2)
 (send myng add-node! n3)
-(send myng add-edge! n1 n2 #t)
-(send myng add-edge! n2 n3 #t)
+(send myng add-edge! n1 n2)
+(send myng add-edge! n2 n3)
 
 ; DO IT
 (visualize pb myng)
 
-; When this function is written, it will look more like this
-;(visualize pb (model-graph myng))
+;(visualize pb (model-graph myng #f))
 
 ; Without mutation
 ;(visualize pb (send (send (send myng add-node n1) add-node n2) add-edge n1 n2))

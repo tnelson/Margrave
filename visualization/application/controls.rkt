@@ -19,7 +19,7 @@
            [cx2 (+ (send n2 get-x) 43)]
            [cy2 (+ (send n2 get-y) 43)]
            [v1 (vn (- cx2 cx1) (- cy2 cy1))]
-           [arrow-color (if (send edge active?) arrow-dark arrow-light)]
+           [arrow-color (if #t arrow-dark arrow-light)]
            )
     ; Line pen
     (send dc set-pen arrow-color 3 'solid)
