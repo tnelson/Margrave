@@ -5,6 +5,13 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -13,6 +20,10 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public class MCommunicator 
 {
@@ -34,8 +45,132 @@ public class MCommunicator
 		{
 			MEnvironment.debugParser = true;
 		}
+
+                if(args.length > 1) {
+                    handleXMLCommand();
+                }
+                else {
+                    handleTextCommand();
+                }
 								
-		StringBuffer theCommand = new StringBuffer();
+		
+	}
+
+        public static void handleXMLCommand() {
+            DocumentBuilder docBuilder = null;
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            try {
+                docBuilder = docFactory.newDocumentBuilder();
+            } catch (ParserConfigurationException ex) {
+                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            Document doc = null;
+
+            try {
+                doc = docBuilder.parse(in);
+            } catch (SAXException ex) {
+                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            xmlHelper(doc.getFirstChild());
+        }
+
+     private static void xmlHelper(Node node) {
+        NodeList nodeList = node.getChildNodes();
+
+        Node n;
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            n = nodeList.item(i);
+
+            if (n.getNodeType() == Node.ELEMENT_NODE) {
+                String name = n.getNodeName();
+
+                if (name.equalsIgnoreCase("EXPLORE")) {
+                    xmlHelper(n.getFirstChild()); //Explore should only have one child - "Condition"
+                } else if (name.equalsIgnoreCase("PUBLISH")) {
+                }
+            } else {
+                System.out.println("error!");
+            }
+
+        }
+    }
+
+     //Expects a CONDITION node
+     private static MExploreCondition exploreHelper(Node conditionNode) {
+        NodeList childNodes = conditionNode.getChildNodes();
+
+        String name;
+        Node n;
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            n = childNodes.item(i);
+            name = n.getNodeName();
+            
+            if (name.equalsIgnoreCase("AND")) {
+                exploreHelper(n.getFirstChild()).and(exploreHelper(n.getChildNodes().item(1)));
+            }
+            else if (name.equalsIgnoreCase("OR")) {
+                exploreHelper(n.getFirstChild()).or(exploreHelper(n.getChildNodes().item(1)));
+            }
+            else if (name.equalsIgnoreCase("IMPLIES")) {
+                exploreHelper(n.getFirstChild()).implies(exploreHelper(n.getChildNodes().item(1)));
+            }
+            else if (name.equalsIgnoreCase("IFF")) {
+                exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
+            }
+            else if (name.equalsIgnoreCase("NOT")) {
+                exploreHelper(n.getFirstChild()).not();
+            }
+            else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
+                String relationName = n.getAttributes().item(0).getNodeValue();
+
+                Node variableVector = n.getFirstChild();
+                NodeList variableNodes = variableVector.getChildNodes();
+
+                List<String> vl = new LinkedList<String>();
+
+                 for (int j = 0; j < variableNodes.getLength(); j++) {
+                     vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
+                 }
+
+                 // Could be a view or an EDB. If EDB, must
+                 // remember the Relation we created so that we can check
+                 // for validity later.
+
+                 validateDBIdentifier(relationName);
+
+                 MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
+
+                 if (pol != null) {
+                     Formula idbf = MEnvironment.getOnlyIDB(relationName);
+                     // Perform variable substitution
+                     idbf = performSubstitution(relationName, pol, idbf, vl);
+
+                     // Assemble MExploreCondition object
+                     return new MExploreCondition(idbf, pol, vl);
+                 }
+
+                 // EDB, then!
+
+                 // We don't have a vocabulary yet. So just make the relation.
+                 // The manager will prevent duplicates.
+                 Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
+
+                 Expression varvector = MFormulaManager.makeVarTuple(vl);
+                 Formula f = MFormulaManager.makeAtom(varvector, rel);
+
+                 // No variable substitution needed!
+                 return new MExploreCondition(f, rel, vl);
+             }
+         }
+    }
+
+
+        protected static void handleTextCommand() {
+            StringBuffer theCommand = new StringBuffer();
 		try
 		{
 			while(true)
@@ -44,13 +179,13 @@ public class MCommunicator
 				if(theChar == semicolon)
 				{
 					// Command is complete. Deal with it.
-					Document theResponse = MEnvironment.commandSilent(theCommand.toString());					
+					Document theResponse = MEnvironment.commandSilent(theCommand.toString());
 
-					out.write(transformXML(theResponse));	
-					out.flush(); // ALWAYS FLUSH!	
+					out.write(transformXML(theResponse));
+					out.flush(); // ALWAYS FLUSH!
 					System.err.flush(); // just in case
-					
-					theCommand = new StringBuffer(); 				
+
+					theCommand = new StringBuffer();
 				}
 				else if(theChar == -1)
 				{
@@ -60,17 +195,16 @@ public class MCommunicator
 				{
 					// Need to cast, because otherwise it will append the integer as a string.
 					theCommand.append((char)theChar);
-				}					
+				}
 			} // end loop while(true)
 		}
 		catch(IOException e)
 		{
-			System.out.println(setupError+cEOF);	
+			System.out.println(setupError+cEOF);
 			out.flush();
 			System.err.flush();
 		}
-	}
-
+        }
 	protected static byte[] transformXML(Document theResponse) 
 	{
 		try
