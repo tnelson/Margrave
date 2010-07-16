@@ -4,7 +4,7 @@
 // Wed Jun 09 14:31:50 EDT 2010
 //----------------------------------------------------
 
-package a;
+package edu.wpi.margrave;
 
 /** CUP generated class containing symbol constants. */
 public class MJunosSym {

@@ -19,7 +19,7 @@
 
 // tn
 
-package a;
+package edu.wpi.margrave;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

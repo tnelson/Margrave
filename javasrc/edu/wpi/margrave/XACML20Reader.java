@@ -17,7 +17,7 @@
     along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package a;
+package edu.wpi.margrave;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -1,4 +1,4 @@
-package a;
+package edu.wpi.margrave;
 
 import java_cup.*;
 import kodkod.ast.*;
