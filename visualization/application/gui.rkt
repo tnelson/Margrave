@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(require "visualize.rkt" "netgraph.rkt" "controls.rkt")
+(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt")
 
 (define icon-accept (make-object bitmap% "../images/icon_accept.png"))
 (define icon-modify (make-object bitmap% "../images/icon_modify.png"))
@@ -25,9 +25,9 @@
 ; Make a netgraph
 (define myng (new netgraph%))
 ; Create some positional nodes
-(define n1 (new pos-node% [name "Some Host"] [x 20] [y 30]))
-(define n2 (new pos-node% [name "Web Server"] [x 300] [y 30]))
-(define n3 (new pos-node% [name "Something"] [x 120] [y 240]))
+(define n1 (new pos-netgraph-node% [name "Some Host"] [x 20] [y 30]))
+(define n2 (new pos-netgraph-node% [name "Web Server"] [x 300] [y 30]))
+(define n3 (new pos-netgraph-node% [name "Something"] [x 120] [y 240]))
 
 ; Add them to the netgraph (using mutation)
 (send myng add-node! n1)
@@ -36,12 +36,6 @@
 (send myng add-edge! n1 n2)
 (send myng add-edge! n2 n3)
 
-; DO IT
-(visualize pb myng)
-
-;(visualize pb (model-graph myng #f))
-
-; Without mutation
-;(visualize pb (send (send (send myng add-node n1) add-node n2) add-edge n1 n2))
+(visualize (apply-model myng #f) pb)
 
 (send window show #t)
