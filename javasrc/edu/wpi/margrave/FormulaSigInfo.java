@@ -26,7 +26,7 @@ along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 // Some optimization has been done: see SigFunction.noCondition,
 // AbstractCacheAllCollector, etc.
 
-package a;
+package edu.wpi.margrave;
 
 import kodkod.ast.*;
 import kodkod.ast.operator.ExprCompOperator;
