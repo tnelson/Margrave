@@ -35,7 +35,7 @@
  *
  */
 
-package a;
+package edu.wpi.margrave;
 
 import java.util.*;
 import java.lang.management.*;

@@ -11,8 +11,8 @@
 ; todo: similarly, why lists everywhere? Does Racket have a decent set implementation?
 
 ; TEMPORARY! Will be a nice module path soon.
-;(require (file "M:\\RktMargrave\\margrave.scm"))
-(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
+(require (file "M:\\RktMargrave\\margrave.scm"))
+;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
 
 ; Easy timer function
@@ -73,6 +73,7 @@
     
     ; Some empties are to be expected (denies only overlapped by deny, etc.)
     
+;    (m denyOverlapPermitGet)
     (printf "D overlap Superf. P: ~a ~n" (xml-map->map (m denyOverlapPermitGet)))
     (printf "Time: ~a~n" (time-since-last))))
 
@@ -88,6 +89,7 @@
          
          [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
+;    (m permitOverlapDenyGet)
     (printf "P overlap Superf. D: ~a ~n" (xml-map->map (m permitOverlapDenyGet)))
     (printf "Time: ~a~n" (time-since-last))))
 
@@ -182,13 +184,3 @@
 
 ; bugs
 ; (2) have to use all vars in the condition? can't introduce in idbout/pop clauses
-
-
-n-sup idblistdn-sup)
-        
-        (stop-margrave-engine))))) ; close JVM and end function
-
-; bugs
-; (2) have to use all vars in the condition? can't introduce in idbout/pop clauses
-
-

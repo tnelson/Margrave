@@ -4,7 +4,7 @@
 // Mon Jul 05 10:10:58 EDT 2010
 //----------------------------------------------------
 
-package a;
+package edu.wpi.margrave;
 
 import java_cup.runtime.*;
 import kodkod.ast.*;

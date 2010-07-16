@@ -4,7 +4,7 @@
 // Wed Jun 09 14:31:50 EDT 2010
 //----------------------------------------------------
 
-package a;
+package edu.wpi.margrave;
 
 import java_cup.runtime.*;
 import java.io.*;

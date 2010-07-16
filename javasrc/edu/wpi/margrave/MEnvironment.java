@@ -18,7 +18,7 @@
  */
 
 
-package a;
+package edu.wpi.margrave;
 
 import java.lang.*;
 import java.util.*;

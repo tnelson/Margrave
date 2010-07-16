@@ -19,7 +19,7 @@
 
 // tn
 
-package a;
+package edu.wpi.margrave;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

@@ -21,7 +21,7 @@
  */
 
 
-package a;
+package edu.wpi.margrave;
 
 import java.util.HashMap;
 import java.util.HashSet;
