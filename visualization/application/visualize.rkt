@@ -13,7 +13,7 @@
                                 (send node set-x! x)
                                 (send node set-y! y))]
                      [name (send node get-name)]
-                     [icons empty]
+                     [icons (map (lambda (n) (send n get-bitmap) )(send node get-results))]
                      [bitmap (make-object bitmap% "../images/ent_computer.png")])))
     (send pb insert newnode (send node get-x) (send node get-y))))
 

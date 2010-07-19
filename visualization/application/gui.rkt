@@ -36,6 +36,6 @@
 (send myng add-edge! n1 n2)
 (send myng add-edge! n2 n3)
 
-(visualize (apply-model myng #f) pb)
+(visualize (apply-model/pos myng #f) pb)
 
 (send window show #t)
