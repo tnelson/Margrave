@@ -13,6 +13,7 @@
     (super-new)
     
     (define/public (get-name) name)
+    (define/public (get-policy) policy)
     (define/public (set-mnode! n) (set! mnode n))
     (define/public (get-mnode) mnode)
     ))
