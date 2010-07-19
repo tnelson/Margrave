@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -26,6 +28,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -91,113 +94,308 @@ public class MCommunicator
             xmlHelper(doc.getFirstChild());
         }
 
-     private static void xmlHelper(Node node) {
-        NodeList nodeList = node.getChildNodes();
+        //Takes a MARGRAVE-COMMAND node
+        private static void xmlHelper(Node node) {
+        	NodeList nodeList = node.getChildNodes();
+        	String type = node.getAttributes().item(0).getNodeValue();
 
-        Node n;
-        MExploreCondition exploreCondition;
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            n = nodeList.item(i);
+        	Node n;
+        	MExploreCondition exploreCondition;
 
-            if (n.getNodeType() == Node.ELEMENT_NODE) {
-                String name = n.getNodeName();
+        	Document theResponse = null;
+        	for (int i = 0; i < nodeList.getLength(); i++) {
+        		n = nodeList.item(i);
 
-                if (name.equalsIgnoreCase("EXPLORE")) {
-                    exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); //Explore should only have one child - "Condition"
-                } else if (name.equalsIgnoreCase("PUBLISH")) {
-                }
-            } else {
-                System.out.println("error!");
-            }
+        		if (n.getNodeType() == Node.ELEMENT_NODE) {
+        			String name = n.getNodeName();
 
+        			if (type.equalsIgnoreCase("EXPLORE")) {
+        				if (name.equalsIgnoreCase("EXPLORE")) {
+        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); //Explore should only have one child - "Condition"
+
+        					if (exploreCondition == null)
+        						System.out.println("its null!");
+        					MQuery result = null;
+        					try {
+        						result = MQuery.createFromExplore(
+        								exploreCondition.addSeenIDBCollections(new LinkedList<MIDBCollection>()), 
+        								null, new HashMap<String, Set<List<String>>>(), false, 0, 0);
+        					} catch (MGEUnknownIdentifier e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					} catch (MGEBadIdentifierName e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					} catch (MGECombineVocabs e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					} catch (MGEManagerException e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					} catch (MGEUnsortedVariable e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					} catch (MSemanticException e) {
+        						// TODO Auto-generated catch block
+        						e.printStackTrace();
+        					}
+        					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
+
+        				} 
+        			}
+        			//Create Statement
+        			else if (type.equalsIgnoreCase("CREATE POLICY LEAF")) {
+        				String pname = getPolicyName(n);
+        				String vname = getVocabName(n);
+        				theResponse = MEnvironment.createPolicyLeaf(pname, vname);
+        			} 
+        			else if (type.equalsIgnoreCase("CREATE POLICY SET")) {
+        				String pname = getPolicyName(n);
+        				String vname = getVocabName(n);
+        				theResponse = MEnvironment.createPolicySet(pname, vname);
+        			} 
+        			else if (type.equalsIgnoreCase("CREATE VOCABULARY")) {
+        				String vname = getVocabName(n);
+        				theResponse = MEnvironment.createVocabulary(vname);
+        			} 
+        			else if (type.equalsIgnoreCase("PREPARE")) {
+        				String pname = getPolicyName(n);
+        				theResponse = MEnvironment.preparePolicy(pname);
+        			} 
+        			else if (type.equalsIgnoreCase("DELETE VOCABULARY")) {
+        				String vname = getVocabName(n);
+        				theResponse = MEnvironment.deleteVocabulary(vname);
+        			} 
+        			/* Ignoring for now
+        			else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
+        				String fname = n.getAttributes().item(0).getNodeValue();
+        				String sfname = n.getAttributes().item(1).getNodeValue();
+        				theResponse = MEnvironment.loadXACML(fname, sfname);
+        			} 
+        			else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
+        				String fname = n.getAttributes().item(0).getNodeValue();
+        				theResponse = MEnvironment.loadSQS(fname);
+        			} */
+        			//Set Statement
+        			else if (type.equalsIgnoreCase("SET TARGET FOR POLICY")) {
+        				String pname = getPolicyName(n);
+        				List<String> conjuctChain = getListElements(n, "CONJUCTCHAIN", "name");
+        				theResponse = MEnvironment.setPolicyTarget(pname, conjuctChain);
+        			}	
+        			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
+        				String pname = getPolicyName(n);
+        				List<String> spidList = getListElements(n, "IDENTIFIERS", "name");
+        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
+        			}	
+        			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
+        				String pname = getPolicyName(n);
+        				List<String> spidList = getListElements(n, "IDENTIFIERS", "name");
+        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
+        			}	
+        			//Add Statement
+        			else if (type.equalsIgnoreCase("ADD CHILD TO")) {
+        				String parent = getNodeAttribute(n, "PARENT", "name");
+        				String child = getNodeAttribute(n, "CHILD", "name");
+        				theResponse = MEnvironment.addChild(parent, child);
+        			}	
+        			else if (type.equalsIgnoreCase("ADD RULE TO")) {
+        				String pname = getPolicyName(n);
+        				String rname= getNodeAttribute(n, "RULE", "name");
+        				String decName = getNodeAttribute(n, "DECISION", "name");
+        				List<String> conjuctChain = getListElements(n, "CONJUCTCHAIN", "name");
+        				theResponse = MEnvironment.addRule(pname, rname, decName, conjuctChain);
+        			}	
+        			else {
+        				System.out.println("error!");
+        			}
+        		}
+        		else {
+        			System.out.println("error");
+        		}
+
+        	}
+        	try {
+        		out.write(transformXML(theResponse));
+        	} catch (IOException e) {
+        		// TODO Auto-generated catch block
+        		e.printStackTrace();
+        	}
+        	out.flush(); // ALWAYS FLUSH!
+        	System.err.flush(); // just in case
         }
-    }
-
-     //Expects the node one down from condition node
-     private static MExploreCondition exploreHelper(Node n) {
-        NodeList childNodes = n.getChildNodes();
-
-        String name;
         
-        //Node n;
-        //for (int i = 0; i < childNodes.getLength(); i++) {
-        //    n = childNodes.item(i);
-            name = n.getNodeName();
-            System.out.println("Name: " + name);
-            System.out.println("First node's name: " + childNodes.item(0).getNodeName());
-            
-            if (name.equalsIgnoreCase("AND")) {
-                exploreHelper(childNodes.item(0)).and(
-                		exploreHelper(n.getChildNodes().item(1)));
-            }
-            else if (name.equalsIgnoreCase("OR")) {
-                exploreHelper(n.getFirstChild()).or(exploreHelper(n.getChildNodes().item(1)));
-            }
-            else if (name.equalsIgnoreCase("IMPLIES")) {
-                exploreHelper(n.getFirstChild()).implies(exploreHelper(n.getChildNodes().item(1)));
-            }
-            else if (name.equalsIgnoreCase("IFF")) {
-                exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
-            }
-            else if (name.equalsIgnoreCase("NOT")) {
-                exploreHelper(n.getFirstChild()).not();
-            }
-            else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
-                String relationName = n.getAttributes().item(0).getNodeValue();
+        //Helper functions for specific parts of commands
+        private static String getPolicyName(Node n) {
+        	return getNodeAttribute(n, "POLICY-IDENTIFIER", "pname");
+        }
+        
+        private static String getVocabName(Node n) {
+        	return getNodeAttribute(n, "VOCAB-IDENTIFIER", "vname");
+        }
+        
+        //Returns the child node of n whose name is nodeName 
+        private static Node getChildNode(Node n, String nodeName) {
+        	NodeList childNodes = n.getChildNodes();
+        	
+        	Node childNode;
+        	for (int i = 0; i < childNodes.getLength(); i++) {
+        		childNode = childNodes.item(i);
+        		if (nodeName == childNode.getNodeName()) {
+        			return childNode;
+        		}
+        	}
+        	return null; //Didn't find it, error
+        }
+        
+        //Finds the child node of n whose name is nodeName, and returns the value of its attribute with attributeName
+        private static String getNodeAttribute(Node n, String nodeName, String attributeName) {
+        	return getChildNode(n, nodeName).getAttributes().getNamedItem(attributeName).getNodeValue();
+        }
+        
+        //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
+        private static List<String> getListElements(Node n, String listName, String attributeName) {
+        	Node listNode = getChildNode(n, listName);
+        	LinkedList<String> attributeValues = new LinkedList<String>();
+        	
+        	NodeList childNodes = listNode.getChildNodes();
+        	for (int i = 0; i < childNodes.getLength(); i++) {
+        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue());
+        	}
+        	return attributeValues;
+        }
 
-                Node variableVector = n.getFirstChild();
-                NodeList variableNodes = variableVector.getChildNodes();
-                List<String> vl = new LinkedList<String>();
+        //Expects the node one down from condition node
+        private static MExploreCondition exploreHelper(Node n) {
+        	NodeList childNodes = n.getChildNodes();
 
-                 for (int j = 0; j < variableNodes.getLength(); j++) {
-                     vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
-                 }
+        	String name;
 
-                 // Could be a view or an EDB. If EDB, must
-                 // remember the Relation we created so that we can check
-                 // for validity later.
+        	//Node n;
+        	//for (int i = 0; i < childNodes.getLength(); i++) {
+        	//    n = childNodes.item(i);
+        	name = n.getNodeName();
+        	System.out.println("Name: " + name);
+        	System.out.println("First node's name: " + childNodes.item(0).getNodeName());
 
-                 //validateDBIdentifier(relationName);
+        	if (name.equalsIgnoreCase("AND")) {
+        		return exploreHelper(childNodes.item(0)).and(
+        				exploreHelper(childNodes.item(1)));
+        	}
+        	else if (name.equalsIgnoreCase("OR")) {
+        		return exploreHelper(n.getFirstChild()).or(exploreHelper(n.getChildNodes().item(1)));
+        	}
+        	else if (name.equalsIgnoreCase("IMPLIES")) {
+        		return exploreHelper(n.getFirstChild()).implies(exploreHelper(n.getChildNodes().item(1)));
+        	}
+        	else if (name.equalsIgnoreCase("IFF")) {
+        		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
+        	}
+        	else if (name.equalsIgnoreCase("NOT")) {
+        		return exploreHelper(n.getFirstChild()).not();
+        	}
+        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
+        		String relationName = n.getAttributes().item(0).getNodeValue();
 
-                 MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
+        		Node variableVector = n.getFirstChild();
+        		NodeList variableNodes = variableVector.getChildNodes();
+        		List<String> vl = new LinkedList<String>();
 
-                 if (pol != null) {
-                     Formula idbf = MEnvironment.getOnlyIDB(relationName);
-                     // Perform variable substitution
-                     try {
-						idbf = performSubstitution(relationName, pol, idbf, vl);
-					} catch (MSemanticException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					
+        		for (int j = 0; j < variableNodes.getLength(); j++) {
+        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
+        		}
 
-                     // Assemble MExploreCondition object
-                     return new MExploreCondition(idbf, pol, vl);
-                 }
+        		// Could be a view or an EDB. If EDB, must
+        		// remember the Relation we created so that we can check
+        		// for validity later.
 
-                 // EDB, then!
+        		//validateDBIdentifier(relationName);
 
-                 // We don't have a vocabulary yet. So just make the relation.
-                 // The manager will prevent duplicates.
-                 Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
+        		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
-                 Expression varvector;
-                 Formula f = null;
-				try {
-					varvector = MFormulaManager.makeVarTuple(vl);
-					f = MFormulaManager.makeAtom(varvector, rel);
-				} catch (MGEManagerException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-                 // No variable substitution needed!
-                 return new MExploreCondition(f, rel, vl);
-             }
-         //}
+        		if (pol != null) {
+        			Formula idbf = MEnvironment.getOnlyIDB(relationName);
+        			// Perform variable substitution
+        			try {
+        				idbf = performSubstitution(relationName, pol, idbf, vl);
+        			} catch (MSemanticException e) {
+        				// TODO Auto-generated catch block
+        				e.printStackTrace();
+        			}
+
+
+        			// Assemble MExploreCondition object
+        			return new MExploreCondition(idbf, pol, vl);
+        		}
+
+        		// EDB, then!
+
+        		// We don't have a vocabulary yet. So just make the relation.
+        		// The manager will prevent duplicates.
+        		Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
+
+        		Expression varvector;
+        		Formula f = null;
+        		try {
+        			varvector = MFormulaManager.makeVarTuple(vl);
+        			f = MFormulaManager.makeAtom(varvector, rel);
+        		} catch (MGEManagerException e) {
+        			// TODO Auto-generated catch block
+        			e.printStackTrace();
+        		}
+
+        		// No variable substitution needed!
+        		return new MExploreCondition(f, rel, vl);
+        	}
+        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) {
+        		String collectionName = n.getAttributes().item(0).getNodeValue();
+        		String relationName = n.getAttributes().item(1).getNodeValue();
+
+        		//Variables
+        		Node variableVector = n.getFirstChild();
+        		NodeList variableNodes = variableVector.getChildNodes();
+        		List<String> vl = new LinkedList<String>();
+
+        		for (int j = 0; j < variableNodes.getLength(); j++) {
+        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
+        		}
+
+
+        		Formula idbf = null;
+        		try {
+        			idbf = validateDBIdentifier(collectionName, relationName);
+        		} catch (MSemanticException e) {
+        			// TODO Auto-generated catch block
+        			e.printStackTrace();
+        		}
+
+        		// Perform variable substitution
+        		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
+        		try {
+        			idbf = performSubstitution(collectionName, pol, idbf, vl);
+        		} catch (MSemanticException e) {
+        			// TODO Auto-generated catch block
+        			e.printStackTrace();
+        		}
+
+        		// Assemble MExploreCondition object	
+        		return new MExploreCondition(idbf, pol, vl);
+
+        	}
+         System.out.println("returning null! error!");
         return null;
     }
+     
+     //Returns a list containing the value of the first attribute of every child node of n
+     protected static List<String> getListChildren(Node n) {
+         NodeList childNodes = n.getChildNodes();
+         List<String> list = new LinkedList<String>();
+
+          for (int i = 0; i < childNodes.getLength(); i++) {
+              list.add(childNodes.item(i).getAttributes().item(0).getNodeValue());
+          }
+          
+          return list;
+     }
      
      protected static void readCommands() {
     	   StringBuffer theCommand = new StringBuffer();
@@ -306,32 +504,32 @@ public class MCommunicator
 		return f.accept(new RelationAndVariableReplacementV(new HashMap<Relation, Relation>(), toReplace));		
 	}
 	
-	protected Formula validateDBIdentifier(Object collectionSymbol, Object dbSymbol)
+	protected static Formula validateDBIdentifier(String objn, String dbn)
 	throws MSemanticException
 	{
-		String objn = (String)((java_cup.runtime.Symbol) collectionSymbol).value;
-		String dbn = (String)((java_cup.runtime.Symbol) dbSymbol).value;
 		
 		// Is objn a policy name? If not, error.
 		 MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
-		 if(pol == null)
-		 	report_unknown_identifier(collectionSymbol);
+		 
+		 //TODO: I took out error checking since we don't have symbols anymore (VS)
+		 //if(pol == null)
+		 //	report_unknown_identifier(collectionSymbol);
 			   	
 		 // Is idb an idb in objn? If not, error
 		 Formula idbf = MEnvironment.getIDB(objn, dbn);
-		 if(idbf == null)
-		 	report_unknown_idb(collectionSymbol, dbSymbol);
+		 //if(idbf == null)
+		 //	report_unknown_idb(collectionSymbol, dbSymbol);
 		 
 		 return idbf;
 	}
 	
-	private void report_unknown_identifier(Object idSymbol) throws MSemanticException
+	private static void report_unknown_identifier(Object idSymbol) throws MSemanticException
 	{	
 		Symbol tok = (Symbol)idSymbol;	
 		throw new MSemanticException("Unknown identifier", tok.left, tok.right, idSymbol);
 	}
 	
-	private void report_unknown_idb(Object collSymbol, Object idbSymbol) throws MSemanticException
+	private static void report_unknown_idb(Object collSymbol, Object idbSymbol) throws MSemanticException
 	{
 		Symbol tok = (Symbol)idbSymbol;	
 		Symbol collTok = (Symbol)collSymbol;

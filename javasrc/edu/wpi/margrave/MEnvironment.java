@@ -600,6 +600,32 @@ public class MEnvironment
 		
 	}
 	
+	static public Document doXMLCommand(MQuery qry, String XMLCommand) {
+		lastCommandReceived = XMLCommand.trim();			
+		try
+		{
+				// May return null if an internal error.
+				if(qry == null)
+				{
+					errorStream.println("-> Command failed.");
+					return errorResponse(sFailure, sQuery, XMLCommand);
+				}
+				
+				// Compile the query and get the result handle.
+				MQueryResult qryResult = qry.runQuery();
+				
+				// TODO Don't store more than one for now.
+				envQueryResults.put(0, qryResult);
+				return resultHandleResponse(0);
+												
+			}  // end: a query
+		catch(Exception e)
+		{
+			// Unexpected! Bad exception			
+			return exceptionResponse(e);
+		}
+	}
+	
 
 	static public Document command(String cmd, boolean silent)
 	{

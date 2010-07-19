@@ -4037,7 +4037,8 @@
 0 0 22 3 1 #"("
 0 0 14 3 17 #"open-input-string"
 0 0 17 3 1 #" "
-0 0 19 3 55 #"\"EXPLORE (foo(x, y, z) AND Bar(x, y)) AND C:permit(z) \""
+0 0 19 3 60
+#"\"EXPLORE (foo(x, y, z) AND Bar(x, y)) AND C:permit(x, y, z)\""
 0 0 22 3 2 #"))"
 0 0 4 29 1 #"\n"
 0 0 17 3 2 #";("
