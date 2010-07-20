@@ -3,6 +3,8 @@ package edu.wpi.margrave;
 import java_cup.*;
 import kodkod.ast.*;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -54,7 +56,7 @@ public class MCommunicator
 	
 	public static void main(String[] args) 
 	{
-		System.out.println("a");
+		writeToLog("\n\n\n");
 		if(args.length > 0 && args[0].toLowerCase().equals("debug"))
 		{
 			MEnvironment.debugParser = true;
@@ -82,29 +84,38 @@ public class MCommunicator
             Document doc = null;
 
             try {
-            	System.out.println("B");
                 doc = docBuilder.parse(new InputSource(new StringReader(command)));
-                System.out.println("C");
             } catch (SAXException ex) {
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            xmlHelper(doc.getFirstChild());
+            Document theResponse = xmlHelper(doc.getFirstChild());
+            try {
+        		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
+        		out.write(transformXML(theResponse));
+        	} catch (IOException e) {
+        		// TODO Auto-generated catch block
+        		e.printStackTrace();
+        	}
+        	out.flush(); // ALWAYS FLUSH!
+        	System.err.flush(); // just in case
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static void xmlHelper(Node node) {
-        	NodeList nodeList = node.getChildNodes();
+        private static Document xmlHelper(Node node) {
+        	writeToLog("In XMLHelper\n");
+        	NodeList childNodes = node.getChildNodes();
         	String type = node.getAttributes().item(0).getNodeValue();
+        	writeToLog("type: " + type);
 
         	Node n;
         	MExploreCondition exploreCondition;
 
         	Document theResponse = null;
-        	for (int i = 0; i < nodeList.getLength(); i++) {
-        		n = nodeList.item(i);
+        	//for (int i = 0; i < childNodes.getLength(); i++) {
+        		n = node;
 
         		if (n.getNodeType() == Node.ELEMENT_NODE) {
         			String name = n.getNodeName();
@@ -155,8 +166,14 @@ public class MCommunicator
         				theResponse = MEnvironment.createPolicySet(pname, vname);
         			} 
         			else if (type.equalsIgnoreCase("CREATE VOCABULARY")) {
-        				String vname = getVocabName(n);
+        				writeToLog("In Create Vocabulary\n");
+        				String vname = getVocabName(node);
+        				writeToLog("Got Vocab name. It is: " + vname + "\n");
         				theResponse = MEnvironment.createVocabulary(vname);
+        				if (theResponse == null) {
+        					writeToLog("The result of create vocabulary was null!!\n");
+        				}
+        				writeToLog("Finished Create Vocabulary\n");
         			} 
         			else if (type.equalsIgnoreCase("PREPARE")) {
         				String pname = getPolicyName(n);
@@ -177,32 +194,90 @@ public class MCommunicator
         				theResponse = MEnvironment.loadSQS(fname);
         			} */
         			//Set Statement
+        			
         			else if (type.equalsIgnoreCase("SET TARGET FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> conjuctChain = getListElements(n, "CONJUCTCHAIN", "name");
+        				List<String> conjuctChain = getConjunctChainList(n);
         				theResponse = MEnvironment.setPolicyTarget(pname, conjuctChain);
         			}	
         			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getListElements(n, "IDENTIFIERS", "name");
+        				List<String> spidList = getIdentifierList(n);
         				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
         			}	
         			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getListElements(n, "IDENTIFIERS", "name");
+        				List<String> spidList = getIdentifierList(n);
         				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
         			}	
         			//Add Statement
+        			else if (type.equalsIgnoreCase("ADD")) {
+        				Node childNode = n.getFirstChild();
+        				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER")) {
+        					String vname = getVocabName(n);
+        					Node secondChildNode = childNode.getNextSibling();
+        					String addType = secondChildNode.getNodeName();
+        					writeToLog("addType: " + addType +"\n");
+        					if (addType == "SUBSORT") {
+        						String parent = getSubSortParent(n);
+        						String child = getSubSortChild(n);
+        						theResponse = MEnvironment.addSubsort(vname, parent, child);
+        					}
+        					else if (addType == "SORT") {
+        						String sortName = getSortName(n);
+        						theResponse = MEnvironment.addSort(vname, sortName);
+        						writeToLog("Added Sort\n");
+        					}
+        					else if (addType == "DECISION") {
+        						writeToLog("In Decision");
+        						String decName = getDecisionName(n);
+        						writeToLog("Adding Decision: " + decName + "\n");
+        						theResponse = MEnvironment.addDecision(vname, decName);
+        						writeToLog("Added Decision: " + decName + "\n");
+        					}
+        					else if (addType == "PREDICATE") {
+        						String sName = getPredicateName(n);
+        						List<String> constr = getRelationsList(n);
+        						writeToLog("Adding Predicate\n");
+        						theResponse = MEnvironment.addPredicate(vname, sName, constr);
+        					}
+        					else if (addType == "REQUESTVAR") {
+        						String varName = getRequestVar(n);
+        						String domainSort = getRequestSort(n);
+        						theResponse = MEnvironment.addRequestVariable(vname, varName, domainSort);
+        					}
+        					else if (addType == "OTHERVAR") {
+        						//MEnvironment.addOtherVariable(vname, varname, domainsort)
+        					}
+        					else if (addType == "CONSTRAINT") {
+        						
+        					}
+        				}
+        				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
+        					String pname = getPolicyName(n);
+        					String rname = "";
+        					String decname = "";
+        					List<String> cc = new LinkedList<String>();
+        					theResponse = MEnvironment.addRule(pname, rname, decname, cc);
+        				}
+        				//ADD RULE TO IDENTIFIER:pname IDENTIFIER:rname IDENTIFIER:decname CONJUNCTCHAIN:cc 
+        				//{: RESULT = MEnvironment.addRule(pname, rname, decname, cc); :}
+        				
+        				//ADD CHILD TO IDENTIFIER:parent IDENTIFIER:child
+        				//{: RESULT = MEnvironment.addChild(parent, child); :}
+        			}
+        			 //<MARGRAVE-COMMAND type="ADD"><VOCAB-IDENTIFIER vname="ConferencePolicy" /><SORT name="Subject" /></MARGRAVE-COMMAND>
+
         			else if (type.equalsIgnoreCase("ADD CHILD TO")) {
-        				String parent = getNodeAttribute(n, "PARENT", "name");
-        				String child = getNodeAttribute(n, "CHILD", "name");
+        				String parent = getParentName(n);
+        				String child = getChildName(n);
         				theResponse = MEnvironment.addChild(parent, child);
         			}	
         			else if (type.equalsIgnoreCase("ADD RULE TO")) {
         				String pname = getPolicyName(n);
-        				String rname= getNodeAttribute(n, "RULE", "name");
-        				String decName = getNodeAttribute(n, "DECISION", "name");
-        				List<String> conjuctChain = getListElements(n, "CONJUCTCHAIN", "name");
+        				String rname= getRuleName(n);
+        				String decName = getDecisionName(n);
+        				List<String> conjuctChain = getConjunctChainList(n);
         				theResponse = MEnvironment.addRule(pname, rname, decName, conjuctChain);
         			}	
         			else {
@@ -213,15 +288,8 @@ public class MCommunicator
         			System.out.println("error");
         		}
 
-        	}
-        	try {
-        		out.write(transformXML(theResponse));
-        	} catch (IOException e) {
-        		// TODO Auto-generated catch block
-        		e.printStackTrace();
-        	}
-        	out.flush(); // ALWAYS FLUSH!
-        	System.err.flush(); // just in case
+        	//}
+        	return theResponse;
         }
         
         //Helper functions for specific parts of commands
@@ -232,6 +300,60 @@ public class MCommunicator
         private static String getVocabName(Node n) {
         	return getNodeAttribute(n, "VOCAB-IDENTIFIER", "vname");
         }
+        
+        private static String getSubSortParent(Node n) {
+        	return getNodeAttribute(n, "SUBSORT", "parent");
+        }
+        
+        private static String getSubSortChild(Node n) {
+        	return getNodeAttribute(n, "SUBSORT", "child");
+        }
+        
+        private static String getSortName(Node n) {
+        	return getNodeAttribute(n, "SORT", "name");
+        }
+        
+        private static String getPredicateName(Node n) {
+        	return getNodeAttribute(n, "PREDICATE", "name");
+        }
+        
+        private static String getRequestVar(Node n) {
+        	return getNodeAttribute(n, "REQUESTVAR", "name");
+        }
+		
+        private static String getRequestSort(Node n) {
+        	return getNodeAttribute(n, "REQUESTVAR", "sort");
+        }
+		
+        private static List<String> getRelationsList(Node n) {
+        	return getListElements(n, "RELATIONS", "name");
+        }
+        
+        private static List<String> getConjunctChainList(Node n) {
+			return getListElements(n, "CONJUCTCHAIN", "name");
+		}
+        
+        private static List<String> getIdentifierList(Node n) {
+        	return getListElements(n, "IDENTIFIERS", "name");
+        }
+        
+        private static String getParentName(Node n) {
+        	return getNodeAttribute(n, "PARENT-IDENTIFIER", "name");
+        }
+        
+        private static String getChildName(Node n) {
+        	return getNodeAttribute(n, "CHILD-IDENTIFIER", "name");
+        }
+        
+        private static String getRuleName(Node n) {
+        	return getNodeAttribute(n, "RULE", "name");
+        }
+        private static String getDecisionName(Node n) {
+        	return getNodeAttribute(n, "DECISION", "name");
+        }
+        
+        
+        
         
         //Returns the child node of n whose name is nodeName 
         private static Node getChildNode(Node n, String nodeName) {
@@ -249,6 +371,7 @@ public class MCommunicator
         
         //Finds the child node of n whose name is nodeName, and returns the value of its attribute with attributeName
         private static String getNodeAttribute(Node n, String nodeName, String attributeName) {
+        	
         	return getChildNode(n, nodeName).getAttributes().getNamedItem(attributeName).getNodeValue();
         }
         
@@ -397,6 +520,19 @@ public class MCommunicator
           return list;
      }
      
+     private static void writeToLog(String s) {
+    	 try{
+    		    // Create file 
+    		    FileWriter fstream = new FileWriter("/home/vjsingh/Margrave/log.txt", true);
+    		        BufferedWriter out = new BufferedWriter(fstream);
+    		    out.write(s);
+    		    //Close the output stream
+    		    out.close();
+    		    }catch (Exception e){//Catch exception if any
+    		      System.err.println("Error: " + e.getMessage());
+    		    }
+     }
+     
      protected static void readCommands() {
     	   StringBuffer theCommand = new StringBuffer();
    		try
@@ -406,6 +542,7 @@ public class MCommunicator
    				int theChar = in.read();
    				if(theChar == semicolon)
    				{
+   					writeToLog("Executing command: " + theCommand.toString() + "\n");
    					executeCommand(theCommand.toString());
 
    					theCommand = new StringBuffer();
@@ -453,6 +590,35 @@ public class MCommunicator
     	 System.err.flush(); // just in case
 
      }
+     
+     protected static String transformXMLString(Document theResponse) 
+     {
+    	 try
+    	 {
+			Transformer transformer = TransformerFactory.newInstance().newTransformer();
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			
+			//initialize StreamResult with File object to save to file
+			StreamResult result = new StreamResult(new StringWriter());
+			DOMSource source = new DOMSource(theResponse);
+			
+			// If this line causes a null pointer exception, there is an empty text element somewhere.
+			// For some reason the transformer can't handle text elements with "" in them.
+			transformer.transform(source, result);			
+			
+			
+			String xmlString = result.getWriter().toString();
+			xmlString += cEOF;
+			return xmlString;
+		}
+		catch(Exception e)
+		{
+			// Will hit this if theResponse is null.		
+			System.err.println(e.getLocalizedMessage());
+			//e.printStackTrace();
+			return (makeLastResortError(theResponse)+cEOF);
+		}
+	}
      
      protected static byte[] transformXML(Document theResponse) 
      {

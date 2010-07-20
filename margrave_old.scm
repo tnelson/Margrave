@@ -71,11 +71,7 @@
 (define margrave-command-line
   (string-append
    "java -cp "
-   ;For testing
    (path->string
-    (build-path (current-directory)
-                "bin"))
-   #;(path->string
     (build-path (current-directory)
                 "bin"
                 "margrave.jar"))
@@ -393,9 +389,8 @@
                 ; Is this a sort with subsorts itself?
                 (if (list? s)                       
                     (begin
-                      (display parent)
                       ; Add subtype relationship between parent and s
-                      (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s))))))
+                      (m (string-append "ADD TO " vocab " SUBSORT " parent " " (symbol->quoted-string (car s))))
                       
                       ; Is this a nested subtype? If so, we must
                       ; deal with s's subtypes.
@@ -403,10 +398,10 @@
                       ; Check for list size;
                       ; someone may have used parens without meaning to.
                       (when (> (length s) 1)
-                        (add-subtypes-of vocab (symbol->string (car s)) (cdr s))))
+                        (add-subtypes-of vocab (symbol->quoted-string (car s)) (cdr s))))
                     
                     ; Bottom of sort tree. 
-                    (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
+                    (m (string-append "ADD TO " vocab " SUBSORT " parent " " (symbol->quoted-string s)))))
               listsubs)))
 
 
@@ -416,19 +411,19 @@
   
   (cond 
     ; typename is a symbol at this point, not a string    
-    ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'DISJOINT (list (car listrels) (car (cdr listrels)))))))
-    ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'DISJOINT-ALL (list (car listrels) )))))
-    ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'NONEMPTY (list (car listrels) )))))
-    ((eqv? typename 'nonempty-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'NONEMPTY-ALL (list (car listrels) )))))
-    ((eqv? typename 'singleton) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SINGLETON (list (car listrels) )))))
-    ((eqv? typename 'singleton-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SINGLETON-ALL (list (car listrels) )))))
-    ((eqv? typename 'atmostone) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ATMOSTONE (list (car listrels) )))))
-    ((eqv? typename 'atmostone-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ATMOSTONE-ALL (list (car listrels) )))))
-    ((eqv? typename 'partial-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'PARTIALFUNCTION (list (car listrels) )))))
-    ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'TOTALFUNCTION (list (car listrels) )))))
-    ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ABSTRACT (list (car listrels) )))))
-    ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ABSTRACT-ALL (list (car listrels) )))))
-    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SUBSET (list (car listrels))))))
+    ((eqv? typename 'disjoint) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT " (car listrels) " " (car (cdr listrels)))))
+    ((eqv? typename 'disjoint-all) (m (string-append "ADD TO " vocab " CONSTRAINT DISJOINT ALL " (car listrels))))
+    ((eqv? typename 'nonempty) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY " (car listrels))))
+    ((eqv? typename 'nonempty-all) (m (string-append "ADD TO " vocab " CONSTRAINT NONEMPTY ALL " (car listrels))))
+    ((eqv? typename 'singleton) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON " (car listrels))))
+    ((eqv? typename 'singleton-all) (m (string-append "ADD TO " vocab " CONSTRAINT SINGLETON ALL " (car listrels))))
+    ((eqv? typename 'atmostone) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE " (car listrels))))
+    ((eqv? typename 'atmostone-all) (m (string-append "ADD TO " vocab " CONSTRAINT ATMOSTONE ALL " (car listrels))))
+    ((eqv? typename 'partial-function) (m (string-append "ADD TO " vocab " CONSTRAINT PARTIAL FUNCTION " (car listrels))))
+    ((eqv? typename 'total-function) (m (string-append "ADD TO " vocab " CONSTRAINT TOTAL FUNCTION " (car listrels))))
+    ((eqv? typename 'abstract) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT " (car listrels))))
+    ((eqv? typename 'abstract-all) (m (string-append "ADD TO " vocab " CONSTRAINT ABSTRACT ALL " (car listrels))))
+    ((eqv? typename 'subset) (m (string-append "ADD TO " vocab " CONSTRAINT SUBSET " (car listrels) " " (car (cdr listrels)))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
 ; May be a list, may not be a list
@@ -461,46 +456,18 @@
   `(VOCAB-IDENTIFIER ((vname ,vocab-name))))
 
 (define (xml-make-parent-identifier parent-name)
-  `(PARENT-IDENTIFIER ((name ,parent-name))))
+  `(PARENT-IDENTIFIER ((vname ,vocab-name))))
 
-(define (xml-make-child-identifier child-name)
-  `(VOCAB-IDENTIFIER ((name ,child-name))))
+(define (xml-make-child-identifier vocab-name)
+  `(VOCAB-IDENTIFIER ((vname ,vocab-name))))
 
 (define (xml-make-predicate pred-name)
   `(PREDICATE ((name ,pred-name))))
 
-(define (xml-make-rule rule-name dtype conjlist)
-  `(RULE ((name ,rule-name)) ,(xml-make-decision-type dtype) (xml-make-conjunct-chain conjlist)))
-
-(define (xml-make-decision-type decision-type)
-  `(DECISION-TYPE ((type ,decision-type))))
-
-(define (xml-make-decision decision)
-  `(DECISION ((name ,decision))))
-
-(define (xml-make-sort sort-name)
-  `(SORT ((name ,sort-name))))
-    
-(define (xml-make-subsort parent child)
-  `(SUBSORT ((parent ,parent) (child ,child))))
-    
-
-(define (xml-make-request-var rvname rvsort)
-  `(REQUESTVAR ((name ,rvname) (sort ,rvsort))))
-
-(define (xml-make-other-var ovname ovsort)
-  `(OTHERVAR ((name ,ovname) (sort ,ovsort))))
-
-(define (xml-make-constraint constraint-type list-of-relations)
-  `(CONSTRAINT (,constraint-type ,(xml-make-relations-list list-of-relations))))
-
-
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)
   `(,list-name
     ,@(map (λ(attribute-value)
-             `(,element-name ((,attribute-name ,(if (symbol? attribute-value)
-                                                    (symbol->string attribute-value)
-                                                    attribute-value)))))
+             `(,element-name ((,attribute-name ,attribute-value))))
            list-of-attribute-values)))
 
 ;algs-list is a list of strings decribing the combine algorithms
@@ -527,11 +494,11 @@
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value
 (define (add-predicate vocab predname listrels)
-  (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-predicate predname) (xml-make-relations-list listrels)))))
+  (m (string-append "ADD TO " vocab " PREDICATE " predname " " (begin (display "ASDA") (fold-append-with-spaces listrels)))))
 
 ; Sets the target property of a policy object
 (define (set-target mypolicy conjlist)
-  (m (xml-make-command "SET TARGET FOR POLICY" (list (xml-make-policy-identifier mypolicy) (xml-make-conjunct-chain conjlist)))))
+  (m (string-append "SET TARGET FOR POLICY " mypolicy " " (begin (display "ASDA") (fold-append-with-spaces conjlist)))))
 
 (define (wrap-list-parens lst)
   (fold-append-with-spaces (map (lambda (str) (string-append "(" str ")")) lst)))
@@ -554,7 +521,8 @@
   ;             (display ".")
   ;             (newline))
   
-  (m (xml-make-command "ADD" (list (xml-make-policy-identifier mypolicy) (xml-make-rule rulename dtype conjlist))))) ;(wrap-list-parens conjlist)
+  (m (string-append "ADD RULE TO " mypolicy " " rulename " " dtype " " (wrap-list-parens conjlist))))
+;)
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax PolicyVocab
@@ -571,22 +539,22 @@
        ; Instantiate a new MVocab object
        ; If already created, wipe and start over.
        (let ([ create-reply-doc 
-               (m (xml-make-command "CREATE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)))))])
+               (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname)))])
          (when (response-is-error? create-reply-doc)
            (begin 
-             (m (xml-make-command "DELETE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)))))
-             (m (xml-make-command "CREATE VOCABULARY " (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))))))
+             (m (string-append "DELETE VOCABULARY " (symbol->string 'myvocabname)))
+             (m (string-append "CREATE VOCABULARY " (symbol->string 'myvocabname))))))
        
        ; These sections must be in order.                     
        ; Types
        (begin
-         (m (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort (symbol->string 't)))))
-         (add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
+         (m (string-append "ADD TO " (symbol->string 'myvocabname) " SORT " (symbol->quoted-string 't)))
+         (add-subtypes-of (symbol->string 'myvocabname) (symbol->quoted-string 't) (list 'subt ...))         
          )
        ... ; for each type/subtype set
        
        ; Decisions               
-       (m (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-decision (symbol->string 'r))))) 
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " DECISION " (symbol->string 'r))) 
        ...
        
        ; Predicates
@@ -594,15 +562,15 @@
        ... ; for each custom predicate
        
        ; Request Variables
-       (m (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-request-var (symbol->string 'rvname) (symbol->string 'rvsort)))))
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " REQUESTVAR " (symbol->string 'rvname) " " (symbol->string 'rvsort)))
        ... ; for each req var
        
        ; Other Variables
-       (m (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-other-var (symbol->string 'ovname) (symbol->string 'ovsort)))))
+       (m (string-append "ADD TO " (symbol->string 'myvocabname) " OTHERVAR " (symbol->string 'ovname) " " (symbol->string 'ovsort)))
        ... ; for each oth var
        
        ; Constraints
-       (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
+       (add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->quoted-string 'crel) ...))       
        ... ; for each constraint
        
        ; Return the object for use by the policy macro
@@ -645,8 +613,8 @@
          
          
          (begin (if (< (length mychildren) 1)
-                    (m (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier myvocab))))
-                    (m (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier myvocab)))))
+                    (m (string-append "CREATE POLICY LEAF " (symbol->string 'policyname) " " myvocab))
+                    (m (string-append "CREATE POLICY SET " (symbol->string 'policyname) " " myvocab)))
                 
                 
                 ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
@@ -662,25 +630,25 @@
                 ; Add the rules to the policy. 'true is dealt with in the back-end.         
                 (add-rule (symbol->string 'policyname)
                           ;myvarorder 
-                          (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list 'conj ...))
+                          (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list (fold-append-with-spaces-quotes 'conj) ...))
                 ...
                 
                 ; Set the rule and policy combinator (depending on type)
                 (if (< (length mychildren) 1)
-                    (m (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'rcstr ...)))))
-                    (m (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'pcstr ...))))))
+                    (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (list 'rcstr ...)))
+                    (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (list 'pcstr ...))))
                 
                 ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
                 
                 ; Each child is a Policy
                 (let ((cpol child))
-                  (m (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-policy-identifier cpol))))
+                  (m (string-append "ADD CHILD TO " (symbol->string 'policyname) " " cpol))
                   )
                 ...
                 
                 ; Trigger IDB calculation
                 (begin 
-                  (m (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string 'policyname)))))
+                  (m (string-append "PREPARE " (symbol->string 'policyname)))
                   
                   
                   (symbol->string 'policyname))   ; close paren for above GET REQUEST VECTOR commented out )
