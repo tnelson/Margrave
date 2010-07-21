@@ -469,8 +469,29 @@
 (define (xml-make-predicate pred-name)
   `(PREDICATE ((name ,pred-name))))
 
-(define (xml-make-rule rule-name dtype conjlist)
-  `(RULE ((name ,rule-name)) ,(xml-make-decision-type dtype) (xml-make-conjunct-chain conjlist)))
+(define (xml-make-rule rule-name dtype rule-list)
+  `(RULE ((name ,rule-name)) ,(xml-make-decision-type dtype) ,(xml-make-rule-list rule-list)))
+
+;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r))
+(define (xml-make-rule-list rule-list)
+  `(RELATIONS ,@(map (λ(relation)
+                       (let* ((relation-name (symbol->string (first relation)))
+                              (negation? (starts-with-exclamation relation-name)))
+                         `(RELATION ((name ,(if negation? ;Take out the exclamation point
+                                                (substring relation-name 1)
+                                                relation-name))
+                                     (sign ,(if negation?
+                                                "false"
+                                                "true")))
+                                    ,(xml-make-identifiers-list (rest relation)))))
+                       rule-list)))
+
+(define (starts-with-exclamation string)
+  (if (equal? "!" (substring string 0 1))
+      true
+      false))
+
+
 
 (define (xml-make-decision-type decision-type)
   `(DECISION-TYPE ((type ,decision-type))))
