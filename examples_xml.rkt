@@ -47,14 +47,13 @@
   (load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
   (load-policy (build-path (current-directory) "tests" "iout.p"))
   
-  (m "rename conferencepolicy1 conf1")
-  (m "rename conferencepolicy2 conf2")
-  (m "rename fwex1 firewall1")
-  (m "rename fwex1a firewall1a")
-  (m "rename fwex2 firewall2")
-  (m "rename happyrouterless HRless")
-  (m "rename happyroutermore HRmore")
-  (display "ASdA")
+  (m (xml-make-rename-command "conferencepolicy1" "conf1"))
+  (m (xml-make-rename-command "conferencepolicy2" "conf2"))
+  (m (xml-make-rename-command "fwex1" "firewall1"))
+  (m (xml-make-rename-command "fwex1a" "firewall1a"))
+  (m (xml-make-rename-command "fwex2" "firewall2"))
+  (m (xml-make-rename-command "happyrouterless" "HRless"))
+  (m (xml-make-rename-command "happyroutermore" "HRmore"))
   
   ;; ****
   ;; General examples
@@ -62,9 +61,9 @@
   
   
   ; Basic predicate conference policy: When can someone read a paper?
-  #;(mxout "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE><CONDITION><AND><ATOMIC-FORMULA-N relation-name=\"readpaper\"><VARIABLE-VECTOR><VARIABLE name=\"a\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N><ATOMIC-FORMULA-N relation-name=\"paper\"><VARIABLE-VECTOR><VARIABLE name=\"r\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N></AND></CONDITION></EXPLORE></MARGRAVE-COMMAND>")
+  (mxout "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE><CONDITION><AND><ATOMIC-FORMULA-N relation-name=\"readpaper\"><VARIABLE-VECTOR><VARIABLE name=\"a\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N><ATOMIC-FORMULA-N relation-name=\"paper\"><VARIABLE-VECTOR><VARIABLE name=\"r\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N></AND></CONDITION></EXPLORE></MARGRAVE-COMMAND>")
   ;(mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
-  (mxout "SHOW ONE 0")
+  (mxout (xml-make-show-command "0")) ;"SHOW ONE 0"
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")

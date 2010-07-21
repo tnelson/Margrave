@@ -1608,12 +1608,9 @@ public class MEnvironment
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
-		writeToLog("A");
 		if(!(coll instanceof MPolicy))
 			return errorResponse(sNotExpected, sPolicy, pname);
-		writeToLog("B");
 		MPolicy pol = (MPolicy) coll;
-		writeToLog("C");
 		try
 		{
 			pol.setTarget(cc);
@@ -1622,21 +1619,8 @@ public class MEnvironment
 		{
 			return exceptionResponse(e);
 		}
-		writeToLog("C");
 		return successResponse();
 	}
-	private static void writeToLog(String s) {
-   	 try{
-   		    // Create file 
-   		    FileWriter fstream = new FileWriter("/home/vjsingh/Margrave/log.txt", true);
-   		        BufferedWriter out = new BufferedWriter(fstream);
-   		    out.write(s);
-   		    //Close the output stream
-   		    out.close();
-   		    }catch (Exception e){//Catch exception if any
-   		      System.err.println("Error: " + e.getMessage());
-   		    }
-    }
 
 	public static Document setRCombine(String pname, List<String> idl)
 	{

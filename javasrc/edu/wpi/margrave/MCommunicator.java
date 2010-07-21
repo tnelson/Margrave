@@ -150,6 +150,7 @@ public class MCommunicator
         						// TODO Auto-generated catch block
         						e.printStackTrace();
         					}
+        					writeToLog("HERE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
 
         				} 
@@ -202,20 +203,23 @@ public class MCommunicator
         			}	
         			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getIdentifierList(n);
-        				writeToLog("\nPolicy: " + pname);
-        				for (String s : spidList) {
-        					writeToLog("\ns: " + s + "\n");
-        				}
-        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
-        				writeToLog("\nSet theResponse for RCOMBINE\n\n");
-        				writeToLog("\nASDSADAS");
+        				List<String> idl = getIdentifierList(n);
+        				theResponse = MEnvironment.setRCombine(pname, idl);
         			}	
         			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getIdentifierList(n);
-        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
-        			}	
+        				List<String> idl = getIdentifierList(n);
+        				theResponse = MEnvironment.setPCombine(pname, idl);
+        			}
+        			else if (type.equalsIgnoreCase("RENAME")) {
+        				String id1 = getRenameFirstId(n);
+        				String id2 = getRenameSecondId(n);
+        				theResponse = MEnvironment.renameIDBCollection(id1, id2);
+        			}
+        			else if (type.equalsIgnoreCase("SHOW")) {
+        				String id = getShowId(n);
+        				theResponse = MEnvironment.showFirstModel(Integer.parseInt(id));
+        			}
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
         				Node childNode = n.getFirstChild();
@@ -253,7 +257,9 @@ public class MCommunicator
         						theResponse = MEnvironment.addRequestVariable(vname, varName, domainSort);
         					}
         					else if (addType == "OTHERVAR") {
-        						//MEnvironment.addOtherVariable(vname, varname, domainsort)
+        						String varName = getOtherVarName(n);
+        						String domainSort = getOtherVarSort(n);
+        						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
         						
@@ -398,6 +404,27 @@ public class MCommunicator
         	}
         	
         	return relationNodes;
+        }
+        
+        //Othervar
+        public static String getOtherVarName(Node n) {
+        	return getNodeAttribute(n, "OTHERVAR", "name");
+        }
+        public static String getOtherVarSort(Node n) {
+        	return getNodeAttribute(n, "OTHERVAR", "sort");
+        }
+        
+        //Rename
+        public static String getRenameFirstId(Node n) {
+        	return getNodeAttribute(n, "RENAME", "id1");
+        }
+        public static String getRenameSecondId(Node n) {
+        	return getNodeAttribute(n, "RENAME", "id2");
+        }
+        
+        //SHOW
+        public static String getShowId(Node n) {
+        	return getNodeAttribute(n, "SHOW", "id");
         }
         
         //Returns the child node of n whose name is nodeName 

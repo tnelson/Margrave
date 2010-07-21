@@ -56,7 +56,10 @@
          pause-for-user
          
          PolicyVocab
-         Policy)
+         Policy
+         
+         xml-make-rename-command
+         xml-make-show-command)
 
 ;****************************************************************
 ;;Java Connection
@@ -76,9 +79,9 @@
     (build-path (current-directory)
                 "bin"))
    #;(path->string
-    (build-path (current-directory)
-                "bin"
-                "margrave.jar"))
+      (build-path (current-directory)
+                  "bin"
+                  "margrave.jar"))
    java-class-separator
    (path->string
     (build-path (current-directory)
@@ -125,7 +128,7 @@
         (set! ctrl-function (fifth java-process-list))
         #t)
       #f))
-  
+
 (define (stop-margrave-engine)
   (display "QUIT;" output-port) ; semicolon is necessary
   (flush-output output-port)    
@@ -133,7 +136,7 @@
   (close-output-port output-port)
   (close-input-port err-port)
   (ctrl-function 'kill)
-
+  
   ; allow restart of the engine
   (set! java-process-list #f)
   (set! input-port #f)
@@ -363,16 +366,16 @@
                           (if (= (predicate-arity predicate) 1) ;If type, continue, otherwise print
                               (predicate-helper (hash-iterate-next predicate-hash hash-pos))
                               (string-append
-                             (predicate-name predicate)
-                             " = {["
-                             (foldl (λ(atom rest) (string-append (atom-name atom)
-                                                                 (if (not (equal? rest ""))
-                                                                   ", "
-                                                                   "") 
-                                                                 rest)) "" (predicate-list-of-atoms predicate))
-                             "]}"
-                             "\n"
-                             (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
+                               (predicate-name predicate)
+                               " = {["
+                               (foldl (λ(atom rest) (string-append (atom-name atom)
+                                                                   (if (not (equal? rest ""))
+                                                                       ", "
+                                                                       "") 
+                                                                   rest)) "" (predicate-list-of-atoms predicate))
+                               "]}"
+                               "\n"
+                               (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
     (string-append "********* SOLUTION FOUND at size = " model-size " ******************\n"
                    (atom-helper (hash-iterate-first atom-hash))
                    (predicate-helper (hash-iterate-first predicate-hash)))))
@@ -472,26 +475,26 @@
 (define (xml-make-rule rule-name dtype rule-list)
   `(RULE ((name ,rule-name)) ,(xml-make-decision-type dtype) ,(xml-make-rule-list rule-list)))
 
-;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r))
+;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
 (define (xml-make-rule-list rule-list)
-  `(RELATIONS ,@(map (λ(relation)
-                       (let* ((relation-name (symbol->string (first relation)))
-                              (negation? (starts-with-exclamation relation-name)))
-                         `(RELATION ((name ,(if negation? ;Take out the exclamation point
-                                                (substring relation-name 1)
-                                                relation-name))
-                                     (sign ,(if negation?
-                                                "false"
-                                                "true")))
-                                    ,(xml-make-identifiers-list (rest relation)))))
-                       rule-list)))
+  (if (equal? 'true (first rule-list))
+      `(RELATIONS) 
+      `(RELATIONS ,@(map (λ(relation)
+                           (let* ((relation-name (symbol->string (first relation)))
+                                  (negation? (starts-with-exclamation relation-name)))
+                             `(RELATION ((name ,(if negation? ;Take out the exclamation point
+                                                    (substring relation-name 1)
+                                                    relation-name))
+                                         (sign ,(if negation?
+                                                    "false"
+                                                    "true")))
+                                        ,(xml-make-identifiers-list (rest relation)))))
+                         rule-list))))
 
 (define (starts-with-exclamation string)
   (if (equal? "!" (substring string 0 1))
       true
       false))
-
-
 
 (define (xml-make-decision-type decision-type)
   `(DECISION-TYPE ((type ,decision-type))))
@@ -501,10 +504,10 @@
 
 (define (xml-make-sort sort-name)
   `(SORT ((name ,sort-name))))
-    
+
 (define (xml-make-subsort parent child)
   `(SUBSORT ((parent ,parent) (child ,child))))
-    
+
 
 (define (xml-make-request-var rvname rvsort)
   `(REQUESTVAR ((name ,rvname) (sort ,rvsort))))
@@ -514,6 +517,18 @@
 
 (define (xml-make-constraint constraint-type list-of-relations)
   `(CONSTRAINT (,constraint-type ,(xml-make-relations-list list-of-relations))))
+
+(define (xml-make-rename id1 id2)
+  `(RENAME ((id1 ,id1) (id2 ,id2))))
+
+(define (xml-make-rename-command id1 id2)
+  (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
+
+(define (xml-make-show id)
+  `(SHOW ((id ,id))))
+
+(define (xml-make-show-command id)
+  (xml-make-command "SHOW" (list (xml-make-show id))))
 
 
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)
@@ -536,8 +551,8 @@
 
 (define (xml-make-relations-list relations-list)
   (xml-make-generic-list 'RELATIONS 'RELATION 'name relations-list))
-  
-  
+
+
 
 ;Takes a command type (string) and a list of children (x-exprs) and returns a formatted margrave-command as an XML string
 (define (xml-make-command command-type list-of-children)
@@ -596,7 +611,7 @@
          (when (response-is-error? create-reply-doc)
            (begin 
              (m (xml-make-command "DELETE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)))))
-             (m (xml-make-command "CREATE VOCABULARY " (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))))))
+             (m (xml-make-command "CREATE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))))))
        
        ; These sections must be in order.                     
        ; Types
@@ -756,7 +771,7 @@
         ;(printf "~a;~n" cmd)
         (display (string-append cmd ";") output-port)
         (flush-output output-port)        
-                
+        
         (let ([command-buffer (open-output-string)]
               [error-buffer (open-output-string)]) 
           (local ((define (clear-error)
