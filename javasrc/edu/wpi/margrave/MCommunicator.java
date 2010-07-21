@@ -108,7 +108,7 @@ public class MCommunicator
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
         	String type = node.getAttributes().item(0).getNodeValue();
-        	writeToLog("type: " + type);
+        	writeToLog("type: " + type + "\n");
 
         	Node n;
         	MExploreCondition exploreCondition;
@@ -150,6 +150,7 @@ public class MCommunicator
         						// TODO Auto-generated catch block
         						e.printStackTrace();
         					}
+        					writeToLog("HERE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
 
         				} 
@@ -202,14 +203,23 @@ public class MCommunicator
         			}	
         			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getIdentifierList(n);
-        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
+        				List<String> idl = getIdentifierList(n);
+        				theResponse = MEnvironment.setRCombine(pname, idl);
         			}	
         			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> spidList = getIdentifierList(n);
-        				theResponse = MEnvironment.setPolicyTarget(pname, spidList);
-        			}	
+        				List<String> idl = getIdentifierList(n);
+        				theResponse = MEnvironment.setPCombine(pname, idl);
+        			}
+        			else if (type.equalsIgnoreCase("RENAME")) {
+        				String id1 = getRenameFirstId(n);
+        				String id2 = getRenameSecondId(n);
+        				theResponse = MEnvironment.renameIDBCollection(id1, id2);
+        			}
+        			else if (type.equalsIgnoreCase("SHOW")) {
+        				String id = getShowId(n);
+        				theResponse = MEnvironment.showFirstModel(Integer.parseInt(id));
+        			}
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
         				Node childNode = n.getFirstChild();
@@ -247,7 +257,9 @@ public class MCommunicator
         						theResponse = MEnvironment.addRequestVariable(vname, varName, domainSort);
         					}
         					else if (addType == "OTHERVAR") {
-        						//MEnvironment.addOtherVariable(vname, varname, domainsort)
+        						String varName = getOtherVarName(n);
+        						String domainSort = getOtherVarSort(n);
+        						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
         						
@@ -255,31 +267,50 @@ public class MCommunicator
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
         					String pname = getPolicyName(n);
-        					String rname = "";
-        					String decname = "";
-        					List<String> cc = new LinkedList<String>();
-        					theResponse = MEnvironment.addRule(pname, rname, decname, cc);
+            				String rname= getRuleName(n);
+            				
+            				Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
+            				String decName = getDecisionType(ruleNode); 
+            				List<Node> relationNodes = getListOfRelations(ruleNode);
+            				List<String> relationsList = new LinkedList<String>();
+            				String relationName;
+            				String sign;
+            				String exclamationPoint = "";
+            				List<String> variables;
+            				String variableListString;
+            				
+            				for (Node relNode : relationNodes) {
+            					
+            					relationName = getRelationName(relNode);
+            					sign = getRelationSign(relNode);
+            					if (sign == "true") {
+            						exclamationPoint = "";
+            					}
+            					else {
+            						exclamationPoint = "!";
+            					}
+            					variables = getIdentifierList(relNode);
+            					variableListString = "";
+            					for (String v : variables) {
+            						//Avoid beginning space
+            						if (variableListString == "") {
+            							variableListString = v;
+            						}
+            						else {
+            							variableListString = variableListString + " " + v;
+            						}
+            					}
+            					relationsList.add(exclamationPoint + relationName + " " + variableListString);
+            				}
+            				theResponse = MEnvironment.addRule(pname, rname, decName, relationsList);
+            				
         				}
-        				//ADD RULE TO IDENTIFIER:pname IDENTIFIER:rname IDENTIFIER:decname CONJUNCTCHAIN:cc 
-        				//{: RESULT = MEnvironment.addRule(pname, rname, decname, cc); :}
-        				
-        				//ADD CHILD TO IDENTIFIER:parent IDENTIFIER:child
-        				//{: RESULT = MEnvironment.addChild(parent, child); :}
+        				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
+        					String parent = getParentName(n);
+        					String child = getChildName(n);
+        					theResponse = MEnvironment.addChild(parent, child);
+        				}
         			}
-        			 //<MARGRAVE-COMMAND type="ADD"><VOCAB-IDENTIFIER vname="ConferencePolicy" /><SORT name="Subject" /></MARGRAVE-COMMAND>
-
-        			else if (type.equalsIgnoreCase("ADD CHILD TO")) {
-        				String parent = getParentName(n);
-        				String child = getChildName(n);
-        				theResponse = MEnvironment.addChild(parent, child);
-        			}	
-        			else if (type.equalsIgnoreCase("ADD RULE TO")) {
-        				String pname = getPolicyName(n);
-        				String rname= getRuleName(n);
-        				String decName = getDecisionName(n);
-        				List<String> conjuctChain = getConjunctChainList(n);
-        				theResponse = MEnvironment.addRule(pname, rname, decName, conjuctChain);
-        			}	
         			else {
         				System.out.println("error!");
         			}
@@ -351,9 +382,50 @@ public class MCommunicator
         private static String getDecisionName(Node n) {
         	return getNodeAttribute(n, "DECISION", "name");
         }
+        private static String getDecisionType(Node n) {
+        	return getNodeAttribute(n, "DECISION-TYPE", "type");
+        }
         
+        //Relations in a rule
+        private static String getRelationName(Node n) {
+        	return getNodeAttribute(n, "RELATION", "name");
+        }
+        private static String getRelationSign(Node n) {
+        	return getNodeAttribute(n, "RELATION", "sign");
+        }
         
+        private static List<Node> getListOfRelations(Node n) {
+        	Node relationsNode = getChildNode(n, "RELATIONS");
+        	List<Node> relationNodes = new LinkedList<Node>();
+        	NodeList childNodes = relationsNode.getChildNodes();
+        	
+        	for (int i = 0; i < childNodes.getLength(); i++) {
+        		relationNodes.add(childNodes.item(i));
+        	}
+        	
+        	return relationNodes;
+        }
         
+        //Othervar
+        public static String getOtherVarName(Node n) {
+        	return getNodeAttribute(n, "OTHERVAR", "name");
+        }
+        public static String getOtherVarSort(Node n) {
+        	return getNodeAttribute(n, "OTHERVAR", "sort");
+        }
+        
+        //Rename
+        public static String getRenameFirstId(Node n) {
+        	return getNodeAttribute(n, "RENAME", "id1");
+        }
+        public static String getRenameSecondId(Node n) {
+        	return getNodeAttribute(n, "RENAME", "id2");
+        }
+        
+        //SHOW
+        public static String getShowId(Node n) {
+        	return getNodeAttribute(n, "SHOW", "id");
+        }
         
         //Returns the child node of n whose name is nodeName 
         private static Node getChildNode(Node n, String nodeName) {
@@ -369,10 +441,16 @@ public class MCommunicator
         	return null; //Didn't find it, error
         }
         
-        //Finds the child node of n whose name is nodeName, and returns the value of its attribute with attributeName
+        //Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
         private static String getNodeAttribute(Node n, String nodeName, String attributeName) {
-        	
-        	return getChildNode(n, nodeName).getAttributes().getNamedItem(attributeName).getNodeValue();
+        	Node node = null;
+        	if (n.getNodeName() == nodeName) {
+        		node = n;
+        	}
+        	else {
+        		node = getChildNode(n, nodeName);
+        	}
+        	return node.getAttributes().getNamedItem(attributeName).getNodeValue();
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
