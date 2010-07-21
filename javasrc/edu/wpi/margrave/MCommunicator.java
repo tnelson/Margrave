@@ -118,12 +118,14 @@ public class MCommunicator
         		n = node;
 
         		if (n.getNodeType() == Node.ELEMENT_NODE) {
-        			String name = n.getNodeName();
 
         			if (type.equalsIgnoreCase("EXPLORE")) {
+        				n = n.getFirstChild();
+        				String name = n.getNodeName();
         				if (name.equalsIgnoreCase("EXPLORE")) {
+        					writeToLog("IN EXPLORE" + "\n");
         					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); //Explore should only have one child - "Condition"
-
+        					writeToLog("Got past exploreHelper");
         					if (exploreCondition == null)
         						System.out.println("its null!");
         					MQuery result = null;
@@ -150,9 +152,8 @@ public class MCommunicator
         						// TODO Auto-generated catch block
         						e.printStackTrace();
         					}
-        					writeToLog("HERE");
+        					writeToLog("AT END OF EXPLORE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
-
         				} 
         			}
         			//Create Statement
@@ -427,6 +428,17 @@ public class MCommunicator
         	return getNodeAttribute(n, "SHOW", "id");
         }
         
+        //ATOMIC FORMULAS
+        public static String getAtomicFormulaYCollection(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "collection-name");
+        }
+        public static String getAtomicFormulaYRelation(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "relation-name");
+        }
+        public static String getAtomicFormulaNRelation(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
+        }
+        
         //Returns the child node of n whose name is nodeName 
         private static Node getChildNode(Node n, String nodeName) {
         	NodeList childNodes = n.getChildNodes();
@@ -475,8 +487,8 @@ public class MCommunicator
         	//for (int i = 0; i < childNodes.getLength(); i++) {
         	//    n = childNodes.item(i);
         	name = n.getNodeName();
-        	System.out.println("Name: " + name);
-        	System.out.println("First node's name: " + childNodes.item(0).getNodeName());
+        	writeToLog("Name: " + name + "\n");
+        	writeToLog("First node's name: " + childNodes.item(0).getNodeName() + "\n");
 
         	if (name.equalsIgnoreCase("AND")) {
         		return exploreHelper(childNodes.item(0)).and(
@@ -548,29 +560,27 @@ public class MCommunicator
         		return new MExploreCondition(f, rel, vl);
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) {
-        		String collectionName = n.getAttributes().item(0).getNodeValue();
-        		String relationName = n.getAttributes().item(1).getNodeValue();
+        		String collectionName = getAtomicFormulaYCollection(n);
+        		String relationName = getAtomicFormulaYRelation(n);
 
         		//Variables
-        		Node variableVector = n.getFirstChild();
-        		NodeList variableNodes = variableVector.getChildNodes();
-        		List<String> vl = new LinkedList<String>();
-
-        		for (int j = 0; j < variableNodes.getLength(); j++) {
-        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
-        		}
-
-
+        		List<String> vl = getIdentifierList(n);
+        		
         		Formula idbf = null;
         		try {
         			idbf = validateDBIdentifier(collectionName, relationName);
         		} catch (MSemanticException e) {
         			// TODO Auto-generated catch block
+        			writeToLog("Semantic Exception!");
         			e.printStackTrace();
         		}
-
+        		writeToLog("a" + "\n");
         		// Perform variable substitution
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
+        		if (idbf == null) {
+        			writeToLog("idbf is null!\n");
+        		}
+        		writeToLog("Collection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\n");
         		try {
         			idbf = performSubstitution(collectionName, pol, idbf, vl);
         		} catch (MSemanticException e) {
@@ -579,6 +589,7 @@ public class MCommunicator
         		}
 
         		// Assemble MExploreCondition object	
+        		writeToLog("Returning from atomic-formula-y");
         		return new MExploreCondition(idbf, pol, vl);
 
         	}

@@ -22,7 +22,7 @@
 ; updated to new EXPLORE query language 04/2010 tn
 
 ; TEMPORARY! Will be a nice module path soon.
-(require "./margrave.scm")
+(require "./margrave.scm" xml)
 ;(require (file "M:\\RktMargrave\\margrave.scm"))
 ;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
@@ -61,7 +61,10 @@
   
   
   ; Basic predicate conference policy: When can someone read a paper?
-  (mxout "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE><CONDITION><AND><ATOMIC-FORMULA-N relation-name=\"readpaper\"><VARIABLE-VECTOR><VARIABLE name=\"a\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N><ATOMIC-FORMULA-N relation-name=\"paper\"><VARIABLE-VECTOR><VARIABLE name=\"r\" /></VARIABLE-VECTOR></ATOMIC-FORMULA-N></AND></CONDITION></EXPLORE></MARGRAVE-COMMAND>")
+  (mxout (xml-make-explore-command 
+          (list (xml-make-atomic-formula-n "readpaper" (list "a"))
+                (xml-make-atomic-formula-n "paper" (list "r"))
+                (xml-make-atomic-formula-y "conf1" "permit" (list "s" "a" "r")))))
   ;(mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
   (mxout (xml-make-show-command "0")) ;"SHOW ONE 0"
   (mxout "SHOW NEXT 0")
