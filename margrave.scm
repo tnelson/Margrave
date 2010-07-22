@@ -62,7 +62,9 @@
          xml-make-show-command
          xml-make-atomic-formula-n
          xml-make-atomic-formula-y
-         xml-make-explore-command)
+         xml-make-explore-command
+         xml-make-is-possible-command
+         xml-make-debug)
 
 ;****************************************************************
 ;;Java Connection
@@ -527,12 +529,22 @@
 (define (xml-make-rename-command id1 id2)
   (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
-(define (xml-make-show id)
-  `(SHOW ((id ,id))))
+(define (xml-make-show type id)
+  `(SHOW ((type ,type) (id ,id))))
 
-(define (xml-make-show-command id)
-  (xml-make-command "SHOW" (list (xml-make-show id))))
+(define (xml-make-show-command type id)
+  (xml-make-command "SHOW" (list (xml-make-show type id))))
 
+(define (xml-make-is-possible id)
+  `(IS-POSSIBLE ((id ,id))))
+
+(define (xml-make-is-possible-command id)
+  (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible id))))
+
+(define (xml-make-debug debug-level)
+  `(DEBUG ((debug-level ,debug-level))))
+
+;Atomic Formulas
 (define (xml-make-atomic-formula-n relName list-of-identifiers)
   `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,(xml-make-identifiers-list list-of-identifiers)))  
 
@@ -541,17 +553,18 @@
 
 ;;EXPLORE
 ;Atomic Formulas must already be xexprs
-(define (xml-make-explore list-of-atomic-formulas)
+(define (xml-make-explore list-of-atomic-formulas list-of-modifiers)
   `(EXPLORE (CONDITION 
              ,(if (equal? 1 (length list-of-atomic-formulas))
                   (first list-of-atomic-formulas)
                   (foldl (λ(atomic-formula rest)
                            `(AND ,atomic-formula ,rest))
                          (first list-of-atomic-formulas)
-                         (rest list-of-atomic-formulas))))))
+                         (rest list-of-atomic-formulas))))
+            ,@list-of-modifiers))
 
-(define (xml-make-explore-command list-of-atomic-formulas)
-  (xml-make-command "EXPLORE" (list (xml-make-explore list-of-atomic-formulas))))
+(define (xml-make-explore-command list-of-atomic-formulas list-of-modifiers)
+  (xml-make-command "EXPLORE" (list (xml-make-explore list-of-atomic-formulas list-of-modifiers))))
 
 ;;LISTS
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)
@@ -820,7 +833,9 @@
                   [error-str (get-output-string error-buffer)])
               (when (> (string-length error-str) 0)
                 (printf "Additional ERROR information received:~n ~a~n" error-str))
-              (read-xml (open-input-string result))))))))  
+              (begin
+                (display result)
+                (read-xml (open-input-string result))))))))  )
 
 
 
