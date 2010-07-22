@@ -75,7 +75,7 @@
 ; Subclass of image-snip, so we can have text below the images.
 (define entity-snip%
   (class image-snip%
-    (init-field updatef [bitmap null] [icons empty] [name ""])
+    (init-field updatef [bitmap null] [icons empty] [name ""] [subed null])
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (if (not (empty? icons)) (begin
@@ -84,7 +84,7 @@
                                  (send dc set-smoothing 'unsmoothed)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)
       (send dc draw-text name (+ x 15) (+ y 90))
-      (draw-icons icons dc x y)
+      (draw-icons icons dc x y)   
       (updatef x y)      
       )
     
@@ -95,8 +95,16 @@
                     (draw-icons (rest icons) dc (+ 34 x) y))]))
     
     (define/override (on-event dc x y editorx editory event)
+      (print "ASDFSDF")
+      (if (not (null? subed))
+          (if (send (send this get-admin) get-snip-location subed)
+              (send (send this get-admin) remove subed)
+              (send (send this get-admin) insert subed x y)) (print "whatup"))
       (super on-event dc x y editorx editory event)
       )
+    
+    (define/public (set-subed! ed) (set! subed ed))
+    (define/public (get-subed) subed)
     
     (super-make-object bitmap)))
 

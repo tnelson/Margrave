@@ -29,7 +29,15 @@
 (define n2 (new pos-netgraph-node% [name "Web Server"] [x 300] [y 30]))
 (define n3 (new pos-netgraph-node% [name "Something"] [x 120] [y 240]))
 
-; Add them to the netgraph (using mutation)
+
+(define subng (new netgraph%))
+(define sn1 (new pos-netgraph-node% [name "Sub1"] [x 50] [y 150]))
+(define sn2 (new pos-netgraph-node% [name "Sub2"] [x 250] [y 50]))
+(send subng add-node! sn1)
+(send subng add-node! sn2)
+(send subng add-edge! sn1 sn2)
+(send n1 set-subgraph! subng)
+
 (send myng add-node! n1)
 (send myng add-node! n2)
 (send myng add-node! n3)
