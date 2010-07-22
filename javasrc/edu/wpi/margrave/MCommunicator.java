@@ -127,21 +127,53 @@ public class MCommunicator
         					
         					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
         					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
-        					writeToLog("Got past exploreHelper");
         					if (exploreCondition == null)
         						System.out.println("explore condition is null!");
         					MQuery result = null;
         					
-        					//DEbug
-        					Integer debugLevel = 0; //Default
+        					//Default Values                             
+                             //publ = ??
+        					
+        					LinkedList<MIDBCollection> under = new LinkedList<MIDBCollection>();
+        					List<String> publ = null;
+                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
+                            Boolean tupling = false;
+        					Integer debugLevel = 0;
+        					Integer ceilingLevel = 6; 
+        					
+        					Node underNode = getExploreUnderNode(n);
+        					Node publishNode = getExplorePublishNode(n);
+        					Node idbNode = getExploreIdbNode(n);
+        					Node tuplingNode = getExploreTuplingNode(n);
         					Node debugNode = getExploreDebugNode(n);
+        					Node ceilingNode = getExploreCeilingNode(n);
+        					
+        					
+        					if (underNode != null) { 
+        						//under = ?? Wasn't sure about the difference between List<String> and List<MIDBCollection>
+        					}
+        					if (publishNode != null) {
+        						publ = getExplorePublishVars(publishNode);
+        					}
+        					if (idbNode != null) {
+        						//idbout = ??
+        					}
+        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
+        						tupling = true;
+        					}
         					if (debugNode != null) {
         						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
         					}
+        					if (ceilingNode != null) {
+        						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
+        					}
+        					
+        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
+        					
         					try {
         						result = MQuery.createFromExplore(
-        								exploreCondition.addSeenIDBCollections(new LinkedList<MIDBCollection>()), 
-        								null, new HashMap<String, Set<List<String>>>(), false, debugLevel, 0);
+        								exploreCondition.addSeenIDBCollections(under), 
+        								publ, idbOut, tupling, debugLevel, ceilingLevel);
         					} catch (MGEUnknownIdentifier e) {
         						// TODO Auto-generated catch block
         						e.printStackTrace();
@@ -248,10 +280,32 @@ public class MCommunicator
         				}
         				else if (showType == "POPULATED") {
         					List<String> rlist = getIdentifierList(n);
-        					//theResponse = MEnvironment.showPopulated(id, rlist);
+        					Node forCasesNode = getForCasesNode(n);
+        					if (forCasesNode != null) {
+        						//theResponse = MEnvironment.showPopulated(id, rlist);
+        					}
+        					else {
+        						//theResponse = MEnvironment.showPopulated(id, rlist, clist); 
+        					}
+        				}
+        				else if (showType == "UNPOPULATED") {
+        					List<String> rlist = getIdentifierList(n);
+        					Node forCasesNode = getForCasesNode(n);
+        					if (forCasesNode != null) {
+        						//theResponse = MEnvironment.showUnpopulated(id, rlist);
+        					}
+        					else {
+
+        						//theResponse = MEnvironment.showUnpopulated(id, rlist, clist);
+        					}
+        					
         				}
 
 
+        			}
+        			
+        			else if (type.equalsIgnoreCase("COMPARE")) {
+        				
         			}
         			
         			//Add Statement
@@ -259,7 +313,7 @@ public class MCommunicator
         				Node childNode = n.getFirstChild();
         				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER")) {
         					String vname = getVocabName(n);
-        					Node secondChildNode = childNode.getNextSibling();
+        					Node secondChildNode = childNode.getNextSibling(); //Probably shouldn't be hardcoded in
         					String addType = secondChildNode.getNodeName();
         					writeToLog("addType: " + addType +"\n");
         					if (addType == "SUBSORT") {
@@ -296,7 +350,49 @@ public class MCommunicator
         						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
-
+        						Node constraintNode = secondChildNode; //Just for clarity
+        						
+        						String constraintType = getConstraintType(constraintNode);
+        						List<String> relations = getRelationsList(constraintNode);
+        						
+        						String firstRelation = relations.get(0);
+        						
+        						if (constraintType == "DISJOINT") {
+        							theResponse = MEnvironment.addConstraintDisjoint(vname, firstRelation, relations.get(1));
+        						}
+        						else if (constraintType == "DISJOINT-ALL") {
+        							theResponse = MEnvironment.addConstraintDisjointAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "SINGLETON") {
+        							theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
+        						}
+        						else if (constraintType == "SINGLETON-ALL") {
+        							theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "ATMOSTONE") {
+        							theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
+        						}
+        						else if (constraintType == "NONEMPTY") {
+        							theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
+        						}
+        						else if (constraintType == "NONEMPTY-ALL") {
+        							theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "ABSTRACT") {
+        							theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
+        						}
+        						else if (constraintType == "ABSTRACT-ALL") {
+        							theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "TOTAL-FUNCTION") {
+        							theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
+        						}
+        						else if (constraintType == "PARTIAL-FUNCTION") {
+        							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
+        						}
+        						else if (constraintType == "SUBSET") {
+        							theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));
+        						}
         					}
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
@@ -305,7 +401,7 @@ public class MCommunicator
 
         					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
         					String decName = getDecisionType(ruleNode); 
-        					List<Node> relationNodes = getListOfRelations(ruleNode);
+        					List<Node> relationNodes = getListOfRelationNodes(ruleNode);
         					List<String> relationsList = new LinkedList<String>();
         					String relationName;
         					String sign;
@@ -393,18 +489,6 @@ public class MCommunicator
         private static String getRequestSort(Node n) {
         	return getNodeAttribute(n, "REQUESTVAR", "sort");
         }
-		
-        private static List<String> getRelationsList(Node n) {
-        	return getListElements(n, "RELATIONS", "name");
-        }
-        
-        private static List<String> getConjunctChainList(Node n) {
-			return getListElements(n, "CONJUCTCHAIN", "name");
-		}
-        
-        private static List<String> getIdentifierList(Node n) {
-        	return getListElements(n, "IDENTIFIERS", "name");
-        }
         
         private static String getParentName(Node n) {
         	return getNodeAttribute(n, "PARENT-IDENTIFIER", "name");
@@ -424,6 +508,10 @@ public class MCommunicator
         	return getNodeAttribute(n, "DECISION-TYPE", "type");
         }
         
+        private static String getConstraintType(Node n) {
+        	return getNodeAttribute(n, "CONSTRAINT", "type");
+        }
+
         //Relations in a rule
         private static String getRelationName(Node n) {
         	return getNodeAttribute(n, "RELATION", "name");
@@ -431,18 +519,17 @@ public class MCommunicator
         private static String getRelationSign(Node n) {
         	return getNodeAttribute(n, "RELATION", "sign");
         }
-        
-        private static List<Node> getListOfRelations(Node n) {
+        private static List<Node> getListOfRelationNodes(Node n) {
         	Node relationsNode = getChildNode(n, "RELATIONS");
         	List<Node> relationNodes = new LinkedList<Node>();
         	NodeList childNodes = relationsNode.getChildNodes();
-        	
+
         	for (int i = 0; i < childNodes.getLength(); i++) {
         		relationNodes.add(childNodes.item(i));
         	}
-        	
+
         	return relationNodes;
-        }
+        } 
         
         //Othervar
         public static String getOtherVarName(Node n) {
@@ -471,6 +558,9 @@ public class MCommunicator
         public static String getShowId(Node n) {
         	return getNodeAttribute(n, "SHOW", "id");
         }
+        public static Node getForCasesNode(Node n) {
+        	return getChildNode(n, "FORCASES");
+        }
         
         //ATOMIC FORMULAS
         public static String getAtomicFormulaYCollection(Node n) {
@@ -483,12 +573,48 @@ public class MCommunicator
         	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
         }
         
-        public static Node getExploreDebugNode(Node n) {
-        	return getChildNode(n, "DEBUG");
-        }
         
+        
+        public static Node getExploreUnderNode(Node n) {
+        	return getChildNode(n, "UNDER");
+        }
+		public static Node getExplorePublishNode(Node n) {
+			return getChildNode(n, "PUBLISH");
+		}
+		public static Node getExploreIdbNode(Node n) {
+			return getChildNode(n, "IDB");
+		}
+		public static Node getExploreTuplingNode(Node n) {
+			return getChildNode(n, "TUPLING");
+		}
+		public static Node getExploreDebugNode(Node n) {
+			return getChildNode(n, "DEBUG");
+        }
+		public static Node getExploreCeilingNode(Node n) {
+			return getChildNode(n, "CEILING");
+		}
+        
+		public static List<String> getExplorePublishVars(Node n) {
+			return getIdentifierList(n);
+		}
         public static String getDebugLevel(Node n) {
         	return getNodeAttribute(n, "DEBUG", "debug-level");
+        }
+        public static String getCeilingLevel(Node n) {
+        	return getNodeAttribute(n, "CEILING", "ceiling-level");
+        }
+        
+        //LISTS
+        private static List<String> getRelationsList(Node n) {
+        	return getListElements(n, "RELATIONS", "name");
+        }
+        
+        private static List<String> getConjunctChainList(Node n) {
+			return getListElements(n, "CONJUCTCHAIN", "name");
+		}
+        
+        private static List<String> getIdentifierList(Node n) {
+        	return getListElements(n, "IDENTIFIERS", "name");
         }
         
         //Returns the child node of n whose name is nodeName 

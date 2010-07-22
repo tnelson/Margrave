@@ -64,7 +64,10 @@
          xml-make-atomic-formula-y
          xml-make-explore-command
          xml-make-is-possible-command
-         xml-make-debug)
+         xml-make-debug
+         xml-make-publish
+         xml-make-tupling
+         xml-make-ceiling)
 
 ;****************************************************************
 ;;Java Connection
@@ -424,19 +427,19 @@
   
   (cond 
     ; typename is a symbol at this point, not a string    
-    ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'DISJOINT (list (car listrels) (car (cdr listrels)))))))
-    ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'DISJOINT-ALL (list (car listrels) )))))
-    ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'NONEMPTY (list (car listrels) )))))
-    ((eqv? typename 'nonempty-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'NONEMPTY-ALL (list (car listrels) )))))
-    ((eqv? typename 'singleton) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SINGLETON (list (car listrels) )))))
-    ((eqv? typename 'singleton-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SINGLETON-ALL (list (car listrels) )))))
-    ((eqv? typename 'atmostone) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ATMOSTONE (list (car listrels) )))))
-    ((eqv? typename 'atmostone-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ATMOSTONE-ALL (list (car listrels) )))))
-    ((eqv? typename 'partial-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'PARTIALFUNCTION (list (car listrels) )))))
-    ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'TOTALFUNCTION (list (car listrels) )))))
-    ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ABSTRACT (list (car listrels) )))))
-    ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'ABSTRACT-ALL (list (car listrels) )))))
-    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint 'SUBSET (list (car listrels))))))
+    ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT" (list (car listrels) (car (cdr listrels)))))))
+    ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT-ALL" (list (car listrels) )))))
+    ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY" (list (car listrels) )))))
+    ((eqv? typename 'nonempty-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY-ALL" (list (car listrels) )))))
+    ((eqv? typename 'singleton) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON" (list (car listrels) )))))
+    ((eqv? typename 'singleton-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON-ALL" (list (car listrels) )))))
+    ((eqv? typename 'atmostone) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE" (list (car listrels) )))))
+    ((eqv? typename 'atmostone-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE-ALL" (list (car listrels) )))))
+    ((eqv? typename 'partial-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "PARTIALFUNCTION" (list (car listrels) )))))
+    ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "TOTALFUNCTION" (list (car listrels) )))))
+    ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT" (list (car listrels) )))))
+    ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT-ALL" (list (car listrels) )))))
+    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SUBSET" (list (car listrels) (car (cdr listrels)))))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
 ; May be a list, may not be a list
@@ -521,7 +524,7 @@
   `(OTHERVAR ((name ,ovname) (sort ,ovsort))))
 
 (define (xml-make-constraint constraint-type list-of-relations)
-  `(CONSTRAINT (,constraint-type ,(xml-make-relations-list list-of-relations))))
+  `(CONSTRAINT ((type ,constraint-type)) ,(xml-make-relations-list list-of-relations)))
 
 (define (xml-make-rename id1 id2)
   `(RENAME ((id1 ,id1) (id2 ,id2))))
@@ -541,8 +544,17 @@
 (define (xml-make-is-possible-command id)
   (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible id))))
 
+(define (xml-make-publish list-of-identifiers)
+  `(PUBLISH (xml-make-identifiers-list list-of-identifiers)))
+
+(define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
+  `(TUPLING ((value true)))) ;Value isn't actually used right now
+
 (define (xml-make-debug debug-level)
   `(DEBUG ((debug-level ,debug-level))))
+
+(define (xml-make-ceiling ceiling-level)
+  `(CEILING ((ceiling-level ,ceiling-level))))
 
 ;Atomic Formulas
 (define (xml-make-atomic-formula-n relName list-of-identifiers)

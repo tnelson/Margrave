@@ -62,7 +62,7 @@
   ;DEBUGGING
   (mxout (xml-make-explore-command
           (list (xml-make-atomic-formula-y "Phone1" "TollFree" (list "ncaller" "nreceive")))
-         empty))
+         (list (xml-make-ceiling "5"))))
   (mxout (xml-make-is-possible-command "0"))
   
   ; Basic predicate conference policy: When can someone read a paper?
