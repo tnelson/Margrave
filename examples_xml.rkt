@@ -59,14 +59,21 @@
   ;; General examples
   ;; ****
   
+  ;DEBUGGING
+  (mxout (xml-make-explore-command
+          (list (xml-make-atomic-formula-y "Phone1" "TollFree" (list "ncaller" "nreceive")))
+         empty))
+  (mxout (xml-make-is-possible-command "0"))
   
   ; Basic predicate conference policy: When can someone read a paper?
   (mxout (xml-make-explore-command 
           (list (xml-make-atomic-formula-n "readpaper" (list "a"))
                 (xml-make-atomic-formula-n "paper" (list "r"))
-                (xml-make-atomic-formula-y "conf1" "permit" (list "s" "a" "r")))))
+                (xml-make-atomic-formula-y "conf1" "permit" (list "s" "a" "r")))
+          empty #;(list (xml-make-debug "3"))))
   ;(mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
-  (mxout (xml-make-show-command "0")) ;"SHOW ONE 0"
+  (mxout (xml-make-is-possible-command "0"))
+  (mxout (xml-make-show-command "ONE" "0")) ;"SHOW ONE 0"
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")

@@ -124,15 +124,24 @@ public class MCommunicator
         				String name = n.getNodeName();
         				if (name.equalsIgnoreCase("EXPLORE")) {
         					writeToLog("IN EXPLORE" + "\n");
-        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); //Explore should only have one child - "Condition"
+        					
+        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
+        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
         					writeToLog("Got past exploreHelper");
         					if (exploreCondition == null)
-        						System.out.println("its null!");
+        						System.out.println("explore condition is null!");
         					MQuery result = null;
+        					
+        					//DEbug
+        					Integer debugLevel = 0; //Default
+        					Node debugNode = getExploreDebugNode(n);
+        					if (debugNode != null) {
+        						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
+        					}
         					try {
         						result = MQuery.createFromExplore(
         								exploreCondition.addSeenIDBCollections(new LinkedList<MIDBCollection>()), 
-        								null, new HashMap<String, Set<List<String>>>(), false, 0, 0);
+        								null, new HashMap<String, Set<List<String>>>(), false, debugLevel, 0);
         					} catch (MGEUnknownIdentifier e) {
         						// TODO Auto-generated catch block
         						e.printStackTrace();
@@ -217,10 +226,34 @@ public class MCommunicator
         				String id2 = getRenameSecondId(n);
         				theResponse = MEnvironment.renameIDBCollection(id1, id2);
         			}
-        			else if (type.equalsIgnoreCase("SHOW")) {
-        				String id = getShowId(n);
-        				theResponse = MEnvironment.showFirstModel(Integer.parseInt(id));
+        			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
+        				Integer id = Integer.parseInt(getIsPossibleId(n));
+        				theResponse = MEnvironment.isPoss(id);
+        				writeToLog("Returning from IS-POSSIBLE");
         			}
+        			else if (type.equalsIgnoreCase("SHOW")) {
+        				String showType = getShowType(n);
+        				Integer id = Integer.parseInt(getShowId(n));
+        				if (showType == "ONE") {
+        					theResponse = MEnvironment.showFirstModel(id);
+        				}
+        				else if (showType == "NEXT") {
+        					theResponse = MEnvironment.showNextModel(id);
+        				}
+        				else if (showType == "NEXTCOLLAPSE") {
+        					theResponse = MEnvironment.showNextCollapse(id);
+        				}
+        				else if (showType == "CEILING") {
+        					theResponse = MEnvironment.showCeiling(id);
+        				}
+        				else if (showType == "POPULATED") {
+        					List<String> rlist = getIdentifierList(n);
+        					//theResponse = MEnvironment.showPopulated(id, rlist);
+        				}
+
+
+        			}
+        			
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
         				Node childNode = n.getFirstChild();
@@ -263,20 +296,20 @@ public class MCommunicator
         						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
-        						
+
         					}
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
         					String pname = getPolicyName(n);
-            				String rname= getRuleName(n);
-            				
-            				Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
-            				String decName = getDecisionType(ruleNode); 
-            				List<Node> relationNodes = getListOfRelations(ruleNode);
-            				List<String> relationsList = new LinkedList<String>();
-            				String relationName;
-            				String sign;
-            				String exclamationPoint = "";
+        					String rname= getRuleName(n);
+
+        					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
+        					String decName = getDecisionType(ruleNode); 
+        					List<Node> relationNodes = getListOfRelations(ruleNode);
+        					List<String> relationsList = new LinkedList<String>();
+        					String relationName;
+        					String sign;
+        					String exclamationPoint = "";
             				List<String> variables;
             				String variableListString;
             				
@@ -284,10 +317,13 @@ public class MCommunicator
             					
             					relationName = getRelationName(relNode);
             					sign = getRelationSign(relNode);
-            					if (sign == "true") {
+            					writeToLog("\n\n\n*******************************************\nSIGN IS: " + sign + "\n*****************");
+            					if (sign.equalsIgnoreCase("true")) {
+            						writeToLog("No exclamation point");
             						exclamationPoint = "";
             					}
             					else {
+            						writeToLog("Added exclamation point");
             						exclamationPoint = "!";
             					}
             					variables = getIdentifierList(relNode);
@@ -303,6 +339,7 @@ public class MCommunicator
             					}
             					relationsList.add(exclamationPoint + relationName + " " + variableListString);
             				}
+            				writeToLog("\nRELATIONSLIST: " + relationsList.toString() + "\n");
             				theResponse = MEnvironment.addRule(pname, rname, decName, relationsList);
             				
         				}
@@ -423,7 +460,14 @@ public class MCommunicator
         	return getNodeAttribute(n, "RENAME", "id2");
         }
         
+        public static String getIsPossibleId(Node n) {
+        	return getNodeAttribute(n, "IS-POSSIBLE", "id");
+        }
+        
         //SHOW
+        public static String getShowType(Node n) {
+        	return getNodeAttribute(n, "SHOW", "type");
+        }
         public static String getShowId(Node n) {
         	return getNodeAttribute(n, "SHOW", "id");
         }
@@ -439,7 +483,16 @@ public class MCommunicator
         	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
         }
         
+        public static Node getExploreDebugNode(Node n) {
+        	return getChildNode(n, "DEBUG");
+        }
+        
+        public static String getDebugLevel(Node n) {
+        	return getNodeAttribute(n, "DEBUG", "debug-level");
+        }
+        
         //Returns the child node of n whose name is nodeName 
+        //If no child, returns null
         private static Node getChildNode(Node n, String nodeName) {
         	NodeList childNodes = n.getChildNodes();
         	
@@ -462,7 +515,10 @@ public class MCommunicator
         	else {
         		node = getChildNode(n, nodeName);
         	}
-        	return node.getAttributes().getNamedItem(attributeName).getNodeValue();
+        	if (node == null) {
+        		return null;
+        	}
+        	return node.getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase();
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
@@ -472,7 +528,7 @@ public class MCommunicator
         	
         	NodeList childNodes = listNode.getChildNodes();
         	for (int i = 0; i < childNodes.getLength(); i++) {
-        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue());
+        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase());
         	}
         	return attributeValues;
         }
@@ -507,15 +563,9 @@ public class MCommunicator
         		return exploreHelper(n.getFirstChild()).not();
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
-        		String relationName = n.getAttributes().item(0).getNodeValue();
-
-        		Node variableVector = n.getFirstChild();
-        		NodeList variableNodes = variableVector.getChildNodes();
-        		List<String> vl = new LinkedList<String>();
-
-        		for (int j = 0; j < variableNodes.getLength(); j++) {
-        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
-        		}
+        		String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
+        		
+        		List<String> vl = getIdentifierList(n);
 
         		// Could be a view or an EDB. If EDB, must
         		// remember the Relation we created so that we can check
@@ -525,6 +575,7 @@ public class MCommunicator
 
         		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
+        		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n");
         		if (pol != null) {
         			Formula idbf = MEnvironment.getOnlyIDB(relationName);
         			// Perform variable substitution
@@ -535,7 +586,7 @@ public class MCommunicator
         				e.printStackTrace();
         			}
 
-
+        			
         			// Assemble MExploreCondition object
         			return new MExploreCondition(idbf, pol, vl);
         		}
@@ -574,13 +625,14 @@ public class MCommunicator
         			writeToLog("Semantic Exception!");
         			e.printStackTrace();
         		}
-        		writeToLog("a" + "\n");
+        		
         		// Perform variable substitution
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
+        		
+        		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n");
         		if (idbf == null) {
         			writeToLog("idbf is null!\n");
         		}
-        		writeToLog("Collection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\n");
         		try {
         			idbf = performSubstitution(collectionName, pol, idbf, vl);
         		} catch (MSemanticException e) {
