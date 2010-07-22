@@ -1,0 +1,329 @@
+
+
+/* Preliminaries to set up and use the scanner.  */
+init with {: /* No longer an init method? */           :};
+scan with {: return getNextToken(); :};
+
+/* Terminals (tokens returned by the scanner). */
+terminal			EXPLORE, AND, OR, NOT, COLON, IMPLIES, IFF, LPAREN, RPAREN, EQUALS, 
+                    SHOW, ALL, ONE, IS, POSSIBLEQMARK, PUBLISH, COMMA, UNDER, 
+                    TUPLING, DEBUG, CEILING, RENAME, INFO, COLLAPSE, COMPARE,
+                    IDBOUTPUT, POPULATED, UNPOPULATED, FOR, CASES;
+                    
+/* Terminals added by TN on 06/29/10 for DrRacket conversion */
+terminal ADD, SUBSORT, SORT, CONSTRAINT, DISJOINT, NONEMPTY, SINGLETON, ATMOSTONE,
+		PARTIAL, FUNCTION, TOTAL, ABSTRACT, SUBSET, SET, TARGET, PREDICATE,
+		RULE, TO, CREATE, VOCABULARY, DECISION, REQUESTVAR, OTHERVAR, POLICY,
+		LEAF, RCOMBINE, PCOMBINE, PREPARE, LOAD, XACML, SQS, GET, COUNT, SIZE,
+		RULES, HIGHER, PRIORITY, THAN, QUALIFIED, NEXT, GUARANTEEDQMARK, IN,
+		AT, CHILD, REQUEST, VECTOR, QUIT, DELETE; 
+
+
+// WITH, IDBS, SILENT       
+
+
+terminal        String		IDENTIFIER;
+terminal        Integer		NATURAL;
+
+/* Non-terminals */
+non terminal  	MQuery				QUERY;
+non terminal    MExploreCondition 	CONDITION;
+//non terminal    MQueryOutputSpec	OUTMODIFIER;
+non terminal    List<String>		PUBLISHCLAUSE;
+non terminal	List<String>		IDLIST;
+non terminal    List<String>		SPIDLIST;
+non terminal	List<String>		CONJUNCTCHAIN;
+non terminal	List<String>		UNDERSTMT;
+non terminal						EMPTY;
+
+/* Convoluted type, but we want to allow multiple var vectors per relation name */ 
+
+non terminal    Map<String, Set<List<String>>>			DBOPTINDEXLIST;
+non terminal	Map<String, Set<List<String>>>			IDBCLAUSE;
+non terminal	Integer				DEBUGSWITCH;
+non terminal	Boolean				TUPLINGSWITCH;
+non terminal	Integer				CEILINGSWITCH;
+
+/* Statements return an XML document */
+
+non terminal	Document			RENAMESTMT;
+non terminal	Document			INFOSTMT;		
+non terminal	Document			COMPARESTMT;
+
+/* New data-manipulation commands */
+non terminal	Document			CREATESTMT; // includes load
+non terminal	Document			SETSTMT;    // includes prepare
+non terminal	Document			ADDSTMT;
+non terminal	Document			RESULTSSTMT; // show next, get next, count...
+non terminal 	Document			GETSTMT; // non-model-related
+
+/* May be an MQuery, may be a Document... */
+non terminal 	Object				MARGRAVECOMMAND;	
+
+/* Lower in this list == higher precedence */
+precedence left IFF;
+precedence left IMPLIES;
+precedence left OR;
+precedence left AND;
+precedence nonassoc NOT;
+
+/* highest precedence + left associative: comma.
+   prevents a conflict in the (x comma x) rule(s). 
+*/
+
+precedence left COMMA;
+
+/* The grammar */
+
+start with MARGRAVECOMMAND;	
+
+MARGRAVECOMMAND ::=
+		QUERY:q
+		{: RESULT = q; :}
+		|
+		INFOSTMT:i
+		{: RESULT = i; :}
+		|
+		COMPARESTMT:c
+		{: RESULT = c; :}
+		|
+		CREATESTMT:c
+		{: RESULT = c; :}
+		|
+		ADDSTMT:a
+		{: RESULT = a; :}
+		|
+		SETSTMT:s
+		{: RESULT = s; :}
+		|
+		GETSTMT:g
+		{: RESULT = g; :}
+		|
+		RESULTSSTMT:r
+		{: RESULT = r; :}
+		|
+		QUIT
+		{: RESULT = MEnvironment.quitMargrave(); :}
+		;
+
+		
+
+/* A QUERY is an EXPLORE statement and condition, with optional restriction and output modifier */
+		
+		// removed OUTMODIFIER:outmod after publish
+
+QUERY	::=
+		
+		EXPLORE CONDITION:mpc UNDERSTMT:u PUBLISHCLAUSE:publ  IDBCLAUSE:idbout  
+		TUPLINGSWITCH:tupling DEBUGSWITCH:debuglevel CEILINGSWITCH:sizeceiling 
+		{: RESULT = MQuery.createFromExplore(
+											 mpc.addSeenIDBCollections(parser.namesToIDBCollections(u)), 
+		                                     publ, 
+		                                     //outmod,
+		                                     idbout,
+		                                     tupling,
+		                                     debuglevel,
+		                                     sizeceiling); 
+		                                     
+		                                     :}				
+		;
+
+
+
+
+INFOSTMT ::=
+		INFO IDENTIFIER:id
+		{: RESULT = MEnvironment.printInfo(id); :}
+		|
+		INFO
+		{: RESULT = MEnvironment.printSystemInfo(); :}
+		;
+
+
+COMPARESTMT ::=
+		COMPARE IDENTIFIER:pol1 IDENTIFIER:pol2
+		// OUTMODIFIER:outmod 
+		IDBCLAUSE:idbout 
+		TUPLINGSWITCH:tupling DEBUGSWITCH:debuglevel CEILINGSWITCH:sizeceiling
+		{: RESULT = MEnvironment.doCompare(pol1, pol2, 
+				//outmod, 
+				idbout, tupling, debuglevel, sizeceiling);  :}
+		;
+
+
+RESULTSSTMT ::=
+		GET NEXT NATURAL:id
+		{: RESULT = MEnvironment.getNextModel(id); :}
+		|
+		GET ONE NATURAL:id
+		{: RESULT = MEnvironment.getFirstModel(id); :}
+		|
+		COUNT NATURAL:id
+		{: RESULT = MEnvironment.countModels(id); :}
+		|
+		COUNT NATURAL:id AT SIZE NATURAL:n
+		{: RESULT = MEnvironment.countModels(id, n); :}
+		|
+		IS GUARANTEEDQMARK NATURAL:id
+		{: RESULT = MEnvironment.isGuar(id); :}
+		|
+		SHOW POPULATED NATURAL:id DBOPTINDEXLIST:rlist
+		{: RESULT = MEnvironment.showPopulated(id, rlist); :}	
+		|		
+		SHOW UNPOPULATED NATURAL:id  DBOPTINDEXLIST:rlist
+		{: RESULT = MEnvironment.showUnpopulated(id, rlist); :}	
+		|
+		SHOW POPULATED NATURAL:id DBOPTINDEXLIST:rlist FOR CASES DBOPTINDEXLIST:clist
+		{: RESULT = MEnvironment.showPopulated(id, rlist, clist); :}	
+		|		
+		SHOW UNPOPULATED NATURAL:id DBOPTINDEXLIST:rlist FOR CASES DBOPTINDEXLIST:clist
+		{: RESULT = MEnvironment.showUnpopulated(id, rlist, clist); :}	
+		;
+		
+		
+		
+		
+CREATESTMT ::= 
+		LOAD XACML POLICY IDENTIFIER:fname IDENTIFIER:sfname 
+		{: RESULT = MEnvironment.loadXACML(fname, sfname); :}
+		|
+		LOAD SQS POLICY IDENTIFIER:fname 
+		{: RESULT = MEnvironment.loadSQS(fname); :}
+		;
+		
+
+GETSTMT ::=
+		GET DECISION FOR IDENTIFIER:pname IDENTIFIER:rname
+		{: RESULT = MEnvironment.getDecisionFor(pname, rname); :}
+		|
+		GET HIGHER PRIORITY THAN IDENTIFIER:pname IDENTIFIER:rname
+		{: RESULT = MEnvironment.getHigherPriorityThan(pname, rname); :}
+		|
+		GET RULES IN IDENTIFIER:pname 
+		{: RESULT = MEnvironment.getRulesIn(pname, false); :}
+		|
+		GET QUALIFIED RULES IN IDENTIFIER:pname
+		{: RESULT = MEnvironment.getRulesIn(pname, true); :}
+		|
+		GET REQUEST VECTOR IDENTIFIER:vname
+		{: RESULT = MEnvironment.getRequestVector(vname); :}
+		;
+
+
+		
+		
+		
+/* various modifiers */
+
+/* The UNDER clause allows additional policies to add their vocabs, even if they are not mentioned.
+   This clause is especially useful in queries with only EDBs. */
+
+UNDERSTMT ::= 		
+		UNDER IDLIST:v
+		{: RESULT = v; :}
+		|
+		EMPTY
+		{: RESULT = new LinkedList<String>(); :}
+		;
+		
+
+/* either empty (no idb output) or IDBOUTPUT followed by a list of rel(varlist) */
+		
+IDBCLAUSE ::=
+		IDBOUTPUT DBOPTINDEXLIST:iolist
+		{: RESULT = iolist; :} 
+		|
+	
+		/* Wanted an ALL, but it would only work without tupling. */ 
+		
+		EMPTY
+		{: RESULT = new HashMap<String, Set<List<String>>>(); :}				
+		; 
+
+
+*/
+	/* Need to allow for IDB names that are both x:y and just y. */
+	/* Grammar would be more clear with an IDBID non-terminal */
+				
+DBOPTINDEXLIST ::=
+			
+		/* pred(x, ...) */ 
+		IDENTIFIER:ident LPAREN IDLIST:vl RPAREN
+		{: RESULT = new HashMap<String, Set<List<String>>>(); RESULT.put(ident, new HashSet<List<String>>());RESULT.get(ident).add(vl); :}
+		|
+				
+		/* pred */		
+		IDENTIFIER:ident
+		{: RESULT = new HashMap<String, Set<List<String>>>(); RESULT.put(ident, new HashSet<List<String>>()); :}		
+		|
+				
+		/* collection:pred(x, ...) */		
+		IDENTIFIER:ident1 COLON IDENTIFIER:ident2 LPAREN IDLIST:vl RPAREN
+		{: RESULT = new HashMap<String, Set<List<String>>>(); RESULT.put(ident1+":"+ident2, new HashSet<List<String>>());RESULT.get(ident1+":"+ident2).add(vl); :}
+		|
+				
+		/* collection:pred */		
+		IDENTIFIER:ident1 COLON IDENTIFIER:ident2 
+		{: RESULT = new HashMap<String, Set<List<String>>>(); RESULT.put(ident1+":"+ident2, new HashSet<List<String>>()); :}	
+		|
+				
+		/* inductive def */
+		DBOPTINDEXLIST:lst1 COMMA DBOPTINDEXLIST:lst2
+		{: RESULT = lst1; parser.mergeIDBOutList2Into1(lst1, lst2); :}
+		;		
+	
+
+		
+/* Comma-separated sequence of identifiers */		
+
+IDLIST		::=
+		IDENTIFIER:v
+		{: RESULT = parser.baseIdList(v); :}
+		|
+		IDLIST:vl COMMA IDENTIFIER:v 
+		{: RESULT = parser.restFirstIdList(vl, v); :}
+		;
+
+/* SPACE separated sequence of identifiers */
+SPIDLIST	::=
+			IDENTIFIER:v
+			{: RESULT = new ArrayList<String>(); RESULT.add(v); :}
+			|
+			SPIDLIST:vl IDENTIFIER:v 
+			{: RESULT = vl; vl.add(v); :}
+			;
+		
+
+/* Condition */
+
+CONDITION	::=
+
+		/* policyname:idbname */
+
+		IDENTIFIER:objn COLON IDENTIFIER:dbn LPAREN IDLIST:vl RPAREN
+		{: RESULT = parser.doIdIdV(CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-5), CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-3), vl); :}
+		|	
+		
+		/* edbname(x) or viewname(x)
+		  We want to have context (row, col...) in case this is a bad IDB. 
+		  So instead of passing ident, we pass the Symbol that contains ident.
+		  
+		  (Obtained the stack element index from running CUP and looking.)
+		*/
+		
+		IDENTIFIER:ident LPAREN IDLIST:vl RPAREN
+		{: RESULT = parser.doIdV(CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-3), vl); :}
+		|
+		
+		
+		
+		
+		IDENTIFIER:v1 EQUALS IDENTIFIER:v2
+		{: RESULT = parser.doEqualsVarVar(v1, v2); :}
+		|
+		
+		
+	
+		
+
+
