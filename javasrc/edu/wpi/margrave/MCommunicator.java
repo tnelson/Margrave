@@ -118,19 +118,30 @@ public class MCommunicator
         		n = node;
 
         		if (n.getNodeType() == Node.ELEMENT_NODE) {
-        			String name = n.getNodeName();
 
         			if (type.equalsIgnoreCase("EXPLORE")) {
+        				n = n.getFirstChild();
+        				String name = n.getNodeName();
         				if (name.equalsIgnoreCase("EXPLORE")) {
-        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); //Explore should only have one child - "Condition"
-
+        					writeToLog("IN EXPLORE" + "\n");
+        					
+        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
+        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
+        					writeToLog("Got past exploreHelper");
         					if (exploreCondition == null)
-        						System.out.println("its null!");
+        						System.out.println("explore condition is null!");
         					MQuery result = null;
+        					
+        					//DEbug
+        					Integer debugLevel = 0; //Default
+        					Node debugNode = getExploreDebugNode(n);
+        					if (debugNode != null) {
+        						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
+        					}
         					try {
         						result = MQuery.createFromExplore(
         								exploreCondition.addSeenIDBCollections(new LinkedList<MIDBCollection>()), 
-        								null, new HashMap<String, Set<List<String>>>(), false, 0, 0);
+        								null, new HashMap<String, Set<List<String>>>(), false, debugLevel, 0);
         					} catch (MGEUnknownIdentifier e) {
         						// TODO Auto-generated catch block
         						e.printStackTrace();
@@ -150,9 +161,8 @@ public class MCommunicator
         						// TODO Auto-generated catch block
         						e.printStackTrace();
         					}
-        					writeToLog("HERE");
+        					writeToLog("AT END OF EXPLORE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
-
         				} 
         			}
         			//Create Statement
@@ -216,9 +226,28 @@ public class MCommunicator
         				String id2 = getRenameSecondId(n);
         				theResponse = MEnvironment.renameIDBCollection(id1, id2);
         			}
+        			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
+        				Integer id = Integer.parseInt(getIsPossibleId(n));
+        				theResponse = MEnvironment.isPoss(id);
+        				writeToLog("Returning from IS-POSSIBLE");
+        			}
         			else if (type.equalsIgnoreCase("SHOW")) {
-        				String id = getShowId(n);
-        				theResponse = MEnvironment.showFirstModel(Integer.parseInt(id));
+        				String showType = getShowType(n);
+        				Integer id = Integer.parseInt(getShowId(n));
+        				if (showType == "ONE") {
+        					theResponse = MEnvironment.showFirstModel(id);
+        				}
+        				else if (showType == "NEXT") {
+        					theResponse = MEnvironment.showNextModel(id);
+        				}
+        				else if (showType == "NEXTCOLLAPSE") {
+        					MEnvironment.showNextCollapse(id);
+        				}
+        				else if (showType == "CEILING") {
+        					theResponse = MEnvironment.showCeiling(id);
+        				}
+        				
+        				
         			}
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
@@ -283,10 +312,13 @@ public class MCommunicator
             					
             					relationName = getRelationName(relNode);
             					sign = getRelationSign(relNode);
-            					if (sign == "true") {
+            					writeToLog("\n\n\n*******************************************\nSIGN IS: " + sign + "\n*****************");
+            					if (sign.equalsIgnoreCase("true")) {
+            						writeToLog("No exclamation point");
             						exclamationPoint = "";
             					}
             					else {
+            						writeToLog("Added exclamation point");
             						exclamationPoint = "!";
             					}
             					variables = getIdentifierList(relNode);
@@ -422,12 +454,39 @@ public class MCommunicator
         	return getNodeAttribute(n, "RENAME", "id2");
         }
         
+        public static String getIsPossibleId(Node n) {
+        	return getNodeAttribute(n, "IS-POSSIBLE", "id");
+        }
+        
         //SHOW
+        public static String getShowType(Node n) {
+        	return getNodeAttribute(n, "SHOW", "type");
+        }
         public static String getShowId(Node n) {
         	return getNodeAttribute(n, "SHOW", "id");
         }
         
+        //ATOMIC FORMULAS
+        public static String getAtomicFormulaYCollection(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "collection-name");
+        }
+        public static String getAtomicFormulaYRelation(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "relation-name");
+        }
+        public static String getAtomicFormulaNRelation(Node n) {
+        	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
+        }
+        
+        public static Node getExploreDebugNode(Node n) {
+        	return getChildNode(n, "DEBUG");
+        }
+        
+        public static String getDebugLevel(Node n) {
+        	return getNodeAttribute(n, "DEBUG", "debug-level");
+        }
+        
         //Returns the child node of n whose name is nodeName 
+        //If no child, returns null
         private static Node getChildNode(Node n, String nodeName) {
         	NodeList childNodes = n.getChildNodes();
         	
@@ -450,7 +509,10 @@ public class MCommunicator
         	else {
         		node = getChildNode(n, nodeName);
         	}
-        	return node.getAttributes().getNamedItem(attributeName).getNodeValue();
+        	if (node == null) {
+        		return null;
+        	}
+        	return node.getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase();
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
@@ -460,7 +522,7 @@ public class MCommunicator
         	
         	NodeList childNodes = listNode.getChildNodes();
         	for (int i = 0; i < childNodes.getLength(); i++) {
-        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue());
+        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase());
         	}
         	return attributeValues;
         }
@@ -475,8 +537,8 @@ public class MCommunicator
         	//for (int i = 0; i < childNodes.getLength(); i++) {
         	//    n = childNodes.item(i);
         	name = n.getNodeName();
-        	System.out.println("Name: " + name);
-        	System.out.println("First node's name: " + childNodes.item(0).getNodeName());
+        	writeToLog("Name: " + name + "\n");
+        	writeToLog("First node's name: " + childNodes.item(0).getNodeName() + "\n");
 
         	if (name.equalsIgnoreCase("AND")) {
         		return exploreHelper(childNodes.item(0)).and(
@@ -495,15 +557,9 @@ public class MCommunicator
         		return exploreHelper(n.getFirstChild()).not();
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
-        		String relationName = n.getAttributes().item(0).getNodeValue();
-
-        		Node variableVector = n.getFirstChild();
-        		NodeList variableNodes = variableVector.getChildNodes();
-        		List<String> vl = new LinkedList<String>();
-
-        		for (int j = 0; j < variableNodes.getLength(); j++) {
-        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
-        		}
+        		String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
+        		
+        		List<String> vl = getIdentifierList(n);
 
         		// Could be a view or an EDB. If EDB, must
         		// remember the Relation we created so that we can check
@@ -513,6 +569,7 @@ public class MCommunicator
 
         		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
+        		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n");
         		if (pol != null) {
         			Formula idbf = MEnvironment.getOnlyIDB(relationName);
         			// Perform variable substitution
@@ -523,7 +580,7 @@ public class MCommunicator
         				e.printStackTrace();
         			}
 
-
+        			
         			// Assemble MExploreCondition object
         			return new MExploreCondition(idbf, pol, vl);
         		}
@@ -548,29 +605,28 @@ public class MCommunicator
         		return new MExploreCondition(f, rel, vl);
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) {
-        		String collectionName = n.getAttributes().item(0).getNodeValue();
-        		String relationName = n.getAttributes().item(1).getNodeValue();
+        		String collectionName = getAtomicFormulaYCollection(n);
+        		String relationName = getAtomicFormulaYRelation(n);
 
         		//Variables
-        		Node variableVector = n.getFirstChild();
-        		NodeList variableNodes = variableVector.getChildNodes();
-        		List<String> vl = new LinkedList<String>();
-
-        		for (int j = 0; j < variableNodes.getLength(); j++) {
-        			vl.add(variableNodes.item(j).getAttributes().item(0).getNodeValue());
-        		}
-
-
+        		List<String> vl = getIdentifierList(n);
+        		
         		Formula idbf = null;
         		try {
         			idbf = validateDBIdentifier(collectionName, relationName);
         		} catch (MSemanticException e) {
         			// TODO Auto-generated catch block
+        			writeToLog("Semantic Exception!");
         			e.printStackTrace();
         		}
-
+        		
         		// Perform variable substitution
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
+        		
+        		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n");
+        		if (idbf == null) {
+        			writeToLog("idbf is null!\n");
+        		}
         		try {
         			idbf = performSubstitution(collectionName, pol, idbf, vl);
         		} catch (MSemanticException e) {
@@ -579,6 +635,7 @@ public class MCommunicator
         		}
 
         		// Assemble MExploreCondition object	
+        		writeToLog("Returning from atomic-formula-y");
         		return new MExploreCondition(idbf, pol, vl);
 
         	}
