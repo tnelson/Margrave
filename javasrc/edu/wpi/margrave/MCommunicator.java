@@ -241,14 +241,19 @@ public class MCommunicator
         					theResponse = MEnvironment.showNextModel(id);
         				}
         				else if (showType == "NEXTCOLLAPSE") {
-        					MEnvironment.showNextCollapse(id);
+        					theResponse = MEnvironment.showNextCollapse(id);
         				}
         				else if (showType == "CEILING") {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				
-        				
+        				else if (showType == "POPULATED") {
+        					List<String> rlist = getIdentifierList(n);
+        					//theResponse = MEnvironment.showPopulated(id, rlist);
+        				}
+
+
         			}
+        			
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
         				Node childNode = n.getFirstChild();
@@ -291,20 +296,20 @@ public class MCommunicator
         						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
-        						
+
         					}
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
         					String pname = getPolicyName(n);
-            				String rname= getRuleName(n);
-            				
-            				Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
-            				String decName = getDecisionType(ruleNode); 
-            				List<Node> relationNodes = getListOfRelations(ruleNode);
-            				List<String> relationsList = new LinkedList<String>();
-            				String relationName;
-            				String sign;
-            				String exclamationPoint = "";
+        					String rname= getRuleName(n);
+
+        					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
+        					String decName = getDecisionType(ruleNode); 
+        					List<Node> relationNodes = getListOfRelations(ruleNode);
+        					List<String> relationsList = new LinkedList<String>();
+        					String relationName;
+        					String sign;
+        					String exclamationPoint = "";
             				List<String> variables;
             				String variableListString;
             				
@@ -334,6 +339,7 @@ public class MCommunicator
             					}
             					relationsList.add(exclamationPoint + relationName + " " + variableListString);
             				}
+            				writeToLog("\nRELATIONSLIST: " + relationsList.toString() + "\n");
             				theResponse = MEnvironment.addRule(pname, rname, decName, relationsList);
             				
         				}
