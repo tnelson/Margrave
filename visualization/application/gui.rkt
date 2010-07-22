@@ -38,7 +38,6 @@
 (send subng add-edge! sn1 sn2)
 (send n1 set-subgraph! subng)
 
-; Add them to the netgraph (using mutation)
 (send myng add-node! n1)
 (send myng add-node! n2)
 (send myng add-node! n3)
