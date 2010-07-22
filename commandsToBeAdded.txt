@@ -152,20 +152,11 @@ COMPARESTMT ::=
 
 
 RESULTSSTMT ::=
-		GET NEXT NATURAL:id
-		{: RESULT = MEnvironment.getNextModel(id); :}
-		|
-		GET ONE NATURAL:id
-		{: RESULT = MEnvironment.getFirstModel(id); :}
-		|
 		COUNT NATURAL:id
 		{: RESULT = MEnvironment.countModels(id); :}
 		|
 		COUNT NATURAL:id AT SIZE NATURAL:n
 		{: RESULT = MEnvironment.countModels(id, n); :}
-		|
-		IS GUARANTEEDQMARK NATURAL:id
-		{: RESULT = MEnvironment.isGuar(id); :}
 		|
 		SHOW POPULATED NATURAL:id DBOPTINDEXLIST:rlist
 		{: RESULT = MEnvironment.showPopulated(id, rlist); :}	
@@ -205,9 +196,6 @@ GETSTMT ::=
 		GET QUALIFIED RULES IN IDENTIFIER:pname
 		{: RESULT = MEnvironment.getRulesIn(pname, true); :}
 		|
-		GET REQUEST VECTOR IDENTIFIER:vname
-		{: RESULT = MEnvironment.getRequestVector(vname); :}
-		;
 
 
 		

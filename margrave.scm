@@ -58,6 +58,7 @@
          PolicyVocab
          Policy
          
+         xml-make-info-command
          xml-make-rename-command
          xml-make-show-command
          xml-make-atomic-formula-n
@@ -67,7 +68,8 @@
          xml-make-debug
          xml-make-publish
          xml-make-tupling
-         xml-make-ceiling)
+         xml-make-ceiling
+         xml-make-is-guaranteed-command)
 
 ;****************************************************************
 ;;Java Connection
@@ -465,6 +467,18 @@
                                posslist)))
 
 ;;These functions return x-exprs for parts of command
+(define (xml-make-info-id id)
+  `(INFO ((id ,id))))
+
+(define (xml-make-info-id-command id)
+  (xml-make-command "INFO" (list (xml-make-info-id id))))
+
+(define (xml-make-info)
+  `(INFO))
+
+(define (xml-make-info-command)
+  (xml-make-command "INFO" (list (xml-make-info))))
+
 (define (xml-make-policy-identifier policy-name)
   `(POLICY-IDENTIFIER ((pname ,policy-name))))
 
@@ -543,6 +557,12 @@
 
 (define (xml-make-is-possible-command id)
   (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible id))))
+
+(define (xml-make-is-guaranteed id)
+  `(IS-GUARANTEED ((id ,id))))
+
+(define (xml-make-is-guaranteed-command id)
+  (xml-make-command "IS-GUARANTEED" (list (xml-make-is-guaranteed id))))
 
 (define (xml-make-publish list-of-identifiers)
   `(PUBLISH (xml-make-identifiers-list list-of-identifiers)))

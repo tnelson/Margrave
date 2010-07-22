@@ -197,6 +197,18 @@ public class MCommunicator
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
         				} 
         			}
+        			else if (type.equalsIgnoreCase("INFO")) {
+        				String idString = getInfoId(n);
+        				if (idString != null) {
+        					//Integer id = Integer.parseInt(idString);
+        					theResponse = MEnvironment.printInfo(idString); 
+        				}
+        				else {
+        					theResponse = MEnvironment.printSystemInfo(); 
+        				}
+        				writeToLog("Returning from info");
+        			}
+
         			//Create Statement
         			else if (type.equalsIgnoreCase("CREATE POLICY LEAF")) {
         				String pname = getPolicyName(n);
@@ -263,14 +275,47 @@ public class MCommunicator
         				theResponse = MEnvironment.isPoss(id);
         				writeToLog("Returning from IS-POSSIBLE");
         			}
+        			else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
+        				Integer id = Integer.parseInt(getIsGuaranteedId(n));
+        				theResponse = MEnvironment.isGuar(id);
+        			}
         			else if (type.equalsIgnoreCase("SHOW")) {
         				String showType = getShowType(n);
         				Integer id = Integer.parseInt(getShowId(n));
+        				
         				if (showType == "ONE") {
-        					theResponse = MEnvironment.showFirstModel(id);
+        					try {
+								theResponse = MEnvironment.getFirstModel(id);
+							} catch (MGEUnknownIdentifier e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEUnsortedVariable e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEManagerException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEBadIdentifierName e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}//MEnvironment.showFirstModel(id);
         				}
         				else if (showType == "NEXT") {
-        					theResponse = MEnvironment.showNextModel(id);
+        					try {
+								theResponse = MEnvironment.getNextModel(id);
+							} catch (MGEUnknownIdentifier e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEUnsortedVariable e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEManagerException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEBadIdentifierName e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}//MEnvironment.showNextModel(id);
         				}
         				else if (showType == "NEXTCOLLAPSE") {
         					theResponse = MEnvironment.showNextCollapse(id);
@@ -302,6 +347,24 @@ public class MCommunicator
         				}
 
 
+        			}
+        			
+        			else if (type.equalsIgnoreCase("GET")) {
+        				String getType = getGetType(n);
+        				String pname = getPolicyName(n);
+        				String rname = "";
+        				if (getType == "DECISION") {
+        					theResponse = MEnvironment.getDecisionFor(pname, rname);;
+        				}
+        				else if (getType == "HIGHER-PRIORITY-THAN") {
+        					theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
+        				}
+        				else if (getType == "RULES") {
+        					theResponse = MEnvironment.getRulesIn(pname, false);
+        				}
+        				else if (getType == "QUALIFIED-RULES") {
+        					theResponse = MEnvironment.getRulesIn(pname, true);
+        				}
         			}
         			
         			else if (type.equalsIgnoreCase("COMPARE")) {
@@ -457,6 +520,10 @@ public class MCommunicator
         	return theResponse;
         }
         
+		private static String getInfoId(Node n) {
+			return getNodeAttribute(n, "INFO", "id");
+		}
+		
         //Helper functions for specific parts of commands
         private static String getPolicyName(Node n) {
         	return getNodeAttribute(n, "POLICY-IDENTIFIER", "pname");
@@ -550,6 +617,9 @@ public class MCommunicator
         public static String getIsPossibleId(Node n) {
         	return getNodeAttribute(n, "IS-POSSIBLE", "id");
         }
+        public static String getIsGuaranteedId(Node n) {
+        	return getNodeAttribute(n, "IS-GUARANTEED", "id");
+        }
         
         //SHOW
         public static String getShowType(Node n) {
@@ -560,6 +630,11 @@ public class MCommunicator
         }
         public static Node getForCasesNode(Node n) {
         	return getChildNode(n, "FORCASES");
+        }
+        
+        //GET
+        public static String getGetType(Node n) {
+        	return getNodeAttribute(n, "GET", "type");
         }
         
         //ATOMIC FORMULAS
