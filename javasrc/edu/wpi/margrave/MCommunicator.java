@@ -12,6 +12,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -158,19 +159,34 @@ public class MCommunicator
         					if (idbNode != null) {
         						NodeList idbChildNodes = idbNode.getChildNodes();
         						
+        						// default of empty map is set above. Just populate it.
+        						
         						String collectionName;
         						String relationName;
         						List<String> identifiers;
         						
+        						// For each atomic formula sent
         						for (int i = 0; i < childNodes.getLength(); i++) {
         							Node childNode = idbChildNodes.item(i);
         							
         							collectionName = getAtomicFormulaYCollection(childNode);
         							relationName = getAtomicFormulaYRelation(childNode);
         							identifiers = getIdentifierList(childNode); //could be empty!
-        							if (identifiers.size() == 0) {
-        								
+        							
+        							// TODO: Should make a class to help with this eventually; right now
+        							// there is too much string processing going on in the engine.
+        							String idbName = collectionName + ":" + relationName;
+        							    
+        							// initialize if needed
+        							if(!idbOut.containsKey(idbName))
+        								idbOut.put(idbName, new HashSet<List<String>>());
+        							
+        							if (identifiers.size() > 0)
+        							{
+        								// indexed: need to add a variable vector to the entry's value
+        								idbOut.get(idbName).add(identifiers);
         							}
+        							
         						}
         					}
         					if (tuplingNode != null) { //For now if the node exists just set tupling to true

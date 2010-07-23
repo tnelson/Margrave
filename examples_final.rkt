@@ -10,4 +10,4 @@
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
 ; execute it and read it in tandem. 
 
-(define test-string "EXPLORE foo(x, y, z)")
+(define test-string "explore xsort(x) and xsort(y) UNDER mypol idboutput mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
