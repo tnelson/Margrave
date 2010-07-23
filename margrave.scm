@@ -69,7 +69,8 @@
          xml-make-publish
          xml-make-tupling
          xml-make-ceiling
-         xml-make-is-guaranteed-command)
+         xml-make-is-guaranteed-command
+         xml-make-identifiers-list)
 
 ;****************************************************************
 ;;Java Connection
@@ -577,13 +578,22 @@
   `(CEILING ((ceiling-level ,ceiling-level))))
 
 ;Atomic Formulas
-(define (xml-make-atomic-formula-n relName list-of-identifiers)
-  `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,(xml-make-identifiers-list list-of-identifiers)))  
+(define (xml-make-atomic-formula-n relName xml-identifier-list)
+  `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,xml-identifier-list))  
 
-(define (xml-make-atomic-formula-y collName relName list-of-identifiers)
-  `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)) ,(xml-make-identifiers-list list-of-identifiers))) 
+(define (xml-make-atomic-formula-y collName relName xml-identifier-list)
+  `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)) ,xml-identifier-list)) 
 
 ;;EXPLORE
+;Makes an xexpr for a list of atomic formulas (can be of size 1). symbol can be "and" or "or"
+(define (xml-make-atomic-formulas-list symbol list-of-atomic-formulas)
+  (if (equal? 1 (length list-of-atomic-formulas))
+                  (first list-of-atomic-formulas)
+                  (foldr (λ(atomic-formula rest)
+                           (list symbol atomic-formula rest))
+                         (first list-of-atomic-formulas)
+                         (rest list-of-atomic-formulas))))
+
 ;Atomic Formulas must already be xexprs
 (define (xml-make-explore list-of-atomic-formulas list-of-modifiers)
   `(EXPLORE (CONDITION 

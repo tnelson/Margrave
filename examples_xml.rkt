@@ -23,11 +23,14 @@
 
 ; TEMPORARY! Will be a nice module path soon.
 (require "./margrave.scm" xml)
+(require (only-in "./read.rkt" s))
 ;(require (file "M:\\RktMargrave\\margrave.scm"))
 ;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
 ; execute it and read it in tandem. 
+
+(define test-string "EXPLORE foo(x, y, z)")
 
 (define (run-examples)
   (start-margrave-engine)
@@ -74,7 +77,7 @@
   ;(mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
   (mxout (xml-make-is-possible-command "0"))
   (mxout (xml-make-show-command "ONE" "0")) ;"SHOW ONE 0"
-  (mxout "SHOW NEXT 0")
+  (mxout (xml-make-show-command "NEXT" "0"))
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")

@@ -198,7 +198,9 @@ public class MCommunicator
         				} 
         			}
         			else if (type.equalsIgnoreCase("INFO")) {
+        				writeToLog("In Info");
         				String idString = getInfoId(n);
+        				writeToLog("\nPast getting id info");
         				if (idString != null) {
         					//Integer id = Integer.parseInt(idString);
         					theResponse = MEnvironment.printInfo(idString); 
@@ -280,11 +282,16 @@ public class MCommunicator
         				theResponse = MEnvironment.isGuar(id);
         			}
         			else if (type.equalsIgnoreCase("SHOW")) {
+        				writeToLog("In show");
         				String showType = getShowType(n);
+        				writeToLog("In show");
         				Integer id = Integer.parseInt(getShowId(n));
         				
-        				if (showType == "ONE") {
+        				writeToLog("\nshowtype: " + showType + "\n");
+        				if (showType.equalsIgnoreCase("ONE")) {
+        					writeToLog("In Show One");
         					try {
+        						writeToLog("In Show One");
 								theResponse = MEnvironment.getFirstModel(id);
 							} catch (MGEUnknownIdentifier e) {
 								// TODO Auto-generated catch block
@@ -300,7 +307,7 @@ public class MCommunicator
 								e.printStackTrace();
 							}//MEnvironment.showFirstModel(id);
         				}
-        				else if (showType == "NEXT") {
+        				else if (showType.equalsIgnoreCase("NEXT")) {
         					try {
 								theResponse = MEnvironment.getNextModel(id);
 							} catch (MGEUnknownIdentifier e) {
@@ -317,13 +324,13 @@ public class MCommunicator
 								e.printStackTrace();
 							}//MEnvironment.showNextModel(id);
         				}
-        				else if (showType == "NEXTCOLLAPSE") {
+        				else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
         					theResponse = MEnvironment.showNextCollapse(id);
         				}
-        				else if (showType == "CEILING") {
+        				else if (showType.equalsIgnoreCase("CEILING")) {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				else if (showType == "POPULATED") {
+        				else if (showType.equalsIgnoreCase("POPULATED")) {
         					List<String> rlist = getIdentifierList(n);
         					Node forCasesNode = getForCasesNode(n);
         					if (forCasesNode != null) {
@@ -333,7 +340,7 @@ public class MCommunicator
         						//theResponse = MEnvironment.showPopulated(id, rlist, clist); 
         					}
         				}
-        				else if (showType == "UNPOPULATED") {
+        				else if (showType.equalsIgnoreCase("UNPOPULATED")) {
         					List<String> rlist = getIdentifierList(n);
         					Node forCasesNode = getForCasesNode(n);
         					if (forCasesNode != null) {
@@ -717,6 +724,10 @@ public class MCommunicator
         		node = getChildNode(n, nodeName);
         	}
         	if (node == null) {
+        		return null;
+        	}
+        	Node attribute = node.getAttributes().getNamedItem(attributeName);
+        	if (attribute == null) {
         		return null;
         	}
         	return node.getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase();

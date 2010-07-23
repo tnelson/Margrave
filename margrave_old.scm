@@ -635,8 +635,8 @@
                 
                 ; Set the rule and policy combinator (depending on type)
                 (if (< (length mychildren) 1)
-                    (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (list 'rcstr ...)))
-                    (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (list 'pcstr ...))))
+                    (m (string-append "SET RCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'rcstr ...))))
+                    (m (string-append "SET PCOMBINE FOR POLICY " (symbol->string 'policyname) " " (fold-append-with-spaces (list 'pcstr ...)))))
                 
                 ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
                 
