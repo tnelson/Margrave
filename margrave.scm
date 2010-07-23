@@ -72,7 +72,11 @@
          xml-make-is-guaranteed-command
          xml-make-identifiers-list
          xml-make-type
-         xml-make-id)
+         xml-make-id
+         xml-make-idbout
+         xml-make-under
+         xml-make-policy-identifier
+         xml-make-vocab-identifier)
 
 ;****************************************************************
 ;;Java Connection
@@ -561,6 +565,9 @@
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
+(define (xml-make-under policy)
+  `(UNDER ,policy))
+
 (define (xml-make-is-possible id)
   `(IS-POSSIBLE ((id ,id))))
 
@@ -574,13 +581,13 @@
   (xml-make-command "IS-GUARANTEED" (list (xml-make-is-guaranteed id))))
 
 (define (xml-make-publish list-of-identifiers)
-  `(PUBLISH (xml-make-identifiers-list list-of-identifiers)))
+  `(PUBLISH ,list-of-identifiers))
 
 (define (xml-make-idbout list-of-atomic-formulas)
-  `(IDB ,list-of-atomic-formulas))
+  `(IDB ,@list-of-atomic-formulas))
 
 (define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
-  `(TUPLING ((value true)))) ;Value isn't actually used right now
+  `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
 
 (define (xml-make-debug debug-level)
   `(DEBUG ((debug-level ,debug-level))))
