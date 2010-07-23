@@ -156,7 +156,22 @@ public class MCommunicator
         						publ = getExplorePublishVars(publishNode);
         					}
         					if (idbNode != null) {
-        						//idbout = ??
+        						NodeList idbChildNodes = idbNode.getChildNodes();
+        						
+        						String collectionName;
+        						String relationName;
+        						List<String> identifiers;
+        						
+        						for (int i = 0; i < childNodes.getLength(); i++) {
+        							Node childNode = idbChildNodes.item(i);
+        							
+        							collectionName = getAtomicFormulaYCollection(childNode);
+        							relationName = getAtomicFormulaYRelation(childNode);
+        							identifiers = getIdentifierList(childNode); //could be empty!
+        							if (identifiers.size() == 0) {
+        								
+        							}
+        						}
         					}
         					if (tuplingNode != null) { //For now if the node exists just set tupling to true
         						tupling = true;
@@ -723,6 +738,8 @@ public class MCommunicator
         	else {
         		node = getChildNode(n, nodeName);
         	}
+        	
+        	//Return null if we couldn't find the node, or if the node doesn't have the specified attribute
         	if (node == null) {
         		return null;
         	}
@@ -736,6 +753,12 @@ public class MCommunicator
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
         private static List<String> getListElements(Node n, String listName, String attributeName) {
         	Node listNode = getChildNode(n, listName);
+        	
+        	//Return null if we can't find the node
+        	if (listNode == null) {
+        		return null;
+        	}
+        	
         	LinkedList<String> attributeValues = new LinkedList<String>();
         	
         	NodeList childNodes = listNode.getChildNodes();

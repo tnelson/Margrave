@@ -60,7 +60,7 @@
          
          xml-make-info-command
          xml-make-rename-command
-         xml-make-show-command
+         xml-make-get-command
          xml-make-atomic-formula-n
          xml-make-atomic-formula-y
          xml-make-explore-command
@@ -70,7 +70,9 @@
          xml-make-tupling
          xml-make-ceiling
          xml-make-is-guaranteed-command
-         xml-make-identifiers-list)
+         xml-make-identifiers-list
+         xml-make-type
+         xml-make-id)
 
 ;****************************************************************
 ;;Java Connection
@@ -547,11 +549,17 @@
 (define (xml-make-rename-command id1 id2)
   (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
-(define (xml-make-show type id)
-  `(SHOW ((type ,type) (id ,id))))
+(define (xml-make-type type)
+  `(type ,type))
 
-(define (xml-make-show-command type id)
-  (xml-make-command "SHOW" (list (xml-make-show type id))))
+(define (xml-make-id id)
+  `(id ,id))
+
+(define (xml-make-get type id)
+  `(SHOW (,type ,id)))
+
+(define (xml-make-get-command type id)
+  (xml-make-command "SHOW" (list (xml-make-get type id))))
 
 (define (xml-make-is-possible id)
   `(IS-POSSIBLE ((id ,id))))
@@ -567,6 +575,9 @@
 
 (define (xml-make-publish list-of-identifiers)
   `(PUBLISH (xml-make-identifiers-list list-of-identifiers)))
+
+(define (xml-make-idbout list-of-atomic-formulas)
+  `(IDB ,list-of-atomic-formulas))
 
 (define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
   `(TUPLING ((value true)))) ;Value isn't actually used right now
