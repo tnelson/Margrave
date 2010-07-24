@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,7 +93,16 @@ public class MCommunicator
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            Document theResponse = xmlHelper(doc.getFirstChild());
+            Document theResponse;
+            try
+            {
+            	theResponse = xmlHelper(doc.getFirstChild());
+            }
+            catch(Exception e)
+            {
+            	// Construct an exception response;
+            	theResponse = MEnvironment.exceptionResponse(e);
+            }
             try {
         		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
         		out.write(transformXML(theResponse));
@@ -105,7 +115,8 @@ public class MCommunicator
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node) {
+        private static Document xmlHelper(Node node) throws MSemanticException, MGException
+        {
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
         	String type = node.getAttributes().item(0).getNodeValue();
@@ -132,10 +143,8 @@ public class MCommunicator
         						System.out.println("explore condition is null!");
         					MQuery result = null;
         					
-        					//Default Values                             
-                             //publ = ??
-        					
-        					LinkedList<MIDBCollection> under = new LinkedList<MIDBCollection>();
+        					//Default Values                                     					
+        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
         					List<String> publ = null;
                             HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
                             Boolean tupling = false;
@@ -151,7 +160,9 @@ public class MCommunicator
         					
         					
         					if (underNode != null) { 
-        						//under = ?? Wasn't sure about the difference between List<String> and List<MIDBCollection>
+        						
+        						under = namesToIDBCollections(getIdentifierList(underNode));
+        						
         					}
         					if (publishNode != null) {
         						publ = getExplorePublishVars(publishNode);
@@ -201,29 +212,13 @@ public class MCommunicator
         					
         					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
         					
-        					try {
+        			
+        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
         						result = MQuery.createFromExplore(
         								exploreCondition.addSeenIDBCollections(under), 
         								publ, idbOut, tupling, debugLevel, ceilingLevel);
-        					} catch (MGEUnknownIdentifier e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEBadIdentifierName e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGECombineVocabs e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEManagerException e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEUnsortedVariable e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MSemanticException e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					}
+        			
+      
         					writeToLog("AT END OF EXPLORE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
         				} 
@@ -963,12 +958,12 @@ public class MCommunicator
     		 handleXMLCommand(command);
     	 }
     	 else {
-    		 handleTextCommand(command);
+    		 //handleTextCommand(command);
     	 }
      }
 
 
-     protected static void handleTextCommand(String command) {
+    /* protected static void handleTextCommand(String command) {
     	 // Command is complete. Deal with it.
     	 Document theResponse = MEnvironment.commandSilent(command);
 
@@ -981,7 +976,7 @@ public class MCommunicator
     	 out.flush(); // ALWAYS FLUSH!
     	 System.err.flush(); // just in case
 
-     }
+     }*/
      
      protected static String transformXMLString(Document theResponse) 
      {
@@ -1100,4 +1095,18 @@ public class MCommunicator
 		throw new MSemanticException("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".", tok.left, tok.right, idbSymbol);
 	}
 
+	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MSemanticException
+	{
+		List<MIDBCollection> result = new ArrayList<MIDBCollection>(names.size());
+		
+		for(String n : names)
+		{
+			if(MEnvironment.getPolicyOrView(n) == null)
+				throw new MSemanticException("Unknown symbol in UNDER clause: "+n);
+			result.add(MEnvironment.getPolicyOrView(n));
+		}
+		
+		return result;
+	}
+	
 }

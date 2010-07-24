@@ -152,8 +152,8 @@ class MTotalInstanceIterator extends MInstanceIterator
 				
 				if(fromResult.forQuery.debug_verbosity > 1)
 				{
-					System.out.println("DEBUG: Beginning a new Kodkod solution iterator. Translation time for this iterator was: " + sol.stats().translationTime());
-					System.out.println("       TOTAL translation time so far for this query: ");
+					MEnvironment.outStream.println("DEBUG: Beginning a new Kodkod solution iterator. Translation time for this iterator was: " + sol.stats().translationTime());
+					MEnvironment.outStream.println("       TOTAL translation time so far for this query: ");
 				}
 				newKodkodIterator = false;
 			}
@@ -710,7 +710,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 				IntSet toRemove = theTranslation.primaryVariables(r);
 				
 				if(fromResult.forQuery.debug_verbosity > 1)
-					System.out.println("Found "+theVar+" true; rel was: "+r.name()+" and all vars for it were: "+toRemove);
+					MEnvironment.outStream.println("Found "+theVar+" true; rel was: "+r.name()+" and all vars for it were: "+toRemove);
 				
 				// REMOVE 
 				// (1) The relation for this var from results
@@ -1148,7 +1148,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			}
 		
 			//if(counts[clausenum] > 1)
-				System.out.println("Clause "+clausenum+" was "+ clause+" and had count "+counts[clausenum]);
+			MEnvironment.outStream.println("Clause "+clausenum+" was "+ clause+" and had count "+counts[clausenum]);
 			
 			clausenum++;
 		}
@@ -1185,7 +1185,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			if(!theSolver.valueOf(iVar))
 				literal = literal * (-1);
 			
-			System.out.println("Literal: "+literal+" was in clauses: "+literalToClauses.get(literal));
+			MEnvironment.outStream.println("Literal: "+literal+" was in clauses: "+literalToClauses.get(literal));
 			
 			boolean canRemove = true;
 			for(int c: literalToClauses.get(literal))
@@ -1203,11 +1203,11 @@ class MPartialInstanceIterator extends MInstanceIterator
 			
 		}
 		
-		System.out.println("@@@@@ Don't cares were: ");
+		MEnvironment.outStream.println("@@@@@ Don't cares were: ");
 		for(int iVar=1;iVar<=numPrimaryVariables;iVar++)
 			if(dontCares[iVar])
-				System.out.print(iVar + " ");
-		System.out.println();
+				MEnvironment.outStream.print(iVar + " ");
+		MEnvironment.outStream.println();
 		
 		// TODO to optimize speed, could store some of these values we are calculating (like vars -> clauses map) and expand each call
 		
@@ -1235,7 +1235,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			
 			IntSet vars = theTranslation.primaryVariables(r);
 			
-			System.out.println("Relation "+r+" had primary vars: "+vars);
+			MEnvironment.outStream.println("Relation "+r+" had primary vars: "+vars);
 			
 			if (vars!=null)
 			{
@@ -1259,9 +1259,9 @@ class MPartialInstanceIterator extends MInstanceIterator
 			resultDontCares.add(r, f.setOf(r.arity(), dcIndices));
 		}
 		
-		System.out.println("@@@@@@@");
-		System.out.println(resultInstance);
-		System.out.println(resultDontCares);
+		MEnvironment.outStream.println("@@@@@@@");
+		MEnvironment.outStream.println(resultInstance);
+		MEnvironment.outStream.println(resultDontCares);
 		
 		
 		// *********************************************
@@ -1563,7 +1563,7 @@ class CNFSpy implements SATSolver
     	int iClause = 0;
     	for(MIntArrayWrapper aClause : clauses)
     	{
-    		System.out.println("Clause "+iClause+": "+Arrays.toString(aClause.getArray()));
+    		MEnvironment.outStream.println("Clause "+iClause+": "+Arrays.toString(aClause.getArray()));
     		iClause++;    			
     	}
     }
@@ -1674,8 +1674,8 @@ class CNFSpyFactory extends SATFactory
 
 class MQueryResult
 {
-	protected int maxSize;
-	private int hbu_ceiling;	
+	protected int maxSize;	
+	protected int sufficientMaxSize;	
 	
 	public long msQueryCreationTime;
 	public long msQueryRunTime;
@@ -1694,7 +1694,7 @@ class MQueryResult
 		maxSize = maxsize;
 	
 		// How big did our analysis say the HB term universe could be?
-		hbu_ceiling = hbmax;
+		sufficientMaxSize = hbmax;
 
 		qryFormulaWithAxioms = qfwa;
 	
@@ -1706,7 +1706,7 @@ class MQueryResult
 	
 	public int get_hu_ceiling()
 	{
-		return hbu_ceiling;
+		return sufficientMaxSize;
 	}
 	
 	public int get_universe_max()
@@ -1778,7 +1778,7 @@ class MQueryResult
 		// return exception if the iterator has problems; distinguish from true/false.
 	}
 
-	public String getPrettySolution(MSolutionInstance sol, MInstanceIterator fromIterator)
+/*	public String getPrettySolution(MSolutionInstance sol, MInstanceIterator fromIterator)
 	{
 		// TODO Extremely tangled. Fix the design of MQuery vs. MQueryResult vs. MInstanceIterator
 		
@@ -1800,7 +1800,7 @@ class MQueryResult
 		}
 		
 	}
-	
+	*/
 }
 
 public abstract class MInstanceIterator

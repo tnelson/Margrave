@@ -441,8 +441,9 @@ public class MEnvironment
 	private static Map<Integer, MQueryResult> envQueryResults = new HashMap<Integer, MQueryResult>();
 	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
 	
+	// BOTH are System.err because out is reserved for XML communication.
 	protected static PrintStream errorStream = System.err;
-	protected static PrintStream outStream = System.out;
+	protected static PrintStream outStream = System.err;
 	
 	public static boolean debugParser = false;
 	
@@ -537,7 +538,7 @@ public class MEnvironment
 		return null;
 	}
 	
-	static public Document commandSilent(String cmd)
+	/*static public Document commandSilent(String cmd)
 	{
 		// Don't print anything
 		return command(cmd, true);
@@ -547,7 +548,7 @@ public class MEnvironment
 	{
 		// Default to non-silent
 		return command(cmd, false);
-	}
+	}*/
 	
 	static void printOut(Object out, boolean silent)
 	{
@@ -567,13 +568,14 @@ public class MEnvironment
 		else
 		{
 			// Return next model in the iterator.
+			MQueryResult result = envQueryResults.get(numResult);
 			try
 			{
-				return scenarioResponse(envQueryResults.get(numResult), envIterators.get(numResult).next());
+				return scenarioResponse(result, envIterators.get(numResult).next(), numResult);
 			}
 			catch(MGENoMoreSolutions e)
 			{
-				return noSolutionResponse(numResult);
+				return noSolutionResponse(result, numResult);
 			}
 		}		
 	}
@@ -585,17 +587,19 @@ public class MEnvironment
 		if(!envQueryResults.containsKey(numResult))
 			return errorResponse(sUnknown, sResultID, numResult);
 
+		MQueryResult result = envQueryResults.get(numResult);
+		
 		// Reset the iterator (or create it if new)
-		MInstanceIterator it = envQueryResults.get(numResult).getTotalIterator();
+		MInstanceIterator it = result.getTotalIterator();
 		envIterators.put(numResult, it);
 		
 		try
 		{
-			return scenarioResponse(envQueryResults.get(numResult), it.next());
+			return scenarioResponse(result, it.next(), numResult);
 		}
 		catch(MGENoMoreSolutions e)
 		{
-			return noSolutionResponse(numResult);
+			return noSolutionResponse(result, numResult);
 		}
 		
 	}
@@ -921,7 +925,7 @@ public class MEnvironment
 		return boolResponse(overwrote);		
 	}
 	
-	static public Document doCompare(String pol1, String pol2, Map<String, Set<List<String>>> idbOutputMap,
+	/*static public Document doCompare(String pol1, String pol2, Map<String, Set<List<String>>> idbOutputMap,
 			Boolean tupling, Integer debuglevel, Integer sizeceiling)
 	{
 		// Pol1 and Pol2 are policies to compare.
@@ -982,7 +986,7 @@ public class MEnvironment
 		//System.out.println(theCmd);
 				
 		return command(theCmd);		
-	}
+	}*/
 	
 	
 	static protected void setLast(MQuery qry)
@@ -1008,7 +1012,7 @@ public class MEnvironment
 	}
 	
 
-	public static Document showNextModel(Integer id)
+	/*public static Document showNextModel(Integer id)
 	{
 		MQueryResult aResult = getResultObject(id);
 		MInstanceIterator anIterator = getIteratorFor(id);
@@ -1028,9 +1032,9 @@ public class MEnvironment
 			return noSolutionResponse(id);
 		}
 
-	}
+	}*/
 	
-	public static Document showFirstModel(Integer id)
+	/*public static Document showFirstModel(Integer id)
 	{
 		MQueryResult aResult = getResultObject(id);		
 		if(aResult == null)
@@ -1058,7 +1062,7 @@ public class MEnvironment
 			return exceptionResponse(e);
 		}
 		 
-	}
+	}*/
 
 	protected static MInstanceIterator getIteratorFor(Integer id)
 	{
@@ -1164,7 +1168,7 @@ public class MEnvironment
 			return errorResponse(sUnknown, sResultID, id);
 		try
 		{
-			return boolResponse(aResult.isSatisfiable());
+			return boolResponseWithStats(aResult, id, aResult.isSatisfiable());
 		}
 		catch(MGException e)
 		{
@@ -1764,7 +1768,7 @@ public class MEnvironment
 	}
 
 	
-	private static Document exceptionResponse(Exception e)
+	static Document exceptionResponse(Exception e)
 	{
 		
 		Document xmldoc = makeInitialResponse("exception");
@@ -1825,19 +1829,35 @@ public class MEnvironment
 	}
 	
 	
-	private static Document noSolutionResponse(Integer id)
+	private static Document noSolutionResponse(MQueryResult theResult, Integer id)
 	{
 		Document xmldoc = makeInitialResponse(sUnsat);
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+				
+		Element statsElement = makeStatisticsElement(xmldoc, theResult, id);		
+		xmldoc.getDocumentElement().appendChild(statsElement);								
 		return xmldoc;
 	}
 
+	private static Element makeStatisticsElement(Document xmldoc, MQueryResult theResult, Integer id)
+	{
+		Element statsElement = xmldoc.createElementNS(null, "STATISTICS");;		
+		
+		// Report the size ceiling (calculated and user-provided) so a warning
+		// can be given if need be.
+		statsElement.setAttribute("max-size", String.valueOf(theResult.maxSize));
+		statsElement.setAttribute("user-max-size", String.valueOf(theResult.forQuery.sizeCeiling));
+		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.sufficientMaxSize));
+		statsElement.setAttribute("result-id", String.valueOf(id));
+		return statsElement;
+	}
+	
 	private static Document successResponse()
 	{
 		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
 	
 		Document xmldoc = makeInitialResponse(sSuccess);
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)				
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		return xmldoc;
 	}
 	
@@ -1874,9 +1894,25 @@ public class MEnvironment
 		return xmldoc;
 	}
 	
+	private static Document boolResponseWithStats(MQueryResult aResult, int id, boolean b)
+	{
+		Document xmldoc = makeInitialResponse("boolean");
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		
+		Text val = xmldoc.createTextNode(String.valueOf(b));
+		xmldoc.getDocumentElement().appendChild(val);
+		xmldoc.getDocumentElement().appendChild(makeStatisticsElement(xmldoc, aResult, id));
+		return xmldoc;
+	}
+	
 	private static Document boolResponse(boolean b)
 	{		
-		return stringResponse(String.valueOf(b));	
+		Document xmldoc = makeInitialResponse("boolean");
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		
+		Text val = xmldoc.createTextNode(String.valueOf(b));
+		xmldoc.getDocumentElement().appendChild(val);
+		return xmldoc;
 	}
 	private static Document intResponse(int theInt)
 	{
@@ -1919,7 +1955,7 @@ public class MEnvironment
 	}
 
 	private static Document scenarioResponse(MQueryResult mQueryResult,
-			MSolutionInstance nextPreTup)
+			MSolutionInstance nextPreTup, int id)
 	{
 		MSolutionInstance next;
 		
@@ -1971,8 +2007,12 @@ public class MEnvironment
 			annElement.appendChild(xmldoc.createTextNode(s));				
 			modelElement.appendChild(annElement);
 		}
+					
+		xmldoc.getDocumentElement().appendChild(modelElement);
 		
-		xmldoc.getDocumentElement().appendChild(modelElement);		
+		Element statsElement = makeStatisticsElement(xmldoc, mQueryResult, id);		
+		xmldoc.getDocumentElement().appendChild(statsElement);		
+		
 		return xmldoc;
 	}
 	

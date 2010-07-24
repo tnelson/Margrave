@@ -1268,12 +1268,11 @@ public class FormulaSigInfo
 						
 						if(!finitarySorts.contains(f.arity.get(icol)))
 						{
-							System.out.println("Error: "+f+"\n"+finitarySorts);
-							System.out.println(toPopulate); // 0 is in toPopulate. why? Because we have a coercion function... then why isn't 0 infinitary?
-							System.out.println(sapFunctions);
-							System.out.println(productiveFunctions);
-							System.exit(1);
-							
+							MEnvironment.errorStream.println("Error: "+f+"\n"+finitarySorts);
+							MEnvironment.errorStream.println(toPopulate); // 0 is in toPopulate. why? Because we have a coercion function... then why isn't 0 infinitary?
+							MEnvironment.errorStream.println(sapFunctions);
+							MEnvironment.errorStream.println(productiveFunctions);
+							System.exit(1);							
 						}
 						// icol is indexing by position in arity list. Sort ordering is different.
 						int actual_col = sortsInOrder.get(f.arity.get(icol)).intValue();
@@ -1628,7 +1627,7 @@ public class FormulaSigInfo
 	
 	public void printInfo()
 	{
-		System.out.println(getInfoString());
+		MEnvironment.errorStream.println(getInfoString());
 	}
 			
 	public String getInfoString()

@@ -578,7 +578,7 @@ public class MFormulaManager
 	 */
 	public static void printStatistics()
 	{
-		System.out.println(getStatisticsString());
+		MEnvironment.errorStream.println(getStatisticsString());
 	}
 	public static String getStatisticsString()
 	{
