@@ -22,15 +22,10 @@
 ; updated to new EXPLORE query language 04/2010 tn
 
 ; TEMPORARY! Will be a nice module path soon.
-(require "./margrave.rkt" xml)
-;(require (only-in "./read.rkt" s))
-;(require (file "M:\\RktMargrave\\margrave.scm"))
-;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
+(require (file "./margrave.rkt"))
 
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
 ; execute it and read it in tandem. 
-
-(define test-string "EXPLORE foo(x, y, z)")
 
 (define (run-examples)
   (start-margrave-engine)
@@ -50,34 +45,24 @@
   (load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
   (load-policy (build-path (current-directory) "tests" "iout.p"))
   
-  (m (xml-make-rename-command "conferencepolicy1" "conf1"))
-  (m (xml-make-rename-command "conferencepolicy2" "conf2"))
-  (m (xml-make-rename-command "fwex1" "firewall1"))
-  (m (xml-make-rename-command "fwex1a" "firewall1a"))
-  (m (xml-make-rename-command "fwex2" "firewall2"))
-  (m (xml-make-rename-command "happyrouterless" "HRless"))
-  (m (xml-make-rename-command "happyroutermore" "HRmore"))
+  (m "rename conferencepolicy1 conf1")
+  (m "rename conferencepolicy2 conf2")
+  (m "rename fwex1 firewall1")
+  (m "rename fwex1a firewall1a")
+  (m "rename fwex2 firewall2")
+  (m "rename happyrouterless HRless")
+  (m "rename happyroutermore HRmore")
   
   ;; ****
   ;; General examples
   ;; ****
   
-  ;DEBUGGING
-  (mxout (xml-make-explore-command
-          (list (xml-make-atomic-formula-y "Phone1" "TollFree" (xml-make-identifiers-list (list "ncaller"  "nreceive"))))
-         (list (xml-make-ceiling "5"))))
-  (mxout (xml-make-is-possible-command "0"))
   
   ; Basic predicate conference policy: When can someone read a paper?
-  (mxout (xml-make-explore-command 
-          (list (xml-make-atomic-formula-n "readpaper" (xml-make-identifiers-list (list "a")))
-                (xml-make-atomic-formula-n "paper" (xml-make-identifiers-list (list "r")))
-                (xml-make-atomic-formula-y "conf1" "permit" (xml-make-identifiers-list (list "s" "a" "r"))))
-          (list (xml-make-idbout (list (xml-make-atomic-formula-n "conf1" "permit" ))))#;(list (xml-make-debug "3"))))
-  ;(mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
-  (mxout (xml-make-is-possible-command "0"))
-  (mxout (xml-make-get-command (xml-make-type "ONE") (xml-make-id "0"))) ;"SHOW ONE 0"
-  ;(mxout (xml-make-get-command (xml-make-type "NEXT") (xml-make-id "0")))
+  
+  (mxout "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)")
+  (mxout "SHOW ONE 0")
+  (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
   (mxout "SHOW NEXT 0")
