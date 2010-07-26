@@ -46,13 +46,14 @@
 ; todo: more later
 (provide stop-margrave-engine
          start-margrave-engine
+         mtext
          m
+         mxtextout
          pretty-print-model
          load-policy
          get-idbname-list
          get-qualified-idbname-list
          get-decision-for-rule-idbname
-         mxout
          pause-for-user)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
@@ -194,16 +195,9 @@
 (define (get-response-error-descriptor doc)
   (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
 
-
-; Placeholder
-(define (pretty-xml doc)
-  (xexpr->string (xml->xexpr (document-element doc))))
-
-(define (mx cmd)
-  (pretty-xml (m cmd)))
-
-(define (mxout cmd)
-  (display (mx cmd)) (newline))
+; for debugging
+(define (mxtextout cmd)
+  (printf "Command: ~a~n~nResponse: ~a~n" cmd (mtext cmd)))
 
 ;****************************************************************
 
@@ -658,6 +652,12 @@
     
     ; return the policy identifier
     pol))
+
+; mtext
+; string -> document or #f
+; parses and compiles the string command into XML and executes it.
+(define (mtext cmd)
+  (m (evalxml cmd)))
 
 ; m
 ; string -> document or #f

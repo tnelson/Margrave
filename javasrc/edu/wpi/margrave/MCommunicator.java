@@ -162,9 +162,9 @@ public class MCommunicator
         					Node ceilingNode = getExploreCeilingNode(n);
         					
         					
-        					if (underNode != null) { 
-        						
-        						under = namesToIDBCollections(getIdentifierList(underNode));
+        					if (underNode != null)
+        					{ 
+        						under = namesToIDBCollections(getUnderList(n));
         						
         					}
         					if (publishNode != null) {
@@ -722,10 +722,10 @@ public class MCommunicator
         
         private static List<String> getUnderList(Node n)
         {
+			// The under node is the "list" node, so need to be passed the EXPLORE node,
+        	// not the UNDER node for getListElements to work.
         	List<String> result = getListElements(n, "UNDER", "pname");     
         	writeToLog("UNDER LIST: "+result.toString());
-        	MEnvironment.errorStream.println("UNDER LIST: "+result.toString());
-        	MEnvironment.errorStream.flush();
         	return result;
         }
         
@@ -919,7 +919,9 @@ public class MCommunicator
     		    out.write(s);
     		    //Close the output stream
     		    out.close();
-    		    }catch (Exception e){//Catch exception if any
+    		    }catch (Exception e)
+    		    {
+    		      //Catch exception if any
     		      System.err.println("Error: " + e.getMessage());
     		    }
      }
