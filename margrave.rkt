@@ -56,6 +56,7 @@
          pause-for-user
                   
          xml-make-info-command
+         xml-make-info-id-command
          xml-make-rename-command
          xml-make-get-command
          xml-make-atomic-formula-n
@@ -587,7 +588,7 @@
   `(PUBLISH ,list-of-identifiers))
 
 (define (xml-make-idbout list-of-atomic-formulas)
-  `(IDB ,@list-of-atomic-formulas))
+  `(IDBOUTPUT ,@list-of-atomic-formulas))
 
 (define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
   `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
