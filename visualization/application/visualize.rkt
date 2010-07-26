@@ -23,10 +23,11 @@
             [edsnip (new editor-snip%)]
             [newpb (new fwpboard%)])
         (begin
-          (send pb insert edsnip (send node get-x) (send node get-y))
+;          (send pb insert edsnip (send node get-x) (send node get-y))
           (send edsnip set-editor newpb)
           (send pb set-before edsnip #f)
-          (send newnode set-subed! pb)
+          (send newnode set-subed! edsnip)
+          (send newnode set-flags (list 'handles-events))
           (visualize (send node get-subgraph) newpb)))
       #f
       ))
