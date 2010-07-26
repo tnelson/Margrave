@@ -409,23 +409,10 @@ public class MPolicyLeaf extends MPolicy
 		rulemap.put(newrule.name, newrule);
 		
 		//FOR DEBUGGING
-		writeToLog("\n In MPolicyLeaf.addRule\n newRule.target: " + newrule.target + "\nnewRule.condition: " + newrule.condition);
+		//MCommunicator.writeToLog("\n In MPolicyLeaf.addRule\n newRule.target: " + newrule.target + "\nnewRule.condition: " + newrule.condition);
 		
 		// No IDB for the rule by itself! (Combination will add IDBS for rule *applicability* in this policy's context)
 	}
-	
-	private static void writeToLog(String s) {
-   	 try{
-   		    // Create file 
-   		    FileWriter fstream = new FileWriter("/home/vjsingh/Margrave/log.txt", true);
-   		        BufferedWriter out = new BufferedWriter(fstream);
-   		    out.write(s);
-   		    //Close the output stream
-   		    out.close();
-   		    }catch (Exception e){//Catch exception if any
-   		      System.err.println("Error: " + e.getMessage());
-   		    }
-    }
 	
 	private Formula disjunctionOfRules(String dec)
 	{
