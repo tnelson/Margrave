@@ -418,8 +418,7 @@ class MExploreCondition
 	
 	MExploreCondition addSeenIDBCollections(List<MIDBCollection> moreIDBCollections)
 	{
-		seenIDBs.addAll(moreIDBCollections);
-		
+		seenIDBs.addAll(moreIDBCollections);		
 		return this;
 	}
 	
@@ -466,6 +465,7 @@ public class MEnvironment
 	public static String sReqVector = "request vector";	
 	public static String sNotDocument = "value not XML document";
 	public static String sFailure = "failure";
+	public static String sCommand = "command";
 	
 	public static String sShow = "show";
 	public static String sNext = "next";
@@ -1744,7 +1744,7 @@ public class MEnvironment
 	}
 	
 	
-	private static Document errorResponse(String errorType, String errorSubtype, String desc) 
+	static Document errorResponse(String errorType, String errorSubtype, String desc) 
 	{	
 		Document xmldoc = makeInitialResponse("error");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
@@ -1762,7 +1762,7 @@ public class MEnvironment
 		
 		return xmldoc;
 	}
-	private static Document errorResponse(String errorType, String errorSubtype, Integer desc) 
+	static Document errorResponse(String errorType, String errorSubtype, Integer desc) 
 	{
 		return errorResponse(errorType, errorSubtype, desc.toString());
 	}
