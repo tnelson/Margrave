@@ -40,67 +40,14 @@ import kodkod.instance.Tuple;
 import java_cup.runtime.Symbol;
 
 
-class MLexerException extends IOException
-{
-	int into;
-	int row;
-	int col;
-	String at;
-	
-	MLexerException(String msg, int col, int line, int into, String at)
-	{
-		super(msg);
-		this.row = line;
-		this.col = col;
-		this.into = into;
-		this.at = at;
-	}
-}
-
-class MParserException extends IOException
-{	
-	int row;
-	int col;
-	Object errorValue;
-		
-	MParserException(int row, int col, Object val)
-	{
-		super("Margrave encountered an error while parsing...");
-		this.row = row;
-		this.col = col;
-		
-		// This is called by the parser. If no data, can pass a null for val.
-		if(val != null)
-			errorValue = val;
-		else
-			errorValue = "";
-	}
-}
-
 class MSemanticException extends IOException
 {	
-	int row = -1;
-	int col = -1;
-	Object errorValue = null;
 	String problem;
 
 	MSemanticException(String problem)
 	{
 		super("Margrave could not understand..."); // don't have a null message
 		this.problem = problem;
-	}
-	
-	MSemanticException(String problem, int row, int col, Object val)
-	{
-		super("Margrave could not understand...");
-		this.row = row;
-		this.col = col;
-		this.problem = problem;
-		
-		if(val != null)
-			errorValue = val;
-		else
-			errorValue = "";
 	}
 }
 
@@ -477,10 +424,12 @@ public class MEnvironment
 	public static String sUnsat = "unsat";
 	public static String sQuitMargrave = "quit";
 
+	public static String tempVarPrefix = "_";
+	
 	// Used in exception output
 	static String lastCommandReceived = "";
-	
-	
+
+		
 	static MIDBCollection getPolicyOrView(String str)
 	{
 		
@@ -1793,7 +1742,7 @@ public class MEnvironment
 			msgElement.appendChild(xmldoc.createTextNode(e.getLocalizedMessage()));
 		errorElement.appendChild(msgElement);
 		
-		if(e instanceof MParserException)
+		/*if(e instanceof MParserException)
 		{
 			MParserException ex = (MParserException) e;
 			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
@@ -1813,16 +1762,17 @@ public class MEnvironment
 				placeElement.appendChild(xmldoc.createTextNode(ex.at));
 			errorElement.appendChild(placeElement);
 		}
-		else if(e instanceof MSemanticException)
+		else */
+		if(e instanceof MSemanticException)
 		{
 			MSemanticException ex = (MSemanticException) e;
 			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
-			placeElement.setAttribute("row", String.valueOf(ex.row));
-			placeElement.setAttribute("col", String.valueOf(ex.col));
+			//placeElement.setAttribute("row", String.valueOf(ex.row));
+			//placeElement.setAttribute("col", String.valueOf(ex.col));
 			placeElement.setAttribute("problem", String.valueOf(ex.problem));
 			
-			if(String.valueOf(ex.errorValue).length() > 0)
-				placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
+			//if(String.valueOf(ex.errorValue).length() > 0)
+			//	placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
 			errorElement.appendChild(placeElement);
 		}
 		

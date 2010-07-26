@@ -14,17 +14,17 @@
 
 (start-margrave-engine)
 
-(load-policy (build-path (current-directory) "tests" "extconference.p"))
-(load-policy (build-path (current-directory) "tests" "conference1.p"))
-(load-policy (build-path (current-directory) "tests" "conference2.p"))
-(load-policy (build-path (current-directory) "tests" "phone1.p"))
+;(load-policy (build-path (current-directory) "tests" "extconference.p"))
+;(load-policy (build-path (current-directory) "tests" "conference1.p"))
+;(load-policy (build-path (current-directory) "tests" "conference2.p"))
+;(load-policy (build-path (current-directory) "tests" "phone1.p"))
 (load-policy (build-path (current-directory) "tests" "fwex1.p"))
-(load-policy (build-path (current-directory) "tests" "fwex1a.p"))
-(load-policy (build-path (current-directory) "tests" "fwex2.p"))
-(load-policy (build-path (current-directory) "tests" "fwex3.p"))
-(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
-(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
-(load-policy (build-path (current-directory) "tests" "iout.p"))
+;(load-policy (build-path (current-directory) "tests" "fwex1a.p"))
+;(load-policy (build-path (current-directory) "tests" "fwex2.p"))
+;(load-policy (build-path (current-directory) "tests" "fwex3.p"))
+;(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
+;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
+;(load-policy (build-path (current-directory) "tests" "iout.p"))
 
 ;(m (xml-make-rename-command "conferencepolicy1" "conf1"))
 ;(m (xml-make-rename-command "conferencepolicy2" "conf2"))
@@ -34,16 +34,16 @@
 ;(m (xml-make-rename-command "happyrouterless" "HRless"))
 ;(m (xml-make-rename-command "happyroutermore" "HRmore"))
 
-(mtext "rename conferencepolicy1 conf1")
-(mtext "rename conferencepolicy2 conf2")
+;(mtext "rename conferencepolicy1 conf1")
+;(mtext "rename conferencepolicy2 conf2")
 (mtext "rename fwex1 firewall1")
-(mtext "rename fwex1a firewall1a")
-(mtext "rename fwex2 firewall2")
-(mtext "rename happyrouterless HRless")
-(mtext "rename happyroutermore HRmore")
+;(mtext "rename fwex1a firewall1a")
+;(mtext "rename fwex2 firewall2")
+;(mtext "rename happyrouterless HRless")
+;(mtext "rename happyroutermore HRmore")
 
-(mtext "info")
-(mtext "info conf1")
+;(mtext "info")
+;(mtext "info conf1")
 
 ; Mypol doesn't exist: expect an error on UNDER clause.
 ;(define test-string "EXPLORE xsort(x) AND xsort(y) UNDER mypol IDBOUTPUT mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) TUPLING")
@@ -62,9 +62,12 @@
 ;(mtext test-string)
 ;(mtext "GET ONE 0")
 
-(define test-string "EXPLORE fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
-(mtext test-string)
+(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 (mtext "GET ONE 0")
+
+(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept")
+(mtext "GET ONE 0")
+
 
 
 ;(define test-string2 "EXPLORE subject(s) UNDER conf1")

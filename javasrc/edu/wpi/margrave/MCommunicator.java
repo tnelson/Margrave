@@ -821,8 +821,12 @@ public class MCommunicator
 			return getListElements(n, "CONJUCTCHAIN", "name");
 		}
         
-        private static List<String> getIdentifierList(Node n) {
-        	return getListElements(n, "IDENTIFIERS", "name");
+        private static List<String> getIdentifierList(Node n)
+        {
+        	List<String> result = getListElements(n, "IDENTIFIERS", "name");
+        	if(result != null)
+        		return result;
+        	return new ArrayList<String>();
         }
         
         private static List<String> getUnderList(Node n)
@@ -889,7 +893,7 @@ public class MCommunicator
         }
 
         //Expects the node one down from condition node
-        private static MExploreCondition exploreHelper(Node n) {
+        private static MExploreCondition exploreHelper(Node n) throws MSemanticException, MGEManagerException {
         	NodeList childNodes = n.getChildNodes();
 
         	String name;
@@ -931,16 +935,11 @@ public class MCommunicator
         		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
         		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n");
-        		if (pol != null) {
+        		if (pol != null)
+        		{
         			Formula idbf = MEnvironment.getOnlyIDB(relationName);
         			// Perform variable substitution
-        			try {
-        				idbf = performSubstitution(relationName, pol, idbf, vl);
-        			} catch (MSemanticException e) {
-        				// TODO Auto-generated catch block
-        				e.printStackTrace();
-        			}
-
+       				idbf = performSubstitution(relationName, pol, idbf, vl);
         			
         			// Assemble MExploreCondition object
         			return new MExploreCondition(idbf, pol, vl);
@@ -954,18 +953,15 @@ public class MCommunicator
 
         		Expression varvector;
         		Formula f = null;
-        		try {
-        			varvector = MFormulaManager.makeVarTuple(vl);
-        			f = MFormulaManager.makeAtom(varvector, rel);
-        		} catch (MGEManagerException e) {
-        			// TODO Auto-generated catch block
-        			e.printStackTrace();
-        		}
-
+        		
+        		varvector = MFormulaManager.makeVarTuple(vl);
+        		f = MFormulaManager.makeAtom(varvector, rel);
+        		
         		// No variable substitution needed!
         		return new MExploreCondition(f, rel, vl);
         	}
-        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) {
+        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) 
+        	{
         		String collectionName = getAtomicFormulaYCollection(n);
         		String relationName = getAtomicFormulaYRelation(n);
 
@@ -973,27 +969,16 @@ public class MCommunicator
         		List<String> vl = getIdentifierList(n);
         		
         		Formula idbf = null;
-        		try {
-        			idbf = validateDBIdentifier(collectionName, relationName);
-        		} catch (MSemanticException e) {
-        			// TODO Auto-generated catch block
-        			writeToLog("Semantic Exception!");
-        			e.printStackTrace();
-        		}
+        		
+        		// Will throw an exception rather than return null
+        		idbf = validateDBIdentifier(collectionName, relationName);
         		
         		// Perform variable substitution
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
-        		
+        		        		        		
         		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n");
-        		if (idbf == null) {
-        			writeToLog("idbf is null!\n");
-        		}
-        		try {
-        			idbf = performSubstitution(collectionName, pol, idbf, vl);
-        		} catch (MSemanticException e) {
-        			// TODO Auto-generated catch block
-        			e.printStackTrace();
-        		}
+        		
+       			idbf = performSubstitution(collectionName, pol, idbf, vl);
 
         		// Assemble MExploreCondition object	
         		writeToLog("Returning from atomic-formula-y");
@@ -1175,35 +1160,20 @@ public class MCommunicator
 		// Is objn a policy name? If not, error.
 		 MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
 		 
-		 //TODO: I took out error checking since we don't have symbols anymore (VS)
-		 //if(pol == null)
-		 //	report_unknown_identifier(collectionSymbol);
+		 if(pol == null)
+			 throw new MSemanticException("Unknown IDB Collection: "+objn);
 			   	
 		 // Is idb an idb in objn? If not, error
 		 Formula idbf = MEnvironment.getIDB(objn, dbn);
-		 //if(idbf == null)
-		 //	report_unknown_idb(collectionSymbol, dbSymbol);
+		 if(idbf == null)
+			 throw new MSemanticException("Unknown IDB: "+dbn+" in collection: "+objn);
 		 
 		 return idbf;
 	}
 	
-	private static void report_unknown_identifier(Object idSymbol) throws MSemanticException
-	{	
-		Symbol tok = (Symbol)idSymbol;	
-		throw new MSemanticException("Unknown identifier", tok.left, tok.right, idSymbol);
-	}
-	
-	private static void report_unknown_idb(Object collSymbol, Object idbSymbol) throws MSemanticException
-	{
-		Symbol tok = (Symbol)idbSymbol;	
-		Symbol collTok = (Symbol)collSymbol;
-		throw new MSemanticException("Unknown IDB for the collection "+collTok.value, tok.left, tok.right, idbSymbol);
-	}
-	
 	private static void report_arity_error(Object idbSymbol, List<String> varlist, MIDBCollection coll) throws MSemanticException
 	{
-		Symbol tok = (Symbol)idbSymbol;	
-		throw new MSemanticException("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".", tok.left, tok.right, idbSymbol);
+		throw new MSemanticException("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".");
 	}
 
 	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MSemanticException
