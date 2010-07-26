@@ -72,8 +72,8 @@
   (new modelgraph-edge%
        [from (send (send e get-from) get-mnode)]
        [to (send (send e get-to) get-mnode)]
-       [active #f]
-       [blocked #f]))
+       [active (if (= 0 (random 2)) #t #f)]
+       [blocked (if (= 0 (random 2)) #t #f)]))
 
 (define (convert-node n model)
   (new modelgraph-node%

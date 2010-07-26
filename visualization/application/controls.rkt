@@ -68,6 +68,16 @@
             ) #f)
       )
     
+    (define/override (on-double-click snip event)
+      (if (and (is-a? snip entity-snip%) (not (null? (send snip get-subed))))
+          (if (send this get-snip-location (send snip get-subed))
+              (send this remove (send snip get-subed))
+              (begin
+                (send this insert (send snip get-subed) (- (send event get-x) 150) (- (send event get-y) 150))
+                (send (send snip get-subed) set-flags (list))
+                (send this set-before (send snip get-subed) #f))
+              ) #f))
+    
     (define/public (set-edges! e) (set! edges e))
     
     (super-new)))
@@ -79,9 +89,13 @@
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (if (not (empty? icons)) (begin
+                                 (if (not (null? subed))
+                                     (send dc set-pen arrow-dark 2 'solid)
+                                     (send dc set-pen arrow-light 1 'solid))
                                  (send dc set-smoothing 'aligned)
                                  (send dc draw-rounded-rectangle (- x 20) (- y 10) 120 120 9)
-                                 (send dc set-smoothing 'unsmoothed)) #f)
+                                 (send dc set-smoothing 'unsmoothed)
+                                 (send dc set-pen "black" 1 'solid)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)
       (send dc draw-text name (+ x 15) (+ y 90))
       (draw-icons icons dc x y)   
@@ -93,15 +107,6 @@
             [else (begin
                     (send dc draw-bitmap (first icons) (- x 16) (- y 23))
                     (draw-icons (rest icons) dc (+ 34 x) y))]))
-    
-    (define/override (on-event dc x y editorx editory event)
-      (print "ASDFSDF")
-      (if (not (null? subed))
-          (if (send (send this get-admin) get-snip-location subed)
-              (send (send this get-admin) remove subed)
-              (send (send this get-admin) insert subed x y)) (print "whatup"))
-      (super on-event dc x y editorx editory event)
-      )
     
     (define/public (set-subed! ed) (set! subed ed))
     (define/public (get-subed) subed)
