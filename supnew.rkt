@@ -11,7 +11,7 @@
 ; todo: similarly, why lists everywhere? Does Racket have a decent set implementation?
 
 ; TEMPORARY! Will be a nice module path soon.
-(require (file "M:\\RktMargrave\\margrave.scm"))
+(require (file "./margrave.rkt"))
 ;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
 
 

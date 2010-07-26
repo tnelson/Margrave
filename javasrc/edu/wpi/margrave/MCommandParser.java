@@ -1778,7 +1778,8 @@ class CUP$MCommandParser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).right;
 		Integer id = (Integer)((java_cup.runtime.Symbol) CUP$MCommandParser$stack.peek()).value;
-		 RESULT = MEnvironment.showFirstModel(id); 
+		// !!! Commented out. This code shouldn't run anymore, but keeping it in the project for reference. -TN 7/23
+		 //RESULT = MEnvironment.showFirstModel(id); 
               CUP$MCommandParser$result = parser.getSymbolFactory().newSymbol("RESULTSSTMT",19, ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-2)), ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()), RESULT);
             }
           return CUP$MCommandParser$result;
@@ -1802,7 +1803,8 @@ class CUP$MCommandParser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).right;
 		Integer id = (Integer)((java_cup.runtime.Symbol) CUP$MCommandParser$stack.peek()).value;
-		 RESULT = MEnvironment.showNextModel(id); 
+		// !!! Commented out. This code shouldn't run anymore, but keeping it in the project for reference. -TN 7/23
+		// RESULT = MEnvironment.showNextModel(id); 
               CUP$MCommandParser$result = parser.getSymbolFactory().newSymbol("RESULTSSTMT",19, ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-2)), ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()), RESULT);
             }
           return CUP$MCommandParser$result;
@@ -1829,9 +1831,10 @@ class CUP$MCommandParser$actions {
 		int sizeceilingleft = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).left;
 		int sizeceilingright = ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()).right;
 		Integer sizeceiling = (Integer)((java_cup.runtime.Symbol) CUP$MCommandParser$stack.peek()).value;
-		 RESULT = MEnvironment.doCompare(pol1, pol2, 
-				//outmod, 
-				idbout, tupling, debuglevel, sizeceiling);  
+		// !!! Commented out. This code shouldn't run anymore, but keeping it in the project for reference. -TN 7/23 
+		//RESULT = MEnvironment.doCompare(pol1, pol2, 
+				 
+				//idbout, tupling, debuglevel, sizeceiling);  
               CUP$MCommandParser$result = parser.getSymbolFactory().newSymbol("COMPARESTMT",15, ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.elementAt(CUP$MCommandParser$top-6)), ((java_cup.runtime.Symbol)CUP$MCommandParser$stack.peek()), RESULT);
             }
           return CUP$MCommandParser$result;

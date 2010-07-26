@@ -2305,7 +2305,7 @@ public class MJavaTests
 		// TODO ALL(v)
 		
 		//myInterface.debugParser = true;
-
+/*
 		testCommandOutput("Query 1", query1, query1Result);
 		testCommandOutput("Query 2", query2, query2Result);
 		testCommandCount("Query 2a", query2a, query2aResult);
@@ -2342,11 +2342,12 @@ public class MJavaTests
 		testCommandPop("Query 19", query19, query19Result);
 		testCommandPop("Query 20", query20, query20Result);
 		
+		*/
 		System.exit(1);
 		
 	}
 	
-	public static boolean testCommandPop(String desc, String cmd, Map<String, Set<String>> expected)
+	/*public static boolean testCommandPop(String desc, String cmd, Map<String, Set<String>> expected)
 	{
 		Object result = MEnvironment.commandSilent(cmd);
 		if(result instanceof Map<?, ?>)
@@ -2396,8 +2397,8 @@ public class MJavaTests
 		System.out.println("  Result was not an MQuery object. Instead, got: "+result);
 		return false;
 	}
-	
-	public static boolean testCommandOutput( String desc, String cmd, String expectedPrint)
+	*/
+	/*public static boolean testCommandOutput( String desc, String cmd, String expectedPrint)
 	{
 		
 		PrintStream saveErr = MEnvironment.errorStream;
@@ -2445,7 +2446,7 @@ public class MJavaTests
 		
 		
 		return result;
-	}
+	}*/
 	
 	public static MVocab setup3Vocab(String name, int numSubs, int numActs, int numRes)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, 

@@ -10,8 +10,10 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +93,16 @@ public class MCommunicator
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            Document theResponse = xmlHelper(doc.getFirstChild());
+            Document theResponse;
+            try
+            {
+            	theResponse = xmlHelper(doc.getFirstChild());
+            }
+            catch(Exception e)
+            {
+            	// Construct an exception response;
+            	theResponse = MEnvironment.exceptionResponse(e);
+            }
             try {
         		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
         		out.write(transformXML(theResponse));
@@ -104,7 +115,8 @@ public class MCommunicator
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node) {
+        private static Document xmlHelper(Node node) throws MSemanticException, MGException
+        {
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
         	String type = node.getAttributes().item(0).getNodeValue();
@@ -127,44 +139,104 @@ public class MCommunicator
         					
         					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
         					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
-        					writeToLog("Got past exploreHelper");
         					if (exploreCondition == null)
         						System.out.println("explore condition is null!");
         					MQuery result = null;
         					
-        					//DEbug
-        					Integer debugLevel = 0; //Default
+        					//Default Values                                     					
+        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
+        					List<String> publ = null;
+                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
+                            Boolean tupling = false;
+        					Integer debugLevel = 0;
+        					Integer ceilingLevel = 6; 
+        					
+        					Node underNode = getExploreUnderNode(n);
+        					Node publishNode = getExplorePublishNode(n);
+        					Node idbNode = getExploreIdbNode(n);
+        					Node tuplingNode = getExploreTuplingNode(n);
         					Node debugNode = getExploreDebugNode(n);
+        					Node ceilingNode = getExploreCeilingNode(n);
+        					
+        					
+        					if (underNode != null) { 
+        						
+        						under = namesToIDBCollections(getIdentifierList(underNode));
+        						
+        					}
+        					if (publishNode != null) {
+        						publ = getExplorePublishVars(publishNode);
+        					}
+        					if (idbNode != null) {
+        						NodeList idbChildNodes = idbNode.getChildNodes();
+        						
+        						// default of empty map is set above. Just populate it.
+        						
+        						String collectionName;
+        						String relationName;
+        						List<String> identifiers;
+        						
+        						// For each atomic formula sent
+        						for (int i = 0; i < childNodes.getLength(); i++) {
+        							Node childNode = idbChildNodes.item(i);
+        							
+        							collectionName = getAtomicFormulaYCollection(childNode);
+        							relationName = getAtomicFormulaYRelation(childNode);
+        							identifiers = getIdentifierList(childNode); //could be empty!
+        							
+        							// TODO: Should make a class to help with this eventually; right now
+        							// there is too much string processing going on in the engine.
+        							String idbName = collectionName + ":" + relationName;
+        							    
+        							// initialize if needed
+        							if(!idbOut.containsKey(idbName))
+        								idbOut.put(idbName, new HashSet<List<String>>());
+        							
+        							if (identifiers.size() > 0)
+        							{
+        								// indexed: need to add a variable vector to the entry's value
+        								idbOut.get(idbName).add(identifiers);
+        							}
+        							
+        						}
+        					}
+        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
+        						tupling = true;
+        					}
         					if (debugNode != null) {
         						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
         					}
-        					try {
-        						result = MQuery.createFromExplore(
-        								exploreCondition.addSeenIDBCollections(new LinkedList<MIDBCollection>()), 
-        								null, new HashMap<String, Set<List<String>>>(), false, debugLevel, 0);
-        					} catch (MGEUnknownIdentifier e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEBadIdentifierName e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGECombineVocabs e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEManagerException e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MGEUnsortedVariable e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
-        					} catch (MSemanticException e) {
-        						// TODO Auto-generated catch block
-        						e.printStackTrace();
+        					if (ceilingNode != null) {
+        						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
         					}
+        					
+        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
+        					
+        			
+        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
+        						result = MQuery.createFromExplore(
+        								exploreCondition.addSeenIDBCollections(under), 
+        								publ, idbOut, tupling, debugLevel, ceilingLevel);
+        			
+      
         					writeToLog("AT END OF EXPLORE");
         					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
         				} 
         			}
+        			else if (type.equalsIgnoreCase("INFO")) {
+        				writeToLog("In Info");
+        				String idString = getInfoId(n);
+        				writeToLog("\nPast getting id info");
+        				if (idString != null) {
+        					//Integer id = Integer.parseInt(idString);
+        					theResponse = MEnvironment.printInfo(idString); 
+        				}
+        				else {
+        					theResponse = MEnvironment.printSystemInfo(); 
+        				}
+        				writeToLog("Returning from info");
+        			}
+
         			//Create Statement
         			else if (type.equalsIgnoreCase("CREATE POLICY LEAF")) {
         				String pname = getPolicyName(n);
@@ -231,27 +303,105 @@ public class MCommunicator
         				theResponse = MEnvironment.isPoss(id);
         				writeToLog("Returning from IS-POSSIBLE");
         			}
+        			else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
+        				Integer id = Integer.parseInt(getIsGuaranteedId(n));
+        				theResponse = MEnvironment.isGuar(id);
+        			}
         			else if (type.equalsIgnoreCase("SHOW")) {
+        				writeToLog("In show");
         				String showType = getShowType(n);
+        				writeToLog("In show");
         				Integer id = Integer.parseInt(getShowId(n));
-        				if (showType == "ONE") {
-        					theResponse = MEnvironment.showFirstModel(id);
+        				
+        				writeToLog("\nshowtype: " + showType + "\n");
+        				if (showType.equalsIgnoreCase("ONE")) {
+        					writeToLog("In Show One");
+        					try {
+        						writeToLog("In Show One");
+								theResponse = MEnvironment.getFirstModel(id);
+							} catch (MGEUnknownIdentifier e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEUnsortedVariable e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEManagerException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEBadIdentifierName e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}//MEnvironment.showFirstModel(id);
         				}
-        				else if (showType == "NEXT") {
-        					theResponse = MEnvironment.showNextModel(id);
+        				else if (showType.equalsIgnoreCase("NEXT")) {
+        					try {
+								theResponse = MEnvironment.getNextModel(id);
+							} catch (MGEUnknownIdentifier e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEUnsortedVariable e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEManagerException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (MGEBadIdentifierName e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}//MEnvironment.showNextModel(id);
         				}
-        				else if (showType == "NEXTCOLLAPSE") {
+        				else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
         					theResponse = MEnvironment.showNextCollapse(id);
         				}
-        				else if (showType == "CEILING") {
+        				else if (showType.equalsIgnoreCase("CEILING")) {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				else if (showType == "POPULATED") {
+        				else if (showType.equalsIgnoreCase("POPULATED")) {
         					List<String> rlist = getIdentifierList(n);
-        					//theResponse = MEnvironment.showPopulated(id, rlist);
+        					Node forCasesNode = getForCasesNode(n);
+        					if (forCasesNode != null) {
+        						//theResponse = MEnvironment.showPopulated(id, rlist);
+        					}
+        					else {
+        						//theResponse = MEnvironment.showPopulated(id, rlist, clist); 
+        					}
+        				}
+        				else if (showType.equalsIgnoreCase("UNPOPULATED")) {
+        					List<String> rlist = getIdentifierList(n);
+        					Node forCasesNode = getForCasesNode(n);
+        					if (forCasesNode != null) {
+        						//theResponse = MEnvironment.showUnpopulated(id, rlist);
+        					}
+        					else {
+
+        						//theResponse = MEnvironment.showUnpopulated(id, rlist, clist);
+        					}
+        					
         				}
 
 
+        			}
+        			
+        			else if (type.equalsIgnoreCase("GET")) {
+        				String getType = getGetType(n);
+        				String pname = getPolicyName(n);
+        				String rname = "";
+        				if (getType == "DECISION") {
+        					theResponse = MEnvironment.getDecisionFor(pname, rname);;
+        				}
+        				else if (getType == "HIGHER-PRIORITY-THAN") {
+        					theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
+        				}
+        				else if (getType == "RULES") {
+        					theResponse = MEnvironment.getRulesIn(pname, false);
+        				}
+        				else if (getType == "QUALIFIED-RULES") {
+        					theResponse = MEnvironment.getRulesIn(pname, true);
+        				}
+        			}
+        			
+        			else if (type.equalsIgnoreCase("COMPARE")) {
+        				
         			}
         			
         			//Add Statement
@@ -259,7 +409,7 @@ public class MCommunicator
         				Node childNode = n.getFirstChild();
         				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER")) {
         					String vname = getVocabName(n);
-        					Node secondChildNode = childNode.getNextSibling();
+        					Node secondChildNode = childNode.getNextSibling(); //Probably shouldn't be hardcoded in
         					String addType = secondChildNode.getNodeName();
         					writeToLog("addType: " + addType +"\n");
         					if (addType == "SUBSORT") {
@@ -296,7 +446,49 @@ public class MCommunicator
         						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
         					else if (addType == "CONSTRAINT") {
-
+        						Node constraintNode = secondChildNode; //Just for clarity
+        						
+        						String constraintType = getConstraintType(constraintNode);
+        						List<String> relations = getRelationsList(constraintNode);
+        						
+        						String firstRelation = relations.get(0);
+        						
+        						if (constraintType == "DISJOINT") {
+        							theResponse = MEnvironment.addConstraintDisjoint(vname, firstRelation, relations.get(1));
+        						}
+        						else if (constraintType == "DISJOINT-ALL") {
+        							theResponse = MEnvironment.addConstraintDisjointAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "SINGLETON") {
+        							theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
+        						}
+        						else if (constraintType == "SINGLETON-ALL") {
+        							theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "ATMOSTONE") {
+        							theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
+        						}
+        						else if (constraintType == "NONEMPTY") {
+        							theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
+        						}
+        						else if (constraintType == "NONEMPTY-ALL") {
+        							theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "ABSTRACT") {
+        							theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
+        						}
+        						else if (constraintType == "ABSTRACT-ALL") {
+        							theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
+        						}
+        						else if (constraintType == "TOTAL-FUNCTION") {
+        							theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
+        						}
+        						else if (constraintType == "PARTIAL-FUNCTION") {
+        							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
+        						}
+        						else if (constraintType == "SUBSET") {
+        							theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));
+        						}
         					}
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
@@ -305,7 +497,7 @@ public class MCommunicator
 
         					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
         					String decName = getDecisionType(ruleNode); 
-        					List<Node> relationNodes = getListOfRelations(ruleNode);
+        					List<Node> relationNodes = getListOfRelationNodes(ruleNode);
         					List<String> relationsList = new LinkedList<String>();
         					String relationName;
         					String sign;
@@ -361,6 +553,10 @@ public class MCommunicator
         	return theResponse;
         }
         
+		private static String getInfoId(Node n) {
+			return getNodeAttribute(n, "INFO", "id");
+		}
+		
         //Helper functions for specific parts of commands
         private static String getPolicyName(Node n) {
         	return getNodeAttribute(n, "POLICY-IDENTIFIER", "pname");
@@ -393,18 +589,6 @@ public class MCommunicator
         private static String getRequestSort(Node n) {
         	return getNodeAttribute(n, "REQUESTVAR", "sort");
         }
-		
-        private static List<String> getRelationsList(Node n) {
-        	return getListElements(n, "RELATIONS", "name");
-        }
-        
-        private static List<String> getConjunctChainList(Node n) {
-			return getListElements(n, "CONJUCTCHAIN", "name");
-		}
-        
-        private static List<String> getIdentifierList(Node n) {
-        	return getListElements(n, "IDENTIFIERS", "name");
-        }
         
         private static String getParentName(Node n) {
         	return getNodeAttribute(n, "PARENT-IDENTIFIER", "name");
@@ -424,6 +608,10 @@ public class MCommunicator
         	return getNodeAttribute(n, "DECISION-TYPE", "type");
         }
         
+        private static String getConstraintType(Node n) {
+        	return getNodeAttribute(n, "CONSTRAINT", "type");
+        }
+
         //Relations in a rule
         private static String getRelationName(Node n) {
         	return getNodeAttribute(n, "RELATION", "name");
@@ -431,18 +619,17 @@ public class MCommunicator
         private static String getRelationSign(Node n) {
         	return getNodeAttribute(n, "RELATION", "sign");
         }
-        
-        private static List<Node> getListOfRelations(Node n) {
+        private static List<Node> getListOfRelationNodes(Node n) {
         	Node relationsNode = getChildNode(n, "RELATIONS");
         	List<Node> relationNodes = new LinkedList<Node>();
         	NodeList childNodes = relationsNode.getChildNodes();
-        	
+
         	for (int i = 0; i < childNodes.getLength(); i++) {
         		relationNodes.add(childNodes.item(i));
         	}
-        	
+
         	return relationNodes;
-        }
+        } 
         
         //Othervar
         public static String getOtherVarName(Node n) {
@@ -463,6 +650,9 @@ public class MCommunicator
         public static String getIsPossibleId(Node n) {
         	return getNodeAttribute(n, "IS-POSSIBLE", "id");
         }
+        public static String getIsGuaranteedId(Node n) {
+        	return getNodeAttribute(n, "IS-GUARANTEED", "id");
+        }
         
         //SHOW
         public static String getShowType(Node n) {
@@ -470,6 +660,14 @@ public class MCommunicator
         }
         public static String getShowId(Node n) {
         	return getNodeAttribute(n, "SHOW", "id");
+        }
+        public static Node getForCasesNode(Node n) {
+        	return getChildNode(n, "FORCASES");
+        }
+        
+        //GET
+        public static String getGetType(Node n) {
+        	return getNodeAttribute(n, "GET", "type");
         }
         
         //ATOMIC FORMULAS
@@ -483,12 +681,48 @@ public class MCommunicator
         	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
         }
         
-        public static Node getExploreDebugNode(Node n) {
-        	return getChildNode(n, "DEBUG");
-        }
         
+        
+        public static Node getExploreUnderNode(Node n) {
+        	return getChildNode(n, "UNDER");
+        }
+		public static Node getExplorePublishNode(Node n) {
+			return getChildNode(n, "PUBLISH");
+		}
+		public static Node getExploreIdbNode(Node n) {
+			return getChildNode(n, "IDB");
+		}
+		public static Node getExploreTuplingNode(Node n) {
+			return getChildNode(n, "TUPLING");
+		}
+		public static Node getExploreDebugNode(Node n) {
+			return getChildNode(n, "DEBUG");
+        }
+		public static Node getExploreCeilingNode(Node n) {
+			return getChildNode(n, "CEILING");
+		}
+        
+		public static List<String> getExplorePublishVars(Node n) {
+			return getIdentifierList(n);
+		}
         public static String getDebugLevel(Node n) {
         	return getNodeAttribute(n, "DEBUG", "debug-level");
+        }
+        public static String getCeilingLevel(Node n) {
+        	return getNodeAttribute(n, "CEILING", "ceiling-level");
+        }
+        
+        //LISTS
+        private static List<String> getRelationsList(Node n) {
+        	return getListElements(n, "RELATIONS", "name");
+        }
+        
+        private static List<String> getConjunctChainList(Node n) {
+			return getListElements(n, "CONJUCTCHAIN", "name");
+		}
+        
+        private static List<String> getIdentifierList(Node n) {
+        	return getListElements(n, "IDENTIFIERS", "name");
         }
         
         //Returns the child node of n whose name is nodeName 
@@ -515,7 +749,13 @@ public class MCommunicator
         	else {
         		node = getChildNode(n, nodeName);
         	}
+        	
+        	//Return null if we couldn't find the node, or if the node doesn't have the specified attribute
         	if (node == null) {
+        		return null;
+        	}
+        	Node attribute = node.getAttributes().getNamedItem(attributeName);
+        	if (attribute == null) {
         		return null;
         	}
         	return node.getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase();
@@ -524,6 +764,12 @@ public class MCommunicator
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
         private static List<String> getListElements(Node n, String listName, String attributeName) {
         	Node listNode = getChildNode(n, listName);
+        	
+        	//Return null if we can't find the node
+        	if (listNode == null) {
+        		return null;
+        	}
+        	
         	LinkedList<String> attributeValues = new LinkedList<String>();
         	
         	NodeList childNodes = listNode.getChildNodes();
@@ -712,12 +958,12 @@ public class MCommunicator
     		 handleXMLCommand(command);
     	 }
     	 else {
-    		 handleTextCommand(command);
+    		 //handleTextCommand(command);
     	 }
      }
 
 
-     protected static void handleTextCommand(String command) {
+    /* protected static void handleTextCommand(String command) {
     	 // Command is complete. Deal with it.
     	 Document theResponse = MEnvironment.commandSilent(command);
 
@@ -730,7 +976,7 @@ public class MCommunicator
     	 out.flush(); // ALWAYS FLUSH!
     	 System.err.flush(); // just in case
 
-     }
+     }*/
      
      protected static String transformXMLString(Document theResponse) 
      {
@@ -849,4 +1095,18 @@ public class MCommunicator
 		throw new MSemanticException("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".", tok.left, tok.right, idbSymbol);
 	}
 
+	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MSemanticException
+	{
+		List<MIDBCollection> result = new ArrayList<MIDBCollection>(names.size());
+		
+		for(String n : names)
+		{
+			if(MEnvironment.getPolicyOrView(n) == null)
+				throw new MSemanticException("Unknown symbol in UNDER clause: "+n);
+			result.add(MEnvironment.getPolicyOrView(n));
+		}
+		
+		return result;
+	}
+	
 }

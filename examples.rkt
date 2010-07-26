@@ -22,8 +22,7 @@
 ; updated to new EXPLORE query language 04/2010 tn
 
 ; TEMPORARY! Will be a nice module path soon.
-(require (file "M:\\RktMargrave\\margrave.scm"))
-;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
+(require (file "./margrave.rkt"))
 
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
 ; execute it and read it in tandem. 

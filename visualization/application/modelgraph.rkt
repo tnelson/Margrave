@@ -79,6 +79,7 @@
   (new modelgraph-node%
        [name (send n get-name)]
        [policy (send n get-policy)]
+       [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
        [results empty]))
 
 (define (convert-node/pos n model)
@@ -86,6 +87,7 @@
          (new pos-modelgraph-node%
               [name (send n get-name)]
               [policy (send n get-policy)]
+              [subgraph (if (null? (send n get-subgraph)) null (apply-model/pos (send n get-subgraph) model))]       
               [results (filter (lambda (r) (= 0 (random 2))) (list result-accept result-deny result-modify))]
               [x (send n get-x)]
               [y (send n get-y)]
