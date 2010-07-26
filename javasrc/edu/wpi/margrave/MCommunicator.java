@@ -154,12 +154,12 @@ public class MCommunicator
         					Integer debugLevel = 0;
         					Integer ceilingLevel = 6; 
         					
-        					Node underNode = getExploreUnderNode(n);
-        					Node publishNode = getExplorePublishNode(n);
-        					Node idbOutputNode = getExploreIdbNode(n);
-        					Node tuplingNode = getExploreTuplingNode(n);
-        					Node debugNode = getExploreDebugNode(n);
-        					Node ceilingNode = getExploreCeilingNode(n);
+        					Node underNode = getUnderNode(n);
+        					Node publishNode = getPublishNode(n);
+        					Node idbOutputNode = getIdbNode(n);
+        					Node tuplingNode = getTuplingNode(n);
+        					Node debugNode = getDebugNode(n);
+        					Node ceilingNode = getCeilingNode(n);
         					
         					
         					if (underNode != null)
@@ -173,35 +173,7 @@ public class MCommunicator
         					if (idbOutputNode != null) {
         						NodeList idbChildNodes = idbOutputNode.getChildNodes();
         						
-        						// default of empty map is set above. Just populate it.
-        						
-        						String collectionName;
-        						String relationName;
-        						List<String> identifiers;
-        						
-        						// For each atomic formula sent
-        						for (int i = 0; i < childNodes.getLength(); i++) {
-        							Node childNode = idbChildNodes.item(i);
-        							
-        							collectionName = getAtomicFormulaYCollection(childNode);
-        							relationName = getAtomicFormulaYRelation(childNode);
-        							identifiers = getIdentifierList(childNode); //could be empty!
-        							
-        							// TODO: Should make a class to help with this eventually; right now
-        							// there is too much string processing going on in the engine.
-        							String idbName = collectionName + ":" + relationName;
-        							    
-        							// initialize if needed
-        							if(!idbOut.containsKey(idbName))
-        								idbOut.put(idbName, new HashSet<List<String>>());
-        							
-        							if (identifiers.size() > 0)
-        							{
-        								// indexed: need to add a variable vector to the entry's value
-        								idbOut.get(idbName).add(identifiers);
-        							}
-        							
-        						}
+        						idbOut = atomicFormulasToHashmap(idbChildNodes);
         					}
         					if (tuplingNode != null) { //For now if the node exists just set tupling to true
         						tupling = true;
@@ -231,7 +203,6 @@ public class MCommunicator
         				String idString = getInfoId(n);
         				writeToLog("\nPast getting id info");
         				if (idString != null) {
-        					//Integer id = Integer.parseInt(idString);
         					theResponse = MEnvironment.printInfo(idString); 
         				}
         				else {
@@ -261,6 +232,16 @@ public class MCommunicator
         				}
         				writeToLog("Finished Create Vocabulary\n");
         			} 
+        			else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
+        				String fileName = getLoadFileName(n);
+        				String schemaFileName = getLoadSchemaFileName(n);
+        				theResponse = MEnvironment.loadXACML(fileName, schemaFileName);
+        			}
+        			else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
+        				String fileName = getLoadFileName(n);
+        				theResponse = MEnvironment.loadSQS(fileName);
+        			}
+        			
         			else if (type.equalsIgnoreCase("PREPARE")) {
         				String pname = getPolicyName(n);
         				theResponse = MEnvironment.preparePolicy(pname);
@@ -349,30 +330,58 @@ public class MCommunicator
         				else if (showType.equalsIgnoreCase("CEILING")) {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				else if (showType.equalsIgnoreCase("POPULATED")) {
-        					List<String> rlist = getIdentifierList(n);
-        					Node forCasesNode = getForCasesNode(n);
-        					if (forCasesNode != null) {
-        						//theResponse = MEnvironment.showPopulated(id, rlist);
+        				else if (showType.equalsIgnoreCase("POPULATED") |
+        						showType.equalsIgnoreCase("UNPOPULATED")) {
+        					String popIdString;
+        					if (showType.equalsIgnoreCase("POPULATED")) {
+        						popIdString = getPopulatedId(n);
         					}
         					else {
-        						//theResponse = MEnvironment.showPopulated(id, rlist, clist); 
+        						popIdString = getUnpopulatedId(n);
         					}
-        				}
-        				else if (showType.equalsIgnoreCase("UNPOPULATED")) {
-        					List<String> rlist = getIdentifierList(n);
+        					Integer popId = Integer.parseInt(popIdString);
         					Node forCasesNode = getForCasesNode(n);
-        					if (forCasesNode != null) {
-        						//theResponse = MEnvironment.showUnpopulated(id, rlist);
-        					}
-        					else {
-
-        						//theResponse = MEnvironment.showUnpopulated(id, rlist, clist);
-        					}
         					
+        					NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
+        					Map<String, Set<List<String>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
+        					
+        					if (forCasesNode != null) {
+        						NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
+        						Map<String, Set<List<String>>> forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);
+        						if (showType.equalsIgnoreCase("POPULATED")) {
+        							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+        						}
+        						else {
+        							theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+        						}
+        						
+        					}
+        					else {
+        						if (showType.equalsIgnoreCase("POPULATED")) {
+        							//theResponse = MEnvironment.showPopulated(popId, atomicFormulas);
+        						}
+        						else {
+        							//theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas);
+        						}
+        						
+        					}
         				}
 
 
+        			}
+        			else if (type.equalsIgnoreCase("COUNT")) {
+        				String idString = getCountId(n);
+        				Integer id = Integer.parseInt(idString);
+        				theResponse = MEnvironment.countModels(id);
+        				
+        				Node sizeNode = getSizeNode(n);
+        				if (sizeNode != null) {
+        					Integer countSize = Integer.parseInt(getCountSize(sizeNode));
+        					theResponse = MEnvironment.countModels(id, countSize);
+        				}
+        				else {
+        					theResponse = MEnvironment.countModels(id);
+        				}
         			}
         			
         			else if (type.equalsIgnoreCase("GET")) {
@@ -394,7 +403,44 @@ public class MCommunicator
         			}
         			
         			else if (type.equalsIgnoreCase("COMPARE")) {
+        				String pol1 = "";//getCompareFirstPolicy(n);
+        				String pol2 = "";//getCompareSecondPolicy(n);
         				
+                        HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
+                        Boolean tupling = false;
+    					Integer debugLevel = 0;
+    					Integer ceilingLevel = 6; 
+    					
+    					Node idbOutputNode = getIdbNode(n);
+    					Node tuplingNode = getTuplingNode(n);
+    					Node debugNode = getDebugNode(n);
+    					Node ceilingNode = getCeilingNode(n);
+    				
+    					if (idbOutputNode != null) {
+    						NodeList idbChildNodes = idbOutputNode.getChildNodes();
+    						
+    						idbOut = atomicFormulasToHashmap(idbChildNodes);
+    					}
+    					if (tuplingNode != null) { //For now if the node exists just set tupling to true
+    						tupling = true;
+    					}
+    					if (debugNode != null) {
+    						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
+    					}
+    					if (ceilingNode != null) {
+    						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
+    					}
+    					
+    					//theResponse = MEnvironment.doCompare(pol1, pol2, idbOut, tupling, debugLevel, ceilingLevel);
+    					
+    					/*
+        				// OUTMODIFIER:outmod 
+        				IDBCLAUSE:idbout 
+        				TUPLINGSWITCH:tupling DEBUGSWITCH:debuglevel CEILINGSWITCH:sizeceiling
+        				{: RESULT = MEnvironment.doCompare(pol1, pol2, 
+        						//outmod, 
+        						idbout, tupling, debuglevel, sizeceiling);  :}
+        				; */
         			}
         			
         			//Add Statement
@@ -548,6 +594,40 @@ public class MCommunicator
         	return theResponse;
         }
         
+        private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes) {
+        	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
+        	// default of empty map is set above. Just populate it.
+			
+			String collectionName;
+			String relationName;
+			List<String> identifiers;
+			
+			// For each atomic formula sent
+			for (int i = 0; i < childNodes.getLength(); i++) {
+				Node childNode = childNodes.item(i);
+				
+				collectionName = getAtomicFormulaYCollection(childNode);
+				relationName = getAtomicFormulaYRelation(childNode);
+				identifiers = getIdentifierList(childNode); //could be empty!
+				
+				// TODO: Should make a class to help with this eventually; right now
+				// there is too much string processing going on in the engine.
+				String idbName = collectionName + ":" + relationName;
+				    
+				// initialize if needed
+				if(!hashMap.containsKey(idbName))
+					hashMap.put(idbName, new HashSet<List<String>>());
+				
+				if (identifiers.size() > 0)
+				{
+					// indexed: need to add a variable vector to the entry's value
+					hashMap.get(idbName).add(identifiers);
+				}
+				
+			}
+        	return hashMap;
+        }
+        
 		private static String getInfoId(Node n) {
 			return getNodeAttribute(n, "INFO", "id");
 		}
@@ -659,6 +739,23 @@ public class MCommunicator
         public static Node getForCasesNode(Node n) {
         	return getChildNode(n, "FORCASES");
         }
+        public static String getPopulatedId(Node n) {
+        	return getNodeAttribute(n, "POPUlATED", "id");
+        }
+        public static String getUnpopulatedId(Node n) {
+        	return getNodeAttribute(n, "UNPOPUlATED", "id");
+        }
+        
+        //COUNT
+        private static String getCountId(Node n) {
+        	return getNodeAttribute(n, "COUNT", "id");
+        }
+        private static Node getSizeNode(Node n) {
+        	return getChildNode(n, "SIZE");
+        }
+        private static String getCountSize(Node n) {
+        	return getNodeAttribute(n, "COUNT", "size");
+        }
         
         //GET
         public static String getGetType(Node n) {
@@ -675,25 +772,33 @@ public class MCommunicator
         public static String getAtomicFormulaNRelation(Node n) {
         	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
         }
+        public static NodeList getAtomicFormulaNodesFromList(Node n) {
+        	return getChildNode(n, "ATOMIC-FORMULA-LIST").getChildNodes();
+        }
         
+        private static String getLoadFileName(Node n) {
+        	return getNodeAttribute(n, "LOAD", "file-name");
+        }
+        private static String getLoadSchemaFileName(Node n) {
+        	return getNodeAttribute(n, "LOAD", "schema-file-name");
+        }
         
-        
-        public static Node getExploreUnderNode(Node n) {
+        public static Node getUnderNode(Node n) {
         	return getChildNode(n, "UNDER");
         }
-		public static Node getExplorePublishNode(Node n) {
+		public static Node getPublishNode(Node n) {
 			return getChildNode(n, "PUBLISH");
 		}
-		public static Node getExploreIdbNode(Node n) {
+		public static Node getIdbNode(Node n) {
 			return getChildNode(n, "IDBOUTPUT");
 		}
-		public static Node getExploreTuplingNode(Node n) {
+		public static Node getTuplingNode(Node n) {
 			return getChildNode(n, "TUPLING");
 		}
-		public static Node getExploreDebugNode(Node n) {
+		public static Node getDebugNode(Node n) {
 			return getChildNode(n, "DEBUG");
         }
-		public static Node getExploreCeilingNode(Node n) {
+		public static Node getCeilingNode(Node n) {
 			return getChildNode(n, "CEILING");
 		}
         
