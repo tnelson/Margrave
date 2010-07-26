@@ -9,7 +9,7 @@
 
             http://racket-lang.org/
 |#
- 28 7 #"wxtext\0"
+ 19 7 #"wxtext\0"
 3 1 6 #"wxtab\0"
 1 1 8 #"wxmedia\0"
 4 1 8 #"wximage\0"
@@ -25,16 +25,6 @@
 0 0 29 #"drscheme:bindings-snipclass%\0"
 1 0 25 #"(lib \"matrix.ss\" \"htdp\")\0"
 1 0 22 #"drscheme:lambda-snip%\0"
-1 0 56
-#"(lib \"hrule-snip.ss\" \"macro-debugger\" \"syntax-browser\")\0"
-1 0 45 #"(lib \"image-snipr.ss\" \"slideshow\" \"private\")\0"
-1 0 26 #"drscheme:pict-value-snip%\0"
-0 0 38 #"(lib \"pict-snipclass.ss\" \"slideshow\")\0"
-2 0 55 #"(lib \"vertical-separator-snip.ss\" \"stepper\" \"private\")\0"
-1 0 18 #"drscheme:xml-snip\0"
-1 0 31 #"(lib \"xml-snipclass.ss\" \"xml\")\0"
-1 0 21 #"drscheme:scheme-snip\0"
-2 0 34 #"(lib \"scheme-snipclass.ss\" \"xml\")\0"
 1 0 10 #"text-box%\0"
 1 0 32 #"(lib \"text-snipclass.ss\" \"xml\")\0"
 1 0 15 #"test-case-box%\0"
@@ -134,14 +124,8 @@
 1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 68 0 203 0 0 0 -1 -1 2 31
 #"drracket:check-syntax:imported\0"
 0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 68 0 203 0 0 0 -1 -1 4 1
+1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 68 0 203 0 0 0 -1 -1 8 1
 #"\0"
-0 70 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 4 4 #"XML\0"
-0 70 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 8 1 #"\0"
 0 -1 1 #"\0"
 1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 8 24
 #"drscheme:text:ports err\0"
@@ -151,6 +135,12 @@
 0 75 12 #"Courier New\0"
 0.0 10 90 -1 90 -1 3 -1 0 1 0 1 0 0 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 255
 255 255 1 -1 4 1 #"\0"
+0 70 1 #"\0"
+1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
+-1 -1 4 4 #"XML\0"
+0 70 1 #"\0"
+1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
+-1 -1 4 1 #"\0"
 0 71 1 #"\0"
 1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
 -1 -1 4 1 #"\0"
@@ -261,7 +251,7 @@
 -1 -1 2 1 #"\0"
 0 71 1 #"\0"
 1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 0 100 0 0 0
-0 -1 -1           0 97 0 26 3 12 #"#lang racket"
+0 -1 -1           0 112 0 26 3 12 #"#lang racket"
 0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
 0 0 17 3 50 #"; updated to new EXPLORE query language 04/2010 tn"
@@ -310,19 +300,26 @@
 0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
-0 0 17 3 24 #";(start-margrave-engine)"
+0 0 22 3 1 #"("
+0 0 14 3 21 #"start-margrave-engine"
+0 0 22 3 1 #")"
 0 0 4 29 1 #"\n"
-0 0 17 3 2 #";("
-0 0 17 3 11 #"load-policy"
+0 0 22 3 1 #"("
+0 0 14 3 11 #"load-policy"
 0 0 17 3 1 #" "
-0 0 17 3 1 #"("
-0 0 17 3 10 #"build-path"
+0 0 22 3 1 #"("
+0 0 14 3 10 #"build-path"
 0 0 17 3 1 #" "
-0 0 17 3 1 #"("
-0 0 17 3 17 #"current-directory"
-0 0 17 3 1 #")"
+0 0 22 3 1 #"("
+0 0 14 3 17 #"current-directory"
+0 0 22 3 1 #")"
 0 0 17 3 1 #" "
-0 0 17 3 27 #"\"tests\" \"extconference.p\"))"
+0 0 19 3 7 #"\"tests\""
+0 0 17 3 1 #" "
+0 0 19 3 17 #"\"extconference.p\""
+0 0 22 3 2 #"))"
+0 0 4 29 1 #"\n"
+0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
 0 7        1369 4           0 0           0 227 0 22 3 1 #"("
 0 0 14 3 11 #"load-policy"
@@ -561,11 +558,11 @@
 0 0 14 3 11 #"test-string"
 0 0 4 3 1 #" "
 0 0 19 3 8 #"\"EXPLORE"
-0 0 19 3 13 #" xsort(x) AND"
-0 0 19 3 131
+0 0 19 3 144
 (
- #" xsort(y) UNDER mypol IDBOUTPUT mypol:rule1(x, y), mypol:rule2(x, y)"
- #", mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) TUPLING\""
+ #" xsort(x) AND xsort(y) UNDER mypol IDBOUTPUT mypol:rule1(x, y), mypo"
+ #"l:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) "
+ #"TUPLING\""
 ) 0 0 22 3 1 #")"
 0 0 4 29 1 #"\n"
 0 0 22 3 1 #"("
@@ -590,7 +587,16 @@
 0 0 14 3 11 #"test-string"
 0 0 22 3 2 #"))"
 0 0 4 29 1 #"\n"
-0 0 17 3 23 #";(stop-margrave-engine)"
+0 0 22 3 1 #"("
+0 0 14 3 1 #"m"
+0 0 4 3 1 #" "
+0 0 14 3 8 #"test-xml"
+0 0 22 3 1 #")"
+0 0 4 29 1 #"\n"
+0 0 4 29 1 #"\n"
+0 0 22 3 1 #"("
+0 0 14 3 20 #"stop-margrave-engine"
+0 0 22 3 1 #")"
 0 0 4 29 1 #"\n"
 0 0 4 29 1 #"\n"
 0           0

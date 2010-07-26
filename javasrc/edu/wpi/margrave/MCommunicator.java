@@ -74,7 +74,8 @@ public class MCommunicator
 		readCommands();
 	}
 
-        public static void handleXMLCommand(String command) {
+        public static void handleXMLCommand(String command)
+        {
             DocumentBuilder docBuilder = null;
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             try {
@@ -129,9 +130,11 @@ public class MCommunicator
         	//for (int i = 0; i < childNodes.getLength(); i++) {
         		n = node;
 
-        		if (n.getNodeType() == Node.ELEMENT_NODE) {
+        		if (n.getNodeType() == Node.ELEMENT_NODE)
+        		{
 
-        			if (type.equalsIgnoreCase("EXPLORE")) {
+        			if (type.equalsIgnoreCase("EXPLORE"))
+        			{
         				n = n.getFirstChild();
         				String name = n.getNodeName();
         				if (name.equalsIgnoreCase("EXPLORE")) {
@@ -293,6 +296,10 @@ public class MCommunicator
         				List<String> idl = getIdentifierList(n);
         				theResponse = MEnvironment.setPCombine(pname, idl);
         			}
+        			else if (type.equalsIgnoreCase("QUIT"))
+        			{
+        				 MEnvironment.quitMargrave();
+        			}
         			else if (type.equalsIgnoreCase("RENAME")) {
         				String id1 = getRenameFirstId(n);
         				String id2 = getRenameSecondId(n);
@@ -314,41 +321,27 @@ public class MCommunicator
         				Integer id = Integer.parseInt(getShowId(n));
         				
         				writeToLog("\nshowtype: " + showType + "\n");
-        				if (showType.equalsIgnoreCase("ONE")) {
+        				if (showType.equalsIgnoreCase("ONE"))
+        				{
         					writeToLog("In Show One");
-        					try {
+        					try
+        					{
         						writeToLog("In Show One");
 								theResponse = MEnvironment.getFirstModel(id);
-							} catch (MGEUnknownIdentifier e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEUnsortedVariable e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEManagerException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEBadIdentifierName e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}//MEnvironment.showFirstModel(id);
+							} catch (MGException e) {
+								theResponse = MEnvironment.exceptionResponse(e);						
+							}
+							//MEnvironment.showFirstModel(id);
         				}
-        				else if (showType.equalsIgnoreCase("NEXT")) {
-        					try {
+        				else if (showType.equalsIgnoreCase("NEXT"))
+        				{
+        					try
+        					{
 								theResponse = MEnvironment.getNextModel(id);
-							} catch (MGEUnknownIdentifier e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEUnsortedVariable e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEManagerException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (MGEBadIdentifierName e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}//MEnvironment.showNextModel(id);
+							} catch (MGException e) {
+								theResponse = MEnvironment.exceptionResponse(e);						
+							}
+							//MEnvironment.showNextModel(id);
         				}
         				else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
         					theResponse = MEnvironment.showNextCollapse(id);
@@ -541,12 +534,14 @@ public class MCommunicator
         					theResponse = MEnvironment.addChild(parent, child);
         				}
         			}
-        			else {
-        				System.out.println("error!");
+        			else
+        			{
+        				theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sCommand, "");
         			}
         		}
-        		else {
-        			System.out.println("error");
+        		else
+        		{
+        			theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, "", "");
         		}
 
         	//}
@@ -723,6 +718,15 @@ public class MCommunicator
         
         private static List<String> getIdentifierList(Node n) {
         	return getListElements(n, "IDENTIFIERS", "name");
+        }
+        
+        private static List<String> getUnderList(Node n)
+        {
+        	List<String> result = getListElements(n, "UNDER", "pname");     
+        	writeToLog("UNDER LIST: "+result.toString());
+        	MEnvironment.errorStream.println("UNDER LIST: "+result.toString());
+        	MEnvironment.errorStream.flush();
+        	return result;
         }
         
         //Returns the child node of n whose name is nodeName 
@@ -907,10 +911,10 @@ public class MCommunicator
           return list;
      }
      
-     private static void writeToLog(String s) {
+     static void writeToLog(String s) {
     	 try{
     		    // Create file 
-    		    FileWriter fstream = new FileWriter("/home/vjsingh/Margrave/log.txt", true);
+    		    FileWriter fstream = new FileWriter("log.txt", true);
     		        BufferedWriter out = new BufferedWriter(fstream);
     		    out.write(s);
     		    //Close the output stream
@@ -1097,6 +1101,9 @@ public class MCommunicator
 
 	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MSemanticException
 	{
+		if(names == null)
+			return new ArrayList<MIDBCollection>();
+		
 		List<MIDBCollection> result = new ArrayList<MIDBCollection>(names.size());
 		
 		for(String n : names)
