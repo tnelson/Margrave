@@ -4933,7 +4933,7 @@ public class MQuery extends MIDBCollection
 			{
 				// Don't publish "temp" vars! 
 				// TODO this is a kludge; user could still naively make a var called TempVarFoozle
-				if(!v.name().startsWith(MCommandParser.tempVarPrefix))
+				if(!v.name().startsWith(MEnvironment.tempVarPrefix))
 					publish.add(v.name());
 			}
 			

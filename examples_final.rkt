@@ -62,7 +62,7 @@
 ;(mtext test-string)
 ;(mtext "GET ONE 0")
 
-(define test-string "EXPLORE fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
+(define test-string "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 (mtext test-string)
 (mtext "GET ONE 0")
 
