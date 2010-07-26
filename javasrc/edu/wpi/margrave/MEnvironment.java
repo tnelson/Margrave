@@ -604,14 +604,16 @@ public class MEnvironment
 		
 	}
 	
-	static public Document doXMLCommand(MQuery qry, String XMLCommand) {
-		lastCommandReceived = XMLCommand.trim();			
+	static public Document returnQueryResponse(MQuery qry, String XMLCommand)
+	{
+		lastCommandReceived = XMLCommand.trim();	
+		
 		try
 		{
 				// May return null if an internal error.
 				if(qry == null)
 				{
-					errorStream.println("-> Command failed.");
+					//errorStream.println("-> Command failed.");
 					return errorResponse(sFailure, sQuery, XMLCommand);
 				}
 				
@@ -631,7 +633,7 @@ public class MEnvironment
 	}
 	
 
-	static public Document command(String cmd, boolean silent)
+/*	static public Document command(String cmd, boolean silent)
 	{
 		lastCommandReceived = cmd.trim();
 		Reader reader = new StringReader(cmd);
@@ -704,6 +706,7 @@ public class MEnvironment
 		}
 		
 	}
+	*/
 	
 	static public Document printInfo(String id)
 	{
@@ -919,8 +922,14 @@ public class MEnvironment
 			return errorResponse(sUnknown, sIDBCollection, identold);		
 		}
 		
+		MIDBCollection collToMove = envIDBCollections.get(identold);
 		
-		boolean overwrote = envIDBCollections.put(identnew, envIDBCollections.get(identold)) != null;
+		// Important: Change the "name" field of the IDB Collection, too.
+		// (Some internal code depends on this.)
+		// TODO -- remove the name field entirely and add a reverse-lookup in MEnvironment
+		collToMove.name = identnew;
+		
+		boolean overwrote = envIDBCollections.put(identnew, collToMove) != null;
 		envIDBCollections.remove(identold);
 		return boolResponse(overwrote);		
 	}
@@ -1961,9 +1970,19 @@ public class MEnvironment
 		
 		// If this query was tupled, don't forget to convert back to the original signature.		
 		if(mQueryResult.forQuery.tupled) 
+		{
 			next = mQueryResult.forQuery.internalTupledQuery.processTupledSolutionForThis(nextPreTup);
+			MCommunicator.writeToLog("scenarioResponse: query was TUPLED.");
+			MCommunicator.writeToLog("Annotations:");
+			MCommunicator.writeToLog(next.getAnnotations().toString());
+		}
 		else
+		{
 			next = nextPreTup;
+			MCommunicator.writeToLog("scenarioResponse: query was NOT tupled.");
+			MCommunicator.writeToLog("just-in-case, tupling = "+mQueryResult.forQuery.doTupling);
+			MCommunicator.writeToLog("just-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
+		}
 						
 		Document xmldoc = makeInitialResponse("model");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		

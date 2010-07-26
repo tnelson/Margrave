@@ -1550,11 +1550,10 @@ public class MQuery extends MIDBCollection
 			if (r.arity() > 1) {
 				noNonUnaryPredicates = false;
 
-				if (debug_verbosity >= 1 && doTupling)
-					MEnvironment.outStream
-							.println("DEBUG: Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
-									+ "  not allowed (for now) when binary or larger relations are involved.");
-				break;
+				String errorStr = "DEBUG: Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
+					+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();						
+				
+				throw new MGEArityMismatch(errorStr);
 			}
 
 		// was: && herbrandmax > 1; for now always tuple if told to
@@ -2908,7 +2907,10 @@ public class MQuery extends MIDBCollection
 				.toLowerCase(); // include :
 
 		if (!myIDBCollections.containsKey(polName))
-			throw new MGEUnknownIdentifier("Unknown IDB collection: " + polName);
+			throw new MGEUnknownIdentifier("IDB collection appeared in IDBOUTPUT that was not used in condition or UNDER clause: " 
+					+ polName + MEnvironment.eol + " Collections declared were: "+myIDBCollections.keySet());
+		
+		
 		MIDBCollection coll = myIDBCollections.get(polName);
 
 		if (!coll.idbs.containsKey(internal_idbname))
@@ -4812,6 +4814,11 @@ public class MQuery extends MIDBCollection
 		// *****************
 		// Validation
 		// *****************
+		
+		MCommunicator.writeToLog("ENTERING CREATION OF QUERY:");
+		MCommunicator.writeToLog("Fmla: "+mpc.fmla);
+		MCommunicator.writeToLog("Idb out map: "+idbOutputMap.toString());
+		MCommunicator.writeToLog("tup: "+bTupling);
 		
 		// FOR CASES requires tupling (For now)
 /*		if(!bTupling && outmod.forCasesOr.size() > 0)

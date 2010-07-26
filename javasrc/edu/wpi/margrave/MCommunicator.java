@@ -97,7 +97,7 @@ public class MCommunicator
             Document theResponse;
             try
             {
-            	theResponse = xmlHelper(doc.getFirstChild());
+            	theResponse = xmlHelper(doc.getFirstChild(), command);
             }
             catch(Exception e)
             {
@@ -116,7 +116,7 @@ public class MCommunicator
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node) throws MSemanticException, MGException
+        private static Document xmlHelper(Node node, String originalXMLText) throws MSemanticException, MGException
         {
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
@@ -156,7 +156,7 @@ public class MCommunicator
         					
         					Node underNode = getExploreUnderNode(n);
         					Node publishNode = getExplorePublishNode(n);
-        					Node idbNode = getExploreIdbNode(n);
+        					Node idbOutputNode = getExploreIdbNode(n);
         					Node tuplingNode = getExploreTuplingNode(n);
         					Node debugNode = getExploreDebugNode(n);
         					Node ceilingNode = getExploreCeilingNode(n);
@@ -170,8 +170,8 @@ public class MCommunicator
         					if (publishNode != null) {
         						publ = getExplorePublishVars(publishNode);
         					}
-        					if (idbNode != null) {
-        						NodeList idbChildNodes = idbNode.getChildNodes();
+        					if (idbOutputNode != null) {
+        						NodeList idbChildNodes = idbOutputNode.getChildNodes();
         						
         						// default of empty map is set above. Just populate it.
         						
@@ -223,7 +223,7 @@ public class MCommunicator
         			
       
         					writeToLog("AT END OF EXPLORE");
-        					theResponse = MEnvironment.doXMLCommand(result, "Placeholder text");
+        					theResponse = MEnvironment.returnQueryResponse(result, originalXMLText);
         				} 
         			}
         			else if (type.equalsIgnoreCase("INFO")) {
@@ -685,7 +685,7 @@ public class MCommunicator
 			return getChildNode(n, "PUBLISH");
 		}
 		public static Node getExploreIdbNode(Node n) {
-			return getChildNode(n, "IDB");
+			return getChildNode(n, "IDBOUTPUT");
 		}
 		public static Node getExploreTuplingNode(Node n) {
 			return getChildNode(n, "TUPLING");

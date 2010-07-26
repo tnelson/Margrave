@@ -51,6 +51,26 @@
 ;(define test-xml (evalxml test-string))
 ;(m test-xml)
 
+; Parser problem: expects list of atomic formulas, and atomic formulas have to have non-empty var vectors
+;(define test-string "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit")
+;(mtext test-string)
+
+;
+
+; Won't tuple since conf1 has >1-ary predicates. (Will be enhancing to allow any arity soon.)
+;(define test-string "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r) TUPLING")
+;(mtext test-string)
+;(mtext "GET ONE 0")
+
+
+
+(define test-string2 "EXPLORE subject(s) UNDER conf1")
+(mtext test-string2)
+
+
+
+
+
 (stop-margrave-engine)
 
 
