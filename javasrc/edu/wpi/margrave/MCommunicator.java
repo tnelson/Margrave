@@ -185,7 +185,9 @@ public class MCommunicator
         							
         							collectionName = getAtomicFormulaYCollection(childNode);
         							relationName = getAtomicFormulaYRelation(childNode);
-        							identifiers = getIdentifierList(childNode); //could be empty!
+        							identifiers = getIdentifierList(childNode);
+        							
+        							// Identifiers could be empty (but won't be null)
         							
         							// TODO: Should make a class to help with this eventually; right now
         							// there is too much string processing going on in the engine.
@@ -716,8 +718,12 @@ public class MCommunicator
 			return getListElements(n, "CONJUCTCHAIN", "name");
 		}
         
-        private static List<String> getIdentifierList(Node n) {
-        	return getListElements(n, "IDENTIFIERS", "name");
+        private static List<String> getIdentifierList(Node n)
+        {
+        	List<String> result = getListElements(n, "IDENTIFIERS", "name");
+        	if(result != null)
+        		return result;
+        	return new ArrayList<String>();
         }
         
         private static List<String> getUnderList(Node n)
