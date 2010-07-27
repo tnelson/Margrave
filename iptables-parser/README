@@ -1,0 +1,15 @@
+1) Create a directory on UNIX with the attached files and the firewall script
+2) In the firewall script, comment out commands that load kernel modules (a handful near the top of the file)
+3) In the firewall script, change the IPTABLES variable to "iptables"
+4) Add the current directory to your path
+
+-- Alternative: In step #3, specify the path to the created directory for the IPTABLES command.  The goal is to have the system execute the custom iptables command as the firewall script runs.
+
+5) Run "capture-firewall <firewall-script>".  This will produce iptables-firewall.p.
+6) Load iptables.ss and run the function:
+
+(compile-vocabulary "iptables-firewall.p" "iptables-firewall.v")
+
+This will produce iptables-firewall.v.
+
+You should now have a single policy file that contains 3 kinds of rules: ACCEPT, DROP, or LOG.  (LOG is like DROP.)  You should also have a vocabulary that includes the necessary addresses, ports, interfaces, and chains.
