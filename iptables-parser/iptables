@@ -1,0 +1,110 @@
+#!/usr/local/bin/bash
+# iptables Configuration Modeling
+# Copyright (C) Christopher Barratt 2010 All rights reserved.
+
+# Converts a value into a Margrave-compatible atom
+function atomize
+{
+    echo $1 | sed 's/\./-/g'
+}
+
+# Converts an address into a Margrave-compatible atom
+function resolve
+{
+    host $1 | grep -q "has address"
+    if [[ $? -eq 0 ]]; then
+        echo `host $1 | grep "has address" | head -n1 | cut -d ' ' -f 4 | sed 's/\./-/g'`
+    else
+        host $1 | grep -q "in-addr.arpa"
+        if [[ $? -eq 0 ]]; then
+            echo $1 | sed 's/\./-/g'
+        fi
+    fi
+}
+
+# Parse the command line for the important packet attributes.
+SRCADDR="ip-0-0-0-0/0"
+SRCPORT="port-any"
+DESTADDR="ip-0-0-0-0/0"
+DESTPORT="port-any"
+PROTOCOL="ip"
+ININTERFACE="if-any"
+OUTINTERFACE="if-any"
+DECISION=""
+CHAIN=""
+
+while [[ $1 ]]
+do
+    case $1 in
+        -A|--append)
+            CHAIN=$2
+            shift 2
+            ;;
+
+        -j|--jump)
+            DECISION=$2
+            shift 2
+            ;;
+
+        -s|--src|--source)
+            ADDRESS=`resolve $2`
+            if [[ $ADDRESS != "" ]]; then
+                SRCADDR="ip-"`resolve $2`
+            fi
+            shift 2
+            ;;
+
+        --sport|--source-port)
+            SRCPORT="port-"`atomize $2`
+            shift 2
+            ;;
+
+        -d|--dest|--destination)
+            ADDRESS=`resolve $2`
+            if [[ $ADDRESS != "" ]]; then
+                DESTADDR="ip-"`resolve $2`
+            fi
+            shift 2
+            ;;
+
+        --dport|--dest-port)
+            DESTPORT="port-"`atomize $2`
+            shift 2
+            ;;
+
+        -p|--protocol)
+            PROTOCOL=`atomize $2`
+            shift 2
+            ;;
+
+        -i|--in-interface)
+            ININTERFACE="if-"`atomize $2`
+            shift 2
+            ;;
+
+        -o|--out-interface)
+            OUTINTERFACE="if-"`atomize $2`
+            shift 2
+            ;;
+
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Append the rule to the firewall policy.
+if [[ $DECISION != "" ]]
+then
+    echo "(rule-"`grep rule iptables-firewall.p | wc -l` \
+         " = ("$DECISION \
+         " chain in-interface src-addr src-port protocol dest-addr dest-port out-interface) :- " \
+         "("$CHAIN" chain) " \
+         "("$ININTERFACE" in-interface) " \
+         "("$SRCADDR" src-addr) " \
+         "("$SRCPORT" src-port) " \
+         "("$PROTOCOL" protocol) " \
+         "("$DESTADDR" dest-addr) " \
+         "("$DESTPORT" dest-port) " \
+         "("$OUTINTERFACE" out-interface))" >> iptables-firewall.p
+fi

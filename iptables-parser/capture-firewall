@@ -1,0 +1,15 @@
+#!/usr/local/bin/bash
+# iptables Configuration Modeling
+# Copyright (C) Christopher Barratt 2010 All rights reserved.
+
+
+echo "(Policy iptables-firewall uses ip-vocab" \
+     "  (Target)" \
+     "  (Rules" >> iptables-firewall.p
+
+$1
+
+echo ")" \
+     "(RComb FAC)" \
+     "(PComb FAC)" \
+     "(Children))" >> iptables-firewall.p
