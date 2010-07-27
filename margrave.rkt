@@ -23,7 +23,7 @@
 (require racket/system)
 (require framework)
 (require xml)
-(require "./read.rkt")
+(require "./read.rkt" "margrave-xml.rkt")
 
 
 ; **********************************************************
