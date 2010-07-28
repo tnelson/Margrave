@@ -49,7 +49,6 @@
          mtext
          m
          mxtextout
-         pretty-print-model
          load-policy
          get-idbname-list
          get-qualified-idbname-list
@@ -163,12 +162,6 @@
   (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
           (element-content ele)))
 
-; Get value for attribute name-symbol of element ele
-; Element -> Symbol -> String
-(define (get-attribute-value ele name-symbol)
-  (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
-                                  (element-attributes ele)))))
-
 
 ; Get the response type of a MARGRAVE-RESPONSE element:
 ; Document -> String
@@ -216,167 +209,6 @@
   (if (symbol? arg)
       (string-append "\"" (symbol->string arg)"\"")
       (string-append "\"" arg "\"")))
-
-
-;****************************************************************
-;;Pretty Printing returned XML
-
-(define testXML (read-xml (open-input-string
-                           "<MARGRAVE-RESPONSE type=\"model\">
-<MODEL size=\"3\">
-<RELATION arity=\"1\" name=\"author\">
-<TUPLE>
-<ATOM>Atom0</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"paper\">
-<TUPLE>
-<ATOM>Atom1</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"subject\">
-<TUPLE>
-<ATOM>Atom0</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"resource\">
-<TUPLE>
-<ATOM>Atom1</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"submitreview\" />
-<RELATION arity=\"1\" name=\"action\">
-<TUPLE>
-<ATOM>Atom2</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"reviewer\" />
-<RELATION arity=\"1\" name=\"readpaper\">
-<TUPLE>
-<ATOM>Atom2</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"review\" />
-<RELATION arity=\"1\" name=\"submitpaper\" />
-<RELATION arity=\"2\" name=\"conflicted\">
-<TUPLE>
-<ATOM>Atom0</ATOM>
-<ATOM>Atom1</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"2\" name=\"assigned\" />
-<RELATION arity=\"1\" name=\"$r\">
-<TUPLE>
-<ATOM>Atom1</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"$a\">
-<TUPLE>
-<ATOM>Atom2</ATOM>
-</TUPLE>
-</RELATION>
-<RELATION arity=\"1\" name=\"$s\">
-<TUPLE>
-<ATOM>Atom0</ATOM>
-</TUPLE>
-</RELATION>
-</MODEL>
-</MARGRAVE-RESPONSE>")))
-
-;name is the name of the atom, such as "s" or "r" (doesn't include the $), and list of types is a list of types (which are really predicates that have only one atom in (predicate-list-of-atoms))
-(define-struct atom (name list-of-types) #:mutable)
-
-;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-atoms) #:mutable)
-
-;Maps strings (such as "s") to their corresponding atoms
-(define atom-hash (make-hash))
-
-;Maps name of predicates (strings) to their corresponding predicate structs
-(define predicate-hash (make-hash))
-
-(define model-size 0)
-
-(define (pretty-print-next-model id) 
-  "")
-
-;Takes a document with <MODEL> as its outer type
-(define (pretty-print-model xml-model)
-  ;First, go through the XML and update the 2 hashes. Then print them out.
-  (local [(define (helper content) ;content is a list of alternating pcdatas and RELATION elements
-            (cond [(empty? content) void]
-                  [(pcdata? (first content)) (helper (rest content))]
-                  [(element? (first content))
-                   (let* ((relation (first content))
-                          (relation-arity (string->number (attribute-value (first  (element-attributes relation)))))
-                          (relation-name  (attribute-value (second (element-attributes relation)))))
-                     (begin
-                       (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
-                         (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
-                       (let ((predicate-struct (hash-ref predicate-hash relation-name))) ;should definitely exist, since we just created it if it didn't
-                         (when (not (empty? (element-content relation))) ;if there is at least one atom that satisfies this relation
-                           (let ((tuple-content (element-content (second (element-content relation)))))
-                             (local [(define (parse-tuple t-cont)
-                                       (cond [(empty? t-cont) void]
-                                             [(pcdata? (first t-cont)) (parse-tuple (rest t-cont))]
-                                             [(element? (first t-cont))
-                                              (let* ((atom (first t-cont))
-                                                     (atom-name (pcdata-string (first (element-content atom)))))
-                                                (begin 
-                                                  (when (not (hash-ref atom-hash atom-name #f)) ;if the atom doesn't exist in the hash yet, create it
-                                                    (hash-set! atom-hash atom-name (make-atom atom-name empty)))
-                                                  (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
-                                                    (if (equal? (string-ref relation-name 0) #\$)
-                                                        (set-atom-name! atom-struct (make-string 1 (string-ref relation-name 1))) ;Have to turn the char into a string
-                                                        (if (=  relation-arity 1) ;If relation is a type
-                                                            (begin 
-                                                              (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                              (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
-                                                            (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
-                                                                   (parse-tuple (rest t-cont))))))))]
-                                             [else "Error in pretty-print-model!"]))]
-                               (parse-tuple tuple-content)))))
-                       (helper (rest content))))]
-                  [else "Error in pretty-print-model!!"]))]
-    (begin (set! atom-hash (make-hash)) ;First reset the hashes
-           (set! predicate-hash (make-hash))
-           (set! model-size (attribute-value (first (element-attributes xml-model))))
-           (helper (element-content xml-model))
-           (display (string-from-hash)))))
-
-;Returns a string to display based on atom-hash and predicate-hash
-(define (string-from-hash)
-  (local [(define (atom-helper hash-pos)
-            (cond [(false? hash-pos) ""]
-                  [else (let ((atom (hash-iterate-value atom-hash hash-pos)))
-                          (string-append
-                           (atom-name atom)
-                           ": "
-                           (foldl (λ(type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
-                           "\n"
-                           (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
-          (define (predicate-helper hash-pos)
-            (cond [(false? hash-pos) ""]
-                  [else (let ((predicate (hash-iterate-value predicate-hash hash-pos)))
-                          (if (= (predicate-arity predicate) 1) ;If type, continue, otherwise print
-                              (predicate-helper (hash-iterate-next predicate-hash hash-pos))
-                              (string-append
-                               (predicate-name predicate)
-                               " = {["
-                               (foldl (λ(atom rest) (string-append (atom-name atom)
-                                                                   (if (not (equal? rest ""))
-                                                                       ", "
-                                                                       "") 
-                                                                   rest)) "" (predicate-list-of-atoms predicate))
-                               "]}"
-                               "\n"
-                               (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
-    (string-append "********* SOLUTION FOUND at size = " model-size " ******************\n"
-                   (atom-helper (hash-iterate-first atom-hash))
-                   (predicate-helper (hash-iterate-first predicate-hash)))))
-
-(define test-model-xml (second (element-content (document-element testXML))))
-
 
 
 ;****************************************************************

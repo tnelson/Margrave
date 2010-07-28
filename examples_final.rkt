@@ -26,7 +26,7 @@
 ;(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
 ;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
 ;(load-policy (build-path (current-directory) "tests" "iout.p"))
-
+(mtext "info")
 ;(m (xml-make-rename-command "conferencepolicy1" "conf1"))
 ;(m (xml-make-rename-command "conferencepolicy2" "conf2"))
 ;(m (xml-make-rename-command "fwex1" "firewall1"))
@@ -69,7 +69,7 @@
 (mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept")
 (mtext "GET ONE 0")
 
-
+(display "ASDA\n")
 (mtext "create vocabulary myvoc")
 (mtext "add to myvoc sort xsort")
 (mtext "add to myvoc subsort xsort s1")
@@ -87,7 +87,7 @@
 (mtext "explore xsort(x) and xsort(y) UNDER mypol idboutput mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
 (mtext "show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
 
-
+(mtext "info myvoc")
 
 
 (stop-margrave-engine)
