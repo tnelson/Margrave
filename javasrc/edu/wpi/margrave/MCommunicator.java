@@ -331,7 +331,8 @@ public class MCommunicator
         					theResponse = MEnvironment.showCeiling(id);
         				}
         				else if (showType.equalsIgnoreCase("POPULATED") |
-        						showType.equalsIgnoreCase("UNPOPULATED")) {
+        						showType.equalsIgnoreCase("UNPOPULATED")) 
+        				{
         					String popIdString;
         					if (showType.equalsIgnoreCase("POPULATED")) {
         						popIdString = getPopulatedId(n);
@@ -344,31 +345,27 @@ public class MCommunicator
         					
         					NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
         					Map<String, Set<List<String>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
-        					
-        					if (forCasesNode != null) {
+        					    
+        					// Default map is empty. If FOR CASES, populate it.
+        					Map<String, Set<List<String>>> forCasesAtomicFormulas = new HashMap<String, Set<List<String>>>();
+        					if (forCasesNode != null)
+        					{
         						NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
-        						Map<String, Set<List<String>>> forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);
-        						if (showType.equalsIgnoreCase("POPULATED")) {
-        							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
-        						}
-        						else {
-        							theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas, forCasesAtomicFormulas);
-        						}
-        						
+        						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
         					}
-        					else {
-        						if (showType.equalsIgnoreCase("POPULATED")) {
-        							//theResponse = MEnvironment.showPopulated(popId, atomicFormulas);
-        						}
-        						else {
-        							//theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas);
-        						}
-        						
-        					}
-        				}
+        					        			
+        					// Get the result and return it
+        					if (showType.equalsIgnoreCase("POPULATED")) {
+    							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+    						}
+    						else {
+    							theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+    						}        					
+        					
+        				} // end pop/unpop
 
 
-        			}
+        			} // end show
         			else if (type.equalsIgnoreCase("COUNT")) {
         				String idString = getCountId(n);
         				Integer id = Integer.parseInt(idString);

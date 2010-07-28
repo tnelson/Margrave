@@ -3,10 +3,11 @@
 ; updated to new EXPLORE query language 04/2010 tn
 
 ; TEMPORARY! Will be a nice module path soon.
-(require (file "./read.rkt")
-         (file "./margrave.rkt")
-         xml
-         parser-tools/lex)
+(require ;(file "./read.rkt")
+         "margrave.rkt"
+         "margrave-xml.rkt"
+         xml)
+
 
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
 ; execute it and read it in tandem. 
@@ -69,10 +70,22 @@
 (mtext "GET ONE 0")
 
 
+(mtext "create vocabulary myvoc")
+(mtext "add to myvoc sort xsort")
+(mtext "add to myvoc subsort xsort s1")
+(mtext "add to myvoc subsort xsort s2")
+(mtext "add to myvoc decision permit")
+(mtext "add to myvoc decision deny")
+(mtext "add to myvoc requestvar x xsort")
+(mtext "add to myvoc requestvar y xsort")
 
-;(define test-string2 "EXPLORE subject(s) UNDER conf1")
-;(mtext test-string2)
+(mtext "create policy leaf mypol myvoc")
+(mtext "add rule to mypol rule1 permit (s1 x) (s2 y)")
+(mtext "add rule to mypol rule2 deny (s2 x) (s1 y)")
+(mtext "prepare mypol")
 
+(mtext "explore xsort(x) and xsort(y) UNDER mypol idboutput mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
+(mtext "show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
 
 
 

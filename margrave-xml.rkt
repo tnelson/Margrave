@@ -3,6 +3,10 @@
 (require xml)
 
 (provide 
+ ; pretty-printer
+ pretty-print-info-xml
+ get-attribute
+ 
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
  xml-make-decision
@@ -45,7 +49,49 @@
  xml-make-schema-file-name
  xml-make-load
  xml-make-load-with-schema
- xml-make-quit)
+ xml-make-quit
+ xml-make-show-populated-command
+ xml-make-show-unpopulated-command
+ xml-make-forcases)
+
+(define (get-attribute name-of-attribute attribute-list)
+  (let ((name (symbol->string (attribute-name (first attribute-list)))))
+  (cond [(empty? attribute-list) #f]
+        [else
+         (if (equal? name-of-attribute name)
+             name
+             (get-attribute name-of-attribute (rest attribute-list)))])))
+
+;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element
+(define (pretty-print-info-xml info-element)
+  (let ([string-buffer (open-output-string)])
+    (local ((define (write s)
+              (write-string s string-buffer)))
+    (begin
+      (write "INFO\n")
+      (write (string-append "Type: " (get-attribute "type" (element-attributes info-element)) "\n"))
+      (let* ((element-content (element-content info-element))
+             (manager-element (second element-content))
+             (manager-attributes (element-attributes manager-element))
+             (vocab-element (fourth element-content))
+             (collections-element (sixth element-content))
+             (results-element (eighth element-content)))
+        (local ((define (get-manager-attribute s)
+                  (get-attribute s manager-attributes)))
+        (write (string-append "Atoms: " (get-manager-attribute "atoms")))
+          (write (string-append "Conjunctions: " (get-manager-attribute "conjunctions") "\n"))
+          (write (string-append "Decls: " (get-manager-attribute "decls") "\n"))
+          (write (string-append "Disjunctions: " (get-manager-attribute "disjunctions") "\n"))
+          (write (string-append "Multiplicity: " (get-manager-attribute "multiplicity") "\n"))
+          (write (string-append "Negations: " (get-manager-attribute "negations") "\n"))
+          (write (string-append "Num-variables: " (get-manager-attribute "num-variables") "\n"))
+          (write (string-append "Q-exists: " (get-manager-attribute "q-exists") "\n"))
+          (write (string-append "Q-forall: " (get-manager-attribute "q-forall") "\n"))
+          (write (string-append "Relations: " (get-manager-attribute "relations") "\n"))
+          (write (string-append "Total-Formulas: " (get-manager-attribute "total-formulas") "\n"))
+          (write (string-append "Total-Reclaimed: " (get-manager-attribute "total-reclaimed") "\n"))
+          (write (string-append "Variable-Tuples: " (get-manager-attribute "variable-tuples") "\n")))
+    (display (get-output-string string-buffer)))))))
 
 ;;These functions return x-exprs for parts of command
 (define (xml-make-info-id id)
@@ -150,10 +196,10 @@
   `(LOAD (,file-name ,schema-file-name)))
     
 (define (xml-make-load-xacml-command load)
-  (xml-make-command "LOAD XACML POLICY" (list load)))
+  (xml-make-command "LOAD-XACML-POLICY" (list load)))
 
 (define (xml-make-load-sqs-command load)
-  (xml-make-command "LOAD XACML POLICY" (list load)))
+  (xml-make-command "LOAD-SQS-POLICY" (list load)))
 
 (define (xml-make-type type)
   `(type ,type))
@@ -188,6 +234,15 @@
 (define (xml-make-idbout list-of-atomic-formulas)
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
+(define (xml-make-show-populated-command id childlist)
+  (xml-make-command "SHOW" (list `(SHOW ((type "POPULATED") ,id) ,@childlist))))
+
+(define (xml-make-show-unpopulated-command id childlist)
+  (xml-make-command "SHOW" (list `(SHOW ((type "UNPOPULATED") ,id) ,@childlist))))
+
+(define (xml-make-forcases the-cases)
+  `(FORCASES ,@the-cases))
+
 (define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
   `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
 
@@ -202,6 +257,7 @@
   `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,xml-identifier-list))  
 
 (define (xml-make-atomic-formula-y collName relName xml-identifier-list)
+;  (printf "~a ~a ~n" collName relName)
   (if (empty? xml-identifier-list)
       `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)))
       `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)) ,xml-identifier-list))) 
