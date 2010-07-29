@@ -4,13 +4,13 @@
 
 (provide 
  stop-margrave-engine
-         start-margrave-engine
-         mtext
-         m
-         mxtextout
-         get-idbname-list
-         get-qualified-idbname-list
-         get-decision-for-rule-idbname
+ start-margrave-engine
+ mtext
+ m
+ mxtextout
+ get-idbname-list
+ get-qualified-idbname-list
+ get-decision-for-rule-idbname
  pretty-print-model
  pretty-print-info-xml
  get-attribute-value
@@ -223,7 +223,7 @@
 (define (mtext)
   (display "mtext broken for now!"))
 #;(define (mtext cmd)
-  (m (evalxml cmd)))
+    (m (evalxml cmd)))
 
 ; m
 ; XML string -> document or #f
@@ -235,7 +235,7 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-       ; (printf "~a;~n" cmd)
+        ; (printf "~a;~n" cmd)
         
         ; Send the command XML
         (display (string-append cmd ";") output-port)
@@ -273,7 +273,7 @@
                              (fetch-result)]))))
             
             ; Populate the buffered ports            
-                        
+            
             ; Handle the results
             (let* ([port-status (fetch-result)]
                    [result (get-output-string command-buffer)]
@@ -287,16 +287,16 @@
                     (printf "~a~n" result)                    
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))
-
+                  
                   (begin
                     ; Got eof, the port has been cloed.
                     (printf "Margrave engine has closed. EOF reached. No document to return.")      
-
+                    
                     ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
                     ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
                     ;           spamming with "The engine is not started..."
                     ;(cleanup-margrave-engine)
-
+                    
                     #f))))))))
 
 
