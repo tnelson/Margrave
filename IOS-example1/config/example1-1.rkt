@@ -1,11 +1,15 @@
 #lang racket
 
-(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm")
-         (file "../../margrave-ios.scm"))
+(require (file "../../margrave.rkt")
+         (file "../../margrave-ios.rkt"))
 
 (define (run-queries-for-example)
-  (start-margrave-engine)
   
+  ; Start Margrave's java engine
+  (start-margrave-engine (build-path (current-directory) 'up 'up))
+                         
+  
+  ; Load all the policies in this directory.
   (load-ios-policies (current-directory))
   
   (m "EXPLORE routed-packets(ahostname, entry-interface, 

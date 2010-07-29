@@ -1,7 +1,7 @@
 #lang racket
 
 ; Assume same dir for now (later, module path!)
-(require (file "./margrave.rkt"))
+(require "margrave.rkt")
 
 (provide load-ios-policies)
 

@@ -25,25 +25,6 @@
 (require xml)
 (require "./read.rkt" "margrave-xml.rkt")
 
-
-; **********************************************************
-; TODO
-; **********************************************************
-; * (Tim) XACML/SQS loading   
-; * (Tim) colons in some sort names created by IOS parser. Need to quote them in query text or change parser to allow for it.
-; * Close java gracefully and automatically. 
-; * Test cases
-; * More helper functions (see supnew.rkt as a use case)
-; * More Human-readable output from the XML. 
-
-; Next phase 
-; First step in next phase is to move the query-language parser to DrRacket and start _sending_ XML to java.
-; (Also, search for a way to terminate that process cleanly in tool/language-level docs.)
-; **********************************************************
-
-
-
-; todo: more later
 (provide stop-margrave-engine
          start-margrave-engine
          mtext
@@ -69,45 +50,7 @@
 (define java-class-separator
   (if windows?
       ";"
-      ":"))
-
-(define margrave-command-line
-  (string-append
-   "java -cp "
-   ;For testing
-   (path->string
-    (build-path (current-directory)
-                "bin"))
-   #;(path->string
-      (build-path (current-directory)
-                  "bin"
-                  "margrave.jar"))
-   java-class-separator
-   (path->string
-    (build-path (current-directory)
-                "bin"
-                "kodkod.jar"))
-   java-class-separator
-   (path->string
-    (build-path (current-directory)
-                "bin"
-                "org.sat4j.core.jar"))
-   java-class-separator
-   (path->string
-    (build-path (current-directory)
-                "bin"
-                "sunxacml.jar"))
-   java-class-separator
-   (path->string
-    (build-path (current-directory)
-                "bin"
-                "java_cup.jar"))
-   java-class-separator
-   (path->string
-    (build-path (current-directory)
-                "bin"
-                "json.jar"))
-   " edu.wpi.margrave.MCommunicator"))    
+      ":"))    
 
 ; Initial values
 (define java-process-list #f)
@@ -116,35 +59,90 @@
 (define process-id #f)
 (define err-port #f)
 (define ctrl-function #f)
+(define margrave-home-path (current-directory))
 
-(define (start-margrave-engine)
+; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
+; If not passed, will use (current-directory).
+(define (start-margrave-engine (home-path margrave-home-path))
   (if (eq? java-process-list #f)
-      (begin
+      (let ([ margrave-command-line
+              (string-append
+               "java -cp "
+               
+               ;For testing, use the .class files instead of the .jar:
+               (path->string
+                (build-path home-path
+                            "bin"))
+               #;(path->string
+                  (build-path home-path
+                              "bin"
+                              "margrave.jar"))
+               
+               ; Margrave requires these JAR files to run:
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "kodkod.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "org.sat4j.core.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "sunxacml.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "java_cup.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "json.jar"))
+               
+               
+               ; Run this class:
+               " edu.wpi.margrave.MCommunicator")])
+        
+        ;(printf "~a ~a ~a~n" home-path margrave-home-path margrave-command-line)
         (set! java-process-list (process margrave-command-line))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
         (set! process-id (third java-process-list))
         (set! err-port (fourth java-process-list))
         (set! ctrl-function (fifth java-process-list))
+        (set! margrave-home-path home-path)
         #t)
       #f))
 
-(define (stop-margrave-engine)
-  (m "<MARGRAVE-COMMAND type=\"QUIT\" />")
-  ;Should be this: (m (evalxml "QUIT"))
-  (flush-output output-port)    
+(define (cleanup-margrave-engine)
   (close-input-port input-port)
   (close-output-port output-port)
-  (close-input-port err-port)
-  (ctrl-function 'kill)
-  
+  (close-input-port err-port)  
   ; allow restart of the engine
   (set! java-process-list #f)
   (set! input-port #f)
   (set! output-port #f)
   (set! process-id #f)
   (set! err-port #f)
-  (set! ctrl-function #f)) 
+  (set! ctrl-function #f))
+
+(define (stop-margrave-engine)
+  (if (eq? java-process-list #f)
+      #f
+      (begin
+        (m "<MARGRAVE-COMMAND type=\"QUIT\" />")
+        ;Should be this: (m (evalxml "QUIT"))
+        (ctrl-function 'kill)  ; may not be necessary
+        
+        (flush-output output-port)    
+        (cleanup-margrave-engine)
+        #t))) 
 
 
 ; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
@@ -164,9 +162,11 @@
 
 
 ; Get the response type of a MARGRAVE-RESPONSE element:
-; Document -> String
+; Document/#f -> String
 (define (get-response-type doc)
-  (get-attribute-value (document-element doc) 'type))
+  (if (equal? doc #f)
+      ""
+      (get-attribute-value (document-element doc) 'type)))
 
 
 ; Document -> Boolean
@@ -493,8 +493,8 @@
   (m (evalxml cmd)))
 
 ; m
-; string -> document or #f
-; Runs the given Margrave query or command. Returns #f if the engine has not been started.
+; XML string -> document or #f
+; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 (define (m cmd)
   (if (equal? java-process-list #f) 
@@ -502,40 +502,69 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-        ;(printf "~a;~n" cmd)
+       ; (printf "~a;~n" cmd)
         
-        ; Send the command
+        ; Send the command XML
         (display (string-append cmd ";") output-port)
         (flush-output output-port)        
         
+        ; Deal with the result
         (let ([command-buffer (open-output-string)]
               [error-buffer (open-output-string)]) 
-          (local ((define (clear-error)
-                    (when (char-ready? err-port) ; Is there a character waiting? If so, read it.
+          (local ((define (flush-error)  ; read until nothing is left. This WILL block.
+                    (let ([next-char (read-char err-port)])                                                
+                      (when (not (equal? next-char eof))
+                        (begin
+                          (write-string (string next-char) error-buffer)
+                          (flush-error)))))
+                  
+                  (define (finish-error)
+                    (when (char-ready? err-port)  ; If there is a character waiting, read it.
                       (let ([next-char (read-char err-port)])                                                
                         (write-string (string next-char) error-buffer)
-                        (clear-error))))
+                        (finish-error))))
                   
-                  (define (helper)
+                  (define (fetch-result)
                     (let ([next-char (read-char input-port)])
-                      (when (not (or (equal? next-char #\nul)
-                                     (equal? next-char eof))) ; Read until we see a NUL.
-                        (begin
-                          (write-string (string next-char) command-buffer)
-                          (helper))))))
+                      (cond [(equal? next-char #\nul)
+                             ; End of command's response. Finish any error data that may be waiting.
+                             (finish-error)
+                             #t]
+                            [(equal? next-char eof)
+                             ; Port closed. Read error until eof.
+                             (flush-error)
+                             #f]
+                            [else 
+                             ; In progress. Keep reading.                             
+                             (write-string (string next-char) command-buffer)
+                             (fetch-result)]))))
             
-            ; Populate the buffered ports
-            (clear-error)
-            (helper)
-            
+            ; Populate the buffered ports            
+                        
             ; Handle the results
-            (let ([result (get-output-string command-buffer)]
-                  [error-str (get-output-string error-buffer)])
+            (let* ([port-status (fetch-result)]
+                   [result (get-output-string command-buffer)]
+                   [error-str (get-output-string error-buffer)])
               (when (> (string-length error-str) 0)
-                (printf "Additional ERROR information received:~n ~a~n" error-str))
-              (begin
-                (display result)
-                (read-xml (open-input-string result))))))))  )
+                (printf "~n**************************************************~nAdditional ERROR information received:~n ~a~n**************************************************~n" error-str))
+              (if (equal? port-status #t)
+                  
+                  (begin
+                    ; Comment out this line to stop printing the XML
+                    (printf "~a~n" result)                    
+                    ; Parse the reply and return the document struct
+                    (read-xml (open-input-string result)))
+
+                  (begin
+                    ; Got eof, the port has been cloed.
+                    (printf "Margrave engine has closed. EOF reached. No document to return.")      
+
+                    ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
+                    ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
+                    ;           spamming with "The engine is not started..."
+                    ;(cleanup-margrave-engine)
+
+                    #f))))))))
 
 
 
