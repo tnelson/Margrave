@@ -1,2 +1,2 @@
-#lang s-exp "read.rkt"
-info$ info$ rename a b$
+#lang reader "read2.rkt"
+"

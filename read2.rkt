@@ -7,15 +7,22 @@
 (provide (rename-out [read-m read]
                      [read-syntax-m read-syntax]))
 
+
+; **********************************************************
+
 (define (read-m in)
   (syntax->datum
    (read-syntax-m #f in)))
 
 (define (read-syntax-m src in)
+  (port-count-lines! in)
   (with-syntax ([string (port->string in)])
     (strip-context
      #'(module anything racket
          (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
+         
+         ; Commands are semi-colon separated
+         (define command-delimiter ";")
          
          ;delim and str are both strings
          ;Returns the string up to the first instance of delim (not including delim)
@@ -37,7 +44,7 @@
          ;Takes a string and returns a list of strings which are substrings of the original string, delimited by semicolons
          (define (separate-commands s)
            (cond [(whitespace? s) empty]
-                 [else (let ((command (read-till "$" s)))
+                 [else (let ((command (read-till command-delimiter s)))
                          (if (eq? (string-length command) (string-length s))
                              (cons command empty)
                              (cons command (separate-commands (substring s (+ 1 (string-length command)))))))]))

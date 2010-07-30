@@ -1,6 +1,7 @@
 #lang racket
 
-(require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) "margrave-xml.rkt")
+(require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) "margrave-xml.rkt"
+         syntax/readerr)
 
 (provide
  evalxml
@@ -186,13 +187,27 @@
 
 (define (parse source-name)
   (parser
-   (src-pos)
+   (src-pos) 
    (start start)
    (end EOF)
    (tokens empty-terminals terminals)
-   (error (lambda (tok-ok? token-name token-value start-pos end-pos) (printf "Parser error on token: ~a.~n Start: line ~a column ~a offset ~a End: line ~a column ~a offset ~a~n" 
-                                                                             token-value (position-line start-pos) (position-col start-pos) (position-offset start-pos)
-                                                                             (position-line end-pos) (position-col end-pos) (position-offset end-pos))))
+;   (error (lambda (a name val start end)
+;              (raise-read-error 
+;               "read-error"
+;               source-name
+;               (position-line start)
+;               (position-col start)
+;               (position-offset start)
+;               (- (position-offset end)
+;                  (position-offset start)))))
+   
+   (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
+            (if (equal? tok-ok? #f)
+                (printf "Invalid lexical token at: ~a~n" token-value)
+                (printf "Parser error on token: ~a~n" token-value))
+            (printf "Start: line ~a column ~a offset ~a End: line ~a column ~a offset ~a~n"
+                    (position-line start-pos) (position-col start-pos) (position-offset start-pos)
+                    (position-line end-pos) (position-col end-pos) (position-offset end-pos))))
    
    ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
    ; Implication is not associative (and of course, neither is the unary operator NOT.)
