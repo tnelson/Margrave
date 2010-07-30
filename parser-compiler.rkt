@@ -190,7 +190,9 @@
    (start start)
    (end EOF)
    (tokens empty-terminals terminals)
-   (error (lambda (tok-ok? token-name token-value start-pos end-pos) (printf "Parser error on token: ~a. Start position: ~a. End position: ~a.~n" token-value start-pos end-pos)))
+   (error (lambda (tok-ok? token-name token-value start-pos end-pos) (printf "Parser error on token: ~a.~n Start: line ~a column ~a offset ~a End: line ~a column ~a offset ~a~n" 
+                                                                             token-value (position-line start-pos) (position-col start-pos) (position-offset start-pos)
+                                                                             (position-line end-pos) (position-col end-pos) (position-offset end-pos))))
    
    ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
    ; Implication is not associative (and of course, neither is the unary operator NOT.)

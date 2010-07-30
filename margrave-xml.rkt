@@ -217,17 +217,50 @@
 (define (get-attribute-value ele name-symbol)
   (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
                                   (element-attributes ele)))))
+
 ;************ Pretty Print Info *******************
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
-;For now, acceptable types are "model" "sysinfo" "collection-info" or "vocabulary-info"
 (define (pretty-print-response-xml response-doc)
   (let* ((response-element (document-element response-doc))
          (type (get-attribute-value response-element 'type)))
     (cond [(equal? type "model") (pretty-print-model response-element)] 
           [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
           [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
-          [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)])))
+          [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
+          [(equal? type "error") (pretty-print-error-xml response-element)]
+          [(equal? type "exception") (pretty-print-exception-xml response-element)])))
+
+(define (pretty-print-exception-xml element)
+  (let* ([string-buffer (open-output-string)]
+        (exception-element (second (element-content element)))
+        (exception-attributes (element-attributes exception-element))
+        (exception-content (element-content exception-element))
+        (message-element (second exception-content))
+        (location-element (fourth exception-content))
+        (command-element (sixth exception-content)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin
+        (write "Exception:\n")
+        (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
+        (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
+        (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n"))
+        (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))
+          (display (get-output-string string-buffer))))))
+
+;Pass this function a <MARGRAVE-RESPONSE type="error"> element
+(define (pretty-print-error-xml element)
+  (let ([string-buffer (open-output-string)]
+        (error-element (second (element-content element))))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin
+        (write "Error:\n")
+        (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
+        (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
+        (write (pcdata-string (first (element-content error-element))))
+          (display (get-output-string string-buffer))))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element

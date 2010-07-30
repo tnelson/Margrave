@@ -136,6 +136,30 @@
 </VOCABULARY>
 </MARGRAVE-RESPONSE>")))
 
+(define test-error
+  (read-xml (open-input-string "<MARGRAVE-RESPONSE type=\"error\">
+
+<ERROR subtype=\"a subtype\" type=\"a type\">This is an error</ERROR>
+
+</MARGRAVE-RESPONSE>")))
+
+(define test-exception
+  (read-xml (open-input-string "<MARGRAVE-RESPONSE type=\"exception\">
+
+<EXCEPTION class=\"edu.wpi.margrave.MSemanticException\" stack-trace=\"[edu.wpi.margrave.MCommunicator.validateDBIdentifier(MCommunicator.java:1161), edu.wpi.margrave.MCommunicator.exploreHelper(MCommunicator.java:971), edu.wpi.margrave.MCommunicator.xmlHelper(MCommunicator.java:144), edu.wpi.margrave.MCommunicator.handleXMLCommand(MCommunicator.java:100), edu.wpi.margrave.MCommunicator.executeCommand(MCommunicator.java:1051), edu.wpi.margrave.MCommunicator.readCommands(MCommunicator.java:1026), edu.wpi.margrave.MCommunicator.main(MCommunicator.java:74)]\">
+
+<MESSAGE>Margrave could not understand...</MESSAGE>
+
+<LOCATION problem=\"Unknown IDB Collection: firewall1\"/>
+
+<COMMAND/>
+
+</EXCEPTION>
+
+</MARGRAVE-RESPONSE>")))
+
+
+
 (display "MODEL: \n")
 (pretty-print-response-xml test-model)
 (display "\n\nSYSINFO: \n")
@@ -144,3 +168,7 @@
 (pretty-print-response-xml test-coll-info)
 (display "\n\n VOCAB INFO: \n")
 (pretty-print-response-xml test-vocab-info)
+(display "\n\n Error: \n")
+(pretty-print-response-xml test-error)
+(display "\n\n Exception: \n")
+(pretty-print-response-xml test-exception)

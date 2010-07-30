@@ -44,7 +44,7 @@
          
          ;Process one command string
          (define (process-string s)
-           (pretty-print-info-xml (document-element (m (evalxml "source-name" s)))))
+           (pretty-print-response-xml (m (evalxml s))))
          
          (begin
            (start-margrave-engine)
