@@ -193,15 +193,15 @@
    (start start)
    (end EOF)
    (tokens empty-terminals terminals)
-;   (error (lambda (a name val start end)
-;              (raise-read-error 
-;               "read-error"
-;               source-name
-;               (position-line start)
-;               (position-col start)
-;               (position-offset start)
-;               (- (position-offset end)
-;                  (position-offset start)))))
+   ;   (error (lambda (a name val start end)
+   ;              (raise-read-error 
+   ;               "read-error"
+   ;               source-name
+   ;               (position-line start)
+   ;               (position-col start)
+   ;               (position-offset start)
+   ;               (- (position-offset end)
+   ;                  (position-offset start)))))
    
    (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
             (if (equal? tok-ok? #f)
@@ -224,22 +224,28 @@
     ;**************************************************
     ; Streams of tokens are either empty, an error, or a valid margrave-command.
     
-    (start [() #f]
+    (start ;[() #f]
+           
            ;; If there is an error, ignore everything before the error
            ;; and try to start over right after the error
            [(error start) $2]
-           [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) ;A margrave-script is a list of margrave-commands, separated by semicolons
+           
+           ; stand-alone Margrave command:
+           [(margrave-command) $1]
+           
+           ; A margrave-script is a semi-colon terminated list of margrave commands
+           [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
     
     ;**************************************************
     ; One production for each kind of command
     
     (margrave-script
-     [(margrave-command SEMICOLON) (list 'COMMAND $1)]
-     [(margrave-command SEMICOLON margrave-script) (append (list (list 'COMMAND $1) $3))])
+     [(margrave-command SEMICOLON) (build-so (list 'COMMAND $1) 1 2)]
+     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
     
     #;(variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
-                   ;[(<identifier> variable-list) (cons $1 $2)]
-                   [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )])
+                     ;[(<identifier> variable-list) (cons $1 $2)]
+                     [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )])
     
     (margrave-command 
      [(explore-statement) $1]
@@ -371,123 +377,135 @@
     ;(printf "CONVERTING: ~a ~n" interns)
     (let* ([first-intern (first interns)]
            [first-datum (syntax->datum first-intern)])
-      (cond [(equal? first-datum 'COMMAND) (helper-syn->xml (second interns))]
-            [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
-             ;(printf "Symbol var: ~a~n" first-intern)
-             (symbol->string (syntax->datum (second interns)))
-             #;(append (list 'VARIABLE) (list (list (list 'name (symbol->string (syntax->datum (second interns)))))))]
-            
-            [(equal? first-datum 'VARIABLE-VECTOR)
-             ;(printf "Symbol varvec: ~a~n" first-intern)
-             (xml-make-identifiers-list (begin (map helper-syn->xml (rest interns))))
-             #;(append (list 'VARIABLE-VECTOR) (map helper-syn->xml (rest interns)))]
-            
-            [(equal? first-datum 'ATOMIC-FORMULA-N)
-             ;(printf "Symbol atn: ~a~n" first-intern)
-             (begin
-               ;(display (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))
-               (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))]
-            
-            [(equal? first-datum 'ATOMIC-FORMULA-Y)
-             ;(printf "Symbol aty: ~a~n" first-intern)
-             ;Third is the colon
-             (xml-make-atomic-formula-y (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (fourth interns))) (helper-syn->xml (fifth interns)))]
-            
-            [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-N)
-             ; (printf "Symbol empty atn: ~a~n" first-intern)
-             (begin
-               ;(display (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))
-               (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) empty))]
-            
-            [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-Y)
-             ;(printf "Symbol empty aty: ~a~n ~a ~a ~n" first-intern (second interns) (fourth interns))
-             ;Third is the colon
-             (xml-make-atomic-formula-y (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (fourth interns))) empty)]
-            
-            
-            
-            [(equal? first-datum 'CONDITION)
-             ;(printf "Symbol cond: ~a~n" first-intern)
-             (begin
-               (helper-syn->xml (second interns)))]
-            ;(append (list 'CONDITION) (map helper-syn->xml (rest interns)))]
-            [(equal? first-datum 'EXPLORE)
-             ; (printf "Symbol exp: ~a ~a ~a~n" first-intern (second interns) (third interns))
-             (begin
-               (xml-make-explore-command (list (helper-syn->xml (second interns)))
-                                         ;List of modifiers could be empty
-                                         (if (empty? (rest (rest interns)))
-                                             empty
-                                             (map helper-syn->xml (syntax-e (third interns))))))] ;(syntax-e (third interns)) is the list of modifiers
-            [(equal? first-datum 'TUPLING)
-             (xml-make-tupling)]
-            [(equal? first-datum 'CEILING)
-             (xml-make-ceiling (syntax->string (second interns)))]
-            [(equal? first-datum 'DEBUG)
-             (xml-make-debug (syntax->string (second interns)))]
-            [(equal? first-datum 'UNDER)
-             (xml-make-under (helper-syn->xml (second interns)))]
-            [(equal? first-datum 'POLICY)
-             (xml-make-policy-identifier (syntax->string (second interns)))]
-            [(equal? first-datum 'PUBLISH)
-             (xml-make-publish (helper-syn->xml (second interns)))]
-            ;(append (list 'EXPLORE) (map helper-syn->xml (rest interns)))]
-            [(equal? first-datum 'AND)
-             ;(printf "Symbol and: ~a~n" first-intern)
-             (begin
-               (list 'AND (helper-syn->xml (second interns)) (helper-syn->xml (third interns))))]
-            ;(append (list 'AND) (map helper-syn->xml (rest interns)))]
-            
-            ; id, list, optional for-cases list
-            [(equal? first-datum 'SHOWPOPULATED)
-             (printf "~a ~n" (syntax->datum (second interns)))
-             (if (empty? (fourth interns))
-                 (xml-make-show-populated-command (helper-syn->xml (second interns)) 
-                                                  (map helper-syn->xml (syntax-e (third interns))))
-                 (xml-make-show-populated-command (helper-syn->xml (second interns)) 
-                                                  (append (map helper-syn->xml (syntax-e (third interns))) 
-                                                          (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
-            [(equal? first-datum 'SHOWUNPOPULATED)
-             (if (empty? (fourth interns))
-                 (xml-make-show-unpopulated-command (helper-syn->xml (second interns)) 
-                                                    (map helper-syn->xml (syntax-e (third interns))))
-                 (xml-make-show-unpopulated-command (helper-syn->xml (second interns))
-                                                    (append (map helper-syn->xml (syntax-e (third interns))) 
-                                                            (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
-            
-            [(equal? first-datum 'OR)
-             (list 'OR (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
-            [(equal? first-datum 'IMPLIES)
-             (list 'IMPLIES (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
-            [(equal? first-datum 'IFF)
-             (list 'AIFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
-            [(equal? first-datum 'NOT)
-             (list 'NOT (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
-            [(equal? first-datum 'RENAME)
-             (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
-                                      (symbol->string (syntax->datum (third interns))))]
-            [(equal? first-datum 'GET)
-             (xml-make-get-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
-            [(equal? first-datum 'type)
-             (xml-make-type (syntax->string (second interns)))]
-            [(equal? first-datum 'id)
-             (xml-make-id (syntax->string (second interns)))]
-            [(equal? first-datum 'INFO)
-             (if (empty? (rest interns))
-                 (xml-make-info-command)
-                 (xml-make-info-id-command (symbol->string (syntax->datum (second interns)))))]
-            [(equal? first-datum 'IDBOUTPUT)
-             (xml-make-idbout (map helper-syn->xml (rest interns)))]
-            [(equal? first-datum 'QUIT)
-             (xml-make-quit)]
-            [else
-             (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
+      (cond 
+        
+        ; ************************************
+        
+        ; Single command: compile its contents
+        [(equal? first-datum 'COMMAND) (helper-syn->xml (second interns))]
+        ; Multiple commands: compile each command separately and return a list.
+        [(equal? first-datum 'MARGRAVE-SCRIPT) (map helper-syn->xml (rest interns))]
+        
+        ; ************************************
+        
+        [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
+         ;(printf "Symbol var: ~a~n" first-intern)
+         (symbol->string (syntax->datum (second interns)))
+         #;(append (list 'VARIABLE) (list (list (list 'name (symbol->string (syntax->datum (second interns)))))))]
+        
+        [(equal? first-datum 'VARIABLE-VECTOR)
+         ;(printf "Symbol varvec: ~a~n" first-intern)
+         (xml-make-identifiers-list (begin (map helper-syn->xml (rest interns))))
+         #;(append (list 'VARIABLE-VECTOR) (map helper-syn->xml (rest interns)))]
+        
+        [(equal? first-datum 'ATOMIC-FORMULA-N)
+         ;(printf "Symbol atn: ~a~n" first-intern)
+         (begin
+           ;(display (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))
+           (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))]
+        
+        [(equal? first-datum 'ATOMIC-FORMULA-Y)
+         ;(printf "Symbol aty: ~a~n" first-intern)
+         ;Third is the colon
+         (xml-make-atomic-formula-y (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (fourth interns))) (helper-syn->xml (fifth interns)))]
+        
+        [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-N)
+         ; (printf "Symbol empty atn: ~a~n" first-intern)
+         (begin
+           ;(display (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) (helper-syn->xml (third interns))))
+           (xml-make-atomic-formula-n (symbol->string (syntax->datum (second interns))) empty))]
+        
+        [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-Y)
+         ;(printf "Symbol empty aty: ~a~n ~a ~a ~n" first-intern (second interns) (fourth interns))
+         ;Third is the colon
+         (xml-make-atomic-formula-y (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (fourth interns))) empty)]
+        
+        
+        
+        [(equal? first-datum 'CONDITION)
+         ;(printf "Symbol cond: ~a~n" first-intern)
+         (begin
+           (helper-syn->xml (second interns)))]
+        ;(append (list 'CONDITION) (map helper-syn->xml (rest interns)))]
+        [(equal? first-datum 'EXPLORE)
+         ; (printf "Symbol exp: ~a ~a ~a~n" first-intern (second interns) (third interns))
+         (begin
+           (xml-make-explore-command (list (helper-syn->xml (second interns)))
+                                     ;List of modifiers could be empty
+                                     (if (empty? (rest (rest interns)))
+                                         empty
+                                         (map helper-syn->xml (syntax-e (third interns))))))] ;(syntax-e (third interns)) is the list of modifiers
+        [(equal? first-datum 'TUPLING)
+         (xml-make-tupling)]
+        [(equal? first-datum 'CEILING)
+         (xml-make-ceiling (syntax->string (second interns)))]
+        [(equal? first-datum 'DEBUG)
+         (xml-make-debug (syntax->string (second interns)))]
+        [(equal? first-datum 'UNDER)
+         (xml-make-under (helper-syn->xml (second interns)))]
+        [(equal? first-datum 'POLICY)
+         (xml-make-policy-identifier (syntax->string (second interns)))]
+        [(equal? first-datum 'PUBLISH)
+         (xml-make-publish (helper-syn->xml (second interns)))]
+        ;(append (list 'EXPLORE) (map helper-syn->xml (rest interns)))]
+        [(equal? first-datum 'AND)
+         ;(printf "Symbol and: ~a~n" first-intern)
+         (begin
+           (list 'AND (helper-syn->xml (second interns)) (helper-syn->xml (third interns))))]
+        ;(append (list 'AND) (map helper-syn->xml (rest interns)))]
+        
+        ; id, list, optional for-cases list
+        [(equal? first-datum 'SHOWPOPULATED)
+         (printf "~a ~n" (syntax->datum (second interns)))
+         (if (empty? (fourth interns))
+             (xml-make-show-populated-command (helper-syn->xml (second interns)) 
+                                              (map helper-syn->xml (syntax-e (third interns))))
+             (xml-make-show-populated-command (helper-syn->xml (second interns)) 
+                                              (append (map helper-syn->xml (syntax-e (third interns))) 
+                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
+        [(equal? first-datum 'SHOWUNPOPULATED)
+         (if (empty? (fourth interns))
+             (xml-make-show-unpopulated-command (helper-syn->xml (second interns)) 
+                                                (map helper-syn->xml (syntax-e (third interns))))
+             (xml-make-show-unpopulated-command (helper-syn->xml (second interns))
+                                                (append (map helper-syn->xml (syntax-e (third interns))) 
+                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
+        
+        [(equal? first-datum 'OR)
+         (list 'OR (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'IMPLIES)
+         (list 'IMPLIES (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'IFF)
+         (list 'AIFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'NOT)
+         (list 'NOT (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'RENAME)
+         (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
+                                  (symbol->string (syntax->datum (third interns))))]
+        [(equal? first-datum 'GET)
+         (xml-make-get-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'type)
+         (xml-make-type (syntax->string (second interns)))]
+        [(equal? first-datum 'id)
+         (xml-make-id (syntax->string (second interns)))]
+        [(equal? first-datum 'INFO)
+         (if (empty? (rest interns))
+             (xml-make-info-command)
+             (xml-make-info-id-command (symbol->string (syntax->datum (second interns)))))]
+        [(equal? first-datum 'IDBOUTPUT)
+         (xml-make-idbout (map helper-syn->xml (rest interns)))]
+        [(equal? first-datum 'QUIT)
+         (xml-make-quit)]
+        [else
+         (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
 (define (syntax->string s)
   (symbol->string (syntax->datum s)))
 
+; May be a single COMMAND, or a MARGRAVE-SCRIPT with a list of commands.
 (define (syntax->xml syn)
-  (map helper-syn->xml (rest (syntax-e syn))))
+  (helper-syn->xml syn))
+;  (map helper-syn->xml (rest (syntax-e syn))))
 
 #;(make-document
    (make-prolog empty #f empty)

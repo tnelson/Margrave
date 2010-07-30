@@ -15,9 +15,6 @@
 
 (start-margrave-engine)
 
-(mtext "info foozle")
-(stop-margrave-engine)
-
 ;(load-policy (build-path (current-directory) "tests" "extconference.p"))
 ;(load-policy (build-path (current-directory) "tests" "conference1.p"))
 ;(load-policy (build-path (current-directory) "tests" "conference2.p"))

@@ -166,17 +166,19 @@
             (define (print-statistics stat-xml) ;stat xml is the statistics element
               ;computed-max-size=\"1\" max-size=\"1\" result-id=\"0\" user-max-size=\"6\"/>
               (display "STATISTICS: \n")
-              (let ((computed-max (get-attribute-value stat-xml 'computed-max-size))
-                    (user-max (get-attribute-value stat-xml 'user-max-size)))
+              (let* ([computed-max (get-attribute-value stat-xml 'computed-max-size)]
+                     [user-max (get-attribute-value stat-xml 'user-max-size)]
+                     [computed-max-num (string->number computed-max)]
+                     [user-max-num (string->number user-max)])
               (display (string-append "Computed max size: " computed-max "\n"))
               (display (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
               (display (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
               (display (string-append "User max size: " user-max "\n"))
               (begin
-                (when (< user-max computed-max)
+                (when (< user-max-num computed-max-num)
                     (display (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max "\n")))
-                (when (< computed-max 0)
-                  (display (string-append "Warning: Calculated ceiling size (" computed-max ") is negative!")))))
+                (when (< computed-max-num 0)
+                  (display (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
               
               )]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
@@ -184,7 +186,8 @@
              (set! model-size (attribute-value (first (element-attributes xml-model))))
              (helper (element-content (second (element-content xml-model))))
              (display (string-from-hash))
-             (display (string-append "Annotation: " annotation-string "\n"))
+             (when (> (string-length annotation-string) 0)
+                 (display (string-append annotation-string "\n")))
              (if (< 2 (length (element-content xml-model)))
                  (print-statistics (fourth (element-content xml-model)))
                  "")))))

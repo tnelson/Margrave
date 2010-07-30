@@ -47,6 +47,9 @@ TODO (test cases):
 
 * ** IMPORTANT: Look into SchemeUnit -- if we can start using this, test cases 
      will become much cleaner.
+     
+     
+BUG: Annotations pretty-print truncating variable names in 2nd example_final get.     
 
 -------------------------------------------------------------
 

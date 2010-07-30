@@ -1,28 +1,6 @@
 #lang racket
 
-(require syntax/strip-context)
-
-;(require (for-syntax "margrave.rkt"))
-
-(provide (rename-out [read-m read]
-                     [read-syntax-m read-syntax]))
-
-
-; **********************************************************
-
-(define (read-m in)
-  (syntax->datum
-   (read-syntax-m #f in)))
-
-(define (read-syntax-m src in)
-  (port-count-lines! in)
-  (with-syntax (;[string (port->string in)] ;delete this line
-                [in-port in])
-    (strip-context
-     #'(module anything racket
-         (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
-         
-         ; Commands are semi-colon separated
+#|
          (define command-delimiter ";")
          
          ;delim and str are both strings
@@ -52,17 +30,38 @@
          
          ;Process one command string
          (define (process-string s)
-           (pretty-print-response-xml (m (evalxml s))))
-         
-         (define (process-port input-port)
-           (begin (display "in process-port")
-           (pretty-print-response-xml (m (port->xml input-port)))))
-         
+           (pretty-print-response-xml (m (evalxml s))))         
+|#
+
+(require syntax/strip-context)
+
+;(require (for-syntax "margrave.rkt"))
+
+(provide (rename-out [read-m read]
+                     [read-syntax-m read-syntax]))
+
+
+; **********************************************************
+
+(define (read-m in)
+  (syntax->datum
+   (read-syntax-m #f in)))
+
+(define (read-syntax-m src in)
+  (port-count-lines! in)
+  (with-syntax ([in-port in])
+    (strip-context
+     #'(module anything racket
+         (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
+                                 
          (begin
-           (display "here")
+           ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
            (start-margrave-engine)
-           (let ((list-of-xml (process-port in-port) #;(map (lambda(s) (begin (display (string-append "\nProcessing Command: " s "\n"))
-                                                     (process-string  s)))
-                                   (separate-commands string))))
+           (let ((list-of-results (mm (port->xml input-port))))
              (stop-margrave-engine)
-             list-of-xml))))))
+             list-of-results))))))
+
+
+#;(map (lambda(s) (begin (display (string-append "\nProcessing Command: " s "\n"))
+                                                     (process-string  s)))
+                                   (separate-commands string))
