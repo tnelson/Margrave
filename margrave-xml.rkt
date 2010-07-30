@@ -12,7 +12,7 @@
  get-qualified-idbname-list
  get-decision-for-rule-idbname
  pretty-print-model
- pretty-print-info-xml
+ pretty-print-response-xml
  get-attribute-value
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
@@ -495,11 +495,13 @@
                                   (element-attributes ele)))))
 ;************ Pretty Print Info *******************
 
-;Pass this function a MARGRAVE-RESPONSE element
-;For now, acceptable types are "sysinfo" "collection-info" or "vocabulary-info"
-(define (pretty-print-info-xml response-element)
-  (let ((type (get-attribute-value response-element 'type)))
-    (cond [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
+;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
+;For now, acceptable types are "model" "sysinfo" "collection-info" or "vocabulary-info"
+(define (pretty-print-response-xml response-doc)
+  (let* ((response-element (document-element response-doc))
+         (type (get-attribute-value response-element 'type)))
+    (cond [(equal? type "model") (pretty-print-model response-element)] 
+          [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
           [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
           [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)])))
 
