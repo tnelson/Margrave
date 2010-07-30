@@ -1,7 +1,6 @@
 #lang racket
 
 (require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) "margrave-xml.rkt")
-;(require (for-syntax "margrave.rkt"))
 
 (provide
  evalxml
@@ -470,8 +469,7 @@
 
 #;(define (rs sn ip)
     (port-count-lines! ip)
-    ((parse sn) (lambda() (lex ip))))  
-
+    ((parse sn) (lambda() (lex ip)))) 
 
 
 ; These functions enforce case-insensitivity by downcasing the input string before lexing.
@@ -479,9 +477,6 @@
   (let ((in (open-input-string (string-downcase s))))
     ((parse sn) (lambda() (lex in)))))
 
-(define (evalxml sn s)
+(define (evalxml s)
   (let ((in (open-input-string (string-downcase s))))
-    (syntax->xml ((parse sn) (λ() (lex in))))))
-
-
-
+    (syntax->xml ((parse "source") (λ() (lex in))))))
