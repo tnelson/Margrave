@@ -166,10 +166,18 @@
             (define (print-statistics stat-xml) ;stat xml is the statistics element
               ;computed-max-size=\"1\" max-size=\"1\" result-id=\"0\" user-max-size=\"6\"/>
               (display "STATISTICS: \n")
-              (display (string-append "Computed max size: " (get-attribute-value stat-xml 'computed-max-size) "\n"))
+              (let ((computed-max (get-attribute-value stat-xml 'computed-max-size))
+                    (user-max (get-attribute-value stat-xml 'user-max-size)))
+              (display (string-append "Computed max size: " computed-max "\n"))
               (display (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
               (display (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
-              (display (string-append "User max size: " (get-attribute-value stat-xml 'user-max-size) "\n"))
+              (display (string-append "User max size: " user-max "\n"))
+              (begin
+                (when (< user-max computed-max)
+                    (display (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max "\n")))
+                (when (< computed-max 0)
+                  (display (string-append "Warning: Calculated ceiling size (" computed-max ") is negative!")))))
+              
               )]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
              (set! predicate-hash (make-hash))

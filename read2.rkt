@@ -16,7 +16,8 @@
 
 (define (read-syntax-m src in)
   (port-count-lines! in)
-  (with-syntax ([string (port->string in)])
+  (with-syntax (;[string (port->string in)] ;delete this line
+                [in-port in])
     (strip-context
      #'(module anything racket
          (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
@@ -53,9 +54,14 @@
          (define (process-string s)
            (pretty-print-response-xml (m (evalxml s))))
          
+         (define (process-port input-port)
+           (begin (display "in process-port")
+           (pretty-print-response-xml (m (port->xml input-port)))))
+         
          (begin
+           (display "here")
            (start-margrave-engine)
-           (let ((list-of-xml (map (lambda(s) (begin (display (string-append "\nProcessing Command: " s "\n"))
+           (let ((list-of-xml (process-port in-port) #;(map (lambda(s) (begin (display (string-append "\nProcessing Command: " s "\n"))
                                                      (process-string  s)))
                                    (separate-commands string))))
              (stop-margrave-engine)

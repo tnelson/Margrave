@@ -4,6 +4,7 @@
          syntax/readerr)
 
 (provide
+ port->xml
  evalxml
  evaluate)
 
@@ -20,7 +21,7 @@
                         SUBSET SET TARGET PREDICATE RULE TO CREATE VOCABULARY DECISION
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
-                        NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE
+                        NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
                         EOF))
 (define-tokens terminals (<identifier> <unsigned-integer>))
 
@@ -51,6 +52,7 @@
    ["or" (token-OR)] 
    ["not" (token-NOT)] 
    [":" (token-COLON)] 
+   [";" (token-SEMICOLON)] 
    ["implies" (token-IMPLIES)] 
    ["iff" (token-IFF)] 
    ["(" (token-LPAREN)] 
@@ -130,7 +132,7 @@
    
    ; Un-quoted Identifiers -- everything but whitespace and: ( ) \" , = :
    ; Use ----> char-complement <----, not complement.
-   [(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "," "=" ":" ))))
+   [(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "," "=" ":" ";"))))
     (token-<identifier> (string->symbol lexeme))]
    
    ; Quoted Identifiers -- anything but quote or whitespace wrapped in quotes
@@ -226,10 +228,18 @@
            ;; If there is an error, ignore everything before the error
            ;; and try to start over right after the error
            [(error start) $2]
-           [(margrave-command) $1])
+           [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) ;A margrave-script is a list of margrave-commands, separated by semicolons
     
     ;**************************************************
     ; One production for each kind of command
+    
+    (margrave-script
+     [(margrave-command SEMICOLON) (list 'COMMAND $1)]
+     [(margrave-command SEMICOLON margrave-script) (append (list (list 'COMMAND $1) $3))])
+    
+    #;(variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
+                   ;[(<identifier> variable-list) (cons $1 $2)]
+                   [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )])
     
     (margrave-command 
      [(explore-statement) $1]
@@ -355,13 +365,14 @@
 ;(define (e stx)
 ;  (syntax-e stx))
 
+;Returns a list of xml documents
 (define (helper-syn->xml syn)
   (let* ([interns (syntax-e syn)])
     ;(printf "CONVERTING: ~a ~n" interns)
-    
     (let* ([first-intern (first interns)]
            [first-datum (syntax->datum first-intern)])
-      (cond [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
+      (cond [(equal? first-datum 'COMMAND) (helper-syn->xml (second interns))]
+            [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
              ;(printf "Symbol var: ~a~n" first-intern)
              (symbol->string (syntax->datum (second interns)))
              #;(append (list 'VARIABLE) (list (list (list 'name (symbol->string (syntax->datum (second interns)))))))]
@@ -476,8 +487,7 @@
   (symbol->string (syntax->datum s)))
 
 (define (syntax->xml syn)
-  (let ([helper-result (helper-syn->xml syn)])
-    helper-result))
+  (map helper-syn->xml (rest (syntax-e syn))))
 
 #;(make-document
    (make-prolog empty #f empty)
@@ -497,3 +507,6 @@
 (define (evalxml s)
   (let ((in (open-input-string (string-downcase s))))
     (syntax->xml ((parse "source") (λ() (lex in))))))
+
+(define (port->xml in-port)
+  (syntax->xml ((parse "source") (λ() (lex in-port)))))
