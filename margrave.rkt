@@ -26,7 +26,8 @@
          start-margrave-engine
          mtext
          m
-         mxtextout
+         mm
+         mmtext
          load-policy
          pause-for-user)
 
@@ -437,17 +438,30 @@
 
 ; mtext
 ; string -> document or #f
-; parses and compiles the string command into XML, executes it, pretty prints the results, and then returns them
+; parses and compiles the string command into XML, executes it,
+; pretty prints the results, and then returns the result document.
 (define (mtext cmd)
     (let ((response-doc (m (evalxml cmd))))
       (pretty-print-response-xml response-doc)
       response-doc))
 
+
+; mmtext
+; string or list of string -> list of (document or #f)
+; Like mtext, but accepts lists of commands and returns a list of results.
+(define (mmtext cmds)
+  (mm (map evalxml cmds)))
+  
+
+; mm
+; XML string or list of XML string -> list of (document or #f)
 (define (mm cmds)
   (if (list? cmds)
+      ; Execute each in sequence.
       (map (lambda (cmd) (pretty-print-response-xml (m cmd)))
                 cmds)
-      (pretty-print-response-xml  (m cmds))))
+      ; Execute the single command; return a singleton list.
+      (list (pretty-print-response-xml  (m cmds)))))
 
 
 ; m
@@ -460,7 +474,7 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-        ; (printf "~a;~n" cmd)
+         ;(printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML
         (display (string-append cmd ";") output-port)
@@ -509,7 +523,8 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    (printf "~a~n" result)                    
+                    ;(printf "~a~n" result)                    
+                    
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))
                   
@@ -523,12 +538,6 @@
                     ;(cleanup-margrave-engine)
                     
                     #f))))))))
-
-; for debugging
-(define (mxtextout cmd)
-  (printf "Command: ~a~n~nResponse: ~a~n" cmd (mtext cmd)))
-
-
 
 
 ; !!!

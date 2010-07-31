@@ -47,21 +47,26 @@
   (syntax->datum
    (read-syntax-m #f in)))
 
+
+; !!! TODO
+; Why can you not access the port directly? This is an ugly work-around!
+; (port->string then open-input-string)
+; Commented out original lines for comparison
+
 (define (read-syntax-m src in)
   (port-count-lines! in)
-  (with-syntax ([in-port in])
-    (strip-context
+    
+  ;(with-syntax ([in-port in])
+    (with-syntax ( [str (port->string in)])
+      (strip-context
      #'(module anything racket
          (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
                                  
          (begin
            ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
            (start-margrave-engine)
-           (let ((list-of-results (mm (port->xml input-port))))
+;           (let ((list-of-results (mm (port->xml 'in-port))))
+           (let ((list-of-results (mm (port->xml (open-input-string 'str)))))
              (stop-margrave-engine)
              list-of-results))))))
 
-
-#;(map (lambda(s) (begin (display (string-append "\nProcessing Command: " s "\n"))
-                                                     (process-string  s)))
-                                   (separate-commands string))

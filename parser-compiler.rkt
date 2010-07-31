@@ -230,19 +230,23 @@
            ;; and try to start over right after the error
            [(error start) $2]
            
-           ; stand-alone Margrave command:
+           ; stand-alone Margrave command without a semicolon:
            [(margrave-command) $1]
            
-           ; A margrave-script is a semi-colon terminated list of margrave commands
+           ; causes reduce/reduce conflict. covered by script case anyway
+           ;           [(margrave-command SEMICOLON) $1]
+           
+           ; A margrave-script is a list of margrave commands each ending in a semicolon
            [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
     
     ;**************************************************
     ; One production for each kind of command
     
     (margrave-script
-     [(margrave-command SEMICOLON) (build-so (list 'COMMAND $1) 1 2)]
+     [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
      [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
     
+    ; unused at the moment:
     #;(variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
                      ;[(<identifier> variable-list) (cons $1 $2)]
                      [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )])
@@ -374,8 +378,8 @@
 ;Returns a list of xml documents
 (define (helper-syn->xml syn)
   (let* ([interns (syntax-e syn)])
-    ;(printf "CONVERTING: ~a ~n" interns)
-    (let* ([first-intern (first interns)]
+   ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
+    (let* ([first-intern (first interns)] 
            [first-datum (syntax->datum first-intern)])
       (cond 
         
