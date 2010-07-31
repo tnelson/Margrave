@@ -4,6 +4,8 @@
          syntax/readerr)
 
 (provide
+ 
+ ; Access the parser through these functions only! (They pre-process)
  port->xml
  evalxml
  evaluate)
@@ -193,23 +195,16 @@
    (start start)
    (end EOF)
    (tokens empty-terminals terminals)
-   ;   (error (lambda (a name val start end)
-   ;              (raise-read-error 
-   ;               "read-error"
-   ;               source-name
-   ;               (position-line start)
-   ;               (position-col start)
-   ;               (position-offset start)
-   ;               (- (position-offset end)
-   ;                  (position-offset start)))))
    
    (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
-            (if (equal? tok-ok? #f)
-                (printf "Invalid lexical token at: ~a~n" token-value)
-                (printf "Parser error on token: ~a~n" token-value))
-            (printf "Start: line ~a column ~a offset ~a End: line ~a column ~a offset ~a~n"
-                    (position-line start-pos) (position-col start-pos) (position-offset start-pos)
-                    (position-line end-pos) (position-col end-pos) (position-offset end-pos))))
+           ; (printf "Reporting read error: ~a ~a ~a ~a ~a ~a ~a ~a ~a ~a ~n" tok-ok? token-name token-value start-pos end-pos source-name 
+           ;         (position-line start-pos) (position-col start-pos) (position-offset start-pos) (position-offset end-pos))
+            (raise-read-error (format "Error parsing token (of type = ~a): ~a" token-name token-value)
+                              source-name
+                              (position-line start-pos)
+                              (position-col start-pos)
+                              (position-offset start-pos)      
+                              (- (position-offset end-pos) (position-offset start-pos)))))
    
    ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
    ; Implication is not associative (and of course, neither is the unary operator NOT.)
@@ -521,14 +516,21 @@
     ((parse sn) (lambda() (lex ip)))) 
 
 
+; ***************************************************************************************
 ; These functions enforce case-insensitivity by downcasing the input string before lexing.
+; They also activate line counting 
+; Access the parser through these functions ONLY!
 (define (evaluate sn s)
   (let ((in (open-input-string (string-downcase s))))
+    (port-count-lines! in)
     ((parse sn) (lambda() (lex in)))))
 
 (define (evalxml s)
   (let ((in (open-input-string (string-downcase s))))
+    (port-count-lines! in)
     (syntax->xml ((parse "source") (λ() (lex in))))))
 
 (define (port->xml in-port)
+  (port-count-lines! in-port)
   (syntax->xml ((parse "source") (λ() (lex in-port)))))
+; ***************************************************************************************

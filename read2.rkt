@@ -54,19 +54,20 @@
 ; Commented out original lines for comparison
 
 (define (read-syntax-m src in)
-  (port-count-lines! in)
-    
+  (error-print-source-location #t)
+  
   ;(with-syntax ([in-port in])
     (with-syntax ( [str (port->string in)])
       (strip-context
      #'(module anything racket
          (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
-                                 
-         (begin
+         (let* ([new-in-port (open-input-string 'str) ]
+                [list-of-xml-commands (port->xml new-in-port)])
+
            ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
+           ; Don't start engine until parser completes successfully (above)
            (start-margrave-engine)
-;           (let ((list-of-results (mm (port->xml 'in-port))))
-           (let ((list-of-results (mm (port->xml (open-input-string 'str)))))
+           (let ((list-of-results (mm list-of-xml-commands)))
              (stop-margrave-engine)
              list-of-results))))))
 
