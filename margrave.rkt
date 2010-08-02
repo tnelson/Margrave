@@ -20,20 +20,15 @@
 
 #lang racket
 
-(require racket/system)
-(require framework)
-(require xml)
-(require "./read.rkt" "margrave-xml.rkt")
+(require xml "margrave-xml.rkt" "parser-compiler.rkt")
 
 (provide stop-margrave-engine
          start-margrave-engine
          mtext
          m
-         mxtextout
+         mm
+         mmtext
          load-policy
-         get-idbname-list
-         get-qualified-idbname-list
-         get-decision-for-rule-idbname
          pause-for-user)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
@@ -41,157 +36,6 @@
 ; and PolicyVocab syntax.
 (define-namespace-anchor the-margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace the-margrave-namespace-anchor))
-
-;****************************************************************
-;;Java Connection
-
-(define windows? (equal? 'windows (system-path-convention-type)))
-
-(define java-class-separator
-  (if windows?
-      ";"
-      ":"))    
-
-; Initial values
-(define java-process-list #f)
-(define input-port #f)
-(define output-port #f)
-(define process-id #f)
-(define err-port #f)
-(define ctrl-function #f)
-(define margrave-home-path (current-directory))
-
-; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-; If not passed, will use (current-directory).
-(define (start-margrave-engine (home-path margrave-home-path))
-  (if (eq? java-process-list #f)
-      (let ([ margrave-command-line
-              (string-append
-               "java -cp "
-               
-               ;For testing, use the .class files instead of the .jar:
-               (path->string
-                (build-path home-path
-                            "bin"))
-               #;(path->string
-                  (build-path home-path
-                              "bin"
-                              "margrave.jar"))
-               
-               ; Margrave requires these JAR files to run:
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "kodkod.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "org.sat4j.core.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "sunxacml.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "java_cup.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "json.jar"))
-               
-               
-               ; Run this class:
-               " edu.wpi.margrave.MCommunicator")])
-        
-        ;(printf "~a ~a ~a~n" home-path margrave-home-path margrave-command-line)
-        (set! java-process-list (process margrave-command-line))
-        (set! input-port (first java-process-list))
-        (set! output-port (second java-process-list))
-        (set! process-id (third java-process-list))
-        (set! err-port (fourth java-process-list))
-        (set! ctrl-function (fifth java-process-list))
-        (set! margrave-home-path home-path)
-        #t)
-      #f))
-
-(define (cleanup-margrave-engine)
-  (close-input-port input-port)
-  (close-output-port output-port)
-  (close-input-port err-port)  
-  ; allow restart of the engine
-  (set! java-process-list #f)
-  (set! input-port #f)
-  (set! output-port #f)
-  (set! process-id #f)
-  (set! err-port #f)
-  (set! ctrl-function #f))
-
-(define (stop-margrave-engine)
-  (if (eq? java-process-list #f)
-      #f
-      (begin
-        (m "<MARGRAVE-COMMAND type=\"QUIT\" />")
-        ;Should be this: (m (evalxml "QUIT"))
-        (ctrl-function 'kill)  ; may not be necessary
-        
-        (flush-output output-port)    
-        (cleanup-margrave-engine)
-        #t))) 
-
-
-; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
-; (exit:insert-on-callback) doesn't work for some reason either
-;Kill process on exit
-; (exit:insert-on-callback stop-margrave-engine)
-
-
-;****************************************************************
-;;XML
-
-; Get list of child elements with name = name-symbol.
-; Element -> Symbol -> List(Element)
-(define (get-element-children-named ele name-symbol)
-  (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
-          (element-content ele)))
-
-
-; Get the response type of a MARGRAVE-RESPONSE element:
-; Document/#f -> String
-(define (get-response-type doc)
-  (if (equal? doc #f)
-      ""
-      (get-attribute-value (document-element doc) 'type)))
-
-
-; Document -> Boolean
-(define (response-is-success? doc)
-  (equal? (get-response-type doc)
-          "success"))
-(define (response-is-error? doc)
-  (equal? (get-response-type doc)
-          "error"))
-(define (response-is-exception? doc)
-  (equal? (get-response-type doc)
-          "exception"))
-
-; Fetch various error properties
-; Document -> String
-(define (get-response-error-type doc)
-  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'type))
-(define (get-response-error-subtype doc)
-  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'subtype))
-(define (get-response-error-descriptor doc)
-  (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
-
-; for debugging
-(define (mxtextout cmd)
-  (printf "Command: ~a~n~nResponse: ~a~n" cmd (mtext cmd)))
 
 ;****************************************************************
 
@@ -246,19 +90,19 @@
   
   (cond 
     ; typename is a symbol at this point, not a string    
-    ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT" (list (car listrels) (car (cdr listrels)))))))
-    ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT-ALL" (list (car listrels) )))))
-    ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY" (list (car listrels) )))))
-    ((eqv? typename 'nonempty-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY-ALL" (list (car listrels) )))))
-    ((eqv? typename 'singleton) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON" (list (car listrels) )))))
-    ((eqv? typename 'singleton-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON-ALL" (list (car listrels) )))))
-    ((eqv? typename 'atmostone) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE" (list (car listrels) )))))
-    ((eqv? typename 'atmostone-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE-ALL" (list (car listrels) )))))
-    ((eqv? typename 'partial-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "PARTIALFUNCTION" (list (car listrels) )))))
-    ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "TOTALFUNCTION" (list (car listrels) )))))
-    ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT" (list (car listrels) )))))
-    ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT-ALL" (list (car listrels) )))))
-    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SUBSET" (list (car listrels) (car (cdr listrels)))))))
+    ((eqv? typename 'disjoint) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT" (list (car listrels) (car (cdr listrels))))))))
+    ((eqv? typename 'disjoint-all) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT-ALL" (list (car listrels) ))))))
+    ((eqv? typename 'nonempty) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY" (list (car listrels) ))))))
+    ((eqv? typename 'nonempty-all) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY-ALL" (list (car listrels) ))))))
+    ((eqv? typename 'singleton) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON" (list (car listrels) ))))))
+    ((eqv? typename 'singleton-all) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON-ALL" (list (car listrels) ))))))
+    ((eqv? typename 'atmostone) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE" (list (car listrels) ))))))
+    ((eqv? typename 'atmostone-all) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE-ALL" (list (car listrels) ))))))
+    ((eqv? typename 'partial-function) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "PARTIALFUNCTION" (list (car listrels) ))))))
+    ((eqv? typename 'total-function) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "TOTALFUNCTION" (list (car listrels) ))))))
+    ((eqv? typename 'abstract) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT" (list (car listrels) ))))))
+    ((eqv? typename 'abstract-all) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT-ALL" (list (car listrels) ))))))
+    ((eqv? typename 'subset) (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SUBSET" (list (car listrels) (car (cdr listrels))))))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
 ; May be a list, may not be a list
@@ -450,7 +294,113 @@
                   (symbol->string 'policyname))   ; close paren for above GET REQUEST VECTOR commented out )
                 )))))) ; Return this policy object (used by policy hierarchy code above)
 
+;****************************************************************
+;;Java Connection
 
+(define windows? (equal? 'windows (system-path-convention-type)))
+
+(define java-class-separator
+  (if windows?
+      ";"
+      ":"))    
+
+; Initial values
+(define java-process-list #f)
+(define input-port #f)
+(define output-port #f)
+(define process-id #f)
+(define err-port #f)
+(define ctrl-function #f)
+(define margrave-home-path (current-directory))
+
+; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
+; If not passed, will use (current-directory).
+(define (start-margrave-engine (home-path margrave-home-path))
+  (if (eq? java-process-list #f)
+      (let ([ margrave-command-line
+              (string-append
+               "java -cp "
+               
+               ;For testing, use the .class files instead of the .jar:
+               (path->string
+                (build-path home-path
+                            "bin"))
+               #;(path->string
+                  (build-path home-path
+                              "bin"
+                              "margrave.jar"))
+               
+               ; Margrave requires these JAR files to run:
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "kodkod.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "org.sat4j.core.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "sunxacml.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "java_cup.jar"))
+               java-class-separator
+               (path->string
+                (build-path home-path
+                            "bin"
+                            "json.jar"))
+               
+               
+               ; Run this class:
+               " edu.wpi.margrave.MCommunicator")])
+        
+        ;(printf "~a ~a ~a~n" home-path margrave-home-path margrave-command-line)
+        (set! java-process-list (process margrave-command-line))
+        (set! input-port (first java-process-list))
+        (set! output-port (second java-process-list))
+        (set! process-id (third java-process-list))
+        (set! err-port (fourth java-process-list))
+        (set! ctrl-function (fifth java-process-list))
+        (set! margrave-home-path home-path)
+        #t)
+      #f))
+
+(define (cleanup-margrave-engine)
+  (close-input-port input-port)
+  (close-output-port output-port)
+  (close-input-port err-port)  
+  ; allow restart of the engine
+  (set! java-process-list #f)
+  (set! input-port #f)
+  (set! output-port #f)
+  (set! process-id #f)
+  (set! err-port #f)
+  (set! ctrl-function #f))
+
+(define (stop-margrave-engine)
+  (if (eq? java-process-list #f)
+      #f
+      (begin
+        (m "<MARGRAVE-COMMAND type=\"QUIT\" />")
+        ;Should be this: (m (evalxml "QUIT"))
+        (ctrl-function 'kill)  ; may not be necessary
+        
+        (flush-output output-port)    
+        (cleanup-margrave-engine)
+        #t))) 
+
+
+; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
+; (exit:insert-on-callback) doesn't work for some reason either
+;Kill process on exit
+; (exit:insert-on-callback stop-margrave-engine)
 
 ; ***************************************************************************************
 ; User Functions
@@ -488,9 +438,31 @@
 
 ; mtext
 ; string -> document or #f
-; parses and compiles the string command into XML and executes it.
+; parses and compiles the string command into XML, executes it,
+; pretty prints the results, and then returns the result document.
 (define (mtext cmd)
-  (m (evalxml cmd)))
+    (let ((response-doc (m (evalxml cmd))))
+      (pretty-print-response-xml response-doc)
+      response-doc))
+
+
+; mmtext
+; string or list of string -> list of (document or #f)
+; Like mtext, but accepts lists of commands and returns a list of results.
+(define (mmtext cmds)
+  (mm (map evalxml cmds)))
+  
+
+; mm
+; XML string or list of XML string -> list of (document or #f)
+(define (mm cmds)
+  (if (list? cmds)
+      ; Execute each in sequence.
+      (map (lambda (cmd) (pretty-print-response-xml (m cmd)))
+                cmds)
+      ; Execute the single command; return a singleton list.
+      (list (pretty-print-response-xml  (m cmds)))))
+
 
 ; m
 ; XML string -> document or #f
@@ -502,7 +474,7 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-       ; (printf "~a;~n" cmd)
+         (printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML
         (display (string-append cmd ";") output-port)
@@ -540,7 +512,7 @@
                              (fetch-result)]))))
             
             ; Populate the buffered ports            
-                        
+            
             ; Handle the results
             (let* ([port-status (fetch-result)]
                    [result (get-output-string command-buffer)]
@@ -551,24 +523,21 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    (printf "~a~n" result)                    
+                    (printf "M RECEIVED: ~a~n" result)                    
+                    
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))
-
+                  
                   (begin
                     ; Got eof, the port has been cloed.
                     (printf "Margrave engine has closed. EOF reached. No document to return.")      
-
+                    
                     ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
                     ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
                     ;           spamming with "The engine is not started..."
                     ;(cleanup-margrave-engine)
-
+                    
                     #f))))))))
-
-
-
-
 
 
 ; !!!
@@ -615,12 +584,12 @@
 
 ; get-idbname-list
 (define (get-idbname-list pol)
-  (m (string-append "GET RULES IN  " pol)))
+  (mtext (string-append "GET RULES IN  " pol)))
 
 ; get-qualified-idbname-list
 ; Same as get-idbname-list but includes policy name prefix
 (define (get-qualified-idbname-list pol)
-  (m (string-append "GET QUALIFIED RULES IN " pol)))
+  (mtext (string-append "GET QUALIFIED RULES IN " pol)))
 
 ; get-request-var-list
 ;(define (get-request-var-list pol)
@@ -630,7 +599,7 @@
 ; Policy String -> String
 ; Given an idbname, policy will report its decision if a rule, or the empty string otherwise
 (define (get-decision-for-rule-idbname policy idbname)
-  (m (string-append "GET DECISION FOR " policy " " idbname)))
+  (mtext (string-append "GET DECISION FOR " policy " " idbname)))
 
 ; rules-with-higher-priority
 ; Policy String -> List
@@ -639,8 +608,7 @@
 ;  given by combining algs.) Names are qualified with policyname:.
 ;; TODO: Only works for Leaves, not Sets so far.
 (define (rule-idbs-with-higher-priority pol rulename)
-  (m (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
-
+  (mtext (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
 
 ; **************************************************************
 ; Test case procedures

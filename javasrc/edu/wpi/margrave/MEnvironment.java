@@ -413,6 +413,7 @@ public class MEnvironment
 	public static String sNotDocument = "value not XML document";
 	public static String sFailure = "failure";
 	public static String sCommand = "command";
+	public static String sConstraint = "constraint";
 	
 	public static String sShow = "show";
 	public static String sNext = "next";
@@ -1451,12 +1452,15 @@ public class MEnvironment
 
 	public static Document addConstraintDisjointAll(String vname, String s)
 	{
+		MCommunicator.writeToLog("In addConstraintDisjointAll (env): "+s);
 		if(!envVocabularies.containsKey(vname))
 			return errorResponse(sUnknown, sVocabulary, vname);
 		MVocab voc = envVocabularies.get(vname);
 		try 
 		{
+			MCommunicator.writeToLog("Calling voc.axioms.add...: "+s);
 			voc.axioms.addConstraintDisjointAll(s);
+			MCommunicator.writeToLog("Called voc");
 			return successResponse();
 		} 
 		catch (MGException e)

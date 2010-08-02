@@ -4,8 +4,14 @@
 
 (provide 
  pretty-print-model
- pretty-print-info-xml
+ pretty-print-response-xml
  get-attribute-value
+ response-is-success?
+ response-is-error?
+ response-is-exception?
+ get-response-error-type
+ get-response-error-subtype
+ get-response-error-descriptor
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
@@ -55,6 +61,45 @@
  xml-make-forcases)
 
 ;****************************************************************
+;;XML
+
+; Get list of child elements with name = name-symbol.
+; Element -> Symbol -> List(Element)
+(define (get-element-children-named ele name-symbol)
+  (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
+          (element-content ele)))
+
+
+; Get the response type of a MARGRAVE-RESPONSE element:
+; Document/#f -> String
+(define (get-response-type doc)
+  (if (equal? doc #f)
+      ""
+      (get-attribute-value (document-element doc) 'type)))
+
+
+; Document -> Boolean
+(define (response-is-success? doc)
+  (equal? (get-response-type doc)
+          "success"))
+(define (response-is-error? doc)
+  (equal? (get-response-type doc)
+          "error"))
+(define (response-is-exception? doc)
+  (equal? (get-response-type doc)
+          "exception"))
+
+; Fetch various error properties
+; Document -> String
+(define (get-response-error-type doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'type))
+(define (get-response-error-subtype doc)
+  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'subtype))
+(define (get-response-error-descriptor doc)
+  (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
+
+
+;****************************************************************
 ;;Pretty Printing returned XML
 
 ;name is the name of the atom, such as "s" or "r" (doesn't include the $), and list of types is a list of types (which are really predicates that have only one atom in (predicate-list-of-atoms))
@@ -76,16 +121,19 @@
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 (define (pretty-print-model xml-model)
-  (let ((annotation-string "")) ;to set later
+  (let ([annotation-string ""] ;to set later
+        [string-buffer (open-output-string)]) 
     ;First, go through the XML and update the 2 hashes. Then print them out.
-    (local [(define (helper content) ;content is a list of alternating pcdatas and RELATION elements
+    (local [(define (write s)
+              (write-string s string-buffer))
+            (define (helper content) ;content is a list of alternating pcdatas and RELATION elements
               (cond [(empty? content) void]
                     [(pcdata? (first content)) (helper (rest content))]
                     [(element? (first content))
                      (if (equal? 'RELATION (element-name (first content)))
                          (let* ((relation (first content))
-                                (relation-arity (string->number (attribute-value (first  (element-attributes relation)))))
-                                (relation-name  (attribute-value (second (element-attributes relation)))))
+                                (relation-arity (string->number (get-attribute-value relation 'arity)))
+                                (relation-name  (get-attribute-value relation 'name)))
                            (begin
                              (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
                                (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
@@ -103,7 +151,7 @@
                                                           (hash-set! atom-hash atom-name (make-atom atom-name empty)))
                                                         (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
                                                           (if (equal? (string-ref relation-name 0) #\$)
-                                                              (set-atom-name! atom-struct (make-string 1 (string-ref relation-name 1))) ;Have to turn the char into a string
+                                                              (set-atom-name! atom-struct (substring relation-name 1))
                                                               (if (=  relation-arity 1) ;If relation is a type
                                                                   (begin 
                                                                     (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
@@ -119,22 +167,34 @@
                                 (helper (rest content))))]
                     [else "Error in pretty-print-model!!"]))
             (define (print-statistics stat-xml) ;stat xml is the statistics element
-              ;computed-max-size=\"1\" max-size=\"1\" result-id=\"0\" user-max-size=\"6\"/>
-              (display "STATISTICS: \n")
-              (display (string-append "Computed max size: " (get-attribute-value stat-xml 'computed-max-size) "\n"))
-              (display (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
-              (display (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
-              (display (string-append "User max size: " (get-attribute-value stat-xml 'user-max-size) "\n"))
+              (write "STATISTICS: \n")
+              (let* ([computed-max (get-attribute-value stat-xml 'computed-max-size)]
+                     [user-max (get-attribute-value stat-xml 'user-max-size)]
+                     [computed-max-num (string->number computed-max)]
+                     [user-max-num (string->number user-max)])
+                (write (string-append "Computed max size: " computed-max "\n"))
+                (write (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
+                (write (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
+                (write (string-append "User max size: " user-max "\n"))
+                (begin
+                  (when (< user-max-num computed-max-num)
+                    (write (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max ")\n")))
+                  (when (< computed-max-num 0)
+                    (write (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
+              
               )]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
              (set! predicate-hash (make-hash))
-             (set! model-size (attribute-value (first (element-attributes xml-model))))
+             (set! model-size (get-attribute-value (second (element-content xml-model)) 'size)) ;shouldn't really be hardcoded in
              (helper (element-content (second (element-content xml-model))))
-             (display (string-from-hash))
-             (display (string-append "Annotation: " annotation-string "\n"))
+             (write (string-from-hash))
+             (when (> (string-length annotation-string) 0)
+               (write (string-append annotation-string "\n")))
              (if (< 2 (length (element-content xml-model)))
                  (print-statistics (fourth (element-content xml-model)))
-                 "")))))
+                 "")
+             (display (get-output-string string-buffer))
+             (get-output-string string-buffer)))))
 
 ;Returns a string to display based on atom-hash and predicate-hash
 (define (string-from-hash)
@@ -172,15 +232,52 @@
 (define (get-attribute-value ele name-symbol)
   (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
                                   (element-attributes ele)))))
+
 ;************ Pretty Print Info *******************
 
-;Pass this function a MARGRAVE-RESPONSE element
-;For now, acceptable types are "sysinfo" "collection-info" or "vocabulary-info"
-(define (pretty-print-info-xml response-element)
-  (let ((type (get-attribute-value response-element 'type)))
-    (cond [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
+;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
+(define (pretty-print-response-xml response-doc)
+  (let* ((response-element (document-element response-doc))
+         (type (get-attribute-value response-element 'type)))
+    (cond [(equal? type "model") (pretty-print-model response-element)] 
+          [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
           [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
-          [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)])))
+          [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
+          [(equal? type "error") (pretty-print-error-xml response-element)]
+          [(equal? type "exception") (pretty-print-exception-xml response-element)])))
+
+(define (pretty-print-exception-xml element)
+  (let* ([string-buffer (open-output-string)]
+         (exception-element (second (element-content element)))
+         (exception-attributes (element-attributes exception-element))
+         (exception-content (element-content exception-element))
+         (message-element (second exception-content))
+         (location-element (fourth exception-content))
+         (command-element (sixth exception-content)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin
+        (write "Exception:\n")
+        (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
+        (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
+        (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n"))
+        (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
+
+;Pass this function a <MARGRAVE-RESPONSE type="error"> element
+(define (pretty-print-error-xml element)
+  (let ([string-buffer (open-output-string)]
+        (error-element (second (element-content element))))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin
+        (write "Error:\n")
+        (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
+        (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
+        (write (pcdata-string (first (element-content error-element))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element
@@ -231,7 +328,8 @@
           (write (string-append "\nVocabularies count: " (get-attribute-value vocab-element 'count )))
           (write (string-append "\nCollections count: " (get-attribute-value collections-element 'count)))
           (write (string-append "\nCached Results count: " (get-attribute-value results-element 'count )))
-          (display (get-output-string string-buffer)))))))
+          (display (get-output-string string-buffer))
+          (get-output-string string-buffer))))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"collection-info\"> element
 (define (pretty-print-collection-info-xml info-element)
@@ -255,7 +353,8 @@
                  (write (string-append "Variable name: " (pcdata-string (first (element-content elem))) "\n")))
                (filter (lambda(elem) (element? elem))
                        (element-content free-variables))))
-        (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"vocabulary-info\"> element
 (define (pretty-print-vocab-info-xml info-element)
@@ -271,15 +370,16 @@
                (axioms-element (sixth (element-content vocab-element))))
           (write (string-append "Vocabulary Name: " (get-attribute-value vocab-element 'name) "\n"))
           (write "Sorts:\n")
-          (map (lambda(elem)
-                 (write (string-append "Sort name: " (get-attribute-value elem 'name) "\n"
+          (local ((define (write-sorts elem)
+                    (write (string-append "Sort name: " (get-attribute-value elem 'name) "\n"
                                        (if (< 1 (length (element-content elem)))
                                            (foldr (lambda(elem rest)
                                                     (string-append "\tSubsort: " (get-attribute-value elem 'name) "\n" rest))
                                                   ""
                                                   (filter (lambda(elem) (element? elem))
                                                           (element-content elem)))
-                                           ""))))
+                                           "")))))
+          (map write-sorts
                (filter (lambda(elem) (element? elem))
                        (element-content sorts-element)))
           (write "Req-Vector:\n")
@@ -289,11 +389,18 @@
                        (element-content req-vector-element)))
           (write "Axioms:\n")
           (map (lambda(elem)
-                 (write (symbol->string (element-name elem))))
+                 (begin (write (string-append (symbol->string (element-name elem)) "\n"))
+                        (map write-sorts
+                             (filter (lambda(elem) (element? elem))
+                                     (element-content elem)))))
                (filter (lambda(elem) (element? elem))
                        (element-content axioms-element))))
-        (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer))))))
 
+
+
+;************************************************************************
 ;;These functions return x-exprs for parts of command
 (define (xml-make-info-id id)
   `(INFO ((id ,id))))
