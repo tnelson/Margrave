@@ -1,7 +1,7 @@
 #lang racket
 (require "margrave-xml.rkt")
 
-(provide load-policy)
+(provide evaluate-policy)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -26,31 +26,22 @@
       (string-append "\"" (symbol->string arg)"\"")
       (string-append "\"" arg "\"")))
 
-; policy-file-name -> MPolicy
-; This function is used because a raw (load x) call will return void, not the object desired.
-; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
-; to the backend in lower-case.
-(define (load-policy fn)
-  
-  ; !!! TODO Check whether case-sensitivity problems remain in DrRacket
-  
-  ;  (case-sensitive #t)
-  ;  (display (read (open-input-file fn))) (newline)
-  ;  (case-sensitive #f)  
-  ; (display "*** ") (display fn) (newline)
+
+
+
+; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
+(define (evaluate-policy fn)
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. Is there a fix for this?
-  ; (case-sensitive #t)
   (let* ([file-port (open-input-file fn)]
-         [pol ((eval (read file-port) the-margrave-namespace) fn)])
-    ; (case-sensitive #f)
-    
+         [pol-result-list ((eval (read file-port) the-margrave-namespace) fn)])    
     ; don't keep the handle open! call-with-input-file would be better here.
-    (close-input-port file-port)
+    (close-input-port file-port)    
     
-    ; return the policy identifier
-    pol))
+    ; Return the script needed to create this policy
+    pol-result-list) )
+
 
 
 ;****************************************************************
@@ -61,30 +52,31 @@
 ; Returns a list of xml commands
 (define (add-subtypes-of vocab parent listsubs)  
   ; listsubs may be empty -- if so, do nothing (we already added parent)
-  (when (> (length listsubs) 0)            
-    (foldr (lambda (s rest) 
-             ; Is this a sort with subsorts itself?
-             (append 
-              (if (list? s)                       
-                  (begin
-                    (display parent)
-                    ; Add subtype relationship between parent and s
-                    (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
+  (if (> (length listsubs) 0)            
+      (foldr (lambda (s rest) 
+               ; Is this a sort with subsorts itself?
+               (append 
+                (if (list? s)                       
+                    (begin
+                      (display parent)
+                      ; Add subtype relationship between parent and s
+                      (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
+                            
+                            ; Is this a nested subtype? If so, we must
+                            ; deal with s's subtypes.
+                            
+                            ; Check for list size;
+                            ; someone may have used parens without meaning to.
+                            (if (> (length s) 1)
+                                (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
+                                empty)))
                     
-                    ; Is this a nested subtype? If so, we must
-                    ; deal with s's subtypes.
-                    
-                    ; Check for list size;
-                    ; someone may have used parens without meaning to.
-                    (if (> (length s) 1)
-                        (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
-                        empty)))
-              
-              ; Bottom of sort tree. 
-              (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s))))))
-           rest))
-    empty
-    listsubs)))
+                    ; Bottom of sort tree. 
+                    (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s))))))
+                rest))
+             empty
+             listsubs)
+      empty))
 
 
 (define (add-constraint vocab typename listrels)

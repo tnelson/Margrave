@@ -20,7 +20,7 @@
 
 #lang racket
 
-(require xml "margrave-xml.rkt" "parser-compiler.rkt")
+(require xml "margrave-xml.rkt" "parser-compiler.rkt" "margrave-policy-vocab.rkt")
 
 (provide stop-margrave-engine
          start-margrave-engine
@@ -28,7 +28,8 @@
          m
          mm
          mmtext
-         pause-for-user)
+         pause-for-user
+         load-policy)
 ;****************************************************************
 ;;Java Connection
 
@@ -248,6 +249,30 @@
                     
                     #f))))))))
 
+
+
+; policy-file-name -> policy-id
+; This function is used because a raw (load x) call will return void, not the object desired.
+; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
+; to the backend in lower-case.
+(define (load-policy fn)
+  
+  ; !!! TODO Check whether case-sensitivity problems remain in DrRacket
+  
+  ;  (case-sensitive #t)
+  ;  (display (read (open-input-file fn))) (newline)
+  ;  (case-sensitive #f)  
+  ; (display "*** ") (display fn) (newline)
+  ;; Macro returns a func 
+  ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
+  ;; innocent policy definition. Is there a fix for this?
+  ; (case-sensitive #t)
+  (let* ([pol-result-list (evaluate-policy fn)]
+         [polname (first pol-result-list)])
+    
+    (mm (third pol-result-list))
+    (mm (fourth pol-result-list))
+    polname))
 
 ; !!!
 ; Need to support these once more. Commands exist, need to route them in java. - TN

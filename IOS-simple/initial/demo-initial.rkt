@@ -79,7 +79,7 @@
     (printf "~n~nRule-blaming:~n")
     
     
-    (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
+   #| (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
         protocol, message,
@@ -94,7 +94,7 @@
 
      TUPLING")  
     (mtext "SHOW POPULATED ")
-    
+    |#
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; change-impact
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

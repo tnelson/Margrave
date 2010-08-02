@@ -417,8 +417,8 @@
         
         ; ************************************
         [(equal? first-datum 'LOAD-POLICY)
-         (append (third (load-policy (symbol->string (syntax->datum (second interns)))))
-                 (fourth (load-policy (symbol->string (syntax->datum (second interns))))))]
+         (append (third (evaluate-policy (symbol->string (syntax->datum (second interns)))))
+                 (fourth (evaluate-policy (symbol->string (syntax->datum (second interns))))))]
         
         [(equal? first-datum 'CREATE-VOCABULARY)
          (xml-make-command "CREATE VOCABULARY" (map helper-syn->xml (rest interns)))]

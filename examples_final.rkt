@@ -6,6 +6,7 @@
 (require ;(file "./read.rkt")
          "margrave.rkt"
          "margrave-xml.rkt"
+         "margrave-policy-vocab.rkt"
          xml)
 
 
