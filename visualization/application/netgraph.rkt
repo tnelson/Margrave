@@ -9,14 +9,11 @@
      [name "entity"]
      [policy null]
      [subgraph null])
-    (define mnode null)
     
     (super-new)
     
     (define/public (get-name) name)
     (define/public (get-policy) policy)
-    (define/public (set-mnode! n) (set! mnode n))
-    (define/public (get-mnode) mnode)
     (define/public (set-subgraph! sg) (set! subgraph sg))
     (define/public (get-subgraph) subgraph)
     ))
