@@ -39,7 +39,7 @@
   
   
   
-  (m "
+  (mtext "
 EXPLORE 
   InboundACL:permit(ahostname, entry-interface, src-addr-in, src-addr-in,
   dest-addr-in, dest-addr-in, protocol, message, src-port-in, src-port-in,
@@ -150,13 +150,12 @@ PUBLISH ahostname, entry-interface,
         src-port-in, src-port_, src-port-out, 
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface
-IS POSSIBLE?
+
 TUPLING
 ")
-  ; IS POSSIBLE? ---> don't print any results, just load the query
   
   ; Let us use the query under the name routed-packets
-  (m "RENAME LAST routed-packets"))
+  (mtext "RENAME LAST routed-packets"))
 
 
 

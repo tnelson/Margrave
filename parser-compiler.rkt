@@ -1,5 +1,6 @@
 #lang racket
 
+
 (require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) "margrave-xml.rkt"
          syntax/readerr)
 
@@ -293,7 +294,7 @@
     
     (explore-modifier
      [(UNDER policy) (build-so (list 'UNDER $2) 1 2)]
-     [(PUBLISH LPAREN variable-list RPAREN) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $3)) 1 2)]
+     [(PUBLISH variable-list) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $2)) 1 2)]
      
      ; (IDBOUTPUT fmla fmla...)
      [(IDBOUTPUT atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
