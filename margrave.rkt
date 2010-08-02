@@ -67,7 +67,7 @@
                 ; Is this a sort with subsorts itself?
                 (if (list? s)                       
                     (begin
-                      (display parent)
+                      ;(display parent)
                       ; Add subtype relationship between parent and s
                       (m (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s))))))
                       
@@ -523,7 +523,7 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    (printf "M RECEIVED: ~a~n" result)                    
+                   ; (printf "M RECEIVED: ~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))
