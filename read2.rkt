@@ -62,11 +62,12 @@
      #'(module anything racket
          (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
          (let* ([new-in-port (open-input-string 'str) ]
-                [list-of-xml-commands (port->xml new-in-port)])
+                [list-of-xml-commands (flatten (port->xml new-in-port))]) ;Flatten because load-policy return a list of list of commands
 
            ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
            ; Don't start engine until parser completes successfully (above)
            (start-margrave-engine)
+           (display list-of-xml-commands)
            (let ((list-of-results (mm list-of-xml-commands)))
              (stop-margrave-engine)
              list-of-results))))))

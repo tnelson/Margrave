@@ -1,3 +1,3 @@
 #lang reader "read2.rkt"
 
-info; info;
+load policy ./tests/fwex1.p; info examplefw1;

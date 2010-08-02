@@ -1,7 +1,8 @@
 #lang racket
 
-(require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) "margrave-xml.rkt"
-         syntax/readerr)
+
+(require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) syntax/readerr)
+(require "margrave-xml.rkt" "margrave-policy-vocab.rkt")
 
 (provide
  
@@ -248,6 +249,8 @@
     
     (margrave-command 
      [(explore-statement) $1]
+     [(create-statement) $1]
+     [(add-statement) $1]
      
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      ;[(LOAD exp) (build-so (list 'LOAD $2) 1 2)]
@@ -273,6 +276,22 @@
      ; Close out the engine
      [(QUIT) (build-so (list 'QUIT) 1 1)]                      
      )
+    
+    ;**************************************************
+    ; CREATE statements
+    (create-statement
+     [(CREATE VOCABULARY vocabulary) (build-so (list 'CREATE-VOCABULARY $3) 1 3)])
+    
+    ; ADD
+    (add-statement
+     [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)])
+    (add-content
+     [(SORT sort) $2]
+     [(SUBSORT subsort) $2]
+     [(DECISION decision) $2]
+     [(REQUESTVAR requestvar) $2])
+    
+    
     
     ;**************************************************
     (explore-statement
@@ -309,6 +328,16 @@
     ;; ???
     (policy
      [(<identifier>) (build-so (list 'POLICY $1) 1 1)])    
+    (vocabulary
+     [(<identifier>) (build-so (list 'VOCABULARY $1) 1 1)])  
+    (sort
+     [(<identifier>) (build-so (list 'SORT $1) 1 1)])
+    (subsort
+     [(<identifier> <identifier>) (build-so (list 'SUBSORT $1 $2) 1 2)])  
+    (decision
+     [(<identifier>) (build-so (list 'DECISION $1) 1 1)])
+    (requestvar
+     [(<identifier> <identifier>) (build-so (list 'REQUESTVAR $1 $2) 1 1)])
     
     
     ; *************************************************
@@ -370,7 +399,7 @@
 ;(define (e stx)
 ;  (syntax-e stx))
 
-;Returns a list of xml documents
+
 (define (helper-syn->xml syn)
   (let* ([interns (syntax-e syn)])
    ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
@@ -387,7 +416,28 @@
         
         ; ************************************
         [(equal? first-datum 'LOAD-POLICY)
-         (load-policy (symbol->string (syntax->datum (second interns))))]
+         (append (third (load-policy (symbol->string (syntax->datum (second interns)))))
+                 (fourth (load-policy (symbol->string (syntax->datum (second interns))))))]
+        
+        [(equal? first-datum 'CREATE-VOCABULARY)
+         (xml-make-command "CREATE VOCABULARY" (map helper-syn->xml (rest interns)))]
+        [(equal? first-datum 'ADD)
+         (xml-make-command "ADD" (map helper-syn->xml (rest interns)))]
+        
+        [(equal? first-datum 'VOCABULARY)
+         (xml-make-vocab-identifier (symbol->string (syntax->datum (second interns))))]
+        
+        [(equal? first-datum 'SORT)
+         (xml-make-sort (symbol->string (syntax->datum (second interns))))]
+        [(equal? first-datum 'SUBSORT)
+         (xml-make-subsort (symbol->string (syntax->datum (second interns)))
+                           (symbol->string (syntax->datum (third interns))))]
+        [(equal? first-datum 'DECISION)
+         (xml-make-decision (symbol->string (syntax->datum (second interns))))]
+        [(equal? first-datum 'REQUESTVAR)
+         (xml-make-request-var (symbol->string (syntax->datum (second interns)))
+                               (symbol->string (syntax->datum (third interns))))]
+        
         [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
          ;(printf "Symbol var: ~a~n" first-intern)
          (symbol->string (syntax->datum (second interns)))

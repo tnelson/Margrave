@@ -28,7 +28,6 @@
          m
          mm
          mmtext
-         load-policy
          pause-for-user)
 ;****************************************************************
 ;;Java Connection
@@ -145,32 +144,6 @@
 ;; IMPORTANT
 ; When adding new user functions, be certain that all string arguments are converted to
 ; lower case!
-
-; policy-file-name -> MPolicy
-; This function is used because a raw (load x) call will return void, not the object desired.
-; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
-; to the backend in lower-case.
-(define (load-policy fn)
-  
-  ; !!! TODO Check whether case-sensitivity problems remain in DrRacket
-  
-  ;  (case-sensitive #t)
-  ;  (display (read (open-input-file fn))) (newline)
-  ;  (case-sensitive #f)  
-  ; (display "*** ") (display fn) (newline)
-  ;; Macro returns a func 
-  ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
-  ;; innocent policy definition. Is there a fix for this?
-  ; (case-sensitive #t)
-  (let* ([file-port (open-input-file fn)]
-         [pol ((eval (read file-port) the-margrave-namespace) fn)])
-    ; (case-sensitive #f)
-    
-    ; don't keep the handle open! call-with-input-file would be better here.
-    (close-input-port file-port)
-    
-    ; return the policy identifier
-    pol))
 
 ; mtext
 ; string -> document or #f
