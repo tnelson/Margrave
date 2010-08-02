@@ -1,34 +1,35 @@
 #lang racket
 
-(provide netgraph% pos-node% ng-node% ng-edge%)
+(provide netgraph% netgraph-node% netgraph-edge% pos-mixin pos-netgraph-node%)
 
 ; Netgraph Node
-(define ng-node%
+(define netgraph-node%
   (class object%
     (init-field
      [name "entity"]
      [policy null]
-     [result empty])
+     [subgraph null])
+    (define mnode null)
     
     (super-new)
     
     (define/public (get-name) name)
-    (define/public (get-result) result)
+    (define/public (get-policy) policy)
+    (define/public (set-mnode! n) (set! mnode n))
+    (define/public (get-mnode) mnode)
+    (define/public (set-subgraph! sg) (set! subgraph sg))
+    (define/public (get-subgraph) subgraph)
     ))
 
 ; Netgraph edge
-(define ng-edge%
+(define netgraph-edge%
   (class object%
-    (init-field
-     from
-     to
-     [active #t])
+    (init-field from to)
     
     (super-new)    
 
     (define/public (get-from) from)
-    (define/public (get-to) to)
-    (define/public (active?) active)))
+    (define/public (get-to) to)))
 
 ; The graph
 (define netgraph% 
@@ -38,22 +39,20 @@
      [edges empty])
     (super-new)
     
-    ; Is it better to mutate or to return a new object? I've seen it done both ways
     (define/public (add-node n)
       (new netgraph% [nodes (cons n nodes)] [edges edges]))
     
     (define/public (add-node! n)
       (set! nodes (cons n nodes)))
     
-    (define/public (add-edge n1 n2 active)
-      (new netgraph% [nodes nodes] [edges (cons (new ng-edge% [from n1] [to n2] [active active]) edges)]))
+    (define/public (add-edge n1 n2)
+      (new netgraph% [nodes nodes] [edges (cons (new netgraph-edge% [from n1] [to n2]) edges)]))
     
-    (define/public (add-edge! n1 n2 active)
-      (set! edges (cons (new ng-edge% [from n1] [to n2] [active active]) edges)))
+    (define/public (add-edge! n1 n2)
+      (set! edges (cons (new netgraph-edge% [from n1] [to n2]) edges)))
     
     (define/public (get-nodes) nodes)
     (define/public (get-edges) edges) ))
-
 
 ; Mixin for giving nodes 'n things a position component
 (define (pos-mixin %)
@@ -67,5 +66,4 @@
     (define/public (set-y! ny) (set! y ny))
     ))
 
-; Create a positional node class
-(define pos-node% (pos-mixin ng-node%))
+(define pos-netgraph-node% (pos-mixin netgraph-node%))

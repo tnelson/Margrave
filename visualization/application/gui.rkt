@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt")
+(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt" "../../margrave.rkt" "../../margrave-xml.rkt" xml)
 
 (define icon-accept (make-object bitmap% "../images/icon_accept.png"))
 (define icon-modify (make-object bitmap% "../images/icon_modify.png"))
@@ -41,9 +41,19 @@
 (send myng add-node! n1)
 (send myng add-node! n2)
 (send myng add-node! n3)
-(send myng add-edge! n1 n2)
+(send myng add-edge! n1 n2)n
 (send myng add-edge! n2 n3)
 
 (visualize (apply-model/pos myng #f) pb)
 
 (send window show #t)
+
+(start-margrave-engine (build-path 'up 'up))
+
+(load-policy (build-path 'up 'up "tests" "fwex1.p"))
+(mtext "info")
+(mtext "rename fwex1 firewall1")
+(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
+(mtext "GET ONE 0")
+
+(stop-margrave-engine)

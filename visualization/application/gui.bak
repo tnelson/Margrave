@@ -1,10 +1,13 @@
 #lang racket/gui
 
-(require "visualize.rkt" "netgraph.rkt" "controls.rkt")
+(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt")
+(require (file "../../margrave.rkt"))
 
 (define icon-accept (make-object bitmap% "../images/icon_accept.png"))
 (define icon-modify (make-object bitmap% "../images/icon_modify.png"))
 (define icon-deny (make-object bitmap% "../images/icon_deny.png"))
+
+(start-margrave-engine)
 
 ; Standard gui toolkit setup stuff
 (define window (new frame%
@@ -25,24 +28,27 @@
 ; Make a netgraph
 (define myng (new netgraph%))
 ; Create some positional nodes
-(define n1 (new pos-node% [name "Some Host"] [x 20] [y 30]))
-(define n2 (new pos-node% [name "Web Server"] [x 300] [y 30] [result (list icon-accept icon-modify)]))
-(define n3 (new pos-node% [name "Something"] [x 120] [y 240]))
+(define n1 (new pos-netgraph-node% [name "Some Host"] [x 20] [y 30]))
+(define n2 (new pos-netgraph-node% [name "Web Server"] [x 300] [y 30]))
+(define n3 (new pos-netgraph-node% [name "Something"] [x 120] [y 240]))
 
-; Add them to the netgraph (using mutation)
+
+(define subng (new netgraph%))
+(define sn1 (new pos-netgraph-node% [name "Sub1"] [x 50] [y 150]))
+(define sn2 (new pos-netgraph-node% [name "Sub2"] [x 250] [y 50]))
+(send subng add-node! sn1)
+(send subng add-node! sn2)
+(send subng add-edge! sn1 sn2)
+(send n1 set-subgraph! subng)
+
 (send myng add-node! n1)
 (send myng add-node! n2)
 (send myng add-node! n3)
-(send myng add-edge! n1 n2 #t)
-(send myng add-edge! n2 n3 #t)
+(send myng add-edge! n1 n2)
+(send myng add-edge! n2 n3)
 
-; DO IT
-(visualize pb myng)
-
-; When this function is written, it will look more like this
-;(visualize pb (model-graph myng))
-
-; Without mutation
-;(visualize pb (send (send (send myng add-node n1) add-node n2) add-edge n1 n2))
+(visualize (apply-model/pos myng #f) pb)
 
 (send window show #t)
+
+(stop-margrave-engine)
