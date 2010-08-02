@@ -385,16 +385,16 @@ public class MCommunicator
         				String getType = getGetType(n);
         				String pname = getPolicyName(n);
         				String rname = "";
-        				if (getType == "DECISION") {
+        				if (getType.equalsIgnoreCase("DECISION")) {
         					theResponse = MEnvironment.getDecisionFor(pname, rname);;
         				}
-        				else if (getType == "HIGHER-PRIORITY-THAN") {
+        				else if (getType.equalsIgnoreCase("HIGHER-PRIORITY-THAN")) {
         					theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
         				}
-        				else if (getType == "RULES") {
+        				else if (getType.equalsIgnoreCase("RULES")) {
         					theResponse = MEnvironment.getRulesIn(pname, false);
         				}
-        				else if (getType == "QUALIFIED-RULES") {
+        				else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
         					theResponse = MEnvironment.getRulesIn(pname, true);
         				}
         			}
@@ -448,82 +448,90 @@ public class MCommunicator
         					Node secondChildNode = childNode.getNextSibling(); //Probably shouldn't be hardcoded in
         					String addType = secondChildNode.getNodeName();
         					writeToLog("addType: " + addType +"\n");
-        					if (addType == "SUBSORT") {
+        					
+        					if (addType.equalsIgnoreCase("SUBSORT")) {
         						String parent = getSubSortParent(n);
         						String child = getSubSortChild(n);
         						theResponse = MEnvironment.addSubsort(vname, parent, child);
         					}
-        					else if (addType == "SORT") {
+        					else if (addType.equalsIgnoreCase("SORT")) {
         						String sortName = getSortName(n);
         						theResponse = MEnvironment.addSort(vname, sortName);
         						writeToLog("Added Sort\n");
         					}
-        					else if (addType == "DECISION") {
+        					else if (addType.equalsIgnoreCase("DECISION")) {
         						writeToLog("In Decision");
         						String decName = getDecisionName(n);
         						writeToLog("Adding Decision: " + decName + "\n");
         						theResponse = MEnvironment.addDecision(vname, decName);
         						writeToLog("Added Decision: " + decName + "\n");
         					}
-        					else if (addType == "PREDICATE") {
+        					else if (addType.equalsIgnoreCase("PREDICATE")) {
         						String sName = getPredicateName(n);
         						List<String> constr = getRelationsList(n);
         						writeToLog("Adding Predicate\n");
         						theResponse = MEnvironment.addPredicate(vname, sName, constr);
         					}
-        					else if (addType == "REQUESTVAR") {
+        					else if (addType.equalsIgnoreCase("REQUESTVAR")) {
         						String varName = getRequestVar(n);
         						String domainSort = getRequestSort(n);
         						theResponse = MEnvironment.addRequestVariable(vname, varName, domainSort);
         					}
-        					else if (addType == "OTHERVAR") {
+        					else if (addType.equalsIgnoreCase("OTHERVAR")) {
         						String varName = getOtherVarName(n);
         						String domainSort = getOtherVarSort(n);
         						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
         					}
-        					else if (addType == "CONSTRAINT") {
+        					else if (addType.equalsIgnoreCase("CONSTRAINT")) {
         						Node constraintNode = secondChildNode; //Just for clarity
-        						
+        						        						        						
         						String constraintType = getConstraintType(constraintNode);
-        						List<String> relations = getRelationsList(constraintNode);
         						
+        						List<String> relations = getRelationsList(constraintNode); 
         						String firstRelation = relations.get(0);
         						
-        						if (constraintType == "DISJOINT") {
+        						if (constraintType.equalsIgnoreCase("DISJOINT")) {
         							theResponse = MEnvironment.addConstraintDisjoint(vname, firstRelation, relations.get(1));
         						}
-        						else if (constraintType == "DISJOINT-ALL") {
+        						else if (constraintType.equalsIgnoreCase("DISJOINT-ALL")) {
         							theResponse = MEnvironment.addConstraintDisjointAll(vname, firstRelation);
         						}
-        						else if (constraintType == "SINGLETON") {
+        						else if (constraintType.equalsIgnoreCase("SINGLETON")) {
         							theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
         						}
-        						else if (constraintType == "SINGLETON-ALL") {
+        						else if (constraintType.equalsIgnoreCase("SINGLETON-ALL")) {
         							theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
         						}
-        						else if (constraintType == "ATMOSTONE") {
+        						else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
         							theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
         						}
-        						else if (constraintType == "NONEMPTY") {
+            					else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
+            							theResponse = MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("NONEMPTY")) {
         							theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
         						}
-        						else if (constraintType == "NONEMPTY-ALL") {
+        						else if (constraintType.equalsIgnoreCase("NONEMPTY-ALL")) {
         							theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
         						}
-        						else if (constraintType == "ABSTRACT") {
+        						else if (constraintType.equalsIgnoreCase("ABSTRACT")) {
         							theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
         						}
-        						else if (constraintType == "ABSTRACT-ALL") {
+        						else if (constraintType.equalsIgnoreCase("ABSTRACT-ALL")) {
         							theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
         						}
-        						else if (constraintType == "TOTAL-FUNCTION") {
+        						else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
         							theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
         						}
-        						else if (constraintType == "PARTIAL-FUNCTION") {
+        						else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
         							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
         						}
-        						else if (constraintType == "SUBSET") {
+        						else if (constraintType.equalsIgnoreCase("SUBSET")) {
         							theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));
+        						}
+        						else
+        						{
+        							theResponse = MEnvironment.addConstraintSubset(MEnvironment.sUnknown, MEnvironment.sConstraint, relations.get(1));	
         						}
         					}
         				}
@@ -558,7 +566,7 @@ public class MCommunicator
             					variableListString = "";
             					for (String v : variables) {
             						//Avoid beginning space
-            						if (variableListString == "") {
+            						if (variableListString.length() < 1) {
             							variableListString = v;
             						}
             						else {
@@ -588,6 +596,13 @@ public class MCommunicator
         		}
 
         	//}
+        		
+        	// Finally -- did we assign a proper response? If not, none of the above cases was matched.
+        	// _SHOULD_ have elses everywhere. This is just in case.
+        	if(theResponse == null)
+        		theResponse = MEnvironment.errorResponse(MEnvironment.sFailure, "", 
+        				"Fatal error: No matching case in java engine. (If you receive this error, please notify the Margrave developers.)");
+        		
         	return theResponse;
         }
         
@@ -843,7 +858,7 @@ public class MCommunicator
         	Node childNode;
         	for (int i = 0; i < childNodes.getLength(); i++) {
         		childNode = childNodes.item(i);
-        		if (nodeName == childNode.getNodeName()) {
+        		if (nodeName.equalsIgnoreCase(childNode.getNodeName())) {
         			return childNode;
         		}
         	}
@@ -853,7 +868,7 @@ public class MCommunicator
         //Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
         private static String getNodeAttribute(Node n, String nodeName, String attributeName) {
         	Node node = null;
-        	if (n.getNodeName() == nodeName) {
+        	if (n.getNodeName().equalsIgnoreCase(nodeName)) {
         		node = n;
         	}
         	else {
