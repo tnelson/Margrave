@@ -27,6 +27,8 @@
 ;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
 ;(load-policy (build-path (current-directory) "tests" "iout.p"))
 (mtext "info")
+(mtext "info fwex1")
+(mtext "info examplefw1")
 ;(m (xml-make-rename-command "conferencepolicy1" "conf1"))
 ;(m (xml-make-rename-command "conferencepolicy2" "conf2"))
 ;(m (xml-make-rename-command "fwex1" "firewall1"))
