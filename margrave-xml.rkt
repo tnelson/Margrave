@@ -121,9 +121,12 @@
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 (define (pretty-print-model xml-model)
-  (let ((annotation-string "")) ;to set later
+  (let ([annotation-string ""] ;to set later
+        [string-buffer (open-output-string)]) 
     ;First, go through the XML and update the 2 hashes. Then print them out.
-    (local [(define (helper content) ;content is a list of alternating pcdatas and RELATION elements
+    (local [(define (write s)
+              (write-string s string-buffer))
+            (define (helper content) ;content is a list of alternating pcdatas and RELATION elements
               (cond [(empty? content) void]
                     [(pcdata? (first content)) (helper (rest content))]
                     [(element? (first content))
@@ -164,32 +167,34 @@
                                 (helper (rest content))))]
                     [else "Error in pretty-print-model!!"]))
             (define (print-statistics stat-xml) ;stat xml is the statistics element
-              (display "STATISTICS: \n")
+              (write "STATISTICS: \n")
               (let* ([computed-max (get-attribute-value stat-xml 'computed-max-size)]
                      [user-max (get-attribute-value stat-xml 'user-max-size)]
                      [computed-max-num (string->number computed-max)]
                      [user-max-num (string->number user-max)])
-              (display (string-append "Computed max size: " computed-max "\n"))
-              (display (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
-              (display (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
-              (display (string-append "User max size: " user-max "\n"))
-              (begin
-                (when (< user-max-num computed-max-num)
-                    (display (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max "\n")))
-                (when (< computed-max-num 0)
-                  (display (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
+                (write (string-append "Computed max size: " computed-max "\n"))
+                (write (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
+                (write (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
+                (write (string-append "User max size: " user-max "\n"))
+                (begin
+                  (when (< user-max-num computed-max-num)
+                    (write (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max ")\n")))
+                  (when (< computed-max-num 0)
+                    (write (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
               
               )]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
              (set! predicate-hash (make-hash))
              (set! model-size (get-attribute-value (second (element-content xml-model)) 'size)) ;shouldn't really be hardcoded in
              (helper (element-content (second (element-content xml-model))))
-             (display (string-from-hash))
+             (write (string-from-hash))
              (when (> (string-length annotation-string) 0)
-                 (display (string-append annotation-string "\n")))
+               (write (string-append annotation-string "\n")))
              (if (< 2 (length (element-content xml-model)))
                  (print-statistics (fourth (element-content xml-model)))
-                 "")))))
+                 "")
+             (display (get-output-string string-buffer))
+             (get-output-string string-buffer)))))
 
 ;Returns a string to display based on atom-hash and predicate-hash
 (define (string-from-hash)
@@ -243,12 +248,12 @@
 
 (define (pretty-print-exception-xml element)
   (let* ([string-buffer (open-output-string)]
-        (exception-element (second (element-content element)))
-        (exception-attributes (element-attributes exception-element))
-        (exception-content (element-content exception-element))
-        (message-element (second exception-content))
-        (location-element (fourth exception-content))
-        (command-element (sixth exception-content)))
+         (exception-element (second (element-content element)))
+         (exception-attributes (element-attributes exception-element))
+         (exception-content (element-content exception-element))
+         (message-element (second exception-content))
+         (location-element (fourth exception-content))
+         (command-element (sixth exception-content)))
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
@@ -257,7 +262,8 @@
         (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
         (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n"))
         (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))
-          (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type="error"> element
 (define (pretty-print-error-xml element)
@@ -270,7 +276,8 @@
         (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
         (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
         (write (pcdata-string (first (element-content error-element))))
-          (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element
@@ -321,7 +328,8 @@
           (write (string-append "\nVocabularies count: " (get-attribute-value vocab-element 'count )))
           (write (string-append "\nCollections count: " (get-attribute-value collections-element 'count)))
           (write (string-append "\nCached Results count: " (get-attribute-value results-element 'count )))
-          (display (get-output-string string-buffer)))))))
+          (display (get-output-string string-buffer))
+          (get-output-string string-buffer))))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"collection-info\"> element
 (define (pretty-print-collection-info-xml info-element)
@@ -345,7 +353,8 @@
                  (write (string-append "Variable name: " (pcdata-string (first (element-content elem))) "\n")))
                (filter (lambda(elem) (element? elem))
                        (element-content free-variables))))
-        (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"vocabulary-info\"> element
 (define (pretty-print-vocab-info-xml info-element)
@@ -361,15 +370,16 @@
                (axioms-element (sixth (element-content vocab-element))))
           (write (string-append "Vocabulary Name: " (get-attribute-value vocab-element 'name) "\n"))
           (write "Sorts:\n")
-          (map (lambda(elem)
-                 (write (string-append "Sort name: " (get-attribute-value elem 'name) "\n"
+          (local ((define (write-sorts elem)
+                    (write (string-append "Sort name: " (get-attribute-value elem 'name) "\n"
                                        (if (< 1 (length (element-content elem)))
                                            (foldr (lambda(elem rest)
                                                     (string-append "\tSubsort: " (get-attribute-value elem 'name) "\n" rest))
                                                   ""
                                                   (filter (lambda(elem) (element? elem))
                                                           (element-content elem)))
-                                           ""))))
+                                           "")))))
+          (map write-sorts
                (filter (lambda(elem) (element? elem))
                        (element-content sorts-element)))
           (write "Req-Vector:\n")
@@ -379,10 +389,14 @@
                        (element-content req-vector-element)))
           (write "Axioms:\n")
           (map (lambda(elem)
-                 (write (symbol->string (element-name elem))))
+                 (begin (write (string-append (symbol->string (element-name elem)) "\n"))
+                        (map write-sorts
+                             (filter (lambda(elem) (element? elem))
+                                     (element-content elem)))))
                (filter (lambda(elem) (element? elem))
                        (element-content axioms-element))))
-        (display (get-output-string string-buffer))))))
+        (display (get-output-string string-buffer))
+        (get-output-string string-buffer))))))
 
 
 
