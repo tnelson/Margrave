@@ -76,14 +76,18 @@
   (new modelgraph-edge%
        [from (hash-ref nodemap (send e get-from))]
        [to (hash-ref nodemap (send e get-to))]
-       [active (if (= 0 (random 2)) #t #f)]
-       [blocked (if (= 0 (random 2)) #t #f)]))
+       ;[active (if (= 0 (random 2)) #t #f)]
+       ;[blocked (if (= 0 (random 2)) #t #f)]
+       [active #f]
+       [blocked #f]
+       ))
 
 ; Consumes a netgraph-node and a model
 ; Returns a modelgraph-node
 (define (convert-node n model nodemap)
   (new modelgraph-node%
        [name (send n get-name)]
+       [type (send n get-type)]       
        [policy (send n get-policy)]
        [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
        [results empty]))
@@ -94,9 +98,11 @@
   (let ([newnode
          (new pos-modelgraph-node%
               [name (send n get-name)]
+              [type (send n get-type)]
               [policy (send n get-policy)]
               [subgraph (if (null? (send n get-subgraph)) null (apply-model/pos (send n get-subgraph) model))]       
-              [results (filter (lambda (r) (= 0 (random 2))) (list result-accept result-deny result-modify))]
+              ;[results (filter (lambda (r) (= 0 (random 2))) (list result-accept result-deny result-modify))]
+              [results empty]
               [x (send n get-x)]
               [y (send n get-y)]
               )])

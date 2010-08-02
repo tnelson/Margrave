@@ -88,6 +88,9 @@
     (init-field updatef [bitmap null] [icons empty] [name ""] [subed null])
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
+      (let ([w (send bitmap get-width)]
+            [h (send bitmap get-height)])
+        
       (if (not (empty? icons)) (begin
                                  (if (not (null? subed))
                                      (send dc set-pen arrow-dark 2 'solid)
@@ -97,10 +100,10 @@
                                  (send dc set-smoothing 'unsmoothed)
                                  (send dc set-pen "black" 1 'solid)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)
-      (send dc draw-text name (+ x 15) (+ y 90))
+      (send dc draw-text name (- (+ x (/ w 2)) (/ (let-values ([(a b c d) (send dc get-text-extent name)]) a) 2)) (+ y h))
       (draw-icons icons dc x y)   
       (updatef x y)      
-      )
+      ))
     
     (define/private (draw-icons icons dc x y)
       (cond [(empty? icons) #f]
