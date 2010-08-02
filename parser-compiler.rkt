@@ -249,7 +249,7 @@
     (margrave-command 
      [(explore-statement) $1]
      
-     ;         [(LOAD-POLICY) "b"]
+     [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      ;[(LOAD exp) (build-so (list 'LOAD $2) 1 2)]
      
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
@@ -386,7 +386,8 @@
         [(equal? first-datum 'MARGRAVE-SCRIPT) (map helper-syn->xml (rest interns))]
         
         ; ************************************
-        
+        [(equal? first-datum 'LOAD-POLICY)
+         (load-policy (symbol->string (syntax->datum (second interns))))]
         [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
          ;(printf "Symbol var: ~a~n" first-intern)
          (symbol->string (syntax->datum (second interns)))
