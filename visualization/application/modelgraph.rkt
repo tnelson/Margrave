@@ -43,6 +43,7 @@
     (super-new)
     
     (define/public (get-results) results)
+    
     ))
 
 ; Edge
@@ -68,21 +69,28 @@
 (define pos-modelgraph-node% (pos-mixin modelgraph-node%))
 
 ; Helper functions for apply-model
-(define (convert-edge e model)
+
+; Consumes a netgraph-edge and a model
+; Returns a modelgraph-edge
+(define (convert-edge e model nodemap)
   (new modelgraph-edge%
-       [from (send (send e get-from) get-mnode)]
-       [to (send (send e get-to) get-mnode)]
+       [from (hash-ref nodemap (send e get-from))]
+       [to (hash-ref nodemap (send e get-to))]
        [active (if (= 0 (random 2)) #t #f)]
        [blocked (if (= 0 (random 2)) #t #f)]))
 
-(define (convert-node n model)
+; Consumes a netgraph-node and a model
+; Returns a modelgraph-node
+(define (convert-node n model nodemap)
   (new modelgraph-node%
        [name (send n get-name)]
        [policy (send n get-policy)]
        [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
        [results empty]))
 
-(define (convert-node/pos n model)
+; Consumes a pos-netgraph-node and a model
+; Returns a pos-modelgraph-node
+(define (convert-node/pos n model nodemap)
   (let ([newnode
          (new pos-modelgraph-node%
               [name (send n get-name)]
@@ -93,19 +101,26 @@
               [y (send n get-y)]
               )])
     (begin 
-      (send n set-mnode! newnode)
+      (hash-set! nodemap n newnode)
       newnode)))
 
+; Consumes a netgraph and a model
+; Returns a modelgraph with the model details applied to the nodes and edges
 (define (apply-model ng model)
-  (_apply-model ng model
-                (lambda (n) (convert-node n model)) 
-                (lambda (e) (convert-edge e model))))
+  (let ( [nodemap (make-hash)] )
+     (_apply-model ng model
+                   (lambda (n) (convert-node n model nodemap)) 
+                   (lambda (e) (convert-edge e model nodemap)))))
 
+; Consumes a netgraph (with positional nodes) and a model
+; Returns a modelgraph with position data on the nodes
 (define (apply-model/pos ng model)
-  (_apply-model ng model
-                (lambda (n) (convert-node/pos n model)) 
-                (lambda (e) (convert-edge e model))))
+  (let ( [nodemap (make-hash)] )  
+     (_apply-model ng model
+                   (lambda (n) (convert-node/pos n model nodemap)) 
+                   (lambda (e) (convert-edge e model nodemap)))))
 
+; Helper for apply-model functions
 (define (_apply-model ng model nf ef)
   (new modelgraph% 
        [nodes (map nf (send ng get-nodes))]
