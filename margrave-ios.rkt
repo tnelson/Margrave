@@ -9,117 +9,131 @@
 ; tn april 2010
 ; updated tn july 2010
 
-; Remember to start the engine before calling this.
-(define (load-ios-policies dirpath)
-  (printf "Loading IOS policies in path: ~a ~n" dirpath)
- 
-  (printf ".")
-  (load-policy (build-path dirpath "InboundACL.p"))  
-  (printf ".")
-  (load-policy (build-path dirpath "InsideNAT.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "StaticRoute.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "LocalSwitching.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "PolicyRoute.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "DefaultPolicyRoute.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "NetworkSwitching.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "OutsideNAT.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "OutboundACL.p"))  
-  (printf ".")
-  (load-policy (build-path dirpath "Encryption.p"))
-  (printf ".")
-  (load-policy (build-path dirpath "OutsideNAT.p"))
-  (printf ".~n")
+(define (load-ios-helper filename dirpath prefix suffix) 
+  (let ([ polname (load-policy (build-path dirpath (string-append filename ".p")))])
+    
+    (printf ".")
+    
+    (when (or (> (string-length prefix) 0)
+              (> (string-length suffix) 0))
+      (mtext (string-append "RENAME " polname " " prefix polname suffix)))))
   
-  
-  
-  (mtext "
-EXPLORE 
-  InboundACL:permit(ahostname, entry-interface, src-addr-in, src-addr-in,
+; Remember to start the engine before calling this. Also wrap in an exception check!
+; dirpath says where to find the policies
+; prefix (and suffix) are prepended (and appended) to the 
+;   policy's name to avoid naming conflicts.
+(define (load-ios-policies dirpath prefix suffix)
+  (printf "Loading IOS policies in path: ~a with prefix: ~a and suffix: ~a ~n" dirpath prefix suffix)
+    
+    (load-ios-helper "InboundACL" dirpath prefix suffix)  
+    (load-ios-helper "InsideNAT" dirpath prefix suffix)  
+    (load-ios-helper "StaticRoute" dirpath prefix suffix)  
+    (load-ios-helper "LocalSwitching" dirpath prefix suffix)  
+    (load-ios-helper "PolicyRoute" dirpath prefix suffix)  
+    (load-ios-helper "DefaultPolicyRoute" dirpath prefix suffix)  
+    (load-ios-helper "NetworkSwitching" dirpath prefix suffix)  
+    (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+    (load-ios-helper "OutboundACL" dirpath prefix suffix)  
+    (load-ios-helper "Encryption" dirpath prefix suffix)  
+    (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+    (printf "~n")
+   
+    
+    (mtext (string-append "EXPLORE "
+  (string-append prefix "InboundACL" suffix)
+  ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
   dest-addr-in, dest-addr-in, protocol, message, src-port-in, src-port-in,
   dest-port-in, dest-port-in, length, next-hop, exit-interface) 
-AND
-  OutsideNAT:translate(ahostname, entry-interface, src-addr-in, src-addr_,
+AND "
+  (string-append prefix "OutsideNAT" suffix)
+  ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
   dest-addr-in, dest-addr_, protocol, message, src-port-in, src-port_,
   dest-port-in, dest-port_, length, next-hop, exit-interface)
 AND
 
-(
-  LocalSwitching:Forward(ahostname, entry-interface, src-addr_, src-addr_,
+( "
+  (string-append prefix "LocalSwitching" suffix)
+  ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
   dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
   dest-port_, dest-port_, length, next-hop, exit-interface)
   OR
 
-  (
-    LocalSwitching:Pass(ahostname, entry-interface, src-addr_, src-addr_,
+  ( "
+  (string-append prefix "LocalSwitching" suffix)
+    ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
     dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
     dest-port_, dest-port_, length, next-hop, exit-interface)
     AND
-    (
-      PolicyRoute:Forward(ahostname, entry-interface, src-addr_, src-addr_,
+    ( "
+      (string-append prefix "PolicyRoute" suffix)
+      ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
       dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
       dest-port_, dest-port_, length, next-hop, exit-interface)
       OR
-      (
-        PolicyRoute:Route(ahostname, entry-interface, src-addr_, src-addr_,
+      ( "
+        (string-append prefix "PolicyRoute" suffix)
+        ":Route(ahostname, entry-interface, src-addr_, src-addr_,
         dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
         dest-port_, dest-port_, length, next-hop, exit-interface)
-        AND
-        NetworkSwitching:Forward(ahostname, entry-interface, src-addr_,
+        AND "
+          (string-append prefix "NetworkSwitching" suffix)
+        ":Forward(ahostname, entry-interface, src-addr_,
         src-addr_, dest-addr_, dest-addr_, protocol, message,
         src-port_, src-port_, dest-port_, dest-port_, length,
         next-hop, exit-interface)
       )
       OR
-      (
-        PolicyRoute:Pass(ahostname, entry-interface, src-addr_, src-addr_,
+      ( "
+          (string-append prefix "PolicyRoute" suffix)
+        ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
         dest-addr_, dest-addr_, protocol, message, src-port_,
         src-port_, dest-port_, dest-port_, length, next-hop,
         exit-interface)
         AND
-        (
-          StaticRoute:Forward(ahostname, entry-interface, src-addr_,
+        ( "
+          (string-append prefix "StaticRoute" suffix)
+          ":Forward(ahostname, entry-interface, src-addr_,
           src-addr_, dest-addr_, dest-addr_, protocol, message,
           src-port_, src-port_, dest-port_, dest-port_, length,
           next-hop, exit-interface)
           OR
-          (
-            StaticRoute:Route(ahostname, entry-interface, src-addr_,
+          ( "
+            (string-append prefix "StaticRoute" suffix)
+            ":Route(ahostname, entry-interface, src-addr_,
             src-addr_, dest-addr_, dest-addr_, protocol, message,
             src-port_, src-port_, dest-port_, dest-port_, length,
             next-hop, exit-interface)
-            AND
-            NetworkSwitching:Forward(ahostname, entry-interface, src-addr_,
+            AND "
+            (string-append prefix "NetworkSwitching" suffix)
+            ":Forward(ahostname, entry-interface, src-addr_,
             src-addr_, dest-addr_, dest-addr_, protocol, message,
             src-port_, src-port_, dest-port_, dest-port_, length,
             next-hop, exit-interface)
           )
           OR
-          (
-            StaticRoute:Pass(ahostname, entry-interface, src-addr_, src-addr_,
+          ( "
+            (string-append prefix "StaticRoute" suffix)
+            ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
             dest-addr_, dest-addr_, protocol, message, src-port_,
             src-port_, dest-port_, dest-port_, length, next-hop,
             exit-interface)
             AND
-            (
-              DefaultPolicyRoute:Forward(ahostname, entry-interface,
+            ( "
+              (string-append prefix "DefaultPolicyRoute" suffix)
+              ":Forward(ahostname, entry-interface,
               src-addr_, src-addr_, dest-addr_, dest-addr_,
               protocol, message, src-port_, src-port_, dest-port_,
               dest-port_, length, next-hop, exit-interface)
               OR
-              (
-                DefaultPolicyRoute:Route(ahostname, entry-interface,
+              ( "
+              (string-append prefix "DefaultPolicyRoute" suffix)
+              ":Route(ahostname, entry-interface,
                 src-addr_, src-addr_, dest-addr_, dest-addr_,
                 protocol, message, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
-                AND
-                NetworkSwitching:Forward(ahostname, entry-interface,
+                AND "
+              (string-append prefix "NetworkSwitching" suffix)
+              ":Forward(ahostname, entry-interface,
                 src-addr_, src-addr_, dest-addr_, dest-addr_,
                 protocol, message, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
@@ -132,13 +146,15 @@ AND
   )
 )
 
-AND
-  InsideNAT:Translate(ahostname, entry-interface, src-addr_, src-addr-out,
+AND "
+              (string-append prefix "InsideNAT" suffix)
+              ":Translate(ahostname, entry-interface, src-addr_, src-addr-out,
   dest-addr_, dest-addr-out, protocol, message, src-port_,
   src-port-out, dest-port_, dest-port-out, length, next-hop,
   exit-interface)
-AND
-  OutboundACL:Permit(ahostname, entry-interface, src-addr-out, src-addr-out,
+AND "
+              (string-append prefix "OutboundACL" suffix)
+  ":Permit(ahostname, entry-interface, src-addr-out, src-addr-out,
   dest-addr-out, dest-addr-out, protocol, message, src-port-out,
   src-port-out, dest-port-out, dest-port-out, length, next-hop,
   exit-interface)
@@ -152,7 +168,7 @@ PUBLISH ahostname, entry-interface,
         length, next-hop, exit-interface
 
 TUPLING
-")
+"))
   
   ; Let us use the query under the name routed-packets
   (mtext "RENAME LAST routed-packets"))
