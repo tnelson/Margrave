@@ -129,8 +129,8 @@
                     [(element? (first content))
                      (if (equal? 'RELATION (element-name (first content)))
                          (let* ((relation (first content))
-                                (relation-arity (string->number (attribute-value (first  (element-attributes relation)))))
-                                (relation-name  (attribute-value (second (element-attributes relation)))))
+                                (relation-arity (string->number (get-attribute-value relation 'arity)))
+                                (relation-name  (get-attribute-value relation 'name)))
                            (begin
                              (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
                                (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
@@ -148,7 +148,7 @@
                                                           (hash-set! atom-hash atom-name (make-atom atom-name empty)))
                                                         (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
                                                           (if (equal? (string-ref relation-name 0) #\$)
-                                                              (set-atom-name! atom-struct (make-string 1 (string-ref relation-name 1))) ;Have to turn the char into a string
+                                                              (set-atom-name! atom-struct (substring relation-name 1))
                                                               (if (=  relation-arity 1) ;If relation is a type
                                                                   (begin 
                                                                     (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
@@ -164,7 +164,6 @@
                                 (helper (rest content))))]
                     [else "Error in pretty-print-model!!"]))
             (define (print-statistics stat-xml) ;stat xml is the statistics element
-              ;computed-max-size=\"1\" max-size=\"1\" result-id=\"0\" user-max-size=\"6\"/>
               (display "STATISTICS: \n")
               (let* ([computed-max (get-attribute-value stat-xml 'computed-max-size)]
                      [user-max (get-attribute-value stat-xml 'user-max-size)]
@@ -183,7 +182,7 @@
               )]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
              (set! predicate-hash (make-hash))
-             (set! model-size (attribute-value (first (element-attributes xml-model))))
+             (set! model-size (get-attribute-value (second (element-content xml-model)) 'size)) ;shouldn't really be hardcoded in
              (helper (element-content (second (element-content xml-model))))
              (display (string-from-hash))
              (when (> (string-length annotation-string) 0)
