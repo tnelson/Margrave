@@ -82,25 +82,25 @@ public class MPolicyLeaf extends MPolicy
 
 	public void printPolicyInfo()
 	{
-		System.out.println("###########################");
-		System.out.println("Policy Name: "+name);
-		System.out.println("This is a ground policy with rule combinator: "+rCombine);
-		System.out.println("Target Formula: "+target);		
+		MEnvironment.errorStream.println("###########################");
+		MEnvironment.errorStream.println("Policy Name: "+name);
+		MEnvironment.errorStream.println("This is a ground policy with rule combinator: "+rCombine);
+		MEnvironment.errorStream.println("Target Formula: "+target);		
 		
-		System.out.println("Rules:");
+		MEnvironment.errorStream.println("Rules:");
 		prettyPrintRules();
 
-		System.out.println("\nIDB and EDB predicates available for use in queries:");
+		MEnvironment.errorStream.println("\nIDB and EDB predicates available for use in queries:");
 		
-		System.out.println("IDBs:");
+		MEnvironment.errorStream.println("IDBs:");
 		prettyPrintIDBs();		
 		prettyPrintEDBs();
-		System.out.print("\n\n");
+		MEnvironment.errorStream.print("\n\n");
 		
-		System.out.println("Policy-level assumptions: ");
+		MEnvironment.errorStream.println("Policy-level assumptions: ");
 		assumptions.printConstraints();
 		
-		System.out.println("###########################\n");
+		MEnvironment.errorStream.println("###########################\n");
 	}
 
 	/**
@@ -108,14 +108,14 @@ public class MPolicyLeaf extends MPolicy
 	 */
 	public void prettyPrintRules()
 	{
-		System.out.println("Rules (Name ::= Decision :- Target, Condition):");
+		MEnvironment.errorStream.println("Rules (Name ::= Decision :- Target, Condition):");
 		Iterator<MRule> blergh = rules.iterator();
 		while(blergh.hasNext())			
 		{
 			MRule blerghr = blergh.next();
-			System.out.println(blerghr.name + " ::= " + blerghr.decision() + " :- "+ blerghr.target + ", "+blerghr.condition);
+			MEnvironment.errorStream.println(blerghr.name + " ::= " + blerghr.decision() + " :- "+ blerghr.target + ", "+blerghr.condition);
 		}
-		System.out.println("");
+		MEnvironment.errorStream.println("");
 	}
 
 	protected boolean hasRule(String rulename)
@@ -670,7 +670,7 @@ public class MPolicyLeaf extends MPolicy
 		else			
 			throw new MGEBadCombinator("Unknown rule combination algorithm: "+rCombine);
 	
-		//System.out.println("Building IDBs time : " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
+		//MEnvironment.errorStream.println("Building IDBs time : " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
 		
 		// *******************************************
 		// Finally, each of these IDBs only apply if the _policy's_ target is met. 
@@ -685,7 +685,7 @@ public class MPolicyLeaf extends MPolicy
 		{			
 			idbs.put(idbname, MFormulaManager.makeAnd(idbs.get(idbname), target)); //.accept(simplifyVisitor));		
 		}
-		//System.out.println("Simplify idbs time: " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
+		//MEnvironment.errorStream.println("Simplify idbs time: " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
 
 		
 	}

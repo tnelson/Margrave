@@ -359,9 +359,9 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 				break;
 			}
 		
-		// System.out.println("NEW REPLACEMENT VISITOR:");
-		// System.out.println(pps);
-		// System.out.println(vps);
+		// MEnvironment.errorStream.println("NEW REPLACEMENT VISITOR:");
+		// MEnvironment.errorStream.println(pps);
+		// MEnvironment.errorStream.println(vps);
 	}
 
 	public Expression visit(Relation therel) {
@@ -463,12 +463,12 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 	private static void runUnitTest(RelationAndVariableReplacementV vrepl,
 			Formula pre, Formula post) {
 		if (!pre.accept(vrepl).toString().equals(post.toString()))
-			System.out.println("Error: Expected " + post.toString() + ", got: "
+			MEnvironment.errorStream.println("Error: Expected " + post.toString() + ", got: "
 					+ pre.accept(vrepl).toString());
 	}
 
 	public static void unitTests() {
-		System.out
+		MEnvironment.errorStream
 				.println("----- Begin RelationReplacementV Tests (No messages is good.) -----");
 
 		HashMap<Relation, Relation> rtestset = new HashMap<Relation, Relation>();
@@ -492,7 +492,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 		oldf.accept(v);
 		if (!oldf.toString().equals(
 				R.intersection(Q).union(P).some().toString()))
-			System.out
+			MEnvironment.errorStream
 					.println("Error in RelationReplacementV test case: visitor is overwriting old reference.");
 
 		runUnitTest(v, x.eq(y), y.eq(y));
@@ -500,10 +500,10 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 		oldf = x.eq(y);
 		oldf.accept(v);
 		if (!oldf.toString().equals("(x = y)"))
-			System.out
+			MEnvironment.errorStream
 					.println("Error in VariableReplacementV test case: visitor is overwriting old reference.");
 
-		System.out.println("----- End RelationReplacementV Tests -----");
+		MEnvironment.errorStream.println("----- End RelationReplacementV Tests -----");
 	}
 }
 
@@ -639,7 +639,7 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 			revIndexing.put(String.valueOf(qCount), d.variable());
 				
 
-			// System.out.println("Indexed "+String.valueOf(qCount) + " "
+			// MEnvironment.errorStream.println("Indexed "+String.valueOf(qCount) + " "
 			// +d.variable());
 		}
 
@@ -940,7 +940,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		if (oldvocab.axioms.setsSubset.containsKey(oldpredname))
 			for (String oldparent : oldvocab.axioms.setsSubset
 					.get(oldsort.name)) {
-				// System.out.println("***** "+oldparent +" ] "+oldpredname);
+				// MEnvironment.errorStream.println("***** "+oldparent +" ] "+oldpredname);
 				addSortWithSupers(newvocab, oldvocab, oldparent, suffix);
 				newvocab.axioms.addConstraintSubset(oldpredname + suffix,
 						oldparent + suffix);
@@ -2167,11 +2167,11 @@ public class MQuery extends MIDBCollection
 						sharedOldPredNames.retainAll(lones);
 
 											
-						//System.out.println(ii+","+jj);
-						//System.out.println(sharedOldPredNames);
-						//System.out.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
-						//System.out.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
-						//System.out.println();
+						//MEnvironment.errorStream.println(ii+","+jj);
+						//MEnvironment.errorStream.println(sharedOldPredNames);
+						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
+						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
+						//MEnvironment.errorStream.println();
 						
 						
 						// ^^^ Must appear at index i, index j, and be LONE.
@@ -4072,7 +4072,7 @@ public class MQuery extends MIDBCollection
 				if(underscoreIndex >= 0)
 					preunderscore = r.name().substring(0, underscoreIndex);
 				
-				//System.out.println("******"+preunderscore);
+				//MEnvironment.errorStream.println("******"+preunderscore);
 				
 				if(getIDBNamesToOutput().contains(preunderscore)) // this is the pre-tupling query's set
 				{
@@ -4169,7 +4169,7 @@ public class MQuery extends MIDBCollection
 			MGEUnknownIdentifier, MGEUnsortedVariable, MGEArityMismatch,
 			MGEBadQueryString, MGEManagerException 
 			{
-		System.out
+		MEnvironment.errorStream
 				.println("----- Begin MGQuery Tests (No messages is good.) -----");
 
 		Variable x = MFormulaManager.makeVariable("x");
@@ -4198,28 +4198,28 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		MQuery test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 2a failed!");
+			MEnvironment.errorStream.println("Test 2a failed!");
 
 		// Test for other multiplicities that induce existentials (one)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.one());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 2b failed!");
+			MEnvironment.errorStream.println("Test 2b failed!");
 
 		// Test for lone (doesn't induce an existential.)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.lone());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != 0)
-			System.out.println("Test 2c failed!");
+			MEnvironment.errorStream.println("Test 2c failed!");
 
 		// Test for no (doesn't induce an existential.)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.no());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != 0)
-			System.out.println("Test 2d failed!");
+			MEnvironment.errorStream.println("Test 2d failed!");
 
 		// So is this (explicit quantifier)
 		// (Formula.TRUE here was causing an exception, whereas something like
@@ -4229,21 +4229,21 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		MQuery test3 = new MQuery(f, env);
 		if (test3.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 3 failed!");
+			MEnvironment.errorStream.println("Test 3 failed!");
 
 		// Test multiple ground terms
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.one());
 		MQuery test4 = new MQuery(f, env);
 		if (test4.runQuery().get_hu_ceiling() != 1) // should filter out the
 													// .one
-			System.out.println("Test 4a failed!");
+			MEnvironment.errorStream.println("Test 4a failed!");
 
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.some()).or(
 				Formula.TRUE.forSome(x.oneOf(sort1)));
 		test4 = new MQuery(f, env);
 		if (test4.runQuery().get_hu_ceiling() != 2) // prunes out the .some, but
 													// still two exists
-			System.out.println("Test 4b failed!");
+			MEnvironment.errorStream.println("Test 4b failed!");
 
 		// *********************************************************************************
 		// *********************************************************************************
@@ -4282,14 +4282,14 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		MQuery test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5a failed!");
+			MEnvironment.errorStream.println("Test 5a failed!");
 
 		// f:A->B, x:B. One atom.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 5b failed!");
+			MEnvironment.errorStream.println("Test 5b failed!");
 
 		// f:A->B, x:B y:B. Two atoms.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
@@ -4297,7 +4297,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z2.oneOf(sort2)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5c failed!");
+			MEnvironment.errorStream.println("Test 5c failed!");
 
 		// f:A->B, x:B, y:B, z:A. Four atoms.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
@@ -4306,7 +4306,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z3.oneOf(sort1)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 4)
-			System.out.println("Test 5d failed!");
+			MEnvironment.errorStream.println("Test 5d failed!");
 
 		// Special cases:
 
@@ -4314,20 +4314,20 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 0)
-			System.out.println("Test 5e failed!");
+			MEnvironment.errorStream.println("Test 5e failed!");
 
 		// F:subA->A same as above.
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 0)
-			System.out.println("Test 5f failed!");
+			MEnvironment.errorStream.println("Test 5f failed!");
 
 		// Unproductive function and a constant
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 5g failed!");
+			MEnvironment.errorStream.println("Test 5g failed!");
 
 		// f:subA->A. x:subA. subA <= A.
 		// Constant in subA is also in A. (same term, don't double count)
@@ -4336,14 +4336,14 @@ public class MQuery extends MIDBCollection
 				sort1a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5h failed!");
+			MEnvironment.errorStream.println("Test 5h failed!");
 
 		// f:A->subA. x:A. (inf; f obviously cyclic)
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 5i failed!");
+			MEnvironment.errorStream.println("Test 5i failed!");
 
 		// f:A->subA x:subA. (inf; f obviously cyclic, and subA is a subtype of
 		// A.)
@@ -4352,7 +4352,7 @@ public class MQuery extends MIDBCollection
 				sort1a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 5j failed!");
+			MEnvironment.errorStream.println("Test 5j failed!");
 
 		// cycle detection with overlapping types
 		// Sort2a and Sort2b may overlap! No disjoint constraint.
@@ -4363,7 +4363,7 @@ public class MQuery extends MIDBCollection
 				sort2a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5k failed!");
+			MEnvironment.errorStream.println("Test 5k failed!");
 
 		// f:Sort2a->Sort2b. x:2b. Func is unproductive. Only 1 term (the
 		// constant)
@@ -4371,14 +4371,14 @@ public class MQuery extends MIDBCollection
 				sort2b.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 5l failed!");
+			MEnvironment.errorStream.println("Test 5l failed!");
 
 		// f:Sort2a->Sort2b. x:2. Another unproductive function.
 		f = x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 5m failed!");
+			MEnvironment.errorStream.println("Test 5m failed!");
 
 		// make sure we have distinct functions even if declared identically.
 		// one level of "identity"
@@ -4386,7 +4386,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5n failed!");
+			MEnvironment.errorStream.println("Test 5n failed!");
 
 		// what if we have more than one level of identity? Make sure we get 2
 		// atoms...
@@ -4407,18 +4407,18 @@ public class MQuery extends MIDBCollection
 		test5 = new MQuery(f, env);
 		// test5.debug_verbosity = 3;
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 5o failed!");
+			MEnvironment.errorStream.println("Test 5o failed!");
 
 		// Term ids in the above must be *different*
 		// TODO convert this test?
 		/*
 		 * WalkASTForFunctionsV vis = new WalkASTForFunctionsV(env);
 		 * Set<FuncStruct> funcs = f.accept(new NNFConverterV()).accept(vis);
-		 * //for(FuncStruct fx : funcs) // System.out.println(fx.getID());
+		 * //for(FuncStruct fx : funcs) // MEnvironment.errorStream.println(fx.getID());
 		 * List<FuncStruct> lfuncs = new ArrayList<FuncStruct>(funcs);
 		 * if(lfuncs.size() != 2 ||
 		 * lfuncs.get(0).getID().equals(lfuncs.get(1).getID()))
-		 * System.out.println("Test 5p (unique identifiers) failed!");
+		 * MEnvironment.errorStream.println("Test 5p (unique identifiers) failed!");
 		 */
 
 		// *********************************************************************************
@@ -4461,7 +4461,7 @@ public class MQuery extends MIDBCollection
 				sort2.some()).and(sort2bx.some());
 		MQuery test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 6a failed!");
+			MEnvironment.errorStream.println("Test 6a failed!");
 
 		// Non-infinite with non trivial function combinations
 		// f:1->2c. g:2c->2b. x:1 y:2 -- 2 constants, both funcs productive
@@ -4473,7 +4473,7 @@ public class MQuery extends MIDBCollection
 				sort1.some()).and(sort2.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 4)
-			System.out.println("Test 6b failed!");
+			MEnvironment.errorStream.println("Test 6b failed!");
 
 		// f:1->2c. g:2a->2b. x:1
 		// g is unproductive. only 2 terms
@@ -4482,7 +4482,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 6c failed!");
+			MEnvironment.errorStream.println("Test 6c failed!");
 
 		// Cycle of longer length
 		// f:1->2a, g:2a->2c h:2c->1 x:1 (inf)
@@ -4492,7 +4492,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 6d failed!");
+			MEnvironment.errorStream.println("Test 6d failed!");
 
 		// Test more exotic multiplicity locations
 
@@ -4503,33 +4503,33 @@ public class MQuery extends MIDBCollection
 				sort2bx.some()).and(sort1.lone());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 6e failed!");
+			MEnvironment.errorStream.println("Test 6e failed!");
 
 		// not no
 		// not no(1) -- should give us 1 atom.
 		f = sort1.no().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 6f failed!");
+			MEnvironment.errorStream.println("Test 6f failed!");
 
 		// not lone -- should give us two atoms
 		f = sort1.lone().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 6g failed!");
+			MEnvironment.errorStream.println("Test 6g failed!");
 
 		// not one -- same thing (since terms are generated worst-case)
 		f = sort1.one().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 6h failed!");
+			MEnvironment.errorStream.println("Test 6h failed!");
 
 		// not one encased in a universal -- two functions induced. Add a ground
 		// term and should get *2* plus that ground.
 		f = sort1.one().not().forAll(x.oneOf(sort2)).and(sort2.one());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 3)
-			System.out.println("Test 6i failed!");
+			MEnvironment.errorStream.println("Test 6i failed!");
 
 		// We use the hash code of the nodes (Decl, not the variable!) to
 		// simulate alpha renaming.
@@ -4541,7 +4541,7 @@ public class MQuery extends MIDBCollection
 		test6 = new MQuery(f, env);
 		// test6.debug_show_all_formula = true;
 		if (test6.runQuery().get_hu_ceiling() != 3)
-			System.out.println("Test 6j (simulated alpha renaming) failed!");
+			MEnvironment.errorStream.println("Test 6j (simulated alpha renaming) failed!");
 
 		// *********************************************************************************
 		// Same vocab as before, but with a custom predicate constrained to be a
@@ -4589,14 +4589,14 @@ public class MQuery extends MIDBCollection
 				sort2.some());
 		MQuery test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 7a failed!");
+			MEnvironment.errorStream.println("Test 7a failed!");
 
 		// Since 2axx <= 2, infinitely many terms
 		f = x.eq(y).forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2)).and(
 				sort2.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 7b failed!");
+			MEnvironment.errorStream.println("Test 7b failed!");
 
 		// Harmless
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort2b)).and(
@@ -4604,7 +4604,7 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 7c failed!");
+			MEnvironment.errorStream.println("Test 7c failed!");
 
 		// Make sure that "coverage" logic works correctly
 		// Not yet in.
@@ -4612,7 +4612,7 @@ public class MQuery extends MIDBCollection
 		// .and(sort2.one()).and(sort1.one());
 		// test7 = new MGQuery(f, env);
 		// if(test7.runQuery().get_hu_ceiling() != 2)
-		// System.out.println("Test 7d failed!");
+		// MEnvironment.errorStream.println("Test 7d failed!");
 
 		// We have a total function constraint -- F: 1 -> 2
 		// We have a formula inducing G: 2 -> 1
@@ -4622,14 +4622,14 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 7e failed!");
+			MEnvironment.errorStream.println("Test 7e failed!");
 
 		// But don't be overeager (no starter term)
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2));
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 0)
-			System.out.println("Test 7e(1) failed!");
+			MEnvironment.errorStream.println("Test 7e(1) failed!");
 
 		// 2 "one"s in the same sort. We want to be smart enough to detect that
 		// they cover
@@ -4638,7 +4638,7 @@ public class MQuery extends MIDBCollection
 		f = sort1.one().and(sort1.one());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 7f failed!");
+			MEnvironment.errorStream.println("Test 7f failed!");
 
 		// Don't want to count 2 explicit existentials as covering each other!
 		// (Only multiplicities with
@@ -4648,14 +4648,14 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(y.oneOf(sort1)));
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 4)
-			System.out.println("Test 7g failed!");
+			MEnvironment.errorStream.println("Test 7g failed!");
 
 		// Sub coverage
 		f = sort2.one().and(sort2a.one());
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 1)
-			System.out.println("Test 7h failed!");
+			MEnvironment.errorStream.println("Test 7h failed!");
 
 		// Cycles caused by interaction between a total function and something
 		// else.
@@ -4667,7 +4667,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			System.out.println("Test 7i failed!");
+			MEnvironment.errorStream.println("Test 7i failed!");
 
 		// functions induced by "total function" constraints look like this:
 		// fFC1_4579880([sort1]): sort2
@@ -4683,7 +4683,7 @@ public class MQuery extends MIDBCollection
 				sort2cx.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 3)
-			System.out.println("Test 8a failed!");
+			MEnvironment.errorStream.println("Test 8a failed!");
 
 		// But add 2axx subset of 2bxx, and they must be disjoint.
 
@@ -4697,11 +4697,11 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_verbosity = 2;
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 8b failed!");
+			MEnvironment.errorStream.println("Test 8b failed!");
 
-		// System.out.println(env.buildSuperSetSet(env.getType("sort2axx")));
-		// System.out.println(env.buildSuperSetSet(env.getType("sort2cx")));
-		// System.out.println(env.setsSubset.get("sort2axx"));
+		// MEnvironment.errorStream.println(env.buildSuperSetSet(env.getType("sort2axx")));
+		// MEnvironment.errorStream.println(env.buildSuperSetSet(env.getType("sort2cx")));
+		// MEnvironment.errorStream.println(env.setsSubset.get("sort2axx"));
 
 		// *OR* add new type 2d, with 2axx < 2d < 2b, and they must be disjoint.
 		// (Test multi-subset)
@@ -4715,7 +4715,7 @@ public class MQuery extends MIDBCollection
 				.and(sort2cx.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 8c failed!");
+			MEnvironment.errorStream.println("Test 8c failed!");
 
 		// *********************************************************************************
 		// Tests to make sure use of sort names as predicates doesn't break
@@ -4752,7 +4752,7 @@ public class MQuery extends MIDBCollection
 				z.in(sort2).forSome(z.oneOf(sort1)));
 		MQuery test9 = new MQuery(f, env);
 		if (test9.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 9a failed!");
+			MEnvironment.errorStream.println("Test 9a failed!");
 
 		// Same thing, using subsorts (this is really the same test as 9a,
 		// actually?)
@@ -4761,9 +4761,9 @@ public class MQuery extends MIDBCollection
 				z.in(sort1b).forSome(z.oneOf(sort1a)));
 		test9 = new MQuery(f, env);
 		if (test9.runQuery().get_hu_ceiling() != 2)
-			System.out.println("Test 9b failed!");
+			MEnvironment.errorStream.println("Test 9b failed!");
 
-		System.out.println("----- End MGQuery Tests -----");
+		MEnvironment.errorStream.println("----- End MGQuery Tests -----");
 
 		/*
 		 * Relation A = Relation.unary("A"); Formula testf =
@@ -4779,11 +4779,11 @@ public class MQuery extends MIDBCollection
 		 * 
 		 * 
 		 * try { Translation t = Translator.translate(testf, b, opt);
-		 * System.out.println(t.numPrimaryVariables());
+		 * MEnvironment.errorStream.println(t.numPrimaryVariables());
 		 * Iterator<TranslationRecord> it = t.log().replay();
-		 * while(it.hasNext()) { System.out.println(it.next()); }
-		 * System.out.println(t.log()); } catch(Exception e) {
-		 * System.out.println(e); }
+		 * while(it.hasNext()) { MEnvironment.errorStream.println(it.next()); }
+		 * MEnvironment.errorStream.println(t.log()); } catch(Exception e) {
+		 * MEnvironment.errorStream.println(e); }
 		 */
 
 	}
@@ -4970,8 +4970,8 @@ public class MQuery extends MIDBCollection
 			prefixVarOrder.add(v.name());
 		}
 
-		//System.out.println("Temp debug info: "+qryFormula);
-		//System.out.println(prefixVarOrder);
+		//MEnvironment.errorStream.println("Temp debug info: "+qryFormula);
+		//MEnvironment.errorStream.println(prefixVarOrder);
 
 		Collections.reverse(prefixVarOrder);
 		
@@ -5036,7 +5036,7 @@ public class MQuery extends MIDBCollection
 
 		MEnvironment.setLast(result);
 
-		// System.out.println("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
+		// MEnvironment.errorStream.println("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 
 		// TODO: Question of leaving existentials bound in the query. Not the
 		// same as RESTRICT TO
@@ -5052,8 +5052,8 @@ public class MQuery extends MIDBCollection
 			Map<Variable, Expression> freeVars) throws MGEBadIdentifierName,
 			MGEUnknownIdentifier {
 		// MREPL.outStream.println(mpc.assertPossible);
-		// System.out.println(mpc.assertNecessary);
-		// System.out.println(mpc.assertAtomicNecessary);
+		// MEnvironment.errorStream.println(mpc.assertNecessary);
+		// MEnvironment.errorStream.println(mpc.assertAtomicNecessary);
 
 		// Stopping compilation because something is wrong here. 
 		//dfadsf;
@@ -5064,7 +5064,7 @@ public class MQuery extends MIDBCollection
 		for (List<Variable> varvector : toDo)
 		{
 
-//			System.out.println("Checking for: "+varvector);
+//			MEnvironment.errorStream.println("Checking for: "+varvector);
 			
 			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
 					.get(varvector);
@@ -5082,7 +5082,7 @@ public class MQuery extends MIDBCollection
 				freeVars.put(v, Expression.UNIV);
 				MSort runningSort = null;
 
-				//System.out.println("var: "+v);
+				//MEnvironment.errorStream.println("var: "+v);
 				
 				for (MVariableVectorAssertion a : allNecessary) {
 					// TODO
@@ -5090,7 +5090,7 @@ public class MQuery extends MIDBCollection
 					// there is more inference we could do, but skipping for
 					// now.
 					
-					//System.out.println("assertion: "+a);
+					//MEnvironment.errorStream.println("assertion: "+a);
 					
 					if (!a.positive)
 						continue;
@@ -5114,8 +5114,8 @@ public class MQuery extends MIDBCollection
 							// (need to check grandchildren etc. Also use subset constraints.)
 							// If not, ignore
 							
-							//System.out.println("SUB? --- "+runningSort.subsorts);
-							//System.out.println(theSort);							
+							//MEnvironment.errorStream.println("SUB? --- "+runningSort.subsorts);
+							//MEnvironment.errorStream.println(theSort);							
 							if(voc.isSubOrSubOf(theSort, runningSort))
 							{
 								runningSort = theSort;

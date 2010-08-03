@@ -63,7 +63,7 @@ class BreakUpJoinsV extends AbstractDetector
 
 	public Boolean visit(NaryExpression expr) {
 		// This is untested.
-		System.out
+		MEnvironment.errorStream
 				.println("Entering unsafe functionality: BreakUpJoinV.visit(NaryExpression). Please notify developer.");
 
 		if (expr.op().equals(ExprOperator.JOIN))
@@ -435,7 +435,7 @@ public class MVocab {
 		predicates.put(name, MFormulaManager.makeRelation(name, typeconstruct
 				.split(" ").length));
 
-		// System.out.println(predicates.get(name) +
+		// MEnvironment.errorStream.println(predicates.get(name) +
 		// ": "+predicates.get(name).arity());
 		predtypes.put(name, typeconstruct);
 	}
@@ -739,8 +739,8 @@ public class MVocab {
 			f = MFormulaManager.makeForAll(f, d);
 		}
 		
-		//System.out.println(r + " "+ type);
-		//System.out.println(f);
+		//MEnvironment.errorStream.println(r + " "+ type);
+		//MEnvironment.errorStream.println(f);
 		
 		return f; 
 		
@@ -770,7 +770,7 @@ public class MVocab {
 		}
 
 
-		//System.out.println(lhsreduce); 
+		//MEnvironment.errorStream.println(lhsreduce); 
 		  		if (type.equals("P"))
 			return lhsreduce.lone().forAll(temp_quant);
 		else
@@ -1249,11 +1249,11 @@ public class MVocab {
 		}
 
 		// Disjointness
-		//System.out.println("Beginning disj helper.");
+		//MEnvironment.errorStream.println("Beginning disj helper.");
 		combineDisjHelper(uber, this, other, shared);		
 		// used to need 2nd call, but no longer
 		//combineDisjHelper(uber, other, this, shared);
-		//System.out.println("Ending disj helper.");
+		//MEnvironment.errorStream.println("Ending disj helper.");
 		
 		return uber;
 	}
@@ -1324,7 +1324,7 @@ public class MVocab {
 	//	ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		//long start = mxBean.getCurrentThreadCpuTime();		
 		
-		//System.out.println("Checking shared disj.");
+		//MEnvironment.errorStream.println("Checking shared disj.");
 		// Make sure A -> B in shared
 		checkSharedDisjointness(A, B, shared);
 		// Make sure B -> A in shared
@@ -1337,7 +1337,7 @@ public class MVocab {
 		// uber contains all the sorts that A and B do, regardless of whether both have them
 		// So uber needs to have all the disjoint constraints from both.
 
-		//System.out.println("Copying disj info.");
+		//MEnvironment.errorStream.println("Copying disj info.");
 		
 		// construct a new disjoints set for uber.
 		HashMap<MSort, Set<MSort>> new_ax_disjoints = new HashMap<MSort, Set<MSort>>();

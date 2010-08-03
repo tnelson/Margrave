@@ -143,7 +143,7 @@ public class MCommunicator
         					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
         					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
         					if (exploreCondition == null)
-        						System.out.println("explore condition is null!");
+        						MEnvironment.errorStream.println("explore condition is null!");
         					MQuery result = null;
         					
         					//Default Values                                     					
@@ -335,25 +335,33 @@ public class MCommunicator
         				{
         					String popIdString;
         					if (showType.equalsIgnoreCase("POPULATED")) {
-        						popIdString = getPopulatedId(n);
+        						popIdString = getPopulatedId(n); // command
         					}
         					else {
-        						popIdString = getUnpopulatedId(n);
+        						popIdString = getUnpopulatedId(n); // command
         					}
-        					Integer popId = Integer.parseInt(popIdString);
-        					Node forCasesNode = getForCasesNode(n);
+        					Integer popId = Integer.parseInt(popIdString);        					
+        					Node showNode = getChildNode(n, "SHOW");
+        					Node forCasesNode = getForCasesNode(showNode);
+        					NodeList atomicFormulaNodes = showNode.getChildNodes();
         					
-        					NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
+        					// not this call
+        					//NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
+        					
+        					// atomicFormulasToHashmap will ignore the FOR-CASES element.
         					Map<String, Set<List<String>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
         					    
         					// Default map is empty. If FOR CASES, populate it.
         					Map<String, Set<List<String>>> forCasesAtomicFormulas = new HashMap<String, Set<List<String>>>();
         					if (forCasesNode != null)
         					{
-        						NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
+        						//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
+        						NodeList forCasesAtomicFormulaNodes = forCasesNode.getChildNodes();
         						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
         					}
         					        			
+        					//writeToLog(showType+" " + popIdString + " " + atomicFormulas + " --- " + forCasesAtomicFormulas);
+        					
         					// Get the result and return it
         					if (showType.equalsIgnoreCase("POPULATED")) {
     							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
@@ -615,8 +623,16 @@ public class MCommunicator
 			List<String> identifiers;
 			
 			// For each atomic formula sent
-			for (int i = 0; i < childNodes.getLength(); i++) {
+			for (int i = 0; i < childNodes.getLength(); i++)
+			{
 				Node childNode = childNodes.item(i);
+				
+				//writeToLog("nodename: "+childNode.getNodeName());
+				
+				// If this is not an atomic formula, pass over it
+				if(!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-Y") &&
+						!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-N"))
+					continue;
 				
 				collectionName = getAtomicFormulaYCollection(childNode);
 				relationName = getAtomicFormulaYRelation(childNode);
@@ -751,11 +767,13 @@ public class MCommunicator
         public static Node getForCasesNode(Node n) {
         	return getChildNode(n, "FORCASES");
         }
+        
+        // <SHOW type="populated" id="0" ... 
         public static String getPopulatedId(Node n) {
-        	return getNodeAttribute(n, "POPUlATED", "id");
+        	return getNodeAttribute(n, "SHOW", "id");
         }
         public static String getUnpopulatedId(Node n) {
-        	return getNodeAttribute(n, "UNPOPUlATED", "id");
+        	return getNodeAttribute(n, "SHOW", "id");
         }
         
         //COUNT
@@ -785,7 +803,10 @@ public class MCommunicator
         	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
         }
         public static NodeList getAtomicFormulaNodesFromList(Node n) {
-        	return getChildNode(n, "ATOMIC-FORMULA-LIST").getChildNodes();
+        	Node child = getChildNode(n, "ATOMIC-FORMULA-LIST");
+        	if(child == null)
+        		return null;
+        	return child.getChildNodes();
         }
         
         private static String getLoadFileName(Node n) {
@@ -997,7 +1018,7 @@ public class MCommunicator
         		return new MExploreCondition(idbf, pol, vl);
 
         	}
-         System.out.println("returning null! error!");
+        	MEnvironment.errorStream.println("returning null! error!");
         return null;
     }
      
@@ -1055,7 +1076,7 @@ public class MCommunicator
    		}
    		catch(IOException e)
    		{
-   			System.out.println(setupError+cEOF);
+   			out.println(setupError+cEOF);
    			out.flush();
    			System.err.flush();
    		}

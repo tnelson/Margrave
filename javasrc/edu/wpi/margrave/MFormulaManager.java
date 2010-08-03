@@ -1415,15 +1415,15 @@ public class MFormulaManager
 	
 	static void printAtoms(String substr)
 	{
-		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		MEnvironment.errorStream.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 		if(substr.length() < 1)
-			System.out.println("All atomic formulas known to the manager:");
+			MEnvironment.errorStream.println("All atomic formulas known to the manager:");
 		else
-			System.out.println("All atomic formulas known to the manager (containing the substring "+substr+"):");
+			MEnvironment.errorStream.println("All atomic formulas known to the manager (containing the substring "+substr+"):");
 		for(Formula f : atomFormulas.values())
 			if(substr.length() < 1 || f.toString().contains(substr))
-			System.out.println(f + ": "+f.hashCode());
-		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+				MEnvironment.errorStream.println(f + ": "+f.hashCode());
+		MEnvironment.errorStream.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	}
 
 	static void clearAll()
@@ -1458,7 +1458,7 @@ public class MFormulaManager
 		// WeakReferences because of race conditions.
 		
 		Variable var = vars.get(varname);
-		//System.out.println("Searching for "+varname+" got "+var);
+		//MEnvironment.errorStream.println("Searching for "+varname+" got "+var);
 		return var != null;		
 	}
 

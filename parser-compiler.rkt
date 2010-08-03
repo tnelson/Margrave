@@ -346,12 +346,12 @@
     (condition-formula 
      
      
-     [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 1)]
-     [(condition-formula AND condition-formula) (build-so (list 'AND $1 $3) 1 1)]
-     [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 1)]
-     [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 1)]
-     [(NOT condition-formula) (build-so (list 'NOT $2) 1 1)]
-     [(LPAREN condition-formula RPAREN) (build-so $2 1 1)]
+     [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 3)]
+     [(condition-formula AND condition-formula) (build-so (list 'AND $1 $3) 1 3)]
+     [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 3)]
+     [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
+     [(NOT condition-formula) (build-so (list 'NOT $2) 1 2)]
+     [(LPAREN condition-formula RPAREN) (build-so $2 1 3)]
      [(atomic-formula) (build-so $1 1 1)]
      
      ;[(relation) $1]
@@ -529,7 +529,7 @@
         [(equal? first-datum 'IFF)
          (list 'AIFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'NOT)
-         (list 'NOT (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (list 'NOT (helper-syn->xml (second interns)))]
         [(equal? first-datum 'RENAME)
          (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
                                   (symbol->string (syntax->datum (third interns))))]

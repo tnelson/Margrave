@@ -149,11 +149,11 @@ class XACML20Reader {
 			
 			if(dir == null || dir.list() == null)
 			{
-				System.out.println("*******************************************************************");
-				System.out.println("ERROR: Unable to run compliance tests. policyDir was: "+policyDir);
+				MEnvironment.errorStream.println("*******************************************************************");
+				MEnvironment.errorStream.println("ERROR: Unable to run compliance tests. policyDir was: "+policyDir);
 				if(!dir.exists())
-					System.out.println("Directory did not exist.");
-				System.out.println("*******************************************************************");
+					MEnvironment.errorStream.println("Directory did not exist.");
+				MEnvironment.errorStream.println("*******************************************************************");
 				return;
 			}
 			
@@ -178,11 +178,11 @@ class XACML20Reader {
 			// intentional syntax error
 			fileNameSet.remove(policyDir+"IIA004Policy.xml"); 
 												
-			System.out.println("Beginning compliance tests... There are "+fileNameSet.size() + " policies to load.");
+			MEnvironment.errorStream.println("Beginning compliance tests... There are "+fileNameSet.size() + " policies to load.");
 			
 			for(String sFileName : fileNameSet)
 			{
-				System.out.println("Loading test: "+sFileName);
+				MEnvironment.errorStream.println("Loading test: "+sFileName);
 											
 				// catch exception for syntax errors that SHOULD be thrown 
 				try
@@ -257,7 +257,7 @@ class XACML20Reader {
 					// only-one-applicable is not supported
 					if(e.toString().contains("The only-one-applicable policy combination algorithm is not currently supported."))
 					{
-						System.out.println("    Did not load "+sFileName+" since only-one-applicable is not yet supported.");							
+						MEnvironment.errorStream.println("    Did not load "+sFileName+" since only-one-applicable is not yet supported.");							
 					}
 					else
 					{					
@@ -275,7 +275,7 @@ class XACML20Reader {
 
 
 		
-		System.out.println("-------------------");
+		MEnvironment.errorStream.println("-------------------");
 	}
 	
 	public static String getIdFromFile(String sFileName, String sSchemaFileName, String fieldname, ErrorHandler eh) throws MGEUnsupportedXACML
@@ -297,7 +297,7 @@ class XACML20Reader {
 			catch (IllegalArgumentException x)
 			{
 				// Happens if the parser does not support JAXP 1.2
-				System.out.println("Parser does not support JAXP");
+				MEnvironment.errorStream.println("Parser does not support JAXP");
 			} 
 
 			factory.setAttribute(JAXP_SCHEMA_SOURCE,
@@ -341,14 +341,14 @@ class XACML20Reader {
 			return "";  
 		}
 		catch (IOException e) { 
-			System.out.println(
+			MEnvironment.errorStream.println(
 					"Due to an IOException, the parser could not load the document: "+sFileName); 
 		}
 		catch (FactoryConfigurationError e) { 
-			System.out.println("Could not locate a factory class"); 
+			MEnvironment.errorStream.println("Could not locate a factory class"); 
 		}
 		catch (ParserConfigurationException e) { 
-			System.out.println("Could not locate a JAXP parser"); 
+			MEnvironment.errorStream.println("Could not locate a JAXP parser"); 
 		}
 		
 		return ""; // not a policy/policyset
@@ -369,7 +369,7 @@ class XACML20Reader {
 			catch (IllegalArgumentException x)
 			{
 				// Happens if the parser does not support JAXP 1.2
-				System.out.println("Parser does not support JAXP");
+				MEnvironment.errorStream.println("Parser does not support JAXP");
 			} 
 
 			factory.setAttribute(JAXP_SCHEMA_SOURCE,
@@ -411,15 +411,15 @@ class XACML20Reader {
 			throw e;
 		}
 		catch (IOException e) { 
-			System.out.println(
+			MEnvironment.errorStream.println(
 					"Due to an IOException, the parser could not load the document" 
 			); 
 		}
 		catch (FactoryConfigurationError e) { 
-			System.out.println("Could not locate a factory class"); 
+			MEnvironment.errorStream.println("Could not locate a factory class"); 
 		}
 		catch (ParserConfigurationException e) { 
-			System.out.println("Could not locate a JAXP parser"); 
+			MEnvironment.errorStream.println("Could not locate a JAXP parser"); 
 		}
 
 		throw new MGEUnsupportedXACML("Error loading: "+sFileName);
@@ -599,7 +599,7 @@ class XACML20Reader {
 		for(int ii=0;ii<attrs.getLength();ii++)
 			if(aname.equals(attrs.item(ii).getNodeName()))
 			{
-				//System.out.println(attrs.item(ii));
+				//MEnvironment.errorStream.println(attrs.item(ii));
 				return true;
 			}		
 		return false;
@@ -843,10 +843,10 @@ class XACML20Reader {
 		allparts.add( MFormulaManager.makeDisjunction(resf));
 		allparts.add( MFormulaManager.makeDisjunction(envf));
 		
-		//System.out.println("subf: "+subf);
-		//System.out.println("actf: "+actf);
-		//System.out.println("resf: "+resf);
-		//System.out.println("envf: "+envf);
+		//MEnvironment.errorStream.println("subf: "+subf);
+		//MEnvironment.errorStream.println("actf: "+actf);
+		//MEnvironment.errorStream.println("resf: "+resf);
+		//MEnvironment.errorStream.println("envf: "+envf);
 		
 		return MFormulaManager.makeConjunction(allparts);
 	}
@@ -997,7 +997,7 @@ class XACML20Reader {
 				throw new MGEUnsupportedXACML("Unexpected type in Apply child: "+child.getNodeName());
 		}
 		
-		//System.out.println(result+")");
+		//MEnvironment.errorStream.println(result+")");
 				
 		return result+")";		
 	}
@@ -1090,7 +1090,7 @@ class XACML20Reader {
 			if(policyid.length() > 0)
 			{
 				addToIdCache(policyid, policyDir+sFileName);				
-				//System.out.println("Added: "+policyid + " -> "+policyDir+sFileName);
+				//MEnvironment.errorStream.println("Added: "+policyid + " -> "+policyDir+sFileName);
 			}
 			
 			if(polid.equals(policyid))
@@ -1170,8 +1170,8 @@ class XACML20Reader {
 	        					return loadXACML20(getFromCache(child.getTextContent()), schemaFileName, policyDir);
 	        			}
 	        				    
-	        			System.out.println("  Rebuilding policy cache due to reference: "+child.getTextContent());
-	        			System.out.println("  Please wait...");
+	        			MEnvironment.errorStream.println("  Rebuilding policy cache due to reference: "+child.getTextContent());
+	        			MEnvironment.errorStream.println("  Please wait...");
 	        			
 	        			// String polid, String schemaFileName, String policyDir, String fieldname
 	        			MPolicyLeaf ref = (MPolicyLeaf)findPolicyWithId(child.getTextContent(), schemaFileName, policyDir, "PolicyId");
@@ -1194,8 +1194,8 @@ class XACML20Reader {
 	        					return loadXACML20(getFromCache(child.getTextContent()), schemaFileName, policyDir);
 	        			}
 
-	        			System.out.println("  Rebuilding policy cache due to reference: "+child.getTextContent());
-	        			System.out.println("  Please wait...");
+	        			MEnvironment.errorStream.println("  Rebuilding policy cache due to reference: "+child.getTextContent());
+	        			MEnvironment.errorStream.println("  Please wait...");
 	        			
 	        			MPolicySet ref = (MPolicySet)findPolicyWithId(child.getTextContent(), schemaFileName, policyDir, "PolicySetId");
 	        			if(ref == null)

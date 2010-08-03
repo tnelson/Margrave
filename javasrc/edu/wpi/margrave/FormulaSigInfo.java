@@ -996,7 +996,7 @@ public class FormulaSigInfo
 			Stack<LeafExpression> thispath = new Stack<LeafExpression>();
 			
 			doSortDFS(arcs, takenArcs, canUseRealFunction, curr, todo, finitary, thispath);
-			//System.out.println("DFS complete. Unknown remaining: "+todo);
+			//MEnvironment.errorStream.println("DFS complete. Unknown remaining: "+todo);
 		}			
 		
 		finitarySorts.clear();
@@ -1024,11 +1024,11 @@ public class FormulaSigInfo
 		optionsExplore.removeAll(optionsDefer);
 		
 		
-		//System.out.println("curr = "+curr);
-		//System.out.println("optionsExplore = "+optionsExplore);
-		//System.out.println("optionsDefer = "+optionsDefer);
-		//System.out.println("thispath = "+thispath);
-		//System.out.println();
+		//MEnvironment.errorStream.println("curr = "+curr);
+		//MEnvironment.errorStream.println("optionsExplore = "+optionsExplore);
+		//MEnvironment.errorStream.println("optionsDefer = "+optionsDefer);
+		//MEnvironment.errorStream.println("thispath = "+thispath);
+		//MEnvironment.errorStream.println();
 		
 		List<LeafExpression> optionsInOrder = new ArrayList<LeafExpression>(optionsExplore.size() + optionsDefer.size());
 		optionsInOrder.addAll(optionsExplore);
@@ -1057,7 +1057,7 @@ public class FormulaSigInfo
 			
 			if(thispath.contains(next))
 			{
-				//System.out.println("Detected thispath contained next: "+next+" thispath: "+thispath);
+				//MEnvironment.errorStream.println("Detected thispath contained next: "+next+" thispath: "+thispath);
 				
 				// TODO efficiency: don't need to check ENTIRE stack, right? Could also carry an array of booleans?
 				
@@ -1102,13 +1102,13 @@ public class FormulaSigInfo
 			else
 			{
 
-				//System.out.println("recursing from "+curr+" to "+next);				
+				//MEnvironment.errorStream.println("recursing from "+curr+" to "+next);				
 				
 				thispath.push(curr); // leave a trail of breadcrumbs
 				boolean safe = doSortDFS(arcs, takenArcs, canUseRealFunction, next, todo, finitary, thispath);
 				thispath.pop(); // eat the breadcrumbs on the way back
 				
-				//System.out.println("safe: "+safe+", next="+next);
+				//MEnvironment.errorStream.println("safe: "+safe+", next="+next);
 				
 				// Found an infinitary sort that flows into curr. curr is infinitary, too.
 				if(!safe)
@@ -1122,7 +1122,7 @@ public class FormulaSigInfo
 		// Only reach this point if all reachable sorts have been shown finitary.
 		// (This is because we explore before deferring, above)
 		
-		//System.out.println("safe: "+curr+"; options were: "+optionsExplore +" and "+optionsDefer +" in order: "+optionsInOrder+", stack was: "+thispath);
+		//MEnvironment.errorStream.println("safe: "+curr+"; options were: "+optionsExplore +" and "+optionsDefer +" in order: "+optionsInOrder+", stack was: "+thispath);
 		finitary.add(curr);
 		todo.remove(curr);
 		return true;
@@ -1199,7 +1199,7 @@ public class FormulaSigInfo
 				// Populate
 				totals[0][sortsInOrder.get(pop).intValue()] =
 					totals[0][sortsInOrder.get(pop).intValue()].add(BigInteger.ONE);
-				//System.out.println("Populated: "+pop);
+				//MEnvironment.errorStream.println("Populated: "+pop);
 
 				
 				// Propagate (<=) -- don't duplicate!
@@ -1212,7 +1212,7 @@ public class FormulaSigInfo
 					totals[0][sortsInOrder.get(r).intValue()] = 
 						totals[0][sortsInOrder.get(r).intValue()].add(BigInteger.ONE);
 					
-					//System.out.println("Propagated: "+pop);
+					//MEnvironment.errorStream.println("Propagated: "+pop);
 					countedIn.add(r); 
 				} // end for each sort to propagate
 

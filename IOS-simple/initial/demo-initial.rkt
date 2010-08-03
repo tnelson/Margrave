@@ -7,6 +7,14 @@
 ; Things that need bugfixing for the paper are marked with TODO.
 
 
+(define vector "(ahostname, entry-interface, 
+        src-addr-in, src-addr-out, 
+        dest-addr-in, dest-addr-out, 
+        protocol, message,
+        src-port-in,  src-port-out, 
+        dest-port-in, dest-port-out, 
+        length, next-hop, exit-interface)")
+
 
 (define (run-queries-for-example)
   
@@ -78,23 +86,19 @@
     
     (printf "~n~nRule-blaming:~n")
     
+    ; Was rule1, rule4. But parser renames...
     
-   #| (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
+    (mtext (string-append "EXPLORE InboundACL1:Deny" vector
 
-        AND ip-173-194-33-104(src-addr-in)
-        AND fe0(entry-interface)
+     " AND ip-173-194-33-104(src-addr-in)"
+     " AND fe0(entry-interface) "
 
-     IDBOUTPUT xxx
-
-     TUPLING")  
-    (mtext "SHOW POPULATED ")
-    |#
+     " IDBOUTPUT InboundACL1:ACE-line-14-g915_applies" vector ","
+               "InboundACL1:ACE-line-17-g918_applies" vector
+     " TUPLING")) 
+    (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-14-g915_applies" vector ","
+               "InboundACL1:ACE-line-17-g918_applies" vector))
+    
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; change-impact
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -106,6 +110,46 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
     (printf "~n~nRule relationships:~n")
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+        (mtext "EXPLORE ip-173-194-33-104(src-addr-in)
+        AND fe0(entry-interface)
+
+        AND InboundACL1:ACE-line-17-g918_applies(ahostname, entry-interface, 
+        src-addr-in, src-addr-out, 
+        dest-addr-in, dest-addr-out, 
+        protocol, message,
+        src-port-in,  src-port-out, 
+        dest-port-in, dest-port-out, 
+        length, next-hop, exit-interface)
+
+        AND NOT InboundACL1:ACE-line-14-g915(ahostname, entry-interface, 
+        src-addr-in, src-addr-out, 
+        dest-addr-in, dest-addr-out, 
+        protocol, message,
+        src-port-in,  src-port-out, 
+        dest-port-in, dest-port-out, 
+        length, next-hop, exit-interface)
+     TUPLING")  
+    ; The TUPLING keyword activates the tupling optimization, which is very useful for firewalls.
+    
+    (mtext "GET ONE 0")
+    
+        ; ???
+    ; Is the rule not getting added correctly or something?
+    (mtext "INFO InboundACL1")
+    
+    ; It's correct. The problem is that dest-addr-in need not be in 0.0.0.0/0.0.0.0 (which ought to be all IPs?)
+    ; This is a problem with the parser-generated .v
     
     
   (stop-margrave-engine)))

@@ -552,7 +552,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
             	{
             		Integer theInt = it.next();
             		mapCandidateRels.put(theInt, r);
-            		//System.out.println(theInt +" -> "+r);
+            		//MEnvironment.errorStream.println(theInt +" -> "+r);
                 
             		lookForTheseVars.add(theInt); // related to candidate, watch it
             	}
@@ -671,12 +671,12 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			if(fromResult.forQuery.debug_verbosity > 1)
         		MEnvironment.outStream.println("DEBUG: Trying unit clause for var: "+theVar);
      		
-			//System.out.println("~~~~ Calling SAT Solver ");
+			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
 			boolean issat = false;
 			try
 			{
-				//PrintWriter pw = new PrintWriter(System.out);
+				//PrintWriter pw = new PrintWriter(MEnvironment.errorStream);
 				//solver.printInfos(pw, ":::: ");			
 				//solver.printStat(pw, ";;;; ");
 				//pw.flush();
@@ -696,7 +696,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			}
 			catch(IllegalArgumentException e)
 			{
-				System.out.println("ILLEGAL ARG (inner)");
+				MEnvironment.errorStream.println("ILLEGAL ARG (inner)");
 				System.err.println(e.getMessage());
 				issat = false;
 			}
@@ -725,7 +725,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 				
 			}
 			else if(fromResult.forQuery.debug_verbosity > 1)
-				System.out.println("Found "+theVar+" FALSE");
+				MEnvironment.errorStream.println("Found "+theVar+" FALSE");
 			
 			
 		} // end loop while still vars to look for
@@ -736,7 +736,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 	
 	public Map<String, Set<String>> getPopulatedRelationsAtSize(List<String> candidates, List<String> cases, int atSize)
 	{			
-		//System.out.println("~~~~ Getting populated relations at size "+atSize);
+		//MEnvironment.errorStream.println("~~~~ Getting populated relations at size "+atSize);
 		
 		// For each case,
 		// which candidates can be populated?
@@ -744,6 +744,8 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		if(cases.size() < 1)
 			cases.add("");
 				
+		//MCommunicator.writeToLog("getPopulatedRelationsAtSize: "+candidates);
+		
 		// Is there any solving to do?
 		if(nonTrivialTranslations.get(atSize) == null || nonTrivialBounds.get(atSize) == null)
 		{
@@ -764,6 +766,8 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			return result;			
 		}
 
+		//MCommunicator.writeToLog("getPopulatedRelationsAtSize. Not trivial. Continuing. ");
+		
 		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
 				
 		// Get the base problem.
@@ -792,13 +796,16 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
             	{
             		Integer theInt = it.next();
             		mapCandidateRels.put(theInt, r);
-            		//System.out.println(theInt +" -> "+r);
+            		//MEnvironment.errorStream.println(theInt +" -> "+r);
                 
             		lookForTheseVars.add(theInt); // related to candidate, watch it
             	}
             }
         }        
 		
+		//MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize. lookForTheseVars: "+lookForTheseVars);
+		//MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize. mapCandidateRels: "+mapCandidateRels);
+        
         // If nothing to find, don't bother looking.
         result.clear();
         if(lookForTheseVars.size() == 0)
@@ -897,10 +904,12 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		
 		do
 		{				
+			//MCommunicator.writeToLog("internalPopulated core loop. these vars remain: "+lookForTheseVars);
+			
 			// Create clause to direct the search
-			//System.out.println("result is now: "+result);
+			//MEnvironment.errorStream.println("result is now: "+result);
 			int[] newClause = constructLookForClause(lookForTheseVars);			
-			//System.out.println("New clause: "+Arrays.toString(newClause));
+			//MEnvironment.errorStream.println("New clause: "+Arrays.toString(newClause));
 
 			if(fromResult.forQuery.debug_verbosity > 1)
         		MEnvironment.outStream.println("DEBUG: Checking sat with clause "+Arrays.toString(newClause));
@@ -919,7 +928,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 				return result;
 			}
 				
-			//System.out.println("~~~~ Calling SAT Solver ");
+			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
 			try
 			{
@@ -958,7 +967,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
         
 			if(!issat)
 			{
-				//System.out.println("unsat!");
+				//MEnvironment.errorStream.println("unsat!");
 				return result; // no more solutions  
 			}
 			
@@ -993,10 +1002,12 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			//if(theSolver.valueOf(iVar)) // true
 			if(theSolver.model(iVar))
 			{
+			//	MCommunicator.writeToLog("aptlatg. var true in the model: "+iVar);
+				
 				Relation r = relMap.get(iVar);
 				if(!result.contains(r.name()))
 				{
-					//System.out.println("--- New Rel found: "+r.name());
+					//MEnvironment.errorStream.println("--- New Rel found: "+r.name());
 					result.add(r.name());
 					
 					IntSet forR = trans.primaryVariables(r);
@@ -1004,7 +1015,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 					while(it.hasNext())
 					{
 						int iRelVar = it.next();
-						//System.out.println("--- Removing: "+iRelVar);
+						//MEnvironment.errorStream.println("--- Removing: "+iRelVar);
 						lookForTheseVars.remove(iRelVar);
 					}
 				}
@@ -1071,8 +1082,8 @@ class MPartialInstanceIterator extends MInstanceIterator
 			
 		}
 		
-		//System.out.println(nonTrivialClauses);
-		//System.out.println(nonTrivialBounds);
+		//MEnvironment.errorStream.println(nonTrivialClauses);
+		//MEnvironment.errorStream.println(nonTrivialBounds);
 		
 		if(qr.forQuery.debug_verbosity > 1)
 			MEnvironment.outStream.println("DEBUG: Translation to CNF complete. Time: "+msKodkodTransTime + " ms.");
@@ -1292,8 +1303,8 @@ class MPartialInstanceIterator extends MInstanceIterator
 		theSolver.addClause(notModelArray);
 		
 		
-		//System.out.println();
-		//System.out.println(theSolver.numberOfClauses());
+		//MEnvironment.errorStream.println();
+		//MEnvironment.errorStream.println(theSolver.numberOfClauses());
 
 		
 		// *********************************************
@@ -1552,7 +1563,7 @@ class CNFSpy implements SATSolver
         int[] litsCopy = Arrays.copyOf(lits, lits.length);
         MIntArrayWrapper wrapper = new MIntArrayWrapper(litsCopy);
 
-       // System.out.println("ADDED CLAUSE after "+clauses.size()+" others. It was: "+Arrays.toString(litsCopy));
+       // MEnvironment.errorStream.println("ADDED CLAUSE after "+clauses.size()+" others. It was: "+Arrays.toString(litsCopy));
         
         clauses.add(wrapper);
         return internalSolver.addClause(lits);
@@ -1583,7 +1594,7 @@ class CNFSpy implements SATSolver
    		{
    			IConstr x = result.addClause(new VecInt(aClause.getArray()));
 			
-   			//PrintWriter pw = new PrintWriter(System.out);
+   			//PrintWriter pw = new PrintWriter(MEnvironment.errorStream);
 			//result.printInfos(pw, ":::: ");
 			//pw.flush();
    			

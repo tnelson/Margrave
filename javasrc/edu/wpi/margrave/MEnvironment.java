@@ -192,9 +192,9 @@ class MExploreCondition
 			Variable oldVar = pol.varOrdering.get(iIndex);
 			iIndex ++;
 			
-			//System.out.println(oldVar);
-			//System.out.println(pol.varSorts);
-			//System.out.println(assertAtomicNecessary.get(thisVar));
+			//MEnvironment.errorStream.println(oldVar);
+			//MEnvironment.errorStream.println(pol.varSorts);
+			//MEnvironment.errorStream.println(assertAtomicNecessary.get(thisVar));
 			
 			assertAtomicNecessary.get(thisVar).add(new MVariableVectorAssertion(true, pol.varSorts.get(oldVar)));	
 		}
@@ -388,6 +388,7 @@ public class MEnvironment
 	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
 	
 	// BOTH are System.err because out is reserved for XML communication.
+	// DO NOT set outStream to System.out
 	protected static PrintStream errorStream = System.err;
 	protected static PrintStream outStream = System.err;
 	
@@ -940,9 +941,9 @@ public class MEnvironment
 		
 		theCmd += " CEILING "+sizeceiling+" ";
 
-		//System.out.println("---- ");
-		//System.out.println(thePol1.varOrdering);
-		//System.out.println(theCmd);
+		//MEnvironment.errorStream.println("---- ");
+		//MEnvironment.errorStream.println(thePol1.varOrdering);
+		//MEnvironment.errorStream.println(theCmd);
 				
 		return command(theCmd);		
 	}*/
@@ -1040,6 +1041,10 @@ public class MEnvironment
 		try
 		{
 			outsets = aResult.getPopulatedRelationFinder().getPopulatedRelations(rlist, clist);
+			
+			MCommunicator.writeToLog(rlist.toString());
+			MCommunicator.writeToLog(clist.toString());
+			MCommunicator.writeToLog(outsets.toString());
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));

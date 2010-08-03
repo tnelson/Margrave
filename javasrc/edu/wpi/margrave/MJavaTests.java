@@ -46,14 +46,14 @@ public class MJavaTests
 	{		
 	
 		if(qry.runTestCase(expected_size, expected_sols, expected_hbu))
-			//System.out.println("Test: "+testname+" passed.");
+			//MEnvironment.errorStream.println("Test: "+testname+" passed.");
 			// too many cases, getting spammy
 			;
 		else
 		{
-			System.out.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-			System.out.println("Test: "+testname+" failed!");
-			System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+			MEnvironment.errorStream.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+			MEnvironment.errorStream.println("Test: "+testname+" failed!");
+			MEnvironment.errorStream.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 		}
 			
 	}
@@ -94,15 +94,15 @@ public class MJavaTests
 		}
 		catch(MGEBadIdentifierName e)
 		{
-			//System.out.println("Test: no cycles in types passed.");
-			//System.out.println(e);
+			//MEnvironment.errorStream.println("Test: no cycles in types passed.");
+			//MEnvironment.errorStream.println(e);
 			fine = false;
 		}
 		if(fine)
 		{
-			System.out.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-			System.out.println("Test: no cycles in types FAILED.");
-			System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+			MEnvironment.errorStream.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+			MEnvironment.errorStream.println("Test: no cycles in types FAILED.");
+			MEnvironment.errorStream.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 			
 		}
 				
@@ -162,7 +162,7 @@ public class MJavaTests
 		
 		// Pol 2 has extra rule: PaperConflict
 		
-		//System.out.println("Deny overrides:");
+		//MEnvironment.errorStream.println("Deny overrides:");
 		pol.rCombine = "O Deny Permit"; 
 		pol.initIDBs();
 		//pol.prettyPrintIDBs();				
@@ -178,23 +178,23 @@ public class MJavaTests
 		countTest("Diff Policies (Basic)", qry, 3, 2, 3);			
 		qry.addIDBOutputs(pol.getQualifiedIDBNameList());
 		qry.addIDBOutputs(pol2.getQualifiedIDBNameList());
-		System.out.println("Diff Policies (Basic) output [IDBs shown!]: ");
+		MEnvironment.errorStream.println("Diff Policies (Basic) output [IDBs shown!]: ");
 		//qry.prettyPrintSolutions();
 		
 		//qry.debug_verbosity = 3;
 		
 		/*if(7 != qry.getPossiblyNonemptyRelations(qry.idb_names_to_output).size())
 		{
-			System.out.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-			System.out.println("Test: Possibly empty relation listing FAILED!");
-			System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+			MEnvironment.errorStream.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+			MEnvironment.errorStream.println("Test: Possibly empty relation listing FAILED!");
+			MEnvironment.errorStream.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 		}
 		else
 		{
-			System.out.println("Test: Possibly empty relation listing Passed.");
+			MEnvironment.errorStream.println("Test: Possibly empty relation listing Passed.");
 		}
 			*/
-		//System.out.println(qry.getPossiblyNonemptyRelations(qry.idb_names_to_output));
+		//MEnvironment.errorStream.println(qry.getPossiblyNonemptyRelations(qry.idb_names_to_output));
 		
 		// TODO
 		qry.prettyPrintOneSolution();
@@ -269,13 +269,13 @@ public class MJavaTests
 		
 		
 		// Both should give 1
-		System.out.println(polfac.ruleIDBsWithHigherPriorityThan("PaperAssigned"));
-		System.out.println(pol2.ruleIDBsWithHigherPriorityThan("PaperAssigned"));
-		System.out.println(polfac.ruleIDBsWithHigherPriorityThan("facp:PaperAssigned"));
-		System.out.println(pol2.ruleIDBsWithHigherPriorityThan("TestPol2:PaperAssigned"));
+		MEnvironment.errorStream.println(polfac.ruleIDBsWithHigherPriorityThan("PaperAssigned"));
+		MEnvironment.errorStream.println(pol2.ruleIDBsWithHigherPriorityThan("PaperAssigned"));
+		MEnvironment.errorStream.println(polfac.ruleIDBsWithHigherPriorityThan("facp:PaperAssigned"));
+		MEnvironment.errorStream.println(pol2.ruleIDBsWithHigherPriorityThan("TestPol2:PaperAssigned"));
 		
-		System.out.println(pol2.getDecisionForRuleIDBName("PaperAssigned"));
-		System.out.println(pol2.getDecisionForRuleIDBName("TestPol2:PaperAssigned"));
+		MEnvironment.errorStream.println(pol2.getDecisionForRuleIDBName("PaperAssigned"));
+		MEnvironment.errorStream.println(pol2.getDecisionForRuleIDBName("TestPol2:PaperAssigned"));
 		
 		// FAC permit
 		// 1) Reviewer reading paper, neither assigned nor conflicted (!Conflict triggers first rule)
@@ -442,14 +442,14 @@ public class MJavaTests
 		}
 		catch(MGEBadIdentifierName e)
 		{
-			System.out.println("Test: no spaces in decision names passed.");
+			MEnvironment.errorStream.println("Test: no spaces in decision names passed.");
 			passed = true;
 		}
 		if(!passed)
 		{
-			System.out.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-			System.out.println("Test: no spaces in decision names FAILED.");
-			System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+			MEnvironment.errorStream.println("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+			MEnvironment.errorStream.println("Test: no spaces in decision names FAILED.");
+			MEnvironment.errorStream.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 		}
 				
 				
@@ -730,10 +730,10 @@ public class MJavaTests
 		polchild2.prettyPrintIDBs();
 		
 		
-		System.out.println(polparent.getExistentialRequestPrefix());
-		System.out.println(polparent.getRequestPrefixClosing());
-		System.out.println(polparent.getRequestVarVector());
-		System.out.println(polparent.getIDBNameList());
+		MEnvironment.errorStream.println(polparent.getExistentialRequestPrefix());
+		MEnvironment.errorStream.println(polparent.getRequestPrefixClosing());
+		MEnvironment.errorStream.println(polparent.getRequestVarVector());
+		MEnvironment.errorStream.println(polparent.getIDBNameList());
 		
 		System.exit(1);
 		*/
@@ -743,9 +743,9 @@ public class MJavaTests
 		// Commented out: Can no longer use string comparison since we're using NaryFormulas now.
 		// sets will have arbitrary order.
 /*		if(!"(((ipfrom -> ipto) in conversation) && !(((ipfrom in local) && (ipto in local)) || ((ipfrom in external) && (ipto in external))))".toLowerCase().equals(polparent.idbs.get("permit").toString()))
-			System.out.println("-->>>>>>>>>>>>>> BASIC SIMPLIFICATION TEST CASE FAILED!");
+			MEnvironment.errorStream.println("-->>>>>>>>>>>>>> BASIC SIMPLIFICATION TEST CASE FAILED!");
 		else
-			System.out.println("Basic simplificiation test case passed.");
+			MEnvironment.errorStream.println("Basic simplificiation test case passed.");
 				*/
 		
 		//"(forSome ipfrom IPAddress (forSome ipto IPAddress (child2:AlertAdmin ipfrom ipto)))" has...
@@ -941,8 +941,8 @@ public class MJavaTests
 		MQuery.unitTest();
 			
 
-		System.out.println("");
-		System.out.println("ENTERING TEST BLOCK: do_test_1()");
+		MEnvironment.errorStream.println("");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_1()");
 		do_test_1();
 		
 		/*System.gc();
@@ -950,22 +950,22 @@ public class MJavaTests
 		MGFormulaManager.printStatistics();
 		System.exit(1);*/
 		
-		System.out.println("");
-		System.out.println("ENTERING TEST BLOCK: do_test_2()");
+		MEnvironment.errorStream.println("");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_2()");
 		do_test_2();	
 		
-		System.out.println("");
-		System.out.println("ENTERING TEST BLOCK: do_test_3()");
+		MEnvironment.errorStream.println("");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_3()");
 		do_test_3();	
 		
 		// policy combination
-		System.out.println("");
-		System.out.println("ENTERING TEST BLOCK: do_test_4()");
+		MEnvironment.errorStream.println("");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_4()");
 		do_test_4(); 
 		
 		// policy-level constraints
-		System.out.println("");
-		System.out.println("ENTERING TEST BLOCK: do_test_5()");
+		MEnvironment.errorStream.println("");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_5()");
 		do_test_5();
 		
 	
@@ -979,18 +979,18 @@ public class MJavaTests
 		
 		a.add(Formula.TRUE);
 		b.add(Formula.TRUE);
-		System.out.println(a.equals(b));
-		System.out.println(a ==b);
+		MEnvironment.errorStream.println(a.equals(b));
+		MEnvironment.errorStream.println(a ==b);
 		
 		Variable v = Variable.unary("v");
 		Relation r = Relation.unary("R");
 		Relation p = Relation.unary("P");
-		System.out.println(v.in(r).equals(v.in(r))); // so kk uses reference equality
+		MEnvironment.errorStream.println(v.in(r).equals(v.in(r))); // so kk uses reference equality
 		// likely because computing isomorphism is expensive
 		
 		HashMap<Set<Formula>, Formula> hm = new HashMap<Set<Formula>, Formula>();
 		hm.put(a, Formula.TRUE);
-		System.out.println(hm.containsKey(b)); // yay!
+		MEnvironment.errorStream.println(hm.containsKey(b)); // yay!
 		
 		ArrayList<Formula> foo = new ArrayList<Formula>();
 		ArrayList<Formula> bar = new ArrayList<Formula>();
@@ -999,7 +999,7 @@ public class MJavaTests
 		bar.add(Formula.TRUE);
 		bar.add(Formula.FALSE);
 		
-		System.out.println(foo.equals(bar)); // YAY!
+		MEnvironment.errorStream.println(foo.equals(bar)); // YAY!
 		// Lists are equal if they have the same (equal) elements in the same order
 		
 		*/
@@ -1012,15 +1012,15 @@ public class MJavaTests
 	/*static void cuddStyleOutput(BDD bdd)
 	{
 		for(int iMarker = 0; iMarker < bdd.getFactory().varNum(); iMarker++)
-			System.out.print(iMarker % 10);
-		System.out.print("\n");
+			MEnvironment.errorStream.print(iMarker % 10);
+		MEnvironment.errorStream.print("\n");
 		
 		for(byte[] x : (List<byte[]>)bdd.allsat())
 		{	
 			// Bug in interface to native BuDDY: List size is same as # vars?
 			if(x == null)
 			{
-				System.out.print("?");
+				MEnvironment.errorStream.print("?");
 				continue;
 			}
 			
@@ -1028,13 +1028,13 @@ public class MJavaTests
 			for(byte b : x)
 			{
 				if(b == -1)
-					System.out.print("-");
+					MEnvironment.errorStream.print("-");
 				else if(b > -1)
-					System.out.print(b);
+					MEnvironment.errorStream.print(b);
 				else
-					System.out.print("?");
+					MEnvironment.errorStream.print("?");
 			}
-			System.out.print("\n");
+			MEnvironment.errorStream.print("\n");
 		}
 		
 	}
@@ -1509,7 +1509,7 @@ public class MJavaTests
 				
 			}
 			
-			//System.out.println(templist);
+			//MEnvironment.errorStream.println(templist);
 			
 			pol.addRule("EasyRule"+ii, decision, templist);
 			pol2.addRule("EasyRule"+ii, decision, templist);
@@ -1697,7 +1697,7 @@ public class MJavaTests
 			
 		}
 		
-	//	System.out.println((mxBean.getCurrentThreadCpuTime() - start) / 1000000);
+	//	MEnvironment.errorStream.println((mxBean.getCurrentThreadCpuTime() - start) / 1000000);
 	}
 
 	public static void do_test_child_sort_exhaustive()
@@ -1746,7 +1746,7 @@ public class MJavaTests
 	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
 
 	{
-		System.out.println("ENTERING TEST BLOCK: do_test_tupling_basic()");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_tupling_basic()");
 		MVocab fw = setupFirewallVocab("small", 50, 10, 10);
 		MPolicyLeaf fwpol = new MPolicyLeaf("SmallFwTestPol1", fw);
 		MPolicyLeaf fwpol2 = new MPolicyLeaf("SmallFwTestPol2", fw);
@@ -1781,7 +1781,7 @@ public class MJavaTests
 		// TODO
 		// 450 solns now? (was 1. is the diff. due to equality changes?)
 		
-		System.out.println("Basic policy comparison with Tupling + single IDB output: ");
+		MEnvironment.errorStream.println("Basic policy comparison with Tupling + single IDB output: ");
 		qry.addIDBOutputs("SmallFwTestPol2:Difference".toLowerCase());
 						
 	
@@ -1800,9 +1800,9 @@ public class MJavaTests
 
 		//qry.prettyPrintOneSolution();
 		qry.debug_verbosity = 2;
-		System.out.println("Starting qry:");
+		MEnvironment.errorStream.println("Starting qry:");
 		MQueryResult qryResult = qry.runQuery();
-		System.out.println(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
+		MEnvironment.errorStream.println(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
 		
 		qry = MQuery.queryThesePolicies(
 				fwpol.getExistentialRequestPrefix() + "(" + "smallfwtestpol1:easyrule1 "+
@@ -1818,13 +1818,13 @@ public class MJavaTests
 			qry.addIDBOutputIndexing(cand, indexing);
 
 		qryResult = qry.runQuery();
-		System.out.println(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
+		MEnvironment.errorStream.println(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
 		
 		qry = MQuery.queryThesePolicies("(forsome x IPAddress (forsome y IPAddress (and (IPRange0_9 x) (IPRange10_19 x))))", pollist);
 		qry.doTupling = true;
 		countTest("Tupling disjointness", qry, 1, 0, 1);
 		
-		//System.out.println("********************\n\n\n*******************");
+		//MEnvironment.errorStream.println("********************\n\n\n*******************");
 		
 		// Test equality in query
 		//=1,2; IP10_1
@@ -1958,9 +1958,9 @@ public class MJavaTests
 		// Make sure an "other" sort isn't created if no children are mentioned
 		qry = MQuery.queryThesePolicies("(forsome x IPAddress (forsome y IPAddress (IPAddress x)))", pollist);
 		qry.doTupling = true;
-		System.out.println("\n This should be a single result, having only IPAddress_1 and IPAddress_2.");
+		MEnvironment.errorStream.println("\n This should be a single result, having only IPAddress_1 and IPAddress_2.");
 		//qry.prettyPrintSolutions();
-		System.out.println("\n");
+		MEnvironment.errorStream.println("\n");
 		
 		//qry.prettyPrintSolutions();
 
@@ -1999,7 +1999,7 @@ public class MJavaTests
 		
 		
 		
-		System.out.println("\n\n\n\n\n");
+		MEnvironment.errorStream.println("\n\n\n\n\n");
 		MEnvironment myInterface = new MEnvironment(); // use default stream
 				
 		myInterface.savePolicyAs("SmallFwTestPol1", fwpol);
@@ -2036,7 +2036,7 @@ public class MJavaTests
 		                 "PUBLISH "+fwpol.getRequestVarVectorWithCommas()+"\n";
 		int query4Result = 4;
 		
-		//System.out.println(fwpol.getRequestVarVectorWithCommas());
+		//MEnvironment.errorStream.println(fwpol.getRequestVarVectorWithCommas());
 		
 		String query4a = " INFO last";
 		String query4aResult = 
@@ -2355,16 +2355,16 @@ public class MJavaTests
 			Map<?, ?> resultmap = (Map<?, ?>) result;
 			if(resultmap.equals(expected))
 			{
-				System.out.println("Passed: "+desc);			
+				MEnvironment.errorStream.println("Passed: "+desc);			
 				return true;
 			}
 		}
 		
-		System.out.println("***FAILED***: "+desc);
-		System.out.println("Expected:");
-		System.out.println(expected);
-		System.out.println("Received:");
-		System.out.println(result);
+		MEnvironment.errorStream.println("***FAILED***: "+desc);
+		MEnvironment.errorStream.println("Expected:");
+		MEnvironment.errorStream.println(expected);
+		MEnvironment.errorStream.println("Received:");
+		MEnvironment.errorStream.println(result);
 		return false;
 	}
 	
@@ -2380,21 +2380,21 @@ public class MJavaTests
 				int actualModels = qry.runQuery().countModels();
 				if(actualModels != expectedModels)
 				{
-					System.out.println("***FAILED***: "+desc);
-					System.out.println("Actual Models: "+actualModels+" vs. expected: "+expectedModels);
+					MEnvironment.errorStream.println("***FAILED***: "+desc);
+					MEnvironment.errorStream.println("Actual Models: "+actualModels+" vs. expected: "+expectedModels);
 				}
 			}
 			catch(Exception e)
 			{
-				System.out.println("***FAILED***: "+desc);
-				System.out.println(e);				
+				MEnvironment.errorStream.println("***FAILED***: "+desc);
+				MEnvironment.errorStream.println(e);				
 			}
-			System.out.println("Passed: "+desc);
+			MEnvironment.errorStream.println("Passed: "+desc);
 			return true;
 		}
 		
-		System.out.println("***FAILED***: "+desc);
-		System.out.println("  Result was not an MQuery object. Instead, got: "+result);
+		MEnvironment.errorStream.println("***FAILED***: "+desc);
+		MEnvironment.errorStream.println("  Result was not an MQuery object. Instead, got: "+result);
 		return false;
 	}
 	*/
@@ -2419,25 +2419,25 @@ public class MJavaTests
 		MEnvironment.errorStream = saveErr;
 		
 		if(result)
-			System.out.println("Passed: "+desc);
+			MEnvironment.errorStream.println("Passed: "+desc);
 		else
 		{
-			System.out.println("***FAILED***: "+desc);
-			System.out.println("Expected:");
-			System.out.println(expectedPrint);
-			System.out.println("Received:");
-			System.out.println(printed);
-			System.out.println("Length "+expectedPrint.length()+" vs. "+printed.length());
+			MEnvironment.errorStream.println("***FAILED***: "+desc);
+			MEnvironment.errorStream.println("Expected:");
+			MEnvironment.errorStream.println(expectedPrint);
+			MEnvironment.errorStream.println("Received:");
+			MEnvironment.errorStream.println(printed);
+			MEnvironment.errorStream.println("Length "+expectedPrint.length()+" vs. "+printed.length());
 			
 			for(int ii = 0; (ii< printed.length())&&(ii<expectedPrint.length()); ii++)
 			{
 				if(printed.getBytes()[ii] != expectedPrint.getBytes()[ii])
 				{
-					System.out.println("First mismatch at index = "+ii);
-					System.out.print(expectedPrint.getBytes()[ii]);
-					System.out.print(" expected, got: ");
-					System.out.print(printed.getBytes()[ii]);
-					System.out.println();
+					MEnvironment.errorStream.println("First mismatch at index = "+ii);
+					MEnvironment.errorStream.print(expectedPrint.getBytes()[ii]);
+					MEnvironment.errorStream.print(" expected, got: ");
+					MEnvironment.errorStream.print(printed.getBytes()[ii]);
+					MEnvironment.errorStream.println();
 					break;
 				}
 			}
@@ -2544,7 +2544,7 @@ public class MJavaTests
 		
 		int numTrials = 1;
 		
-		System.out.println("Done creating policies.");
+		MEnvironment.errorStream.println("Done creating policies.");
 		
 		// Now we have 2 policies (1000 rules each) under the _new_ vocab.
 		// Now how long, tupled non-tupled, to do sat checks?
@@ -2566,7 +2566,7 @@ public class MJavaTests
 				qry.prettyPrintOneSolution(); // MAY DOUBLECOUNT
 		}
 		long msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 6; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		start = mxBean.getCurrentThreadCpuTime();
@@ -2582,7 +2582,7 @@ public class MJavaTests
 				qry.prettyPrintOneSolution();// MAY DOUBLECOUNT
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 6; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 
 		
 		// Remains to axiomatize (iso -> eq)
@@ -2608,7 +2608,7 @@ public class MJavaTests
 		int numTrials = 100;
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		
-		System.out.println("Starting time trials. numTrials="+numTrials);
+		MEnvironment.errorStream.println("Starting time trials. numTrials="+numTrials);
 		
 		// 100 rules, vector size = 3
 		MVocab voc3 = setup3Vocab("voc3", 100, 100, 100);
@@ -2640,7 +2640,7 @@ public class MJavaTests
 		//		sol.prettyPrintOneSolution();
 		}
 		long msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 100; k = 3; sm = 1; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 100; k = 3; sm = 1; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		
 		// inflated because so few are used in this first one (just sub10)
@@ -2663,7 +2663,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 100; k = 3; sm = 1; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 100; k = 3; sm = 1; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 
 		
 		// ************************************************************
@@ -2678,7 +2678,7 @@ public class MJavaTests
 			sol.hasNext(); // is sat?
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 100; k = 3; sm = 3; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 100; k = 3; sm = 3; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		tuptime = 0;
@@ -2691,13 +2691,13 @@ public class MJavaTests
 			sol.hasNext(); // is sat?
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 100; k = 3; sm = 3; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 100; k = 3; sm = 3; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		
 		// FOR NOW lower
 		numTrials = 10;
-		System.out.println("numTrials for firewall tests = "+numTrials);
+		MEnvironment.errorStream.println("numTrials for firewall tests = "+numTrials);
 		
 		// 1000 rules, vector size = 14
 		MVocab fw = setupFirewallVocab("large", 1050, 60, 50);						
@@ -2734,7 +2734,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 6; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		start = mxBean.getCurrentThreadCpuTime();
@@ -2750,7 +2750,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 6; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		
 		// Smallest model = 10
@@ -2800,7 +2800,7 @@ public class MJavaTests
 		//		sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 10; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 10; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		start = mxBean.getCurrentThreadCpuTime();
@@ -2816,7 +2816,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 10; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 10; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		
 		
@@ -2864,7 +2864,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 14; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 14; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 		
 		// ************************************************************
 		start = mxBean.getCurrentThreadCpuTime();
@@ -2880,7 +2880,7 @@ public class MJavaTests
 			//	sol.prettyPrintOneSolution();
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
-		System.out.println("rules = 1000; k = 14; sm = 14; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
+		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 14; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
 	
 		
 	}
@@ -2890,12 +2890,12 @@ public class MJavaTests
 	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
 	{
 		//do_test_child_sort_exhaustive();
-		System.out.println("ENTERING TEST BLOCK: do_test_tupling_1()");
+		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_tupling_1()");
 		do_test_tupling_basic();
 		
 		ArrayList<String> templist = new ArrayList<String>();
 		
-		System.out.println("\n\n\n\n\n***\n  Testing large-sized ACL performance (1000 rules). Creating policies...");
+		MEnvironment.errorStream.println("\n\n\n\n\n***\n  Testing large-sized ACL performance (1000 rules). Creating policies...");
 		
 		// 50 ip addrs over 5 ranges, 10 ports
 		//MGVocab fw = setupFirewallVocab("small", 50, 10, 10);
@@ -2925,7 +2925,7 @@ public class MJavaTests
 		fwpol2.rCombine = "FAC";
 		fwpol2.initIDBs();
 		
-		System.out.println("Done creating policies. Running queries...");
+		MEnvironment.errorStream.println("Done creating policies. Running queries...");
 				
 		MQuery qry;
 		ArrayList<MIDBCollection> pollist = new ArrayList<MIDBCollection>();
@@ -3031,20 +3031,20 @@ public class MJavaTests
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		long start = mxBean.getCurrentThreadCpuTime();		
 
-		System.out.println("Starting to run 1000-rule change impact with 1 difference, including IDB output.");
+		MEnvironment.errorStream.println("Starting to run 1000-rule change impact with 1 difference, including IDB output.");
 		
 		
 		
 		
 		
-		System.out.println("\n\n\n"+qry.runQuery().countModels()+"\n\n\n");
+		MEnvironment.errorStream.println("\n\n\n"+qry.runQuery().countModels()+"\n\n\n");
 		// affected by all the new equality preds?
 		// Actually 1560 possible solutions? yes. but are they all equality-variants?
 		//qry.prettyPrintOneSolution();
 		//qry.prettyPrintSolutions(10);
 		
 		//countTest("Added one rule at end: One model in difference. (IDB output included).", qry, 1, 1, 1);					
-		System.out.println("Above test is complete. Time for all preprocessing and Kodkod: " + 
+		MEnvironment.errorStream.println("Above test is complete. Time for all preprocessing and Kodkod: " + 
 				(mxBean.getCurrentThreadCpuTime() - start)/1000000 + " ms.\n");
 		
 		
@@ -3063,7 +3063,7 @@ public class MJavaTests
 		// only this range is abstract in the new vocab...
 		countTest("Abstract iprange240_299", qry, 1, 0, 1);		
 		
-		//System.out.println("Beginning to test multiple executions of a single small query. (Only one vocab involved; no combining needed.)");
+		//MEnvironment.errorStream.println("Beginning to test multiple executions of a single small query. (Only one vocab involved; no combining needed.)");
 		
 		List<MIDBCollection> singlePol = new ArrayList<MIDBCollection>(1);
 		singlePol.add(fwpol);
@@ -3081,13 +3081,13 @@ public class MJavaTests
 				qry.debug_verbosity = 2;
 			else
 				qry.debug_verbosity = 0;
-			System.out.print(".");
+			MEnvironment.errorStream.print(".");
 			qry.isQuerySatisfiable();
 			
 			// note: each iteration WITHOUT TUPLING takes a few seconds to run (but not super long)
 		}
-		System.out.println("\nDone. Time to run the query "+numTries+" times: "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
-		System.out.println("Average time: "+((mxBean.getCurrentThreadCpuTime() - start) / 1000000) / numTries);*/
+		MEnvironment.errorStream.println("\nDone. Time to run the query "+numTries+" times: "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
+		MEnvironment.errorStream.println("Average time: "+((mxBean.getCurrentThreadCpuTime() - start) / 1000000) / numTries);*/
 		
 	}
 	
@@ -3120,7 +3120,7 @@ public class MJavaTests
 		   !"MGPolicySet".equals(pol.getClass().getName()))
 			System.err.println("Failed XACML 1.0 interface test!");
 		else
-			System.out.println("Passed XACML 1.0 interface test.");
+			MEnvironment.errorStream.println("Passed XACML 1.0 interface test.");
 		
 	}
 	
@@ -3138,14 +3138,14 @@ public class MJavaTests
 		WeakReference ref1 = new WeakReference<Variable>(v);
 		WeakReference ref2 = new WeakReference<Variable>(v);
 		
-		System.out.println(ref1.equals(ref2));
+		MEnvironment.errorStream.println(ref1.equals(ref2));
 		
 		// ok, so references aren't equal based on referents.
 		String x = "foo";
 		ref1 = new WeakReference(x);
 		ref2 = new WeakReference(x);
 		
-		System.out.println(ref1.equals(ref2));
+		MEnvironment.errorStream.println(ref1.equals(ref2));
 		
 		 Set<Formula> weakHashSet1 = Collections.newSetFromMap(
 			        new WeakHashMap<Formula, Boolean>());
@@ -3155,30 +3155,30 @@ public class MJavaTests
 		
 		 Formula f = v.in(r);
 		 
-			System.out.println(weakHashSet1.size());
+			MEnvironment.errorStream.println(weakHashSet1.size());
 		weakHashSet1.add(f);
 		weakHashSet2.add(f);
 		
-		System.out.println(weakHashSet1.equals(weakHashSet2));
+		MEnvironment.errorStream.println(weakHashSet1.equals(weakHashSet2));
 		
 		Set<Formula> strongSet = new HashSet<Formula>();
 		strongSet.add(f);
-		System.out.println();
-		System.out.println(strongSet.equals(weakHashSet1));
-		System.out.println(weakHashSet1.equals(strongSet));
-		System.out.println(weakHashSet1.size());
+		MEnvironment.errorStream.println();
+		MEnvironment.errorStream.println(strongSet.equals(weakHashSet1));
+		MEnvironment.errorStream.println(weakHashSet1.equals(strongSet));
+		MEnvironment.errorStream.println(weakHashSet1.size());
 		
-		System.out.println(weakHashSet1);
+		MEnvironment.errorStream.println(weakHashSet1);
 		f = Formula.TRUE;
 		
 		System.gc();
 						
 		// cannot trust size()? but contains and empty are trustworthy
-		System.out.println(weakHashSet1.size());
-		System.out.println(weakHashSet1);
-		System.out.println(weakHashSet1.size());
-		System.out.println(weakHashSet1.contains(f));
-		System.out.println(weakHashSet1.isEmpty());
+		MEnvironment.errorStream.println(weakHashSet1.size());
+		MEnvironment.errorStream.println(weakHashSet1);
+		MEnvironment.errorStream.println(weakHashSet1.size());
+		MEnvironment.errorStream.println(weakHashSet1.contains(f));
+		MEnvironment.errorStream.println(weakHashSet1.isEmpty());
 			
 		
 	
@@ -3189,8 +3189,8 @@ public class MJavaTests
 		
 		BinaryFormula conj = (BinaryFormula) f1.and(f2);
 							
-		System.out.println(conj.left().hashCode());
-		System.out.println(conj.right().hashCode());
+		MEnvironment.errorStream.println(conj.left().hashCode());
+		MEnvironment.errorStream.println(conj.right().hashCode());
 		
 		
 		//System.exit(1);
@@ -3201,16 +3201,16 @@ public class MJavaTests
 		HashMap<Formula, Integer> hm1 = new HashMap<Formula, Integer>();
 		HashMap<Formula, Integer> hm2 = new HashMap<Formula, Integer>();
 		
-		System.out.println(hm1.equals(hm2));
+		MEnvironment.errorStream.println(hm1.equals(hm2));
 		
 		hm1.put(f2, Integer.valueOf(2));
 		hm1.put(f, Integer.valueOf(1));
 		
-		System.out.println(hm1.equals(hm2));
+		MEnvironment.errorStream.println(hm1.equals(hm2));
 		
 		hm2.put(f, Integer.valueOf(1));
 		hm2.put(f2, Integer.valueOf(2));		
-		System.out.println(hm1.equals(hm2));
+		MEnvironment.errorStream.println(hm1.equals(hm2));
 		
 		System.exit(1); */
 		
@@ -3226,18 +3226,18 @@ public class MJavaTests
 		arr1.set(0, v1);
 		arr2.set(0, v1);
 		
-		System.out.println(arr1.equals(arr2));
-		System.out.println(arr1.hashCode() + " " + arr2.hashCode());
+		MEnvironment.errorStream.println(arr1.equals(arr2));
+		MEnvironment.errorStream.println(arr1.hashCode() + " " + arr2.hashCode());
 		
 		arr1.set(1, v2);
 
-		System.out.println(arr1.equals(arr2));
-		System.out.println(arr1.hashCode() + " " + arr2.hashCode());
+		MEnvironment.errorStream.println(arr1.equals(arr2));
+		MEnvironment.errorStream.println(arr1.hashCode() + " " + arr2.hashCode());
 
 		arr2.set(1, v2);
 		
-		System.out.println(arr1.equals(arr2));
-		System.out.println(arr1.hashCode() + " " + arr2.hashCode());
+		MEnvironment.errorStream.println(arr1.equals(arr2));
+		MEnvironment.errorStream.println(arr1.hashCode() + " " + arr2.hashCode());
 		
 		System.exit(1);*/
 
@@ -3279,7 +3279,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 		// Everything from tests should be out of scope now.
 		// Test that the weak references in the manager are doing their job.
 		System.gc();
-		System.out.println("State of Formula Manager after forced gc call: ");
+		MEnvironment.errorStream.println("State of Formula Manager after forced gc call: ");
 		MFormulaManager.printStatistics();
 		
 		System.gc();
@@ -3301,26 +3301,26 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
         
         int numTrials = 100;
         
-        System.out.println("Beginning XACML benchmark.");
+        MEnvironment.errorStream.println("Beginning XACML benchmark.");
         
         // Load the CONTINUE policy. Do it n times.
         for(int ii = 0; ii<numTrials; ii++)
         {            
             MPolicy.readXACML10(continueFileName);
             
-           // System.out.println(foo.idbs.keySet().size());
-            //System.out.println(foo.idbs.keySet());
+           // MEnvironment.errorStream.println(foo.idbs.keySet().size());
+            //MEnvironment.errorStream.println(foo.idbs.keySet());
             
             // First test, make sure that data structures aren't being reused and saving us a bunch of time
             // on all but first iteration:
             //if(ii % 10 == 0)
-            	System.out.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
+            	MEnvironment.errorStream.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
             	
             MFormulaManager.clearAll();
             System.gc();
         }
         
-        System.out.println("Average time to load policy: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
+        MEnvironment.errorStream.println("Average time to load policy: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
         		"ms. Number of trials was: "+numTrials);
         
         // Tests on the policy
@@ -3331,11 +3331,11 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
         {
         	MQuery q = continuePolicy.queryPolicy("(forsome s Subject (forsome a Action (forsome r Resource (forsome e Environment (RPSlist:Permit s a r e)))))");
         	q.isQuerySatisfiable();
-        	System.out.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
+        	MEnvironment.errorStream.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
         	
         }
         
-        System.out.println("Average time to run basic permit query: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
+        MEnvironment.errorStream.println("Average time to run basic permit query: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
         		"ms. Number of trials was: "+numTrials);
 
   
@@ -3346,11 +3346,11 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
         	MQuery q = continuePolicy.queryPolicy("(forsome s Subject (forsome a Action (forsome r Resource (forsome e Environment (RPSlist:Permit s a r e)))))");
         	q.doTupling = true;
         	q.isQuerySatisfiable();
-        	System.out.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
+        	MEnvironment.errorStream.println( ((mxBean.getCurrentThreadCpuTime()-start)/1000000) / (ii+1));
         	
         }
         
-        System.out.println("Average time to run basic permit query WITH TUPLING: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
+        MEnvironment.errorStream.println("Average time to run basic permit query WITH TUPLING: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
         		"ms. Number of trials was: "+numTrials);
 
         

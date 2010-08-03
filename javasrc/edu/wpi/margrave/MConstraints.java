@@ -88,7 +88,7 @@ public class MConstraints
 
 	public void printConstraints()
 	{
-		System.out.println("<Placeholder>");
+		MEnvironment.errorStream.println("<Placeholder>");
 	}
 
 	public void addConstraintAbstractAll(String d)

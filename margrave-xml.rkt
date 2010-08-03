@@ -246,6 +246,11 @@
           [(equal? type "error") (pretty-print-error-xml response-element)]
           [(equal? type "exception") (pretty-print-exception-xml response-element)])))
 
+
+;; !!! TODO
+;; These elements are not always there (in particular, location)
+;; Can't trust first, fifth, sixth, etc.
+
 (define (pretty-print-exception-xml element)
   (let* ([string-buffer (open-output-string)]
          (exception-element (second (element-content element)))

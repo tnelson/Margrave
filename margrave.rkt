@@ -184,7 +184,7 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-         ;(printf "M SENDING XML: ~a;~n" cmd)
+         (printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML
         (display (string-append cmd ";") output-port)
@@ -233,7 +233,7 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    ;(printf "~a~n" result)                    
+                    (printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))

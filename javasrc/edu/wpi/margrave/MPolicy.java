@@ -446,39 +446,39 @@ public abstract class MPolicy extends MIDBCollection
 	 */
 	public void prettyPrintIDBs()
 	{
-		System.out.println("IDBs in policy "+name+":");
+		MEnvironment.errorStream.println("IDBs in policy "+name+":");
 		for(String n : idbs.keySet())
 		{
-			System.out.println(n+": "+idbs.get(n));
+			MEnvironment.errorStream.println(n+": "+idbs.get(n));
 		}
-		System.out.println("");
+		MEnvironment.errorStream.println("");
 	}	
 	
 	public void prettyPrintEDBs()
 	{
-		System.out.println("Request Type EDBs: ");
+		MEnvironment.errorStream.println("Request Type EDBs: ");
 		
 		//boolean commaneeded = false;
 		for(MSort t : vocab.sorts.values())
 		{
 			if(t.parent == null)
-				System.out.println(t.name+" <-- base type");
+				MEnvironment.errorStream.println(t.name+" <-- base type");
 			else
-				System.out.println(t.name + "( "+ vocab.getUniverseSort(t).name +" )");
+				MEnvironment.errorStream.println(t.name + "( "+ vocab.getUniverseSort(t).name +" )");
 			
 			/*if(commaneeded)
-				System.out.print(", ");
-			System.out.print(t.name);
+				MEnvironment.errorStream.print(", ");
+			MEnvironment.errorStream.print(t.name);
 			commaneeded = true;*/
 		}
 		
-		System.out.println("State EDBs: ");
+		MEnvironment.errorStream.println("State EDBs: ");
 		for(String relname : vocab.predicates.keySet())
 		{
-			System.out.println(relname + "( "+ vocab.predtypes.get(relname) +" )");
+			MEnvironment.errorStream.println(relname + "( "+ vocab.predtypes.get(relname) +" )");
 			/*if(commaneeded)
-				System.out.print(", ");
-			System.out.print(relname);
+				MEnvironment.errorStream.print(", ");
+			MEnvironment.errorStream.print(relname);
 			commaneeded = true;*/
 		}
 
@@ -635,7 +635,7 @@ public abstract class MPolicy extends MIDBCollection
 		if(assumptionsok.equals(Formula.TRUE))
 			return;
 		
-		//System.out.println("Building assumption IDBs for policy: "+name);
+		//MEnvironment.errorStream.println("Building assumption IDBs for policy: "+name);
 		
 		for(String dec : vocab.decisions)
 		{
@@ -694,7 +694,7 @@ public abstract class MPolicy extends MIDBCollection
 		xacml20SchemaFile = convertSeparators(xacml20SchemaFile);
 		
 		// Given an XACML file name, parse the policy file and return an MGPolicy object.
-		System.out.println("* (XACML) Reading file: "+xacmlFileName);
+		MEnvironment.errorStream.println("* (XACML) Reading file: "+xacmlFileName);
 		
 		// Try to load as XACML 2.0, then fall back on 1.0 (Sun's implementation).
 		try
@@ -702,21 +702,21 @@ public abstract class MPolicy extends MIDBCollection
 			File f = new File(xacmlFileName);			
 						
 			MPolicy result =  XACML20Reader.loadXACML20(xacmlFileName, xacml20SchemaFile, f.getParent());
-			System.out.println("* XACML 2.0 succeeded in reading: "+result.name);
+			MEnvironment.errorStream.println("* XACML 2.0 succeeded in reading: "+result.name);
 			return result;
 		}
 		catch(MGEUnsupportedXACML e)
 		{
 			// Continue with Sun's 1.0 implementation
-			System.out.println("* File was not a valid XACML 2 policy or policy set.");
+			MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
 		}
 		catch(SAXException e)
 		{
 			// Continue with Sun's 1.0 implementation
-			System.out.println("* File was not a valid XACML 2 policy or policy set.");
+			MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
 		}
 		
-		System.out.println("* Attempting to treat file as XACML 1...");
+		MEnvironment.errorStream.println("* Attempting to treat file as XACML 1...");
 		return readXACML10(xacmlFileName);
 	}
 	

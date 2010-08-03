@@ -165,10 +165,10 @@ public class MPolicySet extends MPolicy
 
 	public void printPolicyInfo()
 	{
-		System.out.println("###########################");
-		System.out.println("Policy Name: "+name);
-		System.out.println("This is a policy SET with policy combinator: "+pCombine);
-		System.out.println("Target Formula: "+target);		
+		MEnvironment.errorStream.println("###########################");
+		MEnvironment.errorStream.println("Policy Name: "+name);
+		MEnvironment.errorStream.println("This is a policy SET with policy combinator: "+pCombine);
+		MEnvironment.errorStream.println("Target Formula: "+target);		
 		
 		String cstr = "";
 		for(MPolicy child : children)
@@ -179,19 +179,19 @@ public class MPolicySet extends MPolicy
 				cstr = cstr + " " + child.name;
 		}
 		
-		System.out.println("Children: "+cstr);					
+		MEnvironment.errorStream.println("Children: "+cstr);					
 		
-		System.out.println("\nIDB and EDB predicates available for use in queries:");
+		MEnvironment.errorStream.println("\nIDB and EDB predicates available for use in queries:");
 		
-		System.out.println("IDBs:");		
+		MEnvironment.errorStream.println("IDBs:");		
 		prettyPrintIDBs();		
 		prettyPrintEDBs();
-		System.out.print("\n\n");
+		MEnvironment.errorStream.print("\n\n");
 		
-		System.out.println("Policy-level constraints: ");
+		MEnvironment.errorStream.println("Policy-level constraints: ");
 		assumptions.printConstraints();
 		
-		System.out.println("###########################\n");
+		MEnvironment.errorStream.println("###########################\n");
 	}
 	
 	public String getDecisionForRuleIDBName(String idbname)

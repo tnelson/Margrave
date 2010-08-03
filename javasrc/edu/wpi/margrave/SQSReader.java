@@ -85,7 +85,7 @@ public class SQSReader
 		{
 			String cFunction = (String)conditionNames.get(iCondition);
 			JSONObject condition = (JSONObject) obj.get(cFunction);
-			//System.out.println(cFunction + ": "+condition);
+			//MEnvironment.errorStream.println(cFunction + ": "+condition);
 			
 			// condition is a key:value pair or multiple such pairs. The value may be an array.
 			// Each sub-condition must be met.
@@ -104,7 +104,7 @@ public class SQSReader
 					HashSet<Formula> valuedisj = new HashSet<Formula>();
 					for(int iValue = 0; iValue < subarr.length(); iValue++)
 					{
-						//System.out.println(cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
+						//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
 						Formula theatom = makeSQSAtom(vocab, "c", "Condition", 
 								cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
 						valuedisj.add(theatom);
@@ -114,7 +114,7 @@ public class SQSReader
 				}
 				else
 				{
-					//System.out.println(cFunction+"("+cSubKey+", "+subcondition+")");	
+					//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subcondition+")");	
 					Formula theatom = makeSQSAtom(vocab, "c", "Condition", cFunction+"("+cSubKey+", "+subcondition+")");
 					thisCondition.add(theatom);
 				}
@@ -153,7 +153,7 @@ public class SQSReader
 		
 		vocab.addSubSort(parentsortname, sortname);
 		
-		//System.out.println(sortname);
+		//MEnvironment.errorStream.println(sortname);
 		
 		
 		
@@ -262,7 +262,7 @@ public class SQSReader
 			
 			for(int ii=0;ii<jarr.length();ii++)
 			{
-				//System.out.println(prepend+"="+jarr.get(ii));
+				//MEnvironment.errorStream.println(prepend+"="+jarr.get(ii));
 				
 				Formula theatom = makeSQSAtom(vocab,varname, parentsortname, prepend+"="+jarr.get(ii));				
 				possibleValues.add(theatom);
