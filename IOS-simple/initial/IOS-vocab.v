@@ -3,21 +3,10 @@
  (Types
   (Hostname : hostname-Router)
   (Interface : vlan1 fe0)
-  (IPAddress
-   :
-   ip-N/A
-   (ip-0-0-0-0/ip-0-0-0-0
-    ip-192-128-5-0/ip-255-255-255-0
-    ip-10-1-1-0/ip-255-255-255-254
-    ip-192-168-5-11
-    ip-192-168-5-10
-    ip-173-194-33-104))
+  (IPAddress : ip-N/A (ip-0-0-0-0/ip-0-0-0-0 ip-192-128-5-0/ip-255-255-255-0 ip-10-1-1-0/ip-255-255-255-254 ip-192-168-5-11 ip-192-168-5-10 ip-173-194-33-104))
   (Protocol : prot-ICMP prot-TCP prot-UDP)
   (Port : port-N/A (ports-0-65535 port-25 port-80))
-  (ICMPMessage
-   :
-   icmp-N/A
-   (icmp-any icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable))
+  (ICMPMessage : icmp-N/A (icmp-any icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable))
   (Length :))
  (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
  (Predicates)

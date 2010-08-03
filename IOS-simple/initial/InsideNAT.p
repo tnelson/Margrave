@@ -4,24 +4,9 @@
  IOS-vocab
  (Target)
  (Rules
-  (default-NAT-g600
+  (default-NAT-g782
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (= src-addr-in src-addr-out)
    (= dest-addr-in dest-addr-out)
