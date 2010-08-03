@@ -1,7 +1,7 @@
 #lang racket/gui
 
-(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt")
-(require "../../margrave.rkt" xml)
+(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt" "apply-model.rkt")
+(require "../../margrave.rkt" xml "../../margrave-xml.rkt")
 
 (define icon-accept (make-object bitmap% "../images/icon_accept.png"))
 (define icon-modify (make-object bitmap% "../images/icon_modify.png"))
@@ -22,13 +22,27 @@
 
 (send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 550 10)
 
-;(start-margrave-engine (build-path 'up 'up))
-;(load-policy (build-path "tests" "inboundacl_fw1_new.p"))
-;(load-policy (build-path "tests" "inboundacl_fw2_new.p"))
-;(mtext "EXPLORE fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
-;(mtext "GET ONE 0")
+(start-margrave-engine (build-path 'up 'up))
+(load-policy (build-path "tests" "inboundacl_fw1.p"))
+(load-policy (build-path "tests" "inboundacl_fw2.p"))
+(load-policy (build-path "tests" "inboundacl_fw1_new.p"))
+(load-policy (build-path "tests" "inboundacl_fw2_new.p"))
+(load-policy (build-path "tests" "inboundnat_fw1.p"))
+(load-policy (build-path "tests" "inboundnat_fw2.p"))
 
+(mtext "EXPLORE inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) OR
+inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) AND
+inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)
+AND managerpc(ipsrc)")
+; AND fw2int(interface) AND fw1dmz(interminterface) AND otherports(portsrc) AND port80(portdest)
+;AND tcp(pro) AND outsideips(ipdest)
+;(mtext "")
+(mtext "GET ONE 0")
+
+(define mr (document-element (mtext "GET NEXT 0")))
 (stop-margrave-engine)
+
+(define mod (if (equal? (get-attribute-value mr 'type) "model") mr #f)) 
 
 ; My stuff
 ; Make a netgraph
@@ -82,6 +96,6 @@
 
 (send myng add-edge! f2 m1) (send myng add-edge! m1 f2)
 
-(visualize (apply-model/pos myng #f) pb)
+(visualize (apply-model/pos myng mod) pb)
 
 (send window show #t)
