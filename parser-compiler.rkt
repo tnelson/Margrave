@@ -270,6 +270,9 @@
      [(SHOW UNPOPULATED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
       (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
      
+     ;IS POSSIBLE?
+     [(IS POSSIBLEQMARK <unsigned-integer>) (build-so (list 'IS-POSSIBLE? $3) 1 1)]
+     
      ; Get information
      [(INFO) (build-so (list 'INFO) 1 1)]
      [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
@@ -438,6 +441,9 @@
         [(equal? first-datum 'REQUESTVAR)
          (xml-make-request-var (symbol->string (syntax->datum (second interns)))
                                (symbol->string (syntax->datum (third interns))))]
+        
+        [(equal? first-datum 'IS-POSSIBLE?)
+         (xml-make-is-possible-command (symbol->string (syntax->datum (second interns))))]
         
         [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
          ;(printf "Symbol var: ~a~n" first-intern)

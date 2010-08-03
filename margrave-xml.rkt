@@ -233,6 +233,19 @@
   (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
                                   (element-attributes ele)))))
 
+;Pass name a symbol or a string, case doesn't matter
+;Returns either an element, if found, or an empty list
+(define (get-child-element element name-symb-or-str)
+  (let* ((name (string-downcase (if (symbol? name-symb-or-str)
+                                    (symbol->string name-symb-or-str)
+                                    name-symb-or-str)))
+         (result (filter (lambda(element) (equal? name (string-downcase (symbol->string (element-name element)))))
+                         (filter (lambda (maybe-elem) (element? maybe-elem))
+                                 (element-content element)))))
+    (if (empty? result)
+        result
+        (first result))))
+
 ;************ Pretty Print Info *******************
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
@@ -246,34 +259,30 @@
           [(equal? type "error") (pretty-print-error-xml response-element)]
           [(equal? type "exception") (pretty-print-exception-xml response-element)])))
 
-
-;; !!! TODO
-;; These elements are not always there (in particular, location)
-;; Can't trust first, fifth, sixth, etc.
-
 (define (pretty-print-exception-xml element)
   (let* ([string-buffer (open-output-string)]
-         (exception-element (second (element-content element)))
+         (exception-element (get-child-element element 'exception))
          (exception-attributes (element-attributes exception-element))
-         (exception-content (element-content exception-element))
-         (message-element (second exception-content))
-         (location-element (fourth exception-content))
-         (command-element (sixth exception-content)))
+         (message-element (get-child-element element 'message))
+         (location-element (get-child-element element 'location))
+         (command-element (get-child-element element 'command))) ;TODO Don't have an example of this, so not implemented
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
         (write "Exception:\n")
         (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
         (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
-        (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n"))
-        (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))
+        (when (not (empty? message-element))
+          (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n")))
+        (when (not (empty? location-element))
+          (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n")))
         (display (get-output-string string-buffer))
         (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type="error"> element
 (define (pretty-print-error-xml element)
   (let ([string-buffer (open-output-string)]
-        (error-element (second (element-content element))))
+        (error-element (get-child-element element 'error)))
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
@@ -293,13 +302,12 @@
       (begin
         (write "Info:\n")
         (write (string-append "Type: " (get-attribute-value info-element 'type) "\n"))
-        (let* ((info-content (element-content info-element))
-               (manager-element (second info-content))
-               (heap-element (second (element-content manager-element)))
-               (non-heap-element (second (element-content manager-element)))
-               (vocab-element (fourth info-content))
-               (collections-element (sixth info-content))
-               (results-element (eighth info-content)))
+        (let* ((manager-element (get-child-element info-element 'manager))
+               (heap-element (get-child-element manager-element 'heap-usage))
+               (non-heap-element (get-child-element manager-element 'non-heap-usage))
+               (vocab-element (get-child-element info-element 'vocabularies))
+               (collections-element (get-child-element info-element 'collections))
+               (results-element (get-child-element info-element 'cached-results)))
           (local ((define (get-manager-attribute s)
                     (get-attribute-value manager-element s)))
             (write (string-append "Atoms: " (get-manager-attribute 'atoms) "\n"))
@@ -343,10 +351,9 @@
               (write-string s string-buffer)))
       (begin
         (write "Collection Info:\n")
-        (let* ((info-content (element-content info-element))
-               (policy-leaf-element (second info-content))
-               (idbs (second (element-content policy-leaf-element)))
-               (free-variables (fourth (element-content policy-leaf-element))))
+        (let* ((policy-leaf-element (get-child-element info-element 'policy-leaf))
+               (idbs (get-child-element policy-leaf-element 'idbs))
+               (free-variables (get-child-element policy-leaf-element 'free-variables)))
           (write (string-append "Policy Name: " (get-attribute-value policy-leaf-element 'name)
                                 "\nCombine rule: " (get-attribute-value policy-leaf-element 'rule-combine) "\n"))
           (map (lambda(elem)
@@ -368,40 +375,39 @@
               (write-string s string-buffer)))
       (begin
         (write "Vocabulary Info:\n")
-        (let* ((info-content (element-content info-element))
-               (vocab-element (second info-content))
-               (sorts-element (second (element-content vocab-element)))
-               (req-vector-element (fourth (element-content vocab-element)))
-               (axioms-element (sixth (element-content vocab-element))))
+        (let* ((vocab-element (get-child-element info-element 'vocabulary))
+               (sorts-element (get-child-element vocab-element 'sorts))
+               (req-vector-element (get-child-element vocab-element 'req-vector))
+               (axioms-element (get-child-element vocab-element 'axioms)))
           (write (string-append "Vocabulary Name: " (get-attribute-value vocab-element 'name) "\n"))
           (write "Sorts:\n")
           (local ((define (write-sorts elem)
                     (write (string-append "Sort name: " (get-attribute-value elem 'name) "\n"
-                                       (if (< 1 (length (element-content elem)))
-                                           (foldr (lambda(elem rest)
-                                                    (string-append "\tSubsort: " (get-attribute-value elem 'name) "\n" rest))
-                                                  ""
-                                                  (filter (lambda(elem) (element? elem))
-                                                          (element-content elem)))
-                                           "")))))
-          (map write-sorts
-               (filter (lambda(elem) (element? elem))
-                       (element-content sorts-element)))
-          (write "Req-Vector:\n")
-          (map (lambda(elem)
-                 (write (string-append "Variable: " (pcdata-string (first (element-content elem))) " order: " (get-attribute-value elem 'order) "\n")))
-               (filter (lambda(elem) (element? elem))
-                       (element-content req-vector-element)))
-          (write "Axioms:\n")
-          (map (lambda(elem)
-                 (begin (write (string-append (symbol->string (element-name elem)) "\n"))
-                        (map write-sorts
-                             (filter (lambda(elem) (element? elem))
-                                     (element-content elem)))))
-               (filter (lambda(elem) (element? elem))
-                       (element-content axioms-element))))
-        (display (get-output-string string-buffer))
-        (get-output-string string-buffer))))))
+                                          (if (< 1 (length (element-content elem)))
+                                              (foldr (lambda(elem rest)
+                                                       (string-append "\tSubsort: " (get-attribute-value elem 'name) "\n" rest))
+                                                     ""
+                                                     (filter (lambda(elem) (element? elem))
+                                                             (element-content elem)))
+                                              "")))))
+            (map write-sorts
+                 (filter (lambda(elem) (element? elem))
+                         (element-content sorts-element)))
+            (write "Req-Vector:\n")
+            (map (lambda(elem)
+                   (write (string-append "Variable: " (pcdata-string (first (element-content elem))) " order: " (get-attribute-value elem 'order) "\n")))
+                 (filter (lambda(elem) (element? elem))
+                         (element-content req-vector-element)))
+            (write "Axioms:\n")
+            (map (lambda(elem)
+                   (begin (write (string-append (symbol->string (element-name elem)) "\n"))
+                          (map write-sorts
+                               (filter (lambda(elem) (element? elem))
+                                       (element-content elem)))))
+                 (filter (lambda(elem) (element? elem))
+                         (element-content axioms-element))))
+          (display (get-output-string string-buffer))
+          (get-output-string string-buffer))))))
 
 
 

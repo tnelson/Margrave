@@ -1,7 +1,7 @@
 #lang racket
 (require (planet schematics/schemeunit:3:4) ;Schemeunit
          (planet schematics/schemeunit:3:4/text-ui)
-         "margrave-xml.rkt" "parser-compiler.rkt"
+         "margrave-xml.rkt" "parser-compiler.rkt" "margrave.rkt"
          xml)
 
 ;*************************************************************************
@@ -265,3 +265,15 @@
 (pretty-print-response-xml low-user-ceiling)
 (display "\n\n\tNegative Ceiling: \n")
 (pretty-print-response-xml negative-ceiling)
+
+
+; *******************************************************************
+; Test conference1.p
+(start-margrave-engine)
+(load-policy (build-path (current-directory) "tests" "phone1.p"))
+(mm (evalxml "EXPLORE Phone1:TollFree(ncaller, nreceive)"))
+(mm (evalxml "COUNT 0"))
+;(load-policy (build-path (current-directory) "tests" "conference1.p"))
+;(mm (evalxml "EXPLORE readpaper(a) and paper(r) and ConferencePolicy1:permit(s,a,r)"))
+;(mm (evalxml "GET ONE 0"))
+(stop-margrave-engine)
