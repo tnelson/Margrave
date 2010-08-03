@@ -1475,9 +1475,8 @@ public class MQuery extends MIDBCollection
 	 * @throws MGEBadIdentifierName
 	 */
 
-	public MQueryResult runQuery() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
+	public MQueryResult runQuery() throws MGException
+	{
 		if (debug_verbosity >= 2)
 			MEnvironment.outStream.println("DEBUG: Beginning to execute query (runQuery) ");
 
@@ -1539,36 +1538,42 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
-
-		// TODO: Deal with binary and larger preds. (Annoying, complicated, many
-		// many axioms.)
-		boolean noNonUnaryPredicates = true;
-		// For now, tupling is only allowed if the vocabulary involves only
-		// unary predicates
-		// Sorts are unary by nature. So check the state preds
-		for (Relation r : vocab.predicates.values())
-			if (r.arity() > 1) {
-				noNonUnaryPredicates = false;
-
-				String errorStr = "DEBUG: Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
-					+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();						
-				
-				throw new MGEArityMismatch(errorStr);
-			}
-
+		
 		// was: && herbrandmax > 1; for now always tuple if told to
 		// (provided that we have a finite Herbrand universe)
-		if (doTupling && totalHerbrandMax > 0 && noNonUnaryPredicates) {
+		if (doTupling && totalHerbrandMax > 0)
+		{
 			// Try to build a more optimal "tupled" query
 			// This tupling always yields a size=1 bound, when it's possible
 			// The price: More predicates.
 
-			// DEBUG
 			startTime = mxBean.getCurrentThreadCpuTime();
 			if (debug_verbosity >= 2)
 				MEnvironment.outStream.println("DEBUG: Pre-tupling block Time: "
 						+ (startTime - start) / 1000000);
+			
+			
+			
+			
+			// ********************************************************************
+			// TODO: Deal with binary and larger preds. (Annoying, complicated, many
+			// many axioms.)
+			// For now, tupling is only allowed if the vocabulary involves only
+			// unary predicates
+			// Sorts are unary by nature. So check the state preds
+			for (Relation r : vocab.predicates.values())
+				if (r.arity() > 1) {
+					String errorStr = "Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
+						+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();						
+					
+					throw new MGEArityMismatch(errorStr);
+				}
+			// ********************************************************************
 
+			
+			
+					
+			// ********************************************************************
 			// If the user wants IDB output with tupling, need all the IDB
 			// formulas to be
 			// ********** QUANTIFIER FREE ***********.
@@ -1612,7 +1617,10 @@ public class MQuery extends MIDBCollection
 					break;
 				}
 			}
-
+			// ********************************************************************
+			
+			
+			
 			if (debug_verbosity >= 2)
 				MEnvironment.outStream.println("Checked IDB output indexing. Time: "
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
@@ -1621,16 +1629,23 @@ public class MQuery extends MIDBCollection
 
 			List<String> indexedIDBNamesToOutput = new ArrayList<String>();
 			
+			
+			
+			
+			
+			
+			// ********************************************************************
 			// First check to see if the user query is prenex existential-only
 			// COULD lift existentials if not in the prefix, but we don't (for
-			// now)
+			// now) TODO ?
 			// Also need to meet other requirements (certain axioms excluded,
 			// for instance)
 
 			if (idbs_ok && prenexExistential
 					&& vocab.axioms.funcPartial.size() == 0
 					&& vocab.axioms.funcTotal.size() == 0
-					&& vocab.axioms.otherConstraintStrings.size() == 0) {
+					&& vocab.axioms.otherConstraintStrings.size() == 0) 
+			{
 				// Construct new vocabulary and new query formula.
 				// (new formula should be the query formula's translation only,
 				// since the new vocab will contain new axioms over the new
@@ -2746,8 +2761,21 @@ public class MQuery extends MIDBCollection
 				}
 
 				return tupledQuery.runQuery();
-			} // end of valid prenex check. Failing falls through to standard
-				// behavior
+			} 
+			else
+			{
+				// Failed to tuple! (why?)
+				
+				if (!idbs_ok)
+					throw new MGException("Could not tuple: IDBs were not quantifier-free.");
+				if(!prenexExistential)
+					throw new MGException("Could not tuple: Query was not prenex existential.");
+				if(vocab.axioms.funcPartial.size() > 0 || vocab.axioms.funcTotal.size() > 0)
+					throw new MGException("Could not tuple: The vocabulary contained functional constraints.");
+				if(vocab.axioms.otherConstraintStrings.size() > 0)
+					throw new MGException("Could not tuple: Custom constraints are not allowed when tupling.");
+				
+			}
 			// PUT NOTHING HERE! Tupling stuff goes in the above if statement
 		} // end if herbrandmax > 0 and doTupling
 
@@ -2939,23 +2967,12 @@ public class MQuery extends MIDBCollection
 		idbOutputIndexing.get(idbname).add(indexing);
 	}
 
-	/**
-	 * 
-	 * @return true if this query is satisfiable, false otherwise
-	 * @throws MGEUnsortedVariable
-	 * @throws MGEUnknownIdentifier
-	 * @throws MGEArityMismatch
-	 * @throws MGEBadQueryString
-	 * @throws MGEManagerException
-	 * @throws MGEBadIdentifierName
-	 */
-	public boolean isQuerySatisfiable() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
+/*	public boolean isQuerySatisfiable() throws MGException
+	{
 		// don't bother saving the result
 		return runQuery().getTotalIterator().hasNext();
 	}
-
+*/
 	/**
 	 * Used in the test suite to check whether a query had the expected number
 	 * of solutions.
@@ -2964,17 +2981,10 @@ public class MQuery extends MIDBCollection
 	 * @param expected_sols
 	 * @param expected_hbu
 	 * @return Whether the test case passed.
-	 * @throws MGEUnsortedVariable
-	 * @throws MGEUnknownIdentifier
-	 * @throws MGEArityMismatch
-	 * @throws MGEBadQueryString
-	 * @throws MGEManagerException
-	 * @throws MGEBadIdentifierName
+	 * @throws MGException
 	 */
 	public boolean runTestCase(int expected_size, int expected_sols,
-			int expected_hbu) throws MGEUnsortedVariable, MGEUnknownIdentifier,
-			MGEArityMismatch, MGEBadQueryString, MGEManagerException,
-			MGEBadIdentifierName
+			int expected_hbu) throws MGException
 	{
 		MQueryResult res = runQuery();
 
@@ -3601,7 +3611,7 @@ public class MQuery extends MIDBCollection
 		return false;
 	}
 
-	protected void prettyPrintSolution(MVocab localVocab,
+	/*protected void prettyPrintSolution(MVocab localVocab,
 			MSolutionInstance aSolution, MInstanceIterator solnSet)	
 	{
 		String result = getPrettyPrintForSolution(localVocab, aSolution, solnSet);
@@ -3796,11 +3806,11 @@ public class MQuery extends MIDBCollection
 
 		theResult.append("----------------------------------------");
 
-		return theResult.toString();*/
+		return theResult.toString();   // end comment was here
 		
-	}
+	}*/
 
-	private String prettyPrintSortNames(Set<MSort> sorts) {
+/*	private String prettyPrintSortNames(Set<MSort> sorts) {
 		String result = "";
 		boolean first = true;
 		for (MSort s : sorts) {
@@ -3835,12 +3845,11 @@ public class MQuery extends MIDBCollection
 		//otSpec.itDefault = MQueryOutputSpec.DefaultIteratorType.outIteratePartial;
 		prettyPrintSolutions();
 	//	otSpec.itDefault = savedCondense;
-	}
+	} */
 
 
-	public void prettyPrintSolutions(int max_to_print)
-			throws MGEUnsortedVariable, MGEUnknownIdentifier, MGEArityMismatch,
-			MGEBadQueryString, MGEManagerException, MGEBadIdentifierName {
+/*	public void prettyPrintSolutions(int max_to_print)
+			throws MGException {
 		int counter = 0;
 		Statistics stats = null;
 
@@ -3973,7 +3982,7 @@ public class MQuery extends MIDBCollection
 		MEnvironment.outStream.println("Used SAT Solver: " + mySATFactory);
 		MEnvironment.outStream
 				.println("============================================================");
-	}
+	}*/
 
 	protected MSolutionInstance processTupledSolutionForThis(MSolutionInstance partialInstance)
 	{
@@ -4165,10 +4174,8 @@ public class MQuery extends MIDBCollection
 		return new MSolutionInstance(instance, dontcare, annotations);
 	}
 	
-	static public void unitTest() throws MGEBadIdentifierName,
-			MGEUnknownIdentifier, MGEUnsortedVariable, MGEArityMismatch,
-			MGEBadQueryString, MGEManagerException 
-			{
+	static public void unitTest() throws MGException
+	{
 		MEnvironment.errorStream
 				.println("----- Begin MGQuery Tests (No messages is good.) -----");
 

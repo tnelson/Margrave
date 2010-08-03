@@ -42,7 +42,7 @@ public class MJavaTests
 {
 	
 	static void countTest(String testname, MQuery qry, int expected_size, int expected_sols, int expected_hbu)
-	throws MGEUnsortedVariable, MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
+	throws MGException
 	{		
 	
 		if(qry.runTestCase(expected_size, expected_sols, expected_hbu))
@@ -59,8 +59,7 @@ public class MJavaTests
 	}
 	
 	static void do_test_1() 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadCombinator, MGECombineVocabs,
-	MGEUnsortedVariable, MGEBadQueryString, MGEManagerException
+	throws MGException
 	{
 		MVocab env = new MVocab("Test Vocab");
 		
@@ -196,8 +195,8 @@ public class MJavaTests
 			*/
 		//MEnvironment.errorStream.println(qry.getPossiblyNonemptyRelations(qry.idb_names_to_output));
 		
-		// TODO
-		qry.prettyPrintOneSolution();
+		// 
+		//qry.prettyPrintOneSolution();
 		
 		//System.exit(2);
 		
@@ -425,8 +424,7 @@ public class MJavaTests
 	}
 	
 	static void do_test_2() 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadCombinator, 
-	MGEBadIdentifierName, MGEBadQueryString, MGEUnsortedVariable, MGECombineVocabs, MGEManagerException
+	throws MGException
 	{
 		MVocab env = new MVocab("Bigger Test Vocab");
 		MPolicyLeaf pol = new MPolicyLeaf("ipeqtest", env);
@@ -540,8 +538,7 @@ public class MJavaTests
 	}
 	
 	static void do_test_3() 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadCombinator, 
-	MGEBadIdentifierName, MGEBadQueryString, MGEUnsortedVariable, MGECombineVocabs, MGEManagerException
+	throws MGException
 	{
 		MVocab env = new MVocab("Vocab for closure tests");
 		MPolicyLeaf pol = new MPolicyLeaf("closuretest", env);
@@ -648,8 +645,7 @@ public class MJavaTests
 	}
 	
 	static void do_test_4() 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadCombinator, 
-	MGEBadIdentifierName, MGEBadQueryString, MGEUnsortedVariable, MGECombineVocabs, MGEManagerException
+	throws MGException
 	{
 
 		// try different types of policy networks (need to implement this stuff!)
@@ -872,16 +868,15 @@ public class MJavaTests
 		MQuery diffQuery2 = polparent.compareWithPolicy(poldifferent);
 		
 		// Was combination successful? this will throw an exception if not.
-		diffQuery1.isQuerySatisfiable();
-		diffQuery2.isQuerySatisfiable();
+		//diffQuery1.isQuerySatisfiable();
+		//diffQuery2.isQuerySatisfiable();
 		
 		
 	}
 	
 	
 	static void do_test_5() 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadCombinator, 
-	MGEBadIdentifierName, MGEBadQueryString, MGEUnsortedVariable, MGECombineVocabs, MGEManagerException
+	throws MGException
 	{
 
 		
@@ -932,8 +927,7 @@ public class MJavaTests
 	}
 	
 	public static void runTests()
-	  throws MGEUnknownIdentifier, MGEArityMismatch,
-	         MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEBadQueryString, MGEBadIdentifierName, MGEManagerException
+	throws MGException
 	{		
 		
 		RelationAndVariableReplacementV.unitTests();
@@ -1742,8 +1736,7 @@ public class MJavaTests
 	}
 	
 	public static void do_test_tupling_basic()
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, 
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
+	throws MGException
 
 	{
 		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_tupling_basic()");
@@ -2513,8 +2506,7 @@ public class MJavaTests
 	}
 
 	public static void do_time_tupling_new()
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, 
-	MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
+	throws MGException
 	{
 		// 1000 rules, vector size = 14
 		MVocab fw = setupFirewallVocabNew("large");						
@@ -2562,8 +2554,8 @@ public class MJavaTests
 			tuptime += sol.getQueryTuplingTime();
 			sol.hasNext(); // is sat?
 			
-			if(iCount == numTrials-1)
-				qry.prettyPrintOneSolution(); // MAY DOUBLECOUNT
+			//if(iCount == numTrials-1)
+			//	qry.prettyPrintOneSolution(); // MAY DOUBLECOUNT
 		}
 		long msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2578,8 +2570,8 @@ public class MJavaTests
 			tuptime += sol.getQueryTuplingTime();
 			sol.hasNext(); // is sat?
 			
-			if(iCount == numTrials-1)
-				qry.prettyPrintOneSolution();// MAY DOUBLECOUNT
+			//if(iCount == numTrials-1)
+			//	qry.prettyPrintOneSolution();// MAY DOUBLECOUNT
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.errorStream.println("rules = 1000; k = 14; sm = 6; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2593,8 +2585,7 @@ public class MJavaTests
 	}
 	
 	public static void do_time_tupling()
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, 
-	MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
+	throws MGException
 	{
 		// Time trials of tupling vs. non-tupling
 		// Test both a small s/a/r policy and a larger firewall ACL
@@ -2886,8 +2877,7 @@ public class MJavaTests
 	}
 	
 	public static void do_test_tupling_1()
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch, 
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
+	throws MGException
 	{
 		//do_test_child_sort_exhaustive();
 		MEnvironment.errorStream.println("ENTERING TEST BLOCK: do_test_tupling_1()");
@@ -3025,7 +3015,7 @@ public class MJavaTests
 		
 		//qry.prettyPrintSolutions();
 		
-		qry.prettyPrintOneSolution();
+		//qry.prettyPrintOneSolution();
 				
 
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
@@ -3125,10 +3115,7 @@ public class MJavaTests
 	}
 	
 	public static void main(String[] args)
-	  throws MGEUnknownIdentifier, MGEArityMismatch,
-      MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEBadQueryString, 
-      MGEBadIdentifierName, UnknownIdentifierException, ParsingException, 
-      MGEUnsupportedXACML, MGEManagerException, MGEUnsupportedSQS,
+	throws MGException,
       UnsupportedFormulaException
 	{
 				
@@ -3326,7 +3313,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
         // Tests on the policy
         MPolicy continuePolicy = MPolicy.readXACML10(continueFileName);
     
-        start = mxBean.getCurrentThreadCpuTime();        
+       /* start = mxBean.getCurrentThreadCpuTime();        
         for(int ii = 0; ii<numTrials; ii++)
         {
         	MQuery q = continuePolicy.queryPolicy("(forsome s Subject (forsome a Action (forsome r Resource (forsome e Environment (RPSlist:Permit s a r e)))))");
@@ -3352,7 +3339,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
         
         MEnvironment.errorStream.println("Average time to run basic permit query WITH TUPLING: "+((mxBean.getCurrentThreadCpuTime()-start)/1000000)/numTrials+
         		"ms. Number of trials was: "+numTrials);
-
+*/
         
         
     }
