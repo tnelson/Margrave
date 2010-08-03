@@ -48,8 +48,8 @@
  xml-make-rule
  xml-make-load-xacml-command
  xml-make-load-sqs-command
- xml-make-count
- xml-make-count-with-size
+ xml-make-count-command
+ xml-make-count-with-size-command
  xml-make-size
  xml-make-file-name
  xml-make-schema-file-name
@@ -165,24 +165,7 @@
                          (begin (set! annotation-string 
                                       (pcdata-string (first (element-content (first content)))))
                                 (helper (rest content))))]
-                    [else "Error in pretty-print-model!!"]))
-            (define (print-statistics stat-xml) ;stat xml is the statistics element
-              (write "STATISTICS: \n")
-              (let* ([computed-max (get-attribute-value stat-xml 'computed-max-size)]
-                     [user-max (get-attribute-value stat-xml 'user-max-size)]
-                     [computed-max-num (string->number computed-max)]
-                     [user-max-num (string->number user-max)])
-                (write (string-append "Computed max size: " computed-max "\n"))
-                (write (string-append "Max size: " (get-attribute-value stat-xml 'max-size) "\n"))
-                (write (string-append "Result ID: " (get-attribute-value stat-xml 'result-id) "\n"))
-                (write (string-append "User max size: " user-max "\n"))
-                (begin
-                  (when (< user-max-num computed-max-num)
-                    (write (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max ")\n")))
-                  (when (< computed-max-num 0)
-                    (write (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
-              
-              )]
+                    [else "Error in pretty-print-model!!"]))]
       (begin (set! atom-hash (make-hash)) ;First reset the hashes
              (set! predicate-hash (make-hash))
              (set! model-size (get-attribute-value (second (element-content xml-model)) 'size)) ;shouldn't really be hardcoded in
@@ -191,7 +174,7 @@
              (when (> (string-length annotation-string) 0)
                (write (string-append annotation-string "\n")))
              (if (< 2 (length (element-content xml-model)))
-                 (print-statistics (fourth (element-content xml-model)))
+                 (write (print-statistics (fourth (element-content xml-model))))
                  "")
              (display (get-output-string string-buffer))
              (get-output-string string-buffer)))))
@@ -235,7 +218,10 @@
 
 ;Pass name a symbol or a string, case doesn't matter
 ;Returns either an element, if found, or an empty list
+;Note that if you pass this element an empty list instead of an element, instead of halting it will return empty
 (define (get-child-element element name-symb-or-str)
+  (if (empty? element)
+      empty
   (let* ((name (string-downcase (if (symbol? name-symb-or-str)
                                     (symbol->string name-symb-or-str)
                                     name-symb-or-str)))
@@ -244,7 +230,30 @@
                                  (element-content element)))))
     (if (empty? result)
         result
-        (first result))))
+        (first result)))))
+
+(define (get-pc-data elem)
+  (pcdata-string (first (element-content elem))))
+
+(define (print-statistics stat-element) ;stat xml is the statistics element
+  (let* ((string-buffer (open-output-string)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (write "STATISTICS: \n")
+      (let* ([computed-max (get-attribute-value stat-element 'computed-max-size)]
+             [user-max (get-attribute-value stat-element 'user-max-size)]
+             [computed-max-num (string->number computed-max)]
+             [user-max-num (string->number user-max)])
+        (write (string-append "Computed max size: " computed-max "\n"))
+        (write (string-append "Max size: " (get-attribute-value stat-element 'max-size) "\n"))
+        (write (string-append "Result ID: " (get-attribute-value stat-element 'result-id) "\n"))
+        (write (string-append "User max size: " user-max "\n"))
+        (begin
+          (when (< user-max-num computed-max-num)
+            (write (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max ")\n")))
+          (when (< computed-max-num 0)
+            (write (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
+      (get-output-string string-buffer))))
 
 ;************ Pretty Print Info *******************
 
@@ -252,12 +261,55 @@
 (define (pretty-print-response-xml response-doc)
   (let* ((response-element (document-element response-doc))
          (type (get-attribute-value response-element 'type)))
+    ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
     (cond [(equal? type "model") (pretty-print-model response-element)] 
           [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
           [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
           [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
           [(equal? type "error") (pretty-print-error-xml response-element)]
-          [(equal? type "exception") (pretty-print-exception-xml response-element)])))
+          [(equal? type "exception") (pretty-print-exception-xml response-element)]
+          [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
+          [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
+          [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
+          [(equal? type "string") (pretty-print-string-xml response-element)]
+          [(equal? type "success") "Success\n"])))
+
+(define (pretty-print-string-xml element)
+  (let* ((string-buffer (open-output-string)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write (string-append "Result: " (get-pc-data element) "\n"))
+        (get-output-string string-buffer)))))
+
+(define (pretty-print-boolean-xml element)
+  (let* ((string-buffer (open-output-string))
+         (statistics-element (get-child-element element 'statistics)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write (string-append "Result: " (get-pc-data element) "\n"))
+        (when (not (empty? statistics-element))
+          (write (print-statistics statistics-element)))
+        (get-output-string string-buffer)))))
+
+(define (pretty-print-unsat-xml element)
+  (let* ((string-buffer (open-output-string))
+         (statistics-element (get-child-element element 'statistics)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write "No more solutions\n")
+        (write (print-statistics statistics-element))
+        (get-output-string string-buffer)))))
+
+(define (pretty-print-explore-xml element)
+  (let* ((string-buffer (open-output-string))
+         (result-element (get-child-element element 'result-handle)))
+    (begin 
+      (write-string (string-append "Explore result handle: " (get-pc-data result-element) "\n") string-buffer)
+      (display (get-output-string string-buffer))
+      (get-output-string string-buffer))))
 
 (define (pretty-print-exception-xml element)
   (let* ([string-buffer (open-output-string)]
@@ -344,6 +396,7 @@
           (display (get-output-string string-buffer))
           (get-output-string string-buffer))))))
 
+
 ;Pass this function a <MARGRAVE-RESPONSE type=\"collection-info\"> element
 (define (pretty-print-collection-info-xml info-element)
   (let ([string-buffer (open-output-string)])
@@ -354,17 +407,20 @@
         (let* ((policy-leaf-element (get-child-element info-element 'policy-leaf))
                (idbs (get-child-element policy-leaf-element 'idbs))
                (free-variables (get-child-element policy-leaf-element 'free-variables)))
-          (write (string-append "Policy Name: " (get-attribute-value policy-leaf-element 'name)
-                                "\nCombine rule: " (get-attribute-value policy-leaf-element 'rule-combine) "\n"))
-          (map (lambda(elem)
-                 (write (string-append "IDB: Base name: " (get-attribute-value elem 'base-name) "\n")))
-               (filter (lambda(elem) (element? elem))
-                       (element-content idbs)))
-          (write "Free Variables: \n")
-          (map (lambda(elem)
-                 (write (string-append "Variable name: " (pcdata-string (first (element-content elem))) "\n")))
-               (filter (lambda(elem) (element? elem))
-                       (element-content free-variables))))
+          (when (not (empty? policy-leaf-element))
+            (write (string-append "Policy Name: " (get-attribute-value policy-leaf-element 'name)
+                                  "\nCombine rule: " (get-attribute-value policy-leaf-element 'rule-combine) "\n")))
+          (when (not (empty? idbs))
+            (map (lambda(elem)
+                   (write (string-append "IDB: Base name: " (get-attribute-value elem 'base-name) "\n")))
+                 (filter (lambda(elem) (element? elem))
+                         (element-content idbs))))
+          (when (not (empty? free-variables))
+            (write "Free Variables: \n")
+            (map (lambda(elem)
+                   (write (string-append "Variable name: " (get-pc-data elem) "\n")))
+                 (filter (lambda(elem) (element? elem))
+                         (element-content free-variables)))))
         (display (get-output-string string-buffer))
         (get-output-string string-buffer)))))
 
@@ -492,11 +548,18 @@
 (define (xml-make-rename-command id1 id2)
   (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
+;;Count isn't fully implemented/tested!
 (define (xml-make-count id)
   `(COUNT (,id)))
 
+(define (xml-make-count-command id)
+  (xml-make-command "COUNT" (list (xml-make-count id))))
+
 (define (xml-make-count-with-size id size)
   `(COUNT (,id ,size)))
+
+(define (xml-make-count-with-size-command id size)
+  (xml-make-command "COUNT" (list (xml-make-count-with-size id size))))
 
 (define (xml-make-size size)
   `(size ,size))
@@ -532,14 +595,19 @@
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
+#;(define (xml-make-compare pol1 pol2)
+  `(COMPARE (,pol1 ,pol2)))
+#;(define (xml-make-compare-command pol1 pol2)
+  (xml-make-command "COMPARE" (list (xml-make-get type id))))
+
 (define (xml-make-under policy)
   `(UNDER ,policy))
 
-(define (xml-make-is-possible id)
-  `(IS-POSSIBLE ((id ,id))))
+(define (xml-make-is-possible xml-id)
+  `(IS-POSSIBLE (,xml-id)))
 
-(define (xml-make-is-possible-command id)
-  (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible id))))
+(define (xml-make-is-possible-command xml-id)
+  (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible xml-id))))
 
 (define (xml-make-is-guaranteed id)
   `(IS-GUARANTEED ((id ,id))))

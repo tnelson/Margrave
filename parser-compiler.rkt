@@ -259,6 +259,9 @@
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
      [(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
      [(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
+     [(COUNT numeric-id) (build-so (list 'COUNT $2) 1 2)]
+     [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
+     [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3) 1 3)]
      
      ; SHOW POPULATED and friends
      [(SHOW POPULATED numeric-id atomic-formula-list) 
@@ -271,7 +274,7 @@
       (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
      
      ;IS POSSIBLE?
-     [(IS POSSIBLEQMARK <unsigned-integer>) (build-so (list 'IS-POSSIBLE? $3) 1 1)]
+     [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 1)]
      
      ; Get information
      [(INFO) (build-so (list 'INFO) 1 1)]
@@ -309,7 +312,8 @@
      [(<unsigned-integer>) (build-so (list 'id $1) 1 1)])
     (get-type
      [(ONE) (build-so (list 'type 'ONE) 1 1)]
-     [(NEXT) (build-so (list 'type 'NEXT) 1 1)])
+     [(NEXT) (build-so (list 'type 'NEXT) 1 1)]
+     [(CEILING) (build-so (list 'type 'CEILING) 1 1)])
     
     ;**************************************************
     ; Optional modifiers for the explore statement
@@ -342,6 +346,8 @@
      [(<identifier>) (build-so (list 'DECISION $1) 1 1)])
     (requestvar
      [(<identifier> <identifier>) (build-so (list 'REQUESTVAR $1 $2) 1 1)])
+    (size
+     [(<unsigned-integer>) (build-so (list 'SIZE $1) 1 1)])
     
     
     ; *************************************************
@@ -443,17 +449,23 @@
                                (symbol->string (syntax->datum (third interns))))]
         
         [(equal? first-datum 'IS-POSSIBLE?)
-         (xml-make-is-possible-command (symbol->string (syntax->datum (second interns))))]
+         (xml-make-is-possible-command (helper-syn->xml (second interns)))]
+        [(equal? first-datum 'COUNT)
+         (xml-make-count-command (helper-syn->xml (second interns)))]
+        [(equal? first-datum 'COUNT-WITH-SIZE)
+         (xml-make-count-with-size-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+        [(equal? first-datum 'SIZE)
+         (xml-make-size (symbol->string (syntax->datum (second interns))))]
+        [(equal? first-datum 'COMPARE)
+         (xml-make-size (symbol->string (syntax->datum (second interns))))]
         
         [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
          ;(printf "Symbol var: ~a~n" first-intern)
-         (symbol->string (syntax->datum (second interns)))
-         #;(append (list 'VARIABLE) (list (list (list 'name (symbol->string (syntax->datum (second interns)))))))]
+         (symbol->string (syntax->datum (second interns)))]
         
         [(equal? first-datum 'VARIABLE-VECTOR)
          ;(printf "Symbol varvec: ~a~n" first-intern)
-         (xml-make-identifiers-list (begin (map helper-syn->xml (rest interns))))
-         #;(append (list 'VARIABLE-VECTOR) (map helper-syn->xml (rest interns)))]
+         (xml-make-identifiers-list (begin (map helper-syn->xml (rest interns))))]
         
         [(equal? first-datum 'ATOMIC-FORMULA-N)
          ;(printf "Symbol atn: ~a~n" first-intern)
@@ -533,7 +545,7 @@
         [(equal? first-datum 'IMPLIES)
          (list 'IMPLIES (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'IFF)
-         (list 'AIFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (list 'IFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'NOT)
          (list 'NOT (helper-syn->xml (second interns)))]
         [(equal? first-datum 'RENAME)

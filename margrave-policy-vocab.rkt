@@ -30,6 +30,7 @@
 
 
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
+; !!TODO: When loading #lang margrave, we cannot use this function, and must instead simply return a list of the commands to execute
 (define (evaluate-policy fn)
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
