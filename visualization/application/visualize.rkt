@@ -10,8 +10,6 @@
 (hash-set! type-bitmap-hash 'group "../images/ent_group.png")
 (hash-set! type-bitmap-hash 'firewall "../images/ent_fw.png")
 
-;(hash-ref type-bitmap-hash "host")
-
 ; Adds a node to the pasteboard.
 ; It creates a snip and positions it based on the node's location
 (define (place-node pb node)
@@ -31,7 +29,6 @@
             [edsnip (new editor-snip%)]
             [newpb (new fwpboard%)])
         (begin
-;          (send pb insert edsnip (send node get-x) (send node get-y))
           (send edsnip set-editor newpb)
           (send pb set-before edsnip #f)
           (send newnode set-subed! edsnip)
