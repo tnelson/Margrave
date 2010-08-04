@@ -4,46 +4,16 @@
  IOS-vocab
  (Target)
  (Rules
-  (network-switch-fe0-g21694
+  (network-switch-fe0-g23745
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (ip-10-1-1-0/ip-255-255-255-254 next-hop)
    (fe0 exit-interface))
-  (network-switch-vlan1-g21695
+  (network-switch-vlan1-g23746
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (ip-192-128-5-0/ip-255-255-255-0 next-hop)

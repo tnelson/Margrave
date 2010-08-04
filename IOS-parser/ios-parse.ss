@@ -63,10 +63,12 @@
 
 ;; (listof any) port IOS-config% -> IOS-config%
 (define (parse-access-list line-tokens input config)
+;  (printf "In parse-access-list: ~a ~a ~a~n" line-tokens input config)
   (parse-named-access-list (line-number input) (first line-tokens) (rest line-tokens) config))
 
 ;; number symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-access-list line name line-tokens config)
+;  (printf "In parse-named-access-list: ~a ~a ~a ~a~n" line name line-tokens config)
   (case (first line-tokens)
     [(dynamic) (parse-named-dynamic-access-list line name (rest line-tokens) config)]
     [(permit deny) (parse-named-dispositive-access-list line
@@ -93,6 +95,7 @@
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-dispositive-access-list line name disposition line-tokens config)
+ ; (printf "In parse-named-dispositive-access-list: ~a ~a ~a ~a ~a ~n" line name disposition line-tokens config)
   (cond [(single-address? (first line-tokens))
          (parse-standard-access-list line name disposition (first line-tokens) (rest line-tokens) config)]
         [else (case (first line-tokens)
@@ -356,6 +359,7 @@
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-access-list-IP line name disposition line-tokens config)
+  ;(printf "In parse-access-list-IP: ~a ~a ~a ~a ~a ~n" line name disposition line-tokens config)
   (case (first line-tokens)
     [(any) (parse-access-list-IP2 line
                                   name
@@ -378,6 +382,7 @@
 
 ;; number symbol symbol address<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-access-list-IP2 line name disposition src-addr line-tokens config)
+  ;(printf "In parse-access-list-IP2: ~a ~a ~a ~a ~a ~a ~n" line name disposition src-addr line-tokens config)
   (case (first line-tokens)
     [(any) (parse-access-list-IP3 line
                                   name
@@ -403,6 +408,8 @@
 
 ;; number symbol symbol address<%> address<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-access-list-IP3 line name disposition src-addr dest-addr line-tokens config)
+  ;(printf "In parse-access-list-IP3: ~a ~a ~a ~a ~a ~a ~a ~n" line name disposition src-addr dest-addr line-tokens config)
+  ; -TN: TODO: Display error if "ip" access-list contains a port restriction.
   (send config
         insert-ACE
         name

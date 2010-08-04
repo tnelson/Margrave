@@ -39,6 +39,12 @@
     
     (printf "~n~nWhich-packets:~n")
     
+    ;        AND fe0(entry-interface)
+    ;    AND prot-tcp(protocol)
+    ;    AND ip-192-168-5-10(dest-addr-in)
+    ;    AND ip-10-1-1-2(ip-addr-in)
+
+    
     (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
@@ -107,6 +113,9 @@
      " TUPLING")) 
     (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g21711_applies" vector ","
                "InboundACL1:ACE-line-13-g21714_applies" vector))
+    
+    
+    ; TODO: Why is the line number off by 1? (Do we use _next_ char's line number? If so, need to subtract 1 in IOS parser)
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; change-impact
@@ -195,16 +204,23 @@
     
     (printf "~n~nRule relationships:~n")
     
+    ;; This involves rules in the first change (InboundACL2)
+    ; line 13 wants to apply: what prevents it from doing so?
     
-    
+    (mtext (string-append "EXPLORE InboundACL2:ACE-line-13-g23723" vector
+
+     " IDBOUTPUT InboundACL2:ACE-line-10-g23720_applies" vector ","
+               "InboundACL2:ACE-line-11-g23721_applies" vector ","
+               "InboundACL2:ACE-line-12-g23722_applies" vector
+     " TUPLING")) 
+    (mtext (string-append "SHOW POPULATED 0 InboundACL2:ACE-line-10-g23720_applies" vector ","
+               "InboundACL2:ACE-line-11-g23721_applies" vector ","
+               "InboundACL2:ACE-line-12-g23722_applies" vector))
     
     
 
     
     
-    
-    ; It's correct. The problem is that dest-addr-in need not be in 0.0.0.0/0.0.0.0 (which ought to be all IPs?)
-    ; This is a problem with the parser-generated .v
     
     
   (stop-margrave-engine)))
