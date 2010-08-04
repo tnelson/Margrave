@@ -257,8 +257,12 @@
      ;[(LOAD exp) (build-so (list 'LOAD $2) 1 2)]
      
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
+     
      [(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
+     [(GET get-type) (build-so (list 'GET $2) 1 2)]
      [(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
+     [(SHOW get-type) (build-so (list 'SHOW $2) 1 2)]
+     
      [(COUNT numeric-id) (build-so (list 'COUNT $2) 1 2)]
      [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
      [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3) 1 3)]
@@ -293,6 +297,11 @@
     ; ADD
     (add-statement
      [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)]
+     ;TODO!!: Have to finish this up
+     ;These are the functions to use:
+     ;(xml-make-decision-type dtype) 
+     ;(xml-make-rule-list rule-list) and then:
+     ;(define (xml-make-rule rule-name dtype rule-list)
      [(ADD RULE TO policy rule) (build-so (list 'ADD $4 $5) 1 4)])
     (rule
      [(rule-name decision-type rule-list) (build-so (list 'RULE $1 $2 $3) 1 3)])
@@ -566,7 +575,11 @@
          (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
                                   (symbol->string (syntax->datum (third interns))))]
         [(equal? first-datum 'GET)
-         (xml-make-get-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (xml-make-get-command (helper-syn->xml (second interns)) 
+                               ;Use -1 if nothing is supplied
+                               (if (< 2 (length interns))
+                                   (helper-syn->xml (third interns))
+                                   (xml-make-id "-1")))]
         [(equal? first-datum 'type)
          (xml-make-type (syntax->string (second interns)))]
         [(equal? first-datum 'id)

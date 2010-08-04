@@ -16,6 +16,8 @@
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
  xml-make-decision
+ xml-make-decision-type
+ xml-make-rule-list
  xml-make-sort
  xml-make-subsort
  xml-make-request-var
@@ -498,7 +500,7 @@
   `(PREDICATE ((name ,pred-name))))
 
 (define (xml-make-rule rule-name dtype rule-list)
-  `(RULE ((name ,rule-name)) ,(xml-make-decision-type dtype) ,(xml-make-rule-list rule-list)))
+  `(RULE ((name ,rule-name)) ,dtype ,rule-list))
 
 ;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
 (define (xml-make-rule-list rule-list)

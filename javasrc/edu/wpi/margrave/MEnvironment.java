@@ -387,6 +387,8 @@ public class MEnvironment
 	private static Map<Integer, MQueryResult> envQueryResults = new HashMap<Integer, MQueryResult>();
 	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
 	
+	private static int lastResult;
+	
 	// BOTH are System.err because out is reserved for XML communication.
 	// DO NOT set outStream to System.out
 	protected static PrintStream errorStream = System.err;
@@ -454,10 +456,23 @@ public class MEnvironment
 	}
 
 	static MQueryResult getQueryResult(int num)
-	{		
+	{
+		num = convertQueryNumber(num);
+		
 		if(envQueryResults.containsKey(num))
 			return envQueryResults.get(num);		
 		return null;
+	}
+	
+	static int convertQueryNumber(int num) {
+		int toReturn;
+		if (num == -1) {
+			toReturn = lastResult;
+		}
+		else {
+			toReturn = num;
+		}
+		return toReturn;
 	}
 
 	
@@ -510,6 +525,8 @@ public class MEnvironment
 	static Document getNextModel(int numResult)
 	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
 	{
+		numResult = convertQueryNumber(numResult);
+		
 		// Do we have a result for this num?
 		if(!envQueryResults.containsKey(numResult))
 			return errorResponse(sUnknown, sResultID, numResult);
@@ -519,7 +536,7 @@ public class MEnvironment
 		else
 		{
 			// Return next model in the iterator.
-			MQueryResult result = envQueryResults.get(numResult);
+			MQueryResult result = getQueryResult(numResult);
 			try
 			{
 				return scenarioResponse(result, envIterators.get(numResult).next(), numResult);
@@ -534,11 +551,13 @@ public class MEnvironment
 	static Document getFirstModel(int numResult) 
 	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
 	{
+		numResult = convertQueryNumber(numResult);
+		
 		// Do we have a result for this num?
 		if(!envQueryResults.containsKey(numResult))
 			return errorResponse(sUnknown, sResultID, numResult);
 
-		MQueryResult result = envQueryResults.get(numResult);
+		MQueryResult result = getQueryResult(numResult);
 		
 		// Reset the iterator (or create it if new)
 		MInstanceIterator it = result.getTotalIterator();
@@ -573,6 +592,7 @@ public class MEnvironment
 				
 				// TODO Don't store more than one for now.
 				envQueryResults.put(0, qryResult);
+				
 				return resultHandleResponse(0);
 												
 			}  // end: a query

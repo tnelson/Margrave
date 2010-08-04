@@ -158,7 +158,8 @@
   ;             (display ".")
   ;             (newline))
   
-  (xml-make-command "ADD" (list (xml-make-policy-identifier mypolicy) (xml-make-rule rulename dtype conjlist)))) ;(wrap-list-parens conjlist)
+  (xml-make-command "ADD" (list (xml-make-policy-identifier mypolicy) (xml-make-rule rulename (xml-make-decision-type dtype) (xml-make-rule-list conjlist))))) 
+;(wrap-list-parens conjlist)
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax PolicyVocab

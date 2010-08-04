@@ -348,7 +348,8 @@
                 "Explore result handle: 0")
   
   ;test IDBOUTPUT
-  (mm (evalxml "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"))
+  (test-command "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"
+                "Explore result handle: 0")
               
    (stop-margrave-engine)))
    
@@ -363,7 +364,7 @@
    (test-command "add to myvoc decision permit" "Success")
    (test-command "add to myvoc requestvar x xsort" "Success")
    (test-command "add to myvoc requestvar y xsort" "Success")
-   (test-command "create policy leaf mypol myvoc" "Success")
+   ;(test-command "create policy leaf mypol myvoc" "Success")
    ;(test-command "add rule to mypol rule1 permit (s1 x) (s2 y)" "Success")
    ;(test-command "Success")
    ;(test-command "Success")
