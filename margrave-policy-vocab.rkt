@@ -51,33 +51,37 @@
 ; listsubs contains a list of the subsorts for this sort. 
 ; However, it may be nested: subsorts may themselves have subsorts.
 ; Returns a list of xml commands
-(define (add-subtypes-of vocab parent listsubs)  
-  ; listsubs may be empty -- if so, do nothing (we already added parent)
-  (if (> (length listsubs) 0)            
-      (foldr (lambda (s rest) 
-               ; Is this a sort with subsorts itself?
-               (append 
-                (if (list? s)                       
-                    (begin
-                      (display parent)
-                      ; Add subtype relationship between parent and s
-                      (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
-                            
-                            ; Is this a nested subtype? If so, we must
-                            ; deal with s's subtypes.
-                            
-                            ; Check for list size;
-                            ; someone may have used parens without meaning to.
-                            (if (> (length s) 1)
-                                (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
-                                empty)))
-                    
-                    ; Bottom of sort tree. 
-                    (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s))))))
-                rest))
-             empty
-             listsubs)
-      empty))
+; TN: Changed to ignore ': in subsort lists. 
+; (Kludge to make ":" optional deprecated syntax)
+
+(define (add-subtypes-of vocab parent listsubs-dirty)  
+  (let ([listsubs-cleaned (filter (lambda (x) (not (equal? x ':))) listsubs-dirty)])
+    ; listsubs may be empty -- if so, do nothing (we already added parent)
+    (if (> (length listsubs-cleaned) 0)            
+        (foldr (lambda (s rest) 
+                 ; Is this a sort with subsorts itself?
+                 (append 
+                  (if (list? s)                       
+                      (begin
+                        (display parent)
+                        ; Add subtype relationship between parent and s
+                        (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
+                              
+                              ; Is this a nested subtype? If so, we must
+                              ; deal with s's subtypes.
+                              
+                              ; Check for list size;
+                              ; someone may have used parens without meaning to.
+                              (if (> (length s) 1)
+                                  (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
+                                  empty)))
+                      
+                      ; Bottom of sort tree. 
+                      (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s))))))
+                  rest))
+               empty
+               listsubs-cleaned)
+        empty)))
 
 
 (define (add-constraint vocab typename listrels)
@@ -165,13 +169,16 @@
 (define-syntax PolicyVocab
   (syntax-rules (Types Decisions Constraints Predicates Variables :)
     ((PolicyVocab myvocabname 
-                  (Types (t : subt ...) ...) 
+                  (Types (t subt ...) ...) 
                   (Decisions r ...) 
                   (Predicates (pname : prel ...) ...)
                   (ReqVariables (rvname : rvsort) ...)
                   (OthVariables (ovname : ovsort) ...)
                   (Constraints (ctype crel ...) ...) )
      ;(begin
+     
+     ; TN: Removed explicit colon after root types. Changed add-subtypes-of to remove ': 
+     ; Makes the syntax cleaner not to require the colon.
      
      ; FOR NOW, just always delete and then create
      ; Instantiate a new MVocab object

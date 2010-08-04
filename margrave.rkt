@@ -184,11 +184,14 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-         (printf "M SENDING XML: ~a;~n" cmd)
+        ; Comment out to disable printing XML commands as they are sent
+        ; (printf "M SENDING XML: ~a;~n" cmd)
         
-        ; Send the command XML
+        ; Send the command XML (DO NOT COMMENT THIS OUT)
+        ; ******************************************
         (display (string-append cmd ";") output-port)
         (flush-output output-port)        
+        ; ******************************************
         
         ; Deal with the result
         (let ([command-buffer (open-output-string)]
