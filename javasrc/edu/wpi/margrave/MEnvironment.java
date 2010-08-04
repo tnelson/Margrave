@@ -1720,7 +1720,7 @@ public class MEnvironment
 		
 		errorElement.setAttribute("type", errorType);
 		errorElement.setAttribute("subtype", errorSubtype);
-		if(desc.length() > 0)
+		if(desc != null && desc.length() > 0)
 		{
 			errorElement.appendChild(xmldoc.createTextNode(desc));
 		}

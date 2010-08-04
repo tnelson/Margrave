@@ -287,11 +287,22 @@
     ;**************************************************
     ; CREATE statements
     (create-statement
-     [(CREATE VOCABULARY vocabulary) (build-so (list 'CREATE-VOCABULARY $3) 1 3)])
+     [(CREATE VOCABULARY vocabulary) (build-so (list 'CREATE-VOCABULARY $3) 1 3)]
+     [(CREATE POLICY LEAF policy vocabulary) (build-so (list 'CREATE-POLICY-LEAF $4 $5) 1 5)])
     
     ; ADD
     (add-statement
-     [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)])
+     [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)]
+     [(ADD RULE TO policy rule) (build-so (list 'ADD $4 $5) 1 4)])
+    (rule
+     [(rule-name decision-type rule-list) (build-so (list 'RULE $1 $2 $3) 1 3)])
+    (rule-name
+     [(<identifier>) (build-so (list 'RULE-NAME $1) 1 1)])
+    (decision-type
+     [(<identifier>) (build-so (list 'DECISION-TYPE $1) 1 1)])
+    (rule-list
+     [(<identifier>) (build-so (list 'RULE-LIST $1) 1 1)])
+    
     (add-content
      [(SORT sort) $2]
      [(SUBSORT subsort) $2]
@@ -431,6 +442,7 @@
         
         [(equal? first-datum 'CREATE-VOCABULARY)
          (xml-make-command "CREATE VOCABULARY" (map helper-syn->xml (rest interns)))]
+        
         [(equal? first-datum 'ADD)
          (xml-make-command "ADD" (map helper-syn->xml (rest interns)))]
         
@@ -447,6 +459,8 @@
         [(equal? first-datum 'REQUESTVAR)
          (xml-make-request-var (symbol->string (syntax->datum (second interns)))
                                (symbol->string (syntax->datum (third interns))))]
+        [(equal? first-datum 'CREATE-POLICY-LEAF)
+         (xml-make-create-policy-leaf-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         
         [(equal? first-datum 'IS-POSSIBLE?)
          (xml-make-is-possible-command (helper-syn->xml (second interns)))]

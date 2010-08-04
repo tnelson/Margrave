@@ -39,6 +39,7 @@
  xml-make-id
  xml-make-idbout
  xml-make-under
+ xml-make-create-policy-leaf-command
  xml-make-policy-identifier
  xml-make-vocab-identifier
  xml-make-constraint
@@ -602,6 +603,12 @@
 
 (define (xml-make-under policy)
   `(UNDER ,policy))
+
+(define (xml-make-create-policy-leaf policy vocab)
+  `(CREATE-POLICY-LEAF ,policy ,vocab))
+
+(define (xml-make-create-policy-leaf-command policy vocab)
+  (xml-make-command "CREATE POLICY LEAF" (list (xml-make-create-policy-leaf policy vocab))))
 
 (define (xml-make-is-possible xml-id)
   `(IS-POSSIBLE (,xml-id)))
