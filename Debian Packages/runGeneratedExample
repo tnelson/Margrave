@@ -1,0 +1,50 @@
+#!/bin/bash
+
+
+# Magic to get the directory the actual script is running in
+# (we need this to set up class path and XACML schemas correctly)
+#
+#
+#
+
+# Remember current directory
+saveD=`pwd`
+
+# Find absolute path to this script,
+# resolving symbolic references to the end
+# (changes the current directory):
+D=`dirname "$0"`
+F=`basename "$0"`
+cd "$D"
+while test -L "$F"; do
+ P=`readlink "$F"`
+ D=`dirname "$P"`
+ F=`basename "$P"`
+ cd "$D"
+done
+D=`pwd`
+
+# Restore current directory
+cd "$saveD"
+
+export 
+echo Loading Margrave at: $D
+
+#
+#
+#
+# end magic
+
+# Include the kodkod and Margrave jar/class files.
+export CLASSPATH=$CLASSPATH:$D/lib/kodkod.jar:$D/lib/java-cup-11a.jar:$D/lib:$D/lib/org.sat4j.core.jar:$D/lib/sunxacml.jar:$D/lib/javabdd-1.0b2.jar:$D/lib/json.jar
+
+# We use Minisat, which is provided as libminisat.os
+# Need to tell the SISC loader to expand the library.path.
+export JAVAOPT="-Djava.library.path=$D/lib -Xmx2g  -Xss1024k"
+
+#Set Environment variables
+export SISC_HOME=~/bin/sisc-1.16.6/
+export PATH=$PATH:~/bin/sisc-1.16.6/
+
+# Run the sisc loader
+sisc $D/generatedconfig.scm

@@ -3,6 +3,7 @@ TODO (general) -- Some of these ended up as issues in github.
 * CREATE, etc. (from load-policy reqs) need to be in parser and syntax->xml.
 
 * no id given to show/get/etc. means use _last_ query result
+	--Implemented for Get, Show (Although we don't actually use Show), count, and is possible
 
 * Parser errors should be much more friendly.
 
@@ -16,8 +17,10 @@ TODO (general) -- Some of these ended up as issues in github.
 * Output is still quite unfriendly. Example: special handling for MSemanticException. 
 The java engine throws it to say (e.g.) "I don't recognize that sort". 
 Should give a friendly error message instead of an exception printout.
+	--Implemented MSemanticException and the exception I'm getting back on a wrong arity (java.lang.IllegalArgumentException)
 
 TEST: Warning message for size ceiling vs. user size ceiling
+	--Unsure exactly what you mean, but check out low-user-ceiling and negative-ceiling in tests.rkt
 
 -------------------------------------------------------------
 

@@ -1,0 +1,43 @@
+Check that: FS1 is never with any other FS
+	FS3 and FS5 are never installed
+
+WWW
+Required: Net1 and FS4
+Optional: Net2, FS, Mail = 2^3 = 8 - 1 config when Mail can't be installed = 7
+
+UnSatisfiable has no solutions
+
+Mail
+Required: Net2 OR (FS2 OR FS1)
+FS1
+FS2
+Net2
+FS1/Net2
+FS2/Net2
+FS2/FS4
+Net2/FS4
+FS2/Net2/FS4
+Net1/FS4/FS2
+Net1/Net2/FS4
+Net1/Net2/FS2/FS4
+WWW/Net1/FS2/FS4
+WWW/Net1/Net2/FS4
+WWW/Net1/Net2/FS2/FS4
+14 total
+
+Net1
+FS4
+FS4/FS2
+FS4/Net2
+FS4/WWW
+FS4/FS2/Net2
+FS4/WWW/Net2
+FS4/WWW/FS2
+FS4/Mail/FS2
+FS4/Mail/Net2
+FS4/WWW/Net2/FS2
+FS4/WWW/Mail/FS2
+FS4/Mail/Net2/FS2
+FS4/Mail/Net2/WWW
+FS4/FS2/Mail/WWW/Net2
+14 total

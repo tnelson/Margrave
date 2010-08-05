@@ -264,6 +264,7 @@
      [(SHOW get-type) (build-so (list 'SHOW $2) 1 2)]
      
      [(COUNT numeric-id) (build-so (list 'COUNT $2) 1 2)]
+     [(COUNT) (build-so (list 'COUNT) 1 1)]
      [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
      [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3) 1 3)]
      
@@ -278,14 +279,18 @@
       (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
      
      ;IS POSSIBLE?
-     [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 1)]
+     [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
+     [(IS POSSIBLEQMARK) (build-so (list 'IS-POSSIBLE?) 1 1)]
      
      ; Get information
      [(INFO) (build-so (list 'INFO) 1 1)]
      [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
      
      ; Close out the engine
-     [(QUIT) (build-so (list 'QUIT) 1 1)]                      
+     [(QUIT) (build-so (list 'QUIT) 1 1)]
+     
+     ; Margrave command wrapped in parantheses
+     [(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
      )
     
     ;**************************************************
@@ -445,6 +450,9 @@
         [(equal? first-datum 'MARGRAVE-SCRIPT) (map helper-syn->xml (rest interns))]
         
         ; ************************************
+        [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
+         (helper-syn->xml (second interns))]
+        
         [(equal? first-datum 'LOAD-POLICY)
          (append (third (evaluate-policy (symbol->string (syntax->datum (second interns)))))
                  (fourth (evaluate-policy (symbol->string (syntax->datum (second interns))))))]
@@ -472,9 +480,13 @@
          (xml-make-create-policy-leaf-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         
         [(equal? first-datum 'IS-POSSIBLE?)
-         (xml-make-is-possible-command (helper-syn->xml (second interns)))]
+         (xml-make-is-possible-command (if (< 1 (length interns))
+                                   (helper-syn->xml (second interns))
+                                   (xml-make-id "-1")))]
         [(equal? first-datum 'COUNT)
-         (xml-make-count-command (helper-syn->xml (second interns)))]
+         (xml-make-count-command (if (< 1 (length interns))
+                                   (helper-syn->xml (second interns))
+                                   (xml-make-id "-1")))]
         [(equal? first-datum 'COUNT-WITH-SIZE)
          (xml-make-count-with-size-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'SIZE)
@@ -530,7 +542,9 @@
         [(equal? first-datum 'TUPLING)
          (xml-make-tupling)]
         [(equal? first-datum 'CEILING)
-         (xml-make-ceiling (syntax->string (second interns)))]
+         (xml-make-ceiling (if (< 1 (length interns))
+                                   (syntax->string (second interns))
+                                   (xml-make-id "-1")))]
         [(equal? first-datum 'DEBUG)
          (xml-make-debug (syntax->string (second interns)))]
         [(equal? first-datum 'UNDER)

@@ -464,15 +464,15 @@ public class MEnvironment
 		return null;
 	}
 	
+	//If num is !- -1, returns num.
+	//If num is == -1, return the last results id (lastresult)
 	static int convertQueryNumber(int num) {
-		int toReturn;
 		if (num == -1) {
-			toReturn = lastResult;
+			return lastResult;
 		}
 		else {
-			toReturn = num;
+			return num;
 		}
-		return toReturn;
 	}
 
 	
@@ -1131,6 +1131,7 @@ public class MEnvironment
 
 	public static Document countModels(Integer id)
 	{
+		id = convertQueryNumber(id);
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
@@ -1147,6 +1148,7 @@ public class MEnvironment
 
 	public static Document isPoss(Integer id) 
 	{	
+		id = convertQueryNumber(id);
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
@@ -1162,6 +1164,7 @@ public class MEnvironment
 
 	public static Document showCeiling(Integer id)
 	{
+		id = convertQueryNumber(id);
 		MQueryResult aResult = getResultObject(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);

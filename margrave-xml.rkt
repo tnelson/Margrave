@@ -101,6 +101,12 @@
 (define (get-response-error-descriptor doc)
   (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
 
+;Helper function
+(define (string-contains? str phrase)
+  (cond [(< (string-length str) (string-length phrase)) false]
+        [else (or (equal? (substring str 0 (string-length phrase)) phrase)
+                  (string-contains? (substring str 1) phrase))]))
+
 
 ;****************************************************************
 ;;Pretty Printing returned XML
@@ -123,17 +129,19 @@
   "")
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
+;This function goes through the xml and updates atom-hash and predicate-hash
+;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
 (define (pretty-print-model xml-model)
-  (let ([annotation-string ""] ;to set later
+  (let ([annotation-string ""] ;to set later, when we get to the annotation
         [string-buffer (open-output-string)]) 
-    ;First, go through the XML and update the 2 hashes. Then print them out.
+    ;First, go through the XML and update the 2 hashes. Then afterwards print them out.
     (local [(define (write s)
               (write-string s string-buffer))
             (define (helper content) ;content is a list of alternating pcdatas and RELATION elements
               (cond [(empty? content) void]
                     [(pcdata? (first content)) (helper (rest content))]
                     [(element? (first content))
-                     (if (equal? 'RELATION (element-name (first content)))
+                     (if (equal? 'RELATION (element-name (first content))) ;If its not a relation, its an annotation
                          (let* ((relation (first content))
                                 (relation-arity (string->number (get-attribute-value relation 'arity)))
                                 (relation-name  (get-attribute-value relation 'name)))
@@ -225,15 +233,15 @@
 (define (get-child-element element name-symb-or-str)
   (if (empty? element)
       empty
-  (let* ((name (string-downcase (if (symbol? name-symb-or-str)
-                                    (symbol->string name-symb-or-str)
-                                    name-symb-or-str)))
-         (result (filter (lambda(element) (equal? name (string-downcase (symbol->string (element-name element)))))
-                         (filter (lambda (maybe-elem) (element? maybe-elem))
-                                 (element-content element)))))
-    (if (empty? result)
-        result
-        (first result)))))
+      (let* ((name (string-downcase (if (symbol? name-symb-or-str)
+                                        (symbol->string name-symb-or-str)
+                                        name-symb-or-str)))
+             (result (filter (lambda(element) (equal? name (string-downcase (symbol->string (element-name element)))))
+                             (filter (lambda (maybe-elem) (element? maybe-elem))
+                                     (element-content element)))))
+        (if (empty? result)
+            result
+            (first result)))))
 
 (define (get-pc-data elem)
   (pcdata-string (first (element-content elem))))
@@ -262,20 +270,22 @@
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
 (define (pretty-print-response-xml response-doc)
-  (let* ((response-element (document-element response-doc))
-         (type (get-attribute-value response-element 'type)))
-    ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
-    (cond [(equal? type "model") (pretty-print-model response-element)] 
-          [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
-          [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
-          [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
-          [(equal? type "error") (pretty-print-error-xml response-element)]
-          [(equal? type "exception") (pretty-print-exception-xml response-element)]
-          [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
-          [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
-          [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
-          [(equal? type "string") (pretty-print-string-xml response-element)]
-          [(equal? type "success") "Success\n"])))
+  (if (false? response-doc)
+      "Engine stopped"
+      (let* ((response-element (document-element response-doc))
+             (type (get-attribute-value response-element 'type)))
+        ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
+        (cond [(equal? type "model") (pretty-print-model response-element)] 
+              [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
+              [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
+              [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
+              [(equal? type "error") (pretty-print-error-xml response-element)]
+              [(equal? type "exception") (pretty-print-exception-xml response-element)]
+              [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
+              [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
+              [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
+              [(equal? type "string") (pretty-print-string-xml response-element)]
+              [(equal? type "success") "Success\n"]))))
 
 (define (pretty-print-string-xml element)
   (let* ((string-buffer (open-output-string)))
@@ -318,20 +328,29 @@
   (let* ([string-buffer (open-output-string)]
          (exception-element (get-child-element element 'exception))
          (exception-attributes (element-attributes exception-element))
-         (message-element (get-child-element element 'message))
-         (location-element (get-child-element element 'location))
-         (command-element (get-child-element element 'command))) ;TODO Don't have an example of this, so not implemented
+         (message-element (get-child-element exception-element 'message))
+         (location-element (get-child-element exception-element 'location))
+         (command-element (get-child-element exception-element 'command))) ;TODO Don't have an example of this, so not implemented (VS)
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
-        (write "Exception:\n")
-        (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
-        (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
-        (when (not (empty? message-element))
-          (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n")))
-        (when (not (empty? location-element))
-          (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n")))
-        (display (get-output-string string-buffer))
+        (cond
+          ;Supported exceptions
+          [(string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MSemanticException")
+           (write (string-append "Unknown relation error:\n" (get-attribute-value location-element 'problem) "\n"))]
+          [(string-contains? (get-attribute-value exception-element 'class) "java.lang.IllegalArgumentException")
+           (write (string-append "Arity Mismatch:\n" (pcdata-string (first (element-content message-element))) "\n"))]
+          ;Otherwise just raw print the returned exception:
+          [else (begin     
+                  (write "Exception:\n")
+                  (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
+                  (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
+                  (when (not (empty? message-element))
+                    (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n")))
+                  (when (not (empty? location-element))
+                    (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))))])
+        
+        ;(display (get-output-string string-buffer))
         (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type="error"> element
@@ -599,9 +618,9 @@
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
 #;(define (xml-make-compare pol1 pol2)
-  `(COMPARE (,pol1 ,pol2)))
+    `(COMPARE (,pol1 ,pol2)))
 #;(define (xml-make-compare-command pol1 pol2)
-  (xml-make-command "COMPARE" (list (xml-make-get type id))))
+    (xml-make-command "COMPARE" (list (xml-make-get type id))))
 
 (define (xml-make-under policy)
   `(UNDER ,policy))

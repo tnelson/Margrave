@@ -1,0 +1,52 @@
+package: Net
+version: 1
+depends: Connection
+provides: Internet , InternetConnection
+
+package: WWW
+version: 1
+installed: true
+depends: Net , FS != 2, Internet
+conflicts: InternetKiller
+
+package: Mail
+version: 1
+depends: Net , FS > 1
+provides: Connection
+
+package: Ping
+version: 1
+depends: Net , FS <= 2
+provides: Connection
+
+package: Tomcat
+version: 1
+depends: WWW | Ping
+conflicts: FAKEPACKAGE
+
+package: InternetKiller
+version: 1
+
+package: FS
+version: 1
+conflicts: FS
+
+package: FS
+version: 2
+
+package: FS
+version: 3
+depends: FAKEPACKAGE
+
+package: FS
+version: 4
+
+package: FS
+version: 5
+depends: FAKEPACKAGE > 2
+
+package: Connection
+version: 1
+
+package: Connection
+version: 2

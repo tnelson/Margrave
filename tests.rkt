@@ -249,22 +249,23 @@
    (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling"))
    (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size."))))
 
-(display "MODEL: \n")
-(pretty-print-response-xml test-model)
-(display "\n\n\tSYSINFO: \n")
-(pretty-print-response-xml test-sys-info)
-(display "\n\n\tCOLLECTION INFO: \n")
-(pretty-print-response-xml test-coll-info)
-(display "\n\n\tVOCAB INFO: \n")
-(pretty-print-response-xml test-vocab-info)
-(display "\n\n\tError: \n")
-(pretty-print-response-xml test-error-response)
-(display "\n\n\tException: \n")
-(pretty-print-response-xml test-exception)
-(display "\n\n\tLow User Ceiling:: \n")
-(pretty-print-response-xml low-user-ceiling)
-(display "\n\n\tNegative Ceiling: \n")
-(pretty-print-response-xml negative-ceiling)
+;Uncomment any of these out to see what the pretty printing result is
+;(display "MODEL: \n")
+;(pretty-print-response-xml test-model)
+;(display "\n\n\tSYSINFO: \n")
+;(pretty-print-response-xml test-sys-info)
+;(display "\n\n\tCOLLECTION INFO: \n")
+;(pretty-print-response-xml test-coll-info)
+;(display "\n\n\tVOCAB INFO: \n")
+;(pretty-print-response-xml test-vocab-info)
+;(display "\n\n\tError: \n")
+;(pretty-print-response-xml test-error-response)
+;(display "\n\n\tException: \n")
+;(pretty-print-response-xml test-exception)
+;(display "\n\n\tLow User Ceiling:: \n")
+;(pretty-print-response-xml low-user-ceiling)
+;(display "\n\n\tNegative Ceiling: \n")
+;(pretty-print-response-xml negative-ceiling)
 
 
 ; *******************************************************************
@@ -350,11 +351,39 @@
   ;test IDBOUTPUT
   (test-command "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"
                 "Explore result handle: 0")
+  
+  
               
    (stop-margrave-engine)))
+
+(define error-test
+  (test-case
+   "Error tests"
+   (start-margrave-engine)
+   
+   (load-policy (build-path (current-directory) "tests" "conference1.p"))      
+   (mm (evalxml "RENAME ConferencePolicy1 conf1"))   
+   (test-command "EXPLORE readpaper(a) and junk(b) and conf1:permit(s, a, r)"
+                "Unknown relation error:")
+   (test-command "EXPLORE readpaper(a, b) and conf1:permit(s, a, r)"
+                "Arity Mismatch")
+   (stop-margrave-engine)))
+
+(define engine-fail-test
+  (test-case
+   "Java Engine Fail test"
+   (start-margrave-engine)
+   
+   (load-policy (build-path (current-directory) "tests" "conference1.p"))      
+   (mm (evalxml "RENAME ConferencePolicy1 conf1"))   
+   (mm (evalxml "EXPLORE readpaper(a) and conf1:permit(s, a, r)"))
+   (mm (evalxml "quit"))
+   (mm (evalxml "EXPLORE readpaper(a) and conf1:permit(s, a, r)"))
+   (stop-margrave-engine)))
+   
    
 ;Test creating functions
-(define create-test
+#;(define create-test
   (test-case
    "Create test"
    (start-margrave-engine)
@@ -377,8 +406,4 @@
 
 ;(mtext "info myvoc")
    (stop-margrave-engine)))
-
-
-
-
 

@@ -1,0 +1,41 @@
+package: Net
+version: 1
+depends: FS > 2
+provides: Internet
+
+package: Net
+version: 2
+
+package: WWW
+version: 1
+installed: true
+depends: FS != 2, Internet
+conflicts: FS = 1
+
+package: UnSatisfiable
+version: 1
+depends: FS != 2, Internet
+conflicts: FS = 4
+
+package: Mail
+version: 1
+depends: Net = 2 | FS <= 2
+provides: Connection
+
+package: FS
+version: 1
+conflicts: FS
+
+package: FS
+version: 2
+
+package: FS
+version: 3
+depends: FAKEPACKAGE
+
+package: FS
+version: 4
+
+package: FS
+version: 5
+depends: FAKEPACKAGE > 2

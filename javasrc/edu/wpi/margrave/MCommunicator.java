@@ -535,6 +535,8 @@ public class MCommunicator
         							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
         						}
         						else if (constraintType.equalsIgnoreCase("SUBSET")) {
+        							//writeToLog("first Relation: " + firstRelation);
+        							//writeToLog("\nSecond Relation: " + relations.get(1) + "\n");
         							theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));
         						}
         						else
