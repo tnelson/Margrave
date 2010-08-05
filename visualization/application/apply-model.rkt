@@ -13,19 +13,19 @@
     ; Returns the list of policy decisions made by that entity or empty
     ; if the entity was not involved in the model
     (define/public (get-entity-data entname)
-      )
+      #f)
     
     ; Returns (list bool bool) where the first value is if the edge is part of the model
     ; and the second is if the edge is blocked by an entity denying the traffic
-    (define/public (get-edge-data entn1 entn2)
+    (define/public (get-edge-data entn1 entn2) #f)
     
     ; Returns true if the supplied entity is the src host
     (define/public (is-src? entname)
-      )
+      #f)
     
     ; Returns true if the supplied entity is the desination
     (define/public (is-dest? entname)
-      )
+      #f)
     ))
 
 ; Helper functions for apply-model
