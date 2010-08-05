@@ -67,8 +67,9 @@
            ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
            ; Don't start engine until parser completes successfully (above)
            (start-margrave-engine)
-           (display list-of-xml-commands)
+           ;(display list-of-xml-commands)
            (let ((list-of-results (mm list-of-xml-commands)))
              (stop-margrave-engine)
+             (display list-of-results)
              list-of-results))))))
 

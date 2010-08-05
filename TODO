@@ -1,55 +1,23 @@
-LIST IN PROGRESS
-TN: Varun, do you see anything I've missed?
-
-
----------------------------------------------------------------------
-We have two goals for the end of next week, both involving Margrave
-in DrRacket:
-
-(1) #lang margrave: accepting command strings, running them, and
-returning the result(s).
-
-(2) Support for _using_ Margrave as part of a larger program. (e.g.,
-the superfluous check script).
-
-#2 is implemented via the mtext, etc. functions.
----------------------------------------------------------------------
-
-TODO (general):
-
-* Add warning messages to model printing (and is-satisfiable?) 
-        if the user ceiling is lower than the calculated ceiling
-        or if the calculated ceiling is -1 (infinitary)
+TODO (general) -- Some of these ended up as issues in github.
 
 * CREATE, etc. (from load-policy reqs) need to be in parser and syntax->xml.
-* ALL (for show/get) -> automatic iteration through all models
-* no id given to show/get/etc. means use last (0 for now)
+
+* no id given to show/get/etc. means use _last_ query result
+
 * Parser errors should be much more friendly.
+
 * XACML, SQS loading
+
 * Racket Exception on eof, cleanup (see end of "m" function.)
 
-
-TODO (for #lang):
-* Basic syntax highlighting.
-* Tie highlighting to parser errors
-
-TODO (test cases):
-
-[TEST] Annotation output for models
-[TEST] INFO pretty print
-[TEST] pop/unpop, for cases
-[TEST] pretty-print errors
-[TEST] pretty-print exceptions
-[TEST] unified pretty-printer function (mtext?)
-
 * Need to update old test case suite. Include as many java tests as possible.
-     (Run javatests XML command to trigger internal engine tests?)
+     (Run javatests XML command to trigger internal engine tests? Better: Test that invokes the JavaTests main().)
 
-* ** IMPORTANT: Look into SchemeUnit -- if we can start using this, test cases 
-     will become much cleaner.
-     
-     
-BUG: Annotations pretty-print truncating variable names in 2nd example_final get.     
+* Output is still quite unfriendly. Example: special handling for MSemanticException. 
+The java engine throws it to say (e.g.) "I don't recognize that sort". 
+Should give a friendly error message instead of an exception printout.
+
+TEST: Warning message for size ceiling vs. user size ceiling
 
 -------------------------------------------------------------
 
@@ -58,3 +26,6 @@ For future:
 * Currently saving only the most recent EXPLORE's results.
    Would be nice to allow for more, but notify java when a request 
    ID becomes free (avoid memory hogging). (use will executor?)
+
+* Basic syntax highlighting.
+* Tie highlighting to parser errors

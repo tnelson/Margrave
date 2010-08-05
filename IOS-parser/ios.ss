@@ -4,6 +4,9 @@
 ;;  Cisco IOS Configuration Modeling
 ;;  Copyright (C) 2009-2010 Christopher Barratt & Brown University
 ;;  All rights reserved.
+;;
+;; Modifications by Tim are marked with -TN
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require scheme/class)
@@ -206,10 +209,15 @@
     
     ;; -> symbol
     ;;   Returns a symbol in ip-A.B.C.D/ip-E.F.G.H form
+    ;; If the address and mask are both 0, return the root. -TN
     (define/public (text)
-      (string->symbol (string-append (number->dashed-octet (address))
-                                     "/"
-                                     (number->dashed-octet (mask)))))
+      ;(printf "Test: ~a ~a ~n" (address) (mask))
+      (if (and (equal? 0 (address)) 
+               (equal? 0 (mask)))
+          'IPAddress
+          (string->symbol (string-append (number->dashed-octet (address))
+                                         "/"
+                                         (number->dashed-octet (mask))))))
     
     ;; address<%> -> boolean
     ;;   Returns whether this address<%> equals another address<%>
@@ -320,11 +328,15 @@
     
     ;; -> symbol
     ;;   Returns a symbol in the form ports-M-N
+    ;; -TN If all ports are covered, just say Ports
     (define/public (text)
-      (string->symbol (string-append "ports-"
-                                     (number->string (range-start))
-                                     "-"
-                                     (number->string (range-end)))))
+      (if (and (equal? 0 (range-start))
+               (equal? 65535 (range-end)))
+          'Port
+          (string->symbol (string-append "ports-"
+                                         (number->string (range-start))
+                                         "-"
+                                         (number->string (range-end))))))
     
     ;; port<%> -> boolean
     ;;   Returns whether this port<%> equals another port<%>
@@ -2080,7 +2092,8 @@
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)
            (,next-hop exit-interface)
-           (ip-N/A next-hop)))
+           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+           (IPAddress next-hop)))
        (make-object rule%
          (name)
          'Drop
@@ -2213,7 +2226,8 @@
                          'Forward
                          'Pass)
                      `((,next-hop exit-interface)
-                       (ip-N/A next-hop)))
+                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       (IPAddress next-hop)))
                (send match-rule
                      augment/replace-decision
                      (name)
@@ -2951,7 +2965,8 @@
                      'Forward
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in)
-                       (ip-N/A next-hop)
+                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       (IPAddress next-hop)
                        (,interf exit-interface)))
                    (make-object rule%
                      (string->symbol (string-append "local-switch-primary-drop-"
@@ -2975,7 +2990,8 @@
                      'Forward
                      `((,hostname hostname)
                        (,(get-field secondary-network interf) dest-addr-in)
-                       (ip-N/A next-hop)
+                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       (IPAddress next-hop)
                        (,interf exit-interface)))
                    (make-object rule%
                      (string->symbol (string-append "local-switch-secondary-drop-"
@@ -3035,7 +3051,8 @@
                     'Forward
                     `((,hostname hostname)
                       (,interf exit-interface)
-                      (ip-N/A next-hop))))))
+                         ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                      (IPAddress next-hop))))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the static routing rules
@@ -3232,14 +3249,21 @@
                                                 (send interf text))
                                               (send rule extract-atoms interface%)))
                                        rules))))
-                 (IPAddress : ip-N/A ,(type-tree (value-tree rules
-                                                             address<%>
-                                                             (make-object network-address% '0.0.0.0 '0.0.0.0 #f))))
+                 
+                 ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
+                 ,(type-tree (value-tree rules
+                                         address<%>
+                                         (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
                  (Protocol : prot-ICMP prot-TCP prot-UDP)
-                 (Port : port-N/A ,(type-tree (value-tree rules
-                                                          port<%>
-                                                          (make-object port-range% 0 65535))))
-                 (ICMPMessage : icmp-N/A (icmp-any icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable))
+
+                 ; - TN, removed port-N/A etc. Colon no longer needed.
+                 ,(type-tree (value-tree rules
+                                         port<%>
+                                         (make-object port-range% 0 65535)))
+                 
+                 ; - TN, removed icmp-N/A, etc.
+                 (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
+                 
                  (Length : ,@(remove-duplicates
                               (append*
                                (map (λ (rule)
@@ -3288,7 +3312,6 @@
                  (disjoint-all ICMPMessage)
                  (disjoint-all Length)
                  (atmostone-all Interface)
-                 (atmostone ip-N/A)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
                  (atmostone-all Protocol)
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))

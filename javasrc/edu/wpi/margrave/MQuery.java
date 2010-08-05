@@ -1,6 +1,6 @@
 /*
   	Copyright 2009-2010 Brown University and Worcester Polytechnic Institute.
-    
+
     This file is part of Margrave.
 
     Margrave is free software: you can redistribute it and/or modify
@@ -85,7 +85,7 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 
 		Formula replacement = not.formula().accept(this);
 		return cache(not, MFormulaManager.makeNegation(replacement));
-		
+
 	}
 
 	public Formula visit(QuantifiedFormula quantFormula) {
@@ -325,9 +325,9 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
 
 /**
  * Visitor which replaces instances for some Relations and Variables
- * 
+ *
  * @author tn
- * 
+ *
  */
 class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 	private HashMap<Relation, Relation> relpairs;
@@ -358,7 +358,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 				no_change = false;
 				break;
 			}
-		
+
 		// MEnvironment.errorStream.println("NEW REPLACEMENT VISITOR:");
 		// MEnvironment.errorStream.println(pps);
 		// MEnvironment.errorStream.println(vps);
@@ -510,17 +510,17 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 /**
  * Visitor to simplify formula in obvious ways. For instance, (x && false) will
  * become false, etc.
- * 
+ *
  * @author tn
- * 
+ *
  */
 
 /**
  * Visitor to detect use of transitive closure within a formula. (This is used
  * in query optimization.)
- * 
+ *
  * @author tn
- * 
+ *
  */
 class FindClosureUseV extends AbstractCacheAllDetector {
 	// static cache, will not interfere with garbage collection, but will try
@@ -575,9 +575,9 @@ class ContainsQuantifiersCheckV extends AbstractCacheAllDetector {
 }
 
 /**
- * 
+ *
  * NOT SAFE to re-use an instance, due to the extra fields
- * 
+ *
  */
 class PrenexCheckV extends AbstractCacheAllDetector {
 	// Returns true if the formula suits our narrow prenexing
@@ -589,7 +589,7 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 
 	// NO SPACES! will be translated as >1 arity. instead use underscore
 	public String tupleTypeName; // "Subject@Action@Resource"
-	
+
 	public HashMap<Variable, Integer> indexing; // s -> 1
 	public HashMap<String, Variable> revIndexing; // 1-> s
 
@@ -601,13 +601,13 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 	public PrenexCheckV()
 	{
 		super(new HashSet<Node>());
-		
+
 		inPrefix = true;
 		qCount = 0;
 		tupleTypeConstruct = "";
 		tupleTypeName = "";
 		matrix = Formula.TRUE;
-		
+
 		indexing = new HashMap<Variable, Integer>();
 		revIndexing = new HashMap<String, Variable>();
 	}
@@ -622,7 +622,7 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 			return false;
 
 		qCount++;
-		
+
 		for (Decl d : qf.decls()) {
 			if (tupleTypeConstruct.length() < 1) {
 				tupleTypeConstruct = d.expression().toString();
@@ -632,12 +632,12 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 				tupleTypeName += "@" + d.expression().toString();
 			}
 
-			
+
 
 			indexing.put(d.variable(), qCount); // index for this variable,
 												// 	already incremented
 			revIndexing.put(String.valueOf(qCount), d.variable());
-				
+
 
 			// MEnvironment.errorStream.println("Indexed "+String.valueOf(qCount) + " "
 			// +d.variable());
@@ -952,9 +952,9 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 
 /**
  * Visitor to collect all FREE Variables referred to by the formula
- * 
+ *
  * @author tn
- * 
+ *
  */
 class FreeVariableCollectionV extends AbstractCacheAllCollector<Variable> {
 	public HashSet<Variable> newSet() {
@@ -1019,12 +1019,12 @@ class RelationsUsedCollectionV extends AbstractCacheAllCollector<Relation> {
  * contains the KodKod formula which is being tested, as well as the quantifiers
  * for that formula. The quantifiers are kept separate in order to facilitate
  * easy composition of queries.
- * 
+ *
  * @author Tim Nelson
  * @author tn@cs.wpi.edu
  */
 
-public class MQuery extends MIDBCollection 
+public class MQuery extends MIDBCollection
 {
 	protected boolean tupled;
 	protected MQuery internalTupledQuery;
@@ -1041,7 +1041,7 @@ public class MQuery extends MIDBCollection
 	 * This map contains the policies and views this query runs with respect to.
 	 * We make an assumption that all policies on this list use the same MGVocab
 	 * object (or they wouldn't be on the list together.)
-	 * 
+	 *
 	 * The string element is the policy name.
 	 */
 	HashMap<String, MIDBCollection> myIDBCollections;
@@ -1056,7 +1056,7 @@ public class MQuery extends MIDBCollection
 	 * Integer value which tells KodKod how heavy-handed to be with symmetry
 	 * breaking. Default is 20. Must be using a symmetric SAT Solver (Such as
 	 * MiniSAT) to use this.
-	 * 
+	 *
 	 * @see mySATFactory
 	 */
 	public int mySB;
@@ -1064,7 +1064,7 @@ public class MQuery extends MIDBCollection
 	/**
 	 * Integer value for the maximum universe size that will be tried. Margrave
 	 * will start at size 1 and enumerate models until this size is exceeded.
-	 * 
+	 *
 	 * Note that if a query has a finite Herbrand Universe of size k, the
 	 * SMALLEST OF THE TWO will be used. If the smallest is sizeCeiling, the
 	 * user will be warned.
@@ -1076,12 +1076,12 @@ public class MQuery extends MIDBCollection
 	 * execution stages 3: Display statistics, query execution stages, and
 	 * formulas. (Warning: level 3 runs .toString() on Formula objects, and so
 	 * may be unwise to use for large policies or large queries.)
-	 * 
+	 *
 	 * Defaults to 0.
 	 */
 	public int debug_verbosity;
-	
-	
+
+
 	// For tupled queries. Need to know which tuple indexing to use for a given
 	// IDB.
 	// Setting function will confirm that it is a valid list of numbers, and
@@ -1102,8 +1102,8 @@ public class MQuery extends MIDBCollection
 	// of heap space)
 	// switch to MiniSAT.
 	static SATFactory defaultSATFactory = SATFactory.DefaultSAT4J;
-	
-	public void printSettings() 
+
+	public void printSettings()
 	{
 		// Print out the current settings for this query.
 
@@ -1123,7 +1123,7 @@ public class MQuery extends MIDBCollection
 		// Not included in timer, for now...
 		// ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		// long start = mxBean.getCurrentThreadCpuTime();
-		
+
 		//myQueryFormula = nFormula.accept(new SimplifyFormulaV());
 		myQueryFormula = nFormula;
 
@@ -1213,7 +1213,7 @@ public class MQuery extends MIDBCollection
 	{
 		return idbOutputIndexing.keySet();
 	}
-	
+
 	public void useMiniSAT() {
 		mySATFactory = SATFactory.MiniSat;
 	}
@@ -1252,17 +1252,17 @@ public class MQuery extends MIDBCollection
 	 * MGVocab context) throws MGEUnknownIdentifier { // Convert to NNF (nearly)
 	 * and return the result of walking the AST. WalkASTForFunctionsV walker =
 	 * new WalkASTForFunctionsV(context);
-	 * 
+	 *
 	 * Formula nnf_formula = origfmla.accept(new NNFConverterV());
-	 * 
-	 * 
+	 *
+	 *
 	 * //MREPL.outStream.println("Traversing both formulas and measuring their length..."
 	 * );
 	 * //MREPL.outStream.println("Length of pre-nnf: "+measureFormulaSize(origfmla)+
 	 * ". Length of post-nnf: "+ // measureFormulaSize(nnf_formula));
-	 * 
+	 *
 	 * Set<FuncStruct> results = nnf_formula.accept(walker);
-	 * 
+	 *
 	 * if(walker.error) throw new
 	 * MGEUnknownIdentifier("AST Walker returned error: "
 	 * +walker.error_condition); return results; }
@@ -1278,19 +1278,19 @@ public class MQuery extends MIDBCollection
 	 * MGEBadIdentifierName { // We know that that f covers its own type, so
 	 * check to see if there's some other in the list.
 	 * if(coveredby.get(f.resulttype).size() > 1) return true;
-	 * 
+	 *
 	 * // Assert that this is a simple MgType, not an intersection (or etc.)
 	 * thereof. // Search for covered subtypes of f's type. List<MGSort> tocheck
 	 * = new LinkedList<MGSort>(); for(MGSort c :
 	 * myVocab.getSortForExpression(f.resulttype).subsorts) tocheck.add(c);
-	 * 
+	 *
 	 * while(tocheck.size() > 0) { MGSort current = tocheck.get(0);
 	 * if(coveredby.containsKey(current.rel))
 	 * if(coveredby.get(current.rel).size() > 0) return true;
-	 * 
+	 *
 	 * // continue to check deeper in the hierarchy for(MGSort c :
 	 * current.subsorts) tocheck.add(c); tocheck.remove(0); }
-	 * 
+	 *
 	 * if(debug_verbosity >= 2) MREPL.outStream.println("DEBUG: "+f +
 	 * " was not multi-covered by "+coveredby); return false; }
 	 */
@@ -1357,7 +1357,7 @@ public class MQuery extends MIDBCollection
 
 		//Formula nnf_formula = queryAndQueryAxioms.accept(new NNFConverterV());
 		Formula nnf_formula = queryAndQueryAxioms; //.accept(new NNFConverterV());
-		
+
 		if (debug_verbosity >= 2)
 			MEnvironment.outStream.println("DEBUG: Time (ms) to convert to NNF: "
 					+ (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000);
@@ -1417,13 +1417,13 @@ public class MQuery extends MIDBCollection
 		// them in the axiom
 		for (String oldsort : vocab.sorts.keySet())
 		{
-				
+
 			MSort newsort1 = newvocab.fastGetSort(oldsort + "_" + leftidx);
 			MSort newsort2 = newvocab.fastGetSort(oldsort + "_" + rightidx);
-				
+
 			if(newsort1 != null && newsort2 != null)
 			{
-				
+
 				// If we get this far, this sort was tupled for both indices.
 
 				Formula insort1 = MFormulaManager
@@ -1463,9 +1463,9 @@ public class MQuery extends MIDBCollection
 	 * Runs KodKod on the query this object represents, returning a MGSolution
 	 * object. Will discover whether the query has a finite Herbrand Universe
 	 * and take appropriate action.
-	 * 
+	 *
 	 * @return MGSolution for this query.
-	 * 
+	 *
 	 * @throws MGEUnsortedVariable
 	 * @throws MGEQueryUnsatisfiable
 	 * @throws MGEUnknownIdentifier
@@ -1482,11 +1482,11 @@ public class MQuery extends MIDBCollection
 
 		if(!tupled)
 		{
-			// TODO: Really ought to have MTupledQuery as a subclass. 
+			// TODO: Really ought to have MTupledQuery as a subclass.
 			internalTupledQuery = null; // re-init every time we run
 			internalTuplingVisitor = null;
 		}
-		
+
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		long start = mxBean.getCurrentThreadCpuTime();
 
@@ -1512,12 +1512,12 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
-				
-		
+
+
 		PrenexCheckV pren = new PrenexCheckV();
 		boolean prenexExistential = myQueryFormula.accept(pren);
-		
-		
+
+
 		// Get Herbrand Universe
 		int totalHerbrandMax;
 
@@ -1538,7 +1538,7 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
-		
+
 		// was: && herbrandmax > 1; for now always tuple if told to
 		// (provided that we have a finite Herbrand universe)
 		if (doTupling && totalHerbrandMax > 0)
@@ -1551,10 +1551,10 @@ public class MQuery extends MIDBCollection
 			if (debug_verbosity >= 2)
 				MEnvironment.outStream.println("DEBUG: Pre-tupling block Time: "
 						+ (startTime - start) / 1000000);
-			
-			
-			
-			
+
+
+
+
 			// ********************************************************************
 			// TODO: Deal with binary and larger preds. (Annoying, complicated, many
 			// many axioms.)
@@ -1564,15 +1564,15 @@ public class MQuery extends MIDBCollection
 			for (Relation r : vocab.predicates.values())
 				if (r.arity() > 1) {
 					String errorStr = "Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
-						+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();						
-					
+						+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();
+
 					throw new MGEArityMismatch(errorStr);
 				}
 			// ********************************************************************
 
-			
-			
-					
+
+
+
 			// ********************************************************************
 			// If the user wants IDB output with tupling, need all the IDB
 			// formulas to be
@@ -1618,9 +1618,9 @@ public class MQuery extends MIDBCollection
 				}
 			}
 			// ********************************************************************
-			
-			
-			
+
+
+
 			if (debug_verbosity >= 2)
 				MEnvironment.outStream.println("Checked IDB output indexing. Time: "
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
@@ -1628,12 +1628,12 @@ public class MQuery extends MIDBCollection
 			startTime = mxBean.getCurrentThreadCpuTime();
 
 			List<String> indexedIDBNamesToOutput = new ArrayList<String>();
-			
-			
-			
-			
-			
-			
+
+
+
+
+
+
 			// ********************************************************************
 			// First check to see if the user query is prenex existential-only
 			// COULD lift existentials if not in the prefix, but we don't (for
@@ -1644,7 +1644,7 @@ public class MQuery extends MIDBCollection
 			if (idbs_ok && prenexExistential
 					&& vocab.axioms.funcPartial.size() == 0
 					&& vocab.axioms.funcTotal.size() == 0
-					&& vocab.axioms.otherConstraintStrings.size() == 0) 
+					&& vocab.axioms.otherConstraintStrings.size() == 0)
 			{
 				// Construct new vocabulary and new query formula.
 				// (new formula should be the query formula's translation only,
@@ -1699,9 +1699,9 @@ public class MQuery extends MIDBCollection
 				HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV> indexingVisitors = new HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV>();
 
 				// ******************
-				// IDB OUTPUT 
+				// IDB OUTPUT
 				// ******************
-				
+
 				if (getIDBNamesToOutput().size() > 0)
 				{
 					for (String idbname : getIDBNamesToOutput())
@@ -1734,15 +1734,15 @@ public class MQuery extends MIDBCollection
 						}
 						originalIDBFormula = originalIDBFormula.accept(vis);
 
-						
+
 						// for each indexing
 						Set<List<String>> indexings = idbOutputIndexing.get(idbname);
 						for(List<String> user_indexing : indexings)
 						{
 							// Fresh copy of the original formula
 							Formula idbformula = originalIDBFormula;
-							
-							
+
+
 							// Assemble suffix for this indexing
 							String idbnameSuffix = "_";
 							boolean first = true;
@@ -1756,12 +1756,12 @@ public class MQuery extends MIDBCollection
 								else
 									idbnameSuffix += ","+iStr;
 							}
-						
-						
+
+
 							// <<<<<<< INDENTATION WRONG
 
-							
-							
+
+
 						HashMap<Variable, Variable> newvars = new HashMap<Variable, Variable>();
 
 
@@ -1770,7 +1770,7 @@ public class MQuery extends MIDBCollection
 						// MREPL.outStream.println(user_indexing);
 
 							int ii = 0;
-							for (Variable v : coll.varOrdering) 																
+							for (Variable v : coll.varOrdering)
 							{
 								// We are at the ii-th variable in the IDB's
 								// input vector.
@@ -1803,7 +1803,7 @@ public class MQuery extends MIDBCollection
 
 								ii++;
 							}
-							
+
 
 						// ***
 						// Still placeholder vars at this point, just the
@@ -1825,13 +1825,13 @@ public class MQuery extends MIDBCollection
 							{
 								renaming = new RelationAndVariableReplacementV(
 										new HashMap<Relation, Relation>(),
-										newvars);								
+										newvars);
 								indexingVisitors.put(newvars, renaming);
 							}
 
 							idbformula = idbformula.accept(renaming);
 						}
-						
+
 						// ***
 						// Use same MatrixTuplingV as we used for the main
 						// formula. (Re-use cached work.)
@@ -1846,22 +1846,22 @@ public class MQuery extends MIDBCollection
 											mtup.newvocab));
 
 						String new_internal_name = internal_idbname + idbnameSuffix;
-						
- 						indexedIDBNamesToOutput.add(polName+":"+new_internal_name);											
+
+ 						indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
 
 						tupledIDBCollections.get(polName).idbs.put(new_internal_name, new_idbformula);
-						
+
 						//System.err.println("Tupling IDB: "+new_internal_name);
 						//System.err.println(new_idbformula.hashCode());
-						
+
 						//System.err.println(tupledIDBCollections.keySet());
 						//System.err.println(tupledIDBCollections.get(polName).idbs);
-						//System.err.println(new_internal_name);						
-						
-						
+						//System.err.println(new_internal_name);
+
+
 						} // end for each indexing on this name
 					} // for each idbname to output
-					
+
 				} // if we have idbs to include in output
 
 				if (debug_verbosity >= 2)
@@ -1870,8 +1870,8 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
-			
-				
+
+
 				// tupled sorts will be in mtup.newvocab
 
 				// Deal with the abstract constraint
@@ -1929,14 +1929,14 @@ public class MQuery extends MIDBCollection
 				}
 
 
-				
+
 				// 1/28/10 subsort exhaustiveness no longer required. leaving
 				// code commented out!
 				// Instead, do the above
 
 				/*
-				 * 
-				 * 
+				 *
+				 *
 				 * //
 				 * ***********************************************************
 				 * *** // Deal with potential Child-sort exhaustiveness problem
@@ -1947,7 +1947,7 @@ public class MQuery extends MIDBCollection
 				 * Naturals > {Evens, Odds} over a formula // that mentions only
 				 * Evens. We still may need to consider models where // Evens
 				 * doesn't hold.
-				 * 
+				 *
 				 * // For each tupled parent sort (P_i), // If all its children
 				 * are included in the tupled signature (C_i), do nothing. // If
 				 * some of its children are missing from the tupled signature,
@@ -1956,55 +1956,55 @@ public class MQuery extends MIDBCollection
 				 * included children FOR THIS INDEX do. // Note: =12 does NOT
 				 * imply otherP_1 <--> otherP_2, since different // subs of P
 				 * may occur for those indices.
-				 * 
+				 *
 				 * // for each TUPLED sort which was included (if not included,
 				 * we don't care) // Key: parent. Value: Set of child sorts not
 				 * included. HashMap<String, Set<String>> noneOfAboves = new
 				 * HashMap<String, Set<String>>();
-				 * 
+				 *
 				 * for(MGSort oldparent : myVocab.sorts.values()) // P {
-				 * 
+				 *
 				 * // How was this sort tupled (if at all)? Set<String>
 				 * newparentnames = mtup.getTupledPredicatesFor(oldparent.name);
-				 * 
+				 *
 				 * //MREPL.outStream.println("::"+oldparent.name +
 				 * " --> "+newparentnames);
-				 * 
+				 *
 				 * for(String newparentname : newparentnames) // P_i { MGSort
 				 * newparent = mtup.newvocab.getSort(newparentname);
-				 * 
+				 *
 				 * String idx =
 				 * newparentname.substring(newparentname.lastIndexOf("_")+1);
-				 * 
+				 *
 				 * // What child sorts would we EXPECT, if all were included?
 				 * Set<String> expected_names = new HashSet<String>();
 				 * for(MGSort oldchild : oldparent.subsorts)
 				 * expected_names.add(oldchild.name + "_" + idx);
-				 * 
+				 *
 				 * // Which of expected did not make it in? (if none, move on.
 				 * If some, lump together.) Set<String> missing = new
 				 * HashSet<String>(expected_names); Set<String> these_appear =
 				 * new HashSet<String>();
-				 * 
+				 *
 				 * for(MGSort newchild : newparent.subsorts)
 				 * these_appear.add(newchild.name);
-				 * 
+				 *
 				 * missing.removeAll(these_appear);
-				 * 
+				 *
 				 * // If we're missing some, but NOT missing all (if missing
 				 * all, can forget about child sorts) if(missing.size() > 0 &&
 				 * these_appear.size() > 0) { // Need to create a
 				 * "none of the above" sort.
-				 * 
+				 *
 				 * try { String missingstr = ""; for(String miss : missing)
 				 * missingstr += "_"+miss;
-				 * 
+				 *
 				 * // The index is in newparentname (e.g., P_1)
 				 * mtup.newvocab.addSubSort(newparentname,
 				 * "other_"+newparentname+":"+missingstr); MGSort newsort =
 				 * mtup.newvocab.getSort("other_"+newparentname+":"+missingstr);
 				 * noneOfAboves.put(newparentname, missing);
-				 * 
+				 *
 				 * // Since it represents
 				 * "none of the appearing childsorts applied", // it must be
 				 * disjoint from them. // (But remember to remove it from the
@@ -2013,8 +2013,8 @@ public class MQuery extends MIDBCollection
 				 * former_children.remove(newsort);
 				 * mtup.newvocab.axioms.addConstraintDisjoint(newsort,
 				 * former_children);
-				 * 
-				 * 
+				 *
+				 *
 				 * if(this.debug_verbosity >= 3) {
 				 * MREPL.outStream.println("DEBUG: Covering parent sorts...");
 				 * MREPL.outStream
@@ -2024,21 +2024,21 @@ public class MQuery extends MIDBCollection
 				 * "  The new sort is disjoint from everything in: "
 				 * +former_children); } } catch(MGEBadIdentifierName e) { throw
 				 * new MGEBadQueryString(e.toString()); }
-				 * 
+				 *
 				 * }
-				 * 
+				 *
 				 * }
-				 * 
-				 * 
-				 * 
+				 *
+				 *
+				 *
 				 * }
-				 * 
+				 *
 				 * if(debug_verbosity >= 2)MREPL.outStream.println(
 				 * "DEBUG: Child-sort exhaustiveness block done. Time: " +
 				 * (mxBean.getCurrentThreadCpuTime()-startTime)/1000000);
 				 * startTime = mxBean.getCurrentThreadCpuTime();
-				 * 
-				 * 
+				 *
+				 *
 				 * // AFTER THIS POINT, NOT EVERY NEWVOCAB SORT WILL COORISPOND
 				 * TO AN OLDVOCAB ONE! // (none of the above sorts added above.)
 				 */
@@ -2053,45 +2053,45 @@ public class MQuery extends MIDBCollection
 
 				// ***************************
 				// Prefix's sort is respected
-				
+
 				// This is "tupling axioms" or \beta in the doc
-				
+
 				// If we translated forsome x:A | forsome y:B to forsome z:UNIV
 				// it must still hold that A_1(z) and B_2(z)
 				Set<Formula> respected_2 = new HashSet<Formula>();
 				int index = 1;
-				for (String sortname : pren.tupleTypeConstruct.split(" ")) 
+				for (String sortname : pren.tupleTypeConstruct.split(" "))
 				{
 					try
 					{
 						//System.err.println("Must assert that "+sortname+" in index "+index);
-						
+
 						if("univ".equals(sortname))
 						{
 							// Do nothing. No axiom needed, since no sort for this element.
 							continue;
 						}
-						
+
 						if (!mtup.newvocab.isSort(sortname + "_" + index))
 						{
 							mtup.newvocab.addSort(sortname + "_" + index);
-							
+
 							// must also cache this sort in mtup's 2 caches
-							
+
 							String iiStr = Integer.toString(index);
-														
+
 							// make sure caches are correct
 							if (!mtup.oldPredNamesTupledWithIndex.containsKey(iiStr))
 								mtup.oldPredNamesTupledWithIndex.put(iiStr, new HashSet<String>());
 							if (!mtup.tupledPredicates.containsKey(sortname))
 								mtup.tupledPredicates.put(sortname,	new HashSet<String>());
-							
+
 							mtup.oldPredNamesTupledWithIndex.get(iiStr).add(sortname);
-							mtup.tupledPredicates.get(sortname).add(sortname + "_" + index);							
-							
+							mtup.tupledPredicates.get(sortname).add(sortname + "_" + index);
+
 						}
-						
-						
+
+
 						Relation r = mtup.newvocab.getRelation(sortname + "_"
 								+ index);
 						respected_2.add(MFormulaManager
@@ -2110,7 +2110,7 @@ public class MQuery extends MIDBCollection
 						.makeConjunction(respected_2);
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						respected_2_fmla);
-				
+
 				if (debug_verbosity >= 2)
 					MEnvironment.outStream
 							.println("DEBUG: Size of tupling axioms to make prefix sort respected: "
@@ -2133,7 +2133,7 @@ public class MQuery extends MIDBCollection
 				// (Even if =ij doesn't appear in the query proper, we need to
 				// include it.
 				// Consider this situation:
-				// 
+				//
 				// lone P, Q
 				// P_i and P_j; Q_j and Q_k
 				// =ij =jk do not appear
@@ -2181,16 +2181,16 @@ public class MQuery extends MIDBCollection
 										.get(String.valueOf(jj)));
 						sharedOldPredNames.retainAll(lones);
 
-											
+
 						//MEnvironment.errorStream.println(ii+","+jj);
 						//MEnvironment.errorStream.println(sharedOldPredNames);
 						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
 						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
 						//MEnvironment.errorStream.println();
-						
-						
+
+
 						// ^^^ Must appear at index i, index j, and be LONE.
-						
+
 						// reset trigger list
 						ij_triggers.clear();
 
@@ -2229,7 +2229,7 @@ public class MQuery extends MIDBCollection
 							// in the query itself?
 							String eqpredname = "=_" + ii + "," + jj;
 							String reverseeqpredname = "=_" + jj + "," + ii;
-							
+
 							/*
 							if (!mtup.newvocab.predicates
 									.containsKey(eqpredname)
@@ -2291,7 +2291,7 @@ public class MQuery extends MIDBCollection
 				// FINALIZE *single* top-level sort
 				// DO NOT ADD ANY SORTS AFTER THIS!
 				// *******************************
-				try 
+				try
 				{
 					mtup.newvocab.addSingleTopLevelSort(pren.tupleTypeName);
 				} catch (MGEBadIdentifierName e) {
@@ -2318,7 +2318,7 @@ public class MQuery extends MIDBCollection
 				for(int iNeeds = 0; iNeeds < equalsNeeded.size();iNeeds++)
 				{
 					String needs = equalsNeeded.get(iNeeds);
-					
+
 					// Needs: "=_"+leftidx+","+rightidx
 					// For a specific =_{i,j}
 					int needsLastComma = needs.lastIndexOf(",");
@@ -2360,9 +2360,9 @@ public class MQuery extends MIDBCollection
 					// state transitivity: =1,2 and =3,2 imply =1,3
 					for(int iNeedOther = iNeeds+1; iNeedOther < equalsNeeded.size();iNeedOther++)
 					{
-						String other = equalsNeeded.get(iNeedOther); 
-							
-						int otherLastComma = other.lastIndexOf(",");					
+						String other = equalsNeeded.get(iNeedOther);
+
+						int otherLastComma = other.lastIndexOf(",");
 						String rightidx2 = other.substring(otherLastComma + 1);
 						String leftidx2 = other.substring(2, otherLastComma);
 
@@ -2437,8 +2437,8 @@ public class MQuery extends MIDBCollection
 
 				} // end for each =ij (needs)
 
-				
-				
+
+
 				Formula equalityAxiomsFmla = MFormulaManager
 						.makeConjunction(equalityAxioms);
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
@@ -2485,7 +2485,7 @@ public class MQuery extends MIDBCollection
 				// This loop deals with NON TOP LEVEL SORTS.
 				// Pairs of top-level sorts are disjoint by definition, and are dealt with below.
 				// (next block)
-				
+
 				// axioms for disjointness pt 1.
 				Set<Formula> eqDisjAxioms = new HashSet<Formula>();
 
@@ -2518,8 +2518,8 @@ public class MQuery extends MIDBCollection
 							// *******************************************
 							// DISJ AXIOM TYPE 1 (equality + disj)
 
-							for (int iIndex2 = iIndex + 1; iIndex2 <= pren.qCount; iIndex2++) 
-							{							
+							for (int iIndex2 = iIndex + 1; iIndex2 <= pren.qCount; iIndex2++)
+							{
 								String new2 = oldDisjoint.name + "_" + iIndex2;
 
 								// second index -- is this sort tupled into it?
@@ -2527,13 +2527,13 @@ public class MQuery extends MIDBCollection
 								if (!mtup.newvocab.fastIsSort(new2))
 									continue;
 
-								
+
 								MSort ns1 = newSort;
 								MSort ns2 = mtup.newvocab.getSort(new2);
 								Relation eqpred = mtup.newvocab
 										.getRelation("=_" + iIndex + ","
 												+ iIndex2);
-								
+
 								Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
 								eqDisjAxioms.add(thisAxiom);
 
@@ -2588,42 +2588,42 @@ public class MQuery extends MIDBCollection
 						continue; // only do this for tops
 					oldtopnames.add(top.name);
 				}
-				
+
 				// for each index, the set of those top-sorts w/ that index that
 				// are used are all pairwise disj
 				// {A_1, B_1}, {C_2, D_2, E_2}, etc.)
-				for (int ii = 1; ii <= pren.qCount; ii++) 
+				for (int ii = 1; ii <= pren.qCount; ii++)
 				{
 					// For some reason the keys here are strings, not integers...
 					String iiStr = Integer.toString(ii);
 					Set<String> oldAppearingAti = mtup.oldPredNamesTupledWithIndex.get(iiStr);
 					oldAppearingAti.retainAll(oldtopnames);
-					
+
 					//System.err.println(oldtopnames);
 					//System.err.println(oldAppearingAti);
 					//System.err.println(mtup.oldPredNamesTupledWithIndex.get(iiStr));
 					//System.err.println();
-					
-					
+
+
 					// ********************************
 					// disj part 2
-					// ALL top-level sorts that appear at index i are disjoint 
+					// ALL top-level sorts that appear at index i are disjoint
 					// accumulate the list
-					Set<String> new_i_names = new HashSet<String>();					
+					Set<String> new_i_names = new HashSet<String>();
 					for(String sname : oldAppearingAti)
 					{
 						new_i_names.add(sname + "_" + ii);
 					}
 					if (new_i_names.size() > 1)
-					{	
+					{
 						//System.err.println(new_i_names);
 						mtup.newvocab.axioms.addConstraintDisjoint(new_i_names);
 					}
-					
-										
-					
+
+
+
 					// ********************************
-					// disj part 1				
+					// disj part 1
 					// For every OTHER index j
 					Set<Formula> eqTopLevelDisjAxioms = new HashSet<Formula>();
 					for(int jj = ii+1; jj <= pren.qCount; jj++)
@@ -2631,43 +2631,43 @@ public class MQuery extends MIDBCollection
 						String jjStr = Integer.toString(jj);
 						Set<String> oldAppearingAtj = mtup.oldPredNamesTupledWithIndex.get(jjStr);
 						oldAppearingAtj.retainAll(oldtopnames);
-						
+
 						// TODO really shouldn't represent these "impossible" equalities at all
-						
+
 						// For every pairing of an old at i and an old at j, if different they must imply !=
 						for(String topi : oldAppearingAti)
 							for(String topj : oldAppearingAtj)
 							{
 								if(topi.equals(topj)) continue;
-								
+
 								// Assert !=
-								
+
 								MSort ns1 = mtup.newvocab.fastGetSort(topi+"_"+ii);
 								MSort ns2 = mtup.newvocab.fastGetSort(topj+"_"+jj);
 								Relation eqpred = mtup.newvocab.getRelation("=_" + ii + ","+ jj);
-								
+
 								Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
 								eqTopLevelDisjAxioms.add(thisAxiom);
-								
+
 								//System.err.println("Asserting "+thisAxiom);
-								
+
 							}
-						
+
 						//System.err.println(ii+","+jj+"; "+oldAppearingAti + " : "+oldAppearingAtj);
-						
-						
-						
+
+
+
 					}
-					
+
 					Formula eqTopLevelDisjAxiomsFmla = MFormulaManager.makeConjunction(eqTopLevelDisjAxioms);
 					tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 							eqTopLevelDisjAxiomsFmla);
 					iTopLevelCount += eqTopLevelDisjAxioms.size();
-					
+
 
 				}
 
-				
+
 				if (debug_verbosity >= 2) {
 					MEnvironment.outStream.println("DEBUG: Disjointness. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
@@ -2679,7 +2679,7 @@ public class MQuery extends MIDBCollection
 					MEnvironment.outStream.println("    Number of top-level secondary eq/disj axioms added: "+iTopLevelCount);
 				}
 				startTime = mxBean.getCurrentThreadCpuTime();
-				
+
 				// *****************************
 				// add NEW PREFIX to the formula
 				// This must be done LAST!
@@ -2704,7 +2704,7 @@ public class MQuery extends MIDBCollection
 				tupledQuery.mySATFactory = mySATFactory;
 				tupledQuery.tupled = true;
 				tupledQuery.doTupling = false;
-				
+
 				internalTupledQuery = tupledQuery; // allow access to creator's vocab, etc. for output
 				internalTuplingVisitor = mtup;
 				tupledQuery.internalTuplingVisitor = mtup;
@@ -2749,10 +2749,10 @@ public class MQuery extends MIDBCollection
 
 				tupledQuery.debug_verbosity = debug_verbosity;
 
-				// Need to update with new list 
+				// Need to update with new list
 				// But no explicit indexing needed, since we moved that into the relation names.
-				tupledQuery.addIDBOutputs(indexedIDBNamesToOutput);				
-								
+				tupledQuery.addIDBOutputs(indexedIDBNamesToOutput);
+
 				tupledQuery.msPreprocessingTime = msPreprocessingTime;
 
 				if (mxBean.isCurrentThreadCpuTimeSupported()) {
@@ -2761,11 +2761,11 @@ public class MQuery extends MIDBCollection
 				}
 
 				return tupledQuery.runQuery();
-			} 
+			}
 			else
 			{
 				// Failed to tuple! (why?)
-				
+
 				if (!idbs_ok)
 					throw new MGException("Could not tuple: IDBs were not quantifier-free.");
 				if(!prenexExistential)
@@ -2774,7 +2774,7 @@ public class MQuery extends MIDBCollection
 					throw new MGException("Could not tuple: The vocabulary contained functional constraints.");
 				if(vocab.axioms.otherConstraintStrings.size() > 0)
 					throw new MGException("Could not tuple: Custom constraints are not allowed when tupling.");
-				
+
 			}
 			// PUT NOTHING HERE! Tupling stuff goes in the above if statement
 		} // end if herbrandmax > 0 and doTupling
@@ -2834,12 +2834,12 @@ public class MQuery extends MIDBCollection
 					+ "ms, pre-Kodkod query processing time: " + cputime
 					+ "ms.");
 		}
-		
-		
+
+
 		return new MQueryResult(this, queryWithAxioms,
 				maxSizeToCheck, totalHerbrandMax, msPreprocessingTime,
 				cputime, msTuplingTime);
-				
+
 	}
 
 	private Formula makeDisjointnessEqAxiom(Variable newvar, Relation rel,
@@ -2857,7 +2857,7 @@ public class MQuery extends MIDBCollection
 						.makeAnd(atom1, atom2),
 						literal3);
 	}
-	
+
 
 	protected String getThirdEq(MVocab newvocab, String leftidx,
 			String rightidx, String leftidx2, String rightidx2, PrenexCheckV vis)
@@ -2886,7 +2886,7 @@ public class MQuery extends MIDBCollection
 			// state
 			return "";
 
-		
+
 		// There's a match: Does one of the two possible pred names exist?
 		if (newvocab.predicates.containsKey("=_" + left3 + "," + right3))
 			return "=_" + left3 + "," + right3;
@@ -2909,9 +2909,9 @@ public class MQuery extends MIDBCollection
 		if(idbOutputIndexing.containsKey(idbname))
 			idbOutputIndexing.get(idbname).remove(indexing);
 	}
-	
+
 	public void addIDBOutputIndexing(String idbname, List<String> indexing)
-			throws MGEArityMismatch, MGEUnknownIdentifier 
+			throws MGEArityMismatch, MGEUnknownIdentifier
 	{
 		// CHECK: the indexing Strings must actually be integers
 		for (String inlist : indexing) {
@@ -2935,10 +2935,10 @@ public class MQuery extends MIDBCollection
 				.toLowerCase(); // include :
 
 		if (!myIDBCollections.containsKey(polName))
-			throw new MGEUnknownIdentifier("IDB collection appeared in IDBOUTPUT that was not used in condition or UNDER clause: " 
+			throw new MGEUnknownIdentifier("IDB collection appeared in IDBOUTPUT that was not used in condition or UNDER clause: "
 					+ polName + MEnvironment.eol + " Collections declared were: "+myIDBCollections.keySet());
-		
-		
+
+
 		MIDBCollection coll = myIDBCollections.get(polName);
 
 		if (!coll.idbs.containsKey(internal_idbname))
@@ -2960,7 +2960,7 @@ public class MQuery extends MIDBCollection
 								+ ", " + indexing + "." + " Arity of IDB was: "
 								+ coll.varOrdering.size());
 		}
-		
+
 		// Add to indexing map
 		if(!idbOutputIndexing.containsKey(idbname))
 			idbOutputIndexing.put(idbname, new HashSet<List<String>>());
@@ -2976,7 +2976,7 @@ public class MQuery extends MIDBCollection
 	/**
 	 * Used in the test suite to check whether a query had the expected number
 	 * of solutions.
-	 * 
+	 *
 	 * @param expected_size
 	 * @param expected_sols
 	 * @param expected_hbu
@@ -2997,7 +2997,7 @@ public class MQuery extends MIDBCollection
 	/**
 	 * Given some additional restrictions, generate a new query which narrows
 	 * the results of this one.
-	 * 
+	 *
 	 * @param more
 	 *            A string describing the new restrictions
 	 * @return A new MG Query object
@@ -3351,7 +3351,7 @@ public class MQuery extends MIDBCollection
 		// after all!)
 		// Hence the try/catches below.
 
-		if (idbs instanceof MPolicy) 
+		if (idbs instanceof MPolicy)
 		{
 			if (breakdownlist.size() != idbs.vocab.requestVariables.size() + 1)
 				throw new MGEBadQueryString(
@@ -3374,7 +3374,7 @@ public class MQuery extends MIDBCollection
 				}
 				iIndex++;
 			}
-		} 
+		}
 		else if (idbs instanceof MQuery) // used to be MCustomIDB
 		{
 			// Use the custom IDBs internal var ordering.
@@ -3387,7 +3387,7 @@ public class MQuery extends MIDBCollection
 			Set<Variable> oldvars = f.accept(new FreeVariableCollectionV());
 
 			int iIndex = 1;
-			for (Variable varInOrdering : idbs.varOrdering) 
+			for (Variable varInOrdering : idbs.varOrdering)
 			{
 				String vname = varInOrdering.name();
 				try {
@@ -3431,7 +3431,7 @@ public class MQuery extends MIDBCollection
 	 * If not allownew, makes certain the variable name is legal and that it is
 	 * currently bound by a quantifier. If allownew, will create a new Variable
 	 * for this name (if the name is valid) and add it to the quantifier stack.
-	 * 
+	 *
 	 * @param myVocab
 	 * @param varname
 	 * @param sortname
@@ -3503,7 +3503,7 @@ public class MQuery extends MIDBCollection
 					return v;
 
 			// TODO is this business still needed? No more parsing parenthetical syntax...
-			
+
 			// Not found. Create at BEGINNING OF STACK (global scope within this
 			// view)
 			Variable newv = MFormulaManager.makeVariable(varname); // FREE
@@ -3612,19 +3612,19 @@ public class MQuery extends MIDBCollection
 	}
 
 	/*protected void prettyPrintSolution(MVocab localVocab,
-			MSolutionInstance aSolution, MInstanceIterator solnSet)	
+			MSolutionInstance aSolution, MInstanceIterator solnSet)
 	{
 		String result = getPrettyPrintForSolution(localVocab, aSolution, solnSet);
 		MEnvironment.outStream.println(result);
 	}
-	
-	protected String getPrettyPrintForSolution(MVocab localVocab,			
+
+	protected String getPrettyPrintForSolution(MVocab localVocab,
 			MSolutionInstance aSolution, MInstanceIterator solnSet)
 	{
 		HashMap<String, String> replacements = new HashMap<String, String>();
 
 		StringBuffer theResult = new StringBuffer();
-		
+
 		Instance sol = aSolution.getFacts();
 
 		String pmod = "";
@@ -3710,7 +3710,7 @@ public class MQuery extends MIDBCollection
 			{
 				// Print out the contents of the relation. Replace atom names
 				// with meaningful bindings when able.
-				
+
 				if(getIDBNamesToOutput().contains(r.name()))
 					theResult.append(r.name() + "["+ solnSet.idbToTup.get(r.name()) + "] = {");
 				else
@@ -3748,8 +3748,8 @@ public class MQuery extends MIDBCollection
 		}
 		if(annotations.size() > 0)
 			theResult.append("");
-		
-		
+
+
 		// **********************************************************
 		// **********************************************************
 		// Don't Cares for partial models. Stop if the user asked for full
@@ -3807,7 +3807,7 @@ public class MQuery extends MIDBCollection
 		theResult.append("----------------------------------------");
 
 		return theResult.toString();   // end comment was here
-		
+
 	}*/
 
 /*	private String prettyPrintSortNames(Set<MSort> sorts) {
@@ -3840,7 +3840,7 @@ public class MQuery extends MIDBCollection
 			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
 			MGEManagerException, MGEBadIdentifierName {
 		// disabled special code for now
-		
+
 		//MQueryOutputSpec.DefaultIteratorType savedCondense = otSpec.itDefault;
 		//otSpec.itDefault = MQueryOutputSpec.DefaultIteratorType.outIteratePartial;
 		prettyPrintSolutions();
@@ -3853,7 +3853,7 @@ public class MQuery extends MIDBCollection
 		int counter = 0;
 		Statistics stats = null;
 
-		
+
 		ThreadMXBean mx = ManagementFactory.getThreadMXBean();
 		long time = 0;
 		long initialtime = 0;
@@ -3879,9 +3879,9 @@ public class MQuery extends MIDBCollection
 		if (!it.hasNext())
 			MEnvironment.outStream.println("* Query was unsatisfiable for the model sizes checked. *");
 
-		while (it.hasNext() && ((max_to_print == -1) || (max_to_print > 0))) 
+		while (it.hasNext() && ((max_to_print == -1) || (max_to_print > 0)))
 		{
-			try 
+			try
 			{
 				// Interaction with KodKod. Clock this. But it's very quick. So
 				// subtract OUT the I/O delays
@@ -3891,12 +3891,12 @@ public class MQuery extends MIDBCollection
 					time = mx.getCurrentThreadCpuTime();
 
 				//prettyPrintSolution(it.forQuery.vocab, partialInstance);
-				
+
 				// Output routines
 				System.err.println(internalTupledQuery);
 				System.err.println(doTupling);
 				System.err.println(tupled);
-				
+
 				if(tupled)
 				{
 					// Ask parent to convert
@@ -3909,12 +3909,12 @@ public class MQuery extends MIDBCollection
 					MSolutionInstance s = processTupledSolutionForThis(partialInstance);
 					prettyPrintSolution(vocab, s, it);
 
-				}					
+				}
 				else
-				{						
+				{
 					prettyPrintSolution(it.fromResult.forQuery.vocab, partialInstance, it);
 				}
-				
+
 				counter++;
 
 				if (mx.isCurrentThreadCpuTimeSupported()) {
@@ -3988,25 +3988,25 @@ public class MQuery extends MIDBCollection
 	{
 		// Given a TUPLED solution, produce a PRE-tupling solution.
 		// Assume this (query) is the tupled query and this.preTuplingQuery is the original query
-		
+
 		// varOrdering is only an ordering on the PUBLISHED variables in the query.
 		// We need the entire ordering generated for the tupling.
-		
-		
+
+
 		// (1) Look at the equalities, decide what the universe is
 		HashMap<String, Set<String>> idxToVars = new HashMap<String, Set<String>>();
 		HashMap<String, String> idxToAtom = new HashMap<String, String>();
-		
+
 		List<String> annotations = new ArrayList<String>();
-		
+
 		// populate initial atoms
 		for(String idx : internalTuplingVisitor.pv.revIndexing.keySet())
 		{
 			Set<String> atom = new HashSet<String>();
 			atom.add(internalTuplingVisitor.pv.revIndexing.get(idx).name());
 			idxToVars.put(idx, atom);
-		}		
-		
+		}
+
 		// Take the quotient dictated by the equalities
 		for(Relation r : partialInstance.getFacts().relations())
 		{
@@ -4019,17 +4019,17 @@ public class MQuery extends MIDBCollection
 					int needsLastComma = r.name().lastIndexOf(",");
 					String rightidx = r.name().substring(needsLastComma + 1);
 					String leftidx = r.name().substring(2, needsLastComma);
-				
-										
-					Set<String> comb = new HashSet<String>();					
+
+
+					Set<String> comb = new HashSet<String>();
 					comb.addAll(idxToVars.get(rightidx));
 					comb.addAll(idxToVars.get(leftidx));
 					idxToVars.put(rightidx, comb);
-					idxToVars.put(leftidx, comb);										
-				}								
+					idxToVars.put(leftidx, comb);
+				}
 			}
 		}
-		
+
 		// Make universe
 		// Need the unique elements
 		Set<String> vals = new HashSet<String>();
@@ -4044,99 +4044,99 @@ public class MQuery extends MIDBCollection
 				else
 					aName = aName + "=" + varName;
 			}
-			
+
 			idxToAtom.put(idx, aName);
 			vals.add(aName);
 		}
 		Universe u = new Universe(vals);
-		
+
 		//System.err.println(u);
 
-		
+
 		Instance instance = new Instance(u);
 		Instance dontcare = new Instance(u);
-			
-		
-		//System.err.println(partialInstance.getFacts());				
-		
+
+
+		//System.err.println(partialInstance.getFacts());
+
 		// Now fill the relations in the new instance
 		for(Relation r : partialInstance.getFacts().relations())
 		{
 			if(r.name().startsWith("="))
 				continue;
-						
+
 			if(partialInstance.getFacts().relationTuples().get(r).size() > 0)
 			{
 				// populated!
 				int underscoreIndex = r.name().lastIndexOf("_");
-				
+
 				/// *****************
 				/// IDB OUTPUT
 				/// *****************
-				
+
 				// Does the pre-tupling part of this relname appear in our list of IDB names to output?
-				
+
 				// Some special tupled preds don't have an indexing
 				String preunderscore = "";
 				if(underscoreIndex >= 0)
 					preunderscore = r.name().substring(0, underscoreIndex);
-				
+
 				//MEnvironment.errorStream.println("******"+preunderscore);
-				
+
 				if(getIDBNamesToOutput().contains(preunderscore)) // this is the pre-tupling query's set
 				{
-					
+
 					// Indexing is after the underscore.
-					String[] indexing = r.name().substring(underscoreIndex+1).split(",");										
-					
+					String[] indexing = r.name().substring(underscoreIndex+1).split(",");
+
 					List<String> theTuple = new ArrayList<String>();
 					for(String s : indexing)
 					{
 						theTuple.add(idxToAtom.get(s));
 					}
 
-						
+
 					// 	Cannot just add, may be too many tuples (in full relation) to fit in maxint
-					// if so kodkod throws an exception. 
+					// if so kodkod throws an exception.
 					// instance.add(r, theTuples);
-				
-					// Instead, we apply duct tape. 
+
+					// Instead, we apply duct tape.
 					// Annotate the result!
 					// Only ONE tuple because of how we restrict to a certain indexing
-					// Also: strip the indexing from r.name().						
+					// Also: strip the indexing from r.name().
 					annotations.add(preunderscore + " is true for: "+ theTuple);
-					
+
 					continue; // finished handling this relation
 				}
-				
+
 				/// *****************
 				/// Other relations
 				/// *****************
 				if(underscoreIndex > 0)
 				{
 					TupleSet theTuples = u.factory().noneOf(1);
-					
+
 					String idx = r.name().substring(underscoreIndex+1);
 					String relname = r.name().substring(0, underscoreIndex);
 					try
 					{
-						Relation newr = vocab.getRelation(relname);						
-						
+						Relation newr = vocab.getRelation(relname);
+
 						//System.err.println(idx);
 						//System.err.println(relname);
 						//System.err.println(newr);
-						
+
 						String theAtom = idxToAtom.get(idx);
-						//System.err.println(theAtom);					
-						
+						//System.err.println(theAtom);
+
 						Tuple t = u.factory().tuple(theAtom);
-						theTuples.add(t);						
-						
+						theTuples.add(t);
+
 						if(instance.relationTuples().containsKey(newr))
 							theTuples.addAll(instance.relationTuples().get(newr));
-							
+
 						instance.add(newr, theTuples);
-						
+
 						//System.err.println(newr+": "+instance.relationTuples().get(newr));
 					}
 					catch(MGEBadIdentifierName e)
@@ -4145,8 +4145,8 @@ public class MQuery extends MIDBCollection
 					}
 					catch(MGEUnknownIdentifier e)
 					{
-						continue;						
-					}									
+						continue;
+					}
 				}
 			} // end if relation populated
 			else
@@ -4154,26 +4154,26 @@ public class MQuery extends MIDBCollection
 				// If unpopulated
 				// Leave empty for now
 			}
-			
+
 		} // for each relation
-		
+
 		// There is (for now) no tupling support for non-unary relations.
-		
-				
-		
-		//System.exit(1);		
-		
-		
 
-		
-		// TODO dealing with dontcares here...		
-		
 
-		
-		
+
+		//System.exit(1);
+
+
+
+
+		// TODO dealing with dontcares here...
+
+
+
+
 		return new MSolutionInstance(instance, dontcare, annotations);
 	}
-	
+
 	static public void unitTest() throws MGException
 	{
 		MEnvironment.errorStream
@@ -4775,16 +4775,16 @@ public class MQuery extends MIDBCollection
 		/*
 		 * Relation A = Relation.unary("A"); Formula testf =
 		 * x.in(A).forSome(x.oneOf(Expression.UNIV));
-		 * 
+		 *
 		 * LinkedList<String> atoms = new LinkedList<String>(); atoms.add("1");
 		 * //atoms.add("2");
-		 * 
+		 *
 		 * Universe u = new Universe(atoms); Bounds b = new Bounds(u);
 		 * b.bound(A, u.factory().allOf(1));
-		 * 
+		 *
 		 * Options opt = new Options(); opt.setLogTranslation(2);
-		 * 
-		 * 
+		 *
+		 *
 		 * try { Translation t = Translator.translate(testf, b, opt);
 		 * MEnvironment.errorStream.println(t.numPrimaryVariables());
 		 * Iterator<TranslationRecord> it = t.log().replay();
@@ -4807,7 +4807,7 @@ public class MQuery extends MIDBCollection
 			MGECombineVocabs, MGEManagerException, MGEUnsortedVariable,
 			MSemanticException
 			{
-		
+
 		// TODO, repurpose these exceptions in context of new qry language
 		// (give them fields for row/col...)
 
@@ -4821,35 +4821,35 @@ public class MQuery extends MIDBCollection
 		// *****************
 		// Validation
 		// *****************
-		
+
 		MCommunicator.writeToLog("ENTERING CREATION OF QUERY:");
 		MCommunicator.writeToLog("Fmla: "+mpc.fmla);
 		MCommunicator.writeToLog("Idb out map: "+idbOutputMap.toString());
 		MCommunicator.writeToLog("tup: "+bTupling);
-		
+
 		// FOR CASES requires tupling (For now)
 /*		if(!bTupling && outmod.forCasesOr.size() > 0)
 		{
 			throw new MSemanticException("Cannot use FOR CASES clause without also enabling TUPLING. If TUPLING fails, FOR CASES will be ignored.");
 		}*/
-		
+
 		// Tupling <----> for cases and idboutputmap and populated all indexed
 		if(bTupling)
 		{
 			for(String predname : idbOutputMap.keySet())
 			{
 				if(idbOutputMap.get(predname).size() < 1)
-					throw new MSemanticException("TUPLING was enabled but IDB output for pred: "+predname+" was not indexed.");				
-			}			
+					throw new MSemanticException("TUPLING was enabled but IDB output for pred: "+predname+" was not indexed.");
+			}
 		/*	for(String predname : outmod.populatedCandidates.keySet())
 			{
 				if(outmod.populatedCandidates.get(predname).size() < 1)
-					throw new MSemanticException("TUPLING was enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was not indexed.");					
+					throw new MSemanticException("TUPLING was enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was not indexed.");
 			}
 			for(String predname : outmod.forCasesOr.keySet())
 			{
 				if(outmod.forCasesOr.get(predname).size() < 1)
-					throw new MSemanticException("FOR CASES clause contained a pred: "+predname+" that was not indexed.");					
+					throw new MSemanticException("FOR CASES clause contained a pred: "+predname+" that was not indexed.");
 			}*/
 		}
 		else
@@ -4857,17 +4857,17 @@ public class MQuery extends MIDBCollection
 			for(String predname : idbOutputMap.keySet())
 			{
 				if(idbOutputMap.get(predname).size() > 0)
-					throw new MSemanticException("TUPLING was not enabled but IDBOUTPUT for pred: "+predname+" was indexed.");				
-			}			
+					throw new MSemanticException("TUPLING was not enabled but IDBOUTPUT for pred: "+predname+" was indexed.");
+			}
 			//for(String predname : outmod.populatedCandidates.keySet())
 			//{
 			//	if(outmod.populatedCandidates.get(predname).size() > 0)
-			//		throw new MSemanticException("TUPLING was not enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was indexed.");					
-			//}			
+			//		throw new MSemanticException("TUPLING was not enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was indexed.");
+			//}
 		}
 		// TODO to give row/col for the above, need to keep their location in the outmod until we know whether or not we're tupled
-		
-		
+
+
 		// **********************************************************
 		// (1) Assemble a combined vocabulary
 		// **********************************************************
@@ -4923,11 +4923,11 @@ public class MQuery extends MIDBCollection
 		Formula idbFormula = qryFormula;
 		List<Variable> varOrdering = new ArrayList<Variable>();
 
-		
-		// *** 
+
+		// ***
 		// idbFormula: has free vars, for use later
 		// qryFormula: all quantified, for use now
-		
+
 		// Need to make sure the ordering in publish is preserved, so can't just
 		// iterate freeVars.keySet().
 
@@ -4938,16 +4938,16 @@ public class MQuery extends MIDBCollection
 			publish = new ArrayList<String>(freeVars.size());
 			for(Variable v : freeVars.keySet())
 			{
-				// Don't publish "temp" vars! 
+				// Don't publish "temp" vars!
 				// TODO this is a kludge; user could still naively make a var called TempVarFoozle
 				if(!v.name().startsWith(MEnvironment.tempVarPrefix))
 					publish.add(v.name());
 			}
-			
+
 		}
 
 		List<String> prefixVarOrder = new ArrayList<String>();
-		
+
 		// FIRST: Published vars
 		for (String vname : publish)
 		{
@@ -4958,8 +4958,8 @@ public class MQuery extends MIDBCollection
 			prefixVarOrder.add(v.name());
 		}
 
-		
-		
+
+
 		// NEXT: Unpublished vars
 		for (Variable v : freeVars.keySet())
 		{
@@ -4973,7 +4973,7 @@ public class MQuery extends MIDBCollection
 
 			// include in the query as normal
 			qryFormula = MFormulaManager.makeExists(qryFormula, d);
-			
+
 			prefixVarOrder.add(v.name());
 		}
 
@@ -4981,16 +4981,16 @@ public class MQuery extends MIDBCollection
 		//MEnvironment.errorStream.println(prefixVarOrder);
 
 		Collections.reverse(prefixVarOrder);
-		
-		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);						
-		
+
+		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);
+
 		// **********************************
-		// Handle IDB output parameters	
+		// Handle IDB output parameters
 		for(String idbname : idbOutputMap.keySet())
-		{			
+		{
 			// add to general list
 			result.addIDBOutputs(idbname);
-			
+
 			for(List<String> indexing : idbOutputMap.get(idbname))
 			{
 				try
@@ -4998,7 +4998,7 @@ public class MQuery extends MIDBCollection
 					// Can't add directly: user has provided a vector of identifiers.
 					// addIDBOutputIndexing expects an _indexing_ into the tupled ordering.
 					// Need to use our knowledge (from above) about ordering of the prefix.
-					
+
 					// prefixVarOrder
 
 					List<String> nIndexing = new ArrayList<String>(indexing.size());
@@ -5013,19 +5013,19 @@ public class MQuery extends MIDBCollection
 						}
 						nIndexing.add(String.valueOf(ii+1));
 					}
-					
+
 					result.addIDBOutputIndexing(idbname, nIndexing);
 				}
 				catch(MGEArityMismatch e)
-				{				
+				{
 					MEnvironment.errorStream.println(e);
 					return null;
 				}
 			}
 		}
-		
+
 		// TODO better errors for "no indexing" etc.
-		
+
 		result.debug_verbosity = iDebugLevel;
 		result.doTupling = bTupling;
 		result.sizeCeiling = iCeiling;
@@ -5049,7 +5049,7 @@ public class MQuery extends MIDBCollection
 		// same as RESTRICT TO
 		// it's a foundational semantics version...
 		// This should be provided by the PUBLISH keyword, need to test.
-		
+
 		// TEST TEST TEST!
 
 		return result;
@@ -5062,9 +5062,9 @@ public class MQuery extends MIDBCollection
 		// MEnvironment.errorStream.println(mpc.assertNecessary);
 		// MEnvironment.errorStream.println(mpc.assertAtomicNecessary);
 
-		// Stopping compilation because something is wrong here. 
+		// Stopping compilation because something is wrong here.
 		//dfadsf;
-		
+
 		Set<List<Variable>> toDo = new HashSet<List<Variable>>(
 				mpc.assertNecessary.keySet());
 
@@ -5072,7 +5072,7 @@ public class MQuery extends MIDBCollection
 		{
 
 //			MEnvironment.errorStream.println("Checking for: "+varvector);
-			
+
 			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
 					.get(varvector);
 			Set<MVariableVectorAssertion> assertsA = mpc.assertAtomicNecessary
@@ -5090,15 +5090,15 @@ public class MQuery extends MIDBCollection
 				MSort runningSort = null;
 
 				//MEnvironment.errorStream.println("var: "+v);
-				
+
 				for (MVariableVectorAssertion a : allNecessary) {
 					// TODO
 					// If it is NECESSARY for x to not have sort A
 					// there is more inference we could do, but skipping for
 					// now.
-					
+
 					//MEnvironment.errorStream.println("assertion: "+a);
-					
+
 					if (!a.positive)
 						continue;
 
@@ -5114,15 +5114,15 @@ public class MQuery extends MIDBCollection
 						{
 							runningSort = theSort;
 							freeVars.put(v, a.sortExpression);
-						} 
+						}
 						else
 						{
 							// is theSort a subsort of the current running sort?
 							// (need to check grandchildren etc. Also use subset constraints.)
 							// If not, ignore
-							
+
 							//MEnvironment.errorStream.println("SUB? --- "+runningSort.subsorts);
-							//MEnvironment.errorStream.println(theSort);							
+							//MEnvironment.errorStream.println(theSort);
 							if(voc.isSubOrSubOf(theSort, runningSort))
 							{
 								runningSort = theSort;
@@ -5159,11 +5159,11 @@ public class MQuery extends MIDBCollection
 			idbOutputIndexing.put(idbname, new HashSet<List<String>>());
 		//System.err.println(idbOutputIndexing);
 	}
-	
+
 	public void addIDBOutputs(List<String> idbnames)
-	{	
+	{
 		for(String s : idbnames)
 			addIDBOutputs(s);
 	}
-	
+
 }
