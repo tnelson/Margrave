@@ -247,7 +247,15 @@
    (check-true (string-contains? (pretty-print-response-xml test-error-response) "Error:\nType: a type\nSubtype: a subtype\nThis is an error"))
    (check-true (string-contains? (pretty-print-response-xml test-exception) "Exception:\nClass: edu.wpi.margrave.MSemanticException\nStack Trace: [edu.wpi.margrave.MCommunicator.validateDBIdentifier(MCommunicator.java:1161), edu.wpi.margrave.MCommunicator.exploreHelper(MCommunicator.java:971), edu.wpi.margrave.MCommunicator.xmlHelper(MCommunicator.java:144), edu.wpi.margrave.MCommunicator.handleXMLCommand(MCommunicator.java:100), edu.wpi.margrave.MCommunicator.executeCommand(MCommunicator.java:1051), edu.wpi.margrave.MCommunicator.readCommands(MCommunicator.java:1026), edu.wpi.margrave.MCommunicator.main(MCommunicator.java:74)]\nMessage: Margrave could not understand...\nLocation of Problem: Unknown IDB Collection: firewall1\n"))
    (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling"))
-   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size."))))
+   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size."))
+   
+   ;Actual returned results
+   (start-margrave-engine)
+   (load-policy (build-path (current-directory) "sampleconfig.p"))
+   (mm (evalxml "info SampleConfig"))
+   (test-command "info SampleConfig"
+                 "SUBSETS")
+   (stop-margrave-engine)))
 
 ;Uncomment any of these out to see what the pretty printing result is
 ;(display "MODEL: \n")
@@ -266,7 +274,6 @@
 ;(pretty-print-response-xml low-user-ceiling)
 ;(display "\n\n\tNegative Ceiling: \n")
 ;(pretty-print-response-xml negative-ceiling)
-
 
 ; *******************************************************************
 ; Testing helper functions

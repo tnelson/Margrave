@@ -792,6 +792,21 @@ public class MEnvironment
 		
 		return xmldoc;
 	}
+	
+	static void writeToLog(String s) {
+   	 try{
+   		    // Create file 
+   		    FileWriter fstream = new FileWriter("log.txt", true);
+   		        BufferedWriter out = new BufferedWriter(fstream);
+   		    out.write(s);
+   		    //Close the output stream
+   		    out.close();
+   		    }catch (Exception e)
+   		    {
+   		      //Catch exception if any
+   		      System.err.println("Error: " + e.getMessage());
+   		    }
+    }
 
 	private static Document getVocabInfo(MVocab voc) 
 	{
@@ -834,9 +849,29 @@ public class MEnvironment
 		// TODO more axioms
 		
 		
+		
+		Element subsetElement = xmldoc.createElementNS(null, "SUBSETS");
+		
+		Iterator<String> subsetIterator = voc.axioms.setsSubset.keySet().iterator();
+		
+		while(subsetIterator.hasNext()) {
+			String parent = subsetIterator.next();
+			Set<String> children = voc.axioms.setsSubset.get(parent);
+			
+			Element firstElement = xmldoc.createElementNS(null, "SUBSET");
+			firstElement.setAttribute("parent", parent);
+			
+			for (String childName : children) {
+				Element secondElement = xmldoc.createElementNS(null, "CHILD");
+				secondElement.setAttribute("name", childName);
+				firstElement.appendChild(secondElement);
+			}
+			
+			subsetElement.appendChild(firstElement);
+		}
+		axiomsElement.appendChild(subsetElement);
+		
 		Element disjElement = xmldoc.createElementNS(null, "DISJOINT");
-		
-		
 		for(MSort s : voc.axioms.axiomDisjoints.keySet())
 		{
 			if(voc.axioms.axiomDisjoints.get(s).size() < 1)

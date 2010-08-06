@@ -45,6 +45,7 @@
  xml-make-policy-identifier
  xml-make-vocab-identifier
  xml-make-constraint
+ xml-make-subset
  xml-make-predicate
  xml-make-relations-list
  xml-make-conjunct-chain
@@ -61,7 +62,9 @@
  xml-make-quit
  xml-make-show-populated-command
  xml-make-show-unpopulated-command
- xml-make-forcases)
+ xml-make-forcases
+ xml-make-parent-identifier
+ xml-make-child-identifier)
 
 ;****************************************************************
 ;;XML
@@ -478,16 +481,52 @@
                          (element-content req-vector-element)))
             (write "Axioms:\n")
             (map (lambda(elem)
-                   (begin (write (string-append (symbol->string (element-name elem)) "\n"))
+                   (let ((elem-name (symbol->string (element-name elem))))
+                     (begin (write (string-append (symbol->string (element-name elem)) "\n"))
+                   (cond
+                     [(equal? elem-name "DISJOINT")
                           (map write-sorts
                                (filter (lambda(elem) (element? elem))
-                                       (element-content elem)))))
+                                       (element-content elem)))]
+                     [(equal? elem-name "SUBSETS")
+                        (map (lambda (subset-elem)
+                               (begin
+                               (write (string-append "Parent: " (get-attribute-value subset-elem 'parent) "\n" 
+                                              "Children: \n"))
+                               (map (lambda (child-elem)
+                                      (write (string-append "\tChild: " (get-attribute-value child-elem 'name) "\n")))
+                                    (filter (lambda (element) (element? element))
+                                              (element-content subset-elem)))
+                               (write "\n")))
+                             (filter (lambda(element) (element? element))
+                                     (element-content elem)))]))))
                  (filter (lambda(elem) (element? elem))
                          (element-content axioms-element))))
           (display (get-output-string string-buffer))
           (get-output-string string-buffer))))))
 
-
+;load policy ./tests/conference1.p; 
+;
+;rename ConferencePolicy1 conf1; 
+;
+;explore readpaper(a) and paper(r) and conf1:permit(s,a,r);
+;
+;get one ;
+;get next 0;
+;get next 0;
+;get next 0;
+;get next ;
+;get next ;
+;get next ;
+;get next ;
+;get next ;
+;get next ;
+;get next ;
+;get next ;
+;
+;count;
+;is possible?;
+;get ceiling;
 
 ;************************************************************************
 ;;These functions return x-exprs for parts of command
@@ -513,7 +552,7 @@
   `(PARENT-IDENTIFIER ((name ,parent-name))))
 
 (define (xml-make-child-identifier child-name)
-  `(VOCAB-IDENTIFIER ((name ,child-name))))
+  `(CHILD-IDENTIFIER ((name ,child-name))))
 
 (define (xml-make-predicate pred-name)
   `(PREDICATE ((name ,pred-name))))
@@ -563,6 +602,9 @@
 
 (define (xml-make-constraint constraint-type list-of-relations)
   `(CONSTRAINT ((type ,constraint-type)) ,(xml-make-relations-list list-of-relations)))
+
+(define (xml-make-subset parent child)
+  `(CONSTRAINT ((type ,"SUBSET")) ,parent ,child))
 
 (define (xml-make-rename id1 id2)
   `(RENAME ((id1 ,id1) (id2 ,id2))))

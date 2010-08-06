@@ -90,6 +90,7 @@
   
   (cond 
     ; typename is a symbol at this point, not a string    
+    ;TODO: make disjoint like subset. Can't rely on ordering
     ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT" (list (car listrels) (car (cdr listrels)))))))
     ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT-ALL" (list (car listrels) )))))
     ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY" (list (car listrels) )))))
@@ -102,7 +103,8 @@
     ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "TOTALFUNCTION" (list (car listrels) )))))
     ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT" (list (car listrels) )))))
     ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT-ALL" (list (car listrels) )))))
-    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SUBSET" (list (car listrels) (car (cdr listrels)))))))
+    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subset (xml-make-parent-identifier (car listrels)) 
+                                                                                                              (xml-make-child-identifier (car (cdr listrels)))))))
     (else (printf " Error! Unsupported constraint type~n"))))
 
 ; May be a list, may not be a list
