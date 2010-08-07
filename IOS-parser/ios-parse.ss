@@ -419,6 +419,195 @@
           src-addr
           dest-addr)))
 
+;; (listof any) port IOS-config% -> IOS-config%
+(define (parse-ip-access-list line-tokens input config)
+  (case (first line-tokens)
+    [(extended) (parse-ip-extended-access-list (second line-tokens) input config)]
+    [else config]))
+
+;; symbol port IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list name input config)
+  (let [(line-tokens (tokenize-line (read-line input 'any)))]
+    (case (first line-tokens)
+      [(permit deny) (parse-ip-extended-access-list name
+                                                    input
+                                                    (parse-ip-extended-access-list2 (line-number input)
+                                                                                    name
+                                                                                    (first line-tokens)
+                                                                                    (rest line-tokens)
+                                                                                    config))]
+      [(evaluate) (parse-ip-extended-access-list name
+                                                 input
+                                                 (parse-ip-extended-access-list-evaluate (line-number input)
+                                                                                         name
+                                                                                         (second line-tokens)
+                                                                                         (drop line-tokens 2)
+                                                                                         config))]
+      [(!) config]
+      [else (parse-ip-extended-access-list name input config)])))
+
+;; number symbol symbol (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list2 line name disposition line-tokens config)
+  (case (first line-tokens)
+    [(tcp udp) (parse-ip-extended-access-list3 line
+                                               name
+                                               disposition
+                                               (first line-tokens)
+                                               (rest line-tokens)
+                                               config)]
+    [else config]))
+
+;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list3 line name disposition protocol line-tokens config)
+  (cond [(single-address? (first line-tokens))
+         (parse-ip-extended-access-list4 line
+                                         name
+                                         disposition
+                                         protocol
+                                         (make-object network-address% (first line-tokens) (second line-tokens) #t)
+                                         (drop line-tokens 2)
+                                         config)]
+        [else (case (first line-tokens)
+                [(host) (parse-ip-extended-access-list4 line
+                                                        name
+                                                        disposition
+                                                        protocol
+                                                        (make-object host-address% (second line-tokens))
+                                                        (drop line-tokens 2)
+                                                        config)]
+                [(any) (parse-ip-extended-access-list4 line
+                                                       name
+                                                       disposition
+                                                       protocol
+                                                       (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
+                                                       (rest line-tokens)
+                                                       config)]
+                [else config])]))
+
+;; number symbl symbol symbol address<%> (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list4 line name disposition protocol src-addr line-tokens config)
+  (cond [(single-address? (first line-tokens))
+         (parse-ip-extended-access-list5 line
+                                         name
+                                         disposition
+                                         protocol
+                                         src-addr
+                                         (make-object network-address% (first line-tokens) (second line-tokens) #t)
+                                         (drop line-tokens 2)
+                                         config)]
+        [else (case (first line-tokens)
+                [(host) (parse-ip-extended-access-list5 line
+                                                        name
+                                                        disposition
+                                                        protocol
+                                                        src-addr
+                                                        (make-object host-address% (second line-tokens))
+                                                        (drop line-tokens 2)
+                                                        config)]
+                [(any) (parse-ip-extended-access-list5 line
+                                                       name
+                                                       disposition
+                                                       protocol
+                                                       src-addr
+                                                       (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
+                                                       (rest line-tokens)
+                                                       config)]
+                [else config])]))
+
+;; number symbol symbol symbol address<%> address<%> (listof symbol) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list5 line name disposition protocol src-addr dest-addr line-tokens config)
+  (cond [(empty? line-tokens)
+         (send config
+               insert-ACE
+               name
+               (make-object extended-ACE-TCP/UDP%
+                 line
+                 (eqv? disposition 'permit)
+                 src-addr
+                 protocol
+                 (make-object port-range% 0 65535)
+                 dest-addr
+                 (make-object port-range% 0 65535)))]
+        [else (case (first line-tokens)
+                [(eq) (parse-ip-extended-access-list6 line
+                                                      name
+                                                      disposition
+                                                      protocol
+                                                      src-addr
+                                                      dest-addr
+                                                      (make-object port% (second line-tokens))
+                                                      (drop line-tokens 2)
+                                                      config)]
+                [(reflect) (parse-ip-extended-access-list7 line
+                                                           name
+                                                           disposition
+                                                           protocol
+                                                           src-addr
+                                                           dest-addr
+                                                           (make-object port-range% 0 65535)
+                                                           (second line-tokens)
+                                                           (drop line-tokens 2)
+                                                           config)]
+                [else config])]))
+
+;; number symbol symbol symbol address<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list6 line name disposition protocol src-addr dest-addr port line-tokens config)
+  (cond [(empty? line-tokens)
+         (send config
+               insert-ACE
+               name
+               (make-object extended-ACE-TCP/UDP%
+                 line
+                 (eqv? disposition 'permit)
+                 src-addr
+                 protocol
+                 port
+                 dest-addr
+                 port))]
+        [else (case (first line-tokens)
+                [(reflect) (parse-ip-extended-access-list7 line
+                                                           name
+                                                           disposition
+                                                           protocol
+                                                           src-addr
+                                                           dest-addr
+                                                           port
+                                                           (second line-tokens)
+                                                           (drop line-tokens 2)
+                                                           config)]
+                [else config])]))
+
+;; number symbol symbol symbol address<%> address<%> port<%> symbol (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list7 line name disposition protocol src-addr dest-addr port reflect-name line-tokens config)
+  (send (send config
+              insert-ACE
+              name
+              (make-object extended-ACE-TCP/UDP%
+                line
+                (eqv? disposition 'permit)
+                src-addr
+                protocol
+                port
+                dest-addr
+                port))
+        insert-ACE
+        reflect-name
+        (make-object extended-ACE-TCP/UDP%
+          line
+          (eqv? disposition 'permit)
+          dest-addr
+          protocol
+          port
+          src-addr
+          port)))
+
+;; number symbol symbol (listof symbol) IOS-config% -> IOS-config%
+(define (parse-ip-extended-access-list-evaluate line name reflect-name line-tokens config)
+  (send config
+        insert-reflexive-ACE
+        name
+        reflect-name))
+        
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internet Protocol
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -426,6 +615,7 @@
 ;; (listof any) port IOS-config% -> IOS-config%
 (define (parse-ip line-tokens input config)
   (case (first line-tokens)
+    [(access-list) (parse-ip-access-list (rest line-tokens) input config)]
     [(nat) (parse-nat (rest line-tokens) input config)]
     [(route) (parse-route (rest line-tokens) input config)]
     [else config]))
