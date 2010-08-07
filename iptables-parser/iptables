@@ -11,13 +11,17 @@ function atomize
 # Converts an address into a Margrave-compatible atom
 function resolve
 {
-    host $1 | grep -q "has address"
-    if [[ $? -eq 0 ]]; then
-        echo `host $1 | grep "has address" | head -n1 | cut -d ' ' -f 4 | sed 's/\./-/g'`
+    if [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)? ]]; then
+        echo $1 | sed 's/\./-/g'
     else
-        host $1 | grep -q "in-addr.arpa"
+        host $1 | grep -q "has address"
         if [[ $? -eq 0 ]]; then
-            echo $1 | sed 's/\./-/g'
+            echo `host $1 | grep "has address" | head -n1 | cut -d ' ' -f 4 | sed 's/\./-/g'`
+        else
+            host $1 | grep -q "in-addr.arpa"
+            if [[ $? -eq 0 ]]; then
+                echo $1 | sed 's/\./-/g'
+            fi
         fi
     fi
 }
