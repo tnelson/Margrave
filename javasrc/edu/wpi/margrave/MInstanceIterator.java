@@ -54,14 +54,11 @@ import kodkod.util.ints.IntIterator;
 import kodkod.util.ints.IntSet;
 import kodkod.util.ints.Ints;
 
-//import net.sf.javabdd.*;
+//
 
 
 // Acts as an Iterator over solutions to a query. 
 // Also provides routines to print all and print one, etc.
-
-// BDD required public
-// public 
 
 class MSolutionInstance
 {
@@ -222,6 +219,8 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		// Translate to tupled form
 		List<String> indexedCandidates;
 		
+		//MCommunicator.writeToLog("\napplyIndexing: "+candidates +";   "+originalPreds+";   "+originalIndexing);
+		
 		if(!fromResult.forQuery.tupled)
 		{
 			// Not tupled, ignore indexing
@@ -234,10 +233,13 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		
 			for(String predname : candidates.keySet())
 			{
+				//MCommunicator.writeToLog("\n  applyIndexing loop for: "+predname);
+				
 				//System.err.println("predname: "+predname);
 				//System.err.println(candidates.get(predname));
 				for(List<String> anIndexing : candidates.get(predname))
 				{
+					//MCommunicator.writeToLog("\n    applyIndexing inner loop for: "+predname);
 					String newName = predname;
 				
 //					System.err.println("indexing: "+anIndexing);
@@ -311,16 +313,25 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		
 		
 		// *********************************************************************************
-		// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.					
+		// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.		
+		// But allow for indexed EDB names, too. Instead of checking idbOutputIndexing, check for whether 
+		// the indexed name is in the vocab.
 		for(String predname : indexedCandidates)
 		{
-			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
-				throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+			// used to be:
+			//if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
+			//	throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+			
+			if(!fromResult.forQuery.vocab.isSort(predname) && !fromResult.forQuery.vocab.predicates.containsKey(predname))
+				throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+
+						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 		}
 		for(String predname : indexedCases)
 		{
-			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
-				throw new MSemanticException("Case in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());	
+			if(!fromResult.forQuery.vocab.isSort(predname) && !fromResult.forQuery.vocab.predicates.containsKey(predname))
+				throw new MSemanticException("Case in SHOW POPULATED: "+predname+
+						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+	
 		} 	
 		// TODO de-index the error messages
 		// *********************************************************************************

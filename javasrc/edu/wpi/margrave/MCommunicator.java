@@ -623,7 +623,8 @@ public class MCommunicator
         private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes) {
         	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
         	// default of empty map is set above. Just populate it.
-			
+			        	        
+        	
 			String collectionName;
 			String relationName;
 			List<String> identifiers;
@@ -633,21 +634,34 @@ public class MCommunicator
 			{
 				Node childNode = childNodes.item(i);
 				
-				//writeToLog("nodename: "+childNode.getNodeName());
+				//writeToLog("\nnodename: "+childNode.getNodeName());
+				//writeToLog("\nnodetype: "+childNode.getNodeType());
+				
 				
 				// If this is not an atomic formula, pass over it
 				if(!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-Y") &&
 						!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-N"))
 					continue;
 				
-				collectionName = getAtomicFormulaYCollection(childNode);
-				relationName = getAtomicFormulaYRelation(childNode);
+				collectionName = getAtomicFormulaYCollection(childNode); // may be null!
+				if(collectionName != null)				
+					relationName = getAtomicFormulaYRelation(childNode);
+				else
+					relationName = getAtomicFormulaNRelation(childNode);
+				
 				identifiers = getIdentifierList(childNode); //could be empty!
+
+				writeToLog("\natomicFormulasToHashmap: "+collectionName+", "+relationName+", "+identifiers+"\n");
 				
 				// TODO: Should make a class to help with this eventually; right now
 				// there is too much string processing going on in the engine.
-				String idbName = collectionName + ":" + relationName;
-				    
+				
+				String idbName;
+				if(collectionName != null && collectionName.length() > 0)
+					idbName = collectionName + ":" + relationName;
+				else
+					idbName = relationName;
+				
 				// initialize if needed
 				if(!hashMap.containsKey(idbName))
 					hashMap.put(idbName, new HashSet<List<String>>());

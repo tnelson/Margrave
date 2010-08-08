@@ -170,8 +170,8 @@ PUBLISH ahostname, entry-interface,
 TUPLING
 "))
   
-  ; Let us use the query under the name routed-packets
-  (mtext "RENAME LAST routed-packets"))
+  ; Let us use the query under the name routed-packets (w/ same prefix and suffix applied)
+  (mtext (string-append "RENAME LAST " prefix "routed-packets" suffix)))
 
 
 
