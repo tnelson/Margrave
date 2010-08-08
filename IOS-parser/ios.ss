@@ -1011,6 +1011,10 @@
     (define/public (insert-ACE ace)
       (make-object ACL% (append ACEs (list ace))))
     
+    ;; ACL<%> -> ACL<%>
+    (define/public (insert-ACL acl)
+      (make-object ACL% (append ACEs (get-field ACEs acl))))
+    
     ;; (listof (listof symbol)) -> rules%
     ;;   Returns a list of rules that represents this ACL
     (define/public (rules additional-conditions)
@@ -2557,6 +2561,27 @@
                   (send (hash-ref ACLs ACL-ID make-empty-ACL)
                         insert-ACE
                         ACE))
+        static-NAT
+        dynamic-NAT
+        static-routes
+        route-maps
+        networks
+        neighbors
+        endpoints
+        crypto-maps
+        default-ACL-permit))
+    
+    ;; symbol ACE<%> -> IOS-config%
+    ;;   Evaluates a reflexive ACL
+    (define/public (insert-reflexive-ACE ACL-ID reflexive-ACL-ID)
+      (make-object IOS-config%
+        hostname
+        interfaces
+        (hash-set ACLs
+                  ACL-ID
+                  (send (hash-ref ACLs ACL-ID make-empty-ACL)
+                        insert-ACL
+                        (hash-ref ACLs reflexive-ACL-ID make-empty-ACL)))
         static-NAT
         dynamic-NAT
         static-routes
