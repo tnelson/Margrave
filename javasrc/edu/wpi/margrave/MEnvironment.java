@@ -1925,8 +1925,10 @@ public class MEnvironment
 		Document xmldoc = makeInitialResponse("boolean");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
-		Text val = xmldoc.createTextNode(String.valueOf(b));
-		xmldoc.getDocumentElement().appendChild(val);
+		Element booleanElement = xmldoc.createElementNS(null, "BOOLEAN");
+		booleanElement.setAttribute("value", String.valueOf(b));		
+		xmldoc.getDocumentElement().appendChild(booleanElement);
+		
 		xmldoc.getDocumentElement().appendChild(makeStatisticsElement(xmldoc, aResult, id));
 		return xmldoc;
 	}
@@ -1936,8 +1938,10 @@ public class MEnvironment
 		Document xmldoc = makeInitialResponse("boolean");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
-		Text val = xmldoc.createTextNode(String.valueOf(b));
-		xmldoc.getDocumentElement().appendChild(val);
+		Element booleanElement = xmldoc.createElementNS(null, "BOOLEAN");
+		booleanElement.setAttribute("value", String.valueOf(b));		
+		xmldoc.getDocumentElement().appendChild(booleanElement);
+		
 		return xmldoc;
 	}
 	private static Document intResponse(int theInt)
@@ -1946,17 +1950,17 @@ public class MEnvironment
 	}
 	
 	private static Document stringResponse(String str)
-	{
-		// <MARGRAVE-RESPONSE>Hello</MARGRAVE-RESPONSE>
-		
+	{		
 		Document xmldoc = makeInitialResponse("string");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
-		if(str.length() > 0)
-		{
-			// Empty text nodes WILL cause problems in XML transformation
-			Text val = xmldoc.createTextNode(str);
-			xmldoc.getDocumentElement().appendChild(val);
+		
+		Element stringElement = xmldoc.createElementNS(null, "STRING");
+		if(str != null)
+		{					
+			stringElement.setAttribute("value", str);
 		}
+		
+		xmldoc.getDocumentElement().appendChild(stringElement);
 		return xmldoc;
 	}
 

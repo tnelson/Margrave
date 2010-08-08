@@ -41,7 +41,7 @@
     (load-ios-policies (build-path (current-directory) "config-revised") "" "2")
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; 1
+    ; Version 1
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
     (printf "~n---------------1--------------~n----------------------------~n")
@@ -73,52 +73,51 @@ routed-packets1" vector
                          ", port-23(dest-port-in)" 
                          ", port-3389(dest-port-in)"))
     
-  ;; TODO: will it think port-20 is an IDB? yes. need to fix this in java. <------ 
+
+    (mtext (string-append "EXPLORE
+NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
+FastEthernet0(entry-interface) AND
+prot-TCP(protocol) AND
+port-80(src-port-in) AND
+routed-packets1" vector " AND " ; *1*
+"NOT port-80(dest-port-in) AND
+ NOT port-20(dest-port-in) AND
+ NOT port-21(dest-port-in) AND
+ NOT port-23(dest-port-in) AND
+ NOT port-3389(dest-port-in)"
+" TUPLING"))
+
+    (mtext "IS POSSIBLE? 0")    
+    
                          
-                         
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    #|(printf "~n~nRule-blaming:~n")
-        
-    (mtext (string-append "EXPLORE InboundACL1:Deny" vector
-
-     " AND ip-10-1-1-2(src-addr-in)"
-     " AND fe0(entry-interface) "
-
-     " IDBOUTPUT InboundACL1:ACE-line-10-g21711_applies" vector ","
-               "InboundACL1:ACE-line-13-g21714_applies" vector
-     " TUPLING")) 
-    (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g21711_applies" vector ","
-               "InboundACL1:ACE-line-13-g21714_applies" vector))
-    |#
-    
-
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; 
+    ; Version 2
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    #|
-    (printf "~n~nRule relationships:~n")
+    (printf "~n---------------2--------------~n----------------------------~n")
     
-    ;; This involves rules in the first change (InboundACL2)
-    ; line 13 wants to apply: what prevents it from doing so?
+    ; TODO: No "other" or "unreferenced" keyword makes us enumerate those 5 ports.
     
-    (mtext (string-append "EXPLORE InboundACL2:ACE-line-13-g23723" vector
+    (mtext (string-append "EXPLORE
+NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
+FastEthernet0(entry-interface) AND
+prot-TCP(protocol) AND
+port-80(src-port-in) AND
+routed-packets2" vector " AND " ; *2*
+"NOT port-80(dest-port-in) AND
+ NOT port-20(dest-port-in) AND
+ NOT port-21(dest-port-in) AND
+ NOT port-23(dest-port-in) AND
+ NOT port-3389(dest-port-in)"
+" TUPLING"))
 
-     " IDBOUTPUT InboundACL2:ACE-line-10-g23720_applies" vector ","
-               "InboundACL2:ACE-line-11-g23721_applies" vector ","
-               "InboundACL2:ACE-line-12-g23722_applies" vector
-     " TUPLING")) 
-    (mtext (string-append "SHOW POPULATED 0 InboundACL2:ACE-line-10-g23720_applies" vector ","
-               "InboundACL2:ACE-line-11-g23721_applies" vector ","
-               "InboundACL2:ACE-line-12-g23722_applies" vector))
+    (mtext "IS POSSIBLE? 0")
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; Version 3
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-|#
-    
+   ; TODO reflexive access list revision
     
     
     

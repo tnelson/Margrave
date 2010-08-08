@@ -63,7 +63,7 @@
                  (append 
                   (if (list? s)                       
                       (begin
-                        (display parent)
+                        ; (display parent) ; debug
                         ; Add subtype relationship between parent and s
                         (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
                               
