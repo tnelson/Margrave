@@ -39,6 +39,7 @@
     ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
     (load-ios-policies (build-path (current-directory) "config") "" "1")
     (load-ios-policies (build-path (current-directory) "config-revised") "" "2")
+    ;(load-ios-policies (build-path (current-directory) "config-reflexive") "" "3")
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Version 1
@@ -46,8 +47,6 @@
     
     (printf "~n---------------1--------------~n----------------------------~n")
     
-    
-    ; TODO routed-packets needs to be separately defined with prefix/suffix
     
     (mtext (string-append "EXPLORE
 NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
