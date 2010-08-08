@@ -592,7 +592,7 @@
                 port))
         insert-ACE
         reflect-name
-        (make-object extended-ACE-TCP/UDP%
+        (make-object extended-reflexive-ACE-TCP/UDP%
           line
           (eqv? disposition 'permit)
           dest-addr
@@ -604,7 +604,7 @@
 ;; number symbol symbol (listof symbol) IOS-config% -> IOS-config%
 (define (parse-ip-extended-access-list-evaluate line name reflect-name line-tokens config)
   (send config
-        insert-reflexive-ACE
+        insert-reflexive-ACL
         name
         reflect-name))
         

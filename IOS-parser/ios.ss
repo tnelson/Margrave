@@ -27,6 +27,7 @@
 (provide extended-ACE-IP%)
 (provide extended-ACE-ICMP%)
 (provide extended-ACE-TCP/UDP%)
+(provide extended-reflexive-ACE-TCP/UDP%)
 (provide ACL%)
 (provide NAT<%>)
 (provide source-list-NAT%)
@@ -998,6 +999,25 @@
           (,prot protocol)
           (,src-port-in dest-port-in)
           (,dest-port-in src-port-in))))
+    ))
+
+;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port
+;;   Represents an extended ACE for TCP/UDP
+(define extended-reflexive-ACE-TCP/UDP%
+  (class* extended-ACE-TCP/UDP% (ACE<%>)
+    (init line-number permit source-addr prot source-port dest-addr dest-port)
+    (super-make-object line-number permit source-addr prot source-port dest-addr dest-port)
+    
+    (inherit-field src-addr-in)
+    (inherit-field src-port-in)
+    (inherit-field dest-addr-in)
+    (inherit-field dest-port-in)
+    
+    ;; (listof (listof symbol)) -> rule%
+    ;;   Returns a rule that represents this ACE
+    (define/override (rule additional-conditions)
+      (super rule (cons `(Connection ,src-addr-in ,src-port-in ,dest-addr-in ,dest-port-in)
+                        additional-conditions)))
     ))
 
 ;; ACL% : (listof ACE<%>)
@@ -2573,7 +2593,7 @@
     
     ;; symbol ACE<%> -> IOS-config%
     ;;   Evaluates a reflexive ACL
-    (define/public (insert-reflexive-ACE ACL-ID reflexive-ACL-ID)
+    (define/public (insert-reflexive-ACL ACL-ID reflexive-ACL-ID)
       (make-object IOS-config%
         hostname
         interfaces
@@ -3305,7 +3325,9 @@
                  Pass
                  Advertise
                  Encrypt)
-                (Predicates)
+                (Predicates
+                 (Connection : Address Port Address Port)
+                 )
                 (ReqVariables
                  (hostname : Hostname)
                  (entry-interface : Interface)
