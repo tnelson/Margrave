@@ -150,15 +150,24 @@
 ; string -> document or #f
 ; parses and compiles the string command into XML, executes it,
 ; pretty prints the results, and then returns the result document.
-(define (mtext cmd)
-    (let ((response-doc (m (evalxml cmd))))
-      (pretty-print-response-xml response-doc)
-      response-doc))
+(define (mtext cmd (silent #f))
+  (let* ((response-doc (m (evalxml cmd)))
+         (pretty-response (pretty-print-response-xml response-doc))
+         (response-type (get-response-type response-doc)))  
+    
+    ; Display the pretty-printed result
+    (when (not silent)
+      (printf "===================== RESPONSE (type: ~a) =====================~n" response-type)
+      (printf "~a~n~n" pretty-response))
+    
+    ; Return the XML document
+    response-doc))
 
 
 ; mmtext
 ; string or list of string -> list of (document or #f)
 ; Like mtext, but accepts lists of commands and returns a list of results.
+;; TODO: pretty printing
 (define (mmtext cmds)
   (mm (map evalxml cmds)))
   
@@ -185,7 +194,7 @@
         #f)
       (begin 
         ; Comment out to disable printing XML commands as they are sent
-         (printf "M SENDING XML: ~a;~n" cmd)
+        ; (printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML (DO NOT COMMENT THIS OUT)
         ; ******************************************
@@ -236,7 +245,7 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    (printf "~a~n" result)                    
+                    ;(printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))

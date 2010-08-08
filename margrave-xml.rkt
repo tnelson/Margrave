@@ -9,6 +9,7 @@
  response-is-success?
  response-is-error?
  response-is-exception?
+ get-response-type
  get-response-error-type
  get-response-error-subtype
  get-response-error-descriptor
@@ -190,7 +191,9 @@
              (if (< 2 (length (element-content xml-model)))
                  (write (print-statistics (fourth (element-content xml-model))))
                  "")
-             (display (get-output-string string-buffer))
+             
+             ; Debugging (let the caller decide whether to print or not)
+             ;(display (get-output-string string-buffer))
              (get-output-string string-buffer)))))
 
 ;Returns a string to display based on atom-hash and predicate-hash
@@ -230,10 +233,8 @@
   (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
                                   (element-attributes ele)))))
 
-;Pass name a symbol or a string, case doesn't matter
-;Returns either an element, if found, or an empty list
-;Note that if you pass this element an empty list instead of an element, instead of halting it will return empty
-(define (get-child-element element name-symb-or-str)
+; element -> list
+(define (get-child-elements element name-symb-or-str)
   (if (empty? element)
       empty
       (let* ((name (string-downcase (if (symbol? name-symb-or-str)
@@ -242,9 +243,16 @@
              (result (filter (lambda(element) (equal? name (string-downcase (symbol->string (element-name element)))))
                              (filter (lambda (maybe-elem) (element? maybe-elem))
                                      (element-content element)))))
-        (if (empty? result)
-            result
-            (first result)))))
+        result)))
+
+;Pass name a symbol or a string, case doesn't matter
+;Returns either an element, if found, or an empty list
+;Note that if you pass this element an empty list instead of an element, instead of halting it will return empty
+(define (get-child-element element name-symb-or-str)
+  (let ([result (get-child-elements element name-symb-or-str)])
+    (if (empty? result)
+        result
+        (first result))))
 
 (define (get-pc-data elem)
   (pcdata-string (first (element-content elem))))
@@ -253,7 +261,7 @@
   (let* ((string-buffer (open-output-string)))
     (local ((define (write s)
               (write-string s string-buffer)))
-      (write "STATISTICS: \n")
+      (write "\nSTATISTICS: \n")
       (let* ([computed-max (get-attribute-value stat-element 'computed-max-size)]
              [user-max (get-attribute-value stat-element 'user-max-size)]
              [computed-max-num (string->number computed-max)]
@@ -272,9 +280,10 @@
 ;************ Pretty Print Info *******************
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
+; element -> string
 (define (pretty-print-response-xml response-doc)
   (if (false? response-doc)
-      "Engine stopped"
+      "Engine stopped!"
       (let* ((response-element (document-element response-doc))
              (type (get-attribute-value response-element 'type)))
         ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
@@ -288,27 +297,53 @@
               [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
               [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
               [(equal? type "string") (pretty-print-string-xml response-element)]
+              [(equal? type "set") (pretty-print-set-xml response-element)]
               [(equal? type "success") "Success\n"]))))
 
+; element -> string
 (define (pretty-print-string-xml element)
-  (let* ((string-buffer (open-output-string)))
+  (let* ((string-buffer (open-output-string))
+         (string-element (get-child-element element 'string)))
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin 
-        (write (string-append "Result: " (get-pc-data element) "\n"))
+        (write (get-attribute-value string-element 'value))
         (get-output-string string-buffer)))))
 
+; element -> string
 (define (pretty-print-boolean-xml element)
   (let* ((string-buffer (open-output-string))
-         (statistics-element (get-child-element element 'statistics)))
+         (statistics-element (get-child-element element 'statistics))
+         (boolean-element (get-child-element element 'boolean)))
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin 
-        (write (string-append "Result: " (get-pc-data element) "\n"))
+        (write (get-attribute-value boolean-element 'value))
         (when (not (empty? statistics-element))
-          (write (print-statistics statistics-element)))
+          (write (string-append "\n" (print-statistics statistics-element))))
         (get-output-string string-buffer)))))
 
+; element -> string
+(define (pretty-print-set-xml element)
+  (let* ((string-buffer (open-output-string))
+         (statistics-element (get-child-element element 'statistics))
+         (set-element (get-child-element element 'SET))
+         (item-elements (get-child-elements set-element 'ITEM)))
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write "{\n")
+        (for-each (lambda (item-element)             
+                   (write (string-append "  " (pcdata-string (first (element-content item-element))) "\n")))
+                 item-elements)
+        (write "}\n")                 
+                
+        (when (not (empty? statistics-element))
+          (write (string-append "\n" (print-statistics statistics-element))))
+        
+        (get-output-string string-buffer)))))
+
+; element -> string
 (define (pretty-print-unsat-xml element)
   (let* ((string-buffer (open-output-string))
          (statistics-element (get-child-element element 'statistics)))
@@ -319,14 +354,17 @@
         (write (print-statistics statistics-element))
         (get-output-string string-buffer)))))
 
+; element -> string
 (define (pretty-print-explore-xml element)
   (let* ((string-buffer (open-output-string))
          (result-element (get-child-element element 'result-handle)))
     (begin 
-      (write-string (string-append "Explore result handle: " (get-pc-data result-element) "\n") string-buffer)
-      (display (get-output-string string-buffer))
+      (write-string (string-append "Query created. Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      ; debug
+      ;(display (get-output-string string-buffer))
       (get-output-string string-buffer))))
 
+; element -> string
 (define (pretty-print-exception-xml element)
   (let* ([string-buffer (open-output-string)]
          (exception-element (get-child-element element 'exception))
@@ -357,6 +395,7 @@
         (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type="error"> element
+; element -> string
 (define (pretty-print-error-xml element)
   (let ([string-buffer (open-output-string)]
         (error-element (get-child-element element 'error)))
@@ -367,11 +406,13 @@
         (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
         (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
         (write (pcdata-string (first (element-content error-element))))
-        (display (get-output-string string-buffer))
+        ; debug
+        ;(display (get-output-string string-buffer))
         (get-output-string string-buffer)))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element
+; element -> string
 (define (pretty-print-sys-info-xml info-element)
   (let ([string-buffer (open-output-string)])
     (local ((define (write s)
@@ -418,11 +459,14 @@
           (write (string-append "\nVocabularies count: " (get-attribute-value vocab-element 'count )))
           (write (string-append "\nCollections count: " (get-attribute-value collections-element 'count)))
           (write (string-append "\nCached Results count: " (get-attribute-value results-element 'count )))
-          (display (get-output-string string-buffer))
+         
+          ; debug
+          ; (display (get-output-string string-buffer))
           (get-output-string string-buffer))))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"collection-info\"> element
+; element -> string
 (define (pretty-print-collection-info-xml info-element)
   (let ([string-buffer (open-output-string)])
     (local ((define (write s)
@@ -446,10 +490,12 @@
                    (write (string-append "Variable name: " (get-pc-data elem) "\n")))
                  (filter (lambda(elem) (element? elem))
                          (element-content free-variables)))))
-        (display (get-output-string string-buffer))
+        ; debug
+        ;(display (get-output-string string-buffer))
         (get-output-string string-buffer)))))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"vocabulary-info\"> element
+; element -> string
 (define (pretty-print-vocab-info-xml info-element)
   (let ([string-buffer (open-output-string)])
     (local ((define (write s)
@@ -502,7 +548,8 @@
                                      (element-content elem)))]))))
                  (filter (lambda(elem) (element? elem))
                          (element-content axioms-element))))
-          (display (get-output-string string-buffer))
+          ; debug
+          ;(display (get-output-string string-buffer))
           (get-output-string string-buffer))))))
 
 ;load policy ./tests/conference1.p; 

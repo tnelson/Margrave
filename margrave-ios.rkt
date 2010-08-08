@@ -16,7 +16,7 @@
     
     (when (or (> (string-length prefix) 0)
               (> (string-length suffix) 0))
-      (mtext (string-append "RENAME " polname " " prefix polname suffix)))))
+      (mtext (string-append "RENAME " polname " " prefix polname suffix) #t)))) ; silent!
   
 ; Remember to start the engine before calling this. Also wrap in an exception check!
 ; dirpath says where to find the policies
@@ -168,10 +168,10 @@ PUBLISH ahostname, entry-interface,
         length, next-hop, exit-interface
 
 TUPLING
-"))
+") #t) ; silent
   
   ; Let us use the query under the name routed-packets (w/ same prefix and suffix applied)
-  (mtext (string-append "RENAME LAST " prefix "routed-packets" suffix)))
+  (mtext (string-append "RENAME LAST " prefix "routed-packets" suffix)) #t ) ; silent
 
 
 
