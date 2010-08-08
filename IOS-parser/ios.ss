@@ -1010,13 +1010,14 @@
     
     (inherit-field src-addr-in)
     (inherit-field src-port-in)
+    (inherit-field prot)
     (inherit-field dest-addr-in)
     (inherit-field dest-port-in)
     
     ;; (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
     (define/override (rule additional-conditions)
-      (super rule (cons `(Connection ,src-addr-in ,src-port-in ,dest-addr-in ,dest-port-in)
+      (super rule (cons `(Connection ,src-addr-in ,src-port-in ,prot ,dest-addr-in ,dest-port-in)
                         additional-conditions)))
     ))
 
@@ -3326,7 +3327,7 @@
                  Advertise
                  Encrypt)
                 (Predicates
-                 (Connection : Address Port Address Port)
+                 (Connection : Address Port Protocol Address Port)
                  )
                 (ReqVariables
                  (hostname : Hostname)
