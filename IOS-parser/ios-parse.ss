@@ -63,12 +63,12 @@
 
 ;; (listof any) port IOS-config% -> IOS-config%
 (define (parse-access-list line-tokens input config)
-;  (printf "In parse-access-list: ~a ~a ~a~n" line-tokens input config)
+  ;  (printf "In parse-access-list: ~a ~a ~a~n" line-tokens input config)
   (parse-named-access-list (line-number input) (first line-tokens) (rest line-tokens) config))
 
 ;; number symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-access-list line name line-tokens config)
-;  (printf "In parse-named-access-list: ~a ~a ~a ~a~n" line name line-tokens config)
+  ;  (printf "In parse-named-access-list: ~a ~a ~a ~a~n" line name line-tokens config)
   (case (first line-tokens)
     [(dynamic) (parse-named-dynamic-access-list line name (rest line-tokens) config)]
     [(permit deny) (parse-named-dispositive-access-list line
@@ -95,7 +95,7 @@
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-dispositive-access-list line name disposition line-tokens config)
- ; (printf "In parse-named-dispositive-access-list: ~a ~a ~a ~a ~a ~n" line name disposition line-tokens config)
+  ; (printf "In parse-named-dispositive-access-list: ~a ~a ~a ~a ~a ~n" line name disposition line-tokens config)
   (cond [(single-address? (first line-tokens))
          (parse-standard-access-list line name disposition (first line-tokens) (rest line-tokens) config)]
         [else (case (first line-tokens)
@@ -422,100 +422,204 @@
 ;; (listof any) port IOS-config% -> IOS-config%
 (define (parse-ip-access-list line-tokens input config)
   (case (first line-tokens)
-    [(extended) (parse-ip-extended-access-list (second line-tokens) input config)]
+    [(standard extended) (parse-ip-named-access-list (second line-tokens) input config)]
     [else config]))
 
 ;; symbol port IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list name input config)
+(define (parse-ip-named-access-list name input config)
   (let [(line-tokens (tokenize-line (read-line input 'any)))]
     (case (first line-tokens)
-      [(permit deny) (parse-ip-extended-access-list name
-                                                    input
-                                                    (parse-ip-extended-access-list2 (line-number input)
-                                                                                    name
-                                                                                    (first line-tokens)
-                                                                                    (rest line-tokens)
-                                                                                    config))]
-      [(evaluate) (parse-ip-extended-access-list name
+      [(permit deny) (parse-ip-named-access-list name
                                                  input
-                                                 (parse-ip-extended-access-list-evaluate (line-number input)
-                                                                                         name
-                                                                                         (second line-tokens)
-                                                                                         (drop line-tokens 2)
-                                                                                         config))]
+                                                 (parse-ip-named-access-list2 (line-number input)
+                                                                              name
+                                                                              (first line-tokens)
+                                                                              (rest line-tokens)
+                                                                              config))]
+      [(evaluate) (parse-ip-named-access-list name
+                                              input
+                                              (parse-ip-named-access-list-evaluate (line-number input)
+                                                                                   name
+                                                                                   (second line-tokens)
+                                                                                   (drop line-tokens 2)
+                                                                                   config))]
       [(!) config]
-      [else (parse-ip-extended-access-list name input config)])))
+      [else (parse-ip-named-access-list name input config)])))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list2 line name disposition line-tokens config)
-  (case (first line-tokens)
-    [(tcp udp) (parse-ip-extended-access-list3 line
-                                               name
-                                               disposition
-                                               (first line-tokens)
-                                               (rest line-tokens)
-                                               config)]
-    [else config]))
-
-;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list3 line name disposition protocol line-tokens config)
+(define (parse-ip-named-access-list2 line name disposition line-tokens config)
   (cond [(single-address? (first line-tokens))
-         (parse-ip-extended-access-list4 line
-                                         name
-                                         disposition
-                                         protocol
-                                         (make-object network-address% (first line-tokens) (second line-tokens) #t)
-                                         (drop line-tokens 2)
-                                         config)]
+         (send config
+               insert-ACE
+               name
+               (make-object standard-ACE%
+                 line
+                 (eqv? disposition 'permit)
+                 (make-object network-address% (first line-tokens) (second line-tokens) #t)))]
         [else (case (first line-tokens)
-                [(host) (parse-ip-extended-access-list4 line
+                [(tcp udp) (parse-ip-named-access-list3 line
                                                         name
                                                         disposition
-                                                        protocol
-                                                        (make-object host-address% (second line-tokens))
-                                                        (drop line-tokens 2)
+                                                        (first line-tokens)
+                                                        (rest line-tokens)
                                                         config)]
-                [(any) (parse-ip-extended-access-list4 line
-                                                       name
-                                                       disposition
-                                                       protocol
-                                                       (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
-                                                       (rest line-tokens)
-                                                       config)]
+                [(host) (send config
+                              insert-ACE
+                              name
+                              (make-object standard-ACE%
+                                line
+                                (eqv? disposition 'permit)
+                                (make-object host-address% (second line-tokens))))]
+                [(any) (send config
+                             insert-ACE
+                             name
+                             (make-object standard-ACE%
+                               line
+                               (eqv? disposition 'permit)
+                               (make-object network-address% '0.0.0.0 '255.255.255.255 #t)))]
+                [else config])]))
+
+;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list3 line name disposition protocol line-tokens config)
+  (cond [(single-address? (first line-tokens))
+         (parse-ip-named-access-list4 line
+                                      name
+                                      disposition
+                                      protocol
+                                      (make-object network-address% (first line-tokens) (second line-tokens) #t)
+                                      (drop line-tokens 2)
+                                      config)]
+        [else (case (first line-tokens)
+                [(host) (parse-ip-named-access-list4 line
+                                                     name
+                                                     disposition
+                                                     protocol
+                                                     (make-object host-address% (second line-tokens))
+                                                     (drop line-tokens 2)
+                                                     config)]
+                [(any) (parse-ip-named-access-list4 line
+                                                    name
+                                                    disposition
+                                                    protocol
+                                                    (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
+                                                    (rest line-tokens)
+                                                    config)]
                 [else config])]))
 
 ;; number symbl symbol symbol address<%> (listof any) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list4 line name disposition protocol src-addr line-tokens config)
+(define (parse-ip-named-access-list4 line name disposition protocol src-addr line-tokens config)
   (cond [(single-address? (first line-tokens))
-         (parse-ip-extended-access-list5 line
-                                         name
-                                         disposition
-                                         protocol
-                                         src-addr
-                                         (make-object network-address% (first line-tokens) (second line-tokens) #t)
-                                         (drop line-tokens 2)
-                                         config)]
+         (parse-ip-named-access-list5 line
+                                      name
+                                      disposition
+                                      protocol
+                                      src-addr
+                                      (make-object port-range% 0 65535)
+                                      (make-object network-address% (first line-tokens) (second line-tokens) #t)
+                                      (drop line-tokens 2)
+                                      config)]
         [else (case (first line-tokens)
-                [(host) (parse-ip-extended-access-list5 line
+                [(eq) (parse-ip-named-access-list4A line
+                                                    name
+                                                    disposition
+                                                    protocol
+                                                    src-addr
+                                                    (make-object port% (second line-tokens))
+                                                    (drop line-tokens 2)
+                                                    config)]
+                [(host) (parse-ip-named-access-list5 line
+                                                     name
+                                                     disposition
+                                                     protocol
+                                                     src-addr
+                                                     (make-object port-range% 0 65535)
+                                                     (make-object host-address% (second line-tokens))
+                                                     (drop line-tokens 2)
+                                                     config)]
+                [(any) (parse-ip-named-access-list5 line
+                                                    name
+                                                    disposition
+                                                    protocol
+                                                    src-addr
+                                                    (make-object port-range% 0 65535)
+                                                    (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
+                                                    (rest line-tokens)
+                                                    config)]
+                [else config])]))
+
+;; number symbol symbol symbol address<%> port<%> (listof symbol) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list4A line name disposition protocol src-addr src-port line-tokens config)
+  (cond [(single-address? (first line-tokens))
+         (parse-ip-named-access-list5 line
+                                      name
+                                      disposition
+                                      protocol
+                                      src-addr
+                                      src-port
+                                      (make-object network-address% (first line-tokens) (second line-tokens) #t)
+                                      (drop line-tokens 2)
+                                      config)]
+        [else (case (first line-tokens)
+                [(host) (parse-ip-named-access-list5 line
+                                                     name
+                                                     disposition
+                                                     protocol
+                                                     src-addr
+                                                     src-port
+                                                     (make-object host-address% (second line-tokens))
+                                                     (drop line-tokens 2)
+                                                     config)]
+                [(any) (parse-ip-named-access-list5 line
+                                                    name
+                                                    disposition
+                                                    protocol
+                                                    src-addr
+                                                    src-port
+                                                    (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
+                                                    (rest line-tokens)
+                                                    config)]
+                [else config])]))
+
+;; number symbol symbol symbol address<%> port<%> address<%> (listof symbol) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list5 line name disposition protocol src-addr src-port dest-addr line-tokens config)
+  (cond [(empty? line-tokens)
+         (send config
+               insert-ACE
+               name
+               (make-object extended-ACE-TCP/UDP%
+                 line
+                 (eqv? disposition 'permit)
+                 src-addr
+                 protocol
+                 src-port
+                 dest-addr
+                 (make-object port-range% 0 65535)))]
+        [else (case (first line-tokens)
+                [(eq) (parse-ip-named-access-list6 line
+                                                   name
+                                                   disposition
+                                                   protocol
+                                                   src-addr
+                                                   src-port
+                                                   dest-addr
+                                                   (make-object port% (second line-tokens))
+                                                   (drop line-tokens 2)
+                                                   config)]
+                [(reflect) (parse-ip-named-access-list7 line
                                                         name
                                                         disposition
                                                         protocol
                                                         src-addr
-                                                        (make-object host-address% (second line-tokens))
+                                                        src-port
+                                                        dest-addr
+                                                        (make-object port-range% 0 65535)
+                                                        (second line-tokens)
                                                         (drop line-tokens 2)
                                                         config)]
-                [(any) (parse-ip-extended-access-list5 line
-                                                       name
-                                                       disposition
-                                                       protocol
-                                                       src-addr
-                                                       (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
-                                                       (rest line-tokens)
-                                                       config)]
                 [else config])]))
 
-;; number symbol symbol symbol address<%> address<%> (listof symbol) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list5 line name disposition protocol src-addr dest-addr line-tokens config)
+;; number symbol symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list6 line name disposition protocol src-addr src-port dest-addr dest-port line-tokens config)
   (cond [(empty? line-tokens)
          (send config
                insert-ACE
@@ -525,60 +629,47 @@
                  (eqv? disposition 'permit)
                  src-addr
                  protocol
-                 (make-object port-range% 0 65535)
+                 src-port
                  dest-addr
-                 (make-object port-range% 0 65535)))]
+                 dest-port))]
         [else (case (first line-tokens)
-                [(eq) (parse-ip-extended-access-list6 line
-                                                      name
-                                                      disposition
-                                                      protocol
-                                                      src-addr
-                                                      dest-addr
-                                                      (make-object port% (second line-tokens))
-                                                      (drop line-tokens 2)
-                                                      config)]
-                [(reflect) (parse-ip-extended-access-list7 line
-                                                           name
-                                                           disposition
-                                                           protocol
-                                                           src-addr
-                                                           dest-addr
-                                                           (make-object port-range% 0 65535)
-                                                           (second line-tokens)
-                                                           (drop line-tokens 2)
-                                                           config)]
+                [(reflect) (parse-ip-named-access-list7 line
+                                                        name
+                                                        disposition
+                                                        protocol
+                                                        src-addr
+                                                        src-port
+                                                        dest-addr
+                                                        dest-port
+                                                        (second line-tokens)
+                                                        (drop line-tokens 2)
+                                                        config)]
+                [(match-any) (if (eqv? protocol 'tcp)
+                                 (parse-ip-named-access-list8 line
+                                                              name
+                                                              disposition
+                                                              src-addr
+                                                              src-port
+                                                              dest-addr
+                                                              dest-port
+                                                              (rest line-tokens)
+                                                              config)
+                                 config)]
+                [(match-all) (if (eqv? protocol 'tcp)
+                                 (parse-ip-named-access-list9 line
+                                                              name
+                                                              disposition
+                                                              src-addr
+                                                              src-port
+                                                              dest-addr
+                                                              dest-port
+                                                              (rest line-tokens)
+                                                              config)
+                                 config)]
                 [else config])]))
 
-;; number symbol symbol symbol address<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list6 line name disposition protocol src-addr dest-addr port line-tokens config)
-  (cond [(empty? line-tokens)
-         (send config
-               insert-ACE
-               name
-               (make-object extended-ACE-TCP/UDP%
-                 line
-                 (eqv? disposition 'permit)
-                 src-addr
-                 protocol
-                 port
-                 dest-addr
-                 port))]
-        [else (case (first line-tokens)
-                [(reflect) (parse-ip-extended-access-list7 line
-                                                           name
-                                                           disposition
-                                                           protocol
-                                                           src-addr
-                                                           dest-addr
-                                                           port
-                                                           (second line-tokens)
-                                                           (drop line-tokens 2)
-                                                           config)]
-                [else config])]))
-
-;; number symbol symbol symbol address<%> address<%> port<%> symbol (listof any) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list7 line name disposition protocol src-addr dest-addr port reflect-name line-tokens config)
+;; number symbol symbol symbol address<%> port<%> address<%> port<%> symbol (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list7 line name disposition protocol src-addr src-port dest-addr dest-port reflect-name line-tokens config)
   (send (send config
               insert-ACE
               name
@@ -587,9 +678,9 @@
                 (eqv? disposition 'permit)
                 src-addr
                 protocol
-                port
+                src-port
                 dest-addr
-                port))
+                dest-port))
         insert-ACE
         reflect-name
         (make-object extended-reflexive-ACE-TCP/UDP%
@@ -597,17 +688,88 @@
           (eqv? disposition 'permit)
           dest-addr
           protocol
-          port
+          src-port
           src-addr
-          port)))
+          dest-port)))
+
+;; number symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list8 line name disposition src-addr src-port dest-addr dest-port line-tokens config)
+  (foldl (λ (flag-atom result-config)
+           (send result-config
+                 insert-ACE
+                 name
+                 (make-object extended-ACE-TCP/flags%
+                   line
+                   (eqv? disposition 'permit)
+                   src-addr
+                   src-port
+                   dest-addr
+                   dest-port
+                   flag-atom)))
+         config
+         (match-any-flags line-tokens '())))
+
+;; number symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
+(define (parse-ip-named-access-list9 line name disposition src-addr src-port dest-addr dest-port line-tokens config)
+  (foldl (λ (flag-atom result-config)
+           (send result-config
+                 insert-ACE
+                 name
+                 (make-object extended-ACE-TCP/flags%
+                   line
+                   (eqv? disposition 'permit)
+                   src-addr
+                   src-port
+                   dest-addr
+                   dest-port
+                   flag-atom)))
+         config
+         (match-all-flags line-tokens TCP-flags)))
+
+;; (listof any) (listof any) -> (listof symbol)
+(define (match-any-flags line-tokens result)
+  (cond [(empty? line-tokens)
+         (if (empty? result)
+             '(NONE)
+             (remove-duplicates result))]
+        [else
+         (let* [(flag-token (symbol->string (first line-tokens)))
+                (include (char=? (string-ref flag-token 0) #\+))
+                (flag (string-upcase (substring flag-token 1)))]
+           (match-any-flags (rest line-tokens)
+                            (append result
+                                    (filter (λ (flag-atom)
+                                              (let [(match (regexp-match flag (symbol->string flag-atom)))]
+                                                (if include
+                                                    match
+                                                    (not match))))
+                                            TCP-flags))))]))
+
+;; (listof any) (listof any) -> (listof symbol)
+(define (match-all-flags line-tokens result)
+  (cond [(empty? line-tokens)
+         (if (empty? result)
+             '(NONE)
+             result)]
+        [else
+         (let* [(flag-token (symbol->string (first line-tokens)))
+                (include (char=? (string-ref flag-token 0) #\+))
+                (flag (string-upcase (substring flag-token 1)))]
+           (match-all-flags (rest line-tokens)
+                            (filter (λ (flag-atom)
+                                      (let [(match (regexp-match flag (symbol->string flag-atom)))]
+                                        (if include
+                                            match
+                                            (not match))))
+                                    result)))]))
 
 ;; number symbol symbol (listof symbol) IOS-config% -> IOS-config%
-(define (parse-ip-extended-access-list-evaluate line name reflect-name line-tokens config)
+(define (parse-ip-named-access-list-evaluate line name reflect-name line-tokens config)
   (send config
         insert-reflexive-ACL
         name
         reflect-name))
-        
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internet Protocol
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

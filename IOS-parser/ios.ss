@@ -27,6 +27,7 @@
 (provide extended-ACE-IP%)
 (provide extended-ACE-ICMP%)
 (provide extended-ACE-TCP/UDP%)
+(provide extended-ACE-TCP/flags%)
 (provide extended-reflexive-ACE-TCP/UDP%)
 (provide ACL%)
 (provide NAT<%>)
@@ -57,6 +58,7 @@
 (provide make-empty-IOS-config)
 (provide policy)
 (provide vocabulary)
+(provide TCP-flags)
 
 ;; (hashtable any any) (any any -> boolean) -> (listof (any any))
 ;;   Returns a list of (key, value) pairs from a hashtable that
@@ -470,6 +472,7 @@
                dest-addr-out
                protocol
                message
+               flags
                src-port-in
                src-port-out
                dest-port-in
@@ -1001,12 +1004,32 @@
           (,dest-port-in src-port-in))))
     ))
 
+;; extended-ACE-TCP/flags% : number boolean address port address port symbol
+;;   Represents an extended ACE for TCP with flags
+(define extended-ACE-TCP/flags%
+  (class* extended-ACE-TCP/UDP% (ACE<%>)
+    (init line-number permit source-addr source-port dest-addr dest-port)
+    (init-field flags)
+    (super-make-object line-number permit source-addr 'tcp source-port dest-addr dest-port)
+    
+    (inherit-field src-addr-in)
+    (inherit-field src-port-in)
+    (inherit-field prot)
+    (inherit-field dest-addr-in)
+    (inherit-field dest-port-in)
+    
+    ;; (listof (listof symbol)) -> rule%
+    ;;   Returns a rule that represents this ACE
+    (define/override (rule additional-conditions)
+      (super rule (cons `(,flags flags) additional-conditions)))
+    ))
+
 ;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port
 ;;   Represents an extended ACE for TCP/UDP
 (define extended-reflexive-ACE-TCP/UDP%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
-    (init line-number permit source-addr prot source-port dest-addr dest-port)
-    (super-make-object line-number permit source-addr prot source-port dest-addr dest-port)
+    (init line-number permit source-addr protocol source-port dest-addr dest-port)
+    (super-make-object line-number permit source-addr protocol source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
     (inherit-field src-port-in)
@@ -3310,6 +3333,8 @@
                  ; - TN, removed icmp-N/A, etc.
                  (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
                  
+                 (TCPFlags : ,@TCP-flags)
+                           
                  (Length : ,@(remove-duplicates
                               (append*
                                (map (λ (rule)
@@ -3338,6 +3363,7 @@
                  (dest-addr-out : IPAddress)
                  (protocol : Protocol)
                  (message : ICMPMessage)
+                 (flags : TCPFlags)
                  (src-port-in : Port)
                  (src-port-out : Port)
                  (dest-port-in : Port)
@@ -3358,6 +3384,7 @@
                  (disjoint-all Protocol)
                  (disjoint-all Port)
                  (disjoint-all ICMPMessage)
+                 (disjoint-all Flags)
                  (disjoint-all Length)
                  (atmostone-all Interface)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
@@ -3365,6 +3392,7 @@
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
                  (atmostone icmp-echo)
                  (atmostone icmp-echo-reply)
+                 (atmostone-all Flags)
                  (atmostone-all Length)
                  (nonempty Hostname)
                  (nonempty Interface)
@@ -3372,7 +3400,51 @@
                  (nonempty Protocol)
                  (nonempty Port)
                  (nonempty ICMPMessage)
+                 (nonempty Flags)
                  (nonempty Length))))
+
+(define TCP-flags '(NONE
+                    SYN
+                    SYN-ACK
+                    SYN-ACK-FIN
+                    SYN-ACK-FIN-PSH
+                    SYN-ACK-FIN-PSH-URG
+                    SYN-ACK-FIN-PSH-URG-RST
+                    SYN-FIN
+                    SYN-FIN-PSH
+                    SYN-FIN-PSH-URG
+                    SYN-FIN-PSH-URG-RST
+                    SYN-PSH
+                    SYN-PSH-URG
+                    SYN-PSH-URG-RST
+                    SYN-URG
+                    SYN-URG-RST
+                    SYN-RST
+                    ACK
+                    ACK-FIN
+                    ACK-FIN-PSH
+                    ACK-FIN-PSH-URG
+                    ACK-FIN-PSH-URG-RST
+                    ACK-PSH
+                    ACK-PSH-URG
+                    ACK-PSH-URG-RST
+                    ACK-URG
+                    ACK-URG-RST
+                    ACK-RST
+                    FIN
+                    FIN-PSH
+                    FIN-PSH-URG
+                    FIN-PSH-URG-RST
+                    FIN-URG
+                    FIN-URG-RST
+                    FIN-RST
+                    PSH
+                    PSH-URG
+                    PSH-URG-RST
+                    PSH-RST
+                    URG
+                    URG-RST
+                    RST))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Policy Generation
