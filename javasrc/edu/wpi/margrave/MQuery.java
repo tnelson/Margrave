@@ -70,7 +70,7 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 					.op(), binFormula.left().accept(this), binFormula.right()
 					.accept(this)));
 		} catch (MGEManagerException e) {
-			System.err.println(e);
+			MEnvironment.writeErrLine(e.getLocalizedMessage());
 			return cache(binFormula, binFormula.left().accept(this).compose(
 					binFormula.op(), binFormula.right().accept(this)));
 		}
@@ -126,7 +126,7 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 			return cache(nFormula, MFormulaManager.makeComposition(nFormula
 					.op(), newformulas));
 		} catch (MGEManagerException e) {
-			System.err.println(e);
+			MEnvironment.writeErrLine(e.getLocalizedMessage());
 			return cache(nFormula, Formula.compose(nFormula.op(), newformulas));
 		}
 	}
@@ -359,9 +359,9 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 				break;
 			}
 
-		// MEnvironment.errorStream.println("NEW REPLACEMENT VISITOR:");
-		// MEnvironment.errorStream.println(pps);
-		// MEnvironment.errorStream.println(vps);
+		// MEnvironment.writeErrLine("NEW REPLACEMENT VISITOR:");
+		// MEnvironment.writeErrLine(pps);
+		// MEnvironment.writeErrLine(vps);
 	}
 
 	public Expression visit(Relation therel) {
@@ -400,8 +400,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 			Expression newrhs = comp.right().accept(this);
 
 			if (!(newlhs instanceof Variable && newrhs instanceof Variable)) {
-				System.err
-						.println("Warning: ComparisonFormula with EQUALS operator with non-Variable children visited: "
+				MEnvironment.writeErrLine("Warning: ComparisonFormula with EQUALS operator with non-Variable children visited: "
 								+ comp);
 				return cache(comp, newlhs.eq(newrhs));
 			}
@@ -410,7 +409,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 				return cache(comp, MFormulaManager.makeEqAtom(
 						(Variable) newlhs, (Variable) newrhs));
 			} catch (MGEManagerException e) {
-				System.err.println(e);
+				MEnvironment.writeErrLine(e);
 				return cache(comp, newlhs.eq(newrhs));
 			}
 
@@ -438,7 +437,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 
 				return cache(comp, MFormulaManager.makeAtom(newlhs, newrhs));
 			} catch (MGEManagerException e) {
-				System.err.println(e);
+				MEnvironment.writeErrLine(e);
 
 				newlhs = comp.left().accept(this);
 				newrhs = comp.right().accept(this);
@@ -463,13 +462,12 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 	private static void runUnitTest(RelationAndVariableReplacementV vrepl,
 			Formula pre, Formula post) {
 		if (!pre.accept(vrepl).toString().equals(post.toString()))
-			MEnvironment.errorStream.println("Error: Expected " + post.toString() + ", got: "
+			MEnvironment.writeErrLine("Error: Expected " + post.toString() + ", got: "
 					+ pre.accept(vrepl).toString());
 	}
 
 	public static void unitTests() {
-		MEnvironment.errorStream
-				.println("----- Begin RelationReplacementV Tests (No messages is good.) -----");
+		MEnvironment.writeErrLine("----- Begin RelationReplacementV Tests (No messages is good.) -----");
 
 		HashMap<Relation, Relation> rtestset = new HashMap<Relation, Relation>();
 		HashMap<Variable, Variable> vtestset = new HashMap<Variable, Variable>();
@@ -492,18 +490,16 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 		oldf.accept(v);
 		if (!oldf.toString().equals(
 				R.intersection(Q).union(P).some().toString()))
-			MEnvironment.errorStream
-					.println("Error in RelationReplacementV test case: visitor is overwriting old reference.");
+			MEnvironment.writeErrLine("Error in RelationReplacementV test case: visitor is overwriting old reference.");
 
 		runUnitTest(v, x.eq(y), y.eq(y));
 
 		oldf = x.eq(y);
 		oldf.accept(v);
 		if (!oldf.toString().equals("(x = y)"))
-			MEnvironment.errorStream
-					.println("Error in VariableReplacementV test case: visitor is overwriting old reference.");
+			MEnvironment.writeErrLine("Error in VariableReplacementV test case: visitor is overwriting old reference.");
 
-		MEnvironment.errorStream.println("----- End RelationReplacementV Tests -----");
+		MEnvironment.writeErrLine("----- End RelationReplacementV Tests -----");
 	}
 }
 
@@ -639,7 +635,7 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 			revIndexing.put(String.valueOf(qCount), d.variable());
 
 
-			// MEnvironment.errorStream.println("Indexed "+String.valueOf(qCount) + " "
+			// MEnvironment.writeErrLine("Indexed "+String.valueOf(qCount) + " "
 			// +d.variable());
 		}
 
@@ -783,7 +779,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		if (cf.op().equals(ExprCompOperator.EQUALS)) {
 			if (!(cf.left() instanceof Variable)
 					|| !(cf.right() instanceof Variable)) {
-				System.err.println("Comparison: " + cf
+				MEnvironment.writeErrLine("Comparison: " + cf
 						+ " must be over variables.");
 				System.exit(1);
 				return cf; // don't know what to do
@@ -816,7 +812,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 																	// predicate
 
 			} catch (MGEBadIdentifierName e) {
-				System.err.println(e);
+				MEnvironment.writeErrLine(e);
 				System.exit(1);
 				return cf; // don't know what to do
 			}
@@ -828,7 +824,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 				cached.add(cf);
 				return cache(cf, newf);
 			} catch (Exception e) {
-				System.err.println(e);
+				MEnvironment.writeErrLine(e);
 				System.exit(1);
 				return cf; // don't know what to do
 			}
@@ -838,7 +834,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		else if (cf.op().equals(ExprCompOperator.SUBSET)) {
 
 			if (!(cf.right() instanceof Relation)) {
-				System.err.println("Comparison: " + cf
+				MEnvironment.writeErrLine("Comparison: " + cf
 						+ " must be vs. a Relation.");
 				System.exit(1);
 				return cf; // fail
@@ -856,13 +852,13 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 						+ MVocab.constructIndexing(
 								(BinaryExpression) cf.left(), pv.indexing);
 			else {
-				System.err.println("Comparison: " + cf + " -- improper LHS.");
+				MEnvironment.writeErrLine("Comparison: " + cf + " -- improper LHS.");
 				System.exit(1);
 				return cf; // don't know what to do
 			}
 
 			if (suffix.equals("_null")) {
-				System.err.println("Bad indexing for " + cf.left());
+				MEnvironment.writeErrLine("Bad indexing for " + cf.left());
 				System.exit(1);
 				return cf; // fail
 			}
@@ -889,7 +885,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 				return cache(cf, newf);
 
 			} catch (Exception e) {
-				System.err.println(e);
+				MEnvironment.writeErrLine(e);
 				System.exit(1);
 				return cf; // don't know what to do
 			}
@@ -897,7 +893,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		}
 
 		// for new features
-		System.err.println("Comparison: " + cf + "; unrecognized operator.");
+		MEnvironment.writeErrLine("Comparison: " + cf + "; unrecognized operator.");
 		System.exit(1);
 		return cf;
 	}
@@ -940,7 +936,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		if (oldvocab.axioms.setsSubset.containsKey(oldpredname))
 			for (String oldparent : oldvocab.axioms.setsSubset
 					.get(oldsort.name)) {
-				// MEnvironment.errorStream.println("***** "+oldparent +" ] "+oldpredname);
+				// MEnvironment.writeErrLine("***** "+oldparent +" ] "+oldpredname);
 				addSortWithSupers(newvocab, oldvocab, oldparent, suffix);
 				newvocab.axioms.addConstraintSubset(oldpredname + suffix,
 						oldparent + suffix);
@@ -1108,12 +1104,12 @@ public class MQuery extends MIDBCollection
 		// Print out the current settings for this query.
 
 		if (mySATFactory.equals(SATFactory.MiniSat))
-			MEnvironment.outStream.println("SATFactory: MiniSAT");
+			MEnvironment.writeOutLine("SATFactory: MiniSAT");
 		else
-			MEnvironment.outStream.println("SATFactory: SAT4j (Default)");
+			MEnvironment.writeOutLine("SATFactory: SAT4j (Default)");
 
-		MEnvironment.outStream.println("SB: " + mySB);
-		MEnvironment.outStream.println("Size ceiling: " + sizeCeiling);
+		MEnvironment.writeOutLine("SB: " + mySB);
+		MEnvironment.writeOutLine("Size ceiling: " + sizeCeiling);
 	}
 
 	private void init(Formula nFormula) throws MGEUnsortedVariable {
@@ -1269,7 +1265,7 @@ public class MQuery extends MIDBCollection
 	 */
 
 	protected void print_query_formula() {
-		MEnvironment.outStream.println(myQueryFormula);
+		MEnvironment.writeOutLine(myQueryFormula.toString());
 	}
 
 	/*
@@ -1306,7 +1302,7 @@ public class MQuery extends MIDBCollection
 			return -1;
 
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream.println("DEBUG: Time (ms) to check for closure: "
+			MEnvironment.writeOutLine("DEBUG: Time (ms) to check for closure: "
 					+ (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
 
@@ -1349,8 +1345,7 @@ public class MQuery extends MIDBCollection
 		}
 
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream
-					.println("DEBUG: Time (ms) to populate maps for FormulaSigInfo: "
+			MEnvironment.writeOutLine("DEBUG: Time (ms) to populate maps for FormulaSigInfo: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
@@ -1359,7 +1354,7 @@ public class MQuery extends MIDBCollection
 		Formula nnf_formula = queryAndQueryAxioms; //.accept(new NNFConverterV());
 
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream.println("DEBUG: Time (ms) to convert to NNF: "
+			MEnvironment.writeOutLine("DEBUG: Time (ms) to convert to NNF: "
 					+ (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
 
@@ -1373,18 +1368,16 @@ public class MQuery extends MIDBCollection
 					new HashSet<SigFunction>(), nnf_formula, sap);
 
 			if (debug_verbosity >= 2) {
-				MEnvironment.outStream
-						.println("DEBUG: Generating a ceiling on necessary model size.");
+				MEnvironment.writeOutLine("DEBUG: Generating a ceiling on necessary model size.");
 			}
 
 			int result = info.getTermCount(); // no params = total
 
 			if (debug_verbosity >= 2) {
 				if (result < 0)
-					MEnvironment.outStream
-							.println("\n DEBUG: Counting terms... infinitely many terms. Detail:");
+					MEnvironment.writeOutLine("\n DEBUG: Counting terms... infinitely many terms. Detail:");
 				else
-					MEnvironment.outStream.println("\n DEBUG: Counting terms... " + result
+					MEnvironment.writeOutLine("\n DEBUG: Counting terms... " + result
 							+ " terms generated. Detail:");
 
 				info.printInfo();
@@ -1477,8 +1470,13 @@ public class MQuery extends MIDBCollection
 
 	public MQueryResult runQuery() throws MGException
 	{
+		
+		// Set to true to enable special tupling debug logging.
+		//boolean timDebugMode = true;
+		boolean timDebugMode = false;
+		
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream.println("DEBUG: Beginning to execute query (runQuery) ");
+			MEnvironment.writeOutLine("DEBUG: Beginning to execute query (runQuery) ");
 
 		if(!tupled)
 		{
@@ -1507,8 +1505,7 @@ public class MQuery extends MIDBCollection
 				myFixedAxioms);
 
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream
-					.println("DEBUG: Time (ms) to get and build axiom formulas: "
+			MEnvironment.writeOutLine("DEBUG: Time (ms) to get and build axiom formulas: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
@@ -1526,15 +1523,14 @@ public class MQuery extends MIDBCollection
 			totalHerbrandMax = 1;
 		else {
 			if (debug_verbosity >= 2)
-				MEnvironment.outStream.println("DEBUG: Getting HU Ceiling. ");
+				MEnvironment.writeOutLine("DEBUG: Getting HU Ceiling. ");
 			totalHerbrandMax = getHerbrandUniverseCeilingFor(MFormulaManager
 					.makeAnd(myQueryFormula, queryAxiomsConjunction),
 					prenexExistential);
 		}
 
 		if (debug_verbosity >= 2)
-			MEnvironment.outStream
-					.println("DEBUG: Time (ms) in getHerbrandUniverseCeilingFor block: "
+			MEnvironment.writeOutLine("DEBUG: Time (ms) in getHerbrandUniverseCeilingFor block: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 		startTime = mxBean.getCurrentThreadCpuTime();
@@ -1549,7 +1545,7 @@ public class MQuery extends MIDBCollection
 
 			startTime = mxBean.getCurrentThreadCpuTime();
 			if (debug_verbosity >= 2)
-				MEnvironment.outStream.println("DEBUG: Pre-tupling block Time: "
+				MEnvironment.writeOutLine("DEBUG: Pre-tupling block Time: "
 						+ (startTime - start) / 1000000);
 
 
@@ -1598,7 +1594,6 @@ public class MQuery extends MIDBCollection
 
 				String internal_idbname = idbname.substring(
 						polName.length() + 1).toLowerCase(); // include :
-				// MREPL.outStream.println(polName + " " + internal_idbname);
 
 				if (!myIDBCollections.containsKey(polName))
 					throw new MGEUnknownIdentifier("Unknown IDB collection: "
@@ -1622,7 +1617,7 @@ public class MQuery extends MIDBCollection
 
 
 			if (debug_verbosity >= 2)
-				MEnvironment.outStream.println("Checked IDB output indexing. Time: "
+				MEnvironment.writeOutLine("Checked IDB output indexing. Time: "
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
 						/ 1000000);
 			startTime = mxBean.getCurrentThreadCpuTime();
@@ -1659,32 +1654,30 @@ public class MQuery extends MIDBCollection
 				// vocab to include new disjointness and new preds.
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Ran prenexcheck. Time: "
+					MEnvironment.writeOutLine("DEBUG: Ran prenexcheck. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream
-							.println("DEBUG: Tupling is allowed and enabled. Starting matrix rewrite. ");
+					MEnvironment.writeOutLine("DEBUG: Tupling is allowed and enabled. Starting matrix rewrite. ");
 
 				MatrixTuplingV mtup = new MatrixTuplingV(pren, vocab);
 				Formula tupledFormula = pren.matrix.accept(mtup);
 
 				if (debug_verbosity >= 3) {
 					// Show what the tupled sorts are in detail.
-					MEnvironment.outStream
-							.println("DEBUG: Tupled sorts that appeared in the query: ");
+					MEnvironment.writeOutLine("DEBUG: Tupled sorts that appeared in the query: ");
 					for (MSort s : mtup.newvocab.sorts.values()) {
 						String childstr = "(TOP!)";
 						if (s.parent != null)
 							childstr = "(PARENT: " + s.parent.name + ")";
-						MEnvironment.outStream.println("  " + s.name + " " + childstr);
+						MEnvironment.writeOutLine("  " + s.name + " " + childstr);
 					}
 				}
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Matrix tupling complete. Time: "
+					MEnvironment.writeOutLine("DEBUG: Matrix tupling complete. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
@@ -1698,10 +1691,12 @@ public class MQuery extends MIDBCollection
 				// equality, so it's ok to use them as keys here.
 				HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV> indexingVisitors = new HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV>();
 
+				
+				
+				
 				// ******************
 				// IDB OUTPUT
 				// ******************
-
 				if (getIDBNamesToOutput().size() > 0)
 				{
 					for (String idbname : getIDBNamesToOutput())
@@ -1755,19 +1750,14 @@ public class MQuery extends MIDBCollection
 								}
 								else
 									idbnameSuffix += ","+iStr;
-							}
+							} // end String iStr : user_indexing
+
+							HashMap<Variable, Variable> newvars = new HashMap<Variable, Variable>();
 
 
-							// <<<<<<< INDENTATION WRONG
-
-
-
-						HashMap<Variable, Variable> newvars = new HashMap<Variable, Variable>();
-
-
-						// MREPL.outStream.println("pren.revIndexing, then user_indexing for idb: "+idbname);
-						// MREPL.outStream.println(pren.revIndexing);
-						// MREPL.outStream.println(user_indexing);
+							// MREPL.outStream.println("pren.revIndexing, then user_indexing for idb: "+idbname);
+							// MREPL.outStream.println(pren.revIndexing);
+							// MREPL.outStream.println(user_indexing);
 
 							int ii = 0;
 							for (Variable v : coll.varOrdering)
@@ -1802,80 +1792,87 @@ public class MQuery extends MIDBCollection
 									newvars.put(v, v2);
 
 								ii++;
-							}
+							} // end Variable v : coll.varOrdering
 
 
-						// ***
-						// Still placeholder vars at this point, just the
-						// correct ones.
-						// It still remains to put this IDB in the context of
-						// the tuple vector.
-						// (Placeholder reqVars need to be replaced with the
-						// quantified vars from the
-						// query. Note that the IDB may not use them all.)
-						if (newvars.size() > 0) // Don't even bother if there's
-												// no replacements to make
-						{
-							RelationAndVariableReplacementV renaming;
-							if (indexingVisitors.containsKey(newvars))
+							// ***
+							// Still placeholder vars at this point, just the
+							// correct ones.
+							// It still remains to put this IDB in the context of
+							// the tuple vector.
+							// (Placeholder reqVars need to be replaced with the
+							// quantified vars from the
+							// query. Note that the IDB may not use them all.)
+							if (newvars.size() > 0) // Don't even bother if there's
+													// no replacements to make
 							{
-								renaming = indexingVisitors.get(newvars);
+								RelationAndVariableReplacementV renaming;
+								if (indexingVisitors.containsKey(newvars))
+								{
+									renaming = indexingVisitors.get(newvars);
+								}
+								else
+								{
+									renaming = new RelationAndVariableReplacementV(
+											new HashMap<Relation, Relation>(),
+											newvars);
+									indexingVisitors.put(newvars, renaming);
+								}
+
+								idbformula = idbformula.accept(renaming);
 							}
-							else
-							{
-								renaming = new RelationAndVariableReplacementV(
-										new HashMap<Relation, Relation>(),
-										newvars);
-								indexingVisitors.put(newvars, renaming);
-							}
 
-							idbformula = idbformula.accept(renaming);
-						}
+							// ***
+							// Use same MatrixTuplingV as we used for the main
+							// formula. (Re-use cached work.)
+							Formula new_idbformula = idbformula.accept(mtup);
+							// MREPL.outStream.println(idbformula);
+							// MREPL.outStream.println(new_idbformula);
 
-						// ***
-						// Use same MatrixTuplingV as we used for the main
-						// formula. (Re-use cached work.)
-						Formula new_idbformula = idbformula.accept(mtup);
-						// MREPL.outStream.println(idbformula);
-						// MREPL.outStream.println(new_idbformula);
+							// Store this new formula for the new query's use.
+							if (!tupledIDBCollections.containsKey(polName))
+								tupledIDBCollections.put(polName,
+										new MInternalIDBCollection(polName,
+												mtup.newvocab));
 
-						// Store this new formula for the new query's use.
-						if (!tupledIDBCollections.containsKey(polName))
-							tupledIDBCollections.put(polName,
-									new MInternalIDBCollection(polName,
-											mtup.newvocab));
+							String new_internal_name = internal_idbname + idbnameSuffix;
 
-						String new_internal_name = internal_idbname + idbnameSuffix;
+ 							indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
 
- 						indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
+ 							tupledIDBCollections.get(polName).idbs.put(new_internal_name, new_idbformula);
 
-						tupledIDBCollections.get(polName).idbs.put(new_internal_name, new_idbformula);
+							//System.err.println("Tupling IDB: "+new_internal_name);
+							//System.err.println(new_idbformula.hashCode());
 
-						//System.err.println("Tupling IDB: "+new_internal_name);
-						//System.err.println(new_idbformula.hashCode());
-
-						//System.err.println(tupledIDBCollections.keySet());
-						//System.err.println(tupledIDBCollections.get(polName).idbs);
-						//System.err.println(new_internal_name);
+							//System.err.println(tupledIDBCollections.keySet());
+							//System.err.println(tupledIDBCollections.get(polName).idbs);
+							//System.err.println(new_internal_name);
 
 
 						} // end for each indexing on this name
 					} // for each idbname to output
 
 				} // if we have idbs to include in output
+				// *********** END IDBOUTPUT ****************
 
+				
+				
+				
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Tupled "
+					MEnvironment.writeOutLine("DEBUG: Tupled "
 							+ getIDBNamesToOutput().size() + " IDBs (possibly >1 indexing per). Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
 
+				
+				
 				// tupled sorts will be in mtup.newvocab
 
 				// Deal with the abstract constraint
 				// For everything abstract in the pre-tupling vocab
+				// 1/28/10 subsort exhaustiveness no longer *required*, but optional 
 				for (String relName : vocab.axioms.setsAbstract) {
 					MSort oldSort = vocab.getSort(relName);
 
@@ -1913,7 +1910,7 @@ public class MQuery extends MIDBCollection
 							}
 
 							if (debug_verbosity >= 3)
-								MEnvironment.outStream.println("DEBUG: Abstract sort "
+								MEnvironment.writeOutLine("DEBUG: Abstract sort "
 										+ relName + " at index " + idxStr
 										+ ": Forced addition of tupled child "
 										+ oldChild.name + "_" + idxStr);
@@ -1929,120 +1926,10 @@ public class MQuery extends MIDBCollection
 				}
 
 
+	
 
-				// 1/28/10 subsort exhaustiveness no longer required. leaving
-				// code commented out!
-				// Instead, do the above
-
-				/*
-				 *
-				 *
-				 * //
-				 * ***********************************************************
-				 * *** // Deal with potential Child-sort exhaustiveness problem
-				 * which // left unfixed, causes a completeness issue. Margrave
-				 * forces parent // sorts to be exhausted by their children.
-				 * Tupling conveniently // (and efficiently) "forgets" about
-				 * sorts that are unmentioned in the // query formula. Imagine
-				 * Naturals > {Evens, Odds} over a formula // that mentions only
-				 * Evens. We still may need to consider models where // Evens
-				 * doesn't hold.
-				 *
-				 * // For each tupled parent sort (P_i), // If all its children
-				 * are included in the tupled signature (C_i), do nothing. // If
-				 * some of its children are missing from the tupled signature,
-				 * lump // them together into one big "otherP_i_CorDorE_only" to
-				 * represent the situation // where P holds, but none of the
-				 * included children FOR THIS INDEX do. // Note: =12 does NOT
-				 * imply otherP_1 <--> otherP_2, since different // subs of P
-				 * may occur for those indices.
-				 *
-				 * // for each TUPLED sort which was included (if not included,
-				 * we don't care) // Key: parent. Value: Set of child sorts not
-				 * included. HashMap<String, Set<String>> noneOfAboves = new
-				 * HashMap<String, Set<String>>();
-				 *
-				 * for(MGSort oldparent : myVocab.sorts.values()) // P {
-				 *
-				 * // How was this sort tupled (if at all)? Set<String>
-				 * newparentnames = mtup.getTupledPredicatesFor(oldparent.name);
-				 *
-				 * //MREPL.outStream.println("::"+oldparent.name +
-				 * " --> "+newparentnames);
-				 *
-				 * for(String newparentname : newparentnames) // P_i { MGSort
-				 * newparent = mtup.newvocab.getSort(newparentname);
-				 *
-				 * String idx =
-				 * newparentname.substring(newparentname.lastIndexOf("_")+1);
-				 *
-				 * // What child sorts would we EXPECT, if all were included?
-				 * Set<String> expected_names = new HashSet<String>();
-				 * for(MGSort oldchild : oldparent.subsorts)
-				 * expected_names.add(oldchild.name + "_" + idx);
-				 *
-				 * // Which of expected did not make it in? (if none, move on.
-				 * If some, lump together.) Set<String> missing = new
-				 * HashSet<String>(expected_names); Set<String> these_appear =
-				 * new HashSet<String>();
-				 *
-				 * for(MGSort newchild : newparent.subsorts)
-				 * these_appear.add(newchild.name);
-				 *
-				 * missing.removeAll(these_appear);
-				 *
-				 * // If we're missing some, but NOT missing all (if missing
-				 * all, can forget about child sorts) if(missing.size() > 0 &&
-				 * these_appear.size() > 0) { // Need to create a
-				 * "none of the above" sort.
-				 *
-				 * try { String missingstr = ""; for(String miss : missing)
-				 * missingstr += "_"+miss;
-				 *
-				 * // The index is in newparentname (e.g., P_1)
-				 * mtup.newvocab.addSubSort(newparentname,
-				 * "other_"+newparentname+":"+missingstr); MGSort newsort =
-				 * mtup.newvocab.getSort("other_"+newparentname+":"+missingstr);
-				 * noneOfAboves.put(newparentname, missing);
-				 *
-				 * // Since it represents
-				 * "none of the appearing childsorts applied", // it must be
-				 * disjoint from them. // (But remember to remove it from the
-				 * list...we just added it after all.) Set<MGSort>
-				 * former_children = new HashSet<MGSort>(newparent.subsorts);
-				 * former_children.remove(newsort);
-				 * mtup.newvocab.axioms.addConstraintDisjoint(newsort,
-				 * former_children);
-				 *
-				 *
-				 * if(this.debug_verbosity >= 3) {
-				 * MREPL.outStream.println("DEBUG: Covering parent sorts...");
-				 * MREPL.outStream
-				 * .println(" "+newparent.name+" was missing: "+missing);
-				 * MREPL.outStream.println("  Added new sort to tupled vocab:" +
-				 * newsort);MREPL.outStream.println(
-				 * "  The new sort is disjoint from everything in: "
-				 * +former_children); } } catch(MGEBadIdentifierName e) { throw
-				 * new MGEBadQueryString(e.toString()); }
-				 *
-				 * }
-				 *
-				 * }
-				 *
-				 *
-				 *
-				 * }
-				 *
-				 * if(debug_verbosity >= 2)MREPL.outStream.println(
-				 * "DEBUG: Child-sort exhaustiveness block done. Time: " +
-				 * (mxBean.getCurrentThreadCpuTime()-startTime)/1000000);
-				 * startTime = mxBean.getCurrentThreadCpuTime();
-				 *
-				 *
-				 * // AFTER THIS POINT, NOT EVERY NEWVOCAB SORT WILL COORISPOND
-				 * TO AN OLDVOCAB ONE! // (none of the above sorts added above.)
-				 */
-
+				
+				
 				// ***************************
 				// Sort of original predicates is respected
 				// If P: AxB, P_1,3(z) ---> A_1(z) and B_3(z)
@@ -2051,17 +1938,22 @@ public class MQuery extends MIDBCollection
 
 				// (No code needed)
 
+				
+				
+				
 				// ***************************
 				// Prefix's sort is respected
-
 				// This is "tupling axioms" or \beta in the doc
-
 				// If we translated forsome x:A | forsome y:B to forsome z:UNIV
 				// it must still hold that A_1(z) and B_2(z)
 				Set<Formula> respected_2 = new HashSet<Formula>();
-				int index = 1;
+				int index = 0;
 				for (String sortname : pren.tupleTypeConstruct.split(" "))
 				{
+					// Always increment, even if a continue is reached.
+					// (Starts with 1, technically)
+					index++;
+					
 					try
 					{
 						//System.err.println("Must assert that "+sortname+" in index "+index);
@@ -2102,29 +1994,33 @@ public class MQuery extends MIDBCollection
 								+ sortname + "_" + index
 								+ " was not created properly.");
 					}
-
-					index++;
-				}
-
+				
+				} // end of for each index's sort				
+				
 				Formula respected_2_fmla = MFormulaManager
 						.makeConjunction(respected_2);
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						respected_2_fmla);
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\nrespected_2_fmla:\n"+respected_2_fmla.toString()+"\n");
+
+				
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream
-							.println("DEBUG: Size of tupling axioms to make prefix sort respected: "
+					MEnvironment.writeOutLine("DEBUG: Size of tupling axioms to make prefix sort respected: "
 									+ measureFullFormulaSize(respected_2_fmla)
 									+ " nodes, "
 									+ measureFormulaReferences(respected_2_fmla)
 									+ " references.");
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Prefix sort respected. Time: "
+					MEnvironment.writeOutLine("DEBUG: Prefix sort respected. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
+				
+				
 				// ***************************************************************
 				// LONE
 				// For each i and j (i != j), and each lone P
@@ -2157,8 +2053,7 @@ public class MQuery extends MIDBCollection
 				// Print warning message for "ONE" vs. "LONE": Tupling doesn't
 				// treat them as different
 				if (vocab.axioms.setsSingleton.size() > 0)
-					MEnvironment.outStream
-							.println("\nWarning: Tupling treats ONE as if it were LONE.\n");
+					MEnvironment.writeOutLine("\nWarning: Tupling treats ONE as if it were LONE.\n");
 
 				long triggerCount = 0;
 
@@ -2182,11 +2077,11 @@ public class MQuery extends MIDBCollection
 						sharedOldPredNames.retainAll(lones);
 
 
-						//MEnvironment.errorStream.println(ii+","+jj);
-						//MEnvironment.errorStream.println(sharedOldPredNames);
-						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
-						//MEnvironment.errorStream.println(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
-						//MEnvironment.errorStream.println();
+						//MEnvironment.writeErrLine(ii+","+jj);
+						//MEnvironment.writeErrLine(sharedOldPredNames);
+						//MEnvironment.writeErrLine(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
+						//MEnvironment.writeErrLine(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
+						//MEnvironment.writeErrLine();
 
 
 						// ^^^ Must appear at index i, index j, and be LONE.
@@ -2261,9 +2156,8 @@ public class MQuery extends MIDBCollection
 									disj_of_triggers, iseq));
 
 							if (debug_verbosity >= 2) {
-								MEnvironment.outStream
-										.println("DEBUG: LONE resulted in ---> ");
-								MEnvironment.outStream.println(disj_of_triggers
+								MEnvironment.writeOutLine("DEBUG: LONE resulted in ---> ");
+								MEnvironment.writeOutLine(disj_of_triggers
 										+ "\n  THEN " + iseq);
 							}
 						}
@@ -2276,13 +2170,16 @@ public class MQuery extends MIDBCollection
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						loneAxiomsFmla);
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\nloneaxiomsfmla:\n"+loneAxiomsFmla.toString()+"\n");
+
+				
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream
-							.println("DEBUG: Number of new equality predicates introduced by LONE: "
+					MEnvironment.writeOutLine("DEBUG: Number of new equality predicates introduced by LONE: "
 									+ iLoneEqCounter);
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: LONE handling. Time: "
+					MEnvironment.writeOutLine("DEBUG: LONE handling. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
@@ -2301,7 +2198,7 @@ public class MQuery extends MIDBCollection
 				}
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Finalized top level sort. Time: "
+					MEnvironment.writeOutLine("DEBUG: Finalized top level sort. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
@@ -2444,16 +2341,19 @@ public class MQuery extends MIDBCollection
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						equalityAxiomsFmla);
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\nequalityAxiomsFmla:\n"+equalityAxiomsFmla.toString()+"\n");
+
+				
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream
-							.println("DEBUG: Size of tupling axioms to deal with express equality: "
+					MEnvironment.writeOutLine("DEBUG: Size of tupling axioms to deal with express equality: "
 									+ measureFullFormulaSize(equalityAxiomsFmla)
 									+ " nodes, "
 									+ measureFormulaReferences(equalityAxiomsFmla)
 									+ " references. " + equalityAxioms.size() + " equality axioms overall.");
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("DEBUG: Equality axioms done. Time: "
+					MEnvironment.writeOutLine("DEBUG: Equality axioms done. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
@@ -2503,8 +2403,7 @@ public class MQuery extends MIDBCollection
 						MSort oldSort = vocab.getSort(oldPredName);
 
 						// sorts disjoint from oldSort in old vocab
-						Set<MSort> oldDisjoints = vocab.axioms.axiomDisjoints
-								.get(oldSort);
+						Set<MSort> oldDisjoints = vocab.axioms.axiomDisjoints.get(oldSort);
 
 						if (oldDisjoints == null)
 							continue;
@@ -2569,9 +2468,15 @@ public class MQuery extends MIDBCollection
 				tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 						eqDisjAxiomsFmla);
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\neqDisjAxiomsfmla:\n"+eqDisjAxiomsFmla.toString()+"\n");
+
 
 				int iTopLevelCount = 0;
 
+				
+				
+				
 				// *********************************
 				//     TOP LEVEL SORTS DISJOINTNESS
 				// If A and B are top level sorts in old vocab, A_i and B_i will
@@ -2589,6 +2494,10 @@ public class MQuery extends MIDBCollection
 					oldtopnames.add(top.name);
 				}
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\noldtopnames:\n"+oldtopnames.toString()+"\n");
+
+				
 				// for each index, the set of those top-sorts w/ that index that
 				// are used are all pairwise disj
 				// {A_1, B_1}, {C_2, D_2, E_2}, etc.)
@@ -2664,19 +2573,24 @@ public class MQuery extends MIDBCollection
 							eqTopLevelDisjAxiomsFmla);
 					iTopLevelCount += eqTopLevelDisjAxioms.size();
 
+					if(timDebugMode)
+						MCommunicator.writeToLog("\n\nTopLevelDisjAxioms (pt2):\n"+eqTopLevelDisjAxiomsFmla.toString()+"\n");
+
+					
 
 				}
 
 
+				
+				
 				if (debug_verbosity >= 2) {
-					MEnvironment.outStream.println("DEBUG: Disjointness. Time: "
+					MEnvironment.writeOutLine("DEBUG: Disjointness. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
-					MEnvironment.outStream.println("    New disjoints: " + iDisjCount);
-					MEnvironment.outStream
-							.println("    Number of secondary eq/disj axioms added: "
+					MEnvironment.writeOutLine("    New disjoints: " + iDisjCount);
+					MEnvironment.writeOutLine("    Number of secondary eq/disj axioms added: "
 									+ eqDisjAxioms.size());
-					MEnvironment.outStream.println("    Number of top-level secondary eq/disj axioms added: "+iTopLevelCount);
+					MEnvironment.writeOutLine("    Number of top-level secondary eq/disj axioms added: "+iTopLevelCount);
 				}
 				startTime = mxBean.getCurrentThreadCpuTime();
 
@@ -2691,7 +2605,7 @@ public class MQuery extends MIDBCollection
 				tupledFormula = MFormulaManager.makeExists(tupledFormula, d);
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("Top sorts done. Time: "
+					MEnvironment.writeOutLine("Top sorts done. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
@@ -2701,6 +2615,9 @@ public class MQuery extends MIDBCollection
 				MQuery tupledQuery = new MQuery(mtup.newvocab, tupledFormula,
 						tupledIDBCollections);
 
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\nTupled query formula:\n"+tupledFormula.toString()+"\n");
+				
 				tupledQuery.mySATFactory = mySATFactory;
 				tupledQuery.tupled = true;
 				tupledQuery.doTupling = false;
@@ -2711,40 +2628,36 @@ public class MQuery extends MIDBCollection
 				tupledQuery.internalTupledQuery = this;
 
 				if (debug_verbosity >= 2)
-					MEnvironment.outStream.println("Tupled query object created. Time: "
+					MEnvironment.writeOutLine("Tupled query object created. Time: "
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
 				if (debug_verbosity >= 2) {
-					MEnvironment.outStream.println("DEBUG: Tupling complete. ");
+					MEnvironment.writeOutLine("DEBUG: Tupling complete. ");
 
 					// Get number of references in the two formulas:
-					MEnvironment.outStream
-							.println("DEBUG: TUPLED FORMULA NODE INSTANCE COUNT ->"
+					MEnvironment.writeOutLine("DEBUG: TUPLED FORMULA NODE INSTANCE COUNT ->"
 									+ measureFormulaReferences(tupledFormula));
-					MEnvironment.outStream
-							.println("DEBUG: ORIGINAL FORMULA NODE INSTANCE COUNT ->"
+					MEnvironment.writeOutLine("DEBUG: ORIGINAL FORMULA NODE INSTANCE COUNT ->"
 									+ measureFormulaReferences(myQueryFormula));
 
 					// Get number of nodes (with repetition) in the two
 					// formulas:
-					MEnvironment.outStream.println("DEBUG: TUPLED FORMULA TOTAL SIZE ->"
+					MEnvironment.writeOutLine("DEBUG: TUPLED FORMULA TOTAL SIZE ->"
 							+ measureFullFormulaSize(tupledFormula));
-					MEnvironment.outStream.println("DEBUG: ORIGINAL FORMULA TOTAL SIZE ->"
+					MEnvironment.writeOutLine("DEBUG: ORIGINAL FORMULA TOTAL SIZE ->"
 							+ measureFullFormulaSize(myQueryFormula));
 
-					MEnvironment.outStream
-							.println("DEBUG: TUPLED Pred Count ->"
+					MEnvironment.writeOutLine("DEBUG: TUPLED Pred Count ->"
 									+ (mtup.newvocab.sorts.size() + mtup.newvocab.predicates
 											.size()));
-					MEnvironment.outStream.println("DEBUG: ORIGINAL Pred Count ->"
+					MEnvironment.writeOutLine("DEBUG: ORIGINAL Pred Count ->"
 							+ (vocab.sorts.size() + vocab.predicates.size()));
-					MEnvironment.outStream
-							.println("DEBUG: (Note that this doesn't distinguish arity: adding binary or larger preds could be far worse even if unary pred count is reduced!");
+					MEnvironment.writeOutLine("DEBUG: (Note that this doesn't distinguish arity: "+
+							"adding binary or larger preds could be far worse even if unary pred count is reduced!");
 
-					MEnvironment.outStream
-							.println("\nDEBUG: Calling runQuery on the new tupled query.");
+					MEnvironment.writeOutLine("\nDEBUG: Calling runQuery on the new tupled query.");
 				}
 
 				tupledQuery.debug_verbosity = debug_verbosity;
@@ -2799,8 +2712,7 @@ public class MQuery extends MIDBCollection
 			maxSizeToCheck = totalHerbrandMax;
 
 		if (debug_verbosity >= 2) {
-			MEnvironment.outStream
-					.println("DEBUG: Preparing Bounds and passing query to Kodkod.");
+			MEnvironment.writeOutLine("DEBUG: Preparing Bounds and passing query to Kodkod.");
 		}
 
 		if (debug_verbosity >= 3) {
@@ -2808,10 +2720,9 @@ public class MQuery extends MIDBCollection
 			// formulas are
 			// anywhere near a decent size
 
-			MEnvironment.outStream.println("Query Formula: " + myQueryFormula);
-			MEnvironment.outStream.println("Fixed Axioms Formula: " + myFixedAxioms);
-			MEnvironment.outStream
-					.println("Query Axioms Formula: " + queryAxiomsConjunction);
+			MEnvironment.writeOutLine("Query Formula: " + myQueryFormula);
+			MEnvironment.writeOutLine("Fixed Axioms Formula: " + myFixedAxioms);
+			MEnvironment.writeOutLine("Query Axioms Formula: " + queryAxiomsConjunction);
 			// MREPL.outStream.println("Complete Formula: "+queryWithAxioms);
 		}
 
@@ -2826,10 +2737,11 @@ public class MQuery extends MIDBCollection
 			cputime = -1;
 
 		if (debug_verbosity >= 1) {
-			MEnvironment.outStream.println("DEBUG: Manager statistics: ");
-			MFormulaManager.printStatistics();
-			MEnvironment.outStream.println("Returning Solutions object; time so far:");
-			MEnvironment.outStream.println("Preprocessing: " + msPreprocessingTime
+			// TODO -- freezing somehow?
+			//MEnvironment.writeOutLine("DEBUG: Manager statistics: ");
+			//MFormulaManager.printStatistics();
+			MEnvironment.writeOutLine("Returning Solutions object; time so far:");
+			MEnvironment.writeOutLine("Preprocessing: " + msPreprocessingTime
 					+ "ms, Tupling: " + msTuplingTime
 					+ "ms, pre-Kodkod query processing time: " + cputime
 					+ "ms.");
@@ -3615,7 +3527,7 @@ public class MQuery extends MIDBCollection
 			MSolutionInstance aSolution, MInstanceIterator solnSet)
 	{
 		String result = getPrettyPrintForSolution(localVocab, aSolution, solnSet);
-		MEnvironment.outStream.println(result);
+		MEnvironment.writeOutLine(result);
 	}
 
 	protected String getPrettyPrintForSolution(MVocab localVocab,
@@ -3865,19 +3777,19 @@ public class MQuery extends MIDBCollection
 			initialtime = mx.getCurrentThreadCpuTime();
 
 		// help separate different query results
-		MEnvironment.outStream.println();
+		MEnvironment.writeOutLine();
 
 		if (max_to_print > -1)
-			MEnvironment.outStream.println("  [[ Printing a maximum of " + max_to_print
+			MEnvironment.writeOutLine("  [[ Printing a maximum of " + max_to_print
 					+ " models. Additional results will be ignored. ]]");
 		else
-			MEnvironment.outStream.println("  [[ Printing all models. ]]");
+			MEnvironment.writeOutLine("  [[ Printing all models. ]]");
 
 		MInstanceIterator it = runQuery().getTotalIterator();
 
-		MEnvironment.outStream.println("============================================================");
+		MEnvironment.writeOutLine("============================================================");
 		if (!it.hasNext())
-			MEnvironment.outStream.println("* Query was unsatisfiable for the model sizes checked. *");
+			MEnvironment.writeOutLine("* Query was unsatisfiable for the model sizes checked. *");
 
 		while (it.hasNext() && ((max_to_print == -1) || (max_to_print > 0)))
 		{
@@ -3936,19 +3848,19 @@ public class MQuery extends MIDBCollection
 		String pluralpmod = "s";
 
 		if (counter == 1)
-			MEnvironment.outStream.println("\n1 solution" + pmod
+			MEnvironment.writeOutLine("\n1 solution" + pmod
 					+ " found at model sizes up to " + it.fromResult.get_universe_max()
 					+ ".");
 		else
-			MEnvironment.outStream.println("\n" + counter + " solution" + pmod + pluralpmod
+			MEnvironment.writeOutLine("\n" + counter + " solution" + pmod + pluralpmod
 					+ " found at model sizes up to " + it.fromResult.get_universe_max()
 					+ ".");
 
 		if (it.fromResult.get_hu_ceiling() > -1)
-			MEnvironment.outStream.println("(HU ceiling was " + it.fromResult.get_hu_ceiling()
+			MEnvironment.writeOutLine("(HU ceiling was " + it.fromResult.get_hu_ceiling()
 					+ " atoms.)");
 		else
-			MEnvironment.outStream.println("(HU was infinite.)");
+			MEnvironment.writeOutLine("(HU was infinite.)");
 
 		if (it.warn_user()) {
 			MEnvironment.outStream
@@ -3965,21 +3877,21 @@ public class MQuery extends MIDBCollection
 
 			long timeused = (mx.getCurrentThreadCpuTime() - initialtime) / 1000000;
 
-			MEnvironment.outStream.println("\nTotal Time Kodkod spent on translation: "
+			MEnvironment.writeOutLine("\nTotal Time Kodkod spent on translation: "
 					+ it.msKodkodTransTime + " ms, and solving: "
 					+ it.msKodkodSolveTime + " ms.");
-			MEnvironment.outStream.println("CPU Time to prepare Margrave Query: "
+			MEnvironment.writeOutLine("CPU Time to prepare Margrave Query: "
 					+ it.fromResult.msQueryCreationTime + " ms.");
 			MEnvironment.outStream
 					.println("CPU Time spent getting solutions from KodKod (not including I/O): "
 							+ (timeused - timeforoutput) + " ms.");
 		}
 		if (stats != null) {
-			MEnvironment.outStream.println("Kodkod's statistics: ");
-			MEnvironment.outStream.println(stats);
+			MEnvironment.writeOutLine("Kodkod's statistics: ");
+			MEnvironment.writeOutLine(stats);
 
 		}
-		MEnvironment.outStream.println("Used SAT Solver: " + mySATFactory);
+		MEnvironment.writeOutLine("Used SAT Solver: " + mySATFactory);
 		MEnvironment.outStream
 				.println("============================================================");
 	}*/
@@ -4081,7 +3993,7 @@ public class MQuery extends MIDBCollection
 				if(underscoreIndex >= 0)
 					preunderscore = r.name().substring(0, underscoreIndex);
 
-				//MEnvironment.errorStream.println("******"+preunderscore);
+				//MEnvironment.writeErrLine("******"+preunderscore);
 
 				if(getIDBNamesToOutput().contains(preunderscore)) // this is the pre-tupling query's set
 				{
@@ -4176,8 +4088,7 @@ public class MQuery extends MIDBCollection
 
 	static public void unitTest() throws MGException
 	{
-		MEnvironment.errorStream
-				.println("----- Begin MGQuery Tests (No messages is good.) -----");
+		MEnvironment.writeErrLine("----- Begin MGQuery Tests (No messages is good.) -----");
 
 		Variable x = MFormulaManager.makeVariable("x");
 		Variable y = MFormulaManager.makeVariable("y");
@@ -4205,28 +4116,28 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		MQuery test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 2a failed!");
+			MEnvironment.writeErrLine("Test 2a failed!");
 
 		// Test for other multiplicities that induce existentials (one)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.one());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 2b failed!");
+			MEnvironment.writeErrLine("Test 2b failed!");
 
 		// Test for lone (doesn't induce an existential.)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.lone());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != 0)
-			MEnvironment.errorStream.println("Test 2c failed!");
+			MEnvironment.writeErrLine("Test 2c failed!");
 
 		// Test for no (doesn't induce an existential.)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.no());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().get_hu_ceiling() != 0)
-			MEnvironment.errorStream.println("Test 2d failed!");
+			MEnvironment.writeErrLine("Test 2d failed!");
 
 		// So is this (explicit quantifier)
 		// (Formula.TRUE here was causing an exception, whereas something like
@@ -4236,21 +4147,21 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		MQuery test3 = new MQuery(f, env);
 		if (test3.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 3 failed!");
+			MEnvironment.writeErrLine("Test 3 failed!");
 
 		// Test multiple ground terms
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.one());
 		MQuery test4 = new MQuery(f, env);
 		if (test4.runQuery().get_hu_ceiling() != 1) // should filter out the
 													// .one
-			MEnvironment.errorStream.println("Test 4a failed!");
+			MEnvironment.writeErrLine("Test 4a failed!");
 
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.some()).or(
 				Formula.TRUE.forSome(x.oneOf(sort1)));
 		test4 = new MQuery(f, env);
 		if (test4.runQuery().get_hu_ceiling() != 2) // prunes out the .some, but
 													// still two exists
-			MEnvironment.errorStream.println("Test 4b failed!");
+			MEnvironment.writeErrLine("Test 4b failed!");
 
 		// *********************************************************************************
 		// *********************************************************************************
@@ -4289,14 +4200,14 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		MQuery test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5a failed!");
+			MEnvironment.writeErrLine("Test 5a failed!");
 
 		// f:A->B, x:B. One atom.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 5b failed!");
+			MEnvironment.writeErrLine("Test 5b failed!");
 
 		// f:A->B, x:B y:B. Two atoms.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
@@ -4304,7 +4215,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z2.oneOf(sort2)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5c failed!");
+			MEnvironment.writeErrLine("Test 5c failed!");
 
 		// f:A->B, x:B, y:B, z:A. Four atoms.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
@@ -4313,7 +4224,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z3.oneOf(sort1)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 4)
-			MEnvironment.errorStream.println("Test 5d failed!");
+			MEnvironment.writeErrLine("Test 5d failed!");
 
 		// Special cases:
 
@@ -4321,20 +4232,20 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 0)
-			MEnvironment.errorStream.println("Test 5e failed!");
+			MEnvironment.writeErrLine("Test 5e failed!");
 
 		// F:subA->A same as above.
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 0)
-			MEnvironment.errorStream.println("Test 5f failed!");
+			MEnvironment.writeErrLine("Test 5f failed!");
 
 		// Unproductive function and a constant
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 5g failed!");
+			MEnvironment.writeErrLine("Test 5g failed!");
 
 		// f:subA->A. x:subA. subA <= A.
 		// Constant in subA is also in A. (same term, don't double count)
@@ -4343,14 +4254,14 @@ public class MQuery extends MIDBCollection
 				sort1a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5h failed!");
+			MEnvironment.writeErrLine("Test 5h failed!");
 
 		// f:A->subA. x:A. (inf; f obviously cyclic)
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 5i failed!");
+			MEnvironment.writeErrLine("Test 5i failed!");
 
 		// f:A->subA x:subA. (inf; f obviously cyclic, and subA is a subtype of
 		// A.)
@@ -4359,7 +4270,7 @@ public class MQuery extends MIDBCollection
 				sort1a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 5j failed!");
+			MEnvironment.writeErrLine("Test 5j failed!");
 
 		// cycle detection with overlapping types
 		// Sort2a and Sort2b may overlap! No disjoint constraint.
@@ -4370,7 +4281,7 @@ public class MQuery extends MIDBCollection
 				sort2a.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5k failed!");
+			MEnvironment.writeErrLine("Test 5k failed!");
 
 		// f:Sort2a->Sort2b. x:2b. Func is unproductive. Only 1 term (the
 		// constant)
@@ -4378,14 +4289,14 @@ public class MQuery extends MIDBCollection
 				sort2b.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 5l failed!");
+			MEnvironment.writeErrLine("Test 5l failed!");
 
 		// f:Sort2a->Sort2b. x:2. Another unproductive function.
 		f = x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 5m failed!");
+			MEnvironment.writeErrLine("Test 5m failed!");
 
 		// make sure we have distinct functions even if declared identically.
 		// one level of "identity"
@@ -4393,7 +4304,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		test5 = new MQuery(f, env);
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5n failed!");
+			MEnvironment.writeErrLine("Test 5n failed!");
 
 		// what if we have more than one level of identity? Make sure we get 2
 		// atoms...
@@ -4414,18 +4325,18 @@ public class MQuery extends MIDBCollection
 		test5 = new MQuery(f, env);
 		// test5.debug_verbosity = 3;
 		if (test5.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 5o failed!");
+			MEnvironment.writeErrLine("Test 5o failed!");
 
 		// Term ids in the above must be *different*
 		// TODO convert this test?
 		/*
 		 * WalkASTForFunctionsV vis = new WalkASTForFunctionsV(env);
 		 * Set<FuncStruct> funcs = f.accept(new NNFConverterV()).accept(vis);
-		 * //for(FuncStruct fx : funcs) // MEnvironment.errorStream.println(fx.getID());
+		 * //for(FuncStruct fx : funcs) // MEnvironment.writeErrLine(fx.getID());
 		 * List<FuncStruct> lfuncs = new ArrayList<FuncStruct>(funcs);
 		 * if(lfuncs.size() != 2 ||
 		 * lfuncs.get(0).getID().equals(lfuncs.get(1).getID()))
-		 * MEnvironment.errorStream.println("Test 5p (unique identifiers) failed!");
+		 * MEnvironment.writeErrLine("Test 5p (unique identifiers) failed!");
 		 */
 
 		// *********************************************************************************
@@ -4468,7 +4379,7 @@ public class MQuery extends MIDBCollection
 				sort2.some()).and(sort2bx.some());
 		MQuery test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 6a failed!");
+			MEnvironment.writeErrLine("Test 6a failed!");
 
 		// Non-infinite with non trivial function combinations
 		// f:1->2c. g:2c->2b. x:1 y:2 -- 2 constants, both funcs productive
@@ -4480,7 +4391,7 @@ public class MQuery extends MIDBCollection
 				sort1.some()).and(sort2.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 4)
-			MEnvironment.errorStream.println("Test 6b failed!");
+			MEnvironment.writeErrLine("Test 6b failed!");
 
 		// f:1->2c. g:2a->2b. x:1
 		// g is unproductive. only 2 terms
@@ -4489,7 +4400,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 6c failed!");
+			MEnvironment.writeErrLine("Test 6c failed!");
 
 		// Cycle of longer length
 		// f:1->2a, g:2a->2c h:2c->1 x:1 (inf)
@@ -4499,7 +4410,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 6d failed!");
+			MEnvironment.writeErrLine("Test 6d failed!");
 
 		// Test more exotic multiplicity locations
 
@@ -4510,33 +4421,33 @@ public class MQuery extends MIDBCollection
 				sort2bx.some()).and(sort1.lone());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 6e failed!");
+			MEnvironment.writeErrLine("Test 6e failed!");
 
 		// not no
 		// not no(1) -- should give us 1 atom.
 		f = sort1.no().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 6f failed!");
+			MEnvironment.writeErrLine("Test 6f failed!");
 
 		// not lone -- should give us two atoms
 		f = sort1.lone().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 6g failed!");
+			MEnvironment.writeErrLine("Test 6g failed!");
 
 		// not one -- same thing (since terms are generated worst-case)
 		f = sort1.one().not();
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 6h failed!");
+			MEnvironment.writeErrLine("Test 6h failed!");
 
 		// not one encased in a universal -- two functions induced. Add a ground
 		// term and should get *2* plus that ground.
 		f = sort1.one().not().forAll(x.oneOf(sort2)).and(sort2.one());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().get_hu_ceiling() != 3)
-			MEnvironment.errorStream.println("Test 6i failed!");
+			MEnvironment.writeErrLine("Test 6i failed!");
 
 		// We use the hash code of the nodes (Decl, not the variable!) to
 		// simulate alpha renaming.
@@ -4548,7 +4459,7 @@ public class MQuery extends MIDBCollection
 		test6 = new MQuery(f, env);
 		// test6.debug_show_all_formula = true;
 		if (test6.runQuery().get_hu_ceiling() != 3)
-			MEnvironment.errorStream.println("Test 6j (simulated alpha renaming) failed!");
+			MEnvironment.writeErrLine("Test 6j (simulated alpha renaming) failed!");
 
 		// *********************************************************************************
 		// Same vocab as before, but with a custom predicate constrained to be a
@@ -4596,14 +4507,14 @@ public class MQuery extends MIDBCollection
 				sort2.some());
 		MQuery test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 7a failed!");
+			MEnvironment.writeErrLine("Test 7a failed!");
 
 		// Since 2axx <= 2, infinitely many terms
 		f = x.eq(y).forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2)).and(
 				sort2.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 7b failed!");
+			MEnvironment.writeErrLine("Test 7b failed!");
 
 		// Harmless
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort2b)).and(
@@ -4611,7 +4522,7 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 7c failed!");
+			MEnvironment.writeErrLine("Test 7c failed!");
 
 		// Make sure that "coverage" logic works correctly
 		// Not yet in.
@@ -4619,7 +4530,7 @@ public class MQuery extends MIDBCollection
 		// .and(sort2.one()).and(sort1.one());
 		// test7 = new MGQuery(f, env);
 		// if(test7.runQuery().get_hu_ceiling() != 2)
-		// MEnvironment.errorStream.println("Test 7d failed!");
+		// MEnvironment.writeErrLine("Test 7d failed!");
 
 		// We have a total function constraint -- F: 1 -> 2
 		// We have a formula inducing G: 2 -> 1
@@ -4629,14 +4540,14 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 7e failed!");
+			MEnvironment.writeErrLine("Test 7e failed!");
 
 		// But don't be overeager (no starter term)
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2));
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 0)
-			MEnvironment.errorStream.println("Test 7e(1) failed!");
+			MEnvironment.writeErrLine("Test 7e(1) failed!");
 
 		// 2 "one"s in the same sort. We want to be smart enough to detect that
 		// they cover
@@ -4645,7 +4556,7 @@ public class MQuery extends MIDBCollection
 		f = sort1.one().and(sort1.one());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 7f failed!");
+			MEnvironment.writeErrLine("Test 7f failed!");
 
 		// Don't want to count 2 explicit existentials as covering each other!
 		// (Only multiplicities with
@@ -4655,14 +4566,14 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(y.oneOf(sort1)));
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 4)
-			MEnvironment.errorStream.println("Test 7g failed!");
+			MEnvironment.writeErrLine("Test 7g failed!");
 
 		// Sub coverage
 		f = sort2.one().and(sort2a.one());
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
 		if (test7.runQuery().get_hu_ceiling() != 1)
-			MEnvironment.errorStream.println("Test 7h failed!");
+			MEnvironment.writeErrLine("Test 7h failed!");
 
 		// Cycles caused by interaction between a total function and something
 		// else.
@@ -4674,7 +4585,7 @@ public class MQuery extends MIDBCollection
 				sort1.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != -1)
-			MEnvironment.errorStream.println("Test 7i failed!");
+			MEnvironment.writeErrLine("Test 7i failed!");
 
 		// functions induced by "total function" constraints look like this:
 		// fFC1_4579880([sort1]): sort2
@@ -4690,7 +4601,7 @@ public class MQuery extends MIDBCollection
 				sort2cx.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 3)
-			MEnvironment.errorStream.println("Test 8a failed!");
+			MEnvironment.writeErrLine("Test 8a failed!");
 
 		// But add 2axx subset of 2bxx, and they must be disjoint.
 
@@ -4704,11 +4615,11 @@ public class MQuery extends MIDBCollection
 		test7 = new MQuery(f, env);
 		// test7.debug_verbosity = 2;
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 8b failed!");
+			MEnvironment.writeErrLine("Test 8b failed!");
 
-		// MEnvironment.errorStream.println(env.buildSuperSetSet(env.getType("sort2axx")));
-		// MEnvironment.errorStream.println(env.buildSuperSetSet(env.getType("sort2cx")));
-		// MEnvironment.errorStream.println(env.setsSubset.get("sort2axx"));
+		// MEnvironment.writeErrLine(env.buildSuperSetSet(env.getType("sort2axx")));
+		// MEnvironment.writeErrLine(env.buildSuperSetSet(env.getType("sort2cx")));
+		// MEnvironment.writeErrLine(env.setsSubset.get("sort2axx"));
 
 		// *OR* add new type 2d, with 2axx < 2d < 2b, and they must be disjoint.
 		// (Test multi-subset)
@@ -4722,7 +4633,7 @@ public class MQuery extends MIDBCollection
 				.and(sort2cx.some());
 		test7 = new MQuery(f, env);
 		if (test7.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 8c failed!");
+			MEnvironment.writeErrLine("Test 8c failed!");
 
 		// *********************************************************************************
 		// Tests to make sure use of sort names as predicates doesn't break
@@ -4759,7 +4670,7 @@ public class MQuery extends MIDBCollection
 				z.in(sort2).forSome(z.oneOf(sort1)));
 		MQuery test9 = new MQuery(f, env);
 		if (test9.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 9a failed!");
+			MEnvironment.writeErrLine("Test 9a failed!");
 
 		// Same thing, using subsorts (this is really the same test as 9a,
 		// actually?)
@@ -4768,9 +4679,9 @@ public class MQuery extends MIDBCollection
 				z.in(sort1b).forSome(z.oneOf(sort1a)));
 		test9 = new MQuery(f, env);
 		if (test9.runQuery().get_hu_ceiling() != 2)
-			MEnvironment.errorStream.println("Test 9b failed!");
+			MEnvironment.writeErrLine("Test 9b failed!");
 
-		MEnvironment.errorStream.println("----- End MGQuery Tests -----");
+		MEnvironment.writeErrLine("----- End MGQuery Tests -----");
 
 		/*
 		 * Relation A = Relation.unary("A"); Formula testf =
@@ -4786,11 +4697,11 @@ public class MQuery extends MIDBCollection
 		 *
 		 *
 		 * try { Translation t = Translator.translate(testf, b, opt);
-		 * MEnvironment.errorStream.println(t.numPrimaryVariables());
+		 * MEnvironment.writeErrLine(t.numPrimaryVariables());
 		 * Iterator<TranslationRecord> it = t.log().replay();
-		 * while(it.hasNext()) { MEnvironment.errorStream.println(it.next()); }
-		 * MEnvironment.errorStream.println(t.log()); } catch(Exception e) {
-		 * MEnvironment.errorStream.println(e); }
+		 * while(it.hasNext()) { MEnvironment.writeErrLine(it.next()); }
+		 * MEnvironment.writeErrLine(t.log()); } catch(Exception e) {
+		 * MEnvironment.writeErrLine(e); }
 		 */
 
 	}
@@ -4977,8 +4888,8 @@ public class MQuery extends MIDBCollection
 			prefixVarOrder.add(v.name());
 		}
 
-		//MEnvironment.errorStream.println("Temp debug info: "+qryFormula);
-		//MEnvironment.errorStream.println(prefixVarOrder);
+		//MEnvironment.writeErrLine("Temp debug info: "+qryFormula);
+		//MEnvironment.writeErrLine(prefixVarOrder);
 
 		Collections.reverse(prefixVarOrder);
 
@@ -5018,7 +4929,7 @@ public class MQuery extends MIDBCollection
 				}
 				catch(MGEArityMismatch e)
 				{
-					MEnvironment.errorStream.println(e);
+					MEnvironment.writeErrLine(e.getLocalizedMessage());
 					return null;
 				}
 			}
@@ -5043,7 +4954,7 @@ public class MQuery extends MIDBCollection
 
 		MEnvironment.setLast(result);
 
-		// MEnvironment.errorStream.println("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
+		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 
 		// TODO: Question of leaving existentials bound in the query. Not the
 		// same as RESTRICT TO
@@ -5059,8 +4970,8 @@ public class MQuery extends MIDBCollection
 			Map<Variable, Expression> freeVars) throws MGEBadIdentifierName,
 			MGEUnknownIdentifier {
 		// MREPL.outStream.println(mpc.assertPossible);
-		// MEnvironment.errorStream.println(mpc.assertNecessary);
-		// MEnvironment.errorStream.println(mpc.assertAtomicNecessary);
+		// MEnvironment.writeErrLine(mpc.assertNecessary);
+		// MEnvironment.writeErrLine(mpc.assertAtomicNecessary);
 
 		// Stopping compilation because something is wrong here.
 		//dfadsf;
@@ -5071,7 +4982,7 @@ public class MQuery extends MIDBCollection
 		for (List<Variable> varvector : toDo)
 		{
 
-//			MEnvironment.errorStream.println("Checking for: "+varvector);
+//			MEnvironment.writeErrLine("Checking for: "+varvector);
 
 			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
 					.get(varvector);
@@ -5089,7 +5000,7 @@ public class MQuery extends MIDBCollection
 				freeVars.put(v, Expression.UNIV);
 				MSort runningSort = null;
 
-				//MEnvironment.errorStream.println("var: "+v);
+				//MEnvironment.writeErrLine("var: "+v);
 
 				for (MVariableVectorAssertion a : allNecessary) {
 					// TODO
@@ -5097,7 +5008,7 @@ public class MQuery extends MIDBCollection
 					// there is more inference we could do, but skipping for
 					// now.
 
-					//MEnvironment.errorStream.println("assertion: "+a);
+					//MEnvironment.writeErrLine("assertion: "+a);
 
 					if (!a.positive)
 						continue;
@@ -5121,8 +5032,8 @@ public class MQuery extends MIDBCollection
 							// (need to check grandchildren etc. Also use subset constraints.)
 							// If not, ignore
 
-							//MEnvironment.errorStream.println("SUB? --- "+runningSort.subsorts);
-							//MEnvironment.errorStream.println(theSort);
+							//MEnvironment.writeErrLine("SUB? --- "+runningSort.subsorts);
+							//MEnvironment.writeErrLine(theSort);
 							if(voc.isSubOrSubOf(theSort, runningSort))
 							{
 								runningSort = theSort;

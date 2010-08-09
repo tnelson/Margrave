@@ -578,13 +578,17 @@ public class MFormulaManager
 	 */
 	public static void printStatistics()
 	{
-		MEnvironment.errorStream.println(getStatisticsString());
+		String statsString = getStatisticsString();
+		//MCommunicator.writeToLog("\nGot stats string.");
+		//MCommunicator.writeToLog(statsString);
+		MEnvironment.writeErrLine(statsString);
+		
 	}
 	public static String getStatisticsString()
 	{
 		if(!hasBeenInitialized)
 			initialize();
-		
+				
 		StringBuffer theResult = new StringBuffer();
 				
 		theResult.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"); theResult.append(MEnvironment.eol);
@@ -624,7 +628,7 @@ public class MFormulaManager
 
 		theResult.append("MemoryMXBean statistics (non-heap):");	 theResult.append(MEnvironment.eol);	
 		theResult.append(memoryBean.getNonHeapMemoryUsage()); theResult.append(MEnvironment.eol);
-		
+
 		long lReclaimed = 
 			someMultiplicities.countReclaimed +
         noMultiplicities.countReclaimed +
@@ -641,9 +645,9 @@ public class MFormulaManager
         existsFormulas.countReclaimed;
 		
 		theResult.append("\nTotal references (Formulas, Variables, Decls, etc.) reclaimed over the life of this Manager: "+lReclaimed); theResult.append(MEnvironment.eol);
-                
 		
 		theResult.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"); theResult.append(MEnvironment.eol);
+		MCommunicator.writeToLog("\nOk at this point");
 		
 		return theResult.toString();
 	}
@@ -1024,7 +1028,7 @@ public class MFormulaManager
 			else
 			{
 				neg = null;
-				System.err.println("Unsupported Formula type: "+f.getClass());
+				MEnvironment.writeErrLine("Unsupported Formula type: "+f.getClass());
 				System.exit(1);
 			}
 			
@@ -1044,7 +1048,7 @@ public class MFormulaManager
 		}
 		catch(MGEManagerException e)
 		{
-			System.err.println("Unexpected Manager exception in makeNegation: "+e);
+			MEnvironment.writeErrLine("Unexpected Manager exception in makeNegation: "+e);
 			System.exit(1);
 		}
 
@@ -1070,7 +1074,7 @@ public class MFormulaManager
 		case OR:
 			return MFormulaManager.makeConjunction(newformulas);
 		default:
-			System.err.println("Warning: NaryFormula operator "
+			MEnvironment.writeErrLine("Warning: NaryFormula operator "
 					+ within.op() + " not supported.");
 			System.exit(1);
 		}
@@ -1415,15 +1419,15 @@ public class MFormulaManager
 	
 	static void printAtoms(String substr)
 	{
-		MEnvironment.errorStream.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 		if(substr.length() < 1)
-			MEnvironment.errorStream.println("All atomic formulas known to the manager:");
+			MEnvironment.writeErrLine("All atomic formulas known to the manager:");
 		else
-			MEnvironment.errorStream.println("All atomic formulas known to the manager (containing the substring "+substr+"):");
+			MEnvironment.writeErrLine("All atomic formulas known to the manager (containing the substring "+substr+"):");
 		for(Formula f : atomFormulas.values())
 			if(substr.length() < 1 || f.toString().contains(substr))
-				MEnvironment.errorStream.println(f + ": "+f.hashCode());
-		MEnvironment.errorStream.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+				MEnvironment.writeErrLine(f + ": "+f.hashCode());
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	}
 
 	static void clearAll()
@@ -1458,7 +1462,7 @@ public class MFormulaManager
 		// WeakReferences because of race conditions.
 		
 		Variable var = vars.get(varname);
-		//MEnvironment.errorStream.println("Searching for "+varname+" got "+var);
+		//MEnvironment.writeErrLine("Searching for "+varname+" got "+var);
 		return var != null;		
 	}
 

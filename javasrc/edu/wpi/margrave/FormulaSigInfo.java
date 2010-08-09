@@ -792,7 +792,7 @@ public class FormulaSigInfo
 		Set<SigFunction> results = fmla.accept(walker);
 		if(walker.error)
 		{
-			System.err.println(walker.error_condition);
+			MEnvironment.writeErrLine(walker.error_condition);
 			throw new UnsupportedFormulaException(walker.error_condition);
 		}
 		
@@ -996,7 +996,7 @@ public class FormulaSigInfo
 			Stack<LeafExpression> thispath = new Stack<LeafExpression>();
 			
 			doSortDFS(arcs, takenArcs, canUseRealFunction, curr, todo, finitary, thispath);
-			//MEnvironment.errorStream.println("DFS complete. Unknown remaining: "+todo);
+			//MEnvironment.writeErrLine("DFS complete. Unknown remaining: "+todo);
 		}			
 		
 		finitarySorts.clear();
@@ -1024,11 +1024,11 @@ public class FormulaSigInfo
 		optionsExplore.removeAll(optionsDefer);
 		
 		
-		//MEnvironment.errorStream.println("curr = "+curr);
-		//MEnvironment.errorStream.println("optionsExplore = "+optionsExplore);
-		//MEnvironment.errorStream.println("optionsDefer = "+optionsDefer);
-		//MEnvironment.errorStream.println("thispath = "+thispath);
-		//MEnvironment.errorStream.println();
+		//MEnvironment.writeErrLine("curr = "+curr);
+		//MEnvironment.writeErrLine("optionsExplore = "+optionsExplore);
+		//MEnvironment.writeErrLine("optionsDefer = "+optionsDefer);
+		//MEnvironment.writeErrLine("thispath = "+thispath);
+		//MEnvironment.writeErrLine();
 		
 		List<LeafExpression> optionsInOrder = new ArrayList<LeafExpression>(optionsExplore.size() + optionsDefer.size());
 		optionsInOrder.addAll(optionsExplore);
@@ -1057,7 +1057,7 @@ public class FormulaSigInfo
 			
 			if(thispath.contains(next))
 			{
-				//MEnvironment.errorStream.println("Detected thispath contained next: "+next+" thispath: "+thispath);
+				//MEnvironment.writeErrLine("Detected thispath contained next: "+next+" thispath: "+thispath);
 				
 				// TODO efficiency: don't need to check ENTIRE stack, right? Could also carry an array of booleans?
 				
@@ -1094,7 +1094,7 @@ public class FormulaSigInfo
 			// (if not, go ahead and follow)
 			if(taintedCycle)
 			{		
-				//System.err.println("Cycle w/ real function! "+thispath + " top: "+thispath.peek());
+				//MEnvironment.writeErrLine("Cycle w/ real function! "+thispath + " top: "+thispath.peek());
 				
 				todo.remove(curr);
 				return false;
@@ -1102,13 +1102,13 @@ public class FormulaSigInfo
 			else
 			{
 
-				//MEnvironment.errorStream.println("recursing from "+curr+" to "+next);				
+				//MEnvironment.writeErrLine("recursing from "+curr+" to "+next);				
 				
 				thispath.push(curr); // leave a trail of breadcrumbs
 				boolean safe = doSortDFS(arcs, takenArcs, canUseRealFunction, next, todo, finitary, thispath);
 				thispath.pop(); // eat the breadcrumbs on the way back
 				
-				//MEnvironment.errorStream.println("safe: "+safe+", next="+next);
+				//MEnvironment.writeErrLine("safe: "+safe+", next="+next);
 				
 				// Found an infinitary sort that flows into curr. curr is infinitary, too.
 				if(!safe)
@@ -1122,7 +1122,7 @@ public class FormulaSigInfo
 		// Only reach this point if all reachable sorts have been shown finitary.
 		// (This is because we explore before deferring, above)
 		
-		//MEnvironment.errorStream.println("safe: "+curr+"; options were: "+optionsExplore +" and "+optionsDefer +" in order: "+optionsInOrder+", stack was: "+thispath);
+		//MEnvironment.writeErrLine("safe: "+curr+"; options were: "+optionsExplore +" and "+optionsDefer +" in order: "+optionsInOrder+", stack was: "+thispath);
 		finitary.add(curr);
 		todo.remove(curr);
 		return true;
@@ -1199,7 +1199,7 @@ public class FormulaSigInfo
 				// Populate
 				totals[0][sortsInOrder.get(pop).intValue()] =
 					totals[0][sortsInOrder.get(pop).intValue()].add(BigInteger.ONE);
-				//MEnvironment.errorStream.println("Populated: "+pop);
+				//MEnvironment.writeErrLine("Populated: "+pop);
 
 				
 				// Propagate (<=) -- don't duplicate!
@@ -1212,7 +1212,7 @@ public class FormulaSigInfo
 					totals[0][sortsInOrder.get(r).intValue()] = 
 						totals[0][sortsInOrder.get(r).intValue()].add(BigInteger.ONE);
 					
-					//MEnvironment.errorStream.println("Propagated: "+pop);
+					//MEnvironment.writeErrLine("Propagated: "+pop);
 					countedIn.add(r); 
 				} // end for each sort to propagate
 
@@ -1268,10 +1268,10 @@ public class FormulaSigInfo
 						
 						if(!finitarySorts.contains(f.arity.get(icol)))
 						{
-							MEnvironment.errorStream.println("Error: "+f+"\n"+finitarySorts);
-							MEnvironment.errorStream.println(toPopulate); // 0 is in toPopulate. why? Because we have a coercion function... then why isn't 0 infinitary?
-							MEnvironment.errorStream.println(sapFunctions);
-							MEnvironment.errorStream.println(productiveFunctions);
+							MEnvironment.writeErrLine("Error: "+f+"\n"+finitarySorts);
+							MEnvironment.writeErrLine(toPopulate.toString()); // 0 is in toPopulate. why? Because we have a coercion function... then why isn't 0 infinitary?
+							MEnvironment.writeErrLine(sapFunctions.toString());
+							MEnvironment.writeErrLine(productiveFunctions.toString());
 							System.exit(1);							
 						}
 						// icol is indexing by position in arity list. Sort ordering is different.
@@ -1627,7 +1627,7 @@ public class FormulaSigInfo
 	
 	public void printInfo()
 	{
-		MEnvironment.errorStream.println(getInfoString());
+		MEnvironment.writeErrLine(getInfoString());
 	}
 			
 	public String getInfoString()

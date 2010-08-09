@@ -194,7 +194,7 @@
         #f)
       (begin 
         ; Comment out to disable printing XML commands as they are sent
-        ; (printf "M SENDING XML: ~a;~n" cmd)
+         ;(printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML (DO NOT COMMENT THIS OUT)
         ; ******************************************

@@ -149,8 +149,8 @@ class MTotalInstanceIterator extends MInstanceIterator
 				
 				if(fromResult.forQuery.debug_verbosity > 1)
 				{
-					MEnvironment.outStream.println("DEBUG: Beginning a new Kodkod solution iterator. Translation time for this iterator was: " + sol.stats().translationTime());
-					MEnvironment.outStream.println("       TOTAL translation time so far for this query: ");
+					MEnvironment.writeOutLine("DEBUG: Beginning a new Kodkod solution iterator. Translation time for this iterator was: " + sol.stats().translationTime());
+					MEnvironment.writeOutLine("       TOTAL translation time so far for this query: ");
 				}
 				newKodkodIterator = false;
 			}
@@ -192,7 +192,7 @@ class MTotalInstanceIterator extends MInstanceIterator
 		f = makeBounds(u, f, qryBounds);
 				
 		if(fromResult.forQuery.debug_verbosity >= 2)
-			MEnvironment.outStream.println("DEBUG: Time (ms) to create bounds and finalize IDB collections: " + (mxBean.getCurrentThreadCpuTime()-start)/1000000);
+			MEnvironment.writeOutLine("DEBUG: Time (ms) to create bounds and finalize IDB collections: " + (mxBean.getCurrentThreadCpuTime()-start)/1000000);
 		
 		Iterator<Solution> sols = qrySolver.solveAll(f, qryBounds);
 		
@@ -508,7 +508,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		// the two approaches differ in subtle ways. Leaving the "duplicate" code for now. - TN
 		
 		if(fromResult.forQuery.debug_verbosity > 1)
-    		MEnvironment.outStream.println("Getting UN-populated relations at size "+atSize);
+    		MEnvironment.writeOutLine("Getting UN-populated relations at size "+atSize);
 				
 		if(cases.size() == 0)
 			cases.add("");
@@ -543,7 +543,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			
 		
 		if(fromResult.forQuery.debug_verbosity > 1)
-    		MEnvironment.outStream.println("Stats: "+theTranslation.numPrimaryVariables() +" primary vars. " + theSolver.numberOfClauses() +" clauses." );
+    		MEnvironment.writeOutLine("Stats: "+theTranslation.numPrimaryVariables() +" primary vars. " + theSolver.numberOfClauses() +" clauses." );
 		
 		// Which variables mean a populated relation?
 		Set<Integer> lookForTheseVars = new HashSet<Integer>();
@@ -610,7 +610,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 	        		if(caseClause.length == 0)
 	        		{        	
 	        			if(fromResult.forQuery.debug_verbosity > 1)
-	            			MEnvironment.outStream.println("DEBUG: case clause was empty. Moving on.");
+	            			MEnvironment.writeOutLine("DEBUG: case clause was empty. Moving on.");
 	            					
 	    				result.put(aCase, new HashSet<String>(candidates));
 	    				continue; // next case        			
@@ -626,7 +626,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
     				{
     					// If adding that clause caused a contradiction, the case is impossible. Nothing can get populated.
     					if(fromResult.forQuery.debug_verbosity > 1)
-                			MEnvironment.outStream.println("DEBUG: case led to a contradiction.");
+                			MEnvironment.writeOutLine("DEBUG: case led to a contradiction.");
 
     					result.put(aCase, new HashSet<String>(candidates));
     					continue; // next case
@@ -639,7 +639,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 				}
         	        		        	
         	if(fromResult.forQuery.debug_verbosity > 1)
-        		MEnvironment.outStream.println("DEBUG: UNPOPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
+        		MEnvironment.writeOutLine("DEBUG: UNPOPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
         				". SAT4j constraint count = "+realSolver.nConstraints());        
         	
         	result.put(aCase, internalUnpopulated(candidates, caseClause, realSolver, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
@@ -680,7 +680,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
         	//      this variable be true? (i.e., R populated by tuple t)
         	        	
 			if(fromResult.forQuery.debug_verbosity > 1)
-        		MEnvironment.outStream.println("DEBUG: Trying unit clause for var: "+theVar);
+        		MEnvironment.writeOutLine("DEBUG: Trying unit clause for var: "+theVar);
      		
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
@@ -721,7 +721,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 				IntSet toRemove = theTranslation.primaryVariables(r);
 				
 				if(fromResult.forQuery.debug_verbosity > 1)
-					MEnvironment.outStream.println("Found "+theVar+" true; rel was: "+r.name()+" and all vars for it were: "+toRemove);
+					MEnvironment.writeOutLine("Found "+theVar+" true; rel was: "+r.name()+" and all vars for it were: "+toRemove);
 				
 				// REMOVE 
 				// (1) The relation for this var from results
@@ -788,7 +788,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		final int numPrimaryVariables = theTranslation.numPrimaryVariables();
 	
 		if(fromResult.forQuery.debug_verbosity > 1)
-    		MEnvironment.outStream.println("Stats: "+theTranslation.numPrimaryVariables() +" primary vars. " + theSolver.numberOfClauses() +" clauses." );
+    		MEnvironment.writeOutLine("Stats: "+theTranslation.numPrimaryVariables() +" primary vars. " + theSolver.numberOfClauses() +" clauses." );
 
 		
 		// Which variables mean a populated relation?
@@ -856,7 +856,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
             		if(caseClause.length == 0)
             		{        	
             			if(fromResult.forQuery.debug_verbosity > 1)
-                			MEnvironment.outStream.println("DEBUG: case clause was empty. Moving on.");
+                			MEnvironment.writeOutLine("DEBUG: case clause was empty. Moving on.");
                 					
         				result.put(aCase, new HashSet<String>());
         				continue; // next case        			
@@ -872,7 +872,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
         			{
         				// If adding that clause caused a contradiction, the case is impossible. Nothing can get populated.
         				if(fromResult.forQuery.debug_verbosity > 1)
-                			MEnvironment.outStream.println("DEBUG: case led to a contradiction.");
+                			MEnvironment.writeOutLine("DEBUG: case led to a contradiction.");
                 					
         				result.put(aCase, new HashSet<String>());
         				continue; // next case
@@ -886,7 +886,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
         		}
         		
         		if(fromResult.forQuery.debug_verbosity > 1)
-        			MEnvironment.outStream.println("DEBUG: POPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
+        			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
         					". SAT4j Constraint count = "+realSolver.nConstraints());
         	        	
         		result.put(aCase, internalPopulated(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
@@ -923,7 +923,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			//MEnvironment.errorStream.println("New clause: "+Arrays.toString(newClause));
 
 			if(fromResult.forQuery.debug_verbosity > 1)
-        		MEnvironment.outStream.println("DEBUG: Checking sat with clause "+Arrays.toString(newClause));
+        		MEnvironment.writeOutLine("DEBUG: Checking sat with clause "+Arrays.toString(newClause));
         	
 			IConstr toRemove = null;
 			
@@ -983,7 +983,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			}
 			
 			if(fromResult.forQuery.debug_verbosity > 1)
-				MEnvironment.outStream.println("DEBUG: Satisfiable. Adding to result.");
+				MEnvironment.writeOutLine("DEBUG: Satisfiable. Adding to result.");
 			
 			// return not just those that are true, but all for nonempty relations
 			addPopulatedToListAndTrimGoals(solver, theTranslation, numPrimaryVariables, mapCandidateRels, result, lookForTheseVars);
@@ -1097,7 +1097,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 		//MEnvironment.errorStream.println(nonTrivialBounds);
 		
 		if(qr.forQuery.debug_verbosity > 1)
-			MEnvironment.outStream.println("DEBUG: Translation to CNF complete. Time: "+msKodkodTransTime + " ms.");
+			MEnvironment.writeOutLine("DEBUG: Translation to CNF complete. Time: "+msKodkodTransTime + " ms.");
 		
 	}
 	
@@ -1170,7 +1170,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			}
 		
 			//if(counts[clausenum] > 1)
-			MEnvironment.outStream.println("Clause "+clausenum+" was "+ clause+" and had count "+counts[clausenum]);
+			MEnvironment.writeOutLine("Clause "+clausenum+" was "+ clause+" and had count "+counts[clausenum]);
 			
 			clausenum++;
 		}
@@ -1207,7 +1207,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			if(!theSolver.valueOf(iVar))
 				literal = literal * (-1);
 			
-			MEnvironment.outStream.println("Literal: "+literal+" was in clauses: "+literalToClauses.get(literal));
+			MEnvironment.writeOutLine("Literal: "+literal+" was in clauses: "+literalToClauses.get(literal));
 			
 			boolean canRemove = true;
 			for(int c: literalToClauses.get(literal))
@@ -1225,11 +1225,11 @@ class MPartialInstanceIterator extends MInstanceIterator
 			
 		}
 		
-		MEnvironment.outStream.println("@@@@@ Don't cares were: ");
+		MEnvironment.writeOutLine("@@@@@ Don't cares were: ");
 		for(int iVar=1;iVar<=numPrimaryVariables;iVar++)
 			if(dontCares[iVar])
 				MEnvironment.outStream.print(iVar + " ");
-		MEnvironment.outStream.println();
+		MEnvironment.writeOutLine("");
 		
 		// TODO to optimize speed, could store some of these values we are calculating (like vars -> clauses map) and expand each call
 		
@@ -1257,7 +1257,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 			
 			IntSet vars = theTranslation.primaryVariables(r);
 			
-			MEnvironment.outStream.println("Relation "+r+" had primary vars: "+vars);
+			MEnvironment.writeOutLine("Relation "+r+" had primary vars: "+vars);
 			
 			if (vars!=null)
 			{
@@ -1281,9 +1281,9 @@ class MPartialInstanceIterator extends MInstanceIterator
 			resultDontCares.add(r, f.setOf(r.arity(), dcIndices));
 		}
 		
-		MEnvironment.outStream.println("@@@@@@@");
-		MEnvironment.outStream.println(resultInstance);
-		MEnvironment.outStream.println(resultDontCares);
+		MEnvironment.writeOutLine("@@@@@@@");
+		MEnvironment.writeOutLine(resultInstance.toString());
+		MEnvironment.writeOutLine(resultDontCares.toString());
 		
 		
 		// *********************************************
@@ -1585,7 +1585,7 @@ class CNFSpy implements SATSolver
     	int iClause = 0;
     	for(MIntArrayWrapper aClause : clauses)
     	{
-    		MEnvironment.outStream.println("Clause "+iClause+": "+Arrays.toString(aClause.getArray()));
+    		MEnvironment.writeOutLine("Clause "+iClause+": "+Arrays.toString(aClause.getArray()));
     		iClause++;    			
     	}
     }
@@ -2117,7 +2117,7 @@ public abstract class MInstanceIterator
 			
 			if(fromResult.forQuery.debug_verbosity > 1)
 			{
-				MEnvironment.outStream.println("DEBUG: IDB output bi-implications created. There were "+impSet.size()+" of them.");
+				MEnvironment.writeOutLine("DEBUG: IDB output bi-implications created. There were "+impSet.size()+" of them.");
 			}
 			
 			impSet.add(f); // f and imp1 and imp2 and ...

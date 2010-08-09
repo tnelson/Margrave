@@ -391,6 +391,8 @@ public class MEnvironment
 	
 	// BOTH are System.err because out is reserved for XML communication.
 	// DO NOT set outStream to System.out
+	// DO NOT directly println to these streams without flushing.
+	// Use the MEnvironment.writeErrLine (etc.) functions.
 	protected static PrintStream errorStream = System.err;
 	protected static PrintStream outStream = System.err;
 	
@@ -433,7 +435,37 @@ public class MEnvironment
 	// Used in exception output
 	static String lastCommandReceived = "";
 
-		
+	// Functions to send immediately: don't run out of space. 
+	// Writing too much without flushing seems to interfere 
+	// with the XML protocol.
+	static public void writeOutLine(Object str)
+	{
+		outStream.println(str);
+		outStream.flush();
+	}
+	static public void writeOut(Object str)
+	{
+		outStream.print(str);
+		outStream.flush();
+	}
+	
+	static public void writeErrLine(Object str)
+	{
+		errorStream.println(str);
+		if(errorStream.checkError())
+			MCommunicator.writeToLog("\n\nerrorStream Error: ");
+		errorStream.flush();
+		if(errorStream.checkError())
+			MCommunicator.writeToLog("\n\nerrorStream Error: ");
+	}
+	static public void writeErr(Object str)
+	{
+		errorStream.print(str);
+		errorStream.flush();
+	}
+	
+	
+	
 	static MIDBCollection getPolicyOrView(String str)
 	{
 		
