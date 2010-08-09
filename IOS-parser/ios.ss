@@ -1004,12 +1004,11 @@
           (,dest-port-in src-port-in))))
     ))
 
-;; extended-ACE-TCP/flags% : number boolean address port address port symbol
+;; extended-ACE-TCP/flags% : number boolean address port address port (listof symbol)
 ;;   Represents an extended ACE for TCP with flags
 (define extended-ACE-TCP/flags%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
-    (init line-number permit source-addr source-port dest-addr dest-port)
-    (init-field flags)
+    (init line-number permit source-addr source-port dest-addr dest-port flags)
     (super-make-object line-number permit source-addr 'tcp source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
@@ -1018,10 +1017,14 @@
     (inherit-field dest-addr-in)
     (inherit-field dest-port-in)
     
+    (define flag-conditions (map (λ (flag)
+                                   `(,flag flag))
+                                 flags))
+    
     ;; (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
     (define/override (rule additional-conditions)
-      (super rule (cons `(,flags flags) additional-conditions)))
+      (super rule (append flag-conditions additional-conditions)))
     ))
 
 ;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port
@@ -3384,7 +3387,6 @@
                  (disjoint-all Protocol)
                  (disjoint-all Port)
                  (disjoint-all ICMPMessage)
-                 (disjoint-all Flags)
                  (disjoint-all Length)
                  (atmostone-all Interface)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
@@ -3403,48 +3405,7 @@
                  (nonempty Flags)
                  (nonempty Length))))
 
-(define TCP-flags '(NONE
-                    SYN
-                    SYN-ACK
-                    SYN-ACK-FIN
-                    SYN-ACK-FIN-PSH
-                    SYN-ACK-FIN-PSH-URG
-                    SYN-ACK-FIN-PSH-URG-RST
-                    SYN-FIN
-                    SYN-FIN-PSH
-                    SYN-FIN-PSH-URG
-                    SYN-FIN-PSH-URG-RST
-                    SYN-PSH
-                    SYN-PSH-URG
-                    SYN-PSH-URG-RST
-                    SYN-URG
-                    SYN-URG-RST
-                    SYN-RST
-                    ACK
-                    ACK-FIN
-                    ACK-FIN-PSH
-                    ACK-FIN-PSH-URG
-                    ACK-FIN-PSH-URG-RST
-                    ACK-PSH
-                    ACK-PSH-URG
-                    ACK-PSH-URG-RST
-                    ACK-URG
-                    ACK-URG-RST
-                    ACK-RST
-                    FIN
-                    FIN-PSH
-                    FIN-PSH-URG
-                    FIN-PSH-URG-RST
-                    FIN-URG
-                    FIN-URG-RST
-                    FIN-RST
-                    PSH
-                    PSH-URG
-                    PSH-URG-RST
-                    PSH-RST
-                    URG
-                    URG-RST
-                    RST))
+(define TCP-flags '(NONE SYN ACK FIN PSH URG RST))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Policy Generation

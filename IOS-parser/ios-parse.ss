@@ -694,7 +694,7 @@
 
 ;; number symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list8 line name disposition src-addr src-port dest-addr dest-port line-tokens config)
-  (foldl (λ (flag-atom result-config)
+  (foldl (λ (flag result-config)
            (send result-config
                  insert-ACE
                  name
@@ -705,63 +705,36 @@
                    src-port
                    dest-addr
                    dest-port
-                   flag-atom)))
+                   `(,flag))))
          config
-         (match-any-flags line-tokens '())))
+         (match-flags line-tokens)))
 
 ;; number symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list9 line name disposition src-addr src-port dest-addr dest-port line-tokens config)
-  (foldl (λ (flag-atom result-config)
-           (send result-config
-                 insert-ACE
-                 name
-                 (make-object extended-ACE-TCP/flags%
-                   line
-                   (eqv? disposition 'permit)
-                   src-addr
-                   src-port
-                   dest-addr
-                   dest-port
-                   flag-atom)))
-         config
-         (match-all-flags line-tokens TCP-flags)))
+  (send config
+        insert-ACE
+        name
+        (make-object extended-ACE-TCP/flags%
+          line
+          (eqv? disposition 'permit)
+          src-addr
+          src-port
+          dest-addr
+          dest-port
+          (match-flags line-tokens))))
 
-;; (listof any) (listof any) -> (listof symbol)
-(define (match-any-flags line-tokens result)
-  (cond [(empty? line-tokens)
-         (if (empty? result)
-             '(NONE)
-             (remove-duplicates result))]
-        [else
-         (let* [(flag-token (symbol->string (first line-tokens)))
-                (include (char=? (string-ref flag-token 0) #\+))
-                (flag (string-upcase (substring flag-token 1)))]
-           (match-any-flags (rest line-tokens)
-                            (append result
-                                    (filter (λ (flag-atom)
-                                              (let [(match (regexp-match flag (symbol->string flag-atom)))]
-                                                (if include
-                                                    match
-                                                    (not match))))
-                                            TCP-flags))))]))
-
-;; (listof any) (listof any) -> (listof symbol)
-(define (match-all-flags line-tokens result)
-  (cond [(empty? line-tokens)
-         (if (empty? result)
-             '(NONE)
-             result)]
-        [else
-         (let* [(flag-token (symbol->string (first line-tokens)))
-                (include (char=? (string-ref flag-token 0) #\+))
-                (flag (string-upcase (substring flag-token 1)))]
-           (match-all-flags (rest line-tokens)
-                            (filter (λ (flag-atom)
-                                      (let [(match (regexp-match flag (symbol->string flag-atom)))]
-                                        (if include
-                                            match
-                                            (not match))))
-                                    result)))]))
+;; (listof any) -> (listof (listof symbol))
+(define (match-flags line-tokens)
+  (if (empty? line-tokens)
+      '(NONE)
+      (map (λ (line-token)
+             (let* [(line-token-text (symbol->string line-token))
+                    (include (char=? (string-ref line-token-text 0) #\+))
+                    (flag (string->symbol (string-upcase (substring line-token-text 1))))]
+               (if include
+                   flag
+                   (string->symbol (string-append "!" (symbol->string flag))))))
+           line-tokens)))
 
 ;; number symbol symbol (listof symbol) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list-evaluate line name reflect-name line-tokens config)
