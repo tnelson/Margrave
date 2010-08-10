@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt" "apply-model.rkt")
+(require "visualize.rkt" "netgraph.rkt" "controls.rkt" "modelgraph.rkt" "apply-model.rkt" "visxml.rkt")
 (require "../../margrave.rkt" xml "../../margrave-xml.rkt")
 
 (define icon-accept (make-object bitmap% "../images/icon_accept.png"))
@@ -30,19 +30,28 @@
 (load-policy (build-path "tests" "inboundnat_fw1.p"))
 (load-policy (build-path "tests" "inboundnat_fw2.p"))
 
-(mtext "EXPLORE inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) OR
-inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) AND
-inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)
-AND managerpc(ipsrc)")
-; AND fw2int(interface) AND fw1dmz(interminterface) AND otherports(portsrc) AND port80(portdest)
-;AND tcp(pro) AND outsideips(ipdest)
-;(mtext "")
-(mtext "GET ONE 0")
+(mtext "EXPLORE (inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) OR
+(inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) AND
+inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)))
+AND fw2int(interf) AND fw1dmz(interminterface) AND managerpc(ipsrc) AND otherports(portsrc) AND port80(portdest) AND tcp(pro) AND outsideips(ipdest) TUPLING
+IDBOUTPUT inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
+inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
+inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)")
 
-(define mr (document-element (mtext "GET NEXT 0")))
+(write-xml (mtext "GET ONE 0"))
+
+(define mr (document-element (mtext "GET ONE 0")))
+
+
+;(define mr #f)
 (stop-margrave-engine)
 
-(define mod (if (equal? (get-attribute-value mr 'type) "model") mr #f)) 
+(define kws (make-hash))
+(hash-set! kws 'ipsrc "ipsrc")
+
+(define mod (new mg-model% [xml (get-child-element mr 'model)] [keyword-map kws]))
+
+(get-child-element (first (get-child-elements (get-child-element mr 'model) 'relation)) 'tuple)
 
 ; My stuff
 ; Make a netgraph
@@ -58,16 +67,7 @@ AND managerpc(ipsrc)")
 (define h3 (new pos-netgraph-node% [name "Empl 3"] [type 'host] [x 20] [y 260]))
 (define h4 (new pos-netgraph-node% [name "Contr 1"] [type 'host] [x 20] [y 380]))
 (define h5 (new pos-netgraph-node% [name "Contr 2"] [type 'host] [x 20] [y 500]))
-(define h6 (new pos-netgraph-node% [name "Manager"] [type 'host] [x 20] [y 620]))
-
-
-;(define subng (new netgraph%))
-;(define sn1 (new pos-netgraph-node% [name "Sub1"] [x 50] [y 150]))
-;(define sn2 (new pos-netgraph-node% [name "Sub2"] [x 250] [y 50]))
-;(send subng add-node! sn1)
-;(send subng add-node! sn2)
-;(send subng add-edge! sn1 sn2)
-;(send n1 set-subgraph! subng)
+(define h6 (new pos-netgraph-node% [name "managerpc"] [type 'host] [x 20] [y 620]))
 
 (send myng add-node! s1)
 (send myng add-node! s2)

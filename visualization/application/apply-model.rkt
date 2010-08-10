@@ -2,12 +2,19 @@
 
 (provide mg-model% apply-model apply-model/pos)
 
-(require "modelgraph.rkt")
+(require "modelgraph.rkt" "visxml.rkt" xml "../../margrave-xml.rkt")
+
+(define (check-src-dest xml name label)
+  (and (element? xml)
+  (and (symbol=? (element-name xml) 'RELATION)
+   (and (string=? (get-attribute-value xml 'name) name)
+        (string=? (get-pc-data (get-child-element (get-child-element xml 'tuple) 'atom)) label)))))
 
 (define mg-model%
   (class object%
     (init-field
      [keyword-map (make-hash)]
+     [xml #f]
      )
     
     ; Returns the list of policy decisions made by that entity or empty
@@ -21,11 +28,13 @@
     
     ; Returns true if the supplied entity is the src host
     (define/public (is-src? entname)
-      #f)
+      (ormap (lambda (x) (check-src-dest x entname (hash-ref keyword-map 'ipsrc))) (element-content xml)))
     
     ; Returns true if the supplied entity is the desination
     (define/public (is-dest? entname)
-      #f)
+      (ormap (lambda (x) (check-src-dest x entname (hash-ref keyword-map 'ipdest))) (element-content xml)))
+    
+    (super-new)
     ))
 
 ; Helper functions for apply-model
@@ -69,23 +78,24 @@
               )])
     (begin 
       (hash-set! nodemap n newnode)
+      (print (send model is-src? (send n get-name)))
       newnode)))
 
 ; Consumes a netgraph and a model
 ; Returns a modelgraph with the model details applied to the nodes and edges
 (define (apply-model ng model)
   (let ( [nodemap (make-hash)] )
-     (_apply-model ng model
-                   (lambda (n) (convert-node n model nodemap)) 
-                   (lambda (e) (convert-edge e model nodemap)))))
+    (_apply-model ng model
+                  (lambda (n) (convert-node n model nodemap)) 
+                  (lambda (e) (convert-edge e model nodemap)))))
 
 ; Consumes a netgraph (with positional nodes) and a model
 ; Returns a modelgraph with position data on the nodes
 (define (apply-model/pos ng model)
   (let ( [nodemap (make-hash)] )  
-     (_apply-model ng model
-                   (lambda (n) (convert-node/pos n model nodemap)) 
-                   (lambda (e) (convert-edge e model nodemap)))))
+    (_apply-model ng model
+                  (lambda (n) (convert-node/pos n model nodemap)) 
+                  (lambda (e) (convert-edge e model nodemap)))))
 
 ; Helper for apply-model functions
 (define (_apply-model ng model nf ef)
