@@ -1352,6 +1352,7 @@ public class FormulaSigInfo
 	public static void unitTests() 
 	throws UnsupportedFormulaException, NotASortException
 	{
+		MEnvironment.writeErrLine("----- Begin FormulaSigInfo Tests (No messages is good.) -----");
 		LeafExpression Sort1 = Relation.unary("Sort1");
 		LeafExpression Sort2 = Relation.unary("Sort2");;
 		
@@ -1585,6 +1586,7 @@ public class FormulaSigInfo
 		// It seems as if these "noCondition" functions never go beyond arity 0?
 		// (Double-check in Alloy book. If so, prevent application of \forall to them in WalkAST)
 		
+		MEnvironment.writeErrLine("----- End FormulaSigInfo Tests -----");	
 	}
 	
 	// ------------- Interface ----------------

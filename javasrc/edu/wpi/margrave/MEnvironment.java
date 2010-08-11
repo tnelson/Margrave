@@ -449,18 +449,14 @@ public class MEnvironment
 		outStream.flush();
 	}
 	
-	static public void writeErrLine(Object str)
-	{
-		errorStream.println(str);
-		if(errorStream.checkError())
-			MCommunicator.writeToLog("\n\nerrorStream Error: ");
+	static public void writeErrLine(Object obj)
+	{					
+		errorStream.println(obj);
 		errorStream.flush();
-		if(errorStream.checkError())
-			MCommunicator.writeToLog("\n\nerrorStream Error: ");
 	}
-	static public void writeErr(Object str)
+	static public void writeErr(Object obj)
 	{
-		errorStream.print(str);
+		errorStream.print(obj);
 		errorStream.flush();
 	}
 	

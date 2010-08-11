@@ -715,28 +715,41 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 	}
 }
 
-class MatrixTuplingV extends AbstractCacheAllReplacer {
-	// Translate matrix (existential case only).
+class MatrixTuplingV extends AbstractCacheAllReplacer
+{
+	// Visitor to translate a formula to its tupled analogue.
+	// (No axioms are added, caller is responsible for adding
+	//  the necessary tupling axioms.)
 
+	// pre-tupling vocabulary
+	public MVocab oldvocab;
+	
 	// New vocabulary. Visitor will add new sorts as needed.
-	// Same sort structure as before duplicated pren.qCount times.
+	// Same sort structure as before duplicated (at most) pren.qCount times.
 	// E.g., where A < B before, now A_1 < B_1, A_2 < B_2, and so on.
 	public MVocab newvocab;
-	public MVocab oldvocab;
+	
+	// The new variable (usually "z")
 	public Variable newvar;
+	
+	// Set of equality predicates that we created
 	public Set<String> equalAxiomsNeeded;
 
 	// Used privately to get information about this formula's prefix
 	protected PrenexCheckV pv;
 
-	// Store that P became P_1, P_2, and P_4.
-	// (Applies for BOTH sorts and state preds)
-	HashMap<String, Set<String>> tupledPredicates;
+	// Store that (e.g.) P became P_1, P_2, and P_4, R became R_2,3,5, etc.
+	// Applies for BOTH sorts and ordindary predicates
+	HashMap<String, Set<String>> cachePredicateToIndexings;
 
 	// ii -> { old pred names we tupled with index ii }
-	HashMap<String, Set<String>> oldPredNamesTupledWithIndex;
+	// In case the indexing is >1-ary, ii is the string "i_1, ..., i_n"
+	// e.g. R_1,2,3 induces "1,2,3" ---> { R, <and possibly others>}
+	HashMap<String, Set<String>> cacheIndexingToPredicates;
 
-	MatrixTuplingV(PrenexCheckV pren, MVocab old) {
+	MatrixTuplingV(PrenexCheckV pren, MVocab old) 
+	throws MGEBadIdentifierName // should never occur, but just in case
+	{
 		super(new HashSet<Node>());
 
 		oldvocab = old;
@@ -744,54 +757,61 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		newvar = MFormulaManager.makeVariable("z");
 		equalAxiomsNeeded = new HashSet<String>();
 
-		// All of them
+		// FOR NOW, all equality predicates. 
+		// TODO: no need to model i=j if their sorts are always disjoint
 		for (int ileft = 1; ileft <= pren.qCount; ileft++)
-			for (int iright = ileft + 1; iright <= pren.qCount; iright++) {
+			for (int iright = ileft + 1; iright <= pren.qCount; iright++)
+			{
 				String name = "=_" + ileft + "," + iright;
 				equalAxiomsNeeded.add(name);
-				try {
-					newvocab.addPredicate(name, pren.tupleTypeName);
-				} catch (MGEBadIdentifierName e) {
-
-				}
+				newvocab.addPredicate(name, pren.tupleTypeName);
 			}
 
 
-		tupledPredicates = new HashMap<String, Set<String>>();
-		oldPredNamesTupledWithIndex = new HashMap<String, Set<String>>();
-		for (int index = 1; index <= pren.qCount; index++)
-			oldPredNamesTupledWithIndex.put(String.valueOf(index),
-					new HashSet<String>());
+		cachePredicateToIndexings = new HashMap<String, Set<String>>();
+		cacheIndexingToPredicates = new HashMap<String, Set<String>>();
+		
+		// Since we tuple any arity predicate, cannot initialize cacheIndexingToPredicates
+		// for each index. Instead, check on use below.
 
+		
 		pv = pren;
 
-		// New top-level sort is created after this visitor runs.
+		// New top-level sort is created AFTER this visitor runs.
 		// Not elegant, but avoids problem of A < B < C
+		
 	}
 
-	public Formula visit(ComparisonFormula cf) {
+	Formula tuplingFail(Formula fmla, String msg)
+	{
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		MEnvironment.writeErrLine(msg);
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		System.exit(2);
+		return fmla; // don't know what to do
+	}
+	
+	public Formula visit(ComparisonFormula cf)
+	{
 		if (cache.containsKey(cf))
 			return lookup(cf);
 
 		Formula newf;
 
 		// EQUAL: var1 = var2.
-		if (cf.op().equals(ExprCompOperator.EQUALS)) {
-			if (!(cf.left() instanceof Variable)
-					|| !(cf.right() instanceof Variable)) {
-				MEnvironment.writeErrLine("Comparison: " + cf
-						+ " must be over variables.");
-				System.exit(1);
-				return cf; // don't know what to do
+		if (cf.op().equals(ExprCompOperator.EQUALS)) 
+		{
+			if (!(cf.left() instanceof Variable) || !(cf.right() instanceof Variable))
+			{
+				return tuplingFail(cf, "Comparison: " + cf + " must be over variables.");	
 			}
 
 			int leftidx = pv.indexing.get(cf.left());
 			int rightidx = pv.indexing.get(cf.right());
 
 			// Have we already seen these, just in reverse order? (Equality is
-			// symmetric; don't
-			// create an =21 predicate when we've already seen and created =12.)
-
+			// symmetric; don't create an =21 predicate when we've already seen 
+			// and created =12.)
 			String reverse_predname = "=_" + rightidx + "," + leftidx;
 			if (equalAxiomsNeeded.contains(reverse_predname)) {
 				// Swap!
@@ -805,89 +825,86 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 
 			// Add equality axioms for this new predicate -- AFTER all
 			// the new predicates are generated!
+			// [[[ Already added in constructor, but it's a set so leaving in - TN]]]
 			equalAxiomsNeeded.add(predname);
 
-			try {
-				newvocab.addPredicate(predname, pv.tupleTypeName); // add new
-																	// predicate
-
-			} catch (MGEBadIdentifierName e) {
-				MEnvironment.writeErrLine(e);
-				System.exit(1);
-				return cf; // don't know what to do
+			// Add the new predicate
+			try 
+			{
+				newvocab.addPredicate(predname, pv.tupleTypeName);																	
+			} catch (MGEBadIdentifierName e) 
+			{
+				return tuplingFail(cf, e.getLocalizedMessage());
 			}
 
-			try {
+			// Construct =_i,j(z) and return it instead of x_i=x_j
+			try 
+			{
 				Relation newrel = newvocab.getRelation(predname);
 				newf = MFormulaManager.makeAtom(newvar, newrel);
 
 				cached.add(cf);
 				return cache(cf, newf);
 			} catch (Exception e) {
-				MEnvironment.writeErrLine(e);
-				System.exit(1);
-				return cf; // don't know what to do
+				return tuplingFail(cf, e.getLocalizedMessage());
 			}
 		}
 
 		// SUBSET: (var1 X ... X varN) in Relation
 		else if (cf.op().equals(ExprCompOperator.SUBSET)) {
 
-			if (!(cf.right() instanceof Relation)) {
-				MEnvironment.writeErrLine("Comparison: " + cf
-						+ " must be vs. a Relation.");
-				System.exit(1);
-				return cf; // fail
+			if (!(cf.right() instanceof Relation))
+			{
+				return tuplingFail(cf, "Comparison: " + cf + " must be vs. a Relation.");
 			}
 
 			// DFS of left hand side (like in well-sortedness test) to get
 			// indexing
 
-			String predname;
 			String suffix;
 			if (cf.left() instanceof Variable)
 				suffix = "_" + pv.indexing.get(cf.left());
 			else if (cf.left() instanceof BinaryExpression)
-				suffix = "_"
-						+ MVocab.constructIndexing(
-								(BinaryExpression) cf.left(), pv.indexing);
+				suffix = "_" + MVocab.constructIndexing((BinaryExpression) cf.left(), pv.indexing);
 			else {
-				MEnvironment.writeErrLine("Comparison: " + cf + " -- improper LHS.");
-				System.exit(1);
-				return cf; // don't know what to do
+				return tuplingFail(cf, "Comparison: " + cf + " -- improper LHS.");
 			}
 
+			// Make sure we were able to create the indexing.
 			if (suffix.equals("_null")) {
-				MEnvironment.writeErrLine("Bad indexing for " + cf.left());
-				System.exit(1);
-				return cf; // fail
+				return tuplingFail(cf, "Bad indexing for " + cf.left());
 			}
 
-			predname = cf.right().toString() + suffix;
+			// New indexed predicate name
+			String oldpredname = cf.right().toString();
+			String newpredname = oldpredname + suffix;
 
-			try {
+			try
+			{
 
 				// Is this a predicate or a sort? If a sort, does it have a
 				// parent?
-				boolean isSort = oldvocab.isSort(cf.right().toString());
-				if (!isSort) {
-					newvocab.addPredicate(predname, pv.tupleTypeName);
-					addToMap(cf.right().toString(), suffix, predname);
-				} else
-					addSortWithSupers(newvocab, oldvocab,
-							cf.right().toString(), suffix);
-				// addToMap done in the above call
+				boolean isSort = oldvocab.fastIsSort(oldpredname);
+				if (!isSort)
+				{
+					// This is a predicate
+					newvocab.addPredicate(newpredname, pv.tupleTypeName);
+					addToMap(oldpredname, suffix, newpredname);
+				} 
+				else
+				{
+					addSortWithSupers(newvocab, oldvocab, oldpredname, suffix);
+					// addToMap called by addSortWithSupers, no need to call here
+				}
 
-				Relation newrel = newvocab.getRelation(predname);
+				Relation newrel = newvocab.getRelation(newpredname);
 				newf = MFormulaManager.makeAtom(newvar, newrel);
 
 				cached.add(cf);
 				return cache(cf, newf);
 
 			} catch (Exception e) {
-				MEnvironment.writeErrLine(e);
-				System.exit(1);
-				return cf; // don't know what to do
+				return tuplingFail(cf, e.getLocalizedMessage());
 			}
 
 		}
@@ -898,33 +915,43 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		return cf;
 	}
 
-	private void addToMap(String oldname, String suffix, String newToAdd) {
-		if (!tupledPredicates.containsKey(oldname))
-			tupledPredicates.put(oldname, new HashSet<String>());
-		tupledPredicates.get(oldname).add(newToAdd);
+	private void addToMap(String oldname, String suffix, String newToAdd)
+	{
+		// Cache ->
+		if (!cachePredicateToIndexings.containsKey(oldname))
+			cachePredicateToIndexings.put(oldname, new HashSet<String>());
+		cachePredicateToIndexings.get(oldname).add(newToAdd);
 
-		String index = suffix.substring(1); // remove the underscore
+		// Cache <-
+		String indexing = suffix.substring(1); // remove the underscore
 
-		// we initialized in constructor
-		oldPredNamesTupledWithIndex.get(index).add(oldname);
+		if (!cacheIndexingToPredicates.containsKey(indexing))
+			cacheIndexingToPredicates.put(indexing, new HashSet<String>());
+
+		cacheIndexingToPredicates.get(indexing).add(oldname);
 	}
 
 	private void addSortWithSupers(MVocab newvocab, MVocab oldvocab,
-			String oldpredname, String suffix) throws MGEUnknownIdentifier,
-			MGEBadIdentifierName {
+			String oldpredname, String suffix)
+	throws MGEUnknownIdentifier, MGEBadIdentifierName 
+	{
+		
 		// What if A < B < C, and A_1 is what we've found?
-		// Create B_1 But we MUST also create C_1.
+		// Create both B_1 and C_1
 		// (IP Addr > Range > Single IP. -- play nice with tuple axioms)
 
 		MSort oldsort = oldvocab.getSort(oldpredname);
-		if (oldsort.parent != null) {
+		if (oldsort.parent != null)
+		{
 			// Deal with parent's parent (if any)
 			addSortWithSupers(newvocab, oldvocab, oldsort.parent.name, suffix);
 
-			newvocab.addSubSort(oldsort.parent.name + suffix, oldpredname
-					+ suffix);
+			newvocab.addSubSort(oldsort.parent.name + suffix, 
+					oldpredname + suffix);
 			addToMap(oldpredname, suffix, oldpredname + suffix);
-		} else {
+		} 
+		else 
+		{
 			newvocab.addSort(oldpredname + suffix);
 			addToMap(oldpredname, suffix, oldpredname + suffix);
 		}
@@ -934,9 +961,8 @@ class MatrixTuplingV extends AbstractCacheAllReplacer {
 		// We must handle those as well. (Don't forget to propagate the
 		// constraint to the new vocab.)
 		if (oldvocab.axioms.setsSubset.containsKey(oldpredname))
-			for (String oldparent : oldvocab.axioms.setsSubset
-					.get(oldsort.name)) {
-				// MEnvironment.writeErrLine("***** "+oldparent +" ] "+oldpredname);
+			for (String oldparent : oldvocab.axioms.setsSubset.get(oldsort.name))
+			{				
 				addSortWithSupers(newvocab, oldvocab, oldparent, suffix);
 				newvocab.axioms.addConstraintSubset(oldpredname + suffix,
 						oldparent + suffix);
@@ -1877,7 +1903,7 @@ public class MQuery extends MIDBCollection
 					MSort oldSort = vocab.getSort(relName);
 
 					// Get the list of tupled extensions of relName
-					Set<String> newPreds = mtup.tupledPredicates.get(relName);
+					Set<String> newPreds = mtup.cachePredicateToIndexings.get(relName);
 					if (newPreds == null)
 						continue;
 
@@ -1895,17 +1921,17 @@ public class MQuery extends MIDBCollection
 								mtup.newvocab.addSubSort(newName, newname);
 
 								// make sure caches are correct
-								if (!mtup.oldPredNamesTupledWithIndex
+								if (!mtup.cacheIndexingToPredicates
 										.containsKey(idxStr))
-									mtup.oldPredNamesTupledWithIndex.put(idxStr,
+									mtup.cacheIndexingToPredicates.put(idxStr,
 											new HashSet<String>());
-								if (!mtup.tupledPredicates
+								if (!mtup.cachePredicateToIndexings
 										.containsKey(oldChild.name))
-									mtup.tupledPredicates.put(oldChild.name,
+									mtup.cachePredicateToIndexings.put(oldChild.name,
 											new HashSet<String>());
-								mtup.oldPredNamesTupledWithIndex.get(idxStr).add(
+								mtup.cacheIndexingToPredicates.get(idxStr).add(
 										oldChild.name);
-								mtup.tupledPredicates.get(oldChild.name).add(
+								mtup.cachePredicateToIndexings.get(oldChild.name).add(
 										newname);
 							}
 
@@ -1973,13 +1999,13 @@ public class MQuery extends MIDBCollection
 							String iiStr = Integer.toString(index);
 
 							// make sure caches are correct
-							if (!mtup.oldPredNamesTupledWithIndex.containsKey(iiStr))
-								mtup.oldPredNamesTupledWithIndex.put(iiStr, new HashSet<String>());
-							if (!mtup.tupledPredicates.containsKey(sortname))
-								mtup.tupledPredicates.put(sortname,	new HashSet<String>());
+							if (!mtup.cacheIndexingToPredicates.containsKey(iiStr))
+								mtup.cacheIndexingToPredicates.put(iiStr, new HashSet<String>());
+							if (!mtup.cachePredicateToIndexings.containsKey(sortname))
+								mtup.cachePredicateToIndexings.put(sortname,	new HashSet<String>());
 
-							mtup.oldPredNamesTupledWithIndex.get(iiStr).add(sortname);
-							mtup.tupledPredicates.get(sortname).add(sortname + "_" + index);
+							mtup.cacheIndexingToPredicates.get(iiStr).add(sortname);
+							mtup.cachePredicateToIndexings.get(sortname).add(sortname + "_" + index);
 
 						}
 
@@ -2069,10 +2095,10 @@ public class MQuery extends MIDBCollection
 						// will still take a while if there are a lot of shared
 						// preds, of course.
 						Set<String> sharedOldPredNames = new HashSet<String>(
-								mtup.oldPredNamesTupledWithIndex.get(String
+								mtup.cacheIndexingToPredicates.get(String
 										.valueOf(ii)));
 						sharedOldPredNames
-								.retainAll(mtup.oldPredNamesTupledWithIndex
+								.retainAll(mtup.cacheIndexingToPredicates
 										.get(String.valueOf(jj)));
 						sharedOldPredNames.retainAll(lones);
 
@@ -2394,7 +2420,7 @@ public class MQuery extends MIDBCollection
 					String strIndex = String.valueOf(iIndex);
 					String strIndexWithUnderscore = "_" + strIndex;
 
-					Set<String> oldPredsForThisIndex = mtup.oldPredNamesTupledWithIndex
+					Set<String> oldPredsForThisIndex = mtup.cacheIndexingToPredicates
 							.get(strIndex);
 
 					for (String oldPredName : oldPredsForThisIndex)
@@ -2505,7 +2531,7 @@ public class MQuery extends MIDBCollection
 				{
 					// For some reason the keys here are strings, not integers...
 					String iiStr = Integer.toString(ii);
-					Set<String> oldAppearingAti = mtup.oldPredNamesTupledWithIndex.get(iiStr);
+					Set<String> oldAppearingAti = mtup.cacheIndexingToPredicates.get(iiStr);
 					oldAppearingAti.retainAll(oldtopnames);
 
 					//System.err.println(oldtopnames);
@@ -2538,7 +2564,7 @@ public class MQuery extends MIDBCollection
 					for(int jj = ii+1; jj <= pren.qCount; jj++)
 					{
 						String jjStr = Integer.toString(jj);
-						Set<String> oldAppearingAtj = mtup.oldPredNamesTupledWithIndex.get(jjStr);
+						Set<String> oldAppearingAtj = mtup.cacheIndexingToPredicates.get(jjStr);
 						oldAppearingAtj.retainAll(oldtopnames);
 
 						// TODO really shouldn't represent these "impossible" equalities at all
