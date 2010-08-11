@@ -214,6 +214,8 @@ public class MJavaTests
 				         "(and (TestPol2:Permit s a r) (not (TestPol1:Permit s a r))) " +
 				         "(and (TestPol2:Deny s a r) (not (TestPol1:Deny s a r)))"+
 				    ")))))", pollist);
+		//qry.doTupling = true;
+		qry.debug_verbosity = 3;
 		countTest("Solutions to above with (Assigned s r) only", qry, 3, 1, 3);
 
 		// Make sure constraint existentials are being generated: should add nonempty_constraint_resource ext.
@@ -930,11 +932,8 @@ public class MJavaTests
 	throws MGException
 	{
 
-		RelationAndVariableReplacementV.unitTests();
-
-		MQuery.unitTest();
-
-
+		// TODO: need to update these to EXPLORE language
+		// leaving 1 uncommented since most of its functionality can still be reached in java
 		MEnvironment.writeErrLine("");
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_1()");
 		do_test_1();
@@ -944,6 +943,9 @@ public class MJavaTests
 		MGFormulaManager.printStatistics();
 		System.exit(1);*/
 
+
+
+/*		
 		MEnvironment.writeErrLine("");
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_2()");
 		do_test_2();
@@ -965,7 +967,7 @@ public class MJavaTests
 
 
 		// Tupling tests
-		do_test_tupling_1();
+		do_test_tupling_1();*/
 
 	/*
 		Set<Formula> a = new HashSet<Formula>();
@@ -3252,27 +3254,38 @@ rules = 1000; k = 14; sm = 14; NO; mean tup=0 mean is-sat=32751
 rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 		  */
 
+		MEnvironment.writeOutLine("Starting java-based tests.");
+		
+		RelationAndVariableReplacementV.unitTests();
+		MQuery.unitTest();
+	
 		try {
 			FormulaSigInfo.unitTests();
 		} catch (NotASortException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			
+			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
-
+		
+					
+				
+		
+		// Main test blocks		
 		runTests();
 
-		// kodkod time varies wildly. (as low as 1765ms, as high as nearly 8 sec. WHY?)
-
+	
+		
+		
+		
 		// Everything from tests should be out of scope now.
 		// Test that the weak references in the manager are doing their job.
-		System.gc();
-		MEnvironment.writeErrLine("State of Formula Manager after forced gc call: ");
-		MFormulaManager.printStatistics();
+		//System.gc();
+		//MEnvironment.writeOutLine("State of Formula Manager after forced gc call: ");
+		//MFormulaManager.printStatistics();
 
-		System.gc();
-		MFormulaManager.ping();
-		System.gc();
-		MFormulaManager.printStatistics();
+		//System.gc();
+		//MFormulaManager.ping();
+		//System.gc();
+		//MFormulaManager.printStatistics();
 
 		/*
 		 * Leave everything after the above printStatistics() call empty.
