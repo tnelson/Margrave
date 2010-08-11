@@ -245,7 +245,7 @@
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    ;(printf "~a~n" result)                    
+                    (printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))

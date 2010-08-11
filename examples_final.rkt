@@ -17,7 +17,7 @@
 (start-margrave-engine)
 
 ;(load-policy (build-path (current-directory) "tests" "extconference.p"))
-;(load-policy (build-path (current-directory) "tests" "conference1.p"))
+(load-policy (build-path (current-directory) "tests" "conference1.p"))
 ;(load-policy (build-path (current-directory) "tests" "conference2.p"))
 ;(load-policy (build-path (current-directory) "tests" "phone1.p"))
 (load-policy (build-path (current-directory) "tests" "fwex1.p"))
@@ -27,9 +27,9 @@
 ;(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
 ;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
 ;(load-policy (build-path (current-directory) "tests" "iout.p"))
-(mtext "info")
-(mtext "info fwex1")
-(mtext "info examplefw1")
+;(mtext "info")
+;(mtext "info fwex1")
+;(mtext "info examplefw1")
 ;(m (xml-make-rename-command "conferencepolicy1" "conf1"))
 ;(m (xml-make-rename-command "conferencepolicy2" "conf2"))
 ;(m (xml-make-rename-command "fwex1" "firewall1"))
@@ -38,9 +38,9 @@
 ;(m (xml-make-rename-command "happyrouterless" "HRless"))
 ;(m (xml-make-rename-command "happyroutermore" "HRmore"))
 
-;(mtext "rename conferencepolicy1 conf1")
+(mtext "rename conferencepolicy1 conf1")
 ;(mtext "rename conferencepolicy2 conf2")
-(mtext "rename fwex1 firewall1")
+;(mtext "rename fwex1 firewall1")
 ;(mtext "rename fwex1a firewall1a")
 ;(mtext "rename fwex2 firewall2")
 ;(mtext "rename happyrouterless HRless")
@@ -56,21 +56,20 @@
 ;(m test-xml)
 
 ; Parser problem: expects list of atomic formulas, and atomic formulas have to have non-empty var vectors
-;(define test-string "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit")
-;(mtext test-string)
+(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit")
+(mtext "GET ONE 0");
 
-;
+
 
 ; Won't tuple since conf1 has >1-ary predicates. (Will be enhancing to allow any arity soon.)
-;(define test-string "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r) TUPLING")
-;(mtext test-string)
+(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r) TUPLING")
+(mtext "GET ONE 0")
+
+;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 ;(mtext "GET ONE 0")
 
-(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
-(mtext "GET ONE 0")
-
-(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept")
-(mtext "GET ONE 0")
+;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept")
+;(mtext "GET ONE 0")
 
 ;(mtext "create vocabulary myvoc")
 ;(mtext "add to myvoc sort xsort")

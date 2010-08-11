@@ -1576,25 +1576,6 @@ public class MQuery extends MIDBCollection
 
 
 
-
-			// ********************************************************************
-			// TODO: Deal with binary and larger preds. (Annoying, complicated, many
-			// many axioms.)
-			// For now, tupling is only allowed if the vocabulary involves only
-			// unary predicates
-			// Sorts are unary by nature. So check the state preds
-			for (Relation r : vocab.predicates.values())
-				if (r.arity() > 1) {
-					String errorStr = "Tupling was enabled, but signature had non-unary predicates. Tupling is\n"
-						+ "  not allowed (for now) when binary or larger relations are involved: "+r.name();
-
-					throw new MGEArityMismatch(errorStr);
-				}
-			// ********************************************************************
-
-
-
-
 			// ********************************************************************
 			// If the user wants IDB output with tupling, need all the IDB
 			// formulas to be
@@ -1648,10 +1629,7 @@ public class MQuery extends MIDBCollection
 						/ 1000000);
 			startTime = mxBean.getCurrentThreadCpuTime();
 
-			List<String> indexedIDBNamesToOutput = new ArrayList<String>();
-
-
-
+			List<String> indexedIDBNamesToOutput = new ArrayList<String>();			
 
 
 
@@ -1672,12 +1650,9 @@ public class MQuery extends MIDBCollection
 				// since the new vocab will contain new axioms over the new
 				// signature.)
 
-				// In this special case of tupling, we get only one sort that
-				// represents the type of the tuple. Thus we can let UNIV
-				// represent
-				// that sort in the new query. First we translate the formula
-				// (which tells us new predicates, etc.) and then translate the
-				// vocab to include new disjointness and new preds.
+				// Tupling for a prenex existential formula: 
+				// we get only one sort that represents the type of the entire tuple.
+				// First we translate the formula, then add tupling and other axioms.
 
 				if (debug_verbosity >= 2)
 					MEnvironment.writeOutLine("DEBUG: Ran prenexcheck. Time: "
@@ -1686,20 +1661,31 @@ public class MQuery extends MIDBCollection
 				startTime = mxBean.getCurrentThreadCpuTime();
 
 				if (debug_verbosity >= 2)
-					MEnvironment.writeOutLine("DEBUG: Tupling is allowed and enabled. Starting matrix rewrite. ");
+					MEnvironment.writeOutLine("DEBUG: Starting matrix rewrite. ");
 
 				MatrixTuplingV mtup = new MatrixTuplingV(pren, vocab);
 				Formula tupledFormula = pren.matrix.accept(mtup);
 
 				if (debug_verbosity >= 3) {
 					// Show what the tupled sorts are in detail.
-					MEnvironment.writeOutLine("DEBUG: Tupled sorts that appeared in the query: ");
+					MEnvironment.writeOutLine("DEBUG: Tupled sorts that appeared in the query body: ");
 					for (MSort s : mtup.newvocab.sorts.values()) {
 						String childstr = "(TOP!)";
 						if (s.parent != null)
 							childstr = "(PARENT: " + s.parent.name + ")";
 						MEnvironment.writeOutLine("  " + s.name + " " + childstr);
 					}
+					
+					MEnvironment.writeOutLine("");
+					MEnvironment.writeOutLine("DEBUG: Tupled predicates that appeared in the query body (plus all equalities): ");
+					for(String r : mtup.newvocab.predicates.keySet())
+						MEnvironment.writeOutLine("  " + r);
+					
+					MEnvironment.writeOutLine("");
+					MEnvironment.writeOutLine("DEBUG: State of mtup caches immediately after matrix tupling (before axioms): ");
+					MEnvironment.writeOutLine("  Indexing to Predicates: "+mtup.cacheIndexingToPredicates);
+					MEnvironment.writeOutLine("  Predicate to Indexings: "+mtup.cachePredicateToIndexings);
+					MEnvironment.writeOutLine("");
 				}
 
 				if (debug_verbosity >= 2)
@@ -1891,15 +1877,14 @@ public class MQuery extends MIDBCollection
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
-
-				
 				
 				// tupled sorts will be in mtup.newvocab
 
 				// Deal with the abstract constraint
 				// For everything abstract in the pre-tupling vocab
-				// 1/28/10 subsort exhaustiveness no longer *required*, but optional 
-				for (String relName : vocab.axioms.setsAbstract) {
+				// [[[ 1/28/10 subsort exhaustiveness no longer *required*, but optional ]]] 
+				for (String relName : vocab.axioms.setsAbstract)
+				{
 					MSort oldSort = vocab.getSort(relName);
 
 					// Get the list of tupled extensions of relName
@@ -1907,32 +1892,31 @@ public class MQuery extends MIDBCollection
 					if (newPreds == null)
 						continue;
 
-					for (String newName : newPreds) {
+					for (String newName : newPreds)
+					{
 						// Carry over the abstract constraint.
-						// MSort newSort = mtup.newvocab.getSort(newName);
 
-						String idxStr = newName
-								.substring(newName.lastIndexOf("_") + 1);
-						// Need to add children if any do not yet appear:
-						for (MSort oldChild : oldSort.subsorts) {
-							if (!mtup.newvocab
-									.isSort(oldChild.name + "_" + idxStr)) {
-								String newname = oldChild.name + "_" + idxStr;
-								mtup.newvocab.addSubSort(newName, newname);
+						String idxStr = newName.substring(newName.lastIndexOf("_") + 1);
+						
+						// Child sorts will *always* be added at indexing <i> if the 
+						// (abstract) parent appears at indexing <i>. We may need to 
+						// add children if any have not appeared already:
+						for (MSort oldChild : oldSort.subsorts)
+						{
+							// Add if missing
+							if (!mtup.newvocab.isSort(oldChild.name + "_" + idxStr))
+							{
+								String newchildname = oldChild.name + "_" + idxStr;
+								mtup.newvocab.addSubSort(newName, newchildname);
 
 								// make sure caches are correct
-								if (!mtup.cacheIndexingToPredicates
-										.containsKey(idxStr))
-									mtup.cacheIndexingToPredicates.put(idxStr,
-											new HashSet<String>());
-								if (!mtup.cachePredicateToIndexings
-										.containsKey(oldChild.name))
-									mtup.cachePredicateToIndexings.put(oldChild.name,
-											new HashSet<String>());
-								mtup.cacheIndexingToPredicates.get(idxStr).add(
-										oldChild.name);
-								mtup.cachePredicateToIndexings.get(oldChild.name).add(
-										newname);
+								if (!mtup.cacheIndexingToPredicates.containsKey(idxStr))
+									mtup.cacheIndexingToPredicates.put(idxStr, new HashSet<String>());
+								if (!mtup.cachePredicateToIndexings.containsKey(oldChild.name))
+									mtup.cachePredicateToIndexings.put(oldChild.name, new HashSet<String>());
+								
+								mtup.cacheIndexingToPredicates.get(idxStr).add(oldChild.name);
+								mtup.cachePredicateToIndexings.get(oldChild.name).add(newchildname);
 							}
 
 							if (debug_verbosity >= 3)
@@ -1942,11 +1926,9 @@ public class MQuery extends MIDBCollection
 										+ oldChild.name + "_" + idxStr);
 						}
 
-						// No more if here; Child sorts will
-						// always be carried over if the abstract parent appears
-						// at index i.
-						// if(oldSort.subsorts.size() ==
-						// newSort.subsorts.size())
+	
+						
+						// Carry the constraint over to the new vocabulary:
 						mtup.newvocab.axioms.addConstraintAbstract(newName);
 					}
 				}
@@ -1959,17 +1941,17 @@ public class MQuery extends MIDBCollection
 				// ***************************
 				// Sort of original predicates is respected
 				// If P: AxB, P_1,3(z) ---> A_1(z) and B_3(z)
-				// (This is already enforced by the sig of the new predicate in
-				// the new vocab.)
+				// This is already enforced by the sig of the new predicate in
+				// the new vocab. No code is needed.
 
-				// (No code needed)
-
+	
+				
 				
 				
 				
 				// ***************************
 				// Prefix's sort is respected
-				// This is "tupling axioms" or \beta in the doc
+				// This is "tupling axioms" or \beta in TN's thesis document
 				// If we translated forsome x:A | forsome y:B to forsome z:UNIV
 				// it must still hold that A_1(z) and B_2(z)
 				Set<Formula> respected_2 = new HashSet<Formula>();
@@ -1981,18 +1963,16 @@ public class MQuery extends MIDBCollection
 					index++;
 					
 					try
-					{
-						//System.err.println("Must assert that "+sortname+" in index "+index);
-
+					{			
+						// Do nothing. No axiom needed, since no sort for this element.
 						if("univ".equals(sortname))
-						{
-							// Do nothing. No axiom needed, since no sort for this element.
 							continue;
-						}
 
-						if (!mtup.newvocab.isSort(sortname + "_" + index))
+						// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
+						String newsortname = sortname + "_" + index;
+						if (!mtup.newvocab.isSort(newsortname))
 						{
-							mtup.newvocab.addSort(sortname + "_" + index);
+							mtup.newvocab.addSort(newsortname);
 
 							// must also cache this sort in mtup's 2 caches
 
@@ -2002,18 +1982,16 @@ public class MQuery extends MIDBCollection
 							if (!mtup.cacheIndexingToPredicates.containsKey(iiStr))
 								mtup.cacheIndexingToPredicates.put(iiStr, new HashSet<String>());
 							if (!mtup.cachePredicateToIndexings.containsKey(sortname))
-								mtup.cachePredicateToIndexings.put(sortname,	new HashSet<String>());
+								mtup.cachePredicateToIndexings.put(sortname, new HashSet<String>());
 
 							mtup.cacheIndexingToPredicates.get(iiStr).add(sortname);
-							mtup.cachePredicateToIndexings.get(sortname).add(sortname + "_" + index);
+							mtup.cachePredicateToIndexings.get(sortname).add(newsortname);
 
 						}
 
-
-						Relation r = mtup.newvocab.getRelation(sortname + "_"
-								+ index);
-						respected_2.add(MFormulaManager
-								.makeAtom(mtup.newvar, r));
+						// Assert the axiom for this index
+						Relation r = mtup.newvocab.getRelation(newsortname);
+						respected_2.add(MFormulaManager.makeAtom(mtup.newvar, r));
 
 					} catch (MGEBadIdentifierName e) {
 						throw new MGEBadQueryString("Tupling error: Relation "
@@ -2047,13 +2025,20 @@ public class MQuery extends MIDBCollection
 
 				
 				
+				
+				
 				// ***************************************************************
-				// LONE
+				// LONE (applies to sorts only)
+				
 				// For each i and j (i != j), and each lone P
-				// If Pi and Pj both appear in the query, we need to conclude
-				// that =ij.
-				// (Even if =ij doesn't appear in the query proper, we need to
-				// include it.
+				// where Pi and Pj both appear in the query:
+				// Assert that (P_i and P_j) implies =i,j
+				
+				// (Even if =ij doesn't appear in the query proper!)
+				
+				// Since we now include all equality preds, no reason to
+				// worry about transitivity here. So this comment is out-dated:
+				// OLD COMMENT [[[
 				// Consider this situation:
 				//
 				// lone P, Q
@@ -2062,9 +2047,9 @@ public class MQuery extends MIDBCollection
 				// =ik appears.
 				// We need to force =ik since equality is transitive.
 				// Also just using =ij means we don't have to separately enforce
-				// that
-				// i and j must be isomorphic w/r/t predicate membership
-
+				// that i and j must be isomorphic w/r/t predicate membership
+				// ]]]
+				
 				HashSet<Formula> lone_formulas = new HashSet<Formula>();
 
 				Set<String> lones = new HashSet<String>();
@@ -2075,7 +2060,7 @@ public class MQuery extends MIDBCollection
 				Set<Formula> ij_triggers = new HashSet<Formula>();
 
 				// *****************************
-				// Leaving out SOME for now.
+				// TODO Leaving out SOME for now.
 				// Print warning message for "ONE" vs. "LONE": Tupling doesn't
 				// treat them as different
 				if (vocab.axioms.setsSingleton.size() > 0)
@@ -2084,43 +2069,29 @@ public class MQuery extends MIDBCollection
 				long triggerCount = 0;
 
 				// For each pair of distinct indices
-				for (int ii = 1; ii <= pren.qCount; ii++) {
-					// MREPL.outStream.println("\n\n -> " + ii + " --> " +
-					// mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
-
-					for (int jj = ii + 1; jj <= pren.qCount; jj++) {
-						// What preds were shared? Much better than checking
-						// each lone predicate name.
+				for (int ii = 1; ii <= pren.qCount; ii++)
+				{				
+					for (int jj = ii + 1; jj <= pren.qCount; jj++)
+					{
+						// What LONE sorts were shared between ii and jj? 
+						// Much better than checking each lone predicate name.
 						// (caching is good. was: 984 ms now: 15ms)
 						// will still take a while if there are a lot of shared
 						// preds, of course.
-						Set<String> sharedOldPredNames = new HashSet<String>(
-								mtup.cacheIndexingToPredicates.get(String
-										.valueOf(ii)));
-						sharedOldPredNames
-								.retainAll(mtup.cacheIndexingToPredicates
-										.get(String.valueOf(jj)));
+						Set<String> sharedOldPredNames = new HashSet<String>(mtup.cacheIndexingToPredicates.get(String.valueOf(ii)));
+						sharedOldPredNames.retainAll(mtup.cacheIndexingToPredicates.get(String.valueOf(jj)));
 						sharedOldPredNames.retainAll(lones);
 
-
-						//MEnvironment.writeErrLine(ii+","+jj);
-						//MEnvironment.writeErrLine(sharedOldPredNames);
-						//MEnvironment.writeErrLine(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(ii)));
-						//MEnvironment.writeErrLine(mtup.oldPredNamesTupledWithIndex.get(String.valueOf(jj)));
-						//MEnvironment.writeErrLine();
-
-
-						// ^^^ Must appear at index i, index j, and be LONE.
-
+						// Build a list of antecedents for consequent =i,j. Each shared sort has a chance to be 
+						// an antecedent. Trigger list holds all of them.
+						
 						// reset trigger list
 						ij_triggers.clear();
 
 						for (String lonesort : sharedOldPredNames)
 						{
-							// For this LONE P, Are both P_i and P_j involved in
-							// the query?
-
-							try {
+							try
+							{
 								Relation pi = mtup.newvocab
 										.getRelation(lonesort + "_" + ii);
 								Relation pj = mtup.newvocab
@@ -2141,15 +2112,17 @@ public class MQuery extends MIDBCollection
 
 						} // each lone
 
-						// Did we get any triggers?
-						if (ij_triggers.size() > 0) {
-							Formula disj_of_triggers = MFormulaManager
-									.makeDisjunction(ij_triggers);
+						// Did we get any triggers (antecedents)?
+						if (ij_triggers.size() > 0) 
+						{
+							Formula disj_of_triggers = MFormulaManager.makeDisjunction(ij_triggers);
 
+							// This block below is pointless now that we have all equality predicates by default:
+							// [[[
 							// Is this a new equality pred that hasn't appeared
 							// in the query itself?
 							String eqpredname = "=_" + ii + "," + jj;
-							String reverseeqpredname = "=_" + jj + "," + ii;
+							//String reverseeqpredname = "=_" + jj + "," + ii;
 
 							/*
 							if (!mtup.newvocab.predicates
@@ -2169,17 +2142,14 @@ public class MQuery extends MIDBCollection
 													+ eqpredname);
 								}
 							} else */
-							if (mtup.newvocab.predicates
-									.containsKey(reverseeqpredname))
-								eqpredname = reverseeqpredname;
+							//if (mtup.newvocab.predicates.containsKey(reverseeqpredname))
+							//	eqpredname = reverseeqpredname;
 							// else, we're fine
+							// ]]]
 
-							Relation eqrel = mtup.newvocab.predicates
-									.get(eqpredname);
-							Formula iseq = MFormulaManager.makeAtom(
-									mtup.newvar, eqrel);
-							lone_formulas.add(MFormulaManager.makeImplication(
-									disj_of_triggers, iseq));
+							Relation eqrel = mtup.newvocab.predicates.get(eqpredname);
+							Formula iseq = MFormulaManager.makeAtom(mtup.newvar, eqrel);
+							lone_formulas.add(MFormulaManager.makeImplication(disj_of_triggers, iseq));
 
 							if (debug_verbosity >= 2) {
 								MEnvironment.writeOutLine("DEBUG: LONE resulted in ---> ");
@@ -2200,9 +2170,9 @@ public class MQuery extends MIDBCollection
 					MCommunicator.writeToLog("\n\nloneaxiomsfmla:\n"+loneAxiomsFmla.toString()+"\n");
 
 				
-				if (debug_verbosity >= 2)
-					MEnvironment.writeOutLine("DEBUG: Number of new equality predicates introduced by LONE: "
-									+ iLoneEqCounter);
+				//if (debug_verbosity >= 2)
+				//	MEnvironment.writeOutLine("DEBUG: Number of new equality predicates introduced by LONE: "
+				//					+ iLoneEqCounter);
 
 				if (debug_verbosity >= 2)
 					MEnvironment.writeOutLine("DEBUG: LONE handling. Time: "
@@ -2228,13 +2198,20 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
-
+		
+				
+				
+				
+				
 				// ***************************
 				// EQUALITY AXIOMS
 				// If two components are "equal" (are in a =i,j predicate)
 				// then they are isomorphic w/r/t predicates and sorts
 				Set<Formula> equalityAxioms = new HashSet<Formula>();
 
+				// [[[ This used to add new equality predicates due to isomorphism. 
+				//     it doesn't do that any more. ]]]
+				
 				// Set --> List so we can iterate in order (double-loop inside)
 				List<String> equalsNeeded = new ArrayList<String>(
 						mtup.equalAxiomsNeeded);
@@ -2254,30 +2231,14 @@ public class MQuery extends MIDBCollection
 					Formula eqFormula = MFormulaManager.makeAtom(mtup.newvar,
 							eqrel);
 
-					if (debug_verbosity >= 2) {
-						//MREPL.outStream
-						//		.println("DEBUG: Equality implies predicate isomorphism: "
-						//				+ leftidx + "=" + rightidx);
-						//MREPL.outStream.println(isoconj);
+					// Simulated equality leads to isomorphism
+					if (!leftidx.equals(rightidx))
+					{
+						Formula isoimp = MFormulaManager.makeImplication(eqFormula, isoconj);
+						if(!Formula.TRUE.equals(isoimp))
+							equalityAxioms.add(isoimp);
 					}
 
-					// (1) Simulated equality leads to isomorphism
-					// Don't bother stating this if leftidx = rightidx, since
-					// the bi-implication is trivial then.
-					if (!leftidx.equals(rightidx))
-						equalityAxioms.add(MFormulaManager.makeImplication(
-								eqFormula, isoconj));
-
-					// (2) Simulated equality is an equivalence relation
-					// But note: We only care about certain =_{i,j} relations.
-					// SYMMETRY: The matrix rewrite handles this, since if =2,1
-					// has already
-					// been created, it will be used in the place of =1,2.
-
-					// If this is =i,i for some i, it must hold. (Reflexivity)
-					// TODO these should not even exist; supposed to be replaced by tautology
-					if (leftidx.equals(rightidx))
-						equalityAxioms.add(eqFormula);
 
 					// *******************************
 					// state transitivity: =1,2 and =3,2 imply =1,3
@@ -2288,33 +2249,14 @@ public class MQuery extends MIDBCollection
 						int otherLastComma = other.lastIndexOf(",");
 						String rightidx2 = other.substring(otherLastComma + 1);
 						String leftidx2 = other.substring(2, otherLastComma);
-
-						// this bit can probably go (since +1)
-						/*
-						if (rightidx.equals(rightidx2)
-								&& leftidx.equals(leftidx2))
-							continue;
-						if (leftidx.equals(rightidx2)
-								&& rightidx.equals(leftidx2))
-							continue;
-							*/
-
+						
 						try
 						{
+							// Is there a consequent for this transitivity implication?
+							// (Always should be yes, now)
 							String thirdpred = getThirdEq(mtup.newvocab,
 									leftidx, rightidx, leftidx2, rightidx2,
-									pren);
-
-							// If this is a newly added equality pred, make sure
-							// we state it implies predicate isomorphism
-							/*if (thirdpred.length() > 0
-									&& !equalsDone.contains(thirdpred)) {
-								if (debug_verbosity >= 2)
-									//MREPL.outStream.println("DEBUG: Queueing "
-									//		+ thirdpred
-									//		+ " for isomorphism axiom.");
-								equalsNeeded.add(thirdpred);
-							}*/
+									pren);						
 
 							if (thirdpred.length() > 0)
 							{
@@ -2323,9 +2265,7 @@ public class MQuery extends MIDBCollection
 								Relation eqRel3 = mtup.newvocab.predicates
 										.get(thirdpred);
 
-								// MREPL.outStream.println("---->\n" + eqRel3.name() +
-								// " of arity "+ eqRel3.arity());
-
+								// =ij and =jk ---> =ik
 								Formula eqFormula2 = MFormulaManager.makeAtom(
 										mtup.newvar, eqRel2);
 								Formula eqFormula3 = MFormulaManager.makeAtom(
@@ -2336,15 +2276,7 @@ public class MQuery extends MIDBCollection
 														eqFormula, eqFormula2),
 												eqFormula3);
 								equalityAxioms.add(eqTrans);
-
-								if (debug_verbosity >= 2) {
-									//MREPL.outStream
-									//		.println("DEBUG: Transitivity of equality --->");
-									//MREPL.outStream.println("  " + rightidx + ","
-									//		+ leftidx + " and " + rightidx2
-									//		+ "," + leftidx2);
-									//MREPL.outStream.println("  --> " + thirdpred);
-								}
+	
 
 							} // end if appropriate third pred
 
@@ -2370,6 +2302,8 @@ public class MQuery extends MIDBCollection
 				if(timDebugMode)
 					MCommunicator.writeToLog("\n\nequalityAxiomsFmla:\n"+equalityAxiomsFmla.toString()+"\n");
 
+				//MEnvironment.writeErrLine(equalityAxioms);
+				
 				
 				if (debug_verbosity >= 2)
 					MEnvironment.writeOutLine("DEBUG: Size of tupling axioms to deal with express equality: "
@@ -2384,8 +2318,15 @@ public class MQuery extends MIDBCollection
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
 
+				
+				
+				
+				
+				
+				
+				
 				// ****************************
-				// Vocab change
+				// Disjointness (sorts only)
 				// disjointness: same construction as sorts themselves
 				// Original form: A disj (B1, B2, B3...)
 
@@ -2395,9 +2336,8 @@ public class MQuery extends MIDBCollection
 				// intersect w/ preds tupled into this index
 
 				// is it possible for an implied disjointness to be lost when
-				// tupling?
-				// no, because we carry over all parents (and constrained
-				// supersorts).
+				// tupling? no, because we carry over all parents 
+				// (and constrained supersorts).
 
 				// Avoid reachable check in addConstraintDisjoint by calculating
 				// and copying directly.
@@ -2420,8 +2360,7 @@ public class MQuery extends MIDBCollection
 					String strIndex = String.valueOf(iIndex);
 					String strIndexWithUnderscore = "_" + strIndex;
 
-					Set<String> oldPredsForThisIndex = mtup.cacheIndexingToPredicates
-							.get(strIndex);
+					Set<String> oldPredsForThisIndex = mtup.cacheIndexingToPredicates.get(strIndex);
 
 					for (String oldPredName : oldPredsForThisIndex)
 					{
@@ -2455,9 +2394,7 @@ public class MQuery extends MIDBCollection
 
 								MSort ns1 = newSort;
 								MSort ns2 = mtup.newvocab.getSort(new2);
-								Relation eqpred = mtup.newvocab
-										.getRelation("=_" + iIndex + ","
-												+ iIndex2);
+								Relation eqpred = mtup.newvocab.getRelation("=_" + iIndex + "," + iIndex2);
 
 								Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
 								eqDisjAxioms.add(thisAxiom);
@@ -2465,7 +2402,7 @@ public class MQuery extends MIDBCollection
 							}
 
 							// *******************************************
-							// DISJ AXIOM TYPE 2 (disj of new sorts)
+							// DISJ AXIOM TYPE 2 (disjointness axioms in the new vocabulary)
 
 							// is the other sort tupled for this index?
 							if (oldPredsForThisIndex.contains(oldDisjoint.name))
@@ -2503,6 +2440,7 @@ public class MQuery extends MIDBCollection
 				
 				
 				
+				
 				// *********************************
 				//     TOP LEVEL SORTS DISJOINTNESS
 				// If A and B are top level sorts in old vocab, A_i and B_i will
@@ -2534,14 +2472,7 @@ public class MQuery extends MIDBCollection
 					Set<String> oldAppearingAti = mtup.cacheIndexingToPredicates.get(iiStr);
 					oldAppearingAti.retainAll(oldtopnames);
 
-					//System.err.println(oldtopnames);
-					//System.err.println(oldAppearingAti);
-					//System.err.println(mtup.oldPredNamesTupledWithIndex.get(iiStr));
-					//System.err.println();
 
-
-					// ********************************
-					// disj part 2
 					// ALL top-level sorts that appear at index i are disjoint
 					// accumulate the list
 					Set<String> new_i_names = new HashSet<String>();
@@ -2558,7 +2489,6 @@ public class MQuery extends MIDBCollection
 
 
 					// ********************************
-					// disj part 1
 					// For every OTHER index j
 					Set<Formula> eqTopLevelDisjAxioms = new HashSet<Formula>();
 					for(int jj = ii+1; jj <= pren.qCount; jj++)
@@ -3991,7 +3921,7 @@ public class MQuery extends MIDBCollection
 		//System.err.println(u);
 
 
-		Instance instance = new Instance(u);
+		Instance newInstance = new Instance(u);
 		Instance dontcare = new Instance(u);
 
 
@@ -4052,28 +3982,32 @@ public class MQuery extends MIDBCollection
 				/// *****************
 				if(underscoreIndex > 0)
 				{
-					TupleSet theTuples = u.factory().noneOf(1);
-
-					String idx = r.name().substring(underscoreIndex+1);
+					String idxing = r.name().substring(underscoreIndex+1);
 					String relname = r.name().substring(0, underscoreIndex);
 					try
 					{
+						// The pre-tupling relation name 
+						// (Why is this vocab instead of the original vocab?)
 						Relation newr = vocab.getRelation(relname);
 
-						//System.err.println(idx);
-						//System.err.println(relname);
-						//System.err.println(newr);
+						// May not be a single atom, since tupling now supports arbitrary arity predicates.
+						// Split the indexing by comma, then get.
+						String[] splitIndexing = idxing.split(",");
+						List<String> tupleAtoms = new ArrayList<String>(splitIndexing.length);						
+						for(String idx : splitIndexing)
+							tupleAtoms.add(idxToAtom.get(idx));
 
-						String theAtom = idxToAtom.get(idx);
-						//System.err.println(theAtom);
-
-						Tuple t = u.factory().tuple(theAtom);
+						// Singleton tuple set
+						Tuple t = u.factory().tuple(tupleAtoms);						
+						TupleSet theTuples = u.factory().noneOf(splitIndexing.length);
 						theTuples.add(t);
 
-						if(instance.relationTuples().containsKey(newr))
-							theTuples.addAll(instance.relationTuples().get(newr));
+						// If we have not made this (pre-tupling) relation yet, do so
+						if(newInstance.relationTuples().containsKey(newr))
+							theTuples.addAll(newInstance.relationTuples().get(newr));
 
-						instance.add(newr, theTuples);
+						// Add the tuple to the pre-tupling relation
+						newInstance.add(newr, theTuples);
 
 						//System.err.println(newr+": "+instance.relationTuples().get(newr));
 					}
@@ -4109,7 +4043,7 @@ public class MQuery extends MIDBCollection
 
 
 
-		return new MSolutionInstance(instance, dontcare, annotations);
+		return new MSolutionInstance(newInstance, dontcare, annotations);
 	}
 
 	static public void unitTest() throws MGException

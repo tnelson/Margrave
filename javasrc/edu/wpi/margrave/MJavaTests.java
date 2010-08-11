@@ -214,10 +214,12 @@ public class MJavaTests
 				         "(and (TestPol2:Permit s a r) (not (TestPol1:Permit s a r))) " +
 				         "(and (TestPol2:Deny s a r) (not (TestPol1:Deny s a r)))"+
 				    ")))))", pollist);
-		//qry.doTupling = true;
-		qry.debug_verbosity = 3;
 		countTest("Solutions to above with (Assigned s r) only", qry, 3, 1, 3);
 
+		qry.doTupling = true;
+		qry.debug_verbosity = 3;
+		countTest("Solutions to above with (Assigned s r) only", qry, 1, 1, 1);
+		
 		// Make sure constraint existentials are being generated: should add nonempty_constraint_resource ext.
 		// reviewer+assigned+!conf, reviewer+assigned+conf, reviewier+!assigned+!conf, author+!assigned+!conf
 		// and !conf+!assigned+subject(other)
@@ -3270,9 +3272,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 				
 		
 		// Main test blocks		
-		runTests();
-
-	
+		runTests();		
 		
 		
 		

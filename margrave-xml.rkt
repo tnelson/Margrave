@@ -378,9 +378,9 @@
         (cond
           ;Supported exceptions
           [(string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MSemanticException")
-           (write (string-append "Unknown relation error:\n" (get-attribute-value location-element 'problem) "\n"))]
-          [(string-contains? (get-attribute-value exception-element 'class) "java.lang.IllegalArgumentException")
-           (write (string-append "Arity Mismatch:\n" (pcdata-string (first (element-content message-element))) "\n"))]
+           (write (string-append (get-attribute-value location-element 'problem) "\n"))]
+         ; [(string-contains? (get-attribute-value exception-element 'class) "java.lang.IllegalArgumentException")
+        ;  (write (string-append "Arity Mismatch:\n" (pcdata-string (first (element-content message-element))) "\n"))]
           ;Otherwise just raw print the returned exception:
           [else (begin     
                   (write "Exception:\n")
