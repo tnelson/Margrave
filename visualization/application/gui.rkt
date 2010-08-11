@@ -42,8 +42,6 @@ inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, 
 
 (define mr (document-element (mtext "GET ONE 0")))
 
-
-;(define mr #f)
 (stop-margrave-engine)
 
 (define kws (make-hash))
@@ -57,17 +55,17 @@ inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, 
 ; Make a netgraph
 (define myng (new netgraph%))
 ; Create some positional nodes
-(define s1 (new pos-netgraph-node% [name "Web Server"] [type 'server] [x 440] [y 120]))
-(define s2 (new pos-netgraph-node% [name "Mail Server"] [type 'server] [x 440] [y 500]))
-(define f1 (new pos-netgraph-node% [name "FW lan-dmz"] [type 'firewall] [x 320] [y 320]))
-(define f2 (new pos-netgraph-node% [name "FW dmz-inet"] [type 'firewall] [x 620] [y 320]))
-(define m1 (new pos-netgraph-node% [name "Internet"] [type 'group] [x 800] [y 320]))
+(define s1 (new pos-netgraph-node% [name "Web Server"] [vocabname "webserver"] [type 'server] [x 440] [y 120]))
+(define s2 (new pos-netgraph-node% [name "Mail Server"] [vocabname "mailserver"] [type 'server] [x 440] [y 500]))
+(define f1 (new pos-netgraph-node% [name "FW lan-dmz"] [vocabname "fw2int"] [policy "inboundnat_fw2"] [type 'firewall] [x 320] [y 320]))
+(define f2 (new pos-netgraph-node% [name "FW dmz-inet"] [vocabname "fw1dmz"] [policy "inboundacl_fw1_new"] [type 'firewall] [x 620] [y 320]))
+(define m1 (new pos-netgraph-node% [name "Internet"] [vocabname "outsideips"] [type 'group] [x 800] [y 320]))
 (define h1 (new pos-netgraph-node% [name "Empl 1"] [type 'host] [x 20] [y 20]))
 (define h2 (new pos-netgraph-node% [name "Empl 2"] [type 'host] [x 20] [y 140]))
 (define h3 (new pos-netgraph-node% [name "Empl 3"] [type 'host] [x 20] [y 260]))
 (define h4 (new pos-netgraph-node% [name "Contr 1"] [type 'host] [x 20] [y 380]))
 (define h5 (new pos-netgraph-node% [name "Contr 2"] [type 'host] [x 20] [y 500]))
-(define h6 (new pos-netgraph-node% [name "managerpc"] [type 'host] [x 20] [y 620]))
+(define h6 (new pos-netgraph-node% [name "Manager"] [vocabname "managerpc"] [type 'host] [x 20] [y 620]))
 
 (send myng add-node! s1)
 (send myng add-node! s2)
@@ -95,6 +93,8 @@ inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, 
 (send myng add-edge! f2 s2) (send myng add-edge! s2 f2)
 
 (send myng add-edge! f2 m1) (send myng add-edge! m1 f2)
+
+(send myng add-edge! f1 f2) (send myng add-edge! f2 f1)
 
 (visualize (apply-model/pos myng mod) pb)
 

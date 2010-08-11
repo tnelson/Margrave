@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(provide modelgraph-node% modelgraph-edge% modelgraph% pos-modelgraph-node%)
+(provide modelgraph-node% modelgraph-edge% modelgraph% pos-modelgraph-node% results-hash)
 
 (require "netgraph.rkt")
 
@@ -31,6 +31,10 @@
     (make-object bitmap% "../images/icon_modify.png")
     "Modify"))
 
+(define results-hash (make-hash))
+(hash-set! results-hash 'accept result-accept)
+(hash-set! results-hash 'deny result-deny)
+(hash-set! results-hash 'translate result-modify)
 
 
 ; Node in a modelgraph
@@ -38,10 +42,14 @@
 (define modelgraph-node%
   (class netgraph-node%
     (init-field
-     [results empty])
+     [results empty]
+     [source? #f]
+     [dest? #f])
     (super-new)
     
     (define/public (get-results) results)
+    (define/public (is-source?) source?)
+    (define/public (is-dest?) dest?)
     
     ))
 
@@ -54,6 +62,9 @@
      [blocked #f])
     
     (define/public (is-active?) active)
+    (define/public (is-blocked?) blocked)
+    (define/public (set-active! b) (set! active b))
+    (define/public (set-blocked! b) (set! blocked b))
     
     (super-new)))
 

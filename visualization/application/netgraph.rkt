@@ -9,6 +9,7 @@
      [name "entity"]
      [policy null]
      [type 'host]
+     [vocabname ""]
      [subgraph null])
     
     (super-new)
@@ -16,6 +17,7 @@
     (define/public (get-name) name)
     (define/public (get-type) type)
     (define/public (get-policy) policy)
+    (define/public (get-vocabname) vocabname)
     (define/public (set-subgraph! sg) (set! subgraph sg))
     (define/public (get-subgraph) subgraph)
     ))
