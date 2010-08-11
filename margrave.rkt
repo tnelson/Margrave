@@ -240,12 +240,12 @@
                    [result (get-output-string command-buffer)]
                    [error-str (get-output-string error-buffer)])
               (when (> (string-length error-str) 0)
-                (printf "~n**************************************************~nAdditional ERROR information received:~n ~a~n**************************************************~n" error-str))
+                (printf "~n**************************************************~nAdditional information from Java engine:~n ~a~n**************************************************~n" error-str))
               (if (equal? port-status #t)
                   
                   (begin
                     ; Comment out this line to stop printing the XML
-                    (printf "~a~n" result)                    
+                    ;(printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))
