@@ -231,6 +231,7 @@
                             [else 
                              ; In progress. Keep reading.                             
                              (write-string (string next-char) command-buffer)
+                             (display next-char)
                              (fetch-result)]))))
             
             ; Populate the buffered ports            

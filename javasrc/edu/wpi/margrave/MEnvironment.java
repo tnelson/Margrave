@@ -1821,7 +1821,7 @@ public class MEnvironment
 	}
 
 	
-	static Document exceptionResponse(Exception e)
+	static Document exceptionResponse(Throwable e)
 	{
 		
 		Document xmldoc = makeInitialResponse("exception");

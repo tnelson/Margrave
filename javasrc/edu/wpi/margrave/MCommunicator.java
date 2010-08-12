@@ -104,7 +104,26 @@ public class MCommunicator
             	// Construct an exception response;
             	theResponse = MEnvironment.exceptionResponse(e);
             }
-            try {
+            catch(Throwable e)
+            {
+            	// This would ordinarily be a terrible thing to do (catching Throwable)
+            	// However, we need to warn the client that we're stuck.
+            	
+            	try
+            	{
+            		theResponse = MEnvironment.exceptionResponse(e);
+            	}
+            	catch(Throwable f)
+            	{
+            		// If we can't even warn the client, at least close down the engine. Client will detect EOF.
+            		theResponse = null;
+            		System.exit(101);
+            	}
+            	System.exit(100); 
+            }
+            
+            try 
+            {
         		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
         		out.write(transformXML(theResponse));
         	} catch (IOException e) {

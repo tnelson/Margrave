@@ -55,21 +55,7 @@ import kodkod.ast.operator.Quantifier;
 // of Eclipse it works fine...
 
 
-/**
- * Indicates an error given by the Formula Manager:
- * Unknown Relation name, etc.
- * @author Tim
- *
- */
-class MGEManagerException extends MGException
-{
-	private static final long serialVersionUID = 100; 
-	
-	MGEManagerException(String s)
-	{
-		super(s);
-	}
-}
+
 
 class MWeakValue<T> extends WeakReference<T>
 {

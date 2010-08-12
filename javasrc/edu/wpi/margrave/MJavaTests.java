@@ -204,11 +204,12 @@ public class MJavaTests
 		// CANNOT just tack on (Assigned s r) ... need the following:
 
 
+		// added not Assigned(a, r) and not Paper(a) which are senseless, to test index mutation in tupling
 		pollist.clear();
 		pollist.add(pol);
 		pollist.add(pol2);
 		qry = MQuery.queryThesePolicies("(forSome s Subject (forSome a Action (forSome r Resource " +
-				"(and (Assigned s r) " +
+				"(and (Assigned s r) (not (Assigned a r)) (not (Paper a))" +
 				     "(or (and (TestPol1:Permit s a r) (not (TestPol2:Permit s a r))) " +
 				         "(and (TestPol1:Deny s a r) (not (TestPol2:Deny s a r))) "+
 				         "(and (TestPol2:Permit s a r) (not (TestPol1:Permit s a r))) " +
@@ -939,7 +940,7 @@ public class MJavaTests
 		MEnvironment.writeErrLine("");
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_1()");
 		do_test_1();
-
+		//do_test_tupling_1();
 		/*System.gc();
 		MGFormulaManager.ping();
 		MGFormulaManager.printStatistics();
