@@ -222,13 +222,14 @@ public class MJavaTests
 
 		qry.doTupling = true;
 		qry.debug_verbosity = 3;
-		
 		/*MQueryResult result = qry.runQuery();
 		MTotalInstanceIterator sols = result.getTotalIterator();
 		MSolutionInstance inst = sols.next();
 		MSolutionInstance preinst = result.forQuery.processTupledSolutionForThis(inst);
 		
+		System.err.println(inst.getFacts());
 		System.err.println(preinst.getFacts());
+		
 		
 		System.exit(1);*/
 		

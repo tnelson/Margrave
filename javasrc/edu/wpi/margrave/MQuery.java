@@ -3040,6 +3040,7 @@ public class MQuery extends MIDBCollection
 		// We need the entire ordering generated for the tupling.
 
 		// Safety check: This _is_ a post-tupled query, right?
+		
 		if(internalTupledQuery == null || !tupled)
 			return partialInstance;
 		
@@ -3131,7 +3132,8 @@ public class MQuery extends MIDBCollection
 
 				//MEnvironment.writeErrLine("******"+preunderscore);
 
-				if(getIDBNamesToOutput().contains(preunderscore)) // this is the pre-tupling query's set
+				// this is the pre-tupling query's set
+				if(internalTupledQuery.getIDBNamesToOutput().contains(preunderscore)) 
 				{
 
 					// Indexing is after the underscore.

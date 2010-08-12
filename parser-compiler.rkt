@@ -277,7 +277,17 @@
       (build-so (list 'SHOWPOPULATED $3 $4 $7) 1 7)]
      [(SHOW UNPOPULATED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
       (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
-     
+
+     ; SHOW POPULATED without a numeric-d
+     [(SHOW POPULATED atomic-formula-list) 
+      (build-so (list 'LSHOWPOPULATED $3 empty) 1 3)]
+     [(SHOW UNPOPULATED atomic-formula-list)
+      (build-so (list 'LSHOWUNPOPULATED $3 empty) 1 3)]
+     [(SHOW POPULATED atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'LSHOWPOPULATED $3 $6) 1 6)]
+     [(SHOW UNPOPULATED atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'LSHOWUNPOPULATED $3 $6) 1 6)]     
+          
      ;IS POSSIBLE?
      [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
      [(IS POSSIBLEQMARK) (build-so (list 'IS-POSSIBLE?) 1 1)]
@@ -562,7 +572,7 @@
         
         ; id, list, optional for-cases list
         [(equal? first-datum 'SHOWPOPULATED)
-         (printf "~a ~n" (syntax->datum (second interns)))
+         ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (fourth interns))
              (xml-make-show-populated-command (helper-syn->xml (second interns)) 
                                               (map helper-syn->xml (syntax-e (third interns))))
@@ -576,6 +586,22 @@
              (xml-make-show-unpopulated-command (helper-syn->xml (second interns))
                                                 (append (map helper-syn->xml (syntax-e (third interns))) 
                                                         (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
+        ; same but without the result ID
+        [(equal? first-datum 'LSHOWPOPULATED)
+         ;(printf "~a ~n" (syntax->datum (second interns)))
+         (if (empty? (third interns))
+             (xml-make-show-populated-command (xml-make-id "-1") 
+                                              (map helper-syn->xml (syntax-e (second interns))))
+             (xml-make-show-populated-command (xml-make-id "-1")
+                                              (append (map helper-syn->xml (syntax-e (second interns))) 
+                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
+        [(equal? first-datum 'LSHOWUNPOPULATED)
+         (if (empty? (third interns))
+             (xml-make-show-unpopulated-command (xml-make-id "-1")
+                                                (map helper-syn->xml (syntax-e (second interns))))
+             (xml-make-show-unpopulated-command (xml-make-id "-1")
+                                                (append (map helper-syn->xml (syntax-e (second interns))) 
+                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
         
         [(equal? first-datum 'OR)
          (list 'OR (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]

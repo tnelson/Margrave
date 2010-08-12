@@ -55,17 +55,16 @@
 ;(define test-xml (evalxml test-string))
 ;(m test-xml)
 
-; Parser problem: expects list of atomic formulas, and atomic formulas have to have non-empty var vectors
 (mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit")
 (mtext "GET ONE 0");
 
 
-
-; Won't tuple since conf1 has >1-ary predicates. (Will be enhancing to allow any arity soon.)
 (mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
-(mtext "GET ONE 0")
-(mtext "SHOW POPULATED 0 conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
-(mtext "SHOW UNPOPULATED 0 conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
+
+; You don't need to pass an EXPLORE id if you're referencing the last explore:
+(mtext "GET ONE")
+(mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
+(mtext "SHOW UNPOPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
 
 ;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 ;(mtext "GET ONE 0")

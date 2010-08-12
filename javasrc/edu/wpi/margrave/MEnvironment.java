@@ -485,13 +485,13 @@ public class MEnvironment
 
 	static MQueryResult getQueryResult(int num)
 	{
-		num = convertQueryNumber(num);
+		num = convertQueryNumber(num); // special case
 		
 		if(envQueryResults.containsKey(num))
 			return envQueryResults.get(num);		
 		return null;
 	}
-	
+		
 	//If num is !- -1, returns num.
 	//If num is == -1, return the last results id (lastresult)
 	static int convertQueryNumber(int num) {
@@ -1116,7 +1116,7 @@ public class MEnvironment
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist) 
 	{
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
@@ -1159,7 +1159,7 @@ public class MEnvironment
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist) throws MSemanticException
 	{
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
@@ -1186,7 +1186,7 @@ public class MEnvironment
 	
 	public static Document countModels(Integer id, Integer n)
 	{
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		return intResponse(aResult.countModelsAtSize(n));				
@@ -1194,14 +1194,13 @@ public class MEnvironment
 
 	public static Document countModels(Integer id)
 	{
-		id = convertQueryNumber(id);
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
 	public static Document isGuar(Integer id)
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		if(aResult.get_hu_ceiling() > aResult.get_universe_max())
@@ -1211,8 +1210,7 @@ public class MEnvironment
 
 	public static Document isPoss(Integer id) 
 	{	
-		id = convertQueryNumber(id);
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		try
@@ -1227,19 +1225,12 @@ public class MEnvironment
 
 	public static Document showCeiling(Integer id)
 	{
-		id = convertQueryNumber(id);
-		MQueryResult aResult = getResultObject(id);
+		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		return intResponse(aResult.get_universe_max());
 	}
 
-
-
-	private static MQueryResult getResultObject(Integer id)
-	{
-		return envQueryResults.get(id);		  	
-	}
 	
 	public static Document createPolicySet(String pname, String vname) 
 	{
@@ -2021,18 +2012,22 @@ public class MEnvironment
 		if(mQueryResult.forQuery.tupled) 
 		{
 			next = mQueryResult.forQuery.processTupledSolutionForThis(nextPreTup);
-			MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
-			MCommunicator.writeToLog("\nAnnotations: ");
-			MCommunicator.writeToLog(next.getAnnotations().toString());
+			//MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
+			//MCommunicator.writeToLog("\ninternal's tupling = "+mQueryResult.forQuery.internalTupledQuery.doTupling);
+			//MCommunicator.writeToLog("\nAnnotations: ");
+			//MCommunicator.writeToLog(next.getAnnotations().toString());
 		}
 		else
 		{
 			next = nextPreTup;
-			MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
-			MCommunicator.writeToLog("\njust-in-case, tupling = "+mQueryResult.forQuery.doTupling);
-			MCommunicator.writeToLog("\njust-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
+			//MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
+			//MCommunicator.writeToLog("\njust-in-case, tupling = "+mQueryResult.forQuery.doTupling);
+			//MCommunicator.writeToLog("\njust-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
 		}
-						
+		
+		//writeToLog("\nORIG INSTANCE: "+nextPreTup.getFacts());
+		//writeToLog("\nPOST CONVERSION INSTANCE: "+next.getFacts());
+		
 		Document xmldoc = makeInitialResponse("model");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element modelElement = xmldoc.createElementNS(null, "MODEL");

@@ -193,8 +193,8 @@
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
       (begin 
-        ; Comment out to disable printing XML commands as they are sent
-         ;(printf "M SENDING XML: ~a;~n" cmd)
+        ; DEBUG: Comment out to disable printing XML commands as they are sent
+        ;(printf "M SENDING XML: ~a;~n" cmd)
         
         ; Send the command XML (DO NOT COMMENT THIS OUT)
         ; ******************************************
@@ -231,7 +231,10 @@
                             [else 
                              ; In progress. Keep reading.                             
                              (write-string (string next-char) command-buffer)
-                             (display next-char)
+                             
+                             ; DEBUG: Uncomment this to print each char as it is received.
+                             ;(display next-char)
+                             
                              (fetch-result)]))))
             
             ; Populate the buffered ports            
@@ -245,7 +248,7 @@
               (if (equal? port-status #t)
                   
                   (begin
-                    ; Comment out this line to stop printing the XML
+                    ; DEBUG: Comment out this line to stop printing the XML
                     ;(printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
