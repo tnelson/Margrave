@@ -13,7 +13,6 @@
 ; Adds a node to the pasteboard.
 ; It creates a snip and positions it based on the node's location
 (define (place-node pb node)
-  
   (let
       ((newnode (new entity-snip%
                      [updatef (lambda (x y) 
@@ -39,37 +38,29 @@
           ))
     ))
 
-; For now, just places the nodes and edges.
+; Places the nodes and edges
 (define (_visualize ng pb)
   (map (lambda (node) (place-node pb node)) (send ng get-nodes))
   (send pb set-edges! (send ng get-edges)))
 
-
-(define icon-accept (make-object bitmap% "../images/icon_accept.png"))
-(define icon-modify (make-object bitmap% "../images/icon_modify.png"))
-(define icon-deny (make-object bitmap% "../images/icon_deny.png"))
-
-(define kws (make-hash))
-(hash-set! kws 'ipsrc "ipsrc")
-(hash-set! kws 'ipdest "ipdest")
-
-(define (visualize ng query)
+; Sets up the window and canvas, calls _visualize
+(define (visualize ng query kws)
   (begin
     (mtext query)
-  (letrec ([window (new frame%
-                         [label "FWP App"]
-                         [width 1000]
-                         [height 800])]
-            [canvas (new editor-canvas% [parent window])]
-            [mod (new mg-model% [xml (get-child-element (document-element (mtext "GET ONE 0")) 'model)] [keyword-map kws])]
-            [pb (new fwpboard% [next_model_fun
-                                (lambda () 
-                                  (begin
-                                    (mtext "GET NEXT 0")
-                                    (_visualize (apply-model/pos ng mod) pb)))])])
-           (begin
-             (send canvas set-editor pb)
-             (send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 850 10)
-             (_visualize (apply-model/pos ng 
-                                          mod) pb)
-             (send window show #t)))))
+    (letrec ([window (new frame%
+                          [label "FWP App"]
+                          [width 1000]
+                          [height 800])]
+             [canvas (new editor-canvas% [parent window])]
+             [mod (new mg-model% [xml (get-child-element (document-element (mtext "GET ONE 0")) 'model)] [keyword-map kws])]
+             [pb (new fwpboard% [next_model_fun
+                                 (lambda () 
+                                   (begin
+                                     (mtext "GET NEXT 0")
+                                     (_visualize (apply-model/pos ng mod) pb)))])])
+      (begin
+        (send canvas set-editor pb)
+        (send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 760 10)
+        (_visualize (apply-model/pos ng 
+                                     mod) pb)
+        (send window show #t)))))

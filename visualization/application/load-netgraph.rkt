@@ -3,6 +3,10 @@
 (provide topology load-topology)
 (require "netgraph.rkt")
 
+; I guess I need a namespace to give eval
+(define-namespace-anchor a)
+
+; Macro to create netgraphs based on the topology file format
 (define-syntax topology
   (syntax-rules ()
     [(topology
@@ -22,5 +26,7 @@
          ng
          ))]))
 
+; Loads a netgraph by using eval and (hopefully!) the macro. Is this a good idea?!
 (define (load-topology filename)
-  (eval (with-input-from-file filename read)))
+  (eval (with-input-from-file filename read) (namespace-anchor->namespace a))
+  )

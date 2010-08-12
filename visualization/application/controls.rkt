@@ -4,6 +4,7 @@
 
 (define arrow-dark (make-object color% 30 30 30))
 (define arrow-light (make-object color% 170 170 170))
+(define x-red (make-object color% 255 0 0))
 
 (define (vn x y)
   (let ([d (sqrt (+ (* x x) (* y y)))])
@@ -22,7 +23,7 @@
            [arrow-color (if (send edge is-active?) arrow-dark arrow-light)]
            )
     ; Line pen
-    (send dc set-pen arrow-color 3 'solid)
+    (send dc set-pen arrow-color 3 (if (send edge is-blocked?) 'short-dash 'solid))
     (send dc set-smoothing 'aligned)
     ; Draw the line
     (send dc draw-line
@@ -50,6 +51,22 @@
              (- (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0)))
              ))          
           ) #f)
+    
+    ; Draw the X
+    (if (send edge is-blocked?)
+        (begin
+          (send dc set-pen x-red 3 'solid)
+          (send dc draw-line
+                (- (/ (+ cx1 cx2) 2) 12)
+                (- (/ (+ cy1 cy2) 2) 12)
+                (+ (/ (+ cx1 cx2) 2) 12)
+                (+ (/ (+ cy1 cy2) 2) 12))
+          (send dc draw-line
+                (- (/ (+ cx1 cx2) 2) 12)
+                (+ (/ (+ cy1 cy2) 2) 12)
+                (+ (/ (+ cx1 cx2) 2) 12)
+                (- (/ (+ cy1 cy2) 2) 12))) #f)
+              
     ; Fix things
     (send dc set-pen "black" 1 'solid)
     (send dc set-brush "black" 'transparent)
@@ -73,6 +90,7 @@
             ) #f)
       )
     
+    ; If you press space
     (define/override (on-default-char event)
       (if (eq? (send event get-key-code) #\space)
           (begin
@@ -82,6 +100,7 @@
           (next_model_fun)
           ) #f))
     
+    ; Double clicking brings up the subcomponents
     (define/override (on-double-click snip event)
       (if (and (is-a? snip entity-snip%) (not (null? (send snip get-subed))))
           (if (send this get-snip-location (send snip get-subed))

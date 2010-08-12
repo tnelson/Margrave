@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(provide modelgraph-node% modelgraph-edge% modelgraph% pos-modelgraph-node% results-hash)
+(provide modelgraph-node% modelgraph-edge% modelgraph% pos-modelgraph-node% results-hash result-accept result-deny result-modify)
 
 (require "netgraph.rkt")
 

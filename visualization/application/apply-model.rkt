@@ -4,13 +4,22 @@
 
 (require "modelgraph.rkt" "visxml.rkt" xml "../../margrave-xml.rkt")
 
+; Checks to see if a named entity matches a specific label (ipsrc or ipdest, generally)
+; This is what we're looking for:
+; <RELATION name="whatever">
+;   <TUPLE>
+;     <ATOM>ipsrc</ATOM>
+;   </TUPLE>
+; </RELATION>
 (define (check-src-dest xml name label)
   (and (element? xml)
        (and (symbol=? (element-name xml) 'RELATION)
             (and (string=? (get-attribute-value xml 'name) name)
                  (string=? (get-pc-data (get-child-element (get-child-element xml 'TUPLE) 'ATOM)) label)))))
 
-; Returns a list of firewall policy decisions
+; Returns a list of firewall policy decisions for a named entity
+; This is from IDBOUTPUT, and we have to parse the string because the info we need is
+; just in the pcdata of an <ANNOTATION> element
 (define (get-fwps loa pname)
   (cond [(empty? loa) empty]
         [else
@@ -21,24 +30,28 @@
            )
          ]))
 
+; Begins at start and tries to find a path exhausting every node in lon. 
 (define (edge-path mg start lon)
   (cond [(empty? lon) #f]
         [(= (length lon) 1)
          (begin
            (print (send start get-name))
            (print (send (first lon) get-name))
-         (send (send mg find-edge start (first lon)) set-active! #t))]
+         (send (send mg find-edge start (first lon)) set-active! #t)
+         (send (send mg find-edge start (first lon)) set-blocked! (list? (memq result-deny (send start get-results)))))]
         [else
          (let ([next (first (filter (lambda (n) (send mg find-edge start n)) lon))])
            (begin
              (send (send mg find-edge start next) set-active! #t)
+             (send (send mg find-edge start next) set-blocked! (list? (memq result-deny (send start get-results))))
              (edge-path mg next (remv next lon))))]))
 
+; This class stores the xml model and provides functions for deriving model information from xml data. 
 (define mg-model%
   (class object%
     (init-field
-     [keyword-map (make-hash)]
-     [xml #f]
+     [keyword-map (make-hash)] ; Not every policy will use the same vocabulary
+     [xml null]
      )
     
     ; Returns the list of policy decisions made by that entity or empty
@@ -77,8 +90,6 @@
   (new modelgraph-edge%
        [from (hash-ref nodemap (send e get-from))]
        [to (hash-ref nodemap (send e get-to))]
-       ;[active (if (= 0 (random 2)) #t #f)]
-       ;[blocked (if (= 0 (random 2)) #t #f)]
        [active #f]
        [blocked #f]
        ))
@@ -86,15 +97,19 @@
 ; Consumes a netgraph-node and a model
 ; Returns a modelgraph-node
 (define (convert-node n model nodemap)
-  (new modelgraph-node%
-       [name (send n get-name)]
-       [type (send n get-type)]       
-       [policy (send n get-policy)]
-       [vocabname (send n get-vocabname)]       
-       [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
-       [source? (send model is-src? (send n get-vocabname))]
-       [dest? (send model is-dest? (send n get-vocabname))]       
-       [results empty]))
+  (let ([newnode  
+         (new modelgraph-node%
+              [name (send n get-name)]
+              [type (send n get-type)]       
+              [policy (send n get-policy)]
+              [vocabname (send n get-vocabname)]       
+              [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
+              [source? (send model is-src? (send n get-vocabname))]
+              [dest? (send model is-dest? (send n get-vocabname))]       
+              [results empty])])
+    (begin 
+      (hash-set! nodemap n newnode)
+      newnode)))    
 
 ; Consumes a pos-netgraph-node and a model
 ; Returns a pos-modelgraph-node
