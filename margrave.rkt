@@ -377,5 +377,3 @@
 (define (pause-for-user) 
   (printf "======================== Hit enter to continue. ========================~n~n")
   (read-char))
-
-

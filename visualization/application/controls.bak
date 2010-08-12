@@ -19,7 +19,7 @@
            [cx2 (+ (send n2 get-x) 43)]
            [cy2 (+ (send n2 get-y) 43)]
            [v1 (vn (- cx2 cx1) (- cy2 cy1))]
-           [arrow-color (if (send edge active?) arrow-dark arrow-light)]
+           [arrow-color (if (send edge is-active?) arrow-dark arrow-light)]
            )
     ; Line pen
     (send dc set-pen arrow-color 3 'solid)
@@ -63,10 +63,23 @@
     (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
       (if before?
           (begin
-            (map (lambda (edge) (draw-edge dc edge)) edges)
+            (map (lambda (edge) (draw-edge dc edge))
+                 (sort edges
+                       (lambda (a b) (send b get-active?))
+                                                           ))
             (send this invalidate-bitmap-cache left top (- right left) (- bottom top))
             ) #f)
       )
+    
+    (define/override (on-double-click snip event)
+      (if (and (is-a? snip entity-snip%) (not (null? (send snip get-subed))))
+          (if (send this get-snip-location (send snip get-subed))
+              (send this remove (send snip get-subed))
+              (begin
+                (send this insert (send snip get-subed) (- (send event get-x) 150) (- (send event get-y) 150))
+                (send (send snip get-subed) set-flags (list))
+                (send this set-before (send snip get-subed) #f))
+              ) #f))
     
     (define/public (set-edges! e) (set! edges e))
     
@@ -75,18 +88,25 @@
 ; Subclass of image-snip, so we can have text below the images.
 (define entity-snip%
   (class image-snip%
-    (init-field updatef [bitmap null] [icons empty] [name ""])
+    (init-field updatef [bitmap null] [icons empty] [name ""] [subed null])
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
+      (let ([w (send bitmap get-width)]
+            [h (send bitmap get-height)])
+        
       (if (not (empty? icons)) (begin
+                                 (if (not (null? subed))
+                                     (send dc set-pen arrow-dark 2 'solid)
+                                     (send dc set-pen arrow-light 1 'solid))
                                  (send dc set-smoothing 'aligned)
                                  (send dc draw-rounded-rectangle (- x 20) (- y 10) 120 120 9)
-                                 (send dc set-smoothing 'unsmoothed)) #f)
+                                 (send dc set-smoothing 'unsmoothed)
+                                 (send dc set-pen "black" 1 'solid)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)
-      (send dc draw-text name (+ x 15) (+ y 90))
-      (draw-icons icons dc x y)
+      (send dc draw-text name (- (+ x (/ w 2)) (/ (let-values ([(a b c d) (send dc get-text-extent name)]) a) 2)) (+ y h))
+      (draw-icons icons dc x y)   
       (updatef x y)      
-      )
+      ))
     
     (define/private (draw-icons icons dc x y)
       (cond [(empty? icons) #f]
@@ -94,9 +114,8 @@
                     (send dc draw-bitmap (first icons) (- x 16) (- y 23))
                     (draw-icons (rest icons) dc (+ 34 x) y))]))
     
-    (define/override (on-event dc x y editorx editory event)
-      (super on-event dc x y editorx editory event)
-      )
+    (define/public (set-subed! ed) (set! subed ed))
+    (define/public (get-subed) subed)
     
     (super-make-object bitmap)))
 
