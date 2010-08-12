@@ -8,15 +8,16 @@
     (init-field
      [name "entity"]
      [policy null]
+     [type 'host]
+     [vocabname ""]
      [subgraph null])
-    (define mnode null)
     
     (super-new)
     
     (define/public (get-name) name)
+    (define/public (get-type) type)
     (define/public (get-policy) policy)
-    (define/public (set-mnode! n) (set! mnode n))
-    (define/public (get-mnode) mnode)
+    (define/public (get-vocabname) vocabname)
     (define/public (set-subgraph! sg) (set! subgraph sg))
     (define/public (get-subgraph) subgraph)
     ))

@@ -16,11 +16,16 @@
 (define canvas (new editor-canvas% [parent window]))
 
 ; Using my custom subclass of pasteboard
-(define pb (new fwpboard%))
+(define pb (new fwpboard% [next_model_fun
+                           (lambda () 
+                             (begin
+                               (mtext "GET NEXT 0")
+                               (visualize (apply-model/pos myng mod) pb)))]))
 
 (send canvas set-editor pb)
 
-(send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 550 10)
+(send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 850 10)
+
 
 (start-margrave-engine (build-path 'up 'up))
 (load-policy (build-path "tests" "inboundacl_fw1.p"))
@@ -42,10 +47,11 @@ inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, 
 
 (define mr (document-element (mtext "GET ONE 0")))
 
-(stop-margrave-engine)
+
 
 (define kws (make-hash))
 (hash-set! kws 'ipsrc "ipsrc")
+(hash-set! kws 'ipdest "ipdest")
 
 (define mod (new mg-model% [xml (get-child-element mr 'model)] [keyword-map kws]))
 
@@ -54,6 +60,12 @@ inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, 
 ; My stuff
 ; Make a netgraph
 (define myng (new netgraph%))
+
+;(define next-button (new next-button-snip% [bitmap (make-object bitmap% "../images/key.png")] [pb pb] [ng myng] [model mod]))
+;(send next-button set-flags (list 'handles-events))
+;(send pb insert next-button 850 600)
+
+
 ; Create some positional nodes
 (define s1 (new pos-netgraph-node% [name "Web Server"] [vocabname "webserver"] [type 'server] [x 440] [y 120]))
 (define s2 (new pos-netgraph-node% [name "Mail Server"] [vocabname "mailserver"] [type 'server] [x 440] [y 500]))

@@ -52,6 +52,10 @@
     (define/public (add-edge! n1 n2)
       (set! edges (cons (new netgraph-edge% [from n1] [to n2]) edges)))
     
+    (define/public (find-edge n1 n2)
+      (let ([edge (filter (lambda (e) (and (eq? n1 (send e get-from)) (eq? n2 (send e get-to)))) edges)])
+        (if (empty? edge) #f (first edge))))
+    
     (define/public (get-nodes) nodes)
     (define/public (get-edges) edges) ))
 

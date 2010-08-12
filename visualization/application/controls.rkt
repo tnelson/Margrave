@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(provide fwpboard% entity-snip%)
+(provide fwpboard% entity-snip% next-button-snip%)
 
 (define arrow-dark (make-object color% 30 30 30))
 (define arrow-light (make-object color% 170 170 170))
@@ -35,6 +35,7 @@
     ; Set brush
     (send dc set-brush arrow-color 'solid)
     ; Draw the arrowhead
+    (if (send edge is-active?)
     (send dc draw-polygon
           (list 
            (make-object point%
@@ -48,7 +49,7 @@
              (- (- cx2 (* 75 (vector-ref v1 0))) (- 0 (* 7 (vector-ref v1 1))))
              (- (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0)))
              ))          
-          )
+          ) #f)
     ; Fix things
     (send dc set-pen "black" 1 'solid)
     (send dc set-brush "black" 'transparent)
@@ -58,15 +59,28 @@
 ; Subclass of pasteboard, so we can draw the arrows.
 (define fwpboard% 
   (class pasteboard%
+    (init-field [next_model_fun null])
     (define edges empty)
     
     (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
       (if before?
           (begin
-            (map (lambda (edge) (draw-edge dc edge)) edges)
+            (map (lambda (edge) (draw-edge dc edge))
+                 (sort edges
+                       (lambda (a b) (send b is-active?))
+                                                           ))
             (send this invalidate-bitmap-cache left top (- right left) (- bottom top))
             ) #f)
       )
+    
+    (define/override (on-default-char event)
+      (if (eq? (send event get-key-code) #\space)
+          (begin
+          (send this select-all)
+          (send this clear)
+          (set! edges empty)
+          (next_model_fun)
+          ) #f))
     
     (define/override (on-double-click snip event)
       (if (and (is-a? snip entity-snip%) (not (null? (send snip get-subed))))
@@ -85,7 +99,7 @@
 ; Subclass of image-snip, so we can have text below the images.
 (define entity-snip%
   (class image-snip%
-    (init-field updatef [bitmap null] [icons empty] [name ""] [subed null])
+    (init-field updatef [bitmap null] [kind null] [icons empty] [name ""] [subed null])
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (let ([w (send bitmap get-width)]
@@ -116,3 +130,15 @@
     
     (super-make-object bitmap)))
 
+(define next-button-snip%
+  (class image-snip%
+    (init-field [bitmap null] [pb null] [ng null] [model null])
+    
+    (define/override (on-event dc x y ex ey event)
+          (begin
+            (print "ASDFASFDASFDASFD")
+          (send pb select-all)
+          (send pb clear)
+          ))
+      
+    (super-make-object bitmap)))

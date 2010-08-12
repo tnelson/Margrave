@@ -21,6 +21,7 @@
                                 (send node set-y! y))]
                      [name (send node get-name)]
                      [icons (map (lambda (n) (send n get-bitmap)) (send node get-results))]
+                     [kind 'png/mask]
                      [bitmap (make-object bitmap% (hash-ref type-bitmap-hash (send node get-type)))])))
     (begin
     (send pb insert newnode (send node get-x) (send node get-y))

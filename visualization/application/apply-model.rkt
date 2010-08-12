@@ -15,15 +15,24 @@
   (cond [(empty? loa) empty]
         [else
          (let ([ss (regexp-split #rx":" (get-pc-data (first loa))) ])
-           (begin 
-             
-             (print (get-pc-data (first loa)))
-             
-             (if (string=? (first ss) pname)
+           (if (string=? (first ss) pname)
                (cons (hash-ref results-hash (string->symbol (first (regexp-split #rx" is" (second ss))))) (get-fwps (rest loa) pname))
                (get-fwps (rest loa) pname))
            )
-           )]))
+         ]))
+
+(define (edge-path mg start lon)
+  (cond [(empty? lon) #f]
+        [(= (length lon) 1)
+         (begin
+           (print (send start get-name))
+           (print (send (first lon) get-name))
+         (send (send mg find-edge start (first lon)) set-active! #t))]
+        [else
+         (let ([next (first (filter (lambda (n) (send mg find-edge start n)) lon))])
+           (begin
+             (send (send mg find-edge start next) set-active! #t)
+             (edge-path mg next (remv next lon))))]))
 
 (define mg-model%
   (class object%
@@ -37,12 +46,17 @@
     (define/public (get-entity-data policyname)
       (get-fwps (get-child-elements xml 'ANNOTATION) policyname))
     
-    ; Returns a list of enabled edges
+    ; Updates a modelgraph so the edges have correct active and blocked status
+    ; It must return the model. 
     (define/public (set-edge-data mg)
-      (let ([src (find-source mg)]
-            [dest (find-dest mg)]
-            
-      )
+      (let ([src (first (filter (lambda (n) (send n is-source?)) (send mg get-nodes)))]
+            [dest (first (filter (lambda (n) (send n is-dest?)) (send mg get-nodes)))]
+            [active-ents (filter (lambda (n) (not (empty? (send n get-results)))) (send mg get-nodes))])
+        
+        (begin
+          (edge-path mg src (append active-ents (list dest)) )
+          mg)
+        ))
     
     ; Returns true if the supplied entity is the src host
     (define/public (is-src? entname)
@@ -78,6 +92,8 @@
        [policy (send n get-policy)]
        [vocabname (send n get-vocabname)]       
        [subgraph (if (null? (send n get-subgraph)) null (apply-model (send n get-subgraph) model))]       
+       [source? (send model is-src? (send n get-vocabname))]
+       [dest? (send model is-dest? (send n get-vocabname))]       
        [results empty]))
 
 ; Consumes a pos-netgraph-node and a model
@@ -92,7 +108,7 @@
               [subgraph (if (null? (send n get-subgraph)) null (apply-model/pos (send n get-subgraph) model))]   
               [results (if (null? (send n get-policy)) empty (send model get-entity-data (send n get-policy)))]
               [source? (send model is-src? (send n get-vocabname))]
-              [dest? (send model is-src? (send n get-vocabname))]
+              [dest? (send model is-dest? (send n get-vocabname))]
               [x (send n get-x)]
               [y (send n get-y)]
               )])
@@ -118,7 +134,7 @@
 
 ; Helper for apply-model functions
 (define (_apply-model ng model nf ef)
-  (send-model set-edge-data (new modelgraph% 
-       [nodes (map nf (send ng get-nodes))]
-       [edges (map ef (send ng get-edges))]
-       )))
+  (send model set-edge-data (new modelgraph% 
+                                 [nodes (map nf (send ng get-nodes))]
+                                 [edges (map ef (send ng get-edges))]
+                                 )))
