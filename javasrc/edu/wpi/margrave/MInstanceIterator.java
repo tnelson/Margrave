@@ -322,18 +322,23 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			//if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
 			//	throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 			
-			if(!fromResult.forQuery.vocab.isSort(predname) && !fromResult.forQuery.vocab.predicates.containsKey(predname))
+			if(!fromResult.forQuery.vocab.isSort(predname) && 
+					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
+					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
 				throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 		}
 		for(String predname : indexedCases)
 		{
-			if(!fromResult.forQuery.vocab.isSort(predname) && !fromResult.forQuery.vocab.predicates.containsKey(predname))
+			if(!fromResult.forQuery.vocab.isSort(predname) && 
+					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
+					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
 				throw new MSemanticException("Case in SHOW POPULATED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 	
 		} 	
 		// TODO de-index the error messages
+		// TODO error msgs for unpop too
 		// *********************************************************************************
 		
 		
@@ -464,13 +469,19 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.					
 		for(String predname : indexedCandidates)
 		{
-			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
-				throw new MSemanticException("Candidate in SHOW UNPOPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
+			if(!fromResult.forQuery.vocab.isSort(predname) && 
+					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
+					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
+				throw new MSemanticException("Candidate in SHOW UNPOPULATED: "+predname+
+						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());		
 		}
 		for(String predname : indexedCases)
 		{
-			if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
-				throw new MSemanticException("Case in SHOW UNPOPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());	
+			if(!fromResult.forQuery.vocab.isSort(predname) && 
+					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
+					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
+				throw new MSemanticException("Case in SHOW UNPOPULATED: "+predname+
+						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());		
 		} 	
 		// TODO de-index the error messages
 		// *********************************************************************************
