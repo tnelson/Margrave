@@ -30,9 +30,12 @@ import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import kodkod.instance.Instance;
 
 
 import com.sun.xacml.ParsingException;
@@ -219,7 +222,17 @@ public class MJavaTests
 
 		qry.doTupling = true;
 		qry.debug_verbosity = 3;
-		countTest("Solutions to above with (Assigned s r) only", qry, 1, 1, 1);
+		
+		/*MQueryResult result = qry.runQuery();
+		MTotalInstanceIterator sols = result.getTotalIterator();
+		MSolutionInstance inst = sols.next();
+		MSolutionInstance preinst = result.forQuery.processTupledSolutionForThis(inst);
+		
+		System.err.println(preinst.getFacts());
+		
+		System.exit(1);*/
+		
+		countTest("Solutions to above with (Assigned s r) only (tupled)", qry, 1, 1, 1);
 		
 		// Make sure constraint existentials are being generated: should add nonempty_constraint_resource ext.
 		// reviewer+assigned+!conf, reviewer+assigned+conf, reviewier+!assigned+!conf, author+!assigned+!conf

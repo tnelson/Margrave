@@ -3039,6 +3039,10 @@ public class MQuery extends MIDBCollection
 		// varOrdering is only an ordering on the PUBLISHED variables in the query.
 		// We need the entire ordering generated for the tupling.
 
+		// Safety check: This _is_ a post-tupled query, right?
+		if(internalTupledQuery == null || !tupled)
+			return partialInstance;
+		
 
 		// (1) Look at the equalities, decide what the universe is
 		HashMap<String, Set<String>> idxToVars = new HashMap<String, Set<String>>();
@@ -3096,9 +3100,6 @@ public class MQuery extends MIDBCollection
 			vals.add(aName);
 		}
 		Universe u = new Universe(vals);
-
-		//System.err.println(u);
-
 
 		Instance newInstance = new Instance(u);
 		Instance dontcare = new Instance(u);
@@ -3165,9 +3166,8 @@ public class MQuery extends MIDBCollection
 					String relname = r.name().substring(0, underscoreIndex);
 					try
 					{
-						// The pre-tupling relation name 
-						// (Why is this vocab instead of the original vocab?)
-						Relation newr = vocab.getRelation(relname);
+						// The pre-tupling relation name 						
+						Relation newr = internalTupledQuery.vocab.getRelation(relname);
 
 						// May not be a single atom, since tupling now supports arbitrary arity predicates.
 						// Split the indexing by comma, then get.
@@ -3179,8 +3179,8 @@ public class MQuery extends MIDBCollection
 						// Singleton tuple set
 						Tuple t = u.factory().tuple(tupleAtoms);						
 						TupleSet theTuples = u.factory().noneOf(splitIndexing.length);
-						theTuples.add(t);
-
+						theTuples.add(t);						
+						
 						// If we have not made this (pre-tupling) relation yet, do so
 						if(newInstance.relationTuples().containsKey(newr))
 							theTuples.addAll(newInstance.relationTuples().get(newr));
@@ -3208,7 +3208,6 @@ public class MQuery extends MIDBCollection
 
 		} // for each relation
 
-		// There is (for now) no tupling support for non-unary relations.
 
 
 

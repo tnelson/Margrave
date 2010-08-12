@@ -62,8 +62,10 @@
 
 
 ; Won't tuple since conf1 has >1-ary predicates. (Will be enhancing to allow any arity soon.)
-(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r) DEBUG 3 TUPLING")
+(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
 (mtext "GET ONE 0")
+(mtext "SHOW POPULATED 0 conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
+(mtext "SHOW UNPOPULATED 0 conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
 
 ;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 ;(mtext "GET ONE 0")

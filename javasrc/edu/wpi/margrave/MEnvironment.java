@@ -2020,17 +2020,17 @@ public class MEnvironment
 		// If this query was tupled, don't forget to convert back to the original signature.		
 		if(mQueryResult.forQuery.tupled) 
 		{
-			next = mQueryResult.forQuery.internalTupledQuery.processTupledSolutionForThis(nextPreTup);
-			MCommunicator.writeToLog("scenarioResponse: query was TUPLED.");
-			MCommunicator.writeToLog("Annotations:");
+			next = mQueryResult.forQuery.processTupledSolutionForThis(nextPreTup);
+			MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
+			MCommunicator.writeToLog("\nAnnotations: ");
 			MCommunicator.writeToLog(next.getAnnotations().toString());
 		}
 		else
 		{
 			next = nextPreTup;
-			MCommunicator.writeToLog("scenarioResponse: query was NOT tupled.");
-			MCommunicator.writeToLog("just-in-case, tupling = "+mQueryResult.forQuery.doTupling);
-			MCommunicator.writeToLog("just-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
+			MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
+			MCommunicator.writeToLog("\njust-in-case, tupling = "+mQueryResult.forQuery.doTupling);
+			MCommunicator.writeToLog("\njust-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
 		}
 						
 		Document xmldoc = makeInitialResponse("model");
