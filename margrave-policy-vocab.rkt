@@ -19,12 +19,6 @@
 
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
 
-; symbol or string -> string
-; Returns the argument, quoted, as a string.
-(define (symbol->quoted-string arg)
-  (if (symbol? arg)
-      (string-append "\"" (symbol->string arg)"\"")
-      (string-append "\"" arg "\"")))
 
 
 
@@ -106,31 +100,6 @@
     ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subset (xml-make-parent-identifier (car listrels)) 
                                                                                                               (xml-make-child-identifier (car (cdr listrels)))))))
     (else (printf " Error! Unsupported constraint type~n"))))
-
-; May be a list, may not be a list
-(define (fold-append-with-spaces posslist)
-  (if (list? posslist)
-      (foldr (lambda (s t) 
-               (cond
-                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) " " (symbol->string t))]
-                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
-                 [(symbol? s) (string-append (symbol->string s) " " t)] 
-                 [(symbol? t) (string-append s " " (symbol->string t))] 
-                 [(string=? t "") s]
-                 [else (string-append s " " t)]))
-             ""
-             posslist)
-      (if (symbol? posslist)
-          (symbol->string posslist)
-          posslist)))
-
-(define (fold-append-with-spaces-quotes posslist)
-  (fold-append-with-spaces (if (list? posslist)
-                               (map symbol->quoted-string posslist)
-                               posslist)))
-
-
-
 
 ; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
 ; Java expects an (unneeded!) arity value

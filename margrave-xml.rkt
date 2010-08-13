@@ -17,6 +17,7 @@
  xml-explore-result->id
  xml-set-response->list
  xml-list-response->list
+ xml-map-response->map
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
@@ -71,7 +72,47 @@
  xml-make-parent-identifier
  xml-make-child-identifier
  xml-make-get-rules-command
- xml-make-get-qrules-command)
+ xml-make-get-qrules-command
+
+ fold-append-with-spaces
+ fold-append-with-spaces-quotes
+ fold-append-with-separator
+ symbol->quoted-string)
+; ********************************************************
+; Helpers
+(define (fold-append-with-spaces posslist)
+  (fold-append-with-separator posslist " "))
+
+; May be a list, may not be a list
+(define (fold-append-with-separator posslist separator)
+  (if (list? posslist)
+      (foldr (lambda (s t) 
+               (cond
+                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) separator (symbol->string t))]
+                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
+                 [(symbol? s) (string-append (symbol->string s) separator t)] 
+                 [(symbol? t) (string-append s separator (symbol->string t))] 
+                 [(string=? t "") s]
+                 [else (string-append s separator t)]))
+             ""
+             posslist)
+      (if (symbol? posslist)
+          (symbol->string posslist)
+          posslist)))
+
+(define (fold-append-with-spaces-quotes posslist)
+  (fold-append-with-spaces (if (list? posslist)
+                               (map symbol->quoted-string posslist)
+                               posslist)))
+
+; symbol or string -> string
+; Returns the argument, quoted, as a string.
+(define (symbol->quoted-string arg)
+  (if (symbol? arg)
+      (string-append "\"" (symbol->string arg)"\"")
+      (string-append "\"" arg "\"")))
+
+
 
 ;****************************************************************
 ;;XML
@@ -305,6 +346,7 @@
               [(equal? type "string") (pretty-print-string-xml response-element)]
               [(equal? type "set") (pretty-print-set-xml response-element)]
               [(equal? type "list") (pretty-print-list-xml response-element)]
+              [(equal? type "map") (pretty-print-map-xml response-element)]
               [(equal? type "success") "Success\n"]))))
 
 ; element -> string
@@ -380,12 +422,49 @@
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin 
-        (write "{\n")
+        (write "<\n")
         (for-each (lambda (item)             
                     (write (string-append "  " item "\n")))
                   rkt-list)
-        (write "}\n") 
+        (write ">\n") 
         (get-output-string string-buffer)))))
+
+; XML <MARGRAVE-RESPONSE type="map">  --> hash table
+; the MAP element maps each key to a set of values
+(define (xml-map-response->map response-element)
+  (let* ([map-element (get-child-element response-element 'MAP)]
+         [entry-elements (get-child-elements map-element 'ENTRY)]
+         [mut-hashtable (make-hash)])
+    ; For each entry
+    (for-each (lambda (entry-element)
+                (let ([entry-key (get-attribute-value entry-element 'key)]
+                      [entry-values (get-child-elements entry-element 'value)])    ; 
+                  (hash-set! mut-hashtable
+                             entry-key
+                             ; for each value
+                             (map (lambda (val) (pcdata-string (first (element-content val))))
+                                  entry-values))))
+              entry-elements)
+    mut-hashtable))
+
+; XML <MARGRAVE-RESPONSE type="map">  --> string
+(define (pretty-print-map-xml element)
+  (let ([the-hashtable (xml-map-response->map element)])
+    (pretty-print-hashtable the-hashtable)))
+
+
+; hash table -> string
+(define (pretty-print-hashtable thetable)
+  (let* ([string-buffer (open-output-string)])
+    (local ((define (write s)
+              (write-string s string-buffer))) 
+      (write "{\n")
+      (hash-for-each thetable
+                     (lambda (k v) (write (string-append k " -> " (fold-append-with-separator v ", ") "\n"))))
+      (write "}\n")
+      (get-output-string string-buffer))))
+
+
 
 ; element -> string
 (define (pretty-print-unsat-xml element)

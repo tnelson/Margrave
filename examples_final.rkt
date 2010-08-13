@@ -64,6 +64,8 @@
 (mtext "GET ONE")
 (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
 (mtext "SHOW UNPOPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
+(mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)")
+
 
 ;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 ;(mtext "GET ONE 0")
