@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (next-hop-line-38-g944
+  (next-hop-line-38-g3072
    =
    (Route
     hostname
@@ -15,6 +15,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -27,7 +28,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-0-0/ip-255-255-252-0 src-addr-in)
    (ip-10-232-0-15 next-hop))
-  (next-hop-line-38-g945
+  (next-hop-line-38-g3073
    =
    (Drop
     hostname
@@ -38,6 +39,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -49,7 +51,7 @@
    (hostname-Router hostname)
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-0-0/ip-255-255-252-0 src-addr-in))
-  (next-hop-line-38-g946
+  (next-hop-line-38-g3074
    =
    (Route
     hostname
@@ -60,6 +62,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -72,7 +75,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-100-0/ip-255-255-252-0 src-addr-in)
    (ip-10-232-0-15 next-hop))
-  (next-hop-line-38-g947
+  (next-hop-line-38-g3075
    =
    (Drop
     hostname
@@ -83,6 +86,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -94,7 +98,7 @@
    (hostname-Router hostname)
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-100-0/ip-255-255-252-0 src-addr-in))
-  (next-hop-line-42-g950
+  (next-hop-line-42-g3078
    =
    (Route
     hostname
@@ -105,6 +109,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -117,7 +122,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-4-0/ip-255-255-252-0 src-addr-in)
    (ip-10-232-4-10 next-hop))
-  (next-hop-line-42-g951
+  (next-hop-line-42-g3079
    =
    (Drop
     hostname
@@ -128,6 +133,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -139,7 +145,7 @@
    (hostname-Router hostname)
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-4-0/ip-255-255-252-0 src-addr-in))
-  (next-hop-line-42-g952
+  (next-hop-line-42-g3080
    =
    (Route
     hostname
@@ -150,6 +156,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -162,7 +169,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-104-0/ip-255-255-252-0 src-addr-in)
    (ip-10-232-4-10 next-hop))
-  (next-hop-line-42-g953
+  (next-hop-line-42-g3081
    =
    (Drop
     hostname
@@ -173,6 +180,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -184,7 +192,7 @@
    (hostname-Router hostname)
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-104-0/ip-255-255-252-0 src-addr-in))
-  (default-route-g911
+  (default-route-g1890
    =
    (Pass
     hostname
@@ -195,6 +203,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in

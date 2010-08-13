@@ -14,6 +14,9 @@
  get-response-error-subtype
  get-response-error-descriptor
  
+ xml-explore-result->id
+ xml-set-response->list
+ 
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
  xml-make-decision
@@ -343,6 +346,14 @@
         
         (get-output-string string-buffer)))))
 
+(define (xml-set-response->list response-element)
+  (let* ([set-element (get-child-element response-element 'SET)]
+         [item-elements (get-child-elements set-element 'ITEM)])
+    (map (lambda (item-element)             
+           (pcdata-string (first (element-content item-element))))
+         item-elements)))
+
+
 ; element -> string
 (define (pretty-print-unsat-xml element)
   (let* ((string-buffer (open-output-string))
@@ -356,6 +367,21 @@
 
 ; element -> string
 (define (pretty-print-explore-xml element)
+  (let* ((string-buffer (open-output-string))
+         (result-element (get-child-element element 'result-handle)))
+    (begin 
+      (write-string (string-append "Query created. Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      ; debug
+      ;(display (get-output-string string-buffer))
+      (get-output-string string-buffer))))
+
+(define (xml-explore-result->id doc)
+  (let* ([response-element (document-element doc)]
+         [result-element (get-child-element response-element 'result-handle)])
+    (get-pc-data result-element)))
+
+; element -> string
+(define (xml-id->id element)
   (let* ((string-buffer (open-output-string))
          (result-element (get-child-element element 'result-handle)))
     (begin 

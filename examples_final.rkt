@@ -1,7 +1,5 @@
 #lang racket
 
-; updated to new EXPLORE query language 04/2010 tn
-
 ; TEMPORARY! Will be a nice module path soon.
 (require ;(file "./read.rkt")
          "margrave.rkt"
@@ -55,8 +53,9 @@
 ;(define test-xml (evalxml test-string))
 ;(m test-xml)
 
-(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit")
-(mtext "GET ONE 0");
+(define theid (mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"))
+;(printf "Id: ~a~n" (xml-explore-result->id theid))
+(mtext "GET ONE 0")
 
 
 (mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
@@ -92,7 +91,7 @@
 ;(mtext "info myvoc")
 
 
-(stop-margrave-engine)
+;(stop-margrave-engine)
 
 
 

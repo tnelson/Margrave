@@ -2,7 +2,10 @@
  IOS-vocab
  (Types
   (Hostname : hostname-Router)
-  (Interface : GigabitEthernet0/1 GigabitEthernet0/0 Serial0/3/0:0)
+  (Interface
+   :
+   interf-drop
+   (interf-real Serial0/3/0:0 GigabitEthernet0/1 GigabitEthernet0/0))
   (IPAddress
    (ip-10-232-4-0/ip-255-255-252-0 ip-10-232-4-10)
    (ip-10-232-0-0/ip-255-255-252-0 ip-10-232-0-15)
@@ -13,18 +16,20 @@
   (Protocol : prot-ICMP prot-TCP prot-UDP)
   (Port)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
+  (TCPFlags : NONE SYN ACK FIN PSH URG RST)
   (Length :))
  (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
- (Predicates)
+ (Predicates (Connection : Address Port Protocol Address Port))
  (ReqVariables
   (hostname : Hostname)
-  (entry-interface : Interface)
+  (entry-interface : interf-real)
   (src-addr-in : IPAddress)
   (src-addr-out : IPAddress)
   (dest-addr-in : IPAddress)
   (dest-addr-out : IPAddress)
   (protocol : Protocol)
   (message : ICMPMessage)
+  (flags : TCPFlags)
   (src-port-in : Port)
   (src-port-out : Port)
   (dest-port-in : Port)
@@ -36,6 +41,7 @@
  (Constraints
   (abstract Hostname)
   (abstract Interface)
+  (abstract interf-real)
   (abstract ICMPMessage)
   (abstract Protocol)
   (disjoint-all Hostname)
@@ -56,6 +62,7 @@
   (atmostone-all Protocol)
   (atmostone icmp-echo)
   (atmostone icmp-echo-reply)
+  (atmostone-all Flags)
   (atmostone-all Length)
   (nonempty Hostname)
   (nonempty Interface)
@@ -63,4 +70,5 @@
   (nonempty Protocol)
   (nonempty Port)
   (nonempty ICMPMessage)
+  (nonempty Flags)
   (nonempty Length)))
