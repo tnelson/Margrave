@@ -20,7 +20,10 @@
 
 #lang racket
 
-(require xml "margrave-xml.rkt" "parser-compiler.rkt" "margrave-policy-vocab.rkt")
+(require xml
+         "margrave-xml.rkt"
+         "parser-compiler.rkt"
+         "margrave-policy-vocab.rkt")
 
 (provide stop-margrave-engine
          start-margrave-engine
@@ -29,9 +32,24 @@
          mm
          mmtext
          pause-for-user
-         load-policy)
+         load-policy
+         
+         xml-explore-result->id
+         xml-set-response->list
+         get-qualified-idbname-list
+         get-decision-for-rule-idbname)
 ;****************************************************************
 ;;Java Connection
+
+; We spawn the java engine via process*, not process. This means
+; that there is no intermediate shell between Racket and Java.
+; So we can place the java engine under the control of the current
+; custodian: (Valid params are 'interrupt, 'kill, and #f.)
+(current-subprocess-custodian-mode 'interrupt)
+
+; DEBUG DEBUG DEBUG
+(define java-path "C:\\Program Files\\Java\\jdk1.6.0_13\\bin\\")
+
 
 (define windows? (equal? 'windows (system-path-convention-type)))
 
@@ -51,54 +69,55 @@
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 ; If not passed, will use (current-directory).
-(define (start-margrave-engine (home-path margrave-home-path))
+(define (start-margrave-engine (home-path margrave-home-path) (user-params empty))
   (if (eq? java-process-list #f)
-      (let ([ margrave-command-line
-              (string-append
-               "java -cp "
-               
-               ;For testing, use the .class files instead of the .jar:
-               (path->string
-                (build-path home-path
-                            "bin"))
-               #;(path->string
-                  (build-path home-path
-                              "bin"
-                              "margrave.jar"))
-               
-               ; Margrave requires these JAR files to run:
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "kodkod.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "org.sat4j.core.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "sunxacml.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "java_cup.jar"))
-               java-class-separator
-               (path->string
-                (build-path home-path
-                            "bin"
-                            "json.jar"))
-               
-               
-               ; Run this class:
-               " edu.wpi.margrave.MCommunicator")])
-        
-        ;(printf "~a ~a ~a~n" home-path margrave-home-path margrave-command-line)
-        (set! java-process-list (process margrave-command-line))
+      (let* ([ vital-margrave-params
+               (list "-cp"
+                  
+                     ; PARAM: classpath
+                     (string-append
+                   
+                   ;For testing, use the .class files instead of the .jar:
+                   (path->string
+                    (build-path home-path
+                                "bin"))
+                   #;(path->string
+                      (build-path home-path
+                                  "bin"
+                                  "margrave.jar"))
+                   
+                   ; Margrave requires these JAR files to run:
+                   java-class-separator
+                   (path->string
+                    (build-path home-path
+                                "bin"
+                                "kodkod.jar"))
+                   java-class-separator
+                   (path->string
+                    (build-path home-path
+                                "bin"
+                                "org.sat4j.core.jar"))
+                   java-class-separator
+                   (path->string
+                    (build-path home-path
+                                "bin"
+                                "sunxacml.jar"))
+                   java-class-separator
+                   (path->string
+                    (build-path home-path
+                                "bin"
+                                "json.jar")))
+                     
+                  ; PARAM: Run this class:
+                  "edu.wpi.margrave.MCommunicator")]
+             [margrave-params (append vital-margrave-params user-params)])
+
+        ;(printf "~a~n" margrave-params)        
+        ;(display (cons (string-append java-path "java.exe")  margrave-params))
+        (printf "--------------------------------------------------~n")
+        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    User params: ~a~n" home-path user-params)
+        (printf "--------------------------------------------------~n")
+        (set! java-process-list (apply process* (cons (string-append java-path "java.exe") margrave-params)))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
         (set! process-id (third java-process-list))
@@ -356,7 +375,7 @@
 ; Returns a list of rule idb names who have higher priority than the given rule.
 ; (This doesn't consider whether an overlap is possible, just the rule-ordering
 ;  given by combining algs.) Names are qualified with policyname:.
-;; TODO: Only works for Leaves, not Sets so far.
+; Only works for Leaves, not Sets.
 (define (rule-idbs-with-higher-priority pol rulename)
   (mtext (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
 

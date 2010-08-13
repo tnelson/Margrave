@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (default-route-g956
+  (default-route-g3084
    =
    (Pass
     hostname
@@ -15,6 +15,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -27,7 +28,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-0-0/ip-255-255-252-0 src-addr-in)
    true)
-  (default-route-g957
+  (default-route-g3085
    =
    (Pass
     hostname
@@ -38,6 +39,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -50,7 +52,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-100-0/ip-255-255-252-0 src-addr-in)
    true)
-  (default-route-g960
+  (default-route-g3088
    =
    (Pass
     hostname
@@ -61,6 +63,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -73,7 +76,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-4-0/ip-255-255-252-0 src-addr-in)
    true)
-  (default-route-g961
+  (default-route-g3089
    =
    (Pass
     hostname
@@ -84,6 +87,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -96,7 +100,7 @@
    (GigabitEthernet0/0 entry-interface)
    (ip-10-232-104-0/ip-255-255-252-0 src-addr-in)
    true)
-  (default-route-g911
+  (default-route-g1890
    =
    (Pass
     hostname
@@ -107,6 +111,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
