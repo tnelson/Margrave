@@ -90,7 +90,7 @@
 
 ;(mtext "info myvoc")
 
-
+(mtext "GET QUALIFIED RULES IN conf1")
 ;(stop-margrave-engine)
 
 

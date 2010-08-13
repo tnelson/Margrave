@@ -4,7 +4,7 @@
 
 (provide 
  pretty-print-model
- pretty-print-response-xml
+ pretty-print-response-xml 
  get-attribute-value
  response-is-success?
  response-is-error?
@@ -16,6 +16,7 @@
  
  xml-explore-result->id
  xml-set-response->list
+ xml-list-response->list
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
@@ -303,6 +304,7 @@
               [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
               [(equal? type "string") (pretty-print-string-xml response-element)]
               [(equal? type "set") (pretty-print-set-xml response-element)]
+              [(equal? type "list") (pretty-print-list-xml response-element)]
               [(equal? type "success") "Success\n"]))))
 
 ; element -> string
@@ -348,6 +350,7 @@
         
         (get-output-string string-buffer)))))
 
+; XML <MARGRAVE-RESPONSE type="set">  --> list
 (define (xml-set-response->list response-element)
   (let* ([set-element (get-child-element response-element 'SET)]
          [item-elements (get-child-elements set-element 'ITEM)])
@@ -355,6 +358,34 @@
            (pcdata-string (first (element-content item-element))))
          item-elements)))
 
+; XML <MARGRAVE-RESPONSE type="list">  --> list
+; Need to preserve ordering, even if XML has messed it up.
+(define (xml-list-response->list response-element)
+  (let* ([list-element (get-child-element response-element 'LIST)]
+         [list-size (string->number (get-attribute-value list-element 'size))]
+         [item-elements (get-child-elements list-element 'ITEM)]
+         [mut-vector (make-vector list-size)])
+    (for-each (lambda (item-element)
+                (let ([item-posn (string->number (get-attribute-value item-element 'order))])
+                  (vector-set! mut-vector
+                               (- item-posn 1) ; list is 1-based; vector is 0-based
+                               (pcdata-string (first (element-content item-element))))))
+              item-elements)
+    (vector->list mut-vector)))
+
+; XML <MARGRAVE-RESPONSE type="list">  --> string
+(define (pretty-print-list-xml element)
+  (let* ([rkt-list (xml-list-response->list element)]
+         [string-buffer (open-output-string)])
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write "{\n")
+        (for-each (lambda (item)             
+                    (write (string-append "  " item "\n")))
+                  rkt-list)
+        (write "}\n") 
+        (get-output-string string-buffer)))))
 
 ; element -> string
 (define (pretty-print-unsat-xml element)
