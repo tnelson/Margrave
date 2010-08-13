@@ -34,8 +34,7 @@
               (send newnode set-subed! edsnip)
               (send newnode set-flags (list 'handles-events))
               (visualize (send node get-subgraph) newpb)))
-          #f
-          ))
+          #f ))
     ))
 
 ; Places the nodes and edges
@@ -56,7 +55,6 @@
              [pb (new fwpboard% [next_model_fun
                                  (lambda () 
                                    (begin
-                                     ;(display-xml (mtext "GET NEXT 0"))
                                      (let ([mod (new mg-model% [xml (get-child-element (document-element (mtext "GET NEXT 0")) 'model)] [keyword-map kws]) ])
                                      (_visualize (apply-model/pos ng mod) pb))))])])
       (begin

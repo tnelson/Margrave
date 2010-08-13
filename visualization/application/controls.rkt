@@ -1,6 +1,6 @@
 #lang racket/gui
 
-(provide fwpboard% entity-snip% next-button-snip%)
+(provide fwpboard% entity-snip%)
 
 (define arrow-dark (make-object color% 30 30 30))
 (define arrow-light (make-object color% 170 170 170))
@@ -45,12 +45,10 @@
              (- cy2 (* 60 (vector-ref v1 1))))
            (make-object point%
              (+ (- cx2 (* 75 (vector-ref v1 0))) (- 0 (* 7 (vector-ref v1 1))))
-             (+ (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0)))
-             )
+             (+ (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0))))
            (make-object point%
              (- (- cx2 (* 75 (vector-ref v1 0))) (- 0 (* 7 (vector-ref v1 1))))
-             (- (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0)))
-             ))          
+             (- (- cy2 (* 75 (vector-ref v1 1))) (* 7 (vector-ref v1 0)))))
           ) #f)
     
     ; Draw the X
