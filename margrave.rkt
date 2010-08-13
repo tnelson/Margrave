@@ -36,6 +36,8 @@
          
          xml-explore-result->id
          xml-set-response->list
+         xml-list-response->list
+         xml-map-response->map
          get-qualified-idbname-list
          get-decision-for-rule-idbname)
 ;****************************************************************
@@ -357,36 +359,25 @@
 
 ; Functions to support easier query string creation
 
-; get-existential-request-prefix
-;(define (get-existential-request-prefix pol)
-;  (m (string-append "GET EXISTENTIAL REQUEST PREFIX " pol)))
-
-; get-request-prefix-closing
-;(define (get-request-prefix-closing pol)
-;  (m (string-append "GET REQUEST PREFIX CLOSING " pol)))
-
-; get-request-var-vector
-;(define (get-request-var-vector pol)
-;  (m (string-append "GET REQUEST VAR VECTOR " pol)))
-
 ; get-idbname-list
-(define (get-idbname-list pol)
-  (mtext (string-append "GET RULES IN  " pol)))
+(define (get-rule-list pol (decision ""))
+  (if (equal? decision "")      
+      (xml-list-response->list (mtext (string-append "GET RULES IN " pol)))
+      (xml-list-response->list (mtext (string-append "GET RULES IN " pol " WITH DECISION " decision)))))
 
 ; get-qualified-idbname-list
 ; Same as get-idbname-list but includes policy name prefix
-(define (get-qualified-idbname-list pol)
-  (mtext (string-append "GET QUALIFIED RULES IN " pol)))
+(define (get-qualified-rule-list pol (decision ""))
+  (if (equal? decision "")      
+      (xml-list-response->list (mtext (string-append "GET QUALIFIED RULES IN " pol)))
+      (xml-list-response->list (mtext (string-append "GET QUALIFIED RULES IN " pol " WITH DECISION " decision)))))
 
-; get-request-var-list
-;(define (get-request-var-list pol)
-;  (m (string-append "GET REQUEST VAR LIST " pol)))
-
+; [not yet in]
 ; get-decision-for-idbname
 ; Policy String -> String
 ; Given an idbname, policy will report its decision if a rule, or the empty string otherwise
-(define (get-decision-for-rule-idbname policy idbname)
-  (mtext (string-append "GET DECISION FOR " policy " " idbname)))
+;(define (get-decision-for-rule-idbname policy idbname)
+;  (mtext (string-append "GET DECISION FOR " policy " " idbname)))
 
 ; rules-with-higher-priority
 ; Policy String -> List

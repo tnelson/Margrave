@@ -143,18 +143,17 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([ allIDBs (get-qualified-idbname-list polname)]
+    (let* ([ all-rules (get-qualified-rule-list polname)]
          ;  [dbg (printf "~a~n" allIDBs)]
-           [listOfApplied (filter (lambda (idbname)
-                                    (string-endswith idbname "_applies"))
-                                  allIDBs)]
+           [all-applied (map (lambda (idbname)
+                                    (string-append idbname "_applies"))
+                                  all-rules)]
+           [all-permit-rules (get-qualified-rule-list polname "permit")]
+           [all-deny-rules (get-qualified-rule-list polname "deny")]
            
-           ; (filter (lambda (idbname) (not (string?  (get-decision-for-rule-idbname "inboundacl" (unqualified-non-applied-part idbname))))) (get-qualified-idbname-list "inboundacl"))
-           [listOfNonApplied (remove* (append listOfApplied 
-                                              (list "inboundacl:permit" "inboundacl:deny" "inboundacl:drop" "inboundacl:advertise" 
-                                                    "inboundacl:forward" "inboundacl:translate" "inboundacl:pass" "inboundacl:encrypt" "inboundacl:route")) allIDBs)]
-           
-           ; get-decision-for-rule-idbname works only for the base rule name IDB, no idb collection name, no _applies
+           [dbg (printf "~a ~n ~a~n" all-rules all-applied)]       
+           ; =============================
+           ; contains below, not string by string <-----
            [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "permit")) listOfNonApplied)]
            [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "deny")) listOfNonApplied)]
            [listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied)]
