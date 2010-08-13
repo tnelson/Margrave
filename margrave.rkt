@@ -47,16 +47,34 @@
 ; custodian: (Valid params are 'interrupt, 'kill, and #f.)
 (current-subprocess-custodian-mode 'interrupt)
 
-; DEBUG DEBUG DEBUG
-(define java-path "C:\\Program Files\\Java\\jdk1.6.0_13\\bin\\")
-
-
+; Are we in windows or Unix/OSX?
 (define windows? (equal? 'windows (system-path-convention-type)))
-
 (define java-class-separator
   (if windows?
       ";"
-      ":"))    
+      ":")) 
+
+; Where is the java executable?
+; Do what the shell would do: search through the user's path
+(define java-path
+  (begin
+    (printf "Searching for java.exe ...~n")
+    (let* ([path-value (getenv "path")]
+           [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
+           [paths-with-java (filter (lambda (a-path)
+                                      (printf "    searching in: ~a~n" a-path)
+                                      (and (> (string-length a-path) 0)                                     
+                                           (file-exists? (build-path a-path "java.exe"))))
+                                    env-paths)]
+           [the-path (if (empty? paths-with-java)
+                         ""
+                         (first paths-with-java))])
+      (if (equal? the-path "")
+          (printf "Could not find java.exe in PATH. Margrave will be unable to run.~n")
+          (printf "Using the java.exe in: ~a~n" the-path))
+      the-path)))
+
+   
 
 ; Initial values
 (define java-process-list #f)
@@ -115,9 +133,9 @@
         ;(printf "~a~n" margrave-params)        
         ;(display (cons (string-append java-path "java.exe")  margrave-params))
         (printf "--------------------------------------------------~n")
-        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    User params: ~a~n" home-path user-params)
+        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nUser params: ~a~n" home-path java-path user-params)
         (printf "--------------------------------------------------~n")
-        (set! java-process-list (apply process* (cons (string-append java-path "java.exe") margrave-params)))
+        (set! java-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
         (set! process-id (third java-process-list))
@@ -268,7 +286,7 @@
                   
                   (begin
                     ; DEBUG: Comment out this line to stop printing the XML
-                    ;(printf "~a~n" result)                    
+                    (printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
                     (read-xml (open-input-string result)))

@@ -118,6 +118,48 @@ public class MPolicyLeaf extends MPolicy
 		MEnvironment.errorStream.println("");
 	}
 
+	public List<String> getRulesList(String decname, boolean qualified)
+	{
+		List<String> result = new ArrayList<String>();
+		
+		String qualstr = "";
+		if(qualified)
+			qualstr = name + ":";
+		
+		for(String idbname : idbs.keySet())
+		{
+			// Is this for a rule?
+			if(!vocab.decisions.contains(idbname) &&
+					!idbname.endsWith("_applies"))
+			{
+				// Do we care about its decision?
+				if(decname == null || decname.length() == 0)
+				{
+					result.add(qualstr+ idbname);
+					continue;
+				}
+				else
+				{
+					// we do care.
+					try
+					{
+						MRule theRule = getRule(idbname);
+						if(theRule.decision() == decname)
+							result.add(qualstr + idbname);
+					}
+					catch(MGEUnknownIdentifier e)
+					{
+						// not a rule, do nothing
+					}
+				}
+			}
+		}		
+		
+		return result;
+		
+	}
+	
+	
 	protected boolean hasRule(String rulename)
 	{
 		try

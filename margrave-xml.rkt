@@ -68,7 +68,9 @@
  xml-make-show-unpopulated-command
  xml-make-forcases
  xml-make-parent-identifier
- xml-make-child-identifier)
+ xml-make-child-identifier
+ xml-make-get-rules-command
+ xml-make-get-qrules-command)
 
 ;****************************************************************
 ;;XML
@@ -614,6 +616,16 @@
 
 (define (xml-make-info-command)
   (xml-make-command "INFO" (list (xml-make-info))))
+
+(define (xml-make-get-rules-command polid (decid-str ""))
+  (xml-make-command "GET-INFO" (list (xml-make-get-rules "RULES" polid decid-str))))
+(define (xml-make-get-qrules-command polid (decid-str ""))
+  (xml-make-command "GET-INFO" (list (xml-make-get-rules "QUALIFIED-RULES" polid decid-str))))
+
+(define (xml-make-get-rules get-type polid decid-str)
+  (if (not (equal? "" decid-str))
+      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)) ,(xml-make-decision decid-str))
+      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)))))
 
 (define (xml-make-policy-identifier policy-name)
   `(POLICY-IDENTIFIER ((pname ,policy-name))))
