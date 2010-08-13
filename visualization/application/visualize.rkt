@@ -56,8 +56,9 @@
              [pb (new fwpboard% [next_model_fun
                                  (lambda () 
                                    (begin
-                                     (mtext "GET NEXT 0")
-                                     (_visualize (apply-model/pos ng mod) pb)))])])
+                                     ;(display-xml (mtext "GET NEXT 0"))
+                                     (let ([mod (new mg-model% [xml (get-child-element (document-element (mtext "GET NEXT 0")) 'model)] [keyword-map kws]) ])
+                                     (_visualize (apply-model/pos ng mod) pb))))])])
       (begin
         (send canvas set-editor pb)
         (send pb insert (make-object image-snip% (make-object bitmap% "../images/key.png")) 760 10)

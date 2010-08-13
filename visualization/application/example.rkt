@@ -23,13 +23,13 @@
 ; This is the query which will be run
 
 ; Query should be a TUPLING query and it should have an IDBOUTPUT inclusion for each policy file
-; TUPLING is required because non-tupling queries look different and the application does not parse them.
+; TUPLING is required because non-tupling queries look different and the application does not currently understand them.
 ; IDBOUPUT is required because that's the only way to know the decisions made by individual policies.
 (define myquery
   "EXPLORE (inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) OR
 (inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip) AND
 inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)))
-AND fw2int(interf) AND fw1dmz(interminterface) AND managerpc(ipsrc) AND otherports(portsrc) AND port80(portdest) AND tcp(pro) AND outsideips(ipdest) TUPLING
+AND fw2int(interf) AND fw1dmz(interminterface) AND (managerpc(ipsrc) or contractorpc(ipsrc)) AND otherports(portsrc) AND port80(portdest) AND tcp(pro) AND outsideips(ipdest) TUPLING
 IDBOUTPUT inboundacl_fw2:Deny(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
 inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
 inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)")

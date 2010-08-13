@@ -98,6 +98,7 @@
           (send this clear)
           (set! edges empty)
           (next_model_fun)
+          (send this refresh 0 0 1000 800 'no-caret #f)
           ) #f))
     
     ; Double clicking brings up the subcomponents
@@ -120,6 +121,7 @@
   (class image-snip%
     (init-field updatef [bitmap null] [kind null] [icons empty] [name ""] [subed null])
     
+    ; Draws the box around entities with policy decisions, and draws the icons for those decisions.
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (let ([w (send bitmap get-width)]
             [h (send bitmap get-height)])
@@ -134,7 +136,8 @@
                                  (send dc set-pen "black" 1 'solid)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)
       (send dc draw-text name (- (+ x (/ w 2)) (/ (let-values ([(a b c d) (send dc get-text-extent name)]) a) 2)) (+ y h))
-      (draw-icons icons dc x y)   
+      (draw-icons icons dc x y)
+        ; Updates the modelgraph node positions
       (updatef x y)      
       ))
     
@@ -147,17 +150,4 @@
     (define/public (set-subed! ed) (set! subed ed))
     (define/public (get-subed) subed)
     
-    (super-make-object bitmap)))
-
-(define next-button-snip%
-  (class image-snip%
-    (init-field [bitmap null] [pb null] [ng null] [model null])
-    
-    (define/override (on-event dc x y ex ey event)
-          (begin
-            (print "ASDFASFDASFDASFD")
-          (send pb select-all)
-          (send pb clear)
-          ))
-      
     (super-make-object bitmap)))

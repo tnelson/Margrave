@@ -1,0 +1,17 @@
+Here are ways this visualization application could be improved or extended:
+
+- Put more information on the graph, including port or interface data. This stuff would be easy to add since the functions exist to read them from the model, it would just take making some snips with text in them. 
+
+- Show which rules are applying.
+
+- Allow for source or dest to be a type that can incapsulate multiple hosts/groups. For example, if the source is "ipaddress" it could be any of the hosts, as opposed to "managerpc" which is a specific one. 
+
+- A better way to switch between models (like in the mockup images)
+
+Later:
+
+- Constructing queries inside the application using the topology instead of independent of the topology. This could make creating queries much easier and less error-prone, because things like IDBOUTPUT clauses could be automatically generated. 
+
+- A system for naming the models so that switching between them is more meaningful. 
+
+- Pruning models that look identical. If this application is targeted more towards IT people than logic people, some of the model results and information don't mean much to the audience. 

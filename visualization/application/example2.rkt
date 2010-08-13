@@ -34,7 +34,7 @@ inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnati
   inboundacl_fw1_new:Accept(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)) OR
   (inboundacl_fw1:Accept(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc) AND
   inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc)))
-AND fw2int(interf) AND fw1dmz(interminterface) TUPLING
+AND fw2int(interf) AND fw1dmz(interminterface) AND (contractorpc(ipsrc) OR managerpc(ipsrc)) TUPLING
 IDBOUTPUT inboundacl_fw2:Accept(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
 inboundnat_fw2:Translate(interf, ipsrc, ipdest, portsrc, portdest, pro, tempnatip),
 inboundacl_fw1_new:Deny(interminterface, tempnatsrc, ipdest, portsrc, portdest, pro, tempnatsrc),

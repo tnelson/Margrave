@@ -79,6 +79,8 @@
     (define/public (is-dest? entname)
       (ormap (lambda (x) (check-src-dest x entname (hash-ref keyword-map 'ipdest))) (element-content xml)))
     
+    (define/public (get-xml) xml)
+    
     (super-new)
     ))
 
