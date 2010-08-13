@@ -4,6 +4,8 @@
 
 (require "../../margrave.rkt" xml "../../margrave-xml.rkt")
 
+; These are functions from margrave-xml that were not provided by it. I didn't want to mess with Margrave so I just pulled them out to here.
+
 ; element -> list
 (define (get-child-elements element name-symb-or-str)
   (if (empty? element)

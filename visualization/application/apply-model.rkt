@@ -62,13 +62,13 @@
     ; Updates a modelgraph so the edges have correct active and blocked status
     ; It must return the model. 
     (define/public (set-edge-data mg)
-      (let ([src (first (filter (lambda (n) (send n is-source?)) (send mg get-nodes)))]
-            [dest (first (filter (lambda (n) (send n is-dest?)) (send mg get-nodes)))]
+      (let ([srcl (filter (lambda (n) (send n is-source?)) (send mg get-nodes))]
+            [destl (filter (lambda (n) (send n is-dest?)) (send mg get-nodes))]
             [active-ents (filter (lambda (n) (not (empty? (send n get-results)))) (send mg get-nodes))])
-        
+        (if (and (not (empty? srcl)) (not (empty? destl)))
         (begin
-          (edge-path mg src (append active-ents (list dest)) )
-          mg)
+          (edge-path mg (first srcl) (append active-ents (list (first destl))) )
+          mg) mg)
         ))
     
     ; Returns true if the supplied entity is the src host

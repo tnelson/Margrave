@@ -6,6 +6,7 @@
 (define arrow-light (make-object color% 170 170 170))
 (define x-red (make-object color% 255 0 0))
 
+; Returns a normalized vector
 (define (vn x y)
   (let ([d (sqrt (+ (* x x) (* y y)))])
     (vector (/ x d) (/ y d))))
@@ -83,9 +84,8 @@
       (if before?
           (begin
             (map (lambda (edge) (draw-edge dc edge))
-                 (sort edges
-                       (lambda (a b) (send b is-active?))
-                                                           ))
+                 ; Sort them so that the black ones are drawn on top of the gray ones
+                 (sort edges (lambda (a b) (send b is-active?))))
             (send this invalidate-bitmap-cache left top (- right left) (- bottom top))
             ) #f)
       )
@@ -129,7 +129,7 @@
                                      (send dc set-pen arrow-dark 2 'solid)
                                      (send dc set-pen arrow-light 1 'solid))
                                  (send dc set-smoothing 'aligned)
-                                 (send dc draw-rounded-rectangle (- x 20) (- y 10) 120 120 9)
+                                 (send dc draw-rounded-rectangle (- x 20) (- y 10) 130 130 9)
                                  (send dc set-smoothing 'unsmoothed)
                                  (send dc set-pen "black" 1 'solid)) #f)
       (super draw dc x y left top right bottom dx dy draw-caret)

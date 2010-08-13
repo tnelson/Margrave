@@ -7,8 +7,8 @@
   (node h1 [name "Empl 1"] [type 'host] [x 20] [y 20])
   (node h2 [name "Empl 2"] [type 'host] [x 20] [y 140])  
   (node h3 [name "Empl 3"] [type 'host] [x 20] [y 260])
-  (node h4 [name "Contr 1"] [type 'host] [x 20] [y 380])
-  (node h5 [name "Contr 2"] [type 'host] [x 20] [y 500])
+  (node h4 [name "Contr 1"] [type 'host] [vocabname "contractorpc"] [x 20] [y 380])
+  (node h5 [name "Contr 2"] [type 'host] [vocabname "contractorpc"] [x 20] [y 500])
   (node h6 [name "Manager"] [vocabname "managerpc"] [type 'host] [x 20] [y 620]))
  
  ((edge f1 h1) (edge h1 f1)
