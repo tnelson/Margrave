@@ -98,15 +98,11 @@
                                           " TUPLING")))]                  
          [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
     
-    ;(printf " --->   ~a~n" permitOverlapDenyGet)
-    ;(printf " ===> ~a~n" idblistpa)
-    ;(printf " +++> ~a~n" idblistdn-sup)
+    (define themap (xml-map-response->map (mtext denyOverlapPermitGet)))
+    (define overlapped (filter (lambda (key) (length (hash-ref key)))
+                               (in-hash-keys themap))) ;;;; !!!! Can't do this, in-hash-keys returns a sequence!
     
-    ; Some empties are to be expected (denies only overlapped by deny, etc.)
-    
-;    (m denyOverlapPermitGet)
-    (define themap (mtext denyOverlapPermitGet))
-    (printf "Time: ~a~n" (time-since-last))))
+    (printf "Number of never-firing permits overlapped by denies: ~a ~nTime: ~a~n" (length overlapped) (time-since-last))))
 
 (define (find-overlaps-2 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
   ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
@@ -122,8 +118,8 @@
          
          [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
-    (define themap (mtext permitOverlapDenyGet))
-    (printf "Time: ~a~n" (time-since-last))))
+    (define themap (xml-map-response->map (mtext permitOverlapDenyGet)))
+    (printf "Number of never-firing denies overlapped by permits: ~a ~nTime: ~a~n" (hash-count themap) (time-since-last))))
 
 
 (define (make-applied-list rlist)

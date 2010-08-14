@@ -251,7 +251,7 @@
                           (string-append
                            (atom-name atom)
                            ": "
-                           (foldl (  (type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
+                           (foldl (lambda (type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
                            "\n"
                            (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
           (define (predicate-helper hash-pos)
@@ -262,7 +262,7 @@
                               (string-append
                                (predicate-name predicate)
                                " = {["
-                               (foldl (  (atom rest) (string-append (atom-name atom)
+                               (foldl (lambda (atom rest) (string-append (atom-name atom)
                                                                    (if (not (equal? rest ""))
                                                                        ", "
                                                                        "") 
@@ -769,7 +769,7 @@
 (define (xml-make-rule-list rule-list)
   (if (equal? 'true (first rule-list))
       `(RELATIONS) 
-      `(RELATIONS ,@(map (  (relation)
+      `(RELATIONS ,@(map (lambda (relation)
                            (let* ((relation-name (symbol->string (first relation)))
                                   (negation? (starts-with-exclamation relation-name)))
                              `(RELATION ((name ,(if negation? ;Take out the exclamation point
@@ -929,7 +929,7 @@
 (define (xml-make-atomic-formulas-list symbol list-of-atomic-formulas)
   (if (equal? 1 (length list-of-atomic-formulas))
       (first list-of-atomic-formulas)
-      (foldr (  (atomic-formula rest)
+      (foldr (lambda (atomic-formula rest)
                (list symbol atomic-formula rest))
              (first list-of-atomic-formulas)
              (rest list-of-atomic-formulas))))
@@ -939,7 +939,7 @@
   `(EXPLORE (CONDITION 
              ,(if (equal? 1 (length list-of-atomic-formulas))
                   (first list-of-atomic-formulas)
-                  (foldl (  (atomic-formula rest)
+                  (foldl (lambda (atomic-formula rest)
                            `(AND ,atomic-formula ,rest))
                          (first list-of-atomic-formulas)
                          (rest list-of-atomic-formulas))))
@@ -951,7 +951,7 @@
 ;;LISTS
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)
   `(,list-name
-    ,@(map (  (attribute-value)
+    ,@(map (lambda (attribute-value)
              `(,element-name ((,attribute-name ,(if (symbol? attribute-value)
                                                     (symbol->string attribute-value)
                                                     attribute-value)))))
