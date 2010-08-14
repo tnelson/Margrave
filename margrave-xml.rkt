@@ -251,7 +251,7 @@
                           (string-append
                            (atom-name atom)
                            ": "
-                           (foldl (λ(type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
+                           (foldl (  (type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
                            "\n"
                            (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
           (define (predicate-helper hash-pos)
@@ -262,7 +262,7 @@
                               (string-append
                                (predicate-name predicate)
                                " = {["
-                               (foldl (λ(atom rest) (string-append (atom-name atom)
+                               (foldl (  (atom rest) (string-append (atom-name atom)
                                                                    (if (not (equal? rest ""))
                                                                        ", "
                                                                        "") 
@@ -392,9 +392,17 @@
         
         (get-output-string string-buffer)))))
 
+; May have the response XML document, or its response element
+; get the element if needed
+(define (maybe-document->element response-element-or-document)
+  (if (document? response-element-or-document)
+      (document-element response-element-or-document)
+      response-element-or-document))
+
 ; XML <MARGRAVE-RESPONSE type="set">  --> list
-(define (xml-set-response->list response-element)
-  (let* ([set-element (get-child-element response-element 'SET)]
+(define (xml-set-response->list response-element-or-document)
+  (let* ([response-element (maybe-document->element response-element-or-document)]
+         [set-element (get-child-element response-element 'SET)]
          [item-elements (get-child-elements set-element 'ITEM)])
     (map (lambda (item-element)             
            (pcdata-string (first (element-content item-element))))
@@ -402,8 +410,9 @@
 
 ; XML <MARGRAVE-RESPONSE type="list">  --> list
 ; Need to preserve ordering, even if XML has messed it up.
-(define (xml-list-response->list response-element)
-  (let* ([list-element (get-child-element response-element 'LIST)]
+(define (xml-list-response->list response-element-or-document)
+  (let* ([response-element (maybe-document->element response-element-or-document)]
+         [list-element (get-child-element response-element 'LIST)]
          [list-size (string->number (get-attribute-value list-element 'size))]
          [item-elements (get-child-elements list-element 'ITEM)]
          [mut-vector (make-vector list-size)])
@@ -431,8 +440,9 @@
 
 ; XML <MARGRAVE-RESPONSE type="map">  --> hash table
 ; the MAP element maps each key to a set of values
-(define (xml-map-response->map response-element)
-  (let* ([map-element (get-child-element response-element 'MAP)]
+(define (xml-map-response->map response-element-or-document)
+  (let* ([response-element (maybe-document->element response-element-or-document)]
+         [map-element (get-child-element response-element 'MAP)]
          [entry-elements (get-child-elements map-element 'ENTRY)]
          [mut-hashtable (make-hash)])
     ; For each entry
@@ -487,8 +497,8 @@
       ;(display (get-output-string string-buffer))
       (get-output-string string-buffer))))
 
-(define (xml-explore-result->id doc)
-  (let* ([response-element (document-element doc)]
+(define (xml-explore-result->id doc-or-ele)
+  (let* ([response-element (maybe-document->element doc-or-ele)]        
          [result-element (get-child-element response-element 'result-handle)])
     (get-pc-data result-element)))
 
@@ -759,7 +769,7 @@
 (define (xml-make-rule-list rule-list)
   (if (equal? 'true (first rule-list))
       `(RELATIONS) 
-      `(RELATIONS ,@(map (λ(relation)
+      `(RELATIONS ,@(map (  (relation)
                            (let* ((relation-name (symbol->string (first relation)))
                                   (negation? (starts-with-exclamation relation-name)))
                              `(RELATION ((name ,(if negation? ;Take out the exclamation point
@@ -919,7 +929,7 @@
 (define (xml-make-atomic-formulas-list symbol list-of-atomic-formulas)
   (if (equal? 1 (length list-of-atomic-formulas))
       (first list-of-atomic-formulas)
-      (foldr (λ(atomic-formula rest)
+      (foldr (  (atomic-formula rest)
                (list symbol atomic-formula rest))
              (first list-of-atomic-formulas)
              (rest list-of-atomic-formulas))))
@@ -929,7 +939,7 @@
   `(EXPLORE (CONDITION 
              ,(if (equal? 1 (length list-of-atomic-formulas))
                   (first list-of-atomic-formulas)
-                  (foldl (λ(atomic-formula rest)
+                  (foldl (  (atomic-formula rest)
                            `(AND ,atomic-formula ,rest))
                          (first list-of-atomic-formulas)
                          (rest list-of-atomic-formulas))))
@@ -941,7 +951,7 @@
 ;;LISTS
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)
   `(,list-name
-    ,@(map (λ(attribute-value)
+    ,@(map (  (attribute-value)
              `(,element-name ((,attribute-name ,(if (symbol? attribute-value)
                                                     (symbol->string attribute-value)
                                                     attribute-value)))))

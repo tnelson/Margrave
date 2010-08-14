@@ -28,13 +28,13 @@
         (set! tick-tock (current-inexact-milliseconds))
         ms-to-return)))
 
-(define (string-endswith str end)
-  (if (> (string-length end) (string-length str))
-      #f
-      (string=? end
-                (substring str
-                           (- (string-length str) (string-length end))
-                           (string-length str)))))
+;(define (string-endswith str end)
+;  (if (> (string-length end) (string-length str))
+;      #f
+;      (string=? end
+;                (substring str
+;                           (- (string-length str) (string-length end))
+;                           (string-length str)))))
 
 (define (makeIdbList lst)
   (if (equal? '() lst)
@@ -54,23 +54,23 @@
   (filter (lambda (x) (not (equal? (member x lst2) #f))) lst1))
 
 ; Strip everything up to and including the last :
-(define (unqualified-part idbname)
-  (last (regexp-split ":" idbname)))
+;(define (unqualified-part idbname)
+;  (last (regexp-split ":" idbname)))
 
-(define (unqualified-non-applied-part idbname)
-  (unqualified-part (if (string-endswith idbname "_applies")
-                        (substring idbname 0 (- (string-length idbname) 8))
-                        idbname)))
+;(define (unqualified-non-applied-part idbname)
+;  (unqualified-part (if (string-endswith idbname "_applies")
+;                        (substring idbname 0 (- (string-length idbname) 8))
+;                        idbname)))
 
 ; kludge: in general there may be brackets in the idb name. For our example, there aren't. (see todo above re: structured data)
-(define (cleanup-idb-list thelist)
-  (map (lambda (idbname) 
-         (second (regexp-split ":" (first (regexp-split "\\[" idbname))))) 
-       thelist))
-(define (cleanup-idb-list-no-applies thelist)
-  (map (lambda (idbname) 
-         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
-       thelist))
+;(define (cleanup-idb-list thelist)
+;  (map (lambda (idbname) 
+;         (second (regexp-split ":" (first (regexp-split "\\[" idbname))))) 
+;       thelist))
+;(define (cleanup-idb-list-no-applies thelist)
+;  (map (lambda (idbname) 
+;         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
+;       thelist))
 (define (cleanup-idb-list-no-applies-keep-collection thelist)
   (map (lambda (idbname) 
          (first (regexp-split "_applies\\[" idbname)))
@@ -176,10 +176,10 @@
       
       ; **********************************************************************************************************
       ;; !!! todo: needs to be SHOW (a bit confusing); also id comes first...
-      #|(cleanup-idb-list-no-applies-keep-collection|# 
-      (let* ([neverApplyList (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied )))]
+      
+      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
-             [prnt2 (printf "superfluous rules: "  neverApplyList)]
+             [prnt2 (printf "superfluous rules: ~a~n"  neverApplyList)]
              [idblistpa (makeIdbList all-permit-applied)]
              [idblistdn-sup (makeIdbList (list-intersection all-deny-rules neverApplyList))]
              [idblistda (makeIdbList all-deny-applied)]
@@ -190,6 +190,8 @@
                
         (printf "superfluous rules count:~n~a~n" (length neverApplyList))
         ;(printf "~a ~n ~a ~n" idblistpn-sup idblistdn-sup)
+        
+        ;(printf "idblists: ~a~n~n~a~n~n" idblistdn-sup idblistpn-sup)
         
         ; Look for permits overlapping denies (and vice versa)
         (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
