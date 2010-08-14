@@ -19,7 +19,7 @@
 (define-empty-tokens empty-terminals
   (             EXPLORE AND OR NOT COLON IMPLIES IFF LPAREN RPAREN EQUALS SHOW
                         ALL ONE IS POSSIBLEQMARK PUBLISH COMMA UNDER TUPLING DEBUG
-                        CEILING RENAME INFO COLLAPSE COMPARE IDBOUTPUT POPULATED
+                        CEILING RENAME INFO COLLAPSE COMPARE INCLUDE POPULATED
                         UNPOPULATED FOR CASES ADD SUBSORT SORT CONSTRAINT DISJOINT
                         NONEMPTY SINGLETON ATMOSTONE PARTIAL FUNCTION TOTAL ABSTRACT
                         SUBSET SET TARGET PREDICATE RULE TO CREATE VOCABULARY DECISION
@@ -77,7 +77,7 @@
    ["info" (token-INFO)] 
    ["collapse" (token-COLLAPSE)] 
    ["compare" (token-COMPARE)] 
-   ["idboutput" (token-IDBOUTPUT)] 
+   ["include" (token-INCLUDE)] 
    ["populated" (token-POPULATED)] 
    ["unpopulated" (token-UNPOPULATED)] 
    ["for" (token-FOR)] 
@@ -362,8 +362,9 @@
      [(UNDER policy) (build-so (list 'UNDER $2) 1 2)]
      [(PUBLISH variable-list) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $2)) 1 2)]
      
-     ; (IDBOUTPUT fmla fmla...)
-     [(IDBOUTPUT atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
+     ; Used to be IDBOUTPUT. Internal symbol still is!
+     ; (INCLUDE fmla fmla...)
+     [(INCLUDE atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
      [(TUPLING) (build-so (list 'TUPLING) 1 1)]
      [(DEBUG <unsigned-integer>) (build-so (list 'DEBUG $2) 1 2)]
      [(CEILING <unsigned-integer>) (build-so (list 'CEILING $2) 1 2)])

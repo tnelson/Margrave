@@ -48,17 +48,17 @@
 ;(mtext "info conf1")
 
 ; Mypol doesn't exist: expect an error on UNDER clause.
-;(define test-string "EXPLORE xsort(x) AND xsort(y) UNDER mypol IDBOUTPUT mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) TUPLING")
+;(define test-string "EXPLORE xsort(x) AND xsort(y) UNDER mypol INCLUDE mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) TUPLING")
 ;(define test-stream (open-input-string test-string))
 ;(define test-xml (evalxml test-string))
 ;(m test-xml)
 
-(define theid (mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"))
+(define theid (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"))
 ;(printf "Id: ~a~n" (xml-explore-result->id theid))
 (mtext "GET ONE 0")
 
 
-(mtext "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
+(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
 
 ; You don't need to pass an EXPLORE id if you're referencing the last explore:
 (mtext "GET ONE")
@@ -67,10 +67,10 @@
 (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)")
 
 
-;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
+;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
 ;(mtext "GET ONE 0")
 
-;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) IDBOUTPUT firewall1:accept")
+;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept")
 ;(mtext "GET ONE 0")
 
 ;(mtext "create vocabulary myvoc")
@@ -87,7 +87,7 @@
 ;(mtext "add rule to mypol rule2 deny (s2 x) (s1 y)")
 ;(mtext "prepare mypol")
 
-;(mtext "explore xsort(x) and xsort(y) UNDER mypol idboutput mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
+;(mtext "explore xsort(x) and xsort(y) UNDER mypol INCLUDE mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
 ;(mtext "show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
 
 ;(mtext "info myvoc")

@@ -126,34 +126,21 @@ public class MPolicyLeaf extends MPolicy
 		if(qualified)
 			qualstr = name + ":";
 		
-		for(String idbname : idbs.keySet())
+		// Use rules, not idbs, since rules contains the actual rule ordering
+		for(MRule aRule : rules)
 		{
-			// Is this for a rule?
-			if(!vocab.decisions.contains(idbname) &&
-					!idbname.endsWith("_applies"))
+			// Do we care about its decision?
+			if(decname == null || decname.length() == 0)
 			{
-				// Do we care about its decision?
-				if(decname == null || decname.length() == 0)
-				{
-					result.add(qualstr+ idbname);
-					continue;
-				}
-				else
-				{
-					// we do care.
-					try
-					{
-						MRule theRule = getRule(idbname);
-						if(theRule.decision() == decname)
-							result.add(qualstr + idbname);
-					}
-					catch(MGEUnknownIdentifier e)
-					{
-						// not a rule, do nothing
-					}
-				}
+				result.add(qualstr+ aRule.name);
 			}
-		}		
+			else
+			{
+				if(aRule.decision().equalsIgnoreCase(decname))
+					result.add(qualstr + aRule.name);
+			}
+
+		}
 		
 		return result;
 		

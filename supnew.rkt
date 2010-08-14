@@ -94,7 +94,7 @@
                                           " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
                                           " Protocol(protocol) AND Hostname(hostname)  "
                                           "UNDER inboundacl "
-                                          "IDBOUTPUT " (string-append idblistda ", " idblistpn-sup)
+                                          "INCLUDE " (string-append idblistda ", " idblistpn-sup)
                                           " TUPLING")))]                  
          [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
     
@@ -117,14 +117,19 @@
                                           " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
                                           " Protocol(protocol) AND Hostname(hostname)  "
                                           "UNDER inboundacl "
-                                          "IDBOUTPUT " (string-append idblistpa ", " idblistdn-sup)
+                                          "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
                                           " TUPLING")))]         
          
          [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
-    (define themap (m permitOverlapDenyGet))
+    (define themap (mtext permitOverlapDenyGet))
     (printf "Time: ~a~n" (time-since-last))))
 
+
+(define (make-applied-list rlist)
+  (map (lambda (idbname)
+         (string-append idbname "_applies"))
+       rlist))
 
 ; ********************************************************
 ; Detecting superfluous rules
@@ -143,23 +148,17 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([ all-rules (get-qualified-rule-list polname)]
-         ;  [dbg (printf "~a~n" allIDBs)]
-           [all-applied (map (lambda (idbname)
-                                    (string-append idbname "_applies"))
-                                  all-rules)]
+    (let* ([all-rules (get-qualified-rule-list polname)]
+           [all-applied (make-applied-list all-rules) ]
            [all-permit-rules (get-qualified-rule-list polname "permit")]
            [all-deny-rules (get-qualified-rule-list polname "deny")]
+           [all-permit-applied (make-applied-list all-permit-rules)]
+           [all-deny-applied (make-applied-list all-deny-rules)]
            
-           [dbg (printf "~a ~n ~a~n" all-rules all-applied)]       
-           ; =============================
-           ; contains below, not string by string <-----
-           [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "permit")) listOfNonApplied)]
-           [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "deny")) listOfNonApplied)]
-           [listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied)]
-           [listOfDenyApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfDenyNonApplied)]
-           [idblistrules (makeIdbList listOfNonApplied)]
-           [idblistapplied (makeIdbList listOfApplied)]         
+          ; [dbg (printf "~a ~n ~a~n" all-deny-rules all-permit-applied)]       
+
+           [idblistrules (makeIdbList all-rules)]
+           [idblistapplied (makeIdbList all-applied)]         
            
            [neverApplyId 
             (xml-explore-result->id  (mtext (string-append 
@@ -168,22 +167,23 @@
                                              " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
                                              " Protocol(protocol) AND Hostname(hostname)  "
                                              "UNDER inboundacl "
-                                             "IDBOUTPUT " idblistapplied
+                                             "INCLUDE " idblistapplied
                                              " TUPLING")))])
       
       
       (printf "Time to make lists, strings, etc.: ~a milliseconds.~n" (time-since-last))
       (printf "Running superfluous-rule finder...~n")
-     ; (printf "List of all IDBs: ~a~n" allIDBs)
       
       ; **********************************************************************************************************
       ;; !!! todo: needs to be SHOW (a bit confusing); also id comes first...
-      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (m (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
+      #|(cleanup-idb-list-no-applies-keep-collection|# 
+      (let* ([neverApplyList (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied )))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
-             [idblistpa (makeIdbList listOfPermitApplied)]
-             [idblistdn-sup (makeIdbList (list-intersection listOfDenyNonApplied neverApplyList))]
-             [idblistda (makeIdbList listOfDenyApplied)]
-             [idblistpn-sup (makeIdbList (list-intersection listOfPermitNonApplied neverApplyList))])
+             [prnt2 (printf "superfluous rules: "  neverApplyList)]
+             [idblistpa (makeIdbList all-permit-applied)]
+             [idblistdn-sup (makeIdbList (list-intersection all-deny-rules neverApplyList))]
+             [idblistda (makeIdbList all-deny-applied)]
+             [idblistpn-sup (makeIdbList (list-intersection all-permit-rules neverApplyList))])
         
         
         (printf "Creating list intersections took: ~a milliseconds.~n" (time-since-last)) 
