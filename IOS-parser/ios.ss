@@ -2142,6 +2142,8 @@
          'Forward
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)
+           ; -TN added next-hop restriction below
+           (= next-hop dest-addr-out)
            (,next-hop exit-interface)
            ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
            (IPAddress next-hop)))
@@ -2276,9 +2278,15 @@
                      (if (eqv? (get-field decision match-rule) 'Permit)
                          'Forward
                          'Pass)
-                     `((,next-hop exit-interface)
+                     (if (eqv? (get-field decision match-rule) 'Permit)
+                         `((,next-hop exit-interface)
+                           ; -TN added next-hop restriction and this if statement
+                           (= next-hop dest-addr-out)
+                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       (IPAddress next-hop))
+                         `((,next-hop exit-interface)
                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                       (IPAddress next-hop)))
+                       (IPAddress next-hop))))
                (send match-rule
                      augment/replace-decision
                      (name)
@@ -3037,7 +3045,9 @@
                      'Forward
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in)
-                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       ; -TN added next-hop restriction below
+                       (= next-hop dest-addr-out)
+                       ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                        (IPAddress next-hop)
                        (,interf exit-interface)))
                    (make-object rule%
@@ -3061,6 +3071,8 @@
                                                     (symbol->string (gensym))))
                      'Forward
                      `((,hostname hostname)
+                       ; -TN added next-hop restriction below
+                       (= next-hop dest-addr-out)
                        (,(get-field secondary-network interf) dest-addr-in)
                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                        (IPAddress next-hop)
@@ -3091,6 +3103,8 @@
                                                  (symbol->string (gensym))))
                   'Forward
                   `((,hostname hostname)
+                    ; -TN added next-hop restriction below
+                    (= next-hop dest-addr-out)
                     (,(get-field primary-network interf) next-hop)
                     (,interf exit-interface)))))
             (hash-filter interfaces (λ (name interf)
@@ -3105,6 +3119,8 @@
                                                  (symbol->string (gensym))))
                   'Forward
                   `((,hostname hostname)
+                    ; -TN??? Question: should this 'Forward be a 'Drop? (If 'Drop, remove the next-hop restriction)
+                    (= next-hop dest-addr-out)
                     (,(get-field secondary-network interf) next-hop)
                     (,interf exit-interface)))))
             (hash-filter interfaces (λ (name interf)
@@ -3123,6 +3139,8 @@
                     'Forward
                     `((,hostname hostname)
                       (,interf exit-interface)
+                      ; -TN added next-hop restriction below
+                      (= next-hop dest-addr-out)
                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                       (IPAddress next-hop))))))
     
@@ -3314,13 +3332,13 @@
                                                (send name text))
                                       (send rule extract-atoms hostname%)))
                                  rules))))
-                 (Interface : ,@(remove-duplicates
-                                 (append*
-                                  (map (λ (rule)
-                                         (map (λ (interf)
-                                                (send interf text))
-                                              (send rule extract-atoms interface%)))
-                                       rules))))
+                 (Interface : interf-drop (interf-real ,@(remove-duplicates
+                                                         (append*
+                                                          (map (λ (rule)
+                                                                 (map (λ (interf)
+                                                                        (send interf text))
+                                                                      (send rule extract-atoms interface%)))
+                                                               rules)))))
                  
                  ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
                  ,(type-tree (value-tree rules
@@ -3359,7 +3377,7 @@
                  )
                 (ReqVariables
                  (hostname : Hostname)
-                 (entry-interface : Interface)
+                 (entry-interface : interf-real)
                  (src-addr-in : IPAddress)
                  (src-addr-out : IPAddress)
                  (dest-addr-in : IPAddress)
@@ -3379,6 +3397,7 @@
                 (Constraints
                  (abstract Hostname)
                  (abstract Interface)
+                 (abstract interf-real)
                  (abstract ICMPMessage)
                  (abstract Protocol)
                  (disjoint-all Hostname)

@@ -19,14 +19,14 @@
 (define-empty-tokens empty-terminals
   (             EXPLORE AND OR NOT COLON IMPLIES IFF LPAREN RPAREN EQUALS SHOW
                         ALL ONE IS POSSIBLEQMARK PUBLISH COMMA UNDER TUPLING DEBUG
-                        CEILING RENAME INFO COLLAPSE COMPARE IDBOUTPUT POPULATED
+                        CEILING RENAME INFO COLLAPSE COMPARE INCLUDE POPULATED
                         UNPOPULATED FOR CASES ADD SUBSORT SORT CONSTRAINT DISJOINT
                         NONEMPTY SINGLETON ATMOSTONE PARTIAL FUNCTION TOTAL ABSTRACT
                         SUBSET SET TARGET PREDICATE RULE TO CREATE VOCABULARY DECISION
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF))
+                        EOF WITH))
 (define-tokens terminals (<identifier> <unsigned-integer>))
 
 
@@ -77,7 +77,7 @@
    ["info" (token-INFO)] 
    ["collapse" (token-COLLAPSE)] 
    ["compare" (token-COMPARE)] 
-   ["idboutput" (token-IDBOUTPUT)] 
+   ["include" (token-INCLUDE)] 
    ["populated" (token-POPULATED)] 
    ["unpopulated" (token-UNPOPULATED)] 
    ["for" (token-FOR)] 
@@ -129,6 +129,7 @@
    ["vector" (token-VECTOR)] 
    ["quit" (token-QUIT)] 
    ["delete" (token-DELETE)]
+   ["with" (token-WITH)]
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
@@ -295,6 +296,10 @@
      ; Get information
      [(INFO) (build-so (list 'INFO) 1 1)]
      [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
+     [(GET RULES IN <identifier>) (build-so (list 'GETRULES $4) 1 4) ]
+     [(GET QUALIFIED RULES IN <identifier>) (build-so (list 'GETQRULES $5) 1 5)]
+     [(GET RULES IN <identifier> WITH DECISION <identifier>) (build-so (list 'GETRULESDEC $4 $7) 1 7)]
+     [(GET QUALIFIED RULES IN <identifier> WITH DECISION <identifier>) (build-so (list 'GETQRULESDEC $5 $8) 1 8)]
      
      ; Close out the engine
      [(QUIT) (build-so (list 'QUIT) 1 1)]
@@ -357,8 +362,9 @@
      [(UNDER policy) (build-so (list 'UNDER $2) 1 2)]
      [(PUBLISH variable-list) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $2)) 1 2)]
      
-     ; (IDBOUTPUT fmla fmla...)
-     [(IDBOUTPUT atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
+     ; Used to be IDBOUTPUT. Internal symbol still is!
+     ; (INCLUDE fmla fmla...)
+     [(INCLUDE atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
      [(TUPLING) (build-so (list 'TUPLING) 1 1)]
      [(DEBUG <unsigned-integer>) (build-so (list 'DEBUG $2) 1 2)]
      [(CEILING <unsigned-integer>) (build-so (list 'CEILING $2) 1 2)])
@@ -620,6 +626,19 @@
                                (if (< 2 (length interns))
                                    (helper-syn->xml (third interns))
                                    (xml-make-id "-1")))]
+        
+        ; Allow user to get the rules in a policy
+        [(equal? first-datum 'GETRULES)
+         (xml-make-get-rules-command (syntax->datum (second interns)))]
+        [(equal? first-datum 'GETQRULES)
+         (xml-make-get-qrules-command (syntax->datum (second interns)))]
+        [(equal? first-datum 'GETRULESDEC)
+         (xml-make-get-rules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns))))]
+        [(equal? first-datum 'GETQRULESDEC)
+         (xml-make-get-qrules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns))))]
+
+        
+        
         [(equal? first-datum 'type)
          (xml-make-type (syntax->string (second interns)))]
         [(equal? first-datum 'id)

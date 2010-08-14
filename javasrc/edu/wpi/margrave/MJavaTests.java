@@ -233,6 +233,13 @@ public class MJavaTests
 		
 		System.exit(1);*/
 		
+		/*System.err.println(pol2.getRulesList("", true));
+		System.err.println(pol2.getRulesList("", false));
+		System.err.println(pol2.getRulesList("permit", true));
+		System.err.println(pol2.getRulesList("permit", false));		
+		System.exit(1);*/
+		
+		
 		countTest("Solutions to above with (Assigned s r) only (tupled)", qry, 1, 1, 1);
 		
 		// Make sure constraint existentials are being generated: should add nonempty_constraint_resource ext.

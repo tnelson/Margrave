@@ -118,6 +118,35 @@ public class MPolicyLeaf extends MPolicy
 		MEnvironment.errorStream.println("");
 	}
 
+	public List<String> getRulesList(String decname, boolean qualified)
+	{
+		List<String> result = new ArrayList<String>();
+		
+		String qualstr = "";
+		if(qualified)
+			qualstr = name + ":";
+		
+		// Use rules, not idbs, since rules contains the actual rule ordering
+		for(MRule aRule : rules)
+		{
+			// Do we care about its decision?
+			if(decname == null || decname.length() == 0)
+			{
+				result.add(qualstr+ aRule.name);
+			}
+			else
+			{
+				if(aRule.decision().equalsIgnoreCase(decname))
+					result.add(qualstr + aRule.name);
+			}
+
+		}
+		
+		return result;
+		
+	}
+	
+	
 	protected boolean hasRule(String rulename)
 	{
 		try

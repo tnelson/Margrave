@@ -84,6 +84,9 @@ public class MCommunicator
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             }
 
+            // Save this command for use in exception messages
+    		MEnvironment.lastCommandReceived = command.trim();    		
+            
             Document doc = null;
 
             try {
@@ -408,21 +411,31 @@ public class MCommunicator
         				}
         			}
         			
-        			else if (type.equalsIgnoreCase("GET")) {
-        				String getType = getGetType(n);
-        				String pname = getPolicyName(n);
+        			else if (type.equalsIgnoreCase("GET-INFO"))
+        			{
+        				// n is the margrave-command node.
+        				String getType = getGetInfoType(n); 
+        				Node getNode = getChildNode(n, "GET-INFO");
+        				String pname = getPolicyName(getNode);
+        				String decname = getDecisionName(getNode);
+        				// decname will be null, if the user doesn't want to limit by decision
+        				
+        				writeToLog("\n");
+        				writeToLog("GET-INFO: "+getType+" "+getNode + " " + pname +" "+decname);
+        				
         				String rname = "";
-        				if (getType.equalsIgnoreCase("DECISION")) {
-        					theResponse = MEnvironment.getDecisionFor(pname, rname);;
-        				}
-        				else if (getType.equalsIgnoreCase("HIGHER-PRIORITY-THAN")) {
+        				//if (getType.equalsIgnoreCase("DECISION")) {
+        				//	theResponse = MEnvironment.getDecisionFor(pname, rname);;
+        				//}
+        				
+        				if (getType.equalsIgnoreCase("HIGHER-PRIORITY-THAN")) {
         					theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
         				}
         				else if (getType.equalsIgnoreCase("RULES")) {
-        					theResponse = MEnvironment.getRulesIn(pname, false);
+        					theResponse = MEnvironment.getRulesIn(pname, false, decname);
         				}
         				else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
-        					theResponse = MEnvironment.getRulesIn(pname, true);
+        					theResponse = MEnvironment.getRulesIn(pname, true, decname);
         				}
         			}
         			
@@ -827,8 +840,8 @@ public class MCommunicator
         }
         
         //GET
-        public static String getGetType(Node n) {
-        	return getNodeAttribute(n, "GET", "type");
+        public static String getGetInfoType(Node n) {
+        	return getNodeAttribute(n, "GET-INFO", "type");
         }
         
         //ATOMIC FORMULAS

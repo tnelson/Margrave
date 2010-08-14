@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (route-line-21-g938
+  (route-line-21-g3066
    =
    (Route
     hostname
@@ -15,6 +15,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -26,7 +27,7 @@
    (hostname-Router hostname)
    (ip-10-232-100-0/ip-255-255-252-0 dest-addr-in)
    (ip-10-254-1-130 next-hop))
-  (route-line-21-g939
+  (route-line-21-g3067
    =
    (Drop
     hostname
@@ -37,6 +38,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -47,7 +49,7 @@
    :-
    (hostname-Router hostname)
    (ip-10-232-100-0/ip-255-255-252-0 dest-addr-in))
-  (route-line-22-g940
+  (route-line-22-g3068
    =
    (Route
     hostname
@@ -58,6 +60,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -69,7 +72,7 @@
    (hostname-Router hostname)
    (ip-10-232-104-0/ip-255-255-252-0 dest-addr-in)
    (ip-10-254-1-130 next-hop))
-  (route-line-22-g941
+  (route-line-22-g3069
    =
    (Drop
     hostname
@@ -80,6 +83,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in
@@ -90,7 +94,7 @@
    :-
    (hostname-Router hostname)
    (ip-10-232-104-0/ip-255-255-252-0 dest-addr-in))
-  (default-route-g911
+  (default-route-g1890
    =
    (Pass
     hostname
@@ -101,6 +105,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in

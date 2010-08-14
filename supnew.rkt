@@ -10,10 +10,11 @@
 ;       for example, why not send a triple: (collectionname, idbname, tupling-data)?
 ; todo: similarly, why lists everywhere? Does Racket have a decent set implementation?
 
-; TEMPORARY! Will be a nice module path soon.
-(require (file "./margrave.rkt"))
-;(require (file "F:\\msysgit\\git\\Margrave\\margrave.scm"))
+(require (file "margrave.rkt"))
 
+; ********************************************************
+; Helper functions
+; ********************************************************
 
 ; Easy timer function
 ; Initial value
@@ -52,48 +53,6 @@
   ;(printf "INTERSECT: ~a ~n ~a ~n" lst1 lst2)
   (filter (lambda (x) (not (equal? (member x lst2) #f))) lst1))
 
-(define reqVector "hostname, entry-interface, src-addr-in, src-addr-out, dest-addr-in, dest-addr-out, protocol, message, src-port-in, src-port-out, dest-port-in, dest-port-out, length, next-hop, exit-interface")
-
-; *********************************************************************
-
-(define (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
-  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
-  (let* ([denyOverlapPermitId (xml-id->id (m (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                             " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                             " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                             " Protocol(protocol) AND Hostname(hostname)  "
-                                             "UNDER inboundacl "
-                                             "IDBOUTPUT " (string-append idblistda ", " idblistpn-sup)
-                                             " TUPLING")))]                  
-         [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
-    
-    ;(printf " --->   ~a~n" permitOverlapDenyGet)
-    ;(printf " ===> ~a~n" idblistpa)
-    ;(printf " +++> ~a~n" idblistdn-sup)
-    
-    ; Some empties are to be expected (denies only overlapped by deny, etc.)
-    
-;    (m denyOverlapPermitGet)
-    (printf "D overlap Superf. P: ~a ~n" (xml-map->map (m denyOverlapPermitGet)))
-    (printf "Time: ~a~n" (time-since-last))))
-
-(define (find-overlaps-2 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
-  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
-  (let* ([permitOverlapDenyId (xml-id->id (m (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                             " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                             " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                             " Protocol(protocol) AND Hostname(hostname)  "
-                                             "UNDER inboundacl "
-                                             "IDBOUTPUT " (string-append idblistpa ", " idblistdn-sup)
-                                             " TUPLING")))]         
-         
-         [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
-    
-;    (m permitOverlapDenyGet)
-    (printf "P overlap Superf. D: ~a ~n" (xml-map->map (m permitOverlapDenyGet)))
-    (printf "Time: ~a~n" (time-since-last))))
-
-
 ; Strip everything up to and including the last :
 (define (unqualified-part idbname)
   (last (regexp-split ":" idbname)))
@@ -117,9 +76,69 @@
          (first (regexp-split "_applies\\[" idbname)))
        thelist))
 
+(define reqVector "hostname, entry-interface, src-addr-in, src-addr-out, dest-addr-in, dest-addr-out, protocol, message, src-port-in, src-port-out, dest-port-in, dest-port-out, length, next-hop, exit-interface")
+
+; *********************************************************************
+
+; ********************************************************
+; Detecting overlaps for shadowed rules
+; ********************************************************
+
+
+(define (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
+  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
+  (let* ([denyOverlapPermitId 
+          (xml-explore-result->id (mtext (string-append
+                                          "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                          " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                          " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                          " Protocol(protocol) AND Hostname(hostname)  "
+                                          "UNDER inboundacl "
+                                          "INCLUDE " (string-append idblistda ", " idblistpn-sup)
+                                          " TUPLING")))]                  
+         [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
+    
+    ;(printf " --->   ~a~n" permitOverlapDenyGet)
+    ;(printf " ===> ~a~n" idblistpa)
+    ;(printf " +++> ~a~n" idblistdn-sup)
+    
+    ; Some empties are to be expected (denies only overlapped by deny, etc.)
+    
+;    (m denyOverlapPermitGet)
+    (define themap (mtext denyOverlapPermitGet))
+    (printf "Time: ~a~n" (time-since-last))))
+
+(define (find-overlaps-2 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
+  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
+  (let* ([permitOverlapDenyId 
+          (xml-explore-result->id (mtext (string-append 
+                                          "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                          " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                          " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                          " Protocol(protocol) AND Hostname(hostname)  "
+                                          "UNDER inboundacl "
+                                          "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
+                                          " TUPLING")))]         
+         
+         [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
+    
+    (define themap (mtext permitOverlapDenyGet))
+    (printf "Time: ~a~n" (time-since-last))))
+
+
+(define (make-applied-list rlist)
+  (map (lambda (idbname)
+         (string-append idbname "_applies"))
+       rlist))
+
+; ********************************************************
+; Detecting superfluous rules
+; ********************************************************
+
+
 (define (run-timed-script pFileName)
   ; Start the Java process
-  (start-margrave-engine "-Xss2048k -Xmx1g")
+  (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g"))
   
   ; Start the timer
   (time-since-last)
@@ -129,46 +148,42 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([ allIDBs (get-qualified-idbname-list polname)]
-         ;  [dbg (printf "~a~n" allIDBs)]
-           [listOfApplied (filter (lambda (idbname)
-                                    (string-endswith idbname "_applies"))
-                                  allIDBs)]
+    (let* ([all-rules (get-qualified-rule-list polname)]
+           [all-applied (make-applied-list all-rules) ]
+           [all-permit-rules (get-qualified-rule-list polname "permit")]
+           [all-deny-rules (get-qualified-rule-list polname "deny")]
+           [all-permit-applied (make-applied-list all-permit-rules)]
+           [all-deny-applied (make-applied-list all-deny-rules)]
            
-           ; (filter (lambda (idbname) (not (string?  (get-decision-for-rule-idbname "inboundacl" (unqualified-non-applied-part idbname))))) (get-qualified-idbname-list "inboundacl"))
-           [listOfNonApplied (remove* (append listOfApplied 
-                                              (list "inboundacl:permit" "inboundacl:deny" "inboundacl:drop" "inboundacl:advertise" 
-                                                    "inboundacl:forward" "inboundacl:translate" "inboundacl:pass" "inboundacl:encrypt" "inboundacl:route")) allIDBs)]
+          ; [dbg (printf "~a ~n ~a~n" all-deny-rules all-permit-applied)]       
+
+           [idblistrules (makeIdbList all-rules)]
+           [idblistapplied (makeIdbList all-applied)]         
            
-           ; get-decision-for-rule-idbname works only for the base rule name IDB, no idb collection name, no _applies
-           [listOfPermitNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "permit")) listOfNonApplied)]
-           [listOfDenyNonApplied (filter (lambda (idbname) (string=? (get-decision-for-rule-idbname polname (unqualified-part idbname)) "deny")) listOfNonApplied)]
-           [listOfPermitApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfPermitNonApplied)]
-           [listOfDenyApplied (map (lambda (idbname) (string-append idbname "_applies")) listOfDenyNonApplied)]
-           [idblistrules (makeIdbList listOfNonApplied)]
-           [idblistapplied (makeIdbList listOfApplied)]         
-           
-           [neverApplyId (xml-id->id (m (string-append "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-                                                       " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-                                                       " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                                       " Protocol(protocol) AND Hostname(hostname)  "
-                                                       "UNDER inboundacl "
-                                                       "IDBOUTPUT " idblistapplied
-                                                       " TUPLING")))])
+           [neverApplyId 
+            (xml-explore-result->id  (mtext (string-append 
+                                             "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
+                                             " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
+                                             " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
+                                             " Protocol(protocol) AND Hostname(hostname)  "
+                                             "UNDER inboundacl "
+                                             "INCLUDE " idblistapplied
+                                             " TUPLING")))])
       
       
       (printf "Time to make lists, strings, etc.: ~a milliseconds.~n" (time-since-last))
       (printf "Running superfluous-rule finder...~n")
-     ; (printf "List of all IDBs: ~a~n" allIDBs)
       
       ; **********************************************************************************************************
       ;; !!! todo: needs to be SHOW (a bit confusing); also id comes first...
-      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set->list (m (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
+      #|(cleanup-idb-list-no-applies-keep-collection|# 
+      (let* ([neverApplyList (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied )))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
-             [idblistpa (makeIdbList listOfPermitApplied)]
-             [idblistdn-sup (makeIdbList (list-intersection listOfDenyNonApplied neverApplyList))]
-             [idblistda (makeIdbList listOfDenyApplied)]
-             [idblistpn-sup (makeIdbList (list-intersection listOfPermitNonApplied neverApplyList))])
+             [prnt2 (printf "superfluous rules: "  neverApplyList)]
+             [idblistpa (makeIdbList all-permit-applied)]
+             [idblistdn-sup (makeIdbList (list-intersection all-deny-rules neverApplyList))]
+             [idblistda (makeIdbList all-deny-applied)]
+             [idblistpn-sup (makeIdbList (list-intersection all-permit-rules neverApplyList))])
         
         
         (printf "Creating list intersections took: ~a milliseconds.~n" (time-since-last)) 

@@ -4,7 +4,7 @@
 
 (provide 
  pretty-print-model
- pretty-print-response-xml
+ pretty-print-response-xml 
  get-attribute-value
  response-is-success?
  response-is-error?
@@ -13,6 +13,11 @@
  get-response-error-type
  get-response-error-subtype
  get-response-error-descriptor
+ 
+ xml-explore-result->id
+ xml-set-response->list
+ xml-list-response->list
+ xml-map-response->map
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
@@ -65,7 +70,49 @@
  xml-make-show-unpopulated-command
  xml-make-forcases
  xml-make-parent-identifier
- xml-make-child-identifier)
+ xml-make-child-identifier
+ xml-make-get-rules-command
+ xml-make-get-qrules-command
+
+ fold-append-with-spaces
+ fold-append-with-spaces-quotes
+ fold-append-with-separator
+ symbol->quoted-string)
+; ********************************************************
+; Helpers
+(define (fold-append-with-spaces posslist)
+  (fold-append-with-separator posslist " "))
+
+; May be a list, may not be a list
+(define (fold-append-with-separator posslist separator)
+  (if (list? posslist)
+      (foldr (lambda (s t) 
+               (cond
+                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) separator (symbol->string t))]
+                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
+                 [(symbol? s) (string-append (symbol->string s) separator t)] 
+                 [(symbol? t) (string-append s separator (symbol->string t))] 
+                 [(string=? t "") s]
+                 [else (string-append s separator t)]))
+             ""
+             posslist)
+      (if (symbol? posslist)
+          (symbol->string posslist)
+          posslist)))
+
+(define (fold-append-with-spaces-quotes posslist)
+  (fold-append-with-spaces (if (list? posslist)
+                               (map symbol->quoted-string posslist)
+                               posslist)))
+
+; symbol or string -> string
+; Returns the argument, quoted, as a string.
+(define (symbol->quoted-string arg)
+  (if (symbol? arg)
+      (string-append "\"" (symbol->string arg)"\"")
+      (string-append "\"" arg "\"")))
+
+
 
 ;****************************************************************
 ;;XML
@@ -298,6 +345,8 @@
               [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
               [(equal? type "string") (pretty-print-string-xml response-element)]
               [(equal? type "set") (pretty-print-set-xml response-element)]
+              [(equal? type "list") (pretty-print-list-xml response-element)]
+              [(equal? type "map") (pretty-print-map-xml response-element)]
               [(equal? type "success") "Success\n"]))))
 
 ; element -> string
@@ -343,6 +392,80 @@
         
         (get-output-string string-buffer)))))
 
+; XML <MARGRAVE-RESPONSE type="set">  --> list
+(define (xml-set-response->list response-element)
+  (let* ([set-element (get-child-element response-element 'SET)]
+         [item-elements (get-child-elements set-element 'ITEM)])
+    (map (lambda (item-element)             
+           (pcdata-string (first (element-content item-element))))
+         item-elements)))
+
+; XML <MARGRAVE-RESPONSE type="list">  --> list
+; Need to preserve ordering, even if XML has messed it up.
+(define (xml-list-response->list response-element)
+  (let* ([list-element (get-child-element response-element 'LIST)]
+         [list-size (string->number (get-attribute-value list-element 'size))]
+         [item-elements (get-child-elements list-element 'ITEM)]
+         [mut-vector (make-vector list-size)])
+    (for-each (lambda (item-element)
+                (let ([item-posn (string->number (get-attribute-value item-element 'order))])
+                  (vector-set! mut-vector
+                               (- item-posn 1) ; list is 1-based; vector is 0-based
+                               (pcdata-string (first (element-content item-element))))))
+              item-elements)
+    (vector->list mut-vector)))
+
+; XML <MARGRAVE-RESPONSE type="list">  --> string
+(define (pretty-print-list-xml element)
+  (let* ([rkt-list (xml-list-response->list element)]
+         [string-buffer (open-output-string)])
+    (local ((define (write s)
+              (write-string s string-buffer)))
+      (begin 
+        (write "<\n")
+        (for-each (lambda (item)             
+                    (write (string-append "  " item "\n")))
+                  rkt-list)
+        (write ">\n") 
+        (get-output-string string-buffer)))))
+
+; XML <MARGRAVE-RESPONSE type="map">  --> hash table
+; the MAP element maps each key to a set of values
+(define (xml-map-response->map response-element)
+  (let* ([map-element (get-child-element response-element 'MAP)]
+         [entry-elements (get-child-elements map-element 'ENTRY)]
+         [mut-hashtable (make-hash)])
+    ; For each entry
+    (for-each (lambda (entry-element)
+                (let ([entry-key (get-attribute-value entry-element 'key)]
+                      [entry-values (get-child-elements entry-element 'value)])    ; 
+                  (hash-set! mut-hashtable
+                             entry-key
+                             ; for each value
+                             (map (lambda (val) (pcdata-string (first (element-content val))))
+                                  entry-values))))
+              entry-elements)
+    mut-hashtable))
+
+; XML <MARGRAVE-RESPONSE type="map">  --> string
+(define (pretty-print-map-xml element)
+  (let ([the-hashtable (xml-map-response->map element)])
+    (pretty-print-hashtable the-hashtable)))
+
+
+; hash table -> string
+(define (pretty-print-hashtable thetable)
+  (let* ([string-buffer (open-output-string)])
+    (local ((define (write s)
+              (write-string s string-buffer))) 
+      (write "{\n")
+      (hash-for-each thetable
+                     (lambda (k v) (write (string-append k " -> " (fold-append-with-separator v ", ") "\n"))))
+      (write "}\n")
+      (get-output-string string-buffer))))
+
+
+
 ; element -> string
 (define (pretty-print-unsat-xml element)
   (let* ((string-buffer (open-output-string))
@@ -356,6 +479,21 @@
 
 ; element -> string
 (define (pretty-print-explore-xml element)
+  (let* ((string-buffer (open-output-string))
+         (result-element (get-child-element element 'result-handle)))
+    (begin 
+      (write-string (string-append "Query created. Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      ; debug
+      ;(display (get-output-string string-buffer))
+      (get-output-string string-buffer))))
+
+(define (xml-explore-result->id doc)
+  (let* ([response-element (document-element doc)]
+         [result-element (get-child-element response-element 'result-handle)])
+    (get-pc-data result-element)))
+
+; element -> string
+(define (xml-id->id element)
   (let* ((string-buffer (open-output-string))
          (result-element (get-child-element element 'result-handle)))
     (begin 
@@ -588,6 +726,16 @@
 
 (define (xml-make-info-command)
   (xml-make-command "INFO" (list (xml-make-info))))
+
+(define (xml-make-get-rules-command polid (decid-str ""))
+  (xml-make-command "GET-INFO" (list (xml-make-get-rules "RULES" polid decid-str))))
+(define (xml-make-get-qrules-command polid (decid-str ""))
+  (xml-make-command "GET-INFO" (list (xml-make-get-rules "QUALIFIED-RULES" polid decid-str))))
+
+(define (xml-make-get-rules get-type polid decid-str)
+  (if (not (equal? "" decid-str))
+      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)) ,(xml-make-decision decid-str))
+      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)))))
 
 (define (xml-make-policy-identifier policy-name)
   `(POLICY-IDENTIFIER ((pname ,policy-name))))

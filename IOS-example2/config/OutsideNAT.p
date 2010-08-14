@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (default-NAT-g910
+  (default-NAT-g1889
    =
    (Translate
     hostname
@@ -15,6 +15,7 @@
     dest-addr-out
     protocol
     message
+    flags
     src-port-in
     src-port-out
     dest-port-in

@@ -604,8 +604,6 @@ public class MEnvironment
 	
 	static public Document returnQueryResponse(MQuery qry, String XMLCommand)
 	{
-		lastCommandReceived = XMLCommand.trim();	
-		
 		try
 		{
 				// May return null if an internal error.
@@ -1716,10 +1714,12 @@ public class MEnvironment
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
 		List<String> res = pol.ruleIDBsWithHigherPriorityThan(rname);
+		
+		// order matters
 		return listResponse(res);
 	}
 
-	public static Document getRulesIn(String pname, boolean b)
+	public static Document getRulesIn(String pname, boolean b, String decname)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
@@ -1729,11 +1729,9 @@ public class MEnvironment
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
 		List<String> res;
-		if(!b)
-			res = pol.getIDBNameList();
-		else
-			res = pol.getQualifiedIDBNameList();
+		res = pol.getRulesList(decname, b);
 		
+		// order matters
 		return listResponse(res);
 	}
 
