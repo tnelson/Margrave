@@ -690,7 +690,8 @@
           protocol
           src-port
           src-addr
-          dest-port)))
+          dest-port
+          reflect-name)))
 
 ;; number symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list8 line name disposition src-addr src-port dest-addr dest-port line-tokens config)

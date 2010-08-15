@@ -494,6 +494,11 @@
                 (is-a? value type))
               (flatten conditions)))
     
+    ;; -> (listof symbol)
+    ;;   Returns a list of the predicate names that this rule contains
+    (define/public (extract-predicates)
+      '())
+    
     ;; (listof any) -> (listof any)
     ;;   Converts all the atoms in a list to their textual form while
     ;;   preserving the list's structure
@@ -505,6 +510,20 @@
            atoms))
     ))
 
+;; symbol symbol (listof symbol) (listof (listof symbol))
+;;   Represents a Margrave rule with custom predicates
+(define rule/predicates%
+  (class* rule% ()
+    (init name decision)
+    (init-field predicates)
+    (init conditions)
+    (super-make-object name decision conditions)
+    
+    ;; -> (listof symbol)
+    ;;   Returns a list of the predicate names that this rule contains
+    (define/override (extract-predicates)
+      predicates)
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interfaces
@@ -1027,11 +1046,12 @@
       (super rule (append flag-conditions additional-conditions)))
     ))
 
-;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port
+;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port symbol
 ;;   Represents an extended ACE for TCP/UDP
 (define extended-reflexive-ACE-TCP/UDP%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
     (init line-number permit source-addr protocol source-port dest-addr dest-port)
+    (init-field ACL-name)
     (super-make-object line-number permit source-addr protocol source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
@@ -1039,12 +1059,28 @@
     (inherit-field prot)
     (inherit-field dest-addr-in)
     (inherit-field dest-port-in)
+    (inherit decision)
+    (inherit name)
     
     ;; (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
     (define/override (rule additional-conditions)
-      (super rule (cons `(Connection ,src-addr-in ,src-port-in ,prot ,dest-addr-in ,dest-port-in)
-                        additional-conditions)))
+      (make-object rule/predicates%
+        (name)
+        (decision)
+        (list (connection-predicate))
+        `(,@additional-conditions
+          (,(connection-predicate) ,src-addr-in ,src-port-in ,prot ,dest-addr-in ,dest-port-in)
+          (,src-addr-in src-addr-in)
+          (,prot protocol)
+          (,src-port-in src-port-in)
+          (,dest-addr-in dest-addr-in)
+          (,dest-port-in dest-port-in))))
+    
+    ;; -> symbol
+    ;;   Returns the name of the connection predicate for this rule
+    (define/private (connection-predicate)
+      (string->symbol (string-append "Connection-" (symbol->string ACL-name))))
     ))
 
 ;; ACL% : (listof ACE<%>)
@@ -3372,8 +3408,11 @@
                  Pass
                  Advertise
                  Encrypt)
-                (Predicates
-                 (Connection : Address Port Protocol Address Port)
+                (Predicates ,@(map (λ (predicate)
+                                     `(,predicate : Address Port Protocol Address Port))
+                                   (remove-duplicates (flatten (map (λ (rule)
+                                                                      (send rule extract-predicates))
+                                                                    rules))))
                  )
                 (ReqVariables
                  (hostname : Hostname)
