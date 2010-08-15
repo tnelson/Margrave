@@ -8,7 +8,8 @@
 
 ; todo: too much string manipulation going on here. Is it possible to send back more structured IDB data?
 ;       for example, why not send a triple: (collectionname, idbname, tupling-data)?
-; todo: similarly, why lists everywhere? Does Racket have a decent set implementation?
+; todo: similarly, why lists everywhere? Use sets for efficiency
+
 
 (require (file "margrave.rkt"))
 
@@ -36,6 +37,14 @@
 ;                           (- (string-length str) (string-length end))
 ;                           (string-length str)))))
 
+(define (keys-not-mapped-to-empty a-map)
+  (filter (lambda (x) (not (equal? #f x)))
+          (hash-map a-map
+                    (lambda (key value)
+                      (if (not (empty? (hash-ref a-map key)))
+                          key
+                          #f)))))
+
 (define (makeIdbList lst)
   (if (equal? '() lst)
       ""
@@ -52,6 +61,11 @@
 (define (list-intersection lst1 lst2)
   ;(printf "INTERSECT: ~a ~n ~a ~n" lst1 lst2)
   (filter (lambda (x) (not (equal? (member x lst2) #f))) lst1))
+
+(define (make-applied-list rlist)
+  (map (lambda (idbname)
+         (string-append idbname "_applies"))
+       rlist))
 
 ; Strip everything up to and including the last :
 ;(define (unqualified-part idbname)
@@ -86,7 +100,7 @@
 
 
 (define (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
-  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
+
   (let* ([denyOverlapPermitId 
           (xml-explore-result->id (mtext (string-append
                                           "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
@@ -99,13 +113,11 @@
          [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
     
     (define themap (xml-map-response->map (mtext denyOverlapPermitGet)))
-    (define overlapped (filter (lambda (key) (length (hash-ref key)))
-                               (in-hash-keys themap))) ;;;; !!!! Can't do this, in-hash-keys returns a sequence!
+    (define overlapped (keys-not-mapped-to-empty themap))
     
     (printf "Number of never-firing permits overlapped by denies: ~a ~nTime: ~a~n" (length overlapped) (time-since-last))))
 
 (define (find-overlaps-2 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
-  ; !!! todo: grossly in-efficient to play with lists rather than appropriately structured sets
   (let* ([permitOverlapDenyId 
           (xml-explore-result->id (mtext (string-append 
                                           "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
@@ -119,13 +131,9 @@
          [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
     (define themap (xml-map-response->map (mtext permitOverlapDenyGet)))
-    (printf "Number of never-firing denies overlapped by permits: ~a ~nTime: ~a~n" (hash-count themap) (time-since-last))))
+    (define overlapped (keys-not-mapped-to-empty themap))
+    (printf "Number of never-firing denies overlapped by permits: ~a ~nTime: ~a~n" (length overlapped) (time-since-last))))
 
-
-(define (make-applied-list rlist)
-  (map (lambda (idbname)
-         (string-append idbname "_applies"))
-       rlist))
 
 ; ********************************************************
 ; Detecting superfluous rules
@@ -171,7 +179,6 @@
       (printf "Running superfluous-rule finder...~n")
       
       ; **********************************************************************************************************
-      ;; !!! todo: needs to be SHOW (a bit confusing); also id comes first...
       
       (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
@@ -197,3 +204,4 @@
 
 ; bugs
 ; (2) have to use all vars in the condition? can't introduce in idbout/pop clauses
+; why 270 instead of 274?

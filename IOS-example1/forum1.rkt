@@ -7,18 +7,10 @@
 ; Things that need bugfixing for the paper are marked with TODO.
 
 
-(define oldvector "(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)")
-
 (define vector "(ahostname, entry-interface, 
         src-addr-in, src-addr_, src-addr-out, 
         dest-addr-in, dest-addr_, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in, src-port_, src-port-out, 
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface)")
@@ -39,13 +31,13 @@
     ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
     (load-ios-policies (build-path (current-directory) "config") "" "1")
     (load-ios-policies (build-path (current-directory) "config-revised") "" "2")
-    ;(load-ios-policies (build-path (current-directory) "config-reflexive") "" "3")
+    (load-ios-policies (build-path (current-directory) "config-reflexive") "" "3")
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Version 1
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    (printf "~n---------------1--------------~n----------------------------~n")
+    (printf "~n---------------1--------------~n------------------------------~n")
     
     
     (mtext (string-append "EXPLORE
@@ -53,24 +45,26 @@ NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
 FastEthernet0(entry-interface) AND
 prot-TCP(protocol) AND
 port-80(src-port-in) AND
-routed-packets1" vector
-" TUPLING"))
+firewall-passed1" vector " AND
+internal-result1" vector
+                  
+" TUPLING") #t)
 
-    (mtext "IS POSSIBLE? 0")  
+    (mtext "IS POSSIBLE?" #t)
     
-    (mtext "GET ONE 0")
-    (mtext "GET NEXT 0")
+   ; (mtext "GET ONE")
+   ; (mtext "GET NEXT")
     
     ;; TODO shouldn't we have a keyword that's syntactic sugar for "all subsorts of..."? 
     ;; TODO no way to show populated "other"... without that, this isn't a very interesting show populated?
     ;;   (but abstractness is expensive. can we get "other" here without an explicit sort and abstractness?)
     ; !!! TODO tupling isn't shown in the paper
    
-    (mtext (string-append "SHOW POPULATED 0 port-80(dest-port-in)" 
+    (display-response (mtext (string-append "SHOW POPULATED 0 port-80(dest-port-in)" 
                          ", port-20(dest-port-in)" 
                          ", port-21(dest-port-in)" 
                          ", port-23(dest-port-in)" 
-                         ", port-3389(dest-port-in)"))
+                         ", port-3389(dest-port-in)")))
     
 
     (mtext (string-append "EXPLORE
@@ -78,22 +72,23 @@ NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
 FastEthernet0(entry-interface) AND
 prot-TCP(protocol) AND
 port-80(src-port-in) AND
-routed-packets1" vector " AND " ; *1*
-"NOT port-80(dest-port-in) AND
+firewall-passed1" vector " AND
+internal-result1" vector " AND
+ NOT port-80(dest-port-in) AND
  NOT port-20(dest-port-in) AND
  NOT port-21(dest-port-in) AND
  NOT port-23(dest-port-in) AND
  NOT port-3389(dest-port-in)"
 " TUPLING"))
 
-    (mtext "IS POSSIBLE? 0")    
+   (display-response (mtext "IS POSSIBLE?"))   
     
                          
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Version 2
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    (printf "~n---------------2--------------~n----------------------------~n")
+    (printf "~n---------------2--------------~n------------------------------~n")
     
     ; TODO: No "other" or "unreferenced" keyword makes us enumerate those 5 ports.
     
@@ -102,22 +97,40 @@ NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
 FastEthernet0(entry-interface) AND
 prot-TCP(protocol) AND
 port-80(src-port-in) AND
-routed-packets2" vector " AND " ; *2*
-"NOT port-80(dest-port-in) AND
+firewall-passed2" vector " AND
+internal-result2" vector " AND
+ NOT port-80(dest-port-in) AND
  NOT port-20(dest-port-in) AND
  NOT port-21(dest-port-in) AND
  NOT port-23(dest-port-in) AND
  NOT port-3389(dest-port-in)"
 " TUPLING"))
 
-    (mtext "IS POSSIBLE? 0")
+   (display-response (mtext "IS POSSIBLE?"))
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Version 3
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-   ; TODO reflexive access list revision
+    (printf "~n---------------3--------------~n------------------------------~n")
+    
+    (mtext (string-append "EXPLORE
+NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
+FastEthernet0(entry-interface) AND
+prot-TCP(protocol) AND
+port-80(src-port-in) AND
+firewall-passed3" vector " AND
+internal-result3" vector " AND
+ NOT port-80(dest-port-in) AND
+ NOT port-20(dest-port-in) AND
+ NOT port-21(dest-port-in) AND
+ NOT port-23(dest-port-in) AND
+ NOT port-3389(dest-port-in)"
+" TUPLING"))
+
+    (display-response (mtext "IS POSSIBLE?"))
     
     
     
-  (stop-margrave-engine)))
+  ;(stop-margrave-engine)
+    ))

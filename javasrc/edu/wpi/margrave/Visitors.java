@@ -732,17 +732,48 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 
 	// Store that (e.g.) P became P_1, P_2, and P_4, R became R_2,3,5, etc.
 	// Applies for BOTH sorts and ordindary predicates
-	HashMap<String, Set<String>> cachePredicateToIndexings = new HashMap<String, Set<String>>();
+	private HashMap<String, Set<String>> cachePredicateToIndexings = new HashMap<String, Set<String>>();
 
 	// ii -> { old pred names we tupled with index ii }
 	// In case the indexing is >1-ary, ii is the string "i_1, ..., i_n"
 	// e.g. R_1,2,3 induces "1,2,3" ---> { R, <and possibly others>}
-	HashMap<String, Set<String>> cacheIndexingToPredicates = new HashMap<String, Set<String>>();
+	private HashMap<String, Set<String>> cacheIndexingToPredicates = new HashMap<String, Set<String>>();
 
 	// Given a single index string, returns the tupled predicates that use
 	// that index somewhere in their indexing.
 	// Used in equality axiom generation for >1-ary predicates
-	HashMap<String, Set<String>> cacheNewRelationsUsingIndex = new HashMap<String, Set<String>>();
+	private HashMap<String, Set<String>> cacheNewRelationsUsingIndex = new HashMap<String, Set<String>>();
+	
+	Set<String> getIndexingToPredicates(String indexing)
+	{
+		Set<String> result = cacheIndexingToPredicates.get(indexing);
+		if(result != null)
+			return result;
+		return new HashSet<String>();
+	}
+
+	Set<String> getNewRelationsUsingIndex(String indexing)
+	{
+		Set<String> result = cacheNewRelationsUsingIndex.get(indexing);
+		if(result != null)
+			return result;
+		return new HashSet<String>();
+	}
+	
+	Set<String> getPredicateToIndexings(String indexing)
+	{
+		Set<String> result = cachePredicateToIndexings.get(indexing);
+		if(result != null)
+			return result;
+		return new HashSet<String>();
+	}
+
+	String getCacheStringForDebug()
+	{
+		return "  Indexing to Predicates: "+cacheIndexingToPredicates + MEnvironment.eol +
+		"  Predicate to Indexings: "+cachePredicateToIndexings +MEnvironment.eol +
+		"  Index to Used: "+cacheNewRelationsUsingIndex +MEnvironment.eol;
+	}
 	
 	MatrixTuplingV(PrenexCheckV pren, MVocab old) 
 	throws MGEBadIdentifierName // should never occur, but just in case

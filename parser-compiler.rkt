@@ -402,6 +402,7 @@
      [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
      [(NOT condition-formula) (build-so (list 'NOT $2) 1 2)]
      [(LPAREN condition-formula RPAREN) (build-so $2 1 3)]
+     [(equals-formula) (build-so $1 1 1)]
      [(atomic-formula) (build-so $1 1 1)]
      
      ;[(relation) $1]
@@ -412,10 +413,18 @@
     ; represents a top-level condition, the fully-developed formula in EXPLORE 
     (condition [(condition-formula) (list 'CONDITION $1)])
     
+    
+    ; *************************************************
+    ; Variable equality         
+    (equals-formula ((<identifier> EQUALS <identifier>) (build-so (list 'EQUALS $1 $3) 1 3)))
+      
+    
     ; *************************************************
     ; An atomic formula can be either of the form
     ; R(x, y, ...)   or
     ; Policyname:R(x, y, ...)   
+    
+    
     
     (atomic-formula [(<identifier> LPAREN variable-list RPAREN) 
                      (build-so (list 'ATOMIC-FORMULA-N $1 (append (list 'VARIABLE-VECTOR) $3)) 1 4)]
@@ -540,7 +549,8 @@
          ;Third is the colon
          (xml-make-atomic-formula-y (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (fourth interns))) empty)]
         
-        
+        [(equal? first-datum 'EQUALS)
+         (xml-make-equals-formula (symbol->string (syntax->datum (second interns))) (symbol->string (syntax->datum (third interns))))]
         
         [(equal? first-datum 'CONDITION)
          ;(printf "Symbol cond: ~a~n" first-intern)
@@ -612,7 +622,7 @@
         [(equal? first-datum 'OR)
          (list 'OR (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'IMPLIES)
-         (list 'IMPLIES (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (list 'IMPLIES (list 'ANTE (helper-syn->xml (second interns))) (list 'CONS (helper-syn->xml (third interns))))]
         [(equal? first-datum 'IFF)
          (list 'IFF (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
         [(equal? first-datum 'NOT)

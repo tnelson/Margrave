@@ -4,24 +4,9 @@
  IOS-vocab
  (Target)
  (Rules
-  (NAT-line-22-g822
+  (NAT-line-22-g6075
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -32,47 +17,17 @@
    (port-80 src-port-in)
    (port-80 src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-22-g823
+  (NAT-line-22-g6076
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (ip-192-168-2-6 src-addr-in)
    (port-80 src-port-in))
-  (NAT-line-23-g824
+  (NAT-line-23-g6077
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -83,47 +38,17 @@
    (port-21 src-port-in)
    (port-21 src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-23-g825
+  (NAT-line-23-g6078
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (ip-192-168-2-6 src-addr-in)
    (port-21 src-port-in))
-  (NAT-line-24-g826
+  (NAT-line-24-g6079
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -134,47 +59,17 @@
    (port-3389 src-port-in)
    (port-3389 src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-24-g827
+  (NAT-line-24-g6080
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (ip-192-168-2-6 src-addr-in)
    (port-3389 src-port-in))
-  (NAT-line-21-ACE-line-26-g828g829
+  (NAT-line-21-ACE-line-26-g6081g6082
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -183,46 +78,16 @@
    (= dest-addr-in dest-addr-out)
    (= src-port-in src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-21-g830
+  (NAT-line-21-g6083
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (ip-192-168-2-0/ip-255-255-255-0 src-addr-in))
-  (default-NAT-g807
+  (default-NAT-g6006
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (= src-addr-in src-addr-out)
    (= dest-addr-in dest-addr-out)

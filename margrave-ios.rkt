@@ -16,7 +16,7 @@
     
     (when (or (> (string-length prefix) 0)
               (> (string-length suffix) 0))
-      (mtext (string-append "RENAME " polname " " prefix polname suffix) #t)))) ; silent!
+      (mtext (string-append "RENAME " polname " " prefix polname suffix))))) 
   
 ; Remember to start the engine before calling this. Also wrap in an exception check!
 ; dirpath says where to find the policies
@@ -181,38 +181,38 @@ TUPLING
   (mtext (string-append "EXPLORE "
   (string-append prefix "OutsideNAT" suffix)
   ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
-  dest-addr-in, dest-addr_, protocol, message, src-port-in, src-port_,
+  dest-addr-in, dest-addr_, protocol, message, flags, src-port-in, src-port_,
   dest-port-in, dest-port_, length, next-hop, exit-interface)
 AND
 
 ( "
   (string-append prefix "LocalSwitching" suffix)
   ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-  dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
+  dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
   dest-port_, dest-port_, length, next-hop, exit-interface)
   OR
 
   ( "
   (string-append prefix "LocalSwitching" suffix)
     ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-    dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
+    dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
     dest-port_, dest-port_, length, next-hop, exit-interface)
     AND
     ( "
       (string-append prefix "PolicyRoute" suffix)
       ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-      dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
+      dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
       dest-port_, dest-port_, length, next-hop, exit-interface)
       OR
       ( "
         (string-append prefix "PolicyRoute" suffix)
         ":Route(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
+        dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
         dest-port_, dest-port_, length, next-hop, exit-interface)
         AND "
           (string-append prefix "NetworkSwitching" suffix)
         ":Forward(ahostname, entry-interface, src-addr_,
-        src-addr_, dest-addr_, dest-addr_, protocol, message,
+        src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
         src-port_, src-port_, dest-port_, dest-port_, length,
         next-hop, exit-interface)
       )
@@ -220,27 +220,27 @@ AND
       ( "
           (string-append prefix "PolicyRoute" suffix)
         ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, src-port_,
+        dest-addr_, dest-addr_, protocol, message, flags, src-port_,
         src-port_, dest-port_, dest-port_, length, next-hop,
         exit-interface)
         AND
         ( "
           (string-append prefix "StaticRoute" suffix)
           ":Forward(ahostname, entry-interface, src-addr_,
-          src-addr_, dest-addr_, dest-addr_, protocol, message,
+          src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
           src-port_, src-port_, dest-port_, dest-port_, length,
           next-hop, exit-interface)
           OR
           ( "
             (string-append prefix "StaticRoute" suffix)
             ":Route(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message,
+            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
             src-port_, src-port_, dest-port_, dest-port_, length,
             next-hop, exit-interface)
             AND "
             (string-append prefix "NetworkSwitching" suffix)
             ":Forward(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message,
+            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
             src-port_, src-port_, dest-port_, dest-port_, length,
             next-hop, exit-interface)
           )
@@ -248,7 +248,7 @@ AND
           ( "
             (string-append prefix "StaticRoute" suffix)
             ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-            dest-addr_, dest-addr_, protocol, message, src-port_,
+            dest-addr_, dest-addr_, protocol, message, flags, src-port_,
             src-port_, dest-port_, dest-port_, length, next-hop,
             exit-interface)
             AND
@@ -256,20 +256,20 @@ AND
               (string-append prefix "DefaultPolicyRoute" suffix)
               ":Forward(ahostname, entry-interface,
               src-addr_, src-addr_, dest-addr_, dest-addr_,
-              protocol, message, src-port_, src-port_, dest-port_,
+              protocol, message, flags, src-port_, src-port_, dest-port_,
               dest-port_, length, next-hop, exit-interface)
               OR
               ( "
               (string-append prefix "DefaultPolicyRoute" suffix)
               ":Route(ahostname, entry-interface,
                 src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, src-port_, src-port_, dest-port_,
+                protocol, message, flags, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
                 AND "
               (string-append prefix "NetworkSwitching" suffix)
               ":Forward(ahostname, entry-interface,
                 src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, src-port_, src-port_, dest-port_,
+                protocol, message, flags, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
               )"
               
@@ -280,13 +280,13 @@ AND
               (string-append prefix "DefaultPolicyRoute" suffix)
               ":Pass(ahostname, entry-interface,
                 src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, src-port_, src-port_, dest-port_,
+                protocol, message, flags, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
                 AND 
-               (= next-hop dest-addr_) AND
-               (interf-drop exit-interface)"
+               (next-hop = dest-addr_) AND
+               interf-drop(exit-interface)"
 
-"
+"             )
             )
           )
         )
@@ -298,22 +298,21 @@ AND
 AND "
               (string-append prefix "InsideNAT" suffix)
               ":Translate(ahostname, entry-interface, src-addr_, src-addr-out,
-  dest-addr_, dest-addr-out, protocol, message, src-port_,
+  dest-addr_, dest-addr-out, protocol, message, flags, src-port_,
   src-port-out, dest-port_, dest-port-out, length, next-hop,
   exit-interface)
 
 PUBLISH ahostname, entry-interface, 
         src-addr-in, src-addr_, src-addr-out, 
         dest-addr-in, dest-addr_, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in, src-port_, src-port-out, 
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING
-") #t) ; silent
+TUPLING") #t) 
   
-  (mtext (string-append "RENAME LAST " prefix "internal-result" suffix) #t ) ; silent
+  (mtext (string-append "RENAME LAST " prefix "internal-result" suffix))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -329,24 +328,24 @@ TUPLING
   (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
                         prefix "InboundACL" suffix
                         ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
-  dest-addr-in, dest-addr-in, protocol, message, src-port-in, src-port-in,
+  dest-addr-in, dest-addr-in, protocol, message, flags, src-port-in, src-port-in,
   dest-port-in, dest-port-in, length, next-hop, exit-interface) AND " 
                         prefix "OutboundACL" suffix
                         ":Permit(ahostname, entry-interface, src-addr-out, src-addr-out,
-  dest-addr-out, dest-addr-out, protocol, message, src-port-out,
+  dest-addr-out, dest-addr-out, protocol, message, flags, src-port-out,
   src-port-out, dest-port-out, dest-port-out, length, next-hop,
   exit-interface)
 
 PUBLISH ahostname, entry-interface, 
         src-addr-in, src-addr_, src-addr-out, 
         dest-addr-in, dest-addr_, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in, src-port_, src-port-out, 
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING"))
-  (mtext (string-append "RENAME LAST " prefix "firewall-passed" suffix) #t ) ; silent
+TUPLING") #t)
+  (mtext (string-append "RENAME LAST " prefix "firewall-passed" suffix))
 
   
 ) ; end of function (more clear as lone paren; we are adding more)

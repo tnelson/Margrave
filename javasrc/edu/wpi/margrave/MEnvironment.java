@@ -127,7 +127,15 @@ class MExploreCondition
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> assertSufficient =
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
-	
+	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
+	{
+		if(!assertAtomicNecessary.containsKey(thisVar))
+			assertAtomicNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
+		if(!assertNecessary.containsKey(thisVar))
+			assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
+		if(!assertSufficient.containsKey(thisVar))
+			assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
+	}
 	
 	MExploreCondition(Formula f, Variable x, Variable y)
 	{
@@ -139,13 +147,8 @@ class MExploreCondition
 		List<Variable> thisVarY = new ArrayList<Variable>();
 		thisVarY.add(y);	// lists with equal elements are equal.
 		
-		assertAtomicNecessary.put(thisVarX, new HashSet<MVariableVectorAssertion>());
-		assertNecessary.put(thisVarX, new HashSet<MVariableVectorAssertion>());
-		assertSufficient.put(thisVarX, new HashSet<MVariableVectorAssertion>());
-
-		assertAtomicNecessary.put(thisVarY, new HashSet<MVariableVectorAssertion>());
-		assertNecessary.put(thisVarY, new HashSet<MVariableVectorAssertion>());
-		assertSufficient.put(thisVarY, new HashSet<MVariableVectorAssertion>());
+		initAssertionsForVectorIfNeeded(thisVarX);
+		initAssertionsForVectorIfNeeded(thisVarY);	
 	}
 	
 	MExploreCondition(Formula f, Relation made, List<String> varnamevector)
@@ -156,10 +159,9 @@ class MExploreCondition
 		List<Variable> varvector = vectorize(varnamevector);
 	
 		
-		// Initialize assertion pools for this vector
-		assertAtomicNecessary.put(varvector, new HashSet<MVariableVectorAssertion>());
-		assertNecessary.put(varvector, new HashSet<MVariableVectorAssertion>());
-		assertSufficient.put(varvector, new HashSet<MVariableVectorAssertion>());
+		// Initialize assertion pools for this vector IF NEEDED
+		// (may have seen the vector already, after all)
+		initAssertionsForVectorIfNeeded(varvector);
 		
 		// This constructor means an atomic necessary assertion:
 		assertAtomicNecessary.get(varvector).add(new MVariableVectorAssertion(true, made));				
@@ -182,12 +184,7 @@ class MExploreCondition
 			List<Variable> thisVar = new ArrayList<Variable>();
 			thisVar.add(v);	// lists with equal elements are equal.	
 			
-			if(!assertAtomicNecessary.containsKey(thisVar))
-				assertAtomicNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
-			if(!assertNecessary.containsKey(thisVar))
-				assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
-			if(!assertSufficient.containsKey(thisVar))
-				assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
+			initAssertionsForVectorIfNeeded(thisVar);
 			
 			Variable oldVar = pol.varOrdering.get(iIndex);
 			iIndex ++;
@@ -272,12 +269,7 @@ class MExploreCondition
 		
 		for(List<Variable> thisVar : oth.assertNecessary.keySet())
 		{
-			if(!assertAtomicNecessary.containsKey(thisVar))
-				assertAtomicNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
-			if(!assertNecessary.containsKey(thisVar))
-				assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
-			if(!assertSufficient.containsKey(thisVar))
-				assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
+			initAssertionsForVectorIfNeeded(thisVar);
 		}
 	}
 	
@@ -464,9 +456,7 @@ public class MEnvironment
 	
 	static MIDBCollection getPolicyOrView(String str)
 	{
-		
-		
-		str = str.toLowerCase();
+						str = str.toLowerCase();
 		
 		// Is str the name of an idb I know?
 		if(envIDBCollections.containsKey(str))
@@ -1824,6 +1814,9 @@ public class MEnvironment
 		Element msgElement = xmldoc.createElementNS(null, "MESSAGE");
 		if(e.getLocalizedMessage() != null && e.getLocalizedMessage().length() > 0 )
 			msgElement.appendChild(xmldoc.createTextNode(e.getLocalizedMessage()));
+		else
+			msgElement.appendChild(xmldoc.createTextNode("(No message)"));
+		
 		errorElement.appendChild(msgElement);
 		
 		/*if(e instanceof MParserException)

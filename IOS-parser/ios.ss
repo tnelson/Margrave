@@ -3452,7 +3452,7 @@
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
                  (atmostone icmp-echo)
                  (atmostone icmp-echo-reply)
-                 (atmostone-all Flags)
+                 (atmostone-all TCPFlags)
                  (atmostone-all Length)
                  (nonempty Hostname)
                  (nonempty Interface)
@@ -3460,7 +3460,7 @@
                  (nonempty Protocol)
                  (nonempty Port)
                  (nonempty ICMPMessage)
-                 (nonempty Flags)
+                 (nonempty TCPFlags)
                  (nonempty Length))))
 
 (define TCP-flags '(NONE SYN ACK FIN PSH URG RST))

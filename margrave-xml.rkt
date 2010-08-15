@@ -73,6 +73,7 @@
  xml-make-child-identifier
  xml-make-get-rules-command
  xml-make-get-qrules-command
+ xml-make-equals-formula
 
  fold-append-with-spaces
  fold-append-with-spaces-quotes
@@ -915,6 +916,9 @@
   `(CEILING ((ceiling-level ,ceiling-level))))
 
 ;Atomic Formulas
+(define (xml-make-equals-formula v1-name v2-name)
+  `(EQUALS ((v1 ,v1-name) (v2 ,v2-name))))
+
 (define (xml-make-atomic-formula-n relName xml-identifier-list)
   `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,xml-identifier-list))  
 

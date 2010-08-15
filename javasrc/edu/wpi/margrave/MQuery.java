@@ -434,7 +434,7 @@ public class MQuery extends MIDBCollection
 		// What must hold if x_i = x_j?
 		
 		// First: which new predicates even use index i?
-		Set<String> newUseI = mtup.cacheNewRelationsUsingIndex.get(leftidx);
+		Set<String> newUseI = mtup.getNewRelationsUsingIndex(leftidx);
 		
 		// Start pulling out elements of newUseI and deal with them. 
 		// One iteration MAY deal with multiple elements. Keep track of double-dipping.
@@ -853,9 +853,7 @@ public class MQuery extends MIDBCollection
 					
 					MEnvironment.writeOutLine("");
 					MEnvironment.writeOutLine("DEBUG: State of mtup caches immediately after matrix tupling (before axioms): ");
-					MEnvironment.writeOutLine("  Indexing to Predicates: "+mtup.cacheIndexingToPredicates);
-					MEnvironment.writeOutLine("  Predicate to Indexings: "+mtup.cachePredicateToIndexings);
-					MEnvironment.writeOutLine("  Index to Used: "+mtup.cacheNewRelationsUsingIndex);
+					MEnvironment.writeOutLine(mtup.getCacheStringForDebug());
 					MEnvironment.writeOutLine("");
 				}
 
@@ -1059,7 +1057,7 @@ public class MQuery extends MIDBCollection
 					MSort oldSort = vocab.getSort(relName);
 
 					// Get the list of tupled extensions of relName
-					Set<String> newPreds = mtup.cachePredicateToIndexings.get(relName);
+					Set<String> newPreds = mtup.getPredicateToIndexings(relName);
 					if (newPreds == null)
 						continue;
 
@@ -1258,8 +1256,9 @@ public class MQuery extends MIDBCollection
 						// (caching is good. was: 984 ms now: 15ms)
 						// will still take a while if there are a lot of shared
 						// preds, of course.
-						Set<String> sharedOldPredNames = new HashSet<String>(mtup.cacheIndexingToPredicates.get(String.valueOf(ii)));
-						sharedOldPredNames.retainAll(mtup.cacheIndexingToPredicates.get(String.valueOf(jj)));
+						
+						Set<String> sharedOldPredNames = new HashSet<String>(mtup.getIndexingToPredicates(String.valueOf(ii)));
+						sharedOldPredNames.retainAll(mtup.getIndexingToPredicates(String.valueOf(jj)));
 						sharedOldPredNames.retainAll(lones);
 
 						// Build a list of antecedents for consequent =i,j. Each shared sort has a chance to be 
@@ -1539,7 +1538,7 @@ public class MQuery extends MIDBCollection
 					String strIndex = String.valueOf(iIndex);
 					String strIndexWithUnderscore = "_" + strIndex;
 
-					Set<String> oldPredsForThisIndex = mtup.cacheIndexingToPredicates.get(strIndex);
+					Set<String> oldPredsForThisIndex = mtup.getIndexingToPredicates(strIndex);
 
 					for (String oldPredName : oldPredsForThisIndex)
 					{
@@ -1648,7 +1647,7 @@ public class MQuery extends MIDBCollection
 				{
 					// For some reason the keys here are strings, not integers...
 					String iiStr = Integer.toString(ii);
-					Set<String> oldAppearingAti = mtup.cacheIndexingToPredicates.get(iiStr);
+					Set<String> oldAppearingAti = mtup.getIndexingToPredicates(iiStr);
 					oldAppearingAti.retainAll(oldtopnames);
 
 
@@ -1673,7 +1672,7 @@ public class MQuery extends MIDBCollection
 					for(int jj = ii+1; jj <= pren.qCount; jj++)
 					{
 						String jjStr = Integer.toString(jj);
-						Set<String> oldAppearingAtj = mtup.cacheIndexingToPredicates.get(jjStr);
+						Set<String> oldAppearingAtj = mtup.getIndexingToPredicates(jjStr);
 						oldAppearingAtj.retainAll(oldtopnames);
 
 						// TODO really shouldn't represent these "impossible" equalities at all
@@ -3878,11 +3877,6 @@ public class MQuery extends MIDBCollection
 		MCommunicator.writeToLog("Idb out map: "+idbOutputMap.toString());
 		MCommunicator.writeToLog("tup: "+bTupling);
 
-		// FOR CASES requires tupling (For now)
-/*		if(!bTupling && outmod.forCasesOr.size() > 0)
-		{
-			throw new MSemanticException("Cannot use FOR CASES clause without also enabling TUPLING. If TUPLING fails, FOR CASES will be ignored.");
-		}*/
 
 		// Tupling <----> for cases and idboutputmap and populated all indexed
 		if(bTupling)
@@ -3892,16 +3886,6 @@ public class MQuery extends MIDBCollection
 				if(idbOutputMap.get(predname).size() < 1)
 					throw new MSemanticException("TUPLING was enabled but IDB output for pred: "+predname+" was not indexed.");
 			}
-		/*	for(String predname : outmod.populatedCandidates.keySet())
-			{
-				if(outmod.populatedCandidates.get(predname).size() < 1)
-					throw new MSemanticException("TUPLING was enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was not indexed.");
-			}
-			for(String predname : outmod.forCasesOr.keySet())
-			{
-				if(outmod.forCasesOr.get(predname).size() < 1)
-					throw new MSemanticException("FOR CASES clause contained a pred: "+predname+" that was not indexed.");
-			}*/
 		}
 		else
 		{
@@ -3910,11 +3894,6 @@ public class MQuery extends MIDBCollection
 				if(idbOutputMap.get(predname).size() > 0)
 					throw new MSemanticException("TUPLING was not enabled but IDBOUTPUT for pred: "+predname+" was indexed.");
 			}
-			//for(String predname : outmod.populatedCandidates.keySet())
-			//{
-			//	if(outmod.populatedCandidates.get(predname).size() > 0)
-			//		throw new MSemanticException("TUPLING was not enabled for a SHOW (UN)POPULATED query but pred: "+predname+" in the SHOW clause was indexed.");
-			//}
 		}
 		// TODO to give row/col for the above, need to keep their location in the outmod until we know whether or not we're tupled
 
@@ -3925,12 +3904,10 @@ public class MQuery extends MIDBCollection
 		MVocab uber = null;
 
 		for (MIDBCollection p : mpc.seenIDBs) {
-			if (uber == null) {
+			if (uber == null)
 				uber = p.vocab;
-				continue;
-			}
-
-			uber = uber.combineWith(p.vocab);
+			else			
+				uber = uber.combineWith(p.vocab);
 		}
 
 		// No IDBS, no UNDER clause?

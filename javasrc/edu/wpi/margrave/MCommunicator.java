@@ -4,6 +4,7 @@ import java_cup.*;
 import kodkod.ast.*;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +52,8 @@ public class MCommunicator
 	
 	static boolean xmlCommand;
 	
+	static String sLogFileName = "log.txt";
+	
 	static String makeLastResortError(Document theResponse)
 	{
 		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document</ERROR></MARGRAVE-RESPONSE>";
@@ -58,6 +61,7 @@ public class MCommunicator
 	
 	public static void main(String[] args) 
 	{
+		initializeLog();
 		writeToLog("\n\n\n");
 		if(args.length > 0 && args[0].toLowerCase().equals("debug"))
 		{
@@ -987,18 +991,35 @@ public class MCommunicator
         	//for (int i = 0; i < childNodes.getLength(); i++) {
         	//    n = childNodes.item(i);
         	name = n.getNodeName();
-        	writeToLog("Name: " + name + "\n");
-        	writeToLog("First node's name: " + childNodes.item(0).getNodeName() + "\n");
+        	writeToLog("\nIn exploreHelper. Node Name: " + name + "\n");
+        	if(childNodes.getLength() == 0)
+        		writeToLog("\nNo child nodes.\n");
+        	else
+        		writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
 
         	if (name.equalsIgnoreCase("AND")) {
-        		return exploreHelper(childNodes.item(0)).and(
-        				exploreHelper(childNodes.item(1)));
+        		return exploreHelper(childNodes.item(0)).and(exploreHelper(childNodes.item(1)));
         	}
         	else if (name.equalsIgnoreCase("OR")) {
         		return exploreHelper(n.getFirstChild()).or(exploreHelper(n.getChildNodes().item(1)));
         	}
-        	else if (name.equalsIgnoreCase("IMPLIES")) {
-        		return exploreHelper(n.getFirstChild()).implies(exploreHelper(n.getChildNodes().item(1)));
+        	else if (name.equalsIgnoreCase("IMPLIES"))
+        	{
+        		// cannot trust XML to preserve node order
+        		Node antecedent = getChildNode(n, "ANTE");
+        		Node consequent = getChildNode(n, "CONS");
+        		
+        		return exploreHelper(antecedent).implies(exploreHelper(consequent));
+        	}
+        	else if(name.equalsIgnoreCase("EQUALS"))
+        	{
+        		String varname1 = n.getAttributes().getNamedItem("v1").getNodeName().toLowerCase();
+        		String varname2 = n.getAttributes().getNamedItem("v2").getNodeName().toLowerCase();
+        		
+        		Variable v1 = MFormulaManager.makeVariable(varname1);
+        		Variable v2 = MFormulaManager.makeVariable(varname2);
+        		Formula fmla = MFormulaManager.makeEqAtom(v1, v2);
+        		return new MExploreCondition(fmla, v1, v2);        		
         	}
         	else if (name.equalsIgnoreCase("IFF")) {
         		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
@@ -1086,10 +1107,19 @@ public class MCommunicator
           return list;
      }
      
-     static void writeToLog(String s) {
-    	 try{
+     static void initializeLog()
+     {
+    	 // Wipe the log clean every time the engine runs.
+    	 File theLogFile = new File(sLogFileName);
+    	 theLogFile.delete();
+     }
+     
+     static void writeToLog(String s)
+     {
+    	 try
+    	 {
     		    // Create file 
-    		    FileWriter fstream = new FileWriter("log.txt", true);
+    		    FileWriter fstream = new FileWriter(sLogFileName, true);
     		        BufferedWriter out = new BufferedWriter(fstream);
     		    out.write(s);
     		    //Close the output stream
