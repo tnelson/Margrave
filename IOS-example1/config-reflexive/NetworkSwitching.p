@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (network-switch-FastEthernet0-g11852
+  (network-switch-FastEthernet0-g20032
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -12,7 +12,7 @@
    (= next-hop dest-addr-out)
    (ip-209-172-108-0/ip-255-255-255-224 next-hop)
    (FastEthernet0 exit-interface))
-  (network-switch-Vlan1-g11853
+  (network-switch-Vlan1-g20033
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-

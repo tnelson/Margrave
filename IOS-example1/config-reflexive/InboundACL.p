@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-30-g11821
+  (ACE-line-30-g20001
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -15,7 +15,7 @@
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (Port dest-port-in))
-  (ACE-line-33-g11822
+  (ACE-line-33-g20002
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -26,7 +26,7 @@
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-80 dest-port-in))
-  (ACE-line-34-g11823
+  (ACE-line-34-g20003
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -37,7 +37,7 @@
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-21 dest-port-in))
-  (ACE-line-35-g11824
+  (ACE-line-35-g20004
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -48,7 +48,7 @@
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-20 dest-port-in))
-  (ACE-line-36-g11825
+  (ACE-line-36-g20005
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -59,7 +59,7 @@
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-23 dest-port-in))
-  (ACE-line-30-g11826
+  (ACE-line-30-g20006
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -71,7 +71,7 @@
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (Port dest-port-in))
-  (ACE-line-38-g11827
+  (ACE-line-38-g20007
    =
    (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-

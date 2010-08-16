@@ -3150,13 +3150,13 @@
               (let [(name (car name-interf))
                     (interf (cdr name-interf))]
                 (make-object rule%
-                  (string->symbol (string-append "network-switch-drop-"
+                  (string->symbol (string-append "network-switch-"
                                                  (symbol->string name)
                                                  "-"
                                                  (symbol->string (gensym))))
                   'Forward
                   `((,hostname hostname)
-                    ; -TN??? Question: should this 'Forward be a 'Drop? (If 'Drop, remove the next-hop restriction)
+                    ; -TN
                     (= next-hop dest-addr-out)
                     (,(get-field secondary-network interf) next-hop)
                     (,interf exit-interface)))))
@@ -3410,7 +3410,7 @@
                  Advertise
                  Encrypt)
                 (Predicates ,@(map (λ (predicate)
-                                     `(,predicate : Address Port Protocol Address Port))
+                                     `(,predicate : IPAddress Port Protocol IPAddress Port))
                                    (remove-duplicates (flatten (map (λ (rule)
                                                                       (send rule extract-predicates))
                                                                     rules))))
@@ -3442,12 +3442,14 @@
                  (abstract Protocol)
                  (disjoint-all Hostname)
                  (disjoint-all Interface)
+                 (disjoint-all interf-real)
                  (disjoint-all IPAddress)
                  (disjoint-all Protocol)
                  (disjoint-all Port)
                  (disjoint-all ICMPMessage)
                  (disjoint-all Length)
-                 (atmostone-all Interface)
+                 (atmostone-all interf-real)
+                 (atmostone interf-drop)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
                  (atmostone-all Protocol)
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))

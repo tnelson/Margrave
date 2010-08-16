@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (NAT-line-22-g8229
+  (NAT-line-22-g20088
    =
    (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -17,7 +17,7 @@
    (port-80 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-22-g8230
+  (NAT-line-22-g20089
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -25,7 +25,7 @@
    (FastEthernet0 entry-interface)
    (ip-209-172-108-16 dest-addr-in)
    (port-80 dest-port-in))
-  (NAT-line-23-g8231
+  (NAT-line-23-g20090
    =
    (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -38,7 +38,7 @@
    (port-21 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-23-g8232
+  (NAT-line-23-g20091
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -46,7 +46,7 @@
    (FastEthernet0 entry-interface)
    (ip-209-172-108-16 dest-addr-in)
    (port-21 dest-port-in))
-  (NAT-line-24-g8233
+  (NAT-line-24-g20092
    =
    (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -59,7 +59,7 @@
    (port-3389 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-24-g8234
+  (NAT-line-24-g20093
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -67,7 +67,7 @@
    (FastEthernet0 entry-interface)
    (ip-209-172-108-16 dest-addr-in)
    (port-3389 dest-port-in))
-  (NAT-line-21-NAT-line-21-g8235g8236
+  (NAT-line-21-NAT-line-21-g20094g20095
    =
    (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -78,7 +78,7 @@
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-21-g8237
+  (NAT-line-21-g20096
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
@@ -86,7 +86,7 @@
    (FastEthernet0 entry-interface)
    (ip-192-168-2-0/ip-255-255-255-0 dest-addr-out)
    (ip-209-172-108-16 dest-addr-in))
-  (default-NAT-g7975
+  (default-NAT-g19975
    =
    (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-

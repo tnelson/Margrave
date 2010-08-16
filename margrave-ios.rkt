@@ -283,7 +283,7 @@ AND
                 protocol, message, flags, src-port_, src-port_, dest-port_,
                 dest-port_, length, next-hop, exit-interface)
                 AND 
-               (next-hop = dest-addr_) AND
+               (next-hop = dest-addr-out) AND
                interf-drop(exit-interface)"
 
 "             )
@@ -316,11 +316,8 @@ TUPLING") #t)
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Internally-dropped: commented out for now (what is PUBLISH clause for single var query?)
+  ; Internally-dropped: Just check for NOT interf-drop(exit-interface).
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ; (mtext (string-append "EXPLORE interf-drop(exit-interface)" ))
-  ;(mtext (string-append "RENAME LAST " prefix "internally-dropped" suffix) #t ) ; silent
-
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Firewall-Passed
@@ -329,6 +326,7 @@ TUPLING") #t)
   ;; Do NOT assert internal-result in this query. Why? Because then it cannot be safely
   ;; negated to mean the packets the firewall drops (or rejects). It would then also
   ;; include all the nonsensical scenarios...
+  ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
   (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
                         prefix "InboundACL" suffix
                         ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
@@ -341,11 +339,11 @@ TUPLING") #t)
   exit-interface)
 
 PUBLISH ahostname, entry-interface, 
-        src-addr-in, src-addr_, src-addr-out, 
-        dest-addr-in, dest-addr_, dest-addr-out, 
+        src-addr-in,  src-addr-out, 
+        dest-addr-in, dest-addr-out, 
         protocol, message, flags,
-        src-port-in, src-port_, src-port-out, 
-        dest-port-in, dest-port_, dest-port-out, 
+        src-port-in,  src-port-out, 
+        dest-port-in,  dest-port-out, 
         length, next-hop, exit-interface
 
 TUPLING") #t)
