@@ -758,6 +758,9 @@ public class MFormulaManager
 		List<String> varnames = MVocab.constructVarNameList(expr); 
 		List<String> newvarnames = new ArrayList<String>();
 		
+		// Debug log
+		MCommunicator.writeToLog("\nin MFormulaManager.substituteVarTuple: "+expr+" w/ "+varpairs);
+		MCommunicator.writeToLog("\n  varnames list was constructed: "+varnames);
 		for(String v : varnames)
 		{
 			Variable vvar = makeVariable(v);

@@ -1077,20 +1077,9 @@ public class MQuery extends MIDBCollection
 							{
 								String newchildname = oldChild.name + "_" + idxStr;
 								mtup.newvocab.addSubSort(newName, newchildname);
-
+								// Not using mtup.addSortWithSupers since here we already have the parent
 								mtup.addToCaches(oldChild.name, "_"+idxStr, newchildname);
 								
-								/*
-								// make sure caches are correct
-								if (!mtup.cacheIndexingToPredicates.containsKey(idxStr))
-									mtup.cacheIndexingToPredicates.put(idxStr, new HashSet<String>());
-								if (!mtup.cachePredicateToIndexings.containsKey(oldChild.name))
-									mtup.cachePredicateToIndexings.put(oldChild.name, new HashSet<String>());
-								
-								mtup.cacheIndexingToPredicates.get(idxStr).add(oldChild.name);
-								mtup.cachePredicateToIndexings.get(oldChild.name).add(newchildname);
-								// lacks 3rd cache, switching to addToCaches
-								*/
 							}
 
 							if (debug_verbosity >= 3)
@@ -1115,8 +1104,58 @@ public class MQuery extends MIDBCollection
 				// ***************************
 				// Sort of original predicates is respected
 				// If P: AxB, P_1,3(z) ---> A_1(z) and B_3(z)
-				// This is already enforced by the sig of the new predicate in
-				// the new vocab. No code is needed.
+				// This is NOT enforced by the sig of the new predicate in
+				// the new vocab. Need to assert these!
+				Set<Formula> respected_1 = new HashSet<Formula>();
+				for(String origpred : vocab.predicates.keySet())
+				{
+					Set<String> newindexings = mtup.getPredicateToIndexings(origpred);
+				
+					String origtypestr = vocab.predtypes.get(origpred);
+					String[] origtypes = origtypestr.split(" ");
+				
+					
+					for(String newindexing : newindexings)
+					{
+						String idxStr = newindexing.substring(newindexing.lastIndexOf("_") + 1);
+						String[] indices = idxStr.split(",");
+					
+						Set<Formula> forthisindexing = new HashSet<Formula>();
+						
+						for(int ii = 0; ii < indices.length ;ii++)
+						{
+							String newsortname = origtypes[ii] + "_" + indices[ii];
+
+							// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
+							// (and its parents, if need be.)
+							if (!mtup.newvocab.isSort(newsortname))
+								mtup.addSortWithSupers(mtup.newvocab, vocab, origtypes[ii], "_"+indices[ii]);
+
+							// z in A_2
+							Relation r = mtup.newvocab.getRelation(newsortname);
+							forthisindexing.add(MFormulaManager.makeAtom(mtup.newvar, r));
+						}
+						
+						
+						
+						Relation newpred = mtup.newvocab.getRelation(newindexing);
+						Formula antecedent = MFormulaManager.makeAtom(mtup.newvar, newpred);
+						Formula consequent = MFormulaManager.makeConjunction(forthisindexing);
+						respected_1.add( MFormulaManager.makeImplication(antecedent, consequent));
+						
+						//if(timDebugMode)
+							MCommunicator.writeToLog("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");											
+						//MEnvironment.writeErrLine("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");
+					}
+					
+				}
+				
+				Formula respected_1_fmla = MFormulaManager.makeConjunction(respected_1);
+				tupledFormula = MFormulaManager.makeAnd(tupledFormula, respected_1_fmla);
+
+				if(timDebugMode)
+					MCommunicator.writeToLog("\n\nrespected_1_fmla:\n"+respected_1_fmla.toString()+"\n");
+				//MEnvironment.writeErrLine("\n\nrespected_1_fmla:\n"+respected_1_fmla.toString()+"\n");
 
 	
 				
@@ -1152,19 +1191,9 @@ public class MQuery extends MIDBCollection
 
 							String iiStr = Integer.toString(index);
 
-							mtup.addToCaches(sortname, "_"+index, newsortname);
-							
-							/*
-							// make sure caches are correct
-							if (!mtup.cacheIndexingToPredicates.containsKey(iiStr))
-								mtup.cacheIndexingToPredicates.put(iiStr, new HashSet<String>());
-							if (!mtup.cachePredicateToIndexings.containsKey(sortname))
-								mtup.cachePredicateToIndexings.put(sortname, new HashSet<String>());
-
-							mtup.cacheIndexingToPredicates.get(iiStr).add(sortname);
-							mtup.cachePredicateToIndexings.get(sortname).add(newsortname);
-							// lacks the 3rd cache; switching to addToCaches 
-							*/
+							//mtup.addToCaches(sortname, "_"+index, newsortname);							
+							// May need to add parents too
+							mtup.addSortWithSupers(mtup.newvocab, vocab, sortname, "_"+index);
 						}
 
 						// Assert the axiom for this index
@@ -2657,7 +2686,7 @@ public class MQuery extends MIDBCollection
 		return false;
 	}
 
-	/*protected void prettyPrintSolution(MVocab localVocab,
+	protected void prettyPrintSolution(MVocab localVocab,
 			MSolutionInstance aSolution, MInstanceIterator solnSet)
 	{
 		String result = getPrettyPrintForSolution(localVocab, aSolution, solnSet);
@@ -2852,11 +2881,11 @@ public class MQuery extends MIDBCollection
 
 		theResult.append("----------------------------------------");
 
-		return theResult.toString();   // end comment was here
+		return theResult.toString(); */  // end comment was here
 
-	}*/
+	}
 
-/*	private String prettyPrintSortNames(Set<MSort> sorts) {
+	private String prettyPrintSortNames(Set<MSort> sorts) {
 		String result = "";
 		boolean first = true;
 		for (MSort s : sorts) {
@@ -2869,32 +2898,26 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
-	public void prettyPrintOneSolution() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
+	public void prettyPrintOneSolution() throws MGException {
 		prettyPrintSolutions(1);
 	}
 
-	public void prettyPrintSolutions() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
+	public void prettyPrintSolutions() throws MGException {
 		// print them all
 		prettyPrintSolutions(-1);
 	}
 
-	public void prettyPrintSolutionsCondensed() throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-			MGEManagerException, MGEBadIdentifierName {
+	public void prettyPrintSolutionsCondensed() throws MGException {
 		// disabled special code for now
 
 		//MQueryOutputSpec.DefaultIteratorType savedCondense = otSpec.itDefault;
 		//otSpec.itDefault = MQueryOutputSpec.DefaultIteratorType.outIteratePartial;
 		prettyPrintSolutions();
 	//	otSpec.itDefault = savedCondense;
-	} */
+	} 
 
 
-/*	public void prettyPrintSolutions(int max_to_print)
+	public void prettyPrintSolutions(int max_to_print)
 			throws MGException {
 		int counter = 0;
 		Statistics stats = null;
@@ -2911,7 +2934,7 @@ public class MQuery extends MIDBCollection
 			initialtime = mx.getCurrentThreadCpuTime();
 
 		// help separate different query results
-		MEnvironment.writeOutLine();
+		MEnvironment.writeOutLine("");
 
 		if (max_to_print > -1)
 			MEnvironment.writeOutLine("  [[ Printing a maximum of " + max_to_print
@@ -3028,7 +3051,7 @@ public class MQuery extends MIDBCollection
 		MEnvironment.writeOutLine("Used SAT Solver: " + mySATFactory);
 		MEnvironment.outStream
 				.println("============================================================");
-	}*/
+	}
 
 	protected MSolutionInstance processTupledSolutionForThis(MSolutionInstance partialInstance)
 	{
@@ -3045,7 +3068,7 @@ public class MQuery extends MIDBCollection
 		
 
 		// (1) Look at the equalities, decide what the universe is
-		HashMap<String, Set<String>> idxToVars = new HashMap<String, Set<String>>();
+		HashMap<String, List<String>> idxToVars = new HashMap<String, List<String>>();
 		HashMap<String, String> idxToAtom = new HashMap<String, String>();
 
 		List<String> annotations = new ArrayList<String>();
@@ -3053,7 +3076,7 @@ public class MQuery extends MIDBCollection
 		// populate initial atoms
 		for(String idx : internalTuplingVisitor.pv.revIndexing.keySet())
 		{
-			Set<String> atom = new HashSet<String>();
+			List<String> atom = new ArrayList<String>();
 			atom.add(internalTuplingVisitor.pv.revIndexing.get(idx).name());
 			idxToVars.put(idx, atom);
 		}
@@ -3071,8 +3094,9 @@ public class MQuery extends MIDBCollection
 					String rightidx = r.name().substring(needsLastComma + 1);
 					String leftidx = r.name().substring(2, needsLastComma);
 
-
-					Set<String> comb = new HashSet<String>();
+					// TODO not quotienting properly. fix
+					
+					List<String> comb = new ArrayList<String>();
 					comb.addAll(idxToVars.get(rightidx));
 					comb.addAll(idxToVars.get(leftidx));
 					idxToVars.put(rightidx, comb);
@@ -3088,7 +3112,7 @@ public class MQuery extends MIDBCollection
 		{
 			// Convert the set to something more readable
 			String aName = "";
-			for(String varName : idxToVars.get(idx))
+			for(String varName : idxToVars.get(idx))  // we need this ordering to be deterministic
 			{
 				if(aName.length() < 1)
 					aName = aName + varName;

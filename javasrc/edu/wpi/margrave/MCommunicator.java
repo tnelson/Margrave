@@ -1013,7 +1013,11 @@ public class MCommunicator
         		Node antecedent = getChildNode(n, "ANTE");
         		Node consequent = getChildNode(n, "CONS");
         		
-        		return exploreHelper(antecedent).implies(exploreHelper(consequent));
+        		// The children of these nodes are the formulas in ante/cons position.
+        		MExploreCondition antecedentFmla = exploreHelper(antecedent.getFirstChild());
+        		MExploreCondition consequentFmla = exploreHelper(consequent.getFirstChild());
+        		        		
+        		return antecedentFmla.implies(consequentFmla);
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
@@ -1089,15 +1093,20 @@ public class MCommunicator
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
         		        		        		
         		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n");
-        		
+       			writeToLog("\nBefore substitution: "+idbf);
+       			
        			idbf = performSubstitution(collectionName, pol, idbf, vl);
 
+       			writeToLog("\nAfter substitution: "+idbf);
+       			
         		// Assemble MExploreCondition object	
         		writeToLog("Returning from atomic-formula-y");
         		return new MExploreCondition(idbf, pol, vl);
 
         	}
-        	MEnvironment.errorStream.println("returning null! error!");
+        	
+        	MEnvironment.errorStream.println("exploreHelper returning null! error! name was: "+name);
+        	
         return null;
     }
      
@@ -1276,10 +1285,13 @@ public class MCommunicator
 			
 		// coll knows what its idbs free variable vector is.
 		int ii = 0;
+		writeToLog("\nsubs found coll.varOrdering = "+coll.varOrdering);
 		for(Variable oldv : coll.varOrdering)		
 		{
 			Variable v = MFormulaManager.makeVariable(newvarnames.get(ii));
 			toReplace.put(oldv, v);
+			
+			writeToLog("\nsubs will replace var: "+oldv+" with new var: "+v);
 			ii ++;	
 		}
 		

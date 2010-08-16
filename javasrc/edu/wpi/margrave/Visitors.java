@@ -410,22 +410,22 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 
 			// Left hand side (at least) may be a BinaryExpression.
 			// If we just call accept(this), may end up constructing new tuples
-			// that
-			// the manager doesn't know about. Instead...
+			// that the manager doesn't know about. Instead...
 
 			Expression newlhs;
 			Expression newrhs;
 
 			try {
-				if (comp.left() instanceof BinaryExpression) {
-					// We have a var tuple. Replace vars AS NEEDED!
-
-					newlhs = MFormulaManager.substituteVarTuple(
-							(BinaryExpression) comp.left(), varpairs);
-				} else
+				// We have a var tuple? Replace vars AS NEEDED!
+				if (comp.left() instanceof BinaryExpression)
+					newlhs = MFormulaManager.substituteVarTuple((BinaryExpression) comp.left(), varpairs);
+				else
 					newlhs = comp.left().accept(this);
 
-				newrhs = comp.right().accept(this);
+				if(comp.right() instanceof BinaryExpression)
+					newrhs = MFormulaManager.substituteVarTuple((BinaryExpression) comp.right(), varpairs);
+				else
+					newrhs = comp.right().accept(this);
 
 				return cache(comp, MFormulaManager.makeAtom(newlhs, newrhs));
 			} catch (MGEManagerException e) {
@@ -853,7 +853,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 			// [[[ Already added in constructor, but it's a set so leaving in - TN]]]
 			equalAxiomsNeeded.add(predname);
 
-			// Add the new predicate
+			// Add the new equality predicate =_i,j
 			try 
 			{
 				newvocab.addPredicate(predname, pv.tupleTypeName);																	
@@ -972,7 +972,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		
 	}
 
-	private void addSortWithSupers(MVocab newvocab, MVocab oldvocab,
+	void addSortWithSupers(MVocab newvocab, MVocab oldvocab,
 			String oldpredname, String suffix)
 	throws MGEUnknownIdentifier, MGEBadIdentifierName 
 	{

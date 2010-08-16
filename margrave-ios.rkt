@@ -310,7 +310,7 @@ PUBLISH ahostname, entry-interface,
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING") #t) 
+TUPLING")) 
   
   (mtext (string-append "RENAME LAST " prefix "internal-result" suffix))
 
@@ -346,7 +346,7 @@ PUBLISH ahostname, entry-interface,
         dest-port-in,  dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING") #t)
+TUPLING"))
   (mtext (string-append "RENAME LAST " prefix "firewall-passed" suffix))
 
   

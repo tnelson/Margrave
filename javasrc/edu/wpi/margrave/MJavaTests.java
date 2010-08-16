@@ -239,6 +239,9 @@ public class MJavaTests
 		System.err.println(pol2.getRulesList("permit", false));		
 		System.exit(1);*/
 		
+		qry.prettyPrintSolutions();
+		
+		System.exit(1);
 		
 		countTest("Solutions to above with (Assigned s r) only (tupled)", qry, 1, 1, 1);
 		

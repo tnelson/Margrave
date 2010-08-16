@@ -874,7 +874,8 @@ public class MVocab {
 
 	private static List<String> inorderTraversalOfVariableProduct(
 			BinaryExpression be, HashMap<Variable, Integer> indexing,
-			HashMap<Variable, String> sortenv) {
+			HashMap<Variable, String> sortenv)
+	{
 		// DFS this expression. Assume either a BinaryExpression node or a
 		// Variable. Otherwise yell.
 		List<String> sort_result = new ArrayList<String>();
@@ -885,22 +886,31 @@ public class MVocab {
 		dfslist.add(be.left());
 		dfslist.add(be.right());
 
-		while (dfslist.size() > 0) {
+		while (dfslist.size() > 0)
+		{
 			Expression next = dfslist.get(0);
 			dfslist.remove(0);
 
 			// What does sortenv say the sort of this variable is?
-			if (next instanceof Variable) {
+			if (next instanceof Variable)
+			{
 				if (sortenv != null)
 					sort_result.add(sortenv.get(next));
 				if (indexing != null)
 					index_result.add(indexing.get(next).toString());
 				varname_result.add(next.toString());
 
-			} else if (next instanceof BinaryExpression) {
+			}
+			else if (next instanceof BinaryExpression)
+			{
 				BinaryExpression benext = (BinaryExpression) next;
-				dfslist.add(benext.left());
-				dfslist.add(benext.right());
+				// Don't .add to the END. Need to put at the beginning,
+				// or else this will not be in-order.
+				//dfslist.add(benext.left()); <--- NO
+				//dfslist.add(benext.right()); <--- NO
+				// Add right first (so left ends up in its proper place)
+				dfslist.add(0, benext.right());
+				dfslist.add(0, benext.left());
 			}
 
 			else
