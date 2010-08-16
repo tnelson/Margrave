@@ -134,7 +134,7 @@ firewall-passed3" policyvector " AND
 internal-result3" vector "AND
 ( Connection-returntcp(src-addr-in, src-port-in, protocol, dest-addr-in, dest-port-in) 
   IMPLIES
-  InboundACL3:ACE-line-30-g20001" reversepolicyvector ") "
+  InboundACL3:ACE-line-30-g20001_applies" reversepolicyvector ") "
                                                                     
 "AND NOT port-80(dest-port-in) AND
  NOT port-20(dest-port-in) AND

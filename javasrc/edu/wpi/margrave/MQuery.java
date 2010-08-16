@@ -2966,15 +2966,15 @@ public class MQuery extends MIDBCollection
 				System.err.println(doTupling);
 				System.err.println(tupled);
 
-				if(tupled)
+				if(!tupled && internalTupledQuery != null)
 				{
-					// Ask parent to convert
+					// The tupled query is responsible for the conversion, not the pre-tupling one
 					MSolutionInstance s = internalTupledQuery.processTupledSolutionForThis(partialInstance);
 					prettyPrintSolution(vocab, s, it);
 				}
 				else if(internalTupledQuery != null)
 				{
-					// If tupled, but somehow this is the parent
+					// Is this the child?
 					MSolutionInstance s = processTupledSolutionForThis(partialInstance);
 					prettyPrintSolution(vocab, s, it);
 
@@ -3068,20 +3068,25 @@ public class MQuery extends MIDBCollection
 		
 
 		// (1) Look at the equalities, decide what the universe is
-		HashMap<String, List<String>> idxToVars = new HashMap<String, List<String>>();
 		HashMap<String, String> idxToAtom = new HashMap<String, String>();
 
 		List<String> annotations = new ArrayList<String>();
-
-		// populate initial atoms
+	
+		// Non-optimized implementation of union-find below
+		// (see Wikipedia for better algorithms)
+		Map<String, Set<String>> mySets = new HashMap<String, Set<String>>();
+		Map<String, String> myRepresentative = new HashMap<String, String>();
 		for(String idx : internalTuplingVisitor.pv.revIndexing.keySet())
 		{
-			List<String> atom = new ArrayList<String>();
-			atom.add(internalTuplingVisitor.pv.revIndexing.get(idx).name());
-			idxToVars.put(idx, atom);
+			Set<String> singletonSet = new HashSet<String>();
+			singletonSet.add(idx);
+			mySets.put(idx, singletonSet);
+			myRepresentative.put(idx, idx);
 		}
 
-		// Take the quotient dictated by the equalities
+		MCommunicator.writeToLog("\nIn conversion from tupled to pre-tupled model. Tupled model is: "+partialInstance.getFacts());
+		
+		// Take the quotient dictated by the equalities		
 		for(Relation r : partialInstance.getFacts().relations())
 		{
 			// TODO kludge; rel may start with = anyway, but this is a problem with the names already
@@ -3090,40 +3095,69 @@ public class MQuery extends MIDBCollection
 				// Only one atom, so dont need to check the atom's identity
 				if(partialInstance.getFacts().relationTuples().get(r).size() > 0)
 				{
+					// Here is an equality to deal with...
+					
 					int needsLastComma = r.name().lastIndexOf(",");
 					String rightidx = r.name().substring(needsLastComma + 1);
 					String leftidx = r.name().substring(2, needsLastComma);
 
-					// TODO not quotienting properly. fix
+					String leftrep = myRepresentative.get(leftidx);
+					String rightrep = myRepresentative.get(rightidx);
+
+					// leftrep is "taking over" from rightrep (not just rightidx)
 					
-					List<String> comb = new ArrayList<String>();
-					comb.addAll(idxToVars.get(rightidx));
-					comb.addAll(idxToVars.get(leftidx));
-					idxToVars.put(rightidx, comb);
-					idxToVars.put(leftidx, comb);
+					// Merge the two sets under left's representative
+					mySets.get(leftrep).addAll(mySets.get(rightrep));
+					
+					// now left's rep becomes representative for right's representative										
+					// and also everything that rightrep used to be rep for
+					// (otherwise, may have a chain of representation to follow):
+					for(String newClient : mySets.get(rightrep))
+					{
+						myRepresentative.put(newClient, leftrep);
+					}
 				}
 			}
 		}
 
-		// Make universe
-		// Need the unique elements
-		Set<String> vals = new HashSet<String>();
-		for(String idx: idxToVars.keySet())
+		// Need to make sure the sets are ordered consistently across multiple indices
+		Map<String, List<String>> myLists = new HashMap<String, List<String>>();
+		for(String idx : mySets.keySet())
 		{
+			myLists.put(idx, new ArrayList(mySets.get(idx)));
+		}
+		
+		MCommunicator.writeToLog("\n\n  myRep: "+myRepresentative);
+		MCommunicator.writeToLog("\n\n  myLists: "+myLists);
+		
+		// Make the universe and populate index to atoms map
+		Set<String> vals = new HashSet<String>();
+		for(String idx : internalTuplingVisitor.pv.revIndexing.keySet())
+		{
+			// What is the name for atom idx?
+			// e.g., x=y=z (if 1,2,3 in same set)
+			
 			// Convert the set to something more readable
 			String aName = "";
-			for(String varName : idxToVars.get(idx))  // we need this ordering to be deterministic
+			
+			String rep = myRepresentative.get(idx);
+			for(String anIndexInSet : myLists.get(rep)) // use myLists, not mySets
 			{
+				String varName = internalTuplingVisitor.pv.revIndexing.get(anIndexInSet).name();
+				
 				if(aName.length() < 1)
 					aName = aName + varName;
 				else
 					aName = aName + "=" + varName;
 			}
-
+						
 			idxToAtom.put(idx, aName);
 			vals.add(aName);
 		}
+		
 		Universe u = new Universe(vals);
+		
+		MCommunicator.writeToLog("\n  conversion had universe: "+vals);
 
 		Instance newInstance = new Instance(u);
 		Instance dontcare = new Instance(u);

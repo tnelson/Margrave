@@ -93,6 +93,11 @@
 ;(mtext "info myvoc")
 
 (mtext "GET QUALIFIED RULES IN conf1")
+
+
+(display-response (mtext "EXPLORE subject(x) and subject(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
+(display-response (mtext "GET ONE"))
+
 ;(stop-margrave-engine)
 
 
