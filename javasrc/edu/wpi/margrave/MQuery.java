@@ -3976,11 +3976,25 @@ public class MQuery extends MIDBCollection
 
 		List<String> prefixVarOrder = new ArrayList<String>();
 
+		MCommunicator.writeToLog("\n\n");
+		MCommunicator.writeToLog("creating query from explore: \n");
+		MCommunicator.writeToLog("publish = "+publish+"\n");
+		MCommunicator.writeToLog("freeVars = "+freeVars+"\n");
+		MCommunicator.writeToLog("\n\n");
+		
 		// FIRST: Published vars
 		for (String vname : publish)
 		{
 			Variable v = MFormulaManager.makeVariable(vname);
 			varOrdering.add(v);
+			
+			// Make sure that this variable actually appears in the query.
+			// Throw an exception if it is garbage.
+			if(!freeVars.containsKey(v))
+			{
+				throw new MSemanticException("Variable in publish clause: "+v+" did not appear in the query.");
+			}
+			
 			Decl d = MFormulaManager.makeOneOfDecl(v, freeVars.get(v));
 			qryFormula = MFormulaManager.makeExists(qryFormula, d);
 			prefixVarOrder.add(v.name());
@@ -4089,9 +4103,6 @@ public class MQuery extends MIDBCollection
 		// MREPL.outStream.println(mpc.assertPossible);
 		// MEnvironment.writeErrLine(mpc.assertNecessary);
 		// MEnvironment.writeErrLine(mpc.assertAtomicNecessary);
-
-		// Stopping compilation because something is wrong here.
-		//dfadsf;
 
 		Set<List<Variable>> toDo = new HashSet<List<Variable>>(
 				mpc.assertNecessary.keySet());

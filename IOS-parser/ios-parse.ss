@@ -590,7 +590,7 @@
                  line
                  (eqv? disposition 'permit)
                  src-addr
-                 protocol
+                 (string->symbol (string-append "prot-" (symbol->string protocol)))
                  src-port
                  dest-addr
                  (make-object port-range% 0 65535)))]
@@ -628,7 +628,7 @@
                  line
                  (eqv? disposition 'permit)
                  src-addr
-                 protocol
+                 (string->symbol (string-append "prot-" (symbol->string protocol)))
                  src-port
                  dest-addr
                  dest-port))]
@@ -677,7 +677,7 @@
                 line
                 (eqv? disposition 'permit)
                 src-addr
-                protocol
+                (string->symbol (string-append "prot-" (symbol->string protocol)))
                 src-port
                 dest-addr
                 dest-port))
@@ -687,7 +687,7 @@
           line
           (eqv? disposition 'permit)
           dest-addr
-          protocol
+          (string->symbol (string-append "prot-" (symbol->string protocol)))
           src-port
           src-addr
           dest-port

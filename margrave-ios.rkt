@@ -325,6 +325,10 @@ TUPLING") #t)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Firewall-Passed
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  ;; Do NOT assert internal-result in this query. Why? Because then it cannot be safely
+  ;; negated to mean the packets the firewall drops (or rejects). It would then also
+  ;; include all the nonsensical scenarios...
   (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
                         prefix "InboundACL" suffix
                         ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,

@@ -4,81 +4,81 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-30-g6101
+  (ACE-line-30-g11821
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (Port dest-port-in))
-  (ACE-line-33-g6102
+  (ACE-line-33-g11822
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-80 dest-port-in))
-  (ACE-line-34-g6103
+  (ACE-line-34-g11823
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-21 dest-port-in))
-  (ACE-line-35-g6104
+  (ACE-line-35-g11824
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-20 dest-port-in))
-  (ACE-line-36-g6105
+  (ACE-line-36-g11825
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (port-23 dest-port-in))
-  (ACE-line-30-g6106
+  (ACE-line-30-g11826
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (Connection-returntcp IPAddress Port tcp IPAddress Port)
+   (Connection-returntcp src-addr-in src-port-in protocol dest-addr-in dest-port-in)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (Port dest-port-in))
-  (ACE-line-38-g6107
+  (ACE-line-38-g11827
    =
    (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
    (IPAddress src-addr-in)
-   (tcp protocol)
+   (prot-tcp protocol)
    (Port src-port-in)
    (ip-209-172-108-16 dest-addr-in)
    (Port dest-port-in)))

@@ -1028,7 +1028,7 @@
 (define extended-ACE-TCP/flags%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
     (init line-number permit source-addr source-port dest-addr dest-port flags)
-    (super-make-object line-number permit source-addr 'tcp source-port dest-addr dest-port)
+    (super-make-object line-number permit source-addr 'prot-tcp source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
     (inherit-field src-port-in)
@@ -1070,7 +1070,8 @@
         (decision)
         (list (connection-predicate))
         `(,@additional-conditions
-          (,(connection-predicate) ,src-addr-in ,src-port-in ,prot ,dest-addr-in ,dest-port-in)
+          ; TN -- changed from ,src-addr-in to src-addr-in, etc. (Want the literal var names, not sorts)
+          (,(connection-predicate) src-addr-in src-port-in protocol dest-addr-in dest-port-in)
           (,src-addr-in src-addr-in)
           (,prot protocol)
           (,src-port-in src-port-in)

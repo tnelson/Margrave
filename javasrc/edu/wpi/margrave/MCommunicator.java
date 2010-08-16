@@ -13,6 +13,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -943,12 +944,15 @@ public class MCommunicator
         }
         
         //Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
-        private static String getNodeAttribute(Node n, String nodeName, String attributeName) {
+        private static String getNodeAttribute(Node n, String nodeName, String attributeName)
+        {
         	Node node = null;
-        	if (n.getNodeName().equalsIgnoreCase(nodeName)) {
+        	if (n.getNodeName().equalsIgnoreCase(nodeName))
+        	{
         		node = n;
         	}
-        	else {
+        	else
+        	{
         		node = getChildNode(n, nodeName);
         	}
         	
@@ -1012,9 +1016,11 @@ public class MCommunicator
         		return exploreHelper(antecedent).implies(exploreHelper(consequent));
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
-        	{
-        		String varname1 = n.getAttributes().getNamedItem("v1").getNodeName().toLowerCase();
-        		String varname2 = n.getAttributes().getNamedItem("v2").getNodeName().toLowerCase();
+        	{        		
+        		String varname1 = getNodeAttribute(n, "EQUALS", "v1");
+        		String varname2 = getNodeAttribute(n, "EQUALS", "v2");
+        		
+        		writeToLog("\nEQUALS: "+varname1+" = "+varname2+"\n");
         		
         		Variable v1 = MFormulaManager.makeVariable(varname1);
         		Variable v2 = MFormulaManager.makeVariable(varname2);
@@ -1109,26 +1115,38 @@ public class MCommunicator
      
      static void initializeLog()
      {
-    	 // Wipe the log clean every time the engine runs.
-    	 File theLogFile = new File(sLogFileName);
-    	 theLogFile.delete();
+    	 // Wipe the log clean every time the engine runs. 
+    	 try
+    	 {
+    		 FileWriter fstream = new FileWriter(sLogFileName);
+    		 BufferedWriter out = new BufferedWriter(fstream);
+    		 out.write("Margrave engine log; date= "+ new Date());	
+    		 out.close();
+    	 }
+    	 catch (IOException e)
+    	 {
+   	      System.err.println("\nError writing log file: " + e.getMessage());
+    	 }
      }
      
      static void writeToLog(String s)
      {
     	 try
     	 {
-    		    // Create file 
-    		    FileWriter fstream = new FileWriter(sLogFileName, true);
-    		        BufferedWriter out = new BufferedWriter(fstream);
-    		    out.write(s);
-    		    //Close the output stream
-    		    out.close();
-    		    }catch (Exception e)
-    		    {
-    		      //Catch exception if any
-    		      System.err.println("Error: " + e.getMessage());
-    		    }
+    	    // Create file 
+    	    FileWriter fstream = new FileWriter(sLogFileName, true);
+    	        BufferedWriter out = new BufferedWriter(fstream);
+    	    out.write(s);
+    	    out.flush();
+    	    //Close the output stream
+    	    out.close();
+    	    
+    	    }
+    		catch (Exception e)
+    	    {
+    	      //Catch exception if any
+    	      System.err.println("\nError writing log file: " + e.getMessage());
+    	    }
      }
      
      protected static void readCommands() {

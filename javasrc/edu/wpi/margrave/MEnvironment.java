@@ -175,8 +175,7 @@ class MExploreCondition
 		List<Variable> varvector = vectorize(varnamevector);		
 		
 		// Initialize assertion pools for this vector
-				
-		
+						
 		// This constructor means a set of atomic necessary assertions:	
 		int iIndex = 0;
 		for(Variable v : varvector)
