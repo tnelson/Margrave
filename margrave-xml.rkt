@@ -767,20 +767,27 @@
   `(RULE ((name ,rule-name)) ,dtype ,rule-list))
 
 ;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
-(define (xml-make-rule-list rule-list)
-  (if (equal? 'true (first rule-list))
-      `(RELATIONS) 
-      `(RELATIONS ,@(map (lambda (relation)
-                           (let* ((relation-name (symbol->string (first relation)))
-                                  (negation? (starts-with-exclamation relation-name)))
-                             `(RELATION ((name ,(if negation? ;Take out the exclamation point
-                                                    (substring relation-name 1)
-                                                    relation-name))
-                                         (sign ,(if negation?
-                                                    "false"
-                                                    "true")))
-                                        ,(xml-make-identifiers-list (rest relation)))))
-                         rule-list))))
+(define (xml-make-rule-list orig-rule-list)
+ ; (printf "~a~n" rule-list)
+
+  ; Don't keep un-necessary 'true
+  (let ([rule-list (filter (lambda (relation) (not (equal? 'true relation)))
+                           orig-rule-list)])
+    
+    (if (empty? rule-list)
+        `(RELATIONS) 
+        `(RELATIONS ,@(map (lambda (relation)
+                             (let* ((relation-name (symbol->string (first relation)))
+                                    (negation? (starts-with-exclamation relation-name)))
+                               `(RELATION ((name ,(if negation? ;Take out the exclamation point
+                                                      (substring relation-name 1)
+                                                      relation-name))
+                                           (sign ,(if negation?
+                                                      "false"
+                                                      "true")))
+                                          ,(xml-make-identifiers-list (rest relation)))))
+                           
+                           rule-list)))))
 
 (define (starts-with-exclamation string)
   (if (equal? "!" (substring string 0 1))
