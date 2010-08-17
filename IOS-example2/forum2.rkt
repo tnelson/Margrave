@@ -29,31 +29,19 @@
 
 ; Packet arriving at TAS router and TAS' action on it
 (define tasvectorfull-fromtas "(tas, tas-entry-interface, 
-        tas-src-addr-out, tas-src-addr_, tas-src-addr-out, 
-        tas-dest-addr-out, tas-dest-addr_, tas-dest-addr-out, 
+        tas-src-addr-in, tas-src-addr_, tas-src-addr-out, 
+        tas-dest-addr-in, tas-dest-addr_, tas-dest-addr-out, 
         protocol, message, flags,
-        tas-src-port-out, tas-src-port_, tas-src-port-out, 
-        tas-dest-port-out, tas-dest-port_, tas-dest-port-out, 
+        tas-src-port-in, tas-src-port_, tas-src-port-out, 
+        tas-dest-port-in, tas-dest-port_, tas-dest-port-out, 
         length, tas-next-hop, tas-exit-interface)")
 (define tasvectorpol-fromtas "(tas, tas-entry-interface, 
-        tas-src-addr-out, tas-src-addr-out, 
-        tas-dest-addr-out, tas-dest-addr-out, 
+        tas-src-addr-in, tas-src-addr-out, 
+        tas-dest-addr-in, tas-dest-addr-out, 
         protocol, message, flags,
-        tas-src-port-out, tas-src-port-out, 
-        tas-dest-port-out, tas-dest-port-out, 
+        tas-src-port-in, tas-src-port-out, 
+        tas-dest-port-in, tas-dest-port-out, 
         length, tas-next-hop, tas-exit-interface)")
-
-
-
-;ahostname, entry-interface, 
-;src-addr-in, src-addr_, src-addr-out, 
-;dest-addr-in, dest-addr_, dest-addr-out, 
-;protocol, message, flags,
-;src-port-in, src-port_, src-port-out, 
-;dest-port-in, dest-port_, dest-port-out, 
-;length, next-hop, exit-interface
-
-
 
 ; Packet arriving at BAZ router (after TAS this time)
 ; and BAZ's action on it
@@ -71,6 +59,24 @@
         tas-src-port-out, baz-src-port-out, 
         tas-dest-port-out, baz-dest-port-out, 
         length, baz-next-hop, baz-exit-interface)")
+
+
+
+; NAT vectors, for testing
+
+(define nat1-tas "(tas, tas-entry-interface, tas-src-addr-in, tas-src-addr_,
+  tas-dest-addr-in, tas-dest-addr_, protocol, message, flags, tas-src-port-in, tas-src-port_,
+  tas-dest-port-in, tas-dest-port_, length, tas-next-hop, tas-exit-interface)")
+  
+(define nat2-tas "(tas, tas-entry-interface, tas-src-addr_, tas-src-addr-out,
+  tas-dest-addr_, tas-dest-addr-out, protocol, message, flags, tas-src-port_,
+ tas-src-port-out, tas-dest-port_, tas-dest-port-out, length, tas-next-hop,
+  tas-exit-interface)")
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (run-queries-for-forum-2)
   
@@ -133,9 +139,6 @@ ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) AND
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))  
   
-  ;; ERROR: getting packets here. Did I miss a restriction?
-  (display-response (mtext "GET ONE")) 
-  (display-response (mtext "GET NEXT")) 
   
   
   
@@ -155,24 +158,38 @@ ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) AND
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?")) 
-  
-  
+ 
   
   ; Nothing. So the firewall isn't at fault. Must be routing?
-  ; (remove exit-interface restriction)
-  
+  ; Which exit-interfaces can we be routing to?
     (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
-
-internal-result1" tasvectorfull-fromtas " AND
-firewall-passed1" tasvectorpol-fromtas " AND
-
-GigabitEthernet0/0(tas-entry-interface) AND
-ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in) AND
-ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) 
-
-TUPLING")))
+ hostname-tas(tas) 
+ AND internal-result1" tasvectorfull-fromtas
+" AND firewall-passed1" tasvectorpol-fromtas
+" AND GigabitEthernet0/0(tas-entry-interface)
+ AND ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in)
+ AND ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in)  
+        
+TUPLING")))  
   (display-response (mtext "IS POSSIBLE?")) 
+  
+  
+  ;; TODO BELOW *****************************
+  
+  ; There are scenarios. So we are on the right track!
+  ; Find the interface names with show populated:
+      (display-response (mtext (string-append "EXPLORE
+ hostname-tas(tas) 
+ AND internal-result1" tasvectorfull-fromtas
+" AND firewall-passed1" tasvectorpol-fromtas
+" AND GigabitEthernet0/0(tas-entry-interface)
+ AND ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in)
+ AND ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in)  
+
+INCLUDE xxxxxx        
+
+TUPLING")))  
+  (display-response (mtext "SHOW POPULATED xxxxxxxx")) 
   
 #|  
   
@@ -221,3 +238,17 @@ routed-packets2" vector " AND " ; *2*
   
   ;(stop-margrave-engine)
   )
+
+
+;AND LocalSwitching1:Pass " tasvectorpol-fromtas  ; safe to use pol vector since no NAT in this policy
+;" AND PolicyRoute1:Route" tasvectorpol-fromtas         
+;" AND NetworkSwitching1:Forward" tasvectorpol-fromtas  
+;" AND InsideNAT1:Translate" nat1-tas
+;" AND OutsideNAT1:Translate" nat2-tas
+  
+
+;" UNDER PolicyRoute1 "
+;" INCLUDE PolicyRoute1:Route " tasvectorpol-fromtas
+;", PolicyRoute1:Forward " tasvectorpol-fromtas
+;", PolicyRoute1:Drop " tasvectorpol-fromtas
+;", PolicyRoute1:Pass " tasvectorpol-fromtas  

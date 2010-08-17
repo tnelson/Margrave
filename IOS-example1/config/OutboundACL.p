@@ -4,14 +4,14 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-0-g20077
+  (ACE-line-0-g9312
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-0-g20078
+  (ACE-line-0-g9313
    =
    (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-

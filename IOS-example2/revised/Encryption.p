@@ -1,9 +1,1 @@
-(Policy
- Encryption
- uses
- IOS-vocab
- (Target)
- (Rules)
- (RComb FAC)
- (PComb FAC)
- (Children))
+(Policy Encryption uses IOS-vocab (Target) (Rules) (RComb FAC) (PComb FAC) (Children))

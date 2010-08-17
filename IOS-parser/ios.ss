@@ -3140,8 +3140,6 @@
                                                  (symbol->string (gensym))))
                   'Forward
                   `((,hostname hostname)
-                    ; -TN added next-hop restriction below
-                    (= next-hop dest-addr-out)
                     (,(get-field primary-network interf) next-hop)
                     (,interf exit-interface)))))
             (hash-filter interfaces (λ (name interf)
@@ -3156,8 +3154,6 @@
                                                  (symbol->string (gensym))))
                   'Forward
                   `((,hostname hostname)
-                    ; -TN
-                    (= next-hop dest-addr-out)
                     (,(get-field secondary-network interf) next-hop)
                     (,interf exit-interface)))))
             (hash-filter interfaces (λ (name interf)

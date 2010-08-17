@@ -2,10 +2,7 @@
  IOS-vocab
  (Types
   (Hostname : hostname-tas hostname-baz)
-  (Interface
-   :
-   interf-drop
-   (interf-real GigabitEthernet0/1 GigabitEthernet0/0 Serial0/3/0:0))
+  (Interface : interf-drop (interf-real Serial0/3/0:0 GigabitEthernet0/1 GigabitEthernet0/0))
   (IPAddress
    (ip-10-232-4-0/ip-255-255-252-0 ip-10-232-4-10)
    (ip-10-232-0-0/ip-255-255-252-0 ip-10-232-0-15)
