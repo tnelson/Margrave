@@ -1,21 +1,27 @@
+hostname baz
+!
+access-list 101  deny   ip 10.232.100.0 0.0.3.255 10.232.4.0 0.0.3.255
+access-list 101  deny   ip 10.232.104.0 0.0.3.255 10.232.0.0 0.0.3.255
+access-list 101  permit ip 10.232.104.0 0.0.3.255 10.232.4.0 0.0.3.255
+access-list 101  permit ip any any
+!
+!
+access-list 102 deny   ip 10.232.104.0 0.0.3.255 10.232.100.0 0.0.3.255
+access-list 102 deny   ip 10.232.100.0 0.0.3.255 10.232.104.0 0.0.3.255
+access-list 102 permit ip any any
+!
 interface GigabitEthernet0/0
  description $ETH-LAN$$ETH-SW-LAUNCH$$INTF-INFO-GE 0/0$
  ip address 10.232.104.1 255.255.252.0 secondary
  ip address 10.232.100.1 255.255.252.0
- ip access-group block_lan in
+ ip access-group 102 in
  duplex auto
  speed auto
 !
 !
-ip access-list extended block_lan
- deny   ip 10.232.104.0 0.0.3.255 10.232.100.0 0.0.3.255
- deny   ip 10.232.100.0 0.0.3.255 10.232.104.0 0.0.3.255
- permit ip any any
-!
-!
 interface Serial0/3/0:0
  ip address 10.254.1.130 255.255.255.252
- ip access-group block out
+ ip access-group 101 out
  encapsulation ppp
 !
 !
@@ -24,17 +30,5 @@ ip route 0.0.0.0 0.0.0.0 10.254.1.129
 ip route 10.232.0.0 255.255.252.0 10.254.1.129
 ip route 10.232.4.0 255.255.252.0 10.254.1.129
 ip route 192.168.1.0 255.255.255.0 10.254.1.129
-!
-p access-list extended block
- deny   ip 10.232.100.0 0.0.3.255 10.232.4.0 0.0.3.255
- deny   ip 10.232.104.0 0.0.3.255 10.232.0.0 0.0.3.255
- permit ip 10.232.104.0 0.0.3.255 10.232.4.0 0.0.3.255
- permit ip any any
-!
-!
-ip access-list extended block_lan
- deny   ip 10.232.104.0 0.0.3.255 10.232.100.0 0.0.3.255
- deny   ip 10.232.100.0 0.0.3.255 10.232.104.0 0.0.3.255
- permit ip any any
 !
 end

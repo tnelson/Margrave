@@ -1,3 +1,5 @@
+hostname tas
+!
 interface GigabitEthernet0/0
  description $ETH-LAN$$ETH-SW-LAUNCH$$INTF-INFO-GE 0/0$
  ip address 10.232.4.1 255.255.252.0 secondary
