@@ -61,6 +61,11 @@
         length, baz-next-hop, baz-exit-interface)")
 
 
+(define routingpol-tas "(tas, tas-entry-interface, tas-src-addr_, tas-src-addr_,
+  tas-dest-addr_, tas-dest-addr_, protocol, message, flags, tas-src-port_,
+ tas-src-port_, tas-dest-port_, tas-dest-port_, length, tas-next-hop,
+  tas-exit-interface)")
+
 
 ; NAT vectors, for testing
 
@@ -92,7 +97,7 @@
   ; Version 1
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (printf "~n---------------1--------------~n----------------------------~n")
+  (printf "~n---------------1--------------~n-------------Problem 1-------------~n")
   
   ; What is happening to packets from 10.232.0.0/22
   ; on the way to 10.232.100.0/22? Do they traverse TAS ok?
@@ -109,8 +114,8 @@ firewall-passed1" tasvectorpol-fromtas " AND
 firewall-passed1" bazvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
-ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in) AND
-ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
 \"Serial0/3/0:0\"(tas-exit-interface) AND
 
 \"Serial0/3/0:0\"(baz-entry-interface) AND
@@ -132,8 +137,8 @@ internal-result1" tasvectorfull-fromtas " AND
 firewall-passed1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
-ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in) AND
-ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
 \"Serial0/3/0:0\"(tas-exit-interface)
 
 TUPLING")))
@@ -152,8 +157,8 @@ internal-result1" tasvectorfull-fromtas " AND
 NOT firewall-passed1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
-ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in) AND
-ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
 \"Serial0/3/0:0\"(tas-exit-interface)
 
 TUPLING")))
@@ -167,29 +172,130 @@ TUPLING")))
  AND internal-result1" tasvectorfull-fromtas
 " AND firewall-passed1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
- AND ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in)
- AND ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in)  
+ AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
+ AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
         
 TUPLING")))  
   (display-response (mtext "IS POSSIBLE?")) 
   
   
-  ;; TODO BELOW *****************************
-  
   ; There are scenarios. So we are on the right track!
   ; Find the interface names with show populated:
+  ; (again, the serial interface is quoted since ":" is a special character)
+  ; no INCLUDE since what we want to SHOW POPULATED for are not IDB names, but EDBs
       (display-response (mtext (string-append "EXPLORE
  hostname-tas(tas) 
  AND internal-result1" tasvectorfull-fromtas
 " AND firewall-passed1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
- AND ip-10-232-0-0/ip-255-255-252-0(tas-src-addr-in)
- AND ip-10-232-100-0/ip-255-255-252-0(tas-dest-addr-in)  
-
-INCLUDE xxxxxx        
+ AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
+ AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
 TUPLING")))  
-  (display-response (mtext "SHOW POPULATED xxxxxxxx")) 
+  (display-response (mtext "SHOW POPULATED 
+                           GigabitEthernet0/0(tas-exit-interface),
+                           \"Serial0/3/0:0\"(tas-exit-interface),
+                           GigabitEthernet0/1(tas-exit-interface)")) 
+  
+  
+  
+; All those packets are being sent out GigabitEthernet0/0 ---
+; even the ones that are meant for 10.232.0.100/25. Surely
+; something is wrong with the routing policy. What next-hop
+; router is TAS trying to reach?
+ 
+  
+  
+  #|
+  (display-response (mtext (string-append  "EXPLORE
+hostname-tas(tas) AND
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.0.0/255.255.252.0(tas-src-addr_)
+AND 10.232.100.0/255.255.252.0(tas-dest-addr_)
+AND NetworkSwitching1:Forward" routingpol-tas
+"AND GigabitEthernet0/0(tas-exit-interface)
+
+AND (ip-10-254-1-129(tas-next-hop) OR NOT ip-10-254-1-129(tas-next-hop))
+AND (ip-10-232-0-15(tas-next-hop) OR NOT ip-10-232-0-15(tas-next-hop))
+AND (ip-10-232-4-10(tas-next-hop) OR NOT ip-10-232-4-10(tas-next-hop))
+AND (ip-10-254-1-130(tas-next-hop) OR NOT ip-10-254-1-130(tas-next-hop))
+AND (ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop) OR NOT ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop))
+AND (ip-10-232-4-0/ip-255-255-252-0(tas-next-hop) OR NOT ip-10-232-4-0/ip-255-255-252-0(tas-next-hop))
+TUPLING")))
+  
+  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
+  ; TODO: resolve this.
+  
+  ; Which of our gateways and router interfaces is next-hop being set to?
+  (display-response (mtext (string-append "SHOW POPULATED "
+"ip-10-232-0-15(tas-next-hop)," 
+"ip-10-232-4-10(tas-next-hop),"
+"ip-10-232-4-0/ip-255-255-252-0(tas-next-hop),"
+"ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop),"
+"ip-10-232-0-0/ip-255-255-252-0 (tas-next-hop),"
+"ip-10-232-100-0/ip-255-255-252-0 (tas-next-hop),"
+"ip-10-232-8-0/ip-255-255-252-0(tas-next-hop),"
+"ip-10-254-1-129(tas-next-hop),"
+"ip-10-254-1-130(tas-next-hop)")))
+  
+  
+  ; That query isn't too useful -- all it tells us is what we'd know from
+  ; looking at the config anyway: that ge0/0 gets packets whose next-hop
+  ; is 10.232.0.0/22 or 10.232.4.0/22. 
+  |#
+  
+  
+  
+  ; We really just want to ask the same
+  ; SHOW POSSIBLE, but for the whole internal-result query:
+  (display-response (mtext (string-append "EXPLORE
+ hostname-tas(tas) 
+ AND internal-result1" tasvectorfull-fromtas
+" AND firewall-passed1" tasvectorpol-fromtas
+" AND GigabitEthernet0/0(tas-entry-interface)
+ AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
+ AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
+
+
+AND (10.254.1.129(tas-next-hop) OR NOT 10.254.1.129(tas-next-hop))
+AND (10.232.0.15(tas-next-hop) OR NOT 10.232.0.15(tas-next-hop))
+AND (10.232.4.10(tas-next-hop) OR NOT 10.232.4.10(tas-next-hop))
+AND (10.254.1.130(tas-next-hop) OR NOT 10.254.1.130(tas-next-hop))
+AND (10.232.104.0/255.255.252.0 (tas-next-hop) OR NOT 10.232.104.0/255.255.252.0 (tas-next-hop))
+AND (10.232.4.0/255.255.252.0(tas-next-hop) OR NOT 10.232.4.0/255.255.252.0(tas-next-hop))
+
+TUPLING")))  
+  
+  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
+  ; TODO: resolve this.
+  
+    (display-response (mtext (string-append "SHOW POPULATED "
+"10.232.0.15(tas-next-hop)," 
+"10.232.4.10(tas-next-hop),"
+"10.232.4.0/255.255.252.0(tas-next-hop),"
+"10.232.104.0/255.255.252.0 (tas-next-hop),"
+"10.232.0.0/255.255.252.0 (tas-next-hop),"
+"10.232.100.0/255.255.252.0 (tas-next-hop),"
+"10.232.8.0/255.255.252.0(tas-next-hop),"
+"10.254.1.129(tas-next-hop),"
+"10.254.1.130(tas-next-hop)")))
+  
+  ; Result includes both 10.232.0.15 and 10.232.0.0/255.255.252.0
+  ; (Since 10.232.0.15 is _in_ 10.232.0.0/255.255.252.0)
+  ; Quick query to confirm ONLY 10.232.0.15:  
+  (display-response (mtext (string-append "SHOW UNPOPULATED 10.232.0.15(tas-next-hop)")))
+    
+  ; So all traffic from 10.232.0.0/255.255.252.0 to 10.232.100.0/255.255.252.0
+  ; is being sent via the internet gateway 10.232.0.15, and _NOT_ the BAZ router.
+
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (printf "~n---------------1--------------~n-------------Problem 2-------------~n")
+  
+  
+  
   
 #|  
   

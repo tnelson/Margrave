@@ -134,13 +134,13 @@
     ;; number -> string
     ;;   Returns the dashed-octet representation of an IP address
     (define/public (number->dashed-octet numeric-address)
-      (string-append "ip-"
+      (string-append ;"ip-"
                      (number->string (arithmetic-shift (bitwise-and numeric-address #xFF000000) -24))
-                     "-"
+                     "." ;"-"
                      (number->string (arithmetic-shift (bitwise-and numeric-address #x00FF0000) -16))
-                     "-"
+                     "." ;"-"
                      (number->string (arithmetic-shift (bitwise-and numeric-address #x0000FF00) -8))
-                     "-"
+                     "." ;"-"
                      (number->string (bitwise-and numeric-address #x000000FF))))
     ))
 
