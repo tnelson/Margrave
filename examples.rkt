@@ -55,16 +55,16 @@
 
 (define theid (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"))
 ;(printf "Id: ~a~n" (xml-explore-result->id theid))
-(mtext "GET ONE 0")
+(display-response (mtext "GET ONE 0"))
 
 
-(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) TUPLING")
+(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING" #t)
 
 ; You don't need to pass an EXPLORE id if you're referencing the last explore:
-(mtext "GET ONE")
-(mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
-(mtext "SHOW UNPOPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)")
-(mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)")
+(display-response (mtext "GET ONE"))
+(display-response (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
+(display-response (mtext "SHOW UNPOPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
+(display-response (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)"))
 
 
 ;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
@@ -92,7 +92,7 @@
 
 ;(mtext "info myvoc")
 
-(mtext "GET QUALIFIED RULES IN conf1")
+(display-response (mtext "GET QUALIFIED RULES IN conf1"))
 
 
 (display-response (mtext "EXPLORE subject(x) and subject(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))

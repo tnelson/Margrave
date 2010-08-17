@@ -680,7 +680,7 @@ public class MQuery extends MIDBCollection
 			internalTupledQuery = null; // re-init every time we run
 			internalTuplingVisitor = null;
 		}
-
+		
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		long start = mxBean.getCurrentThreadCpuTime();
 
