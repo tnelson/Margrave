@@ -986,7 +986,8 @@ public class MCommunicator
         }
 
         //Expects the node one down from condition node
-        private static MExploreCondition exploreHelper(Node n) throws MSemanticException, MGEManagerException {
+        private static MExploreCondition exploreHelper(Node n) throws MSemanticException, MGEManagerException, MGEUnknownIdentifier
+        {
         	NodeList childNodes = n.getChildNodes();
 
         	String name;
@@ -1054,11 +1055,17 @@ public class MCommunicator
         		if (pol != null)
         		{
         			Formula idbf = MEnvironment.getOnlyIDB(relationName);
-        			// Perform variable substitution
-       				idbf = performSubstitution(relationName, pol, idbf, vl);
+        			if(idbf != null)
+        			{
+            			// Perform variable substitution
+           				idbf = performSubstitution(relationName, pol, idbf, vl);
+            			
+            			// Assemble MExploreCondition object
+            			return new MExploreCondition(idbf, pol, vl);        		
+        			}
         			
-        			// Assemble MExploreCondition object
-        			return new MExploreCondition(idbf, pol, vl);
+        			// Otherwise, must be an EDB named the same as a policy? 
+        			// (Or someone forgot their :idbname suffix.)
         		}
 
         		// EDB, then!
@@ -1275,9 +1282,10 @@ public class MCommunicator
 	}
 	
 	private static Formula performSubstitution(Object collectionIdSymbol, MIDBCollection coll, Formula f, List<String> newvarnames)
-	throws MSemanticException
+	throws MSemanticException, MGEUnknownIdentifier
 	{		
-		
+		if(f == null)
+			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
 		if(newvarnames.size() != coll.varOrdering.size())
 			report_arity_error(collectionIdSymbol, newvarnames, coll);
 		

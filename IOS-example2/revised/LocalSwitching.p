@@ -4,117 +4,112 @@
  IOS-vocab
  (Target)
  (Rules
-  (local-switch-primary-GigabitEthernet0/0-g8938
+  (local-switch-primary-Serial0/3/0:0-g12352
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-tas hostname)
-   (ip-10-232-0-0/ip-255-255-252-0 dest-addr-in)
+   (10.254.1.128/255.255.255.252 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
-   (GigabitEthernet0/0 exit-interface))
-  (local-switch-primary-drop-GigabitEthernet0/0-g8939
+   (Serial0/3/0:0 exit-interface))
+  (local-switch-primary-drop-Serial0/3/0:0-g12353
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-tas hostname)
-   (ip-10-232-0-0/ip-255-255-252-0 dest-addr-in))
-  (local-switch-primary-GigabitEthernet0/1-g8940
+   (10.254.1.128/255.255.255.252 dest-addr-in))
+  (local-switch-primary-GigabitEthernet0/1-g12354
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-tas hostname)
-   (ip-10-232-8-0/ip-255-255-252-0 dest-addr-in)
+   (10.232.8.0/255.255.252.0 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (GigabitEthernet0/1 exit-interface))
-  (local-switch-primary-drop-GigabitEthernet0/1-g8941
+  (local-switch-primary-drop-GigabitEthernet0/1-g12355
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-tas hostname)
-   (ip-10-232-8-0/ip-255-255-252-0 dest-addr-in))
-  (local-switch-primary-Serial0/3/0:0-g8942
+   (10.232.8.0/255.255.252.0 dest-addr-in))
+  (local-switch-primary-GigabitEthernet0/0-g12356
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-tas hostname)
-   (ip-10-254-1-128/ip-255-255-255-252 dest-addr-in)
+   (10.232.0.0/255.255.252.0 dest-addr-in)
+   (= next-hop dest-addr-out)
+   (IPAddress next-hop)
+   (GigabitEthernet0/0 exit-interface))
+  (local-switch-primary-drop-GigabitEthernet0/0-g12357
+   =
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.0.0/255.255.252.0 dest-addr-in))
+  (local-switch-secondary-GigabitEthernet0/0-g12358
+   =
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (= next-hop dest-addr-out)
+   (10.232.4.0/255.255.252.0 dest-addr-in)
+   (IPAddress next-hop)
+   (GigabitEthernet0/0 exit-interface))
+  (local-switch-secondary-drop-GigabitEthernet0/0-g12359
+   =
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.4.0/255.255.252.0 dest-addr-in))
+  (local-switch-primary-Serial0/3/0:0-g12360
+   =
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-baz hostname)
+   (10.254.1.128/255.255.255.252 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (Serial0/3/0:0 exit-interface))
-  (local-switch-primary-drop-Serial0/3/0:0-g8943
+  (local-switch-primary-drop-Serial0/3/0:0-g12361
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-tas hostname)
-   (ip-10-254-1-128/ip-255-255-255-252 dest-addr-in))
-  (local-switch-secondary-GigabitEthernet0/0-g8944
-   =
-   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   (hostname-tas hostname)
-   (= next-hop dest-addr-out)
-   (ip-10-232-4-0/ip-255-255-252-0 dest-addr-in)
-   (IPAddress next-hop)
-   (GigabitEthernet0/0 exit-interface))
-  (local-switch-secondary-drop-GigabitEthernet0/0-g8945
-   =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   (hostname-tas hostname)
-   (ip-10-232-4-0/ip-255-255-252-0 dest-addr-in))
-  (default-route-g8891
-   =
-   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   true)
-  (local-switch-primary-GigabitEthernet0/0-g8946
+   (hostname-baz hostname)
+   (10.254.1.128/255.255.255.252 dest-addr-in))
+  (local-switch-primary-GigabitEthernet0/0-g12362
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-baz hostname)
-   (ip-10-232-100-0/ip-255-255-252-0 dest-addr-in)
+   (10.232.100.0/255.255.252.0 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (GigabitEthernet0/0 exit-interface))
-  (local-switch-primary-drop-GigabitEthernet0/0-g8947
+  (local-switch-primary-drop-GigabitEthernet0/0-g12363
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-baz hostname)
-   (ip-10-232-100-0/ip-255-255-252-0 dest-addr-in))
-  (local-switch-primary-Serial0/3/0:0-g8948
-   =
-   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   (hostname-baz hostname)
-   (ip-10-254-1-128/ip-255-255-255-252 dest-addr-in)
-   (= next-hop dest-addr-out)
-   (IPAddress next-hop)
-   (Serial0/3/0:0 exit-interface))
-  (local-switch-primary-drop-Serial0/3/0:0-g8949
-   =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   (hostname-baz hostname)
-   (ip-10-254-1-128/ip-255-255-255-252 dest-addr-in))
-  (local-switch-secondary-GigabitEthernet0/0-g8950
+   (10.232.100.0/255.255.252.0 dest-addr-in))
+  (local-switch-secondary-GigabitEthernet0/0-g12364
    =
    (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-baz hostname)
    (= next-hop dest-addr-out)
-   (ip-10-232-104-0/ip-255-255-252-0 dest-addr-in)
+   (10.232.104.0/255.255.252.0 dest-addr-in)
    (IPAddress next-hop)
    (GigabitEthernet0/0 exit-interface))
-  (local-switch-secondary-drop-GigabitEthernet0/0-g8951
+  (local-switch-secondary-drop-GigabitEthernet0/0-g12365
    =
    (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-baz hostname)
-   (ip-10-232-104-0/ip-255-255-252-0 dest-addr-in))
-  (default-route-g8891
+   (10.232.104.0/255.255.252.0 dest-addr-in))
+  (default-route-g12230
    =
    (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-

@@ -90,8 +90,16 @@
   (start-margrave-engine (build-path (current-directory) 'up))
   
   ; Load all the policies 
+  
+  ; Original configuration
   (load-ios-policies (build-path (current-directory) "config") "" "1")
-  ;;;;;;(load-ios-policies (build-path (current-directory) "revised") "" "2")
+  
+  ; Configuration with "default" keyword
+  (load-ios-policies (build-path (current-directory) "revised") "" "2")
+  
+  ; Config with changed topology?
+  (load-ios-policies (build-path (current-directory) "revised-address") "" "3")
+  
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 1
@@ -244,6 +252,8 @@ TUPLING")))
   ; is 10.232.0.0/22 or 10.232.4.0/22. 
   |#
   
+  ; "Is the traffic going to the correct next-hop address?
+  
   
   
   ; We really just want to ask the same
@@ -272,18 +282,45 @@ TUPLING")))
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15(tas-next-hop)," 
 "10.232.4.10(tas-next-hop),"
-"10.232.4.0/255.255.252.0(tas-next-hop),"
-"10.232.104.0/255.255.252.0 (tas-next-hop),"
-"10.232.0.0/255.255.252.0 (tas-next-hop),"
-"10.232.100.0/255.255.252.0 (tas-next-hop),"
 "10.232.8.0/255.255.252.0(tas-next-hop),"
-"10.254.1.129(tas-next-hop),"
-"10.254.1.130(tas-next-hop)")))
+"10.254.1.128/255.255.255.252(tas-next-hop)")))
+
   
-  ; Result includes both 10.232.0.15 and 10.232.0.0/255.255.252.0
-  ; (Since 10.232.0.15 is _in_ 10.232.0.0/255.255.252.0)
-  ; Quick query to confirm ONLY 10.232.0.15:  
-  (display-response (mtext (string-append "SHOW UNPOPULATED 10.232.0.15(tas-next-hop)")))
+  
+  
+  ; ******************
+  ; Relaxation: Does this happen to _all_ traffic from 10.232.0.0?
+  ; (removed dest-addr-in restriction)
+  ; Also need to rule out locally switched packets (packets for 
+  ; 10.254.1.128/255.255.255.252 and 
+  ; 10.232.8.0/255.255.252.0
+  ; will be sent directly.
+   ; 
+  (display-response (mtext (string-append "EXPLORE
+ hostname-tas(tas) 
+ AND internal-result1" tasvectorfull-fromtas
+" AND firewall-passed1" tasvectorpol-fromtas
+" AND GigabitEthernet0/0(tas-entry-interface)
+ AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
+ AND NOT LocalSwitching1:Forward" tasvectorpol-fromtas  
+
+" AND (10.254.1.129(tas-next-hop) OR NOT 10.254.1.129(tas-next-hop))
+AND (10.232.0.15(tas-next-hop) OR NOT 10.232.0.15(tas-next-hop))
+AND (10.232.4.10(tas-next-hop) OR NOT 10.232.4.10(tas-next-hop))
+AND (10.254.1.130(tas-next-hop) OR NOT 10.254.1.130(tas-next-hop))
+AND (10.232.104.0/255.255.252.0 (tas-next-hop) OR NOT 10.232.104.0/255.255.252.0 (tas-next-hop))
+AND (10.232.4.0/255.255.252.0(tas-next-hop) OR NOT 10.232.4.0/255.255.252.0(tas-next-hop))
+
+TUPLING")))  
+  
+  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
+  ; TODO: resolve this.
+  
+    (display-response (mtext (string-append "SHOW POPULATED "
+"10.232.0.15(tas-next-hop)," 
+"10.232.4.10(tas-next-hop),"
+"10.232.8.0/255.255.252.0(tas-next-hop),"
+"10.254.1.128/255.255.255.252(tas-next-hop)")))
     
   ; So all traffic from 10.232.0.0/255.255.252.0 to 10.232.100.0/255.255.252.0
   ; is being sent via the internet gateway 10.232.0.15, and _NOT_ the BAZ router.
@@ -292,69 +329,186 @@ TUPLING")))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (printf "~n---------------1--------------~n-------------Problem 2-------------~n")
-  
-  
-  
-  
-#|  
-  
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-routed-packets1" vector " AND " ; *1*
-                 "NOT port-80(dest-port-in) AND
- NOT port-20(dest-port-in) AND
- NOT port-21(dest-port-in) AND
- NOT port-23(dest-port-in) AND
- NOT port-3389(dest-port-in)"
-                 " TUPLING"))
-  
-  (mtext "IS POSSIBLE? 0")    
-  
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Version 2
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
   (printf "~n---------------2--------------~n----------------------------~n")
   
-  ; TODO: No "other" or "unreferenced" keyword makes us enumerate those 5 ports.
+  ; We just added "default". Does the original query (for the 2nd config) have models now?
+
+  ; Check just TAS:   
+(display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result2" tasvectorfull-fromtas " AND
+firewall-passed2" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+\"Serial0/3/0:0\"(tas-exit-interface)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))  
   
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-routed-packets2" vector " AND " ; *2*
-                 "NOT port-80(dest-port-in) AND
- NOT port-20(dest-port-in) AND
- NOT port-21(dest-port-in) AND
- NOT port-23(dest-port-in) AND
- NOT port-3389(dest-port-in)"
-                 " TUPLING"))
+  ; Check path across both TAS and BAZ:
+  (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+hostname-baz(baz) AND
+
+internal-result2" tasvectorfull-fromtas " AND
+internal-result2" bazvectorfull-fromtas " AND
+firewall-passed2" tasvectorpol-fromtas " AND
+firewall-passed2" bazvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+\"Serial0/3/0:0\"(tas-exit-interface) AND
+
+\"Serial0/3/0:0\"(baz-entry-interface) AND
+GigabitEthernet0/0(baz-exit-interface)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))
+    
+   
+  ; Great! Both are satisfiable now. 
+ 
   
-  (mtext "IS POSSIBLE? 0")
   
   
   
-  |#
+  ; Did we accidentally let the primary reach the secondary?
+    (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result2" tasvectorfull-fromtas " AND
+firewall-passed2" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+(10.232.4.0/255.255.252.0(tas-dest-addr-in)
+   OR
+ 10.232.104.0/255.255.252.0(tas-dest-addr-in))
+AND \"Serial0/3/0:0\"(tas-exit-interface)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))
+  ; Unsatisfiable. Good.
   
+  
+  
+  ; But what about the other problem?
+  ; The secondary network 10.232.4.0/22 could access the internet. Did 
+  ; we fix that too? This should involve only the TAS router:
+      (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result2" tasvectorfull-fromtas " AND
+firewall-passed2" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+
+GigabitEthernet0/1(tas-exit-interface) AND
+
+NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
+AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
+AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))
+  
+  ; Unsatisfiable!
+  
+  ; Which next-hop? Which exit-interfaces? (Relax!)
+        (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result2" tasvectorfull-fromtas " AND
+firewall-passed2" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+
+NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
+AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
+AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+
+TUPLING")))
+  ; Can ask for both at once, here, since neither are constrained:
+  (display-response (mtext "SHOW POPULATED  
+                           GigabitEthernet0/0(tas-exit-interface),
+                           \"Serial0/3/0:0\"(tas-exit-interface),
+                           GigabitEthernet0/1(tas-exit-interface),
+                           10.232.0.15(tas-next-hop),
+                           10.232.4.10(tas-next-hop),
+                           10.232.8.0/255.255.252.0(tas-next-hop),
+                           10.254.1.128/255.255.255.252(tas-next-hop)"))
+  
+  ; result:
+  ;gigabitethernet0/0[tas-exit-interface]
+  ;10.232.4.10[tas-next-hop]
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (printf "~n---------------3--------------~n----------------------------~n")
+  
+  ; This configuration has "default" and a new gateway address that is "local".
+  ; Do both problems go away?
+  
+    ; Hopefully primary cannot reach the secondary:
+    (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result3" tasvectorfull-fromtas " AND
+firewall-passed3" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.0.0/255.255.252.0(tas-src-addr-in) AND
+(10.232.4.0/255.255.252.0(tas-dest-addr-in)
+   OR
+ 10.232.104.0/255.255.252.0(tas-dest-addr-in))
+AND \"Serial0/3/0:0\"(tas-exit-interface)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))
+  ; Unsatisfiable. Good.
+  
+  ; Can the secondary network access the internet?
+        (display-response (mtext (string-append "EXPLORE
+hostname-tas(tas) AND
+
+internal-result3" tasvectorfull-fromtas " AND
+firewall-passed3" tasvectorpol-fromtas " AND
+
+GigabitEthernet0/0(tas-entry-interface) AND
+10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+
+GigabitEthernet0/1(tas-exit-interface) AND
+
+NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
+AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
+AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
+AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+
+TUPLING")))
+  (display-response (mtext "IS POSSIBLE?"))
+
+  ; TRUE! So internet access has been restored (or at least some of it.)
+  
+    
   ;(stop-margrave-engine)
   )
-
-
-;AND LocalSwitching1:Pass " tasvectorpol-fromtas  ; safe to use pol vector since no NAT in this policy
-;" AND PolicyRoute1:Route" tasvectorpol-fromtas         
-;" AND NetworkSwitching1:Forward" tasvectorpol-fromtas  
-;" AND InsideNAT1:Translate" nat1-tas
-;" AND OutsideNAT1:Translate" nat2-tas
-  
-
-;" UNDER PolicyRoute1 "
-;" INCLUDE PolicyRoute1:Route " tasvectorpol-fromtas
-;", PolicyRoute1:Forward " tasvectorpol-fromtas
-;", PolicyRoute1:Drop " tasvectorpol-fromtas
-;", PolicyRoute1:Pass " tasvectorpol-fromtas  

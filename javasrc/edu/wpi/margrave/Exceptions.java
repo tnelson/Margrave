@@ -47,10 +47,10 @@ class MGEUnknownIdentifier extends MGException
 {
 	private static final long serialVersionUID = 100;
 	
-public MGEUnknownIdentifier(String message)
-{         
-  super(message);
-}
+	public MGEUnknownIdentifier(String message)
+	{         
+		super(message);
+	}
 }
 
 class MGEArityMismatch extends MGException
