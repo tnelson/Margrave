@@ -430,10 +430,14 @@
       rules)
     
     (define/public (get-constraints)
-      (remove-duplicates (foldl (λ (rule result)
-                                  (append (send rule get-constraints) result))
-                                '()
-                                rules)))
+      (append (remove-duplicates (foldl (λ (rule result)
+                                          (append (send rule get-constraints) result))
+                                        '()
+                                        rules))
+              ; Abstract constraints, until we merge (e.g.) Port and port-any
+              '( (abstract Address) (abstract Port) (abstract Interface) (abstract Protocol) (abstract Chain))
+              ; Same with disjoint-all for these special sorts (ip-0-0-0-0/0-0-0-0 already dealt with)
+              '( (disjoint-all port-any) (disjoint-all ip) (disjoint-all chain-any) (disjoint-all if-any))))
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

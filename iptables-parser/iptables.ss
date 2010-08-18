@@ -119,6 +119,7 @@
 ;; policy<%> -> vocabulary<%>
 ;;   Builds a vocabulary for a policy
 (define (build-vocabulary policy)
+  (printf "Building vocab~n")
   (new-vocabulary 'iptables-firewall
                   (build-types policy)
                   (list 'ACCEPT 'LOG 'DROP)

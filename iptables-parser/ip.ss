@@ -143,7 +143,7 @@
     (define/public (get-constraints)
       (if (single?)
           `((atmostone ,(get-name)))
-          '()))
+          `((disjoint-all ,(get-name))))) ;; TN added disjoint all; was '()
     
     (define/public (get-name)
       (local [(define address-text (string-append "ip-" (octets->string 3)))]
