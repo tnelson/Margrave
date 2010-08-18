@@ -10,7 +10,7 @@
 (define vector "(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)")
@@ -22,112 +22,91 @@
   ; Pass path of the engine files: 1 level up from here.
   (start-margrave-engine (build-path (current-directory) 'up))
   
-  (with-handlers ((exn:fail? (lambda (v) 
-                               (printf "Racket produced a failure exception.~n Stopping the Margrave engine.~n")
-                               (stop-margrave-engine)
-                               (raise v))))
-    
-    ; Load all the policies 
-    ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
-    (load-ios-policies (build-path (current-directory) "initial") "" "1")
-    (load-ios-policies (build-path (current-directory) "change1") "" "2")
-    (load-ios-policies (build-path (current-directory) "change2") "" "3")
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; which-packets
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    (printf "~n~nWhich-packets:~n")
-    
-    ;        AND fe0(entry-interface)
-    ;    AND prot-tcp(protocol)
-    ;    AND ip-192-168-5-10(dest-addr-in)
-    ;    AND ip-10-1-1-2(ip-addr-in)
-
-    
-    (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
+  ; Load all the policies 
+  ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
+  (load-ios-policies (build-path (current-directory) "initial") "" "1")
+  (load-ios-policies (build-path (current-directory) "change1") "" "2")
+  (load-ios-policies (build-path (current-directory) "change2") "" "3")
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; which-packets
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nWhich-packets:~n")
+  
+  ;        AND fe0(entry-interface)
+  ;    AND prot-tcp(protocol)
+  ;    AND ip-192-168-5-10(dest-addr-in)
+  ;    AND ip-10-1-1-2(ip-addr-in)
+  
+  
+  (display-response (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
-     TUPLING")  
-    ; The TUPLING keyword activates the tupling optimization, which is very useful for firewalls.
-    
-    (mtext "GET ONE 0")
-    
-    ;; TODO: pretty-printer is including non-most-specific sort names. (need to make a query to the vocab?)   
-
-    
-    ;  TODO: change to make 0 unnecessary
-    ; TODO: add exception-check to load-policy etc
-    
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; verification
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    (printf "~n~nVerification:~n")
-    
-    (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
+     TUPLING")  )
+  ; The TUPLING keyword activates the tupling optimization, which is very useful for firewalls.
+  
+  (display-response (mtext "GET ONE"))
+     
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; verification
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nVerification:~n")
+  
+  (display-response (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
 
-        AND ip-10-1-1-2(src-addr-in)
+        AND 10.1.1.2(src-addr-in)
         AND fe0(entry-interface)
 
-     TUPLING")  
-    (mtext "IS POSSIBLE? 0")
+     TUPLING") )
+  (display-response (mtext "IS POSSIBLE?"))
+  
+  
+  
+  ;; due to gensym use, rule names will change along with line numbers and on each re-parse
     
-    ;; TODO: this should be show possible: needs to be added to parser
-    ;; TODO also pretty-printer needs to... pretty print an unsatisfiable!
-    ;; TODO: add the fe0 restriction to the document! (needs to be there, or it's sat.)
-    
-        ; TODO: pretty print booleans? 
-    
-    ;    <MARGRAVE-RESPONSE type="boolean">false<STATISTICS computed-max-size="1" max-size="1" result-id="0" user-max-size="6"/>
-;
-;</MARGRAVE-RESPONSE>
-    
-    
-    ;; due to gensym use, rule names will change along with line numbers and on each re-parse
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; rule responsibility
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    (printf "~n~nRule-blaming:~n")
-        
-    (mtext (string-append "EXPLORE InboundACL1:Deny" vector
-
-     " AND ip-10-1-1-2(src-addr-in)"
-     " AND fe0(entry-interface) "
-
-     " IDBOUTPUT InboundACL1:ACE-line-10-g21711_applies" vector ","
-               "InboundACL1:ACE-line-13-g21714_applies" vector
-     " TUPLING")) 
-    (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g21711_applies" vector ","
-               "InboundACL1:ACE-line-13-g21714_applies" vector))
-    
-    
-    ; TODO: Why is the line number off by 1? (Do we use _next_ char's line number? If so, need to subtract 1 in IOS parser)
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; change-impact
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    (printf "~n~nChange-impact:~n")
-    
-    ; vs change 1    
-    (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; rule responsibility
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nRule-blaming:~n")
+  
+  (display-response (mtext (string-append "EXPLORE InboundACL1:Deny" vector
+                        
+                        " AND 10.1.1.2(src-addr-in)"
+                        " AND fe0(entry-interface) "
+                        
+                        " INCLUDE InboundACL1:ACE-line-10-g5468_applies" vector ","
+                        "InboundACL1:ACE-line-13-g5471_applies" vector
+                        " TUPLING")))
+  (display-response (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g5468_applies" vector ","
+                        "InboundACL1:ACE-line-13-g5471_applies" vector)))
+  
+  
+  ; TODO: Why is the line number off by 1? (Do we use _next_ char's line number? If so, need to subtract 1 in IOS parser)
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; change-impact
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nChange-impact:~n")
+  
+  ; vs change 1    
+  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
@@ -135,7 +114,7 @@
        AND NOT InboundACL2:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface) )
@@ -144,7 +123,7 @@
        (InboundACL2:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
@@ -152,20 +131,20 @@
        AND NOT InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface) )
 
-     TUPLING")  
-    (mtext "IS POSSIBLE? 0")
-    
-    
-    ; Vs. change 2
-    (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
+     TUPLING"))  
+  (display-response (mtext "IS POSSIBLE? 0"))
+  
+  
+  ; Vs. change 2
+  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
@@ -173,7 +152,7 @@
        AND NOT InboundACL3:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface) )
@@ -182,7 +161,7 @@
        (InboundACL3:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
@@ -190,37 +169,44 @@
        AND NOT InboundACL1:Permit(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface) )
 
-     TUPLING")  
-    (mtext "IS POSSIBLE? 0")
-    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; Rule relationships
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    (printf "~n~nRule relationships:~n")
-    
-    ;; This involves rules in the first change (InboundACL2)
-    ; line 13 wants to apply: what prevents it from doing so?
-    
-    (mtext (string-append "EXPLORE InboundACL2:ACE-line-13-g23723" vector
-
-     " IDBOUTPUT InboundACL2:ACE-line-10-g23720_applies" vector ","
-               "InboundACL2:ACE-line-11-g23721_applies" vector ","
-               "InboundACL2:ACE-line-12-g23722_applies" vector
-     " TUPLING")) 
-    (mtext (string-append "SHOW POPULATED 0 InboundACL2:ACE-line-10-g23720_applies" vector ","
-               "InboundACL2:ACE-line-11-g23721_applies" vector ","
-               "InboundACL2:ACE-line-12-g23722_applies" vector))
-    
-    
-
-    
-    
-    
-    
-  (stop-margrave-engine)))
+     TUPLING")  )
+ (display-response  (mtext "IS POSSIBLE? 0"))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Rule relationships
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nRule relationships:~n")
+  
+  ;; This involves rules in the first change (InboundACL2)
+  ; line 13 wants to apply: what prevents it from doing so?
+  
+  (display-response (mtext (string-append "EXPLORE InboundACL2:ACE-line-13-g5484" vector
+                        
+                        " INCLUDE InboundACL2:ACE-line-10-g5481_applies" vector ","
+                        "InboundACL2:ACE-line-11-g5482_applies" vector ","
+                        "InboundACL2:ACE-line-12-g5483_applies" vector
+                        " TUPLING"))) 
+  (display-response (mtext (string-append "SHOW POPULATED 0 InboundACL2:ACE-line-10-g5481_applies" vector ","
+                        "InboundACL2:ACE-line-11-g5482_applies" vector ","
+                        "InboundACL2:ACE-line-12-g5483_applies" vector)))
+  
+  
+  
+  
+  
+  
+  ; Computing superfluous rules
+  ; ----> In sup-ios.rkt
+  
+  
+  
+  
+  
+  ;(stop-margrave-engine)
+  )

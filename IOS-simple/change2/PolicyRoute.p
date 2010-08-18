@@ -3,7 +3,13 @@
  uses
  IOS-vocab
  (Target)
- (Rules (default-route-g23714 = (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface) :- true))
+ (Rules
+  (hostname-Router-default-route-g5442
+   =
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   true
+   (hostname-Router hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))
