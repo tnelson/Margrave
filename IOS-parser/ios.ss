@@ -482,6 +482,11 @@
                exit-interface)
               :- ,@(textualize conditions)))
     
+    ;; symbol (listof (listof symbol))
+    ;;   Augments a rule
+    (define/public (augment new-name additional-conditions)
+      (make-object rule% new-name decision (append conditions additional-conditions)))
+    
     ;; symbol symbol (listof (listof symbol))
     ;;   Augments a rule and changes the decision
     (define/public (augment/replace-decision new-name new-decision additional-conditions)
@@ -2982,7 +2987,7 @@
                  (list (make-object rule%
                          'default-ACE
                          'Permit
-                         (list 'true)))
+                         `((,hostname hostname))))
                  '())))))
     
     ;; -> (listof rule%)
@@ -2999,7 +3004,7 @@
                  (list (make-object rule%
                          'default-ACE
                          'Permit
-                         (list 'true)))
+                         `((,hostname hostname))))
                  '())))))
     
     ;; symbol -> (listof interface%)
@@ -3057,12 +3062,26 @@
     ;; -> (listof rule%)
     ;;   Returns a list of the inside-to-outside NAT rules
     (define/public (inside-NAT-rules)
-      (append (NAT-forward-rules 'inside) (NAT-reverse-rules 'outside) (list default-NAT-rule)))
-    
+      (append (NAT-forward-rules 'inside)
+              (NAT-reverse-rules 'outside)
+              (list (send default-NAT-rule
+                          augment
+                          (string->symbol (string-append (symbol->string (send hostname text))
+                                                         "-"
+                                                         (symbol->string (get-field name default-NAT-rule))))
+                          `((,hostname hostname))))))
+
     ;; -> (listof rule%)
     ;;   Returns a list of the outside-to-inside NAT rules
     (define/public (outside-NAT-rules)
-      (append (NAT-forward-rules 'outside) (NAT-reverse-rules 'inside) (list default-NAT-rule)))
+      (append (NAT-forward-rules 'outside)
+              (NAT-reverse-rules 'inside)
+              (list (send default-NAT-rule
+                          augment
+                          (string->symbol (string-append (symbol->string (send hostname text))
+                                                         "-"
+                                                         (symbol->string (get-field name default-NAT-rule))))
+                          `((,hostname hostname))))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of forwarding rules for directly connected networks
@@ -3124,7 +3143,12 @@
                        (,(get-field secondary-network interf) dest-addr-in))))))
               (hash-filter interfaces (λ (name interf)
                                         (get-field secondary-address interf)))))
-        (list default-routing-rule))))
+        (list (send default-routing-rule
+                    augment
+                    (string->symbol (string-append (symbol->string (send hostname text))
+                                                   "-"
+                                                   (symbol->string (get-field name default-routing-rule))))
+                    `((,hostname hostname)))))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of forwarding rules for adjacent networks
@@ -3188,7 +3212,12 @@
                       rules
                       `((,hostname hostname))))
               static-routes))
-        (list default-routing-rule))))
+        (list (send default-routing-rule
+                    augment
+                    (string->symbol (string-append (symbol->string (send hostname text))
+                                                   "-"
+                                                   (symbol->string (get-field name default-routing-rule))))
+                    `((,hostname hostname)))))))
     
     ;; symbol (hash-table abstract-map%) -> (listof route-map%)
     ;;   Returns a list of maps with the given tag ordered by priority
@@ -3211,7 +3240,12 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list default-routing-rule))))
+        (list (send default-routing-rule
+                    augment
+                    (string->symbol (string-append (symbol->string (send hostname text))
+                                                   "-"
+                                                   (symbol->string (get-field name default-routing-rule))))
+                    `((,hostname hostname)))))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the default policy-based routing rules (i.e., those that
@@ -3229,7 +3263,12 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list default-routing-rule))))
+        (list (send default-routing-rule
+                    augment
+                    (string->symbol (string-append (symbol->string (send hostname text))
+                                                   "-"
+                                                   (symbol->string (get-field name default-routing-rule))))
+                    `((,hostname hostname)))))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the encryption rules
