@@ -587,7 +587,7 @@
       end)
     
     (define/public (get-constraints)
-      '())
+      `((disjoint-all ,(get-name))))
     
     (define/public (get-name)
       (string->symbol (string-append "port-"

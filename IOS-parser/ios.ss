@@ -1354,41 +1354,46 @@
     ;; (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of rules for the reverse direction for this NAT
     (define/public (reverse-rules route-maps ACLs interfaces additional-conditions)
-      (append
-       (map (λ (match-rule)
-              (if (eqv? (get-field decision match-rule) 'Permit)
-                  (list
-                   (send match-rule
-                         augment/replace-decision
-                         (augmented-name match-rule)
-                         'Translate
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
-                           (= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out)))
-                   (send match-rule
-                         augment/replace-decision
-                         (name)
-                         'Drop
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
-                  (list
-                   (send match-rule
-                         augment/replace-decision
-                         (augmented-name match-rule)
-                         'Translate
-                         `((= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out)))
-                   (send match-rule
-                         augment/replace-decision
-                         (name)
-                         'Drop
-                         `()))))
-            (send (hash-ref ACLs ACL-ID)
-                  inverse-rules/no-destination2
-                  (name)
-                  additional-conditions))))
+      (let [(match-rules (send (hash-ref ACLs ACL-ID)
+                               inverse-rules/no-destination2
+                               (name)
+                               additional-conditions))]
+        (append
+         (map (λ (match-rule)
+                (if (eqv? (get-field decision match-rule) 'Permit)
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
+                             (= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-port-in dest-port-out))))
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-addr-in dest-addr-out)
+                             (= dest-port-in dest-port-out)))
+                     (send match-rule
+                           augment/replace-decision
+                           (name)
+                           'Drop
+                           `()))))
+              match-rules)
+         (map (λ (match-rule)
+                (send match-rule
+                      augment/replace-decision
+                      (name)
+                      'Drop
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
+              (filter (λ (match-rule)
+                        (eqv? (get-field decision match-rule) 'Permit))
+                      match-rules)))))
     ))
 
 ;; source-map-NAT% : number boolean symbol symbol
@@ -1435,40 +1440,45 @@
     ;; (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of rules for the reverse direction for this NAT
     (define/public (reverse-rules route-maps ACLs interfaces additional-conditions)
-      (append
-       (map (λ (match-rule)
-              (if (eqv? (get-field decision match-rule) 'Permit)
-                  (list
-                   (send match-rule
-                         augment/replace-decision
-                         (augmented-name match-rule)
-                         'Translate
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
-                           (= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out)))
-                   (send match-rule
-                         augment/replace-decision
-                         (name)
-                         'Drop
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
-                  (list
-                   (send match-rule
-                         augment/replace-decision
-                         (augmented-name match-rule)
-                         'Translate
-                         `((= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out)))
-                   (send match-rule
-                         augment/replace-decision
-                         (name)
-                         'Drop
-                         '()))))
-            (flatten (map (λ (m)
-                           (send m inverse-match-rules/no-destination2 (name) ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+      (let [(match-rules (flatten (map (λ (m)
+                                         (send m inverse-match-rules/no-destination2 (name) ACLs additional-conditions))
+                                       (send (hash-ref route-maps route-map-ID) ordered-maps))))]
+        (append
+         (map (λ (match-rule)
+                (if (eqv? (get-field decision match-rule) 'Permit)
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
+                             (= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-port-in dest-port-out))))
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-addr-in dest-addr-out)
+                             (= dest-port-in dest-port-out)))
+                     (send match-rule
+                           augment/replace-decision
+                           (name)
+                           'Drop
+                           '()))))
+              match-rules)
+         (map (λ (match-rule)
+                (send match-rule
+                      augment/replace-decision
+                      (name)
+                      'Drop
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
+              (filter (λ (match-rule)
+                        (eqv? (get-field decision match-rule) 'Permit))
+                      match-rules)))))
     ))
 
 ;; destination-list-NAT% : number boolean symbol symbol
@@ -1515,31 +1525,46 @@
     ;; (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of rules for the reverse direction for this NAT
     (define/public (reverse-rules route-maps ACLs interfaces additional-conditions)
-      (append
-       (map (λ (match-rule)
-              (list
-               (send match-rule
-                     augment/replace-decision
-                     (augmented-name match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
-                           (= dest-addr-in dest-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out))
-                         `((= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))
-               (send match-rule
-                     augment/replace-decision
-                     (name)
-                     'Drop
-                     '())))
-            (send (hash-ref ACLs ACL-ID)
-                  inverse-rules/no-source2
-                  (name)
-                  additional-conditions))))
+      (let [(match-rules (send (hash-ref ACLs ACL-ID)
+                               inverse-rules/no-source2
+                               (name)
+                               additional-conditions))]
+        (append
+         (map (λ (match-rule)
+                (if (eqv? (get-field decision match-rule) 'Permit)
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
+                             (= dest-addr-in dest-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-port-in dest-port-out))))
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-addr-in dest-addr-out)
+                             (= dest-port-in dest-port-out)))
+                     (send match-rule
+                           augment/replace-decision
+                           (name)
+                           'Drop
+                           '()))))
+              match-rules)
+         (map (λ (match-rule)
+                (send match-rule
+                      augment/replace-decision
+                      (name)
+                      'Drop
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in))))
+              (filter (λ (match-rule)
+                        (eqv? (get-field decision match-rule) 'Permit))
+                      match-rules)))))
     ))
 
 ;; destination-map-NAT% : number boolean symbol symbol
@@ -1572,7 +1597,12 @@
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))))
+                           (= dest-port-in dest-port-out))))
+               (send match-rule
+                     augment/replace-decision
+                     (augmented-name match-rule)
+                     'Drop
+                     '())))
             (flatten (map (λ (m)
                            (send m match-rules ACLs additional-conditions))
                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
@@ -1581,25 +1611,45 @@
     ;; (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of rules for the reverse direction for this NAT
     (define/public (reverse-rules route-maps ACLs interfaces additional-conditions)
-      (append
-       (map (λ (match-rule)
-              (list
-               (send match-rule
-                     augment/replace-decision
-                     (augmented-name match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
-                         `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
-                           (= dest-addr-in dest-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out))
-                         `((= src-addr-in src-addr-out)
-                           (= src-port-in src-port-out)
-                           (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))))
-            (flatten (map (λ (m)
+      (let [(match-rules  (flatten (map (λ (m)
                            (send m inverse-match-rules/no-source2 (name) ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                         (send (hash-ref route-maps route-map-ID) ordered-maps))))]
+        (append
+         (map (λ (match-rule)
+                (if (eqv? (get-field decision match-rule) 'Permit)
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
+                             (= dest-addr-in dest-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-port-in dest-port-out))))
+                    (list
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Translate
+                           `((= src-addr-in src-addr-out)
+                             (= src-port-in src-port-out)
+                             (= dest-addr-in dest-addr-out)
+                             (= dest-port-in dest-port-out)))
+                     (send match-rule
+                           augment/replace-decision
+                           (augmented-name match-rule)
+                           'Drop
+                           '()))))
+              match-rules)
+         (map (λ (match-rule)
+                (send match-rule
+                      augment/replace-decision
+                      (name)
+                      'Drop
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in))))
+              (filter (λ (match-rule)
+                        (eqv? (get-field decision match-rule) 'Permit))
+                      match-rules)))))
     ))
 
 ;; static-source-NAT-IP% : number boolean address<%> address<%>
