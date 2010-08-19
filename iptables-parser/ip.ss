@@ -477,10 +477,10 @@
     ;; A port name in atomic form
     [(matching-symbol? port port-name-rx)
      (local [(define ports (parse-symbol-parts port port-name-rx))]
-       (new port% [port (port/symbol->number (string->symbol (first ports)))]))]
+       (new named-port% [port (string->symbol (first ports))]))]
     
     ;; A port name
-    [else (new port% [port (port/symbol->number port)])]))
+    [else (new named-port% [port port])]))
 
 ;; number
 ;;   A TCP/UDP port
@@ -517,6 +517,19 @@
     
     (define/public (get-port)
       port)
+    ))
+
+;; symbol
+;;   A named port
+(define named-port%
+  (class* port% (port<%>)
+    (init port)
+    (super-new [port (port/symbol->number port)])
+    
+    (inherit get-port)
+    
+    (define/override (get-name)
+      (string->symbol (string-append "port-" (symbol->string (port/number->symbol (get-port))))))
     ))
 
 ;; An unspecified port
