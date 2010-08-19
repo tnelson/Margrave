@@ -52,7 +52,7 @@
  [new-ipv4-network (-> number? number? (is-a?/c address<%>))])
 
 (define (new-ipv4-network address netmask)
-  (new ipv4-address% [address address] [prefix (bitwise-bit-count netmask)]))
+  (new ipv4-network-address% [address address] [prefix (bitwise-bit-count netmask)]))
 
 ;; number number -> address<%>
 ;;   Creates an address<%> from an IPv4 network address and a CIDR prefix
@@ -60,7 +60,7 @@
  [new-ipv4-cidr-network (-> number? number? (is-a?/c address<%>))])
 
 (define (new-ipv4-cidr-network address prefix)
-  (new ipv4-address% [address address] [prefix prefix]))
+  (new ipv4-network-address% [address address] [prefix prefix]))
 
 ;; symbol -> boolean
 ;;   Recognizes addresses in symbolic form
@@ -166,6 +166,9 @@
     (define/public (get-address)
       address)
     
+    (define/public (get-prefix)
+      prefix)
+    
     (define/public (get-network)
       (bitwise-and address (get-netmask)))
     
@@ -183,6 +186,31 @@
     
     (define/private (get-suffix)
       (- 32 prefix))
+    ))
+
+;; number number
+;;   An IPv4 network address
+(define ipv4-network-address%
+  (class* ipv4-address% (address<%>)
+    (init address prefix)
+    (super-new [address address] [prefix prefix])
+    
+    (inherit get-address)
+    (inherit get-prefix)
+    
+    (define/override (get-name)
+      (local [(define address-text (string-append "ip-" (octets->string 3)))]
+            (string->symbol (string-append address-text "/" (number->string (get-prefix))))))
+    
+    (define/private (octets->string last-index)
+      (local [(define shift (* 8 last-index))]
+        (local [(define text
+                  (number->string
+                   (bitwise-and (arithmetic-shift (get-address) (- shift)) #xFF)))]
+          (if (zero? last-index)
+              text
+              (string-append text "-" (octets->string (sub1 last-index)))))))
+    
     ))
 
 ;; (listof string) -> number
@@ -460,11 +488,19 @@
  [parse-port (-> symbol? (is-a?/c port<%>))])
 
 (define port-rx #px"port-(\\d+)")
+(define port-range-rx #px"port-(\\d+):(\\d+)")
 (define port-any-rx #px"port-any")
-(define port-name-rx #px"port-(\\w+)")
+(define port-name-rx #px"port-([[:alnum:]-]+)")
 
 (define (parse-port port)
   (cond
+    ;; A port range
+    [(matching-symbol? port port-range-rx)
+     (local [(define ports (parse-symbol-parts port port-range-rx))]
+       (new port-range%
+            [start (string->number (first ports))]
+            [end (string->number (second ports))]))]
+    
     ;; A numeric port
     [(matching-symbol? port port-rx)
      (local [(define ports (parse-symbol-parts port port-rx))]
@@ -532,6 +568,50 @@
       (string->symbol (string-append "port-" (symbol->string (port/number->symbol (get-port))))))
     ))
 
+;; number number
+;;   A port range
+(define port-range%
+  (class* object% (port<%>)
+    (init-field start end)
+    (super-new)
+    
+    (define/public (equal-to? rhs equal-proc)
+      (and (is-a? rhs atom<%>)
+           (eq? (get-type-name) (send rhs get-type-name))
+           (eq? (get-name) (send rhs get-name))))
+    
+    (define/public (equal-hash-code-of hash-proc)
+      start)
+    
+    (define/public (equal-secondary-hash-code-of hash2-proc)
+      end)
+    
+    (define/public (get-constraints)
+      '())
+    
+    (define/public (get-name)
+      (string->symbol (string-append "port-"
+                                     (number->string start)
+                                     ":"
+                                     (number->string end))))
+    
+    (define/public (covers? rhs)
+      (if (send rhs single?)
+          (and (>= (send rhs get-port) start)
+               (>= end (send rhs get-port)))
+          (and (>= (get-field start rhs) start)
+               (>= end (get-field end rhs)))))
+    
+    (define/public (single?)
+      #f)
+    
+    (define/public (get-type-name)
+      'Port)
+    
+    (define/public (get-port)
+      (error "Unsupported operation: get-port"))
+    ))
+
 ;; An unspecified port
 (define any-port%
   (class* object% (port<%>)
@@ -555,7 +635,11 @@
       'port-any)
     
     (define/public (covers? rhs)
-      (not (equal-to? rhs equal?)))
+      (if (send rhs single?)
+          (and (>= (send rhs get-port) 0)
+               (>= 65535 (send rhs get-port)))
+          (and (>= (get-field start rhs) 0)
+               (>= 65535 (get-field end rhs) 65535))))
     
     (define/public (single?)
       #f)
@@ -583,6 +667,7 @@
         [(eqv? number 113) 'auth]
         [(eqv? number 123) 'ntp]
         [(eqv? number 161) 'snmp]
+        [(eqv? number 162) 'snmp-trap]
         [(eqv? number 443) 'https]
         [(eqv? number 465) 'smtps]
         [(eqv? number 500) 'isakmp]
@@ -611,6 +696,7 @@
         [(eq? symbol 'auth) 113]
         [(eq? symbol 'ntp) 123]
         [(eq? symbol 'snmp) 161]
+        [(eq? symbol 'snmp-trap) 162]
         [(eq? symbol 'https) 443]
         [(eq? symbol 'smtps) 465]
         [(eq? symbol 'isakmp) 500]

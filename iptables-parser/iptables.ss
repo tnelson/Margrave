@@ -122,7 +122,7 @@
   (printf "Building vocab~n")
   (new-vocabulary 'iptables-firewall
                   (build-types policy)
-                  (list 'ACCEPT 'LOG 'DROP)
+                  (list 'ACCEPT 'LOG 'DROP 'REJECT 'SNAT)
                   '()
                   (map (λ (variable)
                          (new-required-variable (first variable) (second variable)))
