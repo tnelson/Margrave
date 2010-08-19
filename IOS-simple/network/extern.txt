@@ -14,7 +14,7 @@ access-list 104 deny all
 !
 access-list 103 deny any host 10.200.200.200
 access-list 103 deny any any eq 23
-access-list 103 permit tcp host 192.1.1.2 any eq 80
+access-list 103 permit tcp host 192.168.1.2 any eq 80
 access-list 103 deny all
 !
 end
