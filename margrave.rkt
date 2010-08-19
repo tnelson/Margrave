@@ -40,6 +40,7 @@
          xml-map-response->map
          pretty-print-response-xml
          display-response
+         response->string
          get-qualified-rule-list
          get-rule-list)
 ;****************************************************************
@@ -443,3 +444,7 @@
 
 (define (display-response the-response)
   (printf "~a~n" (pretty-print-response-xml the-response)))
+
+; Better function name. May make it do more later, but for now just a wrapper.
+(define (response->string the-response)
+  (pretty-print-response-xml the-response))

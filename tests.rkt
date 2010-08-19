@@ -234,20 +234,20 @@
   (test-suite
    "Pretty Printing tests"
    
-   (check-true (string-contains? (pretty-print-response-xml test-model) "firewall1:accept is true for: [ipsrc, ipdest, portsrc, portdest, pro]"))
-   (check-true (string-contains? (pretty-print-response-xml test-model) "Computed max size: 1"))
-   (check-true (string-contains? (pretty-print-response-xml test-sys-info) "Type: sysinfo"))
-   (check-true (string-contains? (pretty-print-response-xml test-sys-info) "Init: 49729280"))
-   (check-true (string-contains? (pretty-print-response-xml test-coll-info) "Collection Info:"))
-   (check-true (string-contains? (pretty-print-response-xml test-coll-info) "Policy Name: conf1"))
-   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Info:"))
-   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Name: examplefw1"))
+   (check-true (string-contains? (pretty-print-response-xml test-model) "firewall1:accept is true for: [ipsrc, ipdest, portsrc, portdest, pro]") "1")
+   (check-true (string-contains? (pretty-print-response-xml test-model) "Computed max size: 1") "2")
+   (check-true (string-contains? (pretty-print-response-xml test-sys-info) "Type: sysinfo") "3")
+   (check-true (string-contains? (pretty-print-response-xml test-sys-info) "Init: 49729280") "4")
+   (check-true (string-contains? (pretty-print-response-xml test-coll-info) "Collection Info:") "5")
+   (check-true (string-contains? (pretty-print-response-xml test-coll-info) "Policy Name: conf1") "6")
+   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Info:") "7")
+   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Name: examplefw1") "8")
    (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "DISJOINT"))
    
-   (check-true (string-contains? (pretty-print-response-xml test-error-response) "Error:\nType: a type\nSubtype: a subtype\nThis is an error"))
-   (check-true (string-contains? (pretty-print-response-xml test-exception) "Exception:\nClass: edu.wpi.margrave.MSemanticException\nStack Trace: [edu.wpi.margrave.MCommunicator.validateDBIdentifier(MCommunicator.java:1161), edu.wpi.margrave.MCommunicator.exploreHelper(MCommunicator.java:971), edu.wpi.margrave.MCommunicator.xmlHelper(MCommunicator.java:144), edu.wpi.margrave.MCommunicator.handleXMLCommand(MCommunicator.java:100), edu.wpi.margrave.MCommunicator.executeCommand(MCommunicator.java:1051), edu.wpi.margrave.MCommunicator.readCommands(MCommunicator.java:1026), edu.wpi.margrave.MCommunicator.main(MCommunicator.java:74)]\nMessage: Margrave could not understand...\nLocation of Problem: Unknown IDB Collection: firewall1\n"))
-   (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling"))
-   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size."))
+   (check-true (string-contains? (pretty-print-response-xml test-error-response) "Error:\nType: a type\nSubtype: a subtype\nThis is an error") "9")
+   (check-true (string-contains? (pretty-print-response-xml test-exception) "Exception:\nClass: edu.wpi.margrave.MSemanticException\nStack Trace: [edu.wpi.margrave.MCommunicator.validateDBIdentifier(MCommunicator.java:1161), edu.wpi.margrave.MCommunicator.exploreHelper(MCommunicator.java:971), edu.wpi.margrave.MCommunicator.xmlHelper(MCommunicator.java:144), edu.wpi.margrave.MCommunicator.handleXMLCommand(MCommunicator.java:100), edu.wpi.margrave.MCommunicator.executeCommand(MCommunicator.java:1051), edu.wpi.margrave.MCommunicator.readCommands(MCommunicator.java:1026), edu.wpi.margrave.MCommunicator.main(MCommunicator.java:74)]\nMessage: Margrave could not understand...\nLocation of Problem: Unknown IDB Collection: firewall1\n") "10")
+   (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling") "11")
+   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size.") "12")
    
    ;Actual returned results
    (start-margrave-engine)
@@ -277,9 +277,10 @@
 
 ; *******************************************************************
 ; Testing helper functions
-(define (test-command command-string test-string)
-  (check-true (string-contains? (first (mm (evalxml command-string)))
-                                 test-string)))
+(define (test-command command-string test-string (msg "(no test name)"))
+  (let ([response-string (response->string (first (mm (evalxml command-string))))])
+    (check-true (string-contains? response-string test-string) 
+                (string-append msg ": " test-string " expected; saw: " response-string))))
 
 ; Test conference1.p
 (define conf1-test
@@ -290,21 +291,21 @@
    (mm (evalxml "RENAME ConferencePolicy1 conf1"))
    (display (first (mm (evalxml "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"))))
    ;7 Solutions
-   (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)" "Explore result handle: 0")
-   (test-command "GET ONE 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3")
-   (test-command "GET NEXT 0" "No more solutions")
-   (test-command "COUNT 0" "Result: 7")
-   (test-command "IS POSSIBLE? 0" "Result: true")
+   (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)" "Result handle was: 0" "1")
+   (test-command "GET ONE 0" "SOLUTION FOUND at size = 3" "2")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "3")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "4")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "5")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "6")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "7")
+   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "8")
+   (test-command "GET NEXT 0" "No more solutions"  "9")
+   (test-command "COUNT 0" "7"  "10")
+   (test-command "IS POSSIBLE? 0" "true"  "11")
    
    (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r) PUBLISH s, a,r" 
-                 "Explore result handle: 0")
-   (test-command "IS POSSIBLE? 0" "Result: true")
+                 "Result handle was: 0"  "12")
+   (test-command "IS POSSIBLE? 0" "true"  "13")
    
    ;;What should this return?? Right now, its:
    ;<MARGRAVE-RESPONSE type="collection-info">
@@ -323,12 +324,12 @@
    
    ;(mm (evalxml "RENAME conf1 conf1"))
    (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r)" 
-                 "Explore result handle: 0")
-   (test-command "GET CEILING 0" "Result: 4")
+                 "Result handle was: 0" "14")
+   (test-command "GET CEILING 0" "4" "15")
    
    (test-command "EXPLORE readpaper(a) and paper(r) and subject(s) and not conf1:permit(s, a, r)"
-                 "Explore result handle: 0")
-   (test-command "GET CEILING 0" "Result: 3")
+                 ": 0"  "16")
+   (test-command "GET CEILING 0" "3"  "17")
    
    (load-policy (build-path (current-directory) "tests" "conference2.p"))
    (mm (evalxml "RENAME ConferencePolicy2 conf2"))
@@ -337,27 +338,27 @@
             (conf2:Permit(sub, act, res) AND NOT conf1:Permit(sub, act, res)) OR 
             (conf1:Deny(sub, act, res) AND NOT conf2:Deny(sub, act, res)) OR
             (conf2:Deny(sub, act, res) AND NOT conf1:Deny(sub, act, res))"
-                "Explore result handle: 0")
-  (test-command "COUNT 0" "Result: 2")
-  (test-command "get one 0" "SOLUTION FOUND at size = 3")
+                ": 0"  "18")
+  (test-command "COUNT 0" "2"  "19")
+  (test-command "get one 0" "SOLUTION FOUND at size = 3"  "20")
   
   (test-command "EXPLORE readpaper(a) iff paper(r) and not conf1:permit(s, a, r)" 
-                 "Explore result handle: 0")
+                 "0"  "21")
   (test-command "EXPLORE readpaper(a) implies paper(r) and not conf1:permit(s, a, r)" 
-                 "Explore result handle: 0")
+                 "0" "22")
   
   ;Test explore modifiers
   (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r) CEILING 10 debug 3 publish s, a, r"
-                "Explore result handle: 0")
+                "0" "22")
   
   ;Test TUPLING, since fw1 only has unary relations
   (load-policy (build-path (current-directory) "tests" "fwex1.p"))
   (test-command "EXPLORE fwex1:Accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING"
-                "Explore result handle: 0")
+                "0" "23")
   
-  ;test IDBOUTPUT
-  (test-command "EXPLORE conf1:permit(s, a, r) IDBOUTPUT conf1:permit"
-                "Explore result handle: 0")
+  ;test INCLUDE
+  (test-command "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"
+                ": 0" "24")
   
   
               
@@ -384,8 +385,14 @@
    (load-policy (build-path (current-directory) "tests" "conference1.p"))      
    (mm (evalxml "RENAME ConferencePolicy1 conf1"))   
    (mm (evalxml "EXPLORE readpaper(a) and conf1:permit(s, a, r)"))
-   (mm (evalxml "quit"))
-   (mm (evalxml "EXPLORE readpaper(a) and conf1:permit(s, a, r)"))
+
+   ; quit does not exit gracefully (yet)
+   ;(mm (evalxml "quit"))   
+   ;;(start-margrave-engine) ;; graceful restart possible?
+   ;;(mm (evalxml "INFO"))   
+   (stop-margrave-engine)
+   (start-margrave-engine) ;; restart after closed by func?
+   (mm (evalxml "INFO"))   
    (stop-margrave-engine)))
    
    
@@ -408,7 +415,7 @@
 ;(mtext "add rule to mypol rule2 deny (s2 x) (s1 y)")
 ;(mtext "prepare mypol")
 
-;(mtext "explore xsort(x) and xsort(y) UNDER mypol idboutput mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
+;(mtext "explore xsort(x) and xsort(y) UNDER mypol include mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
 ;(mtext "show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
 
 ;(mtext "info myvoc")
