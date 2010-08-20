@@ -38,11 +38,13 @@
          xml-set-response->list
          xml-list-response->list
          xml-map-response->map
+         xml-bool-response->bool
          pretty-print-response-xml
          display-response
          response->string
          get-qualified-rule-list
-         get-rule-list)
+         get-rule-list
+         time-since-last)
 ;****************************************************************
 ;;Java Connection
 
@@ -92,7 +94,7 @@
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 ; If not passed, will use (current-directory).
-(define (start-margrave-engine (home-path margrave-home-path) (user-params empty))
+(define (start-margrave-engine (home-path margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
   (if (eq? java-process-list #f)
       (let* ([ vital-margrave-params
                (list "-cp"
@@ -130,13 +132,14 @@
                     (build-path home-path
                                 "bin"
                                 "json.jar"))))]
-             ; Class name comes LAST.
-             [margrave-params (append vital-margrave-params user-params (list  "edu.wpi.margrave.MCommunicator"))])
+             ; Class name comes AFTER jvm params and BEFORE margrave params
+             [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
 
         ;(printf "~a~n" margrave-params)        
         ;(display (cons (string-append java-path "java.exe")  margrave-params))
         (printf "--------------------------------------------------~n")
-        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nUser params: ~a~n" home-path java-path user-params)
+        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
+                home-path java-path user-jvm-params user-margrave-params)
         (printf "--------------------------------------------------~n")
         (set! java-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
         (set! input-port (first java-process-list))
@@ -187,20 +190,20 @@
 ; lower case!
 
 ; mtext
-; string -> document or #f
+; string (arbitrary number which will be automatically concatenated) -> document or #f
 ; parses and compiles the string command into XML, executes it,
 ; and returns the result document.
-; If the optional autoprint argument is set, pretty-print the result as well.
-(define (mtext cmd (autoprint #f))
-  (let* ((response-doc (m (evalxml cmd))))  
+(define mtext
+  (lambda cmd
+    (let* ((response-doc (m (evalxml (apply string-append cmd)))))  
     
-    ; Display the pretty-printed result
-    (when autoprint
-      (printf "===================== RESPONSE (type: ~a) =====================~n" (get-response-type response-doc))
-      (printf "~a~n~n"(pretty-print-response-xml response-doc)))
-    
-    ; Return the XML document
-    response-doc))
+      ; Display the pretty-printed result
+      ;(when autoprint
+      ;  (printf "===================== RESPONSE (type: ~a) =====================~n" (get-response-type response-doc))
+      ;  (printf "~a~n~n"(pretty-print-response-xml response-doc)))
+      
+      ; Return the XML document
+      response-doc)))
 
 
 ; mmtext
@@ -253,9 +256,11 @@
                   
                   (define (finish-error)
                     (when (char-ready? err-port)  ; If there is a character waiting, read it.
-                      (let ([next-char (read-char err-port)])                                                
-                        (write-string (string next-char) error-buffer)
-                        (finish-error))))
+                      (let ([next-char (read-char err-port)])
+                        (when (not (equal? next-char eof))
+                          (begin
+                            (write-string (string next-char) error-buffer)
+                            (finish-error))))))
                   
                   ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                   ; version before change to polling. this version will freeze up if
@@ -448,3 +453,20 @@
 ; Better function name. May make it do more later, but for now just a wrapper.
 (define (response->string the-response)
   (pretty-print-response-xml the-response))
+
+
+; ********************************************************
+; Helper functions
+; ********************************************************
+
+; Easy timer function
+; Initial value
+(define tick-tock #f)
+(define (time-since-last)
+  (if (eq? tick-tock #f)
+      (begin 
+        (set! tick-tock (current-inexact-milliseconds))
+        #f)
+      (let ([ms-to-return (- (current-inexact-milliseconds) tick-tock)]) 
+        (set! tick-tock (current-inexact-milliseconds))
+        ms-to-return)))

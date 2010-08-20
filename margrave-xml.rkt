@@ -18,6 +18,7 @@
  xml-set-response->list
  xml-list-response->list
  xml-map-response->map
+ xml-bool-response->bool
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
@@ -372,6 +373,11 @@
         (when (not (empty? statistics-element))
           (write (string-append "\n" (print-statistics statistics-element))))
         (get-output-string string-buffer)))))
+
+(define (xml-bool-response->bool element-or-document)
+  (let* ([response-element (maybe-document->element element-or-document)]
+         [boolean-element (get-child-element response-element 'boolean)])
+    (equal? "true" (get-attribute-value boolean-element 'value))))
 
 ; element -> string
 (define (pretty-print-set-xml element)

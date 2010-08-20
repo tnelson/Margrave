@@ -424,8 +424,6 @@ public class MEnvironment
 	protected static PrintStream errorStream = System.err;
 	protected static PrintStream outStream = System.err;
 	
-	public static boolean debugParser = false;
-	
 	public static String eol = System.getProperty("line.separator");
 	public static String sNoIterator = "no iterator";
 	public static String sFalse = String.valueOf(false);

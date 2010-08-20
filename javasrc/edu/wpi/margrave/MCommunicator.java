@@ -54,6 +54,10 @@ public class MCommunicator
 	static boolean xmlCommand;
 	
 	static String sLogFileName = "log.txt";
+	static BufferedWriter outLog = null; 
+	static FileWriter outLogStream = null;
+	
+	static boolean bDoLogging = false;
 	
 	static String makeLastResortError(Document theResponse)
 	{
@@ -62,12 +66,16 @@ public class MCommunicator
 	
 	public static void main(String[] args) 
 	{
+		if(args.length > 0 && args[0].toLowerCase().equals("-log"))
+		{
+			// parser is in racket now. instead, require -log switch for logging
+			//MEnvironment.debugParser = true;
+			bDoLogging = true;
+		}					
+	
 		initializeLog();
 		writeToLog("\n\n\n");
-		if(args.length > 0 && args[0].toLowerCase().equals("debug"))
-		{
-			MEnvironment.debugParser = true;
-		}						
+		
 
 		//if(args.length > 1) {
 			xmlCommand = true;
@@ -77,6 +85,8 @@ public class MCommunicator
 		//}
 		
 		readCommands();
+
+		// outLog will be closed as it goes out of scope
 	}
 
         public static void handleXMLCommand(String command)
@@ -1142,41 +1152,49 @@ public class MCommunicator
      
      static void initializeLog()
      {
+    	 if(!bDoLogging)
+    		 return;
+    	     	     	 
     	 // Wipe the log clean every time the engine runs. 
     	 try
     	 {
-    		 FileWriter fstream = new FileWriter(sLogFileName);
-    		 BufferedWriter out = new BufferedWriter(fstream);
-    		 out.write("Margrave engine log; date= "+ new Date());	
-    		 out.close();
+    		 MCommunicator.outLogStream = new FileWriter(sLogFileName);
+    		 MCommunicator.outLog = new BufferedWriter(outLogStream);
+    		 MCommunicator.outLog.write("Margrave engine log; date= "+ new Date());	   
+    		 MCommunicator.outLog.flush();   
+    		 //MCommunicator.outLog.close();
     	 }
     	 catch (IOException e)
     	 {
-   	      System.err.println("\nError writing log file: " + e.getMessage());
+   	      System.err.println("\nError initializing log file: "+ e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")");
+   	      System.err.flush();
+   	      System.exit(3);
     	 }
+    	 
+
+    	 
      }
      
      static void writeToLog(String s)
      {
+    	 if(!bDoLogging)
+    		 return;
+
     	 try
+    	 {    		
+    		 MCommunicator.outLog.write(s);
+    		 MCommunicator.outLog.flush();    	        	    
+    	 }
+    	 catch (Exception e)
     	 {
-    	    // Create file 
-    	    FileWriter fstream = new FileWriter(sLogFileName, true);
-    	        BufferedWriter out = new BufferedWriter(fstream);
-    	    out.write(s);
-    	    out.flush();
-    	    //Close the output stream
-    	    out.close();
-    	    
-    	    }
-    		catch (Exception e)
-    	    {
-    	      //Catch exception if any
-    	      System.err.println("\nError writing log file: " + e.getMessage());
-    	    }
+    	     //Catch exception if any
+    	     System.err.println("\nError writing log file: " + e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")");
+    	     System.exit(3);
+    	 }
      }
      
-     protected static void readCommands() {
+     protected static void readCommands()
+     {
     	   StringBuffer theCommand = new StringBuffer();
    		try
    		{

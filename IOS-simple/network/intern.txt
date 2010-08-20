@@ -9,11 +9,10 @@ ip access-group 102 in
 ip address 192.168.1.1 255.255.0.0
 ip nat inside
 !
-! deny contractors access to mail server
-access-list 102 deny tcp 192.168.4.1 0.0.0.255 host 10.1.1.3 
-! anyone else on the LAN may access the mail server
+access-list 102 deny ip 192.168.4.1 0.0.0.255 host 10.1.1.3 
+! 
 access-list 102 permit tcp any host 10.1.1.3 eq 25
-! anyone may access the web-server
+! 
 access-list 102 permit tcp any any eq 80
 access-list 102 deny any
 !
@@ -22,7 +21,7 @@ ip nat inside source list 1 interface in_dmz overload
 !
 ip route 0.0.0.0 0.0.0.0 in_dmz
 !
-access-list 1 permit 192.168.1.1 255.255.0.0
+access-list 1 permit 192.168.1.1 0.0.255.255
 !
 end
 
