@@ -1310,12 +1310,12 @@
           'inside))
     ))
 
-;; source-list-NAT% : number boolean symbol symbol
+;; source-list-NAT% : number boolean symbol symbol boolean
 ;;   Represents a source route map translation
 (define source-list-NAT%
   (class* abstract-NAT% (NAT<%>)
     (init line-number inside)
-    (init-field ACL-ID interface-ID)
+    (init-field ACL-ID interface-ID overload)
     (super-make-object line-number inside)
     
     (inherit augmented-name)
@@ -1335,7 +1335,9 @@
                      (if (eqv? (get-field decision match-rule) 'Permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
-                           (= src-port-in src-port-out)
+                           ,(if overload
+                                `(port-any src-port-out)
+                                `(= src-port-in src-port-out))
                            (= dest-port-in dest-port-out))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1369,7 +1371,9 @@
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
-                             (= dest-port-in dest-port-out))))
+                             ,(if overload
+                                  `(port-any dest-port-in)
+                                  `(= dest-port-in dest-port-out)))))
                     (list
                      (send match-rule
                            augment/replace-decision
@@ -1390,18 +1394,21 @@
                       augment/replace-decision
                       (name)
                       'Drop
-                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
+                        ,(if overload
+                             `(port-any dest-port-in)
+                             `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
                       match-rules)))))
     ))
 
-;; source-map-NAT% : number boolean symbol symbol
+;; source-map-NAT% : number boolean symbol symbol boolean
 ;;   Represents a source route map translation
 (define source-map-NAT%
   (class* abstract-NAT% (NAT<%>)
     (init line-number inside)
-    (init-field route-map-ID interface-ID)
+    (init-field route-map-ID interface-ID overload)
     (super-make-object line-number inside)
     
     (inherit augmented-name)
@@ -1421,7 +1428,9 @@
                      (if (eqv? (get-field decision match-rule) 'Permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
-                           (= src-port-in src-port-out)
+                           ,(if overload
+                                `(port-any src-port-out)
+                                `(= src-port-in src-port-out))
                            (= dest-port-in dest-port-in))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1454,7 +1463,9 @@
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
-                             (= dest-port-in dest-port-out))))
+                             ,(if overload
+                                  `(port-any dest-port-in)
+                                  `(= dest-port-in dest-port-out)))))
                     (list
                      (send match-rule
                            augment/replace-decision
@@ -1475,18 +1486,21 @@
                       augment/replace-decision
                       (name)
                       'Drop
-                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in))))
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
+                        ,(if overload
+                             `(port-any dest-port-in)
+                             `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
                       match-rules)))))
     ))
 
-;; destination-list-NAT% : number boolean symbol symbol
+;; destination-list-NAT% : number boolean symbol symbol boolean
 ;;   Represents a destination route map translation
 (define destination-list-NAT%
   (class* abstract-NAT% (NAT<%>)
     (init line-number inside)
-    (init-field ACL-ID interface-ID)
+    (init-field ACL-ID interface-ID overload)
     (super-make-object line-number inside)
     
     (inherit augmented-name)
@@ -1507,7 +1521,9 @@
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-out)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-in))
+                           ,(if overload
+                                `(port-any dest-port-out)
+                                `(= dest-port-in dest-port-out)))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
@@ -1539,7 +1555,9 @@
                            'Translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
-                             (= src-port-in src-port-out)
+                             ,(if overload
+                                  `(port-any src-port-in)
+                                  `(= src-port-in src-port-out))
                              (= dest-port-in dest-port-out))))
                     (list
                      (send match-rule
@@ -1561,18 +1579,21 @@
                       augment/replace-decision
                       (name)
                       'Drop
-                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in))))
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
+                        ,(if overload
+                             `(port-any src-port-in)
+                             `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
                       match-rules)))))
     ))
 
-;; destination-map-NAT% : number boolean symbol symbol
+;; destination-map-NAT% : number boolean symbol symbol boolean
 ;;   Represents a destination route map translation
 (define destination-map-NAT%
   (class* abstract-NAT% (NAT<%>)
     (init line-number inside)
-    (init-field route-map-ID interface-ID)
+    (init-field route-map-ID interface-ID overload)
     (super-make-object line-number inside)
     
     (inherit augmented-name)
@@ -1593,7 +1614,9 @@
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-out)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-in))
+                           ,(if overload
+                                `(port-any dest-port-out)
+                                `(= dest-port-in dest-port-out)))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
@@ -1624,7 +1647,9 @@
                            'Translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
-                             (= src-port-in src-port-out)
+                             ,(if overload
+                                  `(port-any src-port-in)
+                                  `(= src-port-in src-port-out))
                              (= dest-port-in dest-port-out))))
                     (list
                      (send match-rule
@@ -1646,7 +1671,10 @@
                       augment/replace-decision
                       (name)
                       'Drop
-                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in))))
+                      `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
+                        ,(if overload
+                             `(port-any src-port-in)
+                             `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
                       match-rules)))))

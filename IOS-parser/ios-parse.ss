@@ -821,22 +821,26 @@
 
 ;; number symbol symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-list-nat-interface line side direction ACL-ID interface-ID line-tokens config)
-  (case direction
-    [(source) (send config
-                    insert-dynamic-NAT
-                    (make-object source-list-NAT%
-                      line
-                      side
-                      ACL-ID
-                      interface-ID))]
-    [(destination) (send config
-                         insert-dynamic-NAT
-                         (make-object destination-list-NAT%
-                           line
-                           side
-                           ACL-ID
-                           interface-ID))]
-    [else config]))
+  (let [(overload (and (not (empty? line-tokens))
+                       (eqv? (first line-tokens) 'overload)))]
+    (case direction
+      [(source) (send config
+                      insert-dynamic-NAT
+                      (make-object source-list-NAT%
+                        line
+                        side
+                        ACL-ID
+                        interface-ID
+                        overload))]
+      [(destination) (send config
+                           insert-dynamic-NAT
+                           (make-object destination-list-NAT%
+                             line
+                             side
+                             ACL-ID
+                             interface-ID
+                             overload))]
+    [else config])))
 
 ;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-nat line side direction route-map line-tokens config)
@@ -852,22 +856,26 @@
 
 ;; number symbol symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-nat-interface line side direction route-map interface-ID line-tokens config)
-  (case direction
-    [(source) (send config
-                    insert-dynamic-NAT
-                    (make-object source-map-NAT%
-                      line
-                      side
-                      route-map
-                      interface-ID))]
-    [(destination) (send config
-                         insert-dynamic-NAT
-                         (make-object destination-map-NAT%
-                           line
-                           side
-                           route-map
-                           interface-ID))]
-    [else config]))
+  (let [(overload (and (not (empty? line-tokens))
+                       (eqv? (first line-tokens) 'overload)))]
+    (case direction
+      [(source) (send config
+                      insert-dynamic-NAT
+                      (make-object source-map-NAT%
+                        line
+                        side
+                        route-map
+                        interface-ID
+                        overload))]
+      [(destination) (send config
+                           insert-dynamic-NAT
+                           (make-object destination-map-NAT%
+                             line
+                             side
+                             route-map
+                             interface-ID
+                             overload))]
+    [else config])))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-static-nat line side direction line-tokens config)
@@ -978,7 +986,8 @@
                     side
                     from-addr
                     to-addr
-                    (second line-tokens))]
+                    (second line-tokens)
+                    #f)]
                  [else (make-object static-source-NAT-IP%
                          line
                          side
@@ -994,7 +1003,8 @@
                     side
                     from-addr
                     to-addr
-                    (second line-tokens))]
+                    (second line-tokens)
+                    #f)]
                  [else (make-object static-destination-NAT-IP%
                          line
                          side
