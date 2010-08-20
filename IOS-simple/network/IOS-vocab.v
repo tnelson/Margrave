@@ -1,9 +1,13 @@
 (PolicyVocab
  IOS-vocab
  (Types
-  (Hostname : hostname-intern)
-  (Interface : interf-drop (interf-real in_lan in_dmz))
-  (IPAddress 192.168.0.0/255.255.0.0 (10.1.1.0/255.255.255.0 10.1.1.3))
+  (Hostname : hostname-intern hostname-extern)
+  (Interface : interf-drop (interf-real in_dmz in_lan out_inet out_dmz))
+  (IPAddress
+   (10.1.1.0/255.255.255.0 10.1.1.4 10.1.1.3)
+   (192.168.0.0/255.255.0.0 192.168.1.2)
+   (0.0.1.1/0.0.255.255 10.1.1.1)
+   10.200.200.200)
   (Protocol : prot-ICMP prot-TCP prot-UDP)
   (Port port-80 port-25)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
@@ -45,7 +49,13 @@
   (disjoint-all Length)
   (atmostone-all interf-real)
   (atmostone interf-drop)
+  (atmostone 10.200.200.200)
+  (atmostone 10.1.1.1)
+  (disjoint-all 0.0.1.1/0.0.255.255)
+  (atmostone 192.168.1.2)
+  (disjoint-all 192.168.0.0/255.255.0.0)
   (atmostone 10.1.1.3)
+  (atmostone 10.1.1.4)
   (disjoint-all 10.1.1.0/255.255.255.0)
   (disjoint-all IPAddress)
   (atmostone-all Protocol)

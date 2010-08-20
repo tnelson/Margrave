@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (hostname-intern-default-route-g801
+  (hostname-intern-default-route-g1894
    =
    (Pass
     hostname
@@ -25,7 +25,29 @@
     exit-interface)
    :-
    true
-   (hostname-intern hostname)))
+   (hostname-intern hostname))
+  (hostname-extern-default-route-g1894
+   =
+   (Pass
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
+   :-
+   true
+   (hostname-extern hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))
