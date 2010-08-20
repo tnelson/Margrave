@@ -1336,7 +1336,7 @@
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
                            ,(if overload
-                                `(port-any src-port-out)
+                                `(Port src-port-out)
                                 `(= src-port-in src-port-out))
                            (= dest-port-in dest-port-out))
                          `((= src-addr-in src-addr-out)
@@ -1372,7 +1372,7 @@
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              ,(if overload
-                                  `(port-any dest-port-in)
+                                  `(Port dest-port-in)
                                   `(= dest-port-in dest-port-out)))))
                     (list
                      (send match-rule
@@ -1396,7 +1396,7 @@
                       'Drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                         ,(if overload
-                             `(port-any dest-port-in)
+                             `(Port dest-port-in)
                              `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
@@ -1429,7 +1429,7 @@
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
                            ,(if overload
-                                `(port-any src-port-out)
+                                `(Port src-port-out)
                                 `(= src-port-in src-port-out))
                            (= dest-port-in dest-port-in))
                          `((= src-addr-in src-addr-out)
@@ -1464,7 +1464,7 @@
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              ,(if overload
-                                  `(port-any dest-port-in)
+                                  `(Port dest-port-in)
                                   `(= dest-port-in dest-port-out)))))
                     (list
                      (send match-rule
@@ -1488,7 +1488,7 @@
                       'Drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                         ,(if overload
-                             `(port-any dest-port-in)
+                             `(Port dest-port-in)
                              `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
@@ -1522,7 +1522,7 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            ,(if overload
-                                `(port-any dest-port-out)
+                                `(Port dest-port-out)
                                 `(= dest-port-in dest-port-out)))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1556,7 +1556,7 @@
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
                              ,(if overload
-                                  `(port-any src-port-in)
+                                  `(Port src-port-in)
                                   `(= src-port-in src-port-out))
                              (= dest-port-in dest-port-out))))
                     (list
@@ -1581,7 +1581,7 @@
                       'Drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                         ,(if overload
-                             `(port-any src-port-in)
+                             `(Port src-port-in)
                              `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
@@ -1615,7 +1615,7 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            ,(if overload
-                                `(port-any dest-port-out)
+                                `(Port dest-port-out)
                                 `(= dest-port-in dest-port-out)))
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1648,7 +1648,7 @@
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
                              ,(if overload
-                                  `(port-any src-port-in)
+                                  `(Port src-port-in)
                                   `(= src-port-in src-port-out))
                              (= dest-port-in dest-port-out))))
                     (list
@@ -1673,7 +1673,7 @@
                       'Drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                         ,(if overload
-                             `(port-any src-port-in)
+                             `(Port src-port-in)
                              `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'Permit))
