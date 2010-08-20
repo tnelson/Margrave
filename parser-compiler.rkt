@@ -26,7 +26,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH))
+                        EOF WITH TRUE))
 (define-tokens terminals (<identifier> <unsigned-integer>))
 
 
@@ -130,6 +130,7 @@
    ["quit" (token-QUIT)] 
    ["delete" (token-DELETE)]
    ["with" (token-WITH)]
+   ["true" (token-TRUE)]
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
@@ -411,11 +412,16 @@
     
     ; *************************************************
     ; represents a top-level condition, the fully-developed formula in EXPLORE 
-    (condition [(condition-formula) (list 'CONDITION $1)])
+    ; Can be trivially true
+    (condition [(condition-formula) (list 'CONDITION $1)]
+               [(TRUE) (list 'CONDITION (build-so (list 'TRUE) 1 1))])
+
     
     
     ; *************************************************
     ; Variable equality         
+    ; OR constant = variable, variable = constant
+    ; context is discovered in Java engine
     (equals-formula ((<identifier> EQUALS <identifier>) (build-so (list 'EQUALS $1 $3) 1 3)))
       
     
@@ -527,6 +533,9 @@
          ;(printf "Symbol varvec: ~a~n" first-intern)
          (xml-make-identifiers-list (begin (map helper-syn->xml (rest interns))))]
         
+        [(equal? first-datum 'TRUE)
+         '(TRUE)]
+        
         [(equal? first-datum 'ATOMIC-FORMULA-N)
          ;(printf "Symbol atn: ~a~n" first-intern)
          (begin
@@ -554,9 +563,7 @@
         
         [(equal? first-datum 'CONDITION)
          ;(printf "Symbol cond: ~a~n" first-intern)
-         (begin
-           (helper-syn->xml (second interns)))]
-        ;(append (list 'CONDITION) (map helper-syn->xml (rest interns)))]
+           (helper-syn->xml (second interns))]      
         [(equal? first-datum 'EXPLORE)
          ; (printf "Symbol exp: ~a ~a ~a~n" first-intern (second interns) (third interns))
          (begin

@@ -34,6 +34,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 
 import kodkod.ast.*;
+import kodkod.ast.visitor.ReturnVisitor;
+import kodkod.ast.visitor.VoidVisitor;
 import kodkod.instance.Instance;
 import kodkod.instance.Tuple;
 
@@ -117,7 +119,7 @@ class MExploreCondition
 	
 	// I am sorry for the terminological abomination in the last paragraph, but
 	// it seems fairly clear from context. And it might possibly have been
-	// necessary. -TN
+	// necessary. Hopefully it is sufficient. -TN
 	
 	
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> assertAtomicNecessary =
@@ -127,6 +129,31 @@ class MExploreCondition
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> assertSufficient =
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
+	
+	/* Often want to build a query condition formula without first knowing 
+	 * the vocabulary the query operates under. This can cause a problem
+	 * for de-sugaring certain special syntax. 
+	 * 
+	 * Kodkod will not allow us to subclass Formula, Expression, or ComparisonFormula.
+	 * Therefore, we leave "placeholders" in the condition formula for late evaluation
+	 * when the vocabulary is known.
+	 */ 
+	Set<ComparisonFormula> eqPlaceholders = new HashSet<ComparisonFormula>();
+	Set<Expression> exprPlaceholders = new HashSet<Expression>();
+	
+	
+	// **************************************************************
+	
+	// When the vocabulary is known, turn the placeholders into real Nodes.
+	void resolvePlaceholders(MVocab vocab)
+	{
+		// TODO
+		// Create a replacer visitor
+		
+	}	
+	
+	// **************************************************************
+	
 	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
 	{
 		if(!assertAtomicNecessary.containsKey(thisVar))
@@ -135,6 +162,16 @@ class MExploreCondition
 			assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
 		if(!assertSufficient.containsKey(thisVar))
 			assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
+	}
+	
+	MExploreCondition(boolean b)
+	{
+		if(b)
+			fmla = Formula.TRUE;
+		else
+			fmla = Formula.FALSE;
+		
+		// No assertions. No free variables. Just a constant formula
 	}
 	
 	MExploreCondition(Formula f, Variable x, Variable y)
