@@ -1,0 +1,90 @@
+#lang racket
+
+(require (file "../margrave.rkt")
+         (file "../margrave-ios.rkt")
+         xml)
+
+; Vectors for the queries in this file
+
+(define reqfull-1 "(fw1, fw1-entry-interface, 
+        fw1-src-addr-in, fw1-src-addr_, fw1-src-addr-out, 
+        fw1-dest-addr-in, fw1-dest-addr_, fw1-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-in, fw1-src-port_, fw1-src-port-out, 
+        fw1-dest-port-in, fw1-dest-port_, fw1-dest-port-out, 
+        length, fw1-next-hop, fw1-exit-interface)")
+
+(define reqfull-2 "(fw2, fw2-entry-interface, 
+        fw1-src-addr-out, fw2-src-addr_, fw2-src-addr-out, 
+        fw1-dest-addr-out, fw2-dest-addr_, fw2-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-out, fw2-src-port_, fw2-src-port-out, 
+        fw1-dest-port-out, fw2-dest-port_, fw2-dest-port-out, 
+        length, fw2-next-hop, fw2-exit-interface)")
+
+(define reqpol-1 "(fw1, fw1-entry-interface, 
+        fw1-src-addr-in, fw1-src-addr-out, 
+        fw1-dest-addr-in, fw1-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-in, fw1-src-port-out, 
+        fw1-dest-port-in, fw1-dest-port-out, 
+        length, fw1-next-hop, fw1-exit-interface)")
+
+(define reqpol-2 "(fw2, fw2-entry-interface, 
+        fw1-src-addr-out, fw2-src-addr-out, 
+        fw1-dest-addr-out, fw2-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-out, fw2-src-port-out, 
+        fw1-dest-port-out, fw2-dest-port-out, 
+        length, fw2-next-hop, fw2-exit-interface)")
+
+
+(define (run-queries-for-example)
+  
+  ; Start Margrave's java engine
+  ; Pass path of the engine files: 1 level up from here.
+  (start-margrave-engine (build-path (current-directory) 'up))
+  
+  ; Load all the policies 
+  (load-ios-policies (build-path (current-directory) "network") "" "")  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  (printf "~n~nSample multi-firewall query:~n")
+  
+  (display-response (mtext (string-append "EXPLORE port-80(fw1-dest-port-in) AND
+10.1.1.0/255.255.255.0(fw1-dest-addr-in)
+AND prot-TCP(protocol) AND
+192.168.1.2(fw1-src-addr-in) AND
+in_lan(fw1-entry-interface) AND
+out_dmz(fw2-entry-interface) AND
+hostname-intern(fw1) AND
+hostname-extern(fw2) AND
+
+10.1.1.0/255.255.255.0(fw1-dest-addr-in) AND
+NOT 10.200.200.200(fw1-dest-addr-in) AND
+
+internal-result" reqfull-1 " AND
+
+NOT firewall-passed" reqpol-1 " OR
+
+(internal-result" reqfull-2 " AND
+ NOT firewall-passed" reqpol-2 ")
+
+UNDER InboundACL
+INCLUDE
+InboundACL:ACE-line-13-g3146_applies" reqpol-1 ",
+InboundACL:ACE-line-18-g3149_applies" reqpol-1 ",
+InboundACL:ACE-line-16-g3151_applies" reqpol-2 ",
+InboundACL:ACE-line-17-g3152_applies" reqpol-2 ",
+InboundACL:ACE-line-19-g3154_applies" reqpol-2 "
+
+TUPLING")))
+  
+  (display-response (mtext "GET ONE"))  
+  
+  
+  
+  ;(stop-margrave-engine)
+  )
