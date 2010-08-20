@@ -1022,13 +1022,20 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
-        		String varname1 = getNodeAttribute(n, "EQUALS", "v1");
-        		String varname2 = getNodeAttribute(n, "EQUALS", "v2");
+        		// May be v1 = v2
+        		// May be c = v1 (or v1 = c)
+        		//   (shorthand for c(v1) provided c is a lone/one constrained sort)
+        		        		
+        		String idname1 = getNodeAttribute(n, "EQUALS", "v1");
+        		String idname2 = getNodeAttribute(n, "EQUALS", "v2");
         		
-        		writeToLog("\nEQUALS: "+varname1+" = "+varname2+"\n");
+        		writeToLog("\nEQUALS: "+idname1+" = "+idname2+"\n");
         		
-        		Variable v1 = MFormulaManager.makeVariable(varname1);
-        		Variable v2 = MFormulaManager.makeVariable(varname2);
+        		// The problem: I have no way to know which it is until the query's vocab is created.
+        		
+        		
+        		Variable v1 = MFormulaManager.makeVariable(idname1);
+        		Variable v2 = MFormulaManager.makeVariable(idname2);
         		Formula fmla = MFormulaManager.makeEqAtom(v1, v2);
         		return new MExploreCondition(fmla, v1, v2);        		
         	}
@@ -1082,6 +1089,10 @@ public class MCommunicator
         		
         		// No variable substitution needed!
         		return new MExploreCondition(f, rel, vl);
+        	}
+        	else if(name.equalsIgnoreCase("TRUE"))
+        	{
+        		return new MExploreCondition(true);
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) 
         	{
