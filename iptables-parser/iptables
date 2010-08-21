@@ -28,9 +28,9 @@ function resolve
 
 # Parse the command line for the important packet attributes.
 SRCADDR="ip-0-0-0-0/0"
-SRCPORT="port-any"
+SRCPORT="port-0:65535"
 DESTADDR="ip-0-0-0-0/0"
-DESTPORT="port-any"
+DESTPORT="port-0:65535"
 PROTOCOL="ip"
 MESSAGE="icmp-any"
 STATES="state-any"
