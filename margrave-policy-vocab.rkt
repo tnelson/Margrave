@@ -72,7 +72,7 @@
                       
                       ; Bottom of sort tree. 
                       (begin
-                        (printf "~a ~a ~a ~n" s listsubs-cleaned parent)
+                        ;(printf "~a ~a ~a ~n" s listsubs-cleaned parent)
                         (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
                   rest))
                empty
