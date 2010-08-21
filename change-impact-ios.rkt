@@ -37,6 +37,7 @@
   (load-ios-policies (build-path pDirectoryName "changes") "" "2" #t)  
 
   (printf "~nLoading complete.~n~n")
+   (time-since-last)
    
   ; ------------------------------------------------------------------
   ;   Change-impact #1: InboundACL vs. InboundACL
@@ -58,6 +59,7 @@
         (display-response (mtext "GET ONE")))
       (printf "No semantic differences found.~n~n"))
   
+  (printf "Time: ~a~n " (time-since-last))
     
   ; ------------------------------------------------------------------
   ;   Change-impact #2: NetworkSwitching vs. NetworkSwitching
@@ -78,6 +80,7 @@
         (display-response (mtext "GET ONE")))
       (printf "No semantic differences found.~n~n"))
   
+  (printf "Time: ~a~n " (time-since-last))
   
   ; ------------------------------------------------------------------
   ;   Change-impact #3: entire firewall config vs. entire new config
@@ -102,7 +105,7 @@
                            
                            " NOT (src-addr-out-1 = src-addr-out-2) OR "
                            " NOT (dest-addr-out-1 = dest-addr-out-2) OR "
-                           " ( NOT (src-port-out-1 = src-port-out-2) AND    )OR "
+                           " NOT (src-port-out-1 = src-port-out-2)  OR "
                            " NOT (dest-port-out-1 = dest-port-out-2) OR "
                            
                            ;; Did the firewall's ACL act differently?
@@ -120,7 +123,7 @@
         (display-response (mtext "GET ONE")))
       (printf "No semantic differences found.~n~n"))
   
-  
+    (printf "Time: ~a~n " (time-since-last))
   
   
   ;(stop-margrave-engine)

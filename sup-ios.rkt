@@ -95,7 +95,7 @@
                                           "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
                                           " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
                                           " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                          " Protocol(protocol) AND Hostname(hostname)  "
+                                          " Protocol(protocol) AND Hostname(hostname) AND TCPFlags(flags) "
                                           "UNDER inboundacl "
                                           "INCLUDE " (string-append idblistda ", " idblistpn-sup)
                                           " TUPLING")))]                  
@@ -112,7 +112,7 @@
                                           "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
                                           " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
                                           " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                          " Protocol(protocol) AND Hostname(hostname)  "
+                                          " Protocol(protocol) AND Hostname(hostname)  AND TCPFlags(flags)"
                                           "UNDER inboundacl "
                                           "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
                                           " TUPLING")))]         
@@ -147,9 +147,7 @@
            [all-deny-rules (get-qualified-rule-list polname "deny")]
            [all-permit-applied (make-applied-list all-permit-rules)]
            [all-deny-applied (make-applied-list all-deny-rules)]
-           
-          ; [dbg (printf "~a ~n ~a~n" all-deny-rules all-permit-applied)]       
-
+                
            [idblistrules (makeIdbList all-rules)]
            [idblistapplied (makeIdbList all-applied)]         
            
@@ -158,20 +156,22 @@
                                              "EXPLORE IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
                                              " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
                                              " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-                                             " Protocol(protocol) AND Hostname(hostname)  "
+                                             " Protocol(protocol) AND Hostname(hostname)  AND TCPFlags(flags) "
                                              "UNDER inboundacl "
                                              "INCLUDE " idblistapplied
                                              " TUPLING")))])
       
       
       (printf "Time to make lists, strings, etc.: ~a milliseconds.~n" (time-since-last))
+      
+      (printf "Number of permit rules: ~a.~nNumber of deny rules: ~a.~nTotal rules: ~a~n" (length all-permit-rules) (length all-deny-rules) (length all-rules))
       (printf "Running superfluous-rule finder...~n")
       
       ; **********************************************************************************************************
       
       (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
-             [prnt2 (printf "superfluous rules: ~a~n"  neverApplyList)]
+             ;[prnt2 (printf "superfluous rules: ~a~n"  neverApplyList)]
              [idblistpa (makeIdbList all-permit-applied)]
              [idblistdn-sup (makeIdbList (list-intersection all-deny-rules neverApplyList))]
              [idblistda (makeIdbList all-deny-applied)]
@@ -190,7 +190,3 @@
         (find-overlaps-2 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
         
         (stop-margrave-engine))))) ; close JVM and end function
-
-; bugs
-; (2) have to use all vars in the condition? can't introduce in idbout/pop clauses
-; why 270 instead of 274?

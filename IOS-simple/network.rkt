@@ -43,6 +43,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
+  ; no JVM options, but turn on Margrave's logging
   (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))
   
   ; Load all the policies 
@@ -55,9 +56,7 @@
   
   ; Remember: AND binds tighter than OR, so wrap the OR in parens.
   ; 10.200.0.0/255.255.0.0 is "the internet" for this example: something outside the extern router
-  (display-response (mtext (string-append "EXPLORE port-80(fw1-dest-port-in) AND
-10.1.1.0/255.255.255.0(fw1-dest-addr-in)
-AND prot-TCP(protocol) AND
+  (display-response (mtext (string-append "EXPLORE prot-TCP(protocol) AND
 192.168.1.2(fw1-src-addr-in) AND
 in_lan(fw1-entry-interface) AND
 out_dmz(fw2-entry-interface) AND
@@ -65,6 +64,7 @@ hostname-intern(fw1) AND
 hostname-extern(fw2) AND
 
 10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
+port-80(fw1-dest-port-in) AND
 
 internal-result" reqfull-1 " AND
 
@@ -75,11 +75,11 @@ NOT firewall-passed" reqpol-2 ")
 
 UNDER InboundACL
 INCLUDE
-InboundACL:ACE-line-13-g3146_applies" reqpol-1 ",
-InboundACL:ACE-line-18-g3149_applies" reqpol-1 ",
-InboundACL:ACE-line-16-g3151_applies" reqpol-2 ",
-InboundACL:ACE-line-17-g3152_applies" reqpol-2 ",
-InboundACL:ACE-line-19-g3154_applies" reqpol-2 "
+InboundACL:ACE-line-12-g3352_applies" reqpol-1 ",
+InboundACL:ACE-line-15-g3355_applies" reqpol-1 ",
+InboundACL:ACE-line-20-g3364_applies" reqpol-2 ",
+InboundACL:ACE-line-18-g3362_applies" reqpol-2 ",
+InboundACL:ACE-line-17-g3361_applies" reqpol-2 "
 
 TUPLING")))
   
