@@ -35,7 +35,8 @@
 ;;   Recognizes packet-processing chains in symbolic form
 (define (chain? chain)
   (and (symbol? chain)
-       (or (eq? chain 'INPUT)
+       (or (eq? chain 'chain-any)
+           (eq? chain 'INPUT)
            (eq? chain 'OUTPUT)
            (eq? chain 'FORWARD)
            (eq? chain 'PREROUTING)
@@ -49,6 +50,49 @@
       (new-atom chain 'Chain)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TCP States and Control Flags
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; symbol -> boolean
+;;   Recognizes a TCP state
+(define (state? state)
+  (and (symbol? state)
+       (or (eq? state 'state-any)
+           (eq? state 'INVALID)
+           (eq? state 'NEW)
+           (eq? state 'ESTABLISHED)
+           (eq? state 'RELATED))))
+
+;; symbol -> atom<%>
+;;   Parses a TCP state
+(define (parse-state state)
+  (if (eq? state 'state-any)
+      (new-root-atom 'state-any 'State)
+      (new-atom state 'State)))
+
+;; symbol -> boolean
+;;   Recognizes a TCP control flag
+(define (flag? flag)
+  (and (symbol? flag)
+       (or (eq? flag 'flag-any)
+           (eq? flag 'NONE)
+           (eq? flag 'ALL)
+           (eq? flag 'SYN)
+           (eq? flag '!SYN)
+           (eq? flag 'ACK)
+           (eq? flag 'RST)
+           (eq? flag 'FIN)
+           (eq? flag 'PSH)
+           (eq? flag 'URG))))
+
+;; symbol -> atom<%>
+;;   Parses a TCP control flag
+(define (parse-flag flag)
+  (if (eq? flag 'flag-any)
+      (new-root-atom 'flag-any 'Flag)
+      (new-atom flag 'Flag)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Policy Parsing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -57,6 +101,9 @@
                 (src-addr Address)
                 (src-port Port)
                 (protocol Protocol)
+                (message Message)
+                (state State)
+                (flag Flag)
                 (dest-addr Address)
                 (dest-port Port)
                 (out-interface Interface)))
@@ -64,11 +111,14 @@
 ;; symbol -> atom<%>
 ;;   Parses an atom
 (define (parse-atom atom)
-  (cond [(address? atom) (parse-address atom)]
+  (cond [(icmp-message? atom) (parse-icmp-message atom)]
+        [(address? atom) (parse-address atom)]
         [(protocol? atom) (parse-protocol atom)]
-        [(port? atom) (parse-port atom)]
         [(net-interface? atom) (parse-net-interface atom)]
         [(chain? atom) (parse-chain atom)]
+        [(state? atom) (parse-state atom)]
+        [(flag? atom) (parse-flag atom)]
+        [(port? atom) (parse-port atom)]
         [else (error "Unrecognized atom" atom)]))
 
 ;; S-expr -> rule<%>
@@ -101,8 +151,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define addresses (new-atom-tree (new-ipv4-cidr-network 0 0)))
-(define ports (new-atom-tree (new-root-atom 'port-any 'Port)))
+(define ports (new-atom-tree (new-port-range 0 65535)))
 (define protocols (new-atom-tree (new-protocol 0)))
+(define messages (new-atom-tree (parse-icmp-message 'icmp-any)))
+(define states (new-atom-tree (new-root-atom 'state-any 'State)))
+(define flags (new-atom-tree (new-root-atom 'flag-any 'Flags)))
 (define chains (new-atom-tree (new-root-atom 'chain-any 'Chain)))
 (define interfaces (new-atom-tree (new-root-atom 'if-any 'Interface)))
 
@@ -137,7 +190,10 @@
                            (Interface ,@(build-type interfaces rules))
                            (Address ,@(build-type addresses rules))
                            (Port ,@(build-type ports rules))
-                           (Protocol ,@(build-type protocols rules))))))
+                           (Protocol ,@(build-type protocols rules))
+                           (Message ,@(build-type messages rules))
+                           (State ,@(build-type states rules))
+                           (Flag ,@(build-type flags rules))))))
 
 ;; atom-tree<%> (listof rule<%>) -> atom-tree<%>
 ;;   Builds a type definition from a list of rules

@@ -3,7 +3,7 @@
 # Copyright (C) Christopher Barratt 2010 All rights reserved.
 
 
-echo "(Policy iptables-firewall uses ip-vocab" \
+echo "(Policy iptables-firewall uses iptables-firewall" \
      "  (Target)" \
      "  (Rules" >> iptables-firewall.p
 

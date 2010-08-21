@@ -32,6 +32,9 @@ SRCPORT="port-any"
 DESTADDR="ip-0-0-0-0/0"
 DESTPORT="port-any"
 PROTOCOL="ip"
+MESSAGE="icmp-any"
+STATES="state-any"
+FLAGS="flag-any"
 ININTERFACE="if-any"
 OUTINTERFACE="if-any"
 DECISION=""
@@ -81,6 +84,26 @@ do
             shift 2
             ;;
 
+        --icmp-type)
+            MESSAGE=$2
+            shift 2
+            ;;
+
+        --state)
+            STATES=$2
+            shift 2
+            ;;
+
+        --tcp-flags)
+            FLAGS=$3
+            shift 3
+            ;;
+
+        --syn)
+            FLAGS="SYN"
+            shift 2
+            ;;
+
         -i|--in-interface)
             ININTERFACE="if-"`atomize $2`
             shift 2
@@ -89,6 +112,16 @@ do
         -o|--out-interface)
             OUTINTERFACE="if-"`atomize $2`
             shift 2
+            ;;
+
+        !)
+            if [[ $2 == "--syn" ]]
+            then
+              FLAGS="!SYN"
+              shift 2
+            else
+              shift
+            fi
             ;;
 
         *)
@@ -102,12 +135,15 @@ if [[ $DECISION != "" ]]
 then
     echo "(rule-"`grep rule iptables-firewall.p | wc -l` \
          " = ("$DECISION \
-         " chain in-interface src-addr src-port protocol dest-addr dest-port out-interface) :- " \
+         " chain in-interface src-addr src-port protocol message state flag dest-addr dest-port out-interface) :- " \
          "("$CHAIN" chain) " \
          "("$ININTERFACE" in-interface) " \
          "("$SRCADDR" src-addr) " \
          "("$SRCPORT" src-port) " \
          "("$PROTOCOL" protocol) " \
+         "("$MESSAGE" message) " \
+         `for STATE in $( echo $STATES | tr ',' ' ' ); do echo "("$STATE" state) "; done` \
+         `for FLAG in $( echo $FLAGS | tr ',' ' ' ); do echo "("$FLAG" flag) "; done` \
          "("$DESTADDR" dest-addr) " \
          "("$DESTPORT" dest-port) " \
          "("$OUTINTERFACE" out-interface))" >> iptables-firewall.p

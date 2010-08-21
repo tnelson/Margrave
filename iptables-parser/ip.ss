@@ -44,7 +44,10 @@
  [new-ipv4-host (-> number? (is-a?/c address<%>))])
 
 (define (new-ipv4-host address)
-  (new ipv4-address% [address address] [prefix 32]))
+  (new ipv4-address%
+       [address address]
+       [prefix 32]
+       [cidr-form? #f]))
 
 ;; number number -> address<%>
 ;;   Creates an address<%> from an IPv4 network address and mask
@@ -52,7 +55,10 @@
  [new-ipv4-network (-> number? number? (is-a?/c address<%>))])
 
 (define (new-ipv4-network address netmask)
-  (new ipv4-network-address% [address address] [prefix (bitwise-bit-count netmask)]))
+  (new ipv4-address%
+       [address address]
+       [prefix (bitwise-bit-count netmask)]
+       [cidr-form? #t]))
 
 ;; number number -> address<%>
 ;;   Creates an address<%> from an IPv4 network address and a CIDR prefix
@@ -60,7 +66,7 @@
  [new-ipv4-cidr-network (-> number? number? (is-a?/c address<%>))])
 
 (define (new-ipv4-cidr-network address prefix)
-  (new ipv4-network-address% [address address] [prefix prefix]))
+  (new ipv4-address% [address address] [prefix prefix] [cidr-form? #t]))
 
 ;; symbol -> boolean
 ;;   Recognizes addresses in symbolic form
@@ -122,11 +128,11 @@
     [else
      (error "Unsupported address form" address)]))
 
-;; number number
+;; number number boolean
 ;;   An IPv4 address
 (define ipv4-address%
   (class* object% (address<%>)
-    (init-field address prefix)
+    (init-field address prefix cidr-form?)
     (super-new)
     
     (define/public (equal-to? rhs equal-proc)
@@ -147,7 +153,7 @@
     
     (define/public (get-name)
       (local [(define address-text (string-append "ip-" (octets->string 3)))]
-        (if (single?)
+        (if cidr-form?
             (string->symbol address-text)
             (string->symbol (string-append address-text "/" (number->string prefix))))))
     
@@ -186,31 +192,6 @@
     
     (define/private (get-suffix)
       (- 32 prefix))
-    ))
-
-;; number number
-;;   An IPv4 network address
-(define ipv4-network-address%
-  (class* ipv4-address% (address<%>)
-    (init address prefix)
-    (super-new [address address] [prefix prefix])
-    
-    (inherit get-address)
-    (inherit get-prefix)
-    
-    (define/override (get-name)
-      (local [(define address-text (string-append "ip-" (octets->string 3)))]
-            (string->symbol (string-append address-text "/" (number->string (get-prefix))))))
-    
-    (define/private (octets->string last-index)
-      (local [(define shift (* 8 last-index))]
-        (local [(define text
-                  (number->string
-                   (bitwise-and (arithmetic-shift (get-address) (- shift)) #xFF)))]
-          (if (zero? last-index)
-              text
-              (string-append text "-" (octets->string (sub1 last-index)))))))
-    
     ))
 
 ;; (listof string) -> number
@@ -336,18 +317,18 @@
 ;;     Returns the number for this message
 (define icmp-message<%> (interface (atom<%>) get-message))
 
-;; symbol -> icmp-message<%>
+;; number -> icmp-message<%>
 ;;   Creates an icmp-message<%> from a number
 (provide/contract
  [new-icmp-message (-> number? (is-a?/c icmp-message<%>))])
 
 (define (new-icmp-message message)
-  (new icmp-message% [message message]))
+  (new icmp-message% [message message] [symbolic-form? #t]))
 
-;; symbol -> boolean
-;;   Recognizes ICMP messages in symbolic form
+;; (or symbol number) -> boolean
+;;   Recognizes ICMP messages
 (provide/contract
- [icmp-message? (-> symbol? boolean?)])
+ [icmp-message? (-> (or/c symbol? number?) boolean?)])
 
 (define (icmp-message? message)
   (with-handlers [([λ (exn)
@@ -358,19 +339,37 @@
       (parse-icmp-message message)
       #t)))
 
-;; symbol -> icmp-message<%>
+;; (or symbol number) -> icmp-message<%>
 ;;   Creates an icmp-message<%> from the atomic name thereof
 (provide/contract
- [parse-icmp-message (-> symbol? (is-a?/c icmp-message<%>))])
+ [parse-icmp-message (-> (or/c symbol? number?) (is-a?/c icmp-message<%>))])
+
+(define icmp-any-rx #px"icmp-any")
 
 (define (parse-icmp-message message)
-  (new icmp-message% [message (message/symbol->number message)]))
+  (cond
+    ;; An unspecified message
+    [(matching-symbol? message icmp-any-rx)
+     (new any-icmp-message%)]
+    
+    ;; A message in symbolic form
+    [(symbol? message)
+     (new icmp-message%
+          [message (message/symbol->number message)]
+          [symbolic-form? #t])]
+    
+    ;; A message in numeric form
+    [(number? message)
+     (new icmp-message% [message message] [symbolic-form? #f])]
+    
+    ;; An unsupported message form
+    [else (error "Unsupported ICMP message form")]))
 
-;; number
+;; number boolean
 ;;   An ICMP message
 (define icmp-message%
   (class* object% (icmp-message<%>)
-    (init-field message)
+    (init-field message symbolic-form?)
     (super-new)
     
     (define/public (equal-to? rhs equal-proc)
@@ -388,7 +387,9 @@
       `((atmostone ,(get-name))))
     
     (define/public (get-name)
-      (message/number->symbol message))
+      (if symbolic-form?
+          (message/number->symbol message)
+          message))
     
     (define/public (covers? rhs)
       #f)
@@ -403,15 +404,50 @@
       message)
     ))
 
+;; An unspecified ICMP message
+(define any-icmp-message%
+  (class* object% (icmp-message<%>)
+    (super-new)
+    
+    (define/public (equal-to? rhs equal-proc)
+      (and (is-a? rhs atom<%>)
+           (eq? (get-type-name) (send rhs get-type-name))
+           (eq? (get-name) (send rhs get-name))))
+    
+    (define/public (equal-hash-code-of hash-proc)
+      0)
+    
+    (define/public (equal-secondary-hash-code-of hash2-proc)
+      0)
+    
+    (define/public (get-constraints)
+      `())
+    
+    (define/public (get-name)
+      'icmp-any)
+    
+    (define/public (covers? rhs)
+      (not (equal-to? rhs equal?)))
+    
+    (define/public (single?)
+      #f)
+    
+    (define/public (get-type-name)
+      'Message)
+    
+    (define/public (get-message)
+      0)
+    ))
+
 ;; number -> symbol
 ;;   Converts an ICMP message number to a name
 (define (message/number->symbol number)
   (cond [(eqv? number 0) 'echo-reply]
-        [(eqv? number 3) 'unreachable]
+        [(eqv? number 3) 'destination-unreachable]
         [(eqv? number 4) 'source-quench]
         [(eqv? number 5) 'redirect]
         [(eqv? number 6) 'alternate-address]
-        [(eqv? number 8) 'echo]
+        [(eqv? number 8) 'echo-request]
         [(eqv? number 9) 'router-advertisement]
         [(eqv? number 10) 'router-solicitation]
         [(eqv? number 11) 'time-exceeded]
@@ -431,11 +467,11 @@
 ;;   Converts an ICMP message name to a number
 (define (message/symbol->number symbol)
   (cond [(eq? symbol 'echo-reply) 0]
-        [(eq? symbol 'unreachable) 3]
+        [(eq? symbol 'destination-unreachable) 3]
         [(eq? symbol 'source-quench) 4]
         [(eq? symbol 'redirect) 5]
         [(eq? symbol 'alternate-address) 6]
-        [(eq? symbol 'echo) 8]
+        [(eq? symbol 'echo-request) 8]
         [(eq? symbol 'router-advertisement) 9]
         [(eq? symbol 'router-solicitation) 10]
         [(eq? symbol 'time-exceeded) 11]
@@ -466,7 +502,15 @@
  [new-port (-> number? (is-a?/c port<%>))])
 
 (define (new-port port)
-  (new port% [port port]))
+  (new port% [port port] [symbolic-form? #t]))
+
+;; number number -> port<%>
+;;   Creates a port<%> from a range
+(provide/contract
+ [new-port-range (-> number? number? (is-a?/c port<%>))])
+
+(define (new-port-range start end)
+  (new port-range% [start start] [end end]))
 
 ;; symbol -> boolean
 ;;   Recognizes ports in symbolic form
@@ -489,7 +533,6 @@
 
 (define port-rx #px"port-(\\d+)")
 (define port-range-rx #px"port-(\\d+):(\\d+)")
-(define port-any-rx #px"port-any")
 (define port-name-rx #px"port-([[:alnum:]-]+)")
 
 (define (parse-port port)
@@ -504,25 +547,23 @@
     ;; A numeric port
     [(matching-symbol? port port-rx)
      (local [(define ports (parse-symbol-parts port port-rx))]
-       (new port% [port (string->number (first ports))]))]
-    
-    ;; An unspecified port
-    [(matching-symbol? port port-any-rx)
-     (new any-port%)]
+       (new port% [port (string->number (first ports))] [symbolic-form? #f]))]
     
     ;; A port name in atomic form
     [(matching-symbol? port port-name-rx)
      (local [(define ports (parse-symbol-parts port port-name-rx))]
-       (new named-port% [port (string->symbol (first ports))]))]
+       (new port%
+            [port (port/symbol->number (string->symbol (first ports)))]
+            [symbolic-form? #t]))]
     
     ;; A port name
-    [else (new named-port% [port port])]))
+    [else (new port% [port port] [symbolic-form? #t])]))
 
-;; number
+;; number boolean
 ;;   A TCP/UDP port
 (define port%
   (class* object% (port<%>)
-    (init-field port)
+    (init-field port symbolic-form?)
     (super-new)
     
     (define/public (equal-to? rhs equal-proc)
@@ -540,7 +581,9 @@
       `((atmostone ,(get-name))))
     
     (define/public (get-name)
-      (string->symbol (string-append "port-" (number->string port))))
+      (string->symbol (string-append "port-" (if symbolic-form?
+                                                 (symbol->string (port/number->symbol port))
+                                                 (number->string port)))))
     
     (define/public (covers? rhs)
       #f)
@@ -555,21 +598,11 @@
       port)
     ))
 
-;; symbol
-;;   A named port
-(define named-port%
-  (class* port% (port<%>)
-    (init port)
-    (super-new [port (port/symbol->number port)])
-    
-    (inherit get-port)
-    
-    (define/override (get-name)
-      (string->symbol (string-append "port-" (symbol->string (port/number->symbol (get-port))))))
-    ))
-
 ;; number number
 ;;   A port range
+;;
+;; N.B.: This should be re-designed; the covers? relation
+;; is not well-defined
 (define port-range%
   (class* object% (port<%>)
     (init-field start end)
@@ -601,45 +634,6 @@
                (>= end (send rhs get-port)))
           (and (>= (get-field start rhs) start)
                (>= end (get-field end rhs)))))
-    
-    (define/public (single?)
-      #f)
-    
-    (define/public (get-type-name)
-      'Port)
-    
-    (define/public (get-port)
-      (error "Unsupported operation: get-port"))
-    ))
-
-;; An unspecified port
-(define any-port%
-  (class* object% (port<%>)
-    (super-new)
-    
-    (define/public (equal-to? rhs equal-proc)
-      (and (is-a? rhs atom<%>)
-           (eq? (get-type-name) (send rhs get-type-name))
-           (eq? (get-name) (send rhs get-name))))
-    
-    (define/public (equal-hash-code-of hash-proc)
-      0)
-    
-    (define/public (equal-secondary-hash-code-of hash2-proc)
-      0)
-    
-    (define/public (get-constraints)
-      '())
-    
-    (define/public (get-name)
-      'port-any)
-    
-    (define/public (covers? rhs)
-      (if (send rhs single?)
-          (and (>= (send rhs get-port) 0)
-               (>= 65535 (send rhs get-port)))
-          (and (>= (get-field start rhs) 0)
-               (>= 65535 (get-field end rhs) 65535))))
     
     (define/public (single?)
       #f)

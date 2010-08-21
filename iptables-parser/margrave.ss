@@ -468,7 +468,7 @@
                         get-constraints
                         get-text))
 
-;; symbol hash (listof symbol) (listof predicate<%>) (listof variable<%>) (listof (listof symbol)) -> vocabulary<%>
+;; symbol hash (listof symbol) (listof predicate<%>) (listof variable<%>) (listof (listof any)) -> vocabulary<%>
 ;;   Creates a vocabulary
 (provide/contract
  [new-vocabulary (-> symbol?
@@ -476,7 +476,7 @@
                      (listof symbol?)
                      (listof (is-a?/c predicate<%>))
                      (listof (is-a?/c variable<%>))
-                     (listof (listof symbol?))
+                     (listof (listof any/c))
                      (is-a?/c vocabulary<%>))])
 
 (define (new-vocabulary name types decisions predicates variables constraints)
