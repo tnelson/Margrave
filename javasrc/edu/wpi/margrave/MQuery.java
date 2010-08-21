@@ -3910,7 +3910,7 @@ public class MQuery extends MIDBCollection
 
 	public static MQuery createFromExplore(
 			MExploreCondition mpc, List<String> publish,
-			Map<String, Set<List<String>>> idbOutputMap,
+			Map<String, Set<List<String>>> includeMap,
 			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName,
 			MGECombineVocabs, MGEManagerException, MGEUnsortedVariable,
@@ -3933,24 +3933,24 @@ public class MQuery extends MIDBCollection
 
 		MCommunicator.writeToLog("ENTERING CREATION OF QUERY:");
 		MCommunicator.writeToLog("Fmla: "+mpc.fmla);
-		MCommunicator.writeToLog("Idb out map: "+idbOutputMap.toString());
+		MCommunicator.writeToLog("Idb out map: "+includeMap.toString());
 		MCommunicator.writeToLog("tup: "+bTupling);
 
 
 		// Tupling <----> for cases and idboutputmap and populated all indexed
 		if(bTupling)
 		{
-			for(String predname : idbOutputMap.keySet())
+			for(String predname : includeMap.keySet())
 			{
-				if(idbOutputMap.get(predname).size() < 1)
+				if(includeMap.get(predname).size() < 1)
 					throw new MSemanticException("TUPLING was enabled but INCLUDE for pred: "+predname+" was not indexed.");
 			}
 		}
 		else
 		{
-			for(String predname : idbOutputMap.keySet())
+			for(String predname : includeMap.keySet())
 			{
-				if(idbOutputMap.get(predname).size() > 0)
+				if(includeMap.get(predname).size() > 0)
 					throw new MSemanticException("TUPLING was not enabled but INCLUDE for pred: "+predname+" was indexed.");
 			}
 		}
@@ -3997,6 +3997,12 @@ public class MQuery extends MIDBCollection
 		// first, bind placeholders properly
 		// E.g. (A=x) will be converted to A(x) if A is a lone/one sort
 		mpc.resolvePlaceholders(uber);
+		
+		// Turn A=x into A(x) -- if able. The func changes the map given.
+		MExploreCondition.resolveMapPlaceholders(uber, includeMap);
+		
+		// include formulas need to be well-formed, so they figure into sort inference
+		mpc.inferFromInclude(uber, includeMap);
 		Formula qryFormula = mpc.fmla;
 	
 		// mpc has given us a bunch of assertions. Now we need to
@@ -4089,16 +4095,16 @@ public class MQuery extends MIDBCollection
 		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);
 
 		// **********************************
-		// Handle IDB output parameters
-		for(String dbname : idbOutputMap.keySet())
+		// Handle INCLUDE parameters
+		for(String dbname : includeMap.keySet())
 		{
 			// Indexings if any
 			Set<List<String>> indexingsToAdd = new HashSet<List<String>>();
 			
 			try
-			{
+			{				
 			
-				for(List<String> indexing : idbOutputMap.get(dbname))
+				for(List<String> indexing : includeMap.get(dbname))
 				{
 					// Can't add directly: user has provided a vector of identifiers.
 					// addIDBOutputIndexing expects an _indexing_ into the tupled ordering.
@@ -4190,10 +4196,13 @@ public class MQuery extends MIDBCollection
 
 		Set<List<Variable>> toDo = new HashSet<List<Variable>>(
 				mpc.assertNecessary.keySet());
+		toDo.addAll(mpc.assertAtomicNecessary.keySet());
+		toDo.addAll(mpc.inferredSorts.keySet());
 
 		for (List<Variable> varvector : toDo)
 		{
 
+			MCommunicator.writeToLog("\nProducing sort for variable vector: "+varvector);
 //			MEnvironment.writeErrLine("Checking for: "+varvector);
 
 			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
@@ -4206,19 +4215,57 @@ public class MQuery extends MIDBCollection
 			Set<MVariableVectorAssertion> allNecessary = new HashSet<MVariableVectorAssertion>(
 					assertsN);
 			allNecessary.addAll(assertsA);
-
-			for (Variable v : varvector) {
-				// Default to no info
-				freeVars.put(v, Expression.UNIV);
-				MSort runningSort = null;
+			
+			Set<MVariableVectorAssertion> inferredforthis = new HashSet<MVariableVectorAssertion>(mpc.inferredSorts.get(varvector));
+			
+			for (Variable v : varvector) 
+			{
+				MSort runningSort;
+				if(!freeVars.containsKey(v) || freeVars.get(v).equals(Expression.UNIV))
+				{
+					// Default to no info
+					freeVars.put(v, Expression.UNIV);
+					runningSort = null;
+				}
+				else
+					runningSort = voc.getSortForExpression(freeVars.get(v));			
+				
+				MCommunicator.writeToLog("\n  Producing sort for variable: "+v);
+				MCommunicator.writeToLog("\n  (Starting at: "+freeVars.get(v)+")");
 
 				//MEnvironment.writeErrLine("var: "+v);
+				
+				// Start off with our well-formed formula inferences:
+				for(MVariableVectorAssertion a : inferredforthis)
+				{
+					// a.positive
+					//a.sortExpression
+					MSort theSort = voc.getSortForExpression(a.sortExpression);
+					if(runningSort == null)
+					{					
+						runningSort = theSort;
+						freeVars.put(v, a.sortExpression);
+						MCommunicator.writeToLog("\n    Taking inference (was null): "+a.sortExpression);
+					}
+					else
+					{
+						
+						// TODO: we don't have intersection types...
+						// So juse follow the first assertion we see
+						// Only replace if we have a more specific assertion
+						if(voc.isSubOrSubOf(theSort, runningSort))
+						{
+							runningSort = theSort;
+							freeVars.put(v, a.sortExpression);
+							MCommunicator.writeToLog("\n    Taking inference (was "+runningSort.name+"): "+a.sortExpression);
+						}
+						else
+							MCommunicator.writeToLog("\n    Ignoring inference: "+a.sortExpression);
+					}
+				} // end for each inferredforthis				
 
-				for (MVariableVectorAssertion a : allNecessary) {
-					// TODO
-					// If it is NECESSARY for x to not have sort A
-					// there is more inference we could do, but skipping for
-					// now.
+				for (MVariableVectorAssertion a : allNecessary)
+				{
 
 					//MEnvironment.writeErrLine("assertion: "+a);
 
@@ -4237,6 +4284,7 @@ public class MQuery extends MIDBCollection
 						{
 							runningSort = theSort;
 							freeVars.put(v, a.sortExpression);
+							MCommunicator.writeToLog("\n    Taking necessary assertion (was null): "+a.sortExpression);
 						}
 						else
 						{
@@ -4250,29 +4298,24 @@ public class MQuery extends MIDBCollection
 							{
 								runningSort = theSort;
 								freeVars.put(v, a.sortExpression);
+								MCommunicator.writeToLog("\n    Taking necessary assertion (was "+runningSort.name+"): "+a.sortExpression);
 							}
+							else
+								MCommunicator.writeToLog("\n    Ignoring necessary assertion: "+a.sortExpression);
 
 							// else do nothing. (we COULD see which option had
 							// the most children? TODO maybe
 
-						}
-					}
+						} 
+					} // end is sort
 
-					// If rel is not a sort, get the matching sort from rel's
-					// signature
-					else {
-						// TODO --------------------
-						// TODO IMPORTANT unpack for preds that are not sorts
+				} // end for each allnecessary
 
-					}
-				}
-
-			}
+			} // end for each v in varvector
 
 		}
-
-		// TODO do we need to handle possible assertions? If so, how?
-
+		
+		MCommunicator.writeToLog("\nDone. Assertions are: "+freeVars+")");
 	}
 
 	public void addIDBOutputs(String idbname)

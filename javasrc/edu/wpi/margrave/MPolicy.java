@@ -87,7 +87,7 @@ abstract class MIDBCollection
 	// The name of this set. (If a policy, will be the policy name.)
 	String name;
 	
-	MVocab vocab;
+	protected MVocab vocab;
 		
 	// IDBs: note that these are IF AND ONLY IF.
 	// Formulas for Policy decisions, rule applicability, etc.

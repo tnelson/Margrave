@@ -119,8 +119,8 @@ public class MCommunicator
             }
             catch(Exception e)
             {
-            	// Construct an exception response;
-            	theResponse = MEnvironment.exceptionResponse(e);
+            	// Construct an exception response;            	
+            	theResponse = MEnvironment.exceptionResponse(e);            	
             }
             catch(Throwable e)
             {
@@ -153,7 +153,7 @@ public class MCommunicator
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node, String originalXMLText) throws MSemanticException, MGException
+        private static Document xmlHelper(Node node, String originalXMLText) throws MGException
         {
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
@@ -172,71 +172,85 @@ public class MCommunicator
 
         			if (type.equalsIgnoreCase("EXPLORE"))
         			{
-        				n = n.getFirstChild();
-        				String name = n.getNodeName();
-        				if (name.equalsIgnoreCase("EXPLORE")) {
-        					writeToLog("IN EXPLORE" + "\n");
-        					
-        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
-        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
-        					if (exploreCondition == null)
-        						MEnvironment.errorStream.println("explore condition is null!");
-        					MQuery result = null;
-        					
-        					//Default Values                                     					
-        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
-        					List<String> publ = null;
-                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
-                            Boolean tupling = false;
-        					Integer debugLevel = 0;
-        					Integer ceilingLevel = 6; 
-        					
-        					Node underNode = getUnderNode(n);
-        					Node publishNode = getPublishNode(n);
-        					Node tuplingNode = getTuplingNode(n);
-        					Node debugNode = getDebugNode(n);
-        					Node ceilingNode = getCeilingNode(n);
-        					
-        					// Now called INCLUDE, and 
-        					// used to alert tupling that there are EDB indexings it needs
-        					// to include, even if they don't appear.
-        					Node idbOutputNode = getIdbNode(n);
-        					
-        					if (underNode != null)
-        					{ 
-        						under = namesToIDBCollections(getUnderList(n));
-        						
-        					}
-        					if (publishNode != null) {
-        						publ = getExplorePublishVars(publishNode);
-        					}
-        					if (idbOutputNode != null) {
-        						NodeList idbChildNodes = idbOutputNode.getChildNodes();
-        						
-        						idbOut = atomicFormulasToHashmap(idbChildNodes);
-        					}
-        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
-        						tupling = true;
-        					}
-        					if (debugNode != null) {
-        						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
-        					}
-        					if (ceilingNode != null) {
-        						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
-        					}
-        					
-        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
-        					
-        			
-        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
-        						result = MQuery.createFromExplore(
-        								exploreCondition.addSeenIDBCollections(under), 
-        								publ, idbOut, tupling, debugLevel, ceilingLevel);
-        			
-      
-        					writeToLog("AT END OF EXPLORE");
-        					theResponse = MEnvironment.returnQueryResponse(result, originalXMLText);
+        				// Catch and re-throw any exception, because if EXPLORE fails,
+        				// need to reset lastResult to -1.
+        				try
+        				{
+        				        				
+	        				n = n.getFirstChild();
+	        				String name = n.getNodeName();
+	        				if (name.equalsIgnoreCase("EXPLORE")) {
+	        					writeToLog("IN EXPLORE" + "\n");
+	        					
+	        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
+	        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
+	        					if (exploreCondition == null)
+	        						MEnvironment.errorStream.println("explore condition is null!");
+	        					MQuery result = null;
+	        					
+	        					//Default Values                                     					
+	        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
+	        					List<String> publ = null;
+	                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
+	                            Boolean tupling = false;
+	        					Integer debugLevel = 0;
+	        					Integer ceilingLevel = 6; 
+	        					
+	        					Node underNode = getUnderNode(n);
+	        					Node publishNode = getPublishNode(n);
+	        					Node tuplingNode = getTuplingNode(n);
+	        					Node debugNode = getDebugNode(n);
+	        					Node ceilingNode = getCeilingNode(n);
+	        					
+	        					// Now called INCLUDE, and 
+	        					// used to alert tupling that there are EDB indexings it needs
+	        					// to include, even if they don't appear.
+	        					Node idbOutputNode = getIdbNode(n);
+	        					
+	        					if (underNode != null)
+	        					{ 
+	        						under = namesToIDBCollections(getUnderList(n));
+	        						
+	        					}
+	        					if (publishNode != null) {
+	        						publ = getExplorePublishVars(publishNode);
+	        					}
+	        					if (idbOutputNode != null) {
+	        						NodeList idbChildNodes = idbOutputNode.getChildNodes();
+	        						
+	        						idbOut = atomicFormulasToHashmap(idbChildNodes);
+	        					}
+	        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
+	        						tupling = true;
+	        					}
+	        					if (debugNode != null) {
+	        						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
+	        					}
+	        					if (ceilingNode != null) {
+	        						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
+	        					}
+	        					
+	        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
+	        					
+	        			
+	        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
+	        						result = MQuery.createFromExplore(
+	        								exploreCondition.addSeenIDBCollections(under), 
+	        								publ, idbOut, tupling, debugLevel, ceilingLevel);
+	        			
+	      
+	        					writeToLog("AT END OF EXPLORE");
+	        					theResponse = MEnvironment.returnQueryResponse(result, originalXMLText);
+	        					
+	        				}
+	  
         				} 
+          				catch(MGException e)
+        				{
+          					MEnvironment.lastResult = -1;
+          					throw e;
+        				}
+          				
         			}
         			else if (type.equalsIgnoreCase("INFO")) {
         				writeToLog("In Info");
@@ -391,6 +405,7 @@ public class MCommunicator
         					// atomicFormulasToHashmap will ignore the FOR-CASES element.
         					Map<String, Set<List<String>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
         					    
+        					
         					// Default map is empty. If FOR CASES, populate it.
         					Map<String, Set<List<String>>> forCasesAtomicFormulas = new HashMap<String, Set<List<String>>>();
         					if (forCasesNode != null)

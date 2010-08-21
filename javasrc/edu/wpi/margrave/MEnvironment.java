@@ -42,17 +42,6 @@ import kodkod.instance.Tuple;
 import java_cup.runtime.Symbol;
 
 
-class MSemanticException extends IOException
-{	
-	String problem;
-
-	MSemanticException(String problem)
-	{
-		super("Margrave could not understand..."); // don't have a null message
-		this.problem = problem;
-	}
-}
-
 class MVariableVectorAssertion
 {
 	boolean positive;
@@ -127,6 +116,11 @@ class MExploreCondition
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> assertNecessary =
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> assertSufficient =
+		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
+	
+	// These are assertions that must hold for the formula to be well-formed, and thus
+	// are not subject to propagation. 
+	HashMap<List<Variable>, Set<MVariableVectorAssertion>> inferredSorts = 
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
 	
@@ -213,7 +207,139 @@ class MExploreCondition
 		fmla = fmla.accept(theVisitor);		
 	}	
 	
-	// **************************************************************
+	public static void resolveMapPlaceholders(MVocab vocab,
+			Map<String, Set<List<String>>> themap) throws MSemanticException
+	{		
+		if(themap == null)
+			return;
+		if(!themap.containsKey("="))
+			return;
+		
+		MCommunicator.writeToLog("\nHandling placeholders in map: "+themap);
+		
+			for(List<String> varindexing : themap.get("="))
+			{
+				// Only deal with |2| indexings
+				if(varindexing.size() == 2)
+				{
+					String left = varindexing.get(0);
+					String right = varindexing.get(1);
+					MSort lsort = vocab.fastGetSort(left);
+					MSort rsort = vocab.fastGetSort(right);
+					
+					// Neither is a sort ~~ variable equality:  X = Y
+					if(lsort == null && rsort == null)
+						continue;
+					
+					// Don't allow sort = sort			
+					if(lsort != null && rsort != null)
+						throw new MSemanticException("Both sides of the equality "+left+"="+right+" were sort symbols. Could not resolve the equality.");
+
+					MSort thesort;
+					String thevar;
+					
+					if(lsort != null)
+					{
+						thesort = lsort;
+						thevar = right;
+					}
+					else // only remaining option is rsort != null
+					{
+						thesort = rsort;
+						thevar = left;
+					}
+					
+					// Require at most one elements in the sort
+					if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
+					   !vocab.axioms.setsSingleton.contains(thesort.name))
+						throw new MSemanticException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
+								
+					// If we got this far, we know that this equality needs to be re-written to A(x)
+					if(!themap.containsKey(thesort.name))
+						themap.put(thesort.name, new HashSet<List<String>>());
+					List<String> singletonlist = new ArrayList<String>(1);
+					
+					singletonlist.add(thevar);
+					themap.get(thesort.name).add(singletonlist);
+					
+					MCommunicator.writeToLog("\n   ="+left+","+right+" changed to: "+thesort+"("+thevar+")");					
+				}
+				
+			}
+			
+			// Remove the special entry
+			themap.remove("=");
+		
+	}
+	
+	// **************************************************************	
+	
+	public void inferFromInclude(MVocab uber,
+			Map<String, Set<List<String>>> includeMap)
+	{
+		for(String key : includeMap.keySet())
+		{
+			// Seeing a sort gives you nothing for sure
+			if(uber.fastIsSort(key))
+				continue;
+			
+			MCommunicator.writeToLog("\ninferFromInclude: "+key+" was not a sort.");
+			
+			boolean bIsIDB = false;
+			Relation predrel = null;
+			MIDBCollection pol = null;
+			if(uber.predicates.containsKey(key))
+			{
+				bIsIDB = false;
+				predrel = uber.predicates.get(key);
+				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was a predicate: "+predrel);
+			}
+			else
+			{
+				bIsIDB = true;
+				
+				// Separate into polname and idbname
+				String collname = key.substring(0, key.lastIndexOf(":"));
+				pol = MEnvironment.getPolicyOrView(collname);
+				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was an IDB in collection: "+pol+"; coll name = "+collname);
+			}
+			
+			for(List<String> varnamevector : includeMap.get(key))
+			{
+				List<Variable> varvector = vectorize(varnamevector);
+			
+				// Initialize assertion pools for this vector IF NEEDED
+				// (may have seen the vector already, after all)
+				initAssertionsForVectorIfNeeded(varvector);
+				
+				if(!bIsIDB)
+					inferredSorts.get(varvector).add(new MVariableVectorAssertion(true, predrel));
+				else
+				{
+					// This constructor means a set of atomic necessary assertions:	
+					int iIndex = 0;
+					for(Variable v : varvector)
+					{			
+						List<Variable> thisVar = new ArrayList<Variable>();
+						thisVar.add(v);	// lists with equal elements are equal.	
+						
+						initAssertionsForVectorIfNeeded(thisVar);
+						
+						Variable oldVar = pol.varOrdering.get(iIndex);
+						iIndex ++;
+						
+						//MEnvironment.errorStream.println(oldVar);
+						//MEnvironment.errorStream.println(pol.varSorts);
+						//MEnvironment.errorStream.println(assertAtomicNecessary.get(thisVar));
+						
+						inferredSorts.get(thisVar).add(new MVariableVectorAssertion(true, pol.varSorts.get(oldVar)));	
+					}
+				}
+			}
+		}
+	}
+	
+
 	
 	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
 	{
@@ -223,6 +349,8 @@ class MExploreCondition
 			assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
 		if(!assertSufficient.containsKey(thisVar))
 			assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
+		if(!inferredSorts.containsKey(thisVar))
+			inferredSorts.put(thisVar, new HashSet<MVariableVectorAssertion>());
 	}
 	
 	MExploreCondition(boolean b)
@@ -347,7 +475,7 @@ class MExploreCondition
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
-					
+		
 		doAssertAnd(oth);
 				
 		return this;
@@ -392,6 +520,10 @@ class MExploreCondition
 			if(oth.assertNecessary.containsKey(varvector))
 				assertNecessary.get(varvector).retainAll(oth.assertNecessary.get(varvector));
 			
+			// always preserved
+			if(oth.inferredSorts.containsKey(varvector))
+				inferredSorts.get(varvector).addAll(oth.inferredSorts.get(varvector));
+			
 			assertAtomicNecessary.get(varvector).clear();
 		}
 	}
@@ -412,6 +544,11 @@ class MExploreCondition
 
 			if(oth.assertSufficient.containsKey(varvector))
 				assertSufficient.get(varvector).retainAll(oth.assertSufficient.get(varvector));
+			
+			// always preserved
+			if(oth.inferredSorts.containsKey(varvector))
+				inferredSorts.get(varvector).addAll(oth.inferredSorts.get(varvector));
+
 			
 			assertAtomicNecessary.get(varvector).clear();
 		}		
@@ -457,14 +594,12 @@ class MExploreCondition
 		}
 	}
 
-
 	
 	MExploreCondition addSeenIDBCollections(List<MIDBCollection> moreIDBCollections)
 	{
 		seenIDBs.addAll(moreIDBCollections);		
 		return this;
-	}
-	
+	}	
 }
 
 
@@ -483,7 +618,7 @@ public class MEnvironment
 	private static Map<Integer, MQueryResult> envQueryResults = new HashMap<Integer, MQueryResult>();
 	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
 	
-	private static int lastResult;
+	static int lastResult = -1; // uninitialized
 	
 	// BOTH are System.err because out is reserved for XML communication.
 	// DO NOT set outStream to System.out
@@ -575,7 +710,7 @@ public class MEnvironment
 		return null;
 	}
 
-	static MQueryResult getQueryResult(int num)
+	static MQueryResult getQueryResult(int num) throws MSemanticException
 	{
 		num = convertQueryNumber(num); // special case
 		
@@ -586,8 +721,14 @@ public class MEnvironment
 		
 	//If num is !- -1, returns num.
 	//If num is == -1, return the last results id (lastresult)
-	static int convertQueryNumber(int num) {
-		if (num == -1) {
+	static int convertQueryNumber(int num) throws MSemanticException
+	{
+		if (num == -1) 
+		{
+			if(lastResult < 0) // do we HAVE a last result?
+			{
+				throw new MSemanticException("No prior EXPLORE statement to reference. Perhaps the last EXPLORE statement returned an error?");
+			}
 			return lastResult;
 		}
 		else {
@@ -643,7 +784,7 @@ public class MEnvironment
 	}
 	
 	static Document getNextModel(int numResult)
-	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
+	throws MGException
 	{
 		numResult = convertQueryNumber(numResult);
 		
@@ -669,7 +810,7 @@ public class MEnvironment
 	}
 				
 	static Document getFirstModel(int numResult) 
-	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
+	throws MGException
 	{
 		numResult = convertQueryNumber(numResult);
 		
@@ -709,7 +850,10 @@ public class MEnvironment
 				MQueryResult qryResult = qry.runQuery();
 				
 				// TODO Don't store more than one for now.
-				envQueryResults.put(0, qryResult);
+				int queryId = 0;
+				
+				envQueryResults.put(queryId, qryResult);								
+				lastResult = queryId;
 				
 				return resultHandleResponse(0);
 												
@@ -1204,12 +1348,19 @@ public class MEnvironment
 	
 	public static Document showPopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist) 
+			Map<String, Set<List<String>>> clist) throws MGException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
+		// If tupled, will have indexing. Translate (using the original vocab)
+		if(aResult.forQuery.tupled)
+		{
+			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
+			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
+		}
+		
 		Map<String, Set<String>> outsets;
 		try
 		{
@@ -1228,10 +1379,6 @@ public class MEnvironment
 		{
 			return exceptionResponse(e);
 		}
-		catch (IOException e)
-		{
-			return exceptionResponse(e);
-		}
 	}
 
 	public static Document showNextCollapse(Integer id) 
@@ -1240,7 +1387,7 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist)
+	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MGException
 	{
 		return showPopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
@@ -1253,6 +1400,13 @@ public class MEnvironment
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
+		// If tupled, will have indexing. Translate (using the original vocab)
+		if(aResult.forQuery.tupled)
+		{
+			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
+			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
+		}
+		
 		Map<String, Set<String>> outsets;
 		try
 		{
@@ -1274,7 +1428,7 @@ public class MEnvironment
 		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static Document countModels(Integer id, Integer n)
+	public static Document countModels(Integer id, Integer n) throws MSemanticException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1282,12 +1436,12 @@ public class MEnvironment
 		return intResponse(aResult.countModelsAtSize(n));				
 	}
 
-	public static Document countModels(Integer id)
+	public static Document countModels(Integer id) throws MSemanticException
 	{
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
-	public static Document isGuar(Integer id)
+	public static Document isGuar(Integer id) throws MSemanticException
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
 		MQueryResult aResult = getQueryResult(id);
@@ -1298,7 +1452,7 @@ public class MEnvironment
 		return boolResponse(true);
 	}
 
-	public static Document isPoss(Integer id) 
+	public static Document isPoss(Integer id) throws MSemanticException 
 	{	
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1313,7 +1467,7 @@ public class MEnvironment
 		}
 	}
 
-	public static Document showCeiling(Integer id)
+	public static Document showCeiling(Integer id) throws MSemanticException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)

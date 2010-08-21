@@ -1,5 +1,7 @@
 package edu.wpi.margrave;
 
+import java.io.IOException;
+
 //***********************************************
 //Margrave Exceptions
 //***********************************************
@@ -13,6 +15,20 @@ class MGException extends Exception
 		super(s);
 	}
 }
+
+//class MSemanticException extends IOException
+class MSemanticException extends MGException
+{	
+	String problem;
+
+	MSemanticException(String problem)
+	{
+		super("Margrave could not understand..."); // don't have a null message
+		this.problem = problem;
+	}
+}
+
+
 class MGECombineVocabs extends MGException
 {
 	private static final long serialVersionUID = 100; 

@@ -12,7 +12,7 @@
 ; execute it and read it in tandem. 
 
 
-(start-margrave-engine)
+(start-margrave-engine (current-directory) '() '("-log"))
 
 ;(load-policy (build-path (current-directory) "tests" "extconference.p"))
 (load-policy (build-path (current-directory) "tests" "conference1.p"))
@@ -36,7 +36,7 @@
 ;(m (xml-make-rename-command "happyrouterless" "HRless"))
 ;(m (xml-make-rename-command "happyroutermore" "HRmore"))
 
-(mtext "rename conferencepolicy1 conf1")
+(display-response (mtext "rename conferencepolicy1 conf1"))
 ;(mtext "rename conferencepolicy2 conf2")
 ;(mtext "rename fwex1 firewall1")
 ;(mtext "rename fwex1a firewall1a")
@@ -55,10 +55,10 @@
 
 (define theid (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"))
 ;(printf "Id: ~a~n" (xml-explore-result->id theid))
-(display-response (mtext "GET ONE 0"))
+(display-response (mtext "GET ONE"))
 
 
-(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING")
+(display-response (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING"))
 
 ; You don't need to pass an EXPLORE id if you're referencing the last explore:
 (display-response (mtext "GET ONE"))

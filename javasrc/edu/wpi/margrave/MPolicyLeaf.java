@@ -539,7 +539,7 @@ public class MPolicyLeaf extends MPolicy
 			for(MRule r : rules)
 			{
 				idbs.put(vocab.validateIdentifier(r.name+"_applies", true), r.target_and_condition);
-				idbs.put(vocab.validateIdentifier(r.name, true), r.target_and_condition);
+				idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
 			}
 		}
 								
@@ -579,7 +579,7 @@ public class MPolicyLeaf extends MPolicy
 						idbs.put(vocab.validateIdentifier(r.name+"_applies", true),
 								MFormulaManager.makeAnd(r.target_and_condition, 
 								                         MFormulaManager.makeConjunction(negprior)));
-						idbs.put(vocab.validateIdentifier(r.name, true), r.target_and_condition);
+						idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
 					}
 				
 				negprior.add(MFormulaManager.makeNegation(thisdec));				
@@ -617,7 +617,7 @@ public class MPolicyLeaf extends MPolicy
 															
 				// add IDB for this rule's applicability.
 				idbs.put(r.name+"_applies", thisruleapplies);
-				idbs.put(r.name, r.target_and_condition);
+				idbs.put(r.name+"_matches", r.target_and_condition);
 				
 				// ***************
 				// Could do this, but it is very, very inefficient. 
