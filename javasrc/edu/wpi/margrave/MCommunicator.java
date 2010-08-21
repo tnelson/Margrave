@@ -1038,19 +1038,19 @@ public class MCommunicator
         		// May be v1 = v2
         		// May be c = v1 (or v1 = c)
         		//   (shorthand for c(v1) provided c is a lone/one constrained sort)
+        		// But we don't know which until we resolve the query's vocabulary
         		        		
         		String idname1 = getNodeAttribute(n, "EQUALS", "v1");
         		String idname2 = getNodeAttribute(n, "EQUALS", "v2");
         		
         		writeToLog("\nEQUALS: "+idname1+" = "+idname2+"\n");
-        		
-        		// The problem: I have no way to know which it is until the query's vocab is created.
-        		
-        		
+        		        		
+        		        		
         		Variable v1 = MFormulaManager.makeVariable(idname1);
         		Variable v2 = MFormulaManager.makeVariable(idname2);
         		Formula fmla = MFormulaManager.makeEqAtom(v1, v2);
-        		return new MExploreCondition(fmla, v1, v2);        		
+        		        		        	
+        		return new MExploreCondition(fmla, v1, v2, true);  // needs late binding attention (true)      		
         	}
         	else if (name.equalsIgnoreCase("IFF")) {
         		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));

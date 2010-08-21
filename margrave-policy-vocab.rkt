@@ -71,7 +71,9 @@
                                   empty)))
                       
                       ; Bottom of sort tree. 
-                      (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s))))))
+                      (begin
+                        ;(printf "~a ~a ~a ~n" s listsubs-cleaned parent)
+                        (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
                   rest))
                empty
                listsubs-cleaned)

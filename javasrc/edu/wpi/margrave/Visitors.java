@@ -3,6 +3,7 @@ package edu.wpi.margrave;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -317,7 +318,7 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
 }
 
 /**
- * Visitor which replaces instances for some Relations and Variables
+ * Visitor that replaces instances for some Relations and Variables
  *
  * @author tn
  *
@@ -496,13 +497,32 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 	}
 }
 
-/**
- * Visitor to simplify formula in obvious ways. For instance, (x && false) will
- * become false, etc.
- *
- * @author tn
- *
- */
+class ReplaceComparisonFormulasV extends AbstractCacheAllReplacer
+{
+	Map<Node, Node> toReplace;
+	
+	ReplaceComparisonFormulasV(Map<Node, Node> toReplace)
+	{
+		super(new HashSet<Node>());
+		this.toReplace = toReplace;
+	}
+	
+	public Formula visit(ComparisonFormula comp)
+	{
+		if (cache.containsKey(comp))
+			return lookup(comp);
+		cached.add(comp);
+		
+		if(toReplace.containsKey(comp))
+		{
+			return (Formula) cache(comp, toReplace.get(comp));
+		}
+		
+		return cache(comp, comp);
+	}
+	
+	
+}
 
 /**
  * Visitor to detect use of transitive closure within a formula. (This is used

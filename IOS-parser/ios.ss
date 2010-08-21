@@ -3612,6 +3612,7 @@
                  (disjoint-all ICMPMessage)
                  (disjoint-all Length)
                  (atmostone-all interf-real)
+                 (atmostone-all Hostname)
                  (atmostone interf-drop)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
                  (atmostone-all Protocol)

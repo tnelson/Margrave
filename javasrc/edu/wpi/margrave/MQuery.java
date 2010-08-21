@@ -3992,10 +3992,13 @@ public class MQuery extends MIDBCollection
 
 		// **********************************************************
 		// At this point, we have the query formula (w/ proper variables)
-		// but no prefix or sorts on the vars.
+		// but no prefix or sorts on the vars. 
 
+		// first, bind placeholders properly
+		// E.g. (A=x) will be converted to A(x) if A is a lone/one sort
+		mpc.resolvePlaceholders(uber);
 		Formula qryFormula = mpc.fmla;
-
+	
 		// mpc has given us a bunch of assertions. Now we need to
 		// (a) unpack the ones that do not refer to sort EDBs, now that we have
 		// signatures of the predicates

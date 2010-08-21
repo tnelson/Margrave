@@ -435,9 +435,10 @@
                                         '()
                                         rules))
               ; Abstract constraints, until we merge (e.g.) Port and port-any
-              '( (abstract Address) (abstract Port) (abstract Interface) (abstract Protocol) (abstract Chain))
+              '( (abstract Address) (abstract Port) (abstract Interface) (abstract Protocol) (abstract Chain) (abstract State) (abstract Message) (abstract Flags))
               ; Same with disjoint-all for these special sorts (ip-0-0-0-0/0-0-0-0 already dealt with)
-              '( (disjoint-all port-any) (disjoint-all ip) (disjoint-all chain-any) (disjoint-all if-any))))
+              ; flags need not be disjoint
+              '( (disjoint-all port-0:65535) (disjoint-all ip) (disjoint-all chain-any) (disjoint-all if-any) (disjoint-all icmp-any))))
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
