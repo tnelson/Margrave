@@ -16,7 +16,7 @@ function resolve
     else
         host $1 | grep -q "has address"
         if [[ $? -eq 0 ]]; then
-            echo `host $1 | grep "has address" | head -n1 | cut -d ' ' -f 4 | sed 's/\./-/g'`
+            echo `host $1 | grep "has address" | cut -d ' ' -f 4 | sed 's/\./-/g'`
         else
             host $1 | grep -q "in-addr.arpa"
             if [[ $? -eq 0 ]]; then
@@ -27,9 +27,9 @@ function resolve
 }
 
 # Parse the command line for the important packet attributes.
-SRCADDR="ip-0-0-0-0/0"
+SRCADDRS="ip-0-0-0-0/0"
 SRCPORT="port-0:65535"
-DESTADDR="ip-0-0-0-0/0"
+DESTADDRS="ip-0-0-0-0/0"
 DESTPORT="port-0:65535"
 PROTOCOL="ip"
 MESSAGE="icmp-any"
@@ -56,7 +56,7 @@ do
         -s|--src|--source)
             ADDRESS=`resolve $2`
             if [[ $ADDRESS != "" ]]; then
-                SRCADDR="ip-"`resolve $2`
+                SRCADDRS=$ADDRESS
             fi
             shift 2
             ;;
@@ -69,7 +69,7 @@ do
         -d|--dest|--destination)
             ADDRESS=`resolve $2`
             if [[ $ADDRESS != "" ]]; then
-                DESTADDR="ip-"`resolve $2`
+                DESTADDRS=$ADDRESS
             fi
             shift 2
             ;;
@@ -133,18 +133,24 @@ done
 # Append the rule to the firewall policy.
 if [[ $DECISION != "" ]]
 then
-    echo "(rule-"`grep rule iptables-firewall.p | wc -l` \
-         " = ("$DECISION \
-         " chain in-interface src-addr src-port protocol message state flag dest-addr dest-port out-interface) :- " \
-         "("$CHAIN" chain) " \
-         "("$ININTERFACE" in-interface) " \
-         "("$SRCADDR" src-addr) " \
-         "("$SRCPORT" src-port) " \
-         "("$PROTOCOL" protocol) " \
-         "("$MESSAGE" message) " \
-         `for STATE in $( echo $STATES | tr ',' ' ' ); do echo "("$STATE" state) "; done` \
-         `for FLAG in $( echo $FLAGS | tr ',' ' ' ); do echo "("$FLAG" flag) "; done` \
-         "("$DESTADDR" dest-addr) " \
-         "("$DESTPORT" dest-port) " \
-         "("$OUTINTERFACE" out-interface))" >> iptables-firewall.p
+    for SRCADDR in $SRCADDRS;
+    do
+        for DESTADDR in $DESTADDRS;
+        do
+            echo "(rule-"`grep rule iptables-firewall.p | wc -l` \
+                " = ("$DECISION \
+                " chain in-interface src-addr src-port protocol message state flag dest-addr dest-port out-interface) :- " \
+                "("$CHAIN" chain) " \
+                "("$ININTERFACE" in-interface) " \
+                "(ip-"$SRCADDR" src-addr) " \
+                "("$SRCPORT" src-port) " \
+                "("$PROTOCOL" protocol) " \
+                "("$MESSAGE" message) " \
+                `for STATE in $( echo $STATES | tr ',' ' ' ); do echo "("$STATE" state) "; done` \
+                `for FLAG in $( echo $FLAGS | tr ',' ' ' ); do echo "("$FLAG" flag) "; done` \
+                "(ip-"$DESTADDR" dest-addr) " \
+                "("$DESTPORT" dest-port) " \
+                "("$OUTINTERFACE" out-interface))" >> iptables-firewall.p ;
+        done
+    done
 fi
