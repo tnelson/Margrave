@@ -22,22 +22,34 @@
 ; dirpath says where to find the policies
 ; prefix (and suffix) are prepended (and appended) to the 
 ;   policy's name to avoid naming conflicts.
-(define (load-ios-policies dirpath prefix suffix)
+(define (load-ios-policies dirpath prefix suffix (verbose #f))
+
+  (time-since-last) ; init timer
+  
   (printf "Loading IOS policies in path: ~a with prefix: ~a and suffix: ~a ~n" dirpath prefix suffix)
-    
-    (load-ios-helper "InboundACL" dirpath prefix suffix)  
-    (load-ios-helper "InsideNAT" dirpath prefix suffix)  
-    (load-ios-helper "StaticRoute" dirpath prefix suffix)  
-    (load-ios-helper "LocalSwitching" dirpath prefix suffix)  
-    (load-ios-helper "PolicyRoute" dirpath prefix suffix)  
-    (load-ios-helper "DefaultPolicyRoute" dirpath prefix suffix)  
-    (load-ios-helper "NetworkSwitching" dirpath prefix suffix)  
-    (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
-    (load-ios-helper "OutboundACL" dirpath prefix suffix)  
-    (load-ios-helper "Encryption" dirpath prefix suffix)  
-    (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
-    (printf "~n")
-   
+  
+  (load-ios-helper "InboundACL" dirpath prefix suffix)  
+  
+  (when (equal? #t verbose)
+    (printf "Time to load InboundACL: ~a ms.~n" (time-since-last))
+    (display-response (mtext "INFO")))
+  
+  (load-ios-helper "InsideNAT" dirpath prefix suffix)  
+  (load-ios-helper "StaticRoute" dirpath prefix suffix)  
+  (load-ios-helper "LocalSwitching" dirpath prefix suffix)  
+  (load-ios-helper "PolicyRoute" dirpath prefix suffix)  
+  (load-ios-helper "DefaultPolicyRoute" dirpath prefix suffix)  
+  (load-ios-helper "NetworkSwitching" dirpath prefix suffix)  
+  (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+  (load-ios-helper "OutboundACL" dirpath prefix suffix)  
+  (load-ios-helper "Encryption" dirpath prefix suffix)  
+  (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+  (printf "~n")
+  (when (equal? #t verbose)
+    (printf "Time to load all other sub-policies: ~a ms.~n" (time-since-last))
+    (display-response (mtext "INFO")))
+
+ ; (printf "Time to load policy files + vocabularies: ~a milliseconds.~n" (time-since-last))
 
   ; old routed-packets
   #|
@@ -349,5 +361,7 @@ PUBLISH ahostname, entry-interface,
 TUPLING"))
   (mtext (string-append "RENAME LAST " prefix "firewall-passed" suffix))
 
+  (when (equal? #t verbose)
+    (printf "Time to create and save internal-result and firewall-passed: ~a milliseconds.~n" (time-since-last)))
   
 ) ; end of function (more clear as lone paren; we are adding more)

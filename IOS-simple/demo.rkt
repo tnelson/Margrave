@@ -3,9 +3,6 @@
 (require (file "../margrave.rkt")
          (file "../margrave-ios.rkt"))
 
-; IMPORTANT! --->
-; Things that need bugfixing for the paper are marked with TODO.
-
 
 (define vector "(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
@@ -92,9 +89,6 @@
                         " TUPLING")))
   (display-response (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g5468_applies" vector ","
                         "InboundACL1:ACE-line-13-g5471_applies" vector)))
-  
-  
-  ; TODO: Why is the line number off by 1? (Do we use _next_ char's line number? If so, need to subtract 1 in IOS parser)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; change-impact
@@ -204,7 +198,9 @@
   ; Computing superfluous rules
   ; ----> In sup-ios.rkt
   
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
+  ; 2.1 in other file
   
   
   

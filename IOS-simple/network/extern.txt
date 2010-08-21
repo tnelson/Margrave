@@ -10,11 +10,11 @@ ip access-group 104 in
 access-list 104 deny 10.200.200.200
 access-list 104 permit tcp any host 10.1.1.3 eq 25
 access-list 104 permit tcp any host 10.1.1.4 eq 80
-access-list 104 deny all
+access-list 104 deny any
 !
-access-list 103 deny any host 10.200.200.200
-access-list 103 deny any any eq 23
+access-list 103 deny ip any host 10.200.200.200
+access-list 103 deny tcp any any eq 23
 access-list 103 permit tcp host 192.168.1.2 any eq 80
-access-list 103 deny all
+access-list 103 deny any
 !
 end
