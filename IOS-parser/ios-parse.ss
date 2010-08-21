@@ -20,6 +20,7 @@
 
 ;; port IOS-config% -> IOS-config%
 (define (parse-IOS-details input config)
+  ; read a line. each case below re-calls this func for the next line
   (let [(line-tokens (tokenize-line (read-line input 'any)))]
     (case (first line-tokens)
       [(access-list) (parse-IOS-details input (parse-access-list (rest line-tokens) input config))]
@@ -53,9 +54,10 @@
                                    (string->symbol (number->string (first line-tokens)))))))
 
 ;; port -> number
+; The line has already been read, so subtract 1. (else, off by one)
 (define (line-number input)
   (let-values [([line column position] [port-next-location input])]
-    line))
+    (- line 1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Access Control Lists

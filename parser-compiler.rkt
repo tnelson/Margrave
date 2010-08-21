@@ -212,8 +212,9 @@
    
    ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
    ; Implication is not associative (and of course, neither is the unary operator NOT.)
+   ; Precedence in reverse order here. Order of productions doesn't override this.
    (precs (left IFF)
-          (nonassoc IMPLIES)
+          (nonassoc IMPLIES)          
           (left OR)
           (left AND)
           (nonassoc NOT))
@@ -396,13 +397,12 @@
     ; condition-formula: A sub-formula of the condition
     (condition-formula 
      
-     
-     [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 3)]
+     [(LPAREN condition-formula RPAREN) (build-so $2 1 3)]
+     [(NOT condition-formula) (build-so (list 'NOT $2) 1 2)]     
      [(condition-formula AND condition-formula) (build-so (list 'AND $1 $3) 1 3)]
+     [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 3)]
      [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 3)]
      [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
-     [(NOT condition-formula) (build-so (list 'NOT $2) 1 2)]
-     [(LPAREN condition-formula RPAREN) (build-so $2 1 3)]
      [(equals-formula) (build-so $1 1 1)]
      [(atomic-formula) (build-so $1 1 1)]
      

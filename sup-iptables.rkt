@@ -95,7 +95,7 @@
          (first (regexp-split "_applies\\[" idbname)))
        thelist))
 
-(define reqVector "chain, in-interface, src-addr, src-port, protocol, dest-addr, dest-port, out-interface")
+(define reqVector "chain, in-interface, src-addr, src-port, protocol, message, state, flag, dest-addr, dest-port, out-interface")
 
 ; *********************************************************************
 
@@ -111,7 +111,7 @@
                                           "EXPLORE Address(src-addr) AND Address(dest-addr) AND "
                                           " Port(dest-port) AND Port(src-port) AND "
                                           " Interface(in-interface) AND Interface(out-interface) and Chain(chain) AND "
-                                          " Protocol(protocol)"
+                                          " Protocol(protocol) AND Message(message) AND State(state) AND Flag(flag) "
                                           "UNDER iptables-firewall "
                                           "INCLUDE " (string-append idblistda ", " idblistpn-sup)
                                           " TUPLING")))]                  
@@ -128,7 +128,7 @@
                                           "EXPLORE Address(src-addr) AND Address(dest-addr) AND "
                                           " Port(dest-port) AND Port(src-port) AND "
                                           " Interface(in-interface) AND Interface(out-interface) and Chain(chain) AND "
-                                          " Protocol(protocol)"
+                                          " Protocol(protocol) AND Message(message) AND State(state) AND Flag(flag) "
                                           "UNDER iptables-firewall "
                                           "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
                                           " TUPLING")))]         
@@ -174,7 +174,7 @@
                                           "EXPLORE Address(src-addr) AND Address(dest-addr) AND "
                                           " Port(dest-port) AND Port(src-port) AND "
                                           " Interface(in-interface) AND Interface(out-interface) and Chain(chain) AND "
-                                          " Protocol(protocol)"
+                                          " Protocol(protocol) AND Message(message) AND State(state) AND Flag(flag) "
                                              "UNDER iptables-firewall "
                                              "INCLUDE " idblistapplied
                                              " TUPLING")))])

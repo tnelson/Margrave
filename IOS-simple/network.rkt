@@ -43,7 +43,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up))
+  (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))
   
   ; Load all the policies 
   (load-ios-policies (build-path (current-directory) "network") "" "")  
@@ -53,6 +53,8 @@
   
   (printf "~n~nSample multi-firewall query:~n")
   
+  ; Remember: AND binds tighter than OR, so wrap the OR in parens.
+  ; 10.200.0.0/255.255.0.0 is "the internet" for this example: something outside the extern router
   (display-response (mtext (string-append "EXPLORE port-80(fw1-dest-port-in) AND
 10.1.1.0/255.255.255.0(fw1-dest-addr-in)
 AND prot-TCP(protocol) AND
@@ -62,15 +64,14 @@ out_dmz(fw2-entry-interface) AND
 hostname-intern(fw1) AND
 hostname-extern(fw2) AND
 
-10.1.1.0/255.255.255.0(fw1-dest-addr-in) AND
-NOT 10.200.200.200(fw1-dest-addr-in) AND
+10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
 
 internal-result" reqfull-1 " AND
 
-NOT firewall-passed" reqpol-1 " OR
+( NOT firewall-passed" reqpol-1 " OR
 
-(internal-result" reqfull-2 " AND
- NOT firewall-passed" reqpol-2 ")
+internal-result" reqfull-2 " AND
+NOT firewall-passed" reqpol-2 ")
 
 UNDER InboundACL
 INCLUDE

@@ -3293,14 +3293,17 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
 		
+		
+		
+		// Main test blocks		
+		runTests();		
+		
 		// tupling benchmarks
 		MEnvironment.writeOutLine("\n\nTUPLING BENCHMARKS\n\n");
 		// Not _new; the new timer uses unary preds for address bits
 		do_time_tupling();					
 				
-		
-		// Main test blocks		
-		runTests();		
+
 		
 		
 		

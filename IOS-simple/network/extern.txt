@@ -2,9 +2,11 @@ hostname extern
 !
 interface out_dmz
 ip access-group 103 in
+ip address 10.1.1.2 255.255.255.0
 !
 interface out_inet
 ip access-group 104 in
+ip address 10.200.1.1 255.255.0.0
 !
 ! (Another "private" IP we pretend is public)
 access-list 104 deny 10.200.200.200

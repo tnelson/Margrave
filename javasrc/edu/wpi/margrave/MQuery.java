@@ -3069,6 +3069,7 @@ public class MQuery extends MIDBCollection
 
 		// (1) Look at the equalities, decide what the universe is
 		HashMap<String, String> idxToAtom = new HashMap<String, String>();
+		HashMap<String, String> idxToVar = new HashMap<String, String>();
 
 		List<String> annotations = new ArrayList<String>();
 	
@@ -3152,6 +3153,7 @@ public class MQuery extends MIDBCollection
 			}
 						
 			idxToAtom.put(idx, aName);
+			idxToVar.put(idx, internalTuplingVisitor.pv.revIndexing.get(idx).name());
 			vals.add(aName);
 		}
 		
@@ -3171,50 +3173,49 @@ public class MQuery extends MIDBCollection
 			if(r.name().startsWith("="))
 				continue;
 
-			if(partialInstance.getFacts().relationTuples().get(r).size() > 0)
+		
+			int underscoreIndex = r.name().lastIndexOf("_");
+			
+			// Some special tupled preds don't have an indexing
+			String preunderscore = "";
+			if(underscoreIndex >= 0)
+				preunderscore = r.name().substring(0, underscoreIndex);
+		
+			/// *****************
+			/// IDB OUTPUT
+			/// *****************
+
+			// Does the pre-tupling part of this relname appear in our list of IDB names to output?
+			if(internalTupledQuery.getIDBNamesToOutput().contains(preunderscore))
 			{
-				// populated!
-				int underscoreIndex = r.name().lastIndexOf("_");
+				
+				// Indexing is after the underscore.
+				String[] indexing = r.name().substring(underscoreIndex+1).split(",");
 
-				/// *****************
-				/// IDB OUTPUT
-				/// *****************
-
-				// Does the pre-tupling part of this relname appear in our list of IDB names to output?
-
-				// Some special tupled preds don't have an indexing
-				String preunderscore = "";
-				if(underscoreIndex >= 0)
-					preunderscore = r.name().substring(0, underscoreIndex);
-
-				//MEnvironment.writeErrLine("******"+preunderscore);
-
-				// this is the pre-tupling query's set
-				if(internalTupledQuery.getIDBNamesToOutput().contains(preunderscore)) 
+				List<String> theTuple = new ArrayList<String>();
+				for(String s : indexing)
 				{
-
-					// Indexing is after the underscore.
-					String[] indexing = r.name().substring(underscoreIndex+1).split(",");
-
-					List<String> theTuple = new ArrayList<String>();
-					for(String s : indexing)
-					{
-						theTuple.add(idxToAtom.get(s));
-					}
-
-
-					// 	Cannot just add, may be too many tuples (in full relation) to fit in maxint
-					// if so kodkod throws an exception.
-					// instance.add(r, theTuples);
-
-					// Instead, we apply duct tape.
-					// Annotate the result!
-					// Only ONE tuple because of how we restrict to a certain indexing
-					// Also: strip the indexing from r.name().
-					annotations.add(preunderscore + " is true for: "+ theTuple);
-
-					continue; // finished handling this relation
+					theTuple.add(idxToVar.get(s));
 				}
+
+
+				// 	Cannot just add, may be too many tuples (in full relation) to fit in maxint
+				// if so kodkod throws an exception.
+				// instance.add(r, theTuples);
+
+				// Instead, we apply duct tape.
+				// Annotate the result!
+				// Only ONE tuple because of how we restrict to a certain indexing
+				// Also: strip the indexing from r.name().
+				if(partialInstance.getFacts().relationTuples().get(r).size() > 0)					
+					annotations.add(preunderscore + "("+ theTuple+")");
+				//else
+				//	annotations.add("NOT "+preunderscore + "("+ theTuple+")");
+				// Don't spam the user with _negative_ IDBs.
+
+			}			
+			else if(partialInstance.getFacts().relationTuples().get(r).size() > 0)
+			{
 
 				/// *****************
 				/// Other relations
@@ -3257,25 +3258,19 @@ public class MQuery extends MIDBCollection
 					{
 						continue;
 					}
-				}
+				} // underscore index > 0
 			} // end if relation populated
 			else
 			{
 				// If unpopulated
-				// Leave empty for now
+				// no reason to add a tuple, is there?
 			}
 
 		} // for each relation
 
 
-
-
-		//System.exit(1);
-
-
-
-
-		// TODO dealing with dontcares here...
+		// TODO Deal with don't care's here?
+		// Not much that uses partial models anymore, so left undone for now.
 
 
 

@@ -171,82 +171,84 @@
 (define-struct predicate (name arity list-of-atoms) #:mutable)
 
 ;Maps strings (such as "s") to their corresponding atoms
-(define atom-hash (make-hash))
+;(define atom-hash (make-hash))
 
 ;Maps name of predicates (strings) to their corresponding predicate structs
-(define predicate-hash (make-hash))
-
-(define model-size 0)
-
-(define (pretty-print-next-model id) 
-  "")
+;(define predicate-hash (make-hash))
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 ;This function goes through the xml and updates atom-hash and predicate-hash
 ;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
 (define (pretty-print-model xml-model)
-  (let ([annotation-string ""] ;to set later, when we get to the annotation
-        [string-buffer (open-output-string)]) 
+  (let* ([atom-hash (make-hash)]
+         [predicate-hash (make-hash)]
+         [model-element (get-child-element xml-model 'MODEL)]
+         [relation-elements (get-child-elements model-element 'RELATION)]
+         [model-size (get-attribute-value model-element 'size)] 
+         [annotation-elements (get-child-elements model-element 'ANNOTATION)]
+         [statistics-element (get-child-element xml-model 'STATISTICS)]         
+         [string-buffer (open-output-string)]) 
+
     ;First, go through the XML and update the 2 hashes. Then afterwards print them out.
-    (local [(define (write s)
+    (local ((define (write s)
               (write-string s string-buffer))
-            (define (helper content) ;content is a list of alternating pcdatas and RELATION elements
-              (cond [(empty? content) void]
-                    [(pcdata? (first content)) (helper (rest content))]
-                    [(element? (first content))
-                     (if (equal? 'RELATION (element-name (first content))) ;If its not a relation, its an annotation
-                         (let* ((relation (first content))
-                                (relation-arity (string->number (get-attribute-value relation 'arity)))
-                                (relation-name  (get-attribute-value relation 'name)))
-                           (begin
-                             (when (not (hash-ref predicate-hash relation-name #f)) ;if the relation (predicate) doesn't exist in the hash yet, create it
-                               (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
-                             (let ((predicate-struct (hash-ref predicate-hash relation-name))) ;should definitely exist, since we just created it if it didn't
-                               (when (not (empty? (element-content relation))) ;if there is at least one atom that satisfies this relation
-                                 (let ((tuple-content (element-content (second (element-content relation)))))
-                                   (local [(define (parse-tuple t-cont)
-                                             (cond [(empty? t-cont) void]
-                                                   [(pcdata? (first t-cont)) (parse-tuple (rest t-cont))]
-                                                   [(element? (first t-cont))
-                                                    (let* ((atom (first t-cont))
-                                                           (atom-name (pcdata-string (first (element-content atom)))))
-                                                      (begin 
-                                                        (when (not (hash-ref atom-hash atom-name #f)) ;if the atom doesn't exist in the hash yet, create it
-                                                          (hash-set! atom-hash atom-name (make-atom atom-name empty)))
-                                                        (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
-                                                          (if (equal? (string-ref relation-name 0) #\$)
-                                                              (set-atom-name! atom-struct (substring relation-name 1))
-                                                              (if (=  relation-arity 1) ;If relation is a type
-                                                                  (begin 
-                                                                    (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                                    (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
-                                                                  (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
-                                                                         (parse-tuple (rest t-cont))))))))]
-                                                   [else "Error in pretty-print-model!"]))]
-                                     (parse-tuple tuple-content)))))
-                             (helper (rest content))))
-                         ;Otherwise, Annotation. For now, print as is
-                         (begin (set! annotation-string 
-                                      (pcdata-string (first (element-content (first content)))))
-                                (helper (rest content))))]
-                    [else "Error in pretty-print-model!!"]))]
-      (begin (set! atom-hash (make-hash)) ;First reset the hashes
-             (set! predicate-hash (make-hash))
-             (set! model-size (get-attribute-value (second (element-content xml-model)) 'size)) ;shouldn't really be hardcoded in
-             (helper (element-content (second (element-content xml-model))))
-             (write (string-from-hash))
-             (when (> (string-length annotation-string) 0)
-               (write (string-append annotation-string "\n")))
-             (if (< 2 (length (element-content xml-model)))
-                 (write (print-statistics (fourth (element-content xml-model))))
-                 "")
-             
+            
+            (define (handle-relation relation)                   
+                (let* ([relation-arity (string->number (get-attribute-value relation 'arity))]
+                       [relation-name  (get-attribute-value relation 'name)])
+                  (begin
+                    
+                     ;if the relation (predicate) doesn't exist in the hash yet, create it
+                    (when (not (hash-ref predicate-hash relation-name #f))
+                      (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
+                                        
+                    (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
+                           [tuple-elements (get-child-elements relation 'TUPLE)]) 
+
+                      (local [(define (parse-tuple-contents t-cont)
+                                (let* ([atom (first t-cont)]
+                                       [atom-name (pcdata-string (first (element-content atom)))])                                                                    
+                                  (begin   
+                                    (when (not (hash-ref atom-hash atom-name #f)) ;if the atom doesn't exist in the hash yet, create it
+                                      (hash-set! atom-hash atom-name (make-atom atom-name empty)))
+                                    
+                                    (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                      (if (equal? (string-ref relation-name 0) #\$)
+                                          (set-atom-name! atom-struct (substring relation-name 1))
+                                          (if (=  relation-arity 1) ;If relation is a type
+                                              (begin 
+                                                (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
+                                                (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
+                                              (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
+                                                     (parse-tuple-contents (rest t-cont)))))))))]
+
+                            (for-each parse-tuple-contents (map (lambda (tuple-element)
+                                                                  (get-child-elements tuple-element 'ATOM)) 
+                                                                tuple-elements))))))))
+      
+      (begin
+        (for-each handle-relation relation-elements)
+        (write (string-from-hash atom-hash predicate-hash model-size))
+        (when (> (length annotation-elements) 0)
+          (write "\n    -> Also:\n"))
+        (print-annotations string-buffer annotation-elements)
+        (when (not (equal? empty statistics-element))
+          (write (print-statistics statistics-element)))
+        (write "********************************************************")
+        
+        
              ; Debugging (let the caller decide whether to print or not)
              ;(display (get-output-string string-buffer))
              (get-output-string string-buffer)))))
 
+(define (print-annotations buffer list-of-annot)
+  (for-each (lambda (annotation-element)
+              (write-string (pcdata-string (first (element-content annotation-element))) buffer)
+              (write-string "\n" buffer))
+            list-of-annot)) 
+
 ;Returns a string to display based on atom-hash and predicate-hash
-(define (string-from-hash)
+(define (string-from-hash atom-hash predicate-hash model-size)
   (local [(define (atom-helper hash-pos)
             (cond [(false? hash-pos) ""]
                   [else (let ((atom (hash-iterate-value atom-hash hash-pos)))
@@ -289,7 +291,7 @@
       (let* ((name (string-downcase (if (symbol? name-symb-or-str)
                                         (symbol->string name-symb-or-str)
                                         name-symb-or-str)))
-             (result (filter (lambda(element) (equal? name (string-downcase (symbol->string (element-name element)))))
+             (result (filter (lambda (element) (equal? name (string-downcase (symbol->string (element-name element)))))
                              (filter (lambda (maybe-elem) (element? maybe-elem))
                                      (element-content element)))))
         result)))
