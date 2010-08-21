@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-12-g3352
+  (ACE-hostname-intern-line-12-g1961
    =
    (Deny
     hostname
@@ -28,7 +28,7 @@
    (in_lan entry-interface)
    (192.168.4.0/255.255.255.0 src-addr-in)
    (10.1.1.3 dest-addr-in))
-  (ACE-line-13-g3353
+  (ACE-hostname-intern-line-13-g1962
    =
    (Permit
     hostname
@@ -55,7 +55,7 @@
    (Port src-port-in)
    (10.1.1.3 dest-addr-in)
    (port-25 dest-port-in))
-  (ACE-line-14-g3354
+  (ACE-hostname-intern-line-14-g1963
    =
    (Permit
     hostname
@@ -82,7 +82,7 @@
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (port-80 dest-port-in))
-  (ACE-line-15-g3355
+  (ACE-hostname-intern-line-15-g1964
    =
    (Deny
     hostname
@@ -105,7 +105,7 @@
    (hostname-intern hostname)
    (in_lan entry-interface)
    (IPAddress src-addr-in))
-  (ACE-line-0-g3356
+  (ACE-hostname-intern-line-0-g1965
    =
    (Permit
     hostname
@@ -128,7 +128,7 @@
    (hostname-intern hostname)
    (in_dmz entry-interface)
    (IPAddress src-addr-in))
-  (ACE-line-12-g3357
+  (ACE-hostname-extern-line-12-g1966
    =
    (Deny
     hostname
@@ -151,7 +151,7 @@
    (hostname-extern hostname)
    (out_inet entry-interface)
    (10.200.200.200 src-addr-in))
-  (ACE-line-13-g3358
+  (ACE-hostname-extern-line-13-g1967
    =
    (Permit
     hostname
@@ -178,7 +178,7 @@
    (Port src-port-in)
    (10.1.1.3 dest-addr-in)
    (port-25 dest-port-in))
-  (ACE-line-14-g3359
+  (ACE-hostname-extern-line-14-g1968
    =
    (Permit
     hostname
@@ -205,7 +205,7 @@
    (Port src-port-in)
    (10.1.1.4 dest-addr-in)
    (port-80 dest-port-in))
-  (ACE-line-15-g3360
+  (ACE-hostname-extern-line-15-g1969
    =
    (Deny
     hostname
@@ -228,7 +228,7 @@
    (hostname-extern hostname)
    (out_inet entry-interface)
    (IPAddress src-addr-in))
-  (ACE-line-17-g3361
+  (ACE-hostname-extern-line-17-g1970
    =
    (Deny
     hostname
@@ -252,7 +252,7 @@
    (out_dmz entry-interface)
    (IPAddress src-addr-in)
    (10.200.200.200 dest-addr-in))
-  (ACE-line-18-g3362
+  (ACE-hostname-extern-line-18-g1971
    =
    (Deny
     hostname
@@ -279,7 +279,7 @@
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (port-23 dest-port-in))
-  (ACE-line-19-g3363
+  (ACE-hostname-extern-line-19-g1972
    =
    (Permit
     hostname
@@ -306,7 +306,7 @@
    (Port src-port-in)
    (IPAddress dest-addr-in)
    (port-80 dest-port-in))
-  (ACE-line-20-g3364
+  (ACE-hostname-extern-line-20-g1973
    =
    (Deny
     hostname

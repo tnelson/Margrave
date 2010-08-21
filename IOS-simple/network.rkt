@@ -75,11 +75,11 @@ NOT firewall-passed" reqpol-2 ")
 
 UNDER InboundACL
 INCLUDE
-InboundACL:ACE-line-12-g3352_applies" reqpol-1 ",
-InboundACL:ACE-line-15-g3355_applies" reqpol-1 ",
-InboundACL:ACE-line-20-g3364_applies" reqpol-2 ",
-InboundACL:ACE-line-18-g3362_applies" reqpol-2 ",
-InboundACL:ACE-line-17-g3361_applies" reqpol-2 "
+InboundACL:ACE-hostname-intern-line-12-g1961_applies" reqpol-1 ",
+InboundACL:ACE-hostname-intern-line-15-g1964_applies" reqpol-1 ",
+InboundACL:ACE-hostname-extern-line-17-g1970_applies" reqpol-2 ",
+InboundACL:ACE-hostname-extern-line-18-g1971_applies" reqpol-2 ",
+InboundACL:ACE-hostname-extern-line-20-g1973_applies" reqpol-2 "
 
 TUPLING")))
   

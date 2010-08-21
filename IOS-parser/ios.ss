@@ -3618,7 +3618,8 @@
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
                  (atmostone icmp-echo)
                  (atmostone icmp-echo-reply)
-                 (atmostone-all TCPFlags)
+                 ; TN Removed: can have an atom that is SYN+ACK and an atom that is SYN -- both live in SYN
+                 ;(atmostone-all TCPFlags)
                  (atmostone-all Length)
                  (nonempty Hostname)
                  (nonempty Interface)
@@ -3629,7 +3630,8 @@
                  (nonempty TCPFlags)
                  (nonempty Length))))
 
-(define TCP-flags '(NONE SYN ACK FIN PSH URG RST))
+; TN removed NONE, not needed
+(define TCP-flags '(SYN ACK FIN PSH URG RST))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Policy Generation

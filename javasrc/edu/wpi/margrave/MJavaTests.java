@@ -2533,6 +2533,8 @@ public class MJavaTests
 		}
 
 	}
+	
+	
 
 	public static void do_time_tupling_new()
 	throws MGException
@@ -2642,15 +2644,21 @@ public class MJavaTests
 		templist.add("Res5 r");
 		pol3b.addRule("Difference2", "Permit", templist);
 
-
+		long msTotal;
+		MQuery qry;
+		long start;
+		long substart;
+		long tuptime;
+		
 		pol3a.initIDBs();
 		pol3b.initIDBs();
 
+		/*
 		// ************************************************************
 		// Smallest model = 1
 		long start = mxBean.getCurrentThreadCpuTime();
 		int tuptime = 0;
-		MQuery qry = pol3a.queryPolicy("(forsome s Subject (sub10 s))");
+		MQuery qry = pol3a.queryPolicy("(forsome s Subject (or (sub10 s) (sub5 s) (sub12 s) (sub14 s) (sub11 s) (sub25 s) (sub20 s) (sub27 s) ))");
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
@@ -2666,11 +2674,11 @@ public class MJavaTests
 		// inflated because so few are used in this first one (just sub10)
 		// not a fair test
 
-
+*/
 
 		//
 		// ************************************************************
-		start = mxBean.getCurrentThreadCpuTime();
+	/*	start = mxBean.getCurrentThreadCpuTime();
 		tuptime = 0;
 		qry.doTupling = true;
 		for(int iCount = 0; iCount < numTrials; iCount++)
@@ -2684,7 +2692,7 @@ public class MJavaTests
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.writeErrLine("rules = 100; k = 3; sm = 1; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
-
+*/
 
 		// ************************************************************
 		// Smallest model = 3
@@ -2693,9 +2701,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.writeErrLine("rules = 100; k = 3; sm = 3; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2706,9 +2718,13 @@ public class MJavaTests
 		qry.doTupling = true;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.writeErrLine("rules = 100; k = 3; sm = 3; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2746,9 +2762,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2762,9 +2782,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2812,9 +2836,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 		//	if(iCount == numTrials-1)
 		//		sol.prettyPrintOneSolution();
@@ -2828,9 +2856,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2876,9 +2908,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2892,9 +2928,13 @@ public class MJavaTests
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
 		{
+			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
+			System.err.print(sol.getQueryTuplingTime());
+			System.err.print(", ");						
 			sol.hasNext(); // is sat?
+			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -3296,7 +3336,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 		
 		
 		// Main test blocks		
-		runTests();		
+		//runTests();		
 		
 		// tupling benchmarks
 		MEnvironment.writeOutLine("\n\nTUPLING BENCHMARKS\n\n");

@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-0-g3365
+  (ACE-hostname-intern-line-0-g1974
    =
    (Permit
     hostname
@@ -27,7 +27,7 @@
    (hostname-intern hostname)
    (in_lan exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-0-g3366
+  (ACE-hostname-intern-line-0-g1975
    =
    (Permit
     hostname
@@ -50,7 +50,7 @@
    (hostname-intern hostname)
    (in_dmz exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-0-g3367
+  (ACE-hostname-extern-line-0-g1976
    =
    (Permit
     hostname
@@ -73,7 +73,7 @@
    (hostname-extern hostname)
    (out_inet exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-0-g3368
+  (ACE-hostname-extern-line-0-g1977
    =
    (Permit
     hostname

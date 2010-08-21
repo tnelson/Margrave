@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (NAT-line-17-NAT-line-17-g3372g3373
+  (NAT-line-17-NAT-hostname-intern-line-17-g1981g1982
    =
    (Translate
     hostname
@@ -31,7 +31,7 @@
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out)
    (Port dest-port-in))
-  (NAT-line-17-g3374
+  (NAT-hostname-intern-line-17-g1983
    =
    (Drop
     hostname
@@ -56,7 +56,7 @@
    (192.168.0.0/255.255.0.0 dest-addr-out)
    (10.1.1.1 dest-addr-in)
    (Port dest-port-in))
-  (hostname-intern-default-NAT-g3289
+  (hostname-intern-default-NAT-g1935
    =
    (Translate
     hostname
@@ -81,7 +81,7 @@
    (= src-port-in src-port-out)
    (= dest-port-in dest-port-out)
    (hostname-intern hostname))
-  (hostname-extern-default-NAT-g3289
+  (hostname-extern-default-NAT-g1935
    =
    (Translate
     hostname

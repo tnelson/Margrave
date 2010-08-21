@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (network-switch-in_dmz-g3383
+  (network-switch-hostname-intern-in_dmz-g1992
    =
    (Forward
     hostname
@@ -27,7 +27,7 @@
    (hostname-intern hostname)
    (10.1.1.0/255.255.255.0 next-hop)
    (in_dmz exit-interface))
-  (network-switch-in_lan-g3384
+  (network-switch-hostname-intern-in_lan-g1993
    =
    (Forward
     hostname
@@ -50,7 +50,7 @@
    (hostname-intern hostname)
    (192.168.0.0/255.255.0.0 next-hop)
    (in_lan exit-interface))
-  (network-switch-out_dmz-g3385
+  (network-switch-hostname-extern-out_dmz-g1994
    =
    (Forward
     hostname
@@ -73,7 +73,7 @@
    (hostname-extern hostname)
    (10.1.1.0/255.255.255.0 next-hop)
    (out_dmz exit-interface))
-  (network-switch-out_inet-g3386
+  (network-switch-hostname-extern-out_inet-g1995
    =
    (Forward
     hostname

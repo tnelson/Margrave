@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (hostname-intern-default-route-g3290
+  (hostname-intern-default-route-g1936
    =
    (Pass
     hostname
@@ -26,7 +26,7 @@
    :-
    true
    (hostname-intern hostname))
-  (hostname-extern-default-route-g3290
+  (hostname-extern-default-route-g1936
    =
    (Pass
     hostname

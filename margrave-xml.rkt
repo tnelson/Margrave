@@ -195,36 +195,48 @@
             
             (define (handle-relation relation)                   
                 (let* ([relation-arity (string->number (get-attribute-value relation 'arity))]
-                       [relation-name  (get-attribute-value relation 'name)])
+                       [relation-name  (get-attribute-value relation 'name)]
+                       [relation-is-sort (equal? "sort" (get-attribute-value relation 'type))])
                   (begin
                     
                      ;if the relation (predicate) doesn't exist in the hash yet, create it
                     (when (not (hash-ref predicate-hash relation-name #f))
                       (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
-                                        
+                    
                     (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
                            [tuple-elements (get-child-elements relation 'TUPLE)]) 
-
-                      (local [(define (parse-tuple-contents t-cont)
+                      
+                      (local [(define (parse-tuple-contents t-cont least-subsort-or-predicate)
+                                
                                 (let* ([atom (first t-cont)]
                                        [atom-name (pcdata-string (first (element-content atom)))])                                                                    
                                   (begin   
-                                    (when (not (hash-ref atom-hash atom-name #f)) ;if the atom doesn't exist in the hash yet, create it
+                                    
+                                    ;if the atom doesn't exist in the hash yet, create it
+                                    ; (regardless of whether this relation is to be printed)
+                                    (when (not (hash-ref atom-hash atom-name #f))
                                       (hash-set! atom-hash atom-name (make-atom atom-name empty)))
                                     
-                                    (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
-                                      (if (equal? (string-ref relation-name 0) #\$)
-                                          (set-atom-name! atom-struct (substring relation-name 1))
-                                          (if (=  relation-arity 1) ;If relation is a type
-                                              (begin 
-                                                (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
-                                              (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
-                                                     (parse-tuple-contents (rest t-cont)))))))))]
-
-                            (for-each parse-tuple-contents (map (lambda (tuple-element)
-                                                                  (get-child-elements tuple-element 'ATOM)) 
-                                                                tuple-elements))))))))
+                                    ; If not least-subsort-or-predicate, don't print this atom
+                                    (when least-subsort-or-predicate  
+                                      (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                        (if (equal? (string-ref relation-name 0) #\$)
+                                            (set-atom-name! atom-struct (substring relation-name 1))
+                                            (if (=  relation-arity 1) ;If relation is a type
+                                                (begin 
+                                                  (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
+                                                  (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
+                                                (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
+                                                       (parse-tuple-contents (rest t-cont))))))))))]
+                        
+                        (for-each parse-tuple-contents
+                                  (map (lambda (tuple-element)
+                                         (get-child-elements tuple-element 'ATOM))
+                                       tuple-elements)
+                                  (map (lambda (tuple-element)
+                                         (or (not relation-is-sort)
+                                             (equal? "true" (get-attribute-value tuple-element 'not-in-subsort))))
+                                       tuple-elements))))))))
       
       (begin
         (for-each handle-relation relation-elements)

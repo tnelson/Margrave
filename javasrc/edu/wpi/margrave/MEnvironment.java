@@ -2032,11 +2032,13 @@ public class MEnvironment
 			MSolutionInstance nextPreTup, int id)
 	{
 		MSolutionInstance next;
+		MVocab theVocab;
 		
 		// If this query was tupled, don't forget to convert back to the original signature.		
 		if(mQueryResult.forQuery.tupled) 
 		{
 			next = mQueryResult.forQuery.processTupledSolutionForThis(nextPreTup);
+			theVocab = mQueryResult.forQuery.internalTupledQuery.vocab;
 			//MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
 			//MCommunicator.writeToLog("\ninternal's tupling = "+mQueryResult.forQuery.internalTupledQuery.doTupling);
 			//MCommunicator.writeToLog("\nAnnotations: ");
@@ -2045,6 +2047,7 @@ public class MEnvironment
 		else
 		{
 			next = nextPreTup;
+			theVocab = mQueryResult.forQuery.vocab;
 			//MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
 			//MCommunicator.writeToLog("\njust-in-case, tupling = "+mQueryResult.forQuery.doTupling);
 			//MCommunicator.writeToLog("\njust-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
@@ -2069,10 +2072,30 @@ public class MEnvironment
 			relationElement.setAttribute("name", r.name());
 			relationElement.setAttribute("arity", String.valueOf(r.arity()));
 			
+			// Is this relation a sort or a predicate?
+			MSort theSort = null;
+			if(theVocab.isSort(r.name()))
+			{
+				relationElement.setAttribute("type", "sort");
+				theSort = theVocab.fastGetSort(r.name());
+			}
+			else
+			{
+				relationElement.setAttribute("type", "predicate");
+			}
+			
 			for(Tuple t : facts.relationTuples().get(r))
 			{
 				Element tupleElement = xmldoc.createElementNS(null, "TUPLE");
-								
+				
+				// If this is a sort, need to say whether there's a child sort
+				// having this tuple in it as well (used for pretty printing)
+				if(theSort != null)
+				{
+					boolean bInSubsort = MQuery.someChildContainsTuple(facts, theSort, t);
+					tupleElement.setAttribute("not-in-subsort", String.valueOf(!bInSubsort));	
+				}				
+				
 				for(int ii = 0; ii<t.arity();ii++)
 				{
 					Element atomElement = xmldoc.createElementNS(null, "ATOM");

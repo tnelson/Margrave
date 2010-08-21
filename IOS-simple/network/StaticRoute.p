@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (route-line-19-g3387
+  (route-hostname-intern-line-19-g1996
    =
    (Forward
     hostname
@@ -29,7 +29,7 @@
    (= next-hop dest-addr-out)
    (in_dmz exit-interface)
    (IPAddress next-hop))
-  (route-line-19-g3388
+  (route-hostname-intern-line-19-g1997
    =
    (Drop
     hostname
@@ -51,7 +51,7 @@
    :-
    (hostname-intern hostname)
    (IPAddress dest-addr-in))
-  (hostname-intern-default-route-g3290
+  (hostname-intern-default-route-g1936
    =
    (Pass
     hostname
@@ -73,7 +73,7 @@
    :-
    true
    (hostname-intern hostname))
-  (hostname-extern-default-route-g3290
+  (hostname-extern-default-route-g1936
    =
    (Pass
     hostname

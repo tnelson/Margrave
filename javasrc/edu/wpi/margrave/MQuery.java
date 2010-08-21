@@ -2673,7 +2673,7 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
-	private boolean someChildContainsTuple(Instance sol, MSort thetype,
+	static boolean someChildContainsTuple(Instance sol, MSort thetype,
 			Tuple theTuple) {
 		// if a "grandchild" contains the tuple, a "child" must.
 		for (MSort child : thetype.subsorts)
