@@ -22,18 +22,6 @@
 ; Helper functions
 ; ********************************************************
 
-; Easy timer function
-; Initial value
-(define tick-tock #f)
-(define (time-since-last)
-  (if (eq? tick-tock #f)
-      (begin 
-        (set! tick-tock (current-inexact-milliseconds))
-        #f)
-      (let ([ms-to-return (- (current-inexact-milliseconds) tick-tock)]) 
-        (set! tick-tock (current-inexact-milliseconds))
-        ms-to-return)))
-
 ;(define (string-endswith str end)
 ;  (if (> (string-length end) (string-length str))
 ;      #f
