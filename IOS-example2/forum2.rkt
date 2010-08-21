@@ -118,8 +118,8 @@ hostname-baz(baz) AND
 
 internal-result1" tasvectorfull-fromtas " AND
 internal-result1" bazvectorfull-fromtas " AND
-firewall-passed1" tasvectorpol-fromtas " AND
-firewall-passed1" bazvectorpol-fromtas " AND
+passes-firewall1" tasvectorpol-fromtas " AND
+passes-firewall1" bazvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -142,7 +142,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result1" tasvectorfull-fromtas " AND
-firewall-passed1" tasvectorpol-fromtas " AND
+passes-firewall1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -162,7 +162,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result1" tasvectorfull-fromtas " AND
-NOT firewall-passed1" tasvectorpol-fromtas " AND
+NOT passes-firewall1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -178,7 +178,7 @@ TUPLING")))
     (display-response (mtext (string-append "EXPLORE
  hostname-tas(tas) 
  AND internal-result1" tasvectorfull-fromtas
-" AND firewall-passed1" tasvectorpol-fromtas
+" AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
@@ -190,11 +190,13 @@ TUPLING")))
   ; There are scenarios. So we are on the right track!
   ; Find the interface names with show populated:
   ; (again, the serial interface is quoted since ":" is a special character)
-  ; no INCLUDE since what we want to SHOW POPULATED for are not IDB names, but EDBs
+  ; no INCLUDE since Interface is "abstract" constrained, and the tupler 
+  ; keeps all its immediate children by default.
+  
       (display-response (mtext (string-append "EXPLORE
  hostname-tas(tas) 
  AND internal-result1" tasvectorfull-fromtas
-" AND firewall-passed1" tasvectorpol-fromtas
+" AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
@@ -213,71 +215,24 @@ TUPLING")))
 ; router is TAS trying to reach?
  
   
+   ; "Is the traffic going to the correct next-hop address?"
   
-  #|
-  (display-response (mtext (string-append  "EXPLORE
-hostname-tas(tas) AND
-GigabitEthernet0/0(tas-entry-interface) AND
-10.232.0.0/255.255.252.0(tas-src-addr_)
-AND 10.232.100.0/255.255.252.0(tas-dest-addr_)
-AND NetworkSwitching1:Forward" routingpol-tas
-"AND GigabitEthernet0/0(tas-exit-interface)
-
-AND (ip-10-254-1-129(tas-next-hop) OR NOT ip-10-254-1-129(tas-next-hop))
-AND (ip-10-232-0-15(tas-next-hop) OR NOT ip-10-232-0-15(tas-next-hop))
-AND (ip-10-232-4-10(tas-next-hop) OR NOT ip-10-232-4-10(tas-next-hop))
-AND (ip-10-254-1-130(tas-next-hop) OR NOT ip-10-254-1-130(tas-next-hop))
-AND (ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop) OR NOT ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop))
-AND (ip-10-232-4-0/ip-255-255-252-0(tas-next-hop) OR NOT ip-10-232-4-0/ip-255-255-252-0(tas-next-hop))
-TUPLING")))
-  
-  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
-  ; TODO: resolve this.
-  
-  ; Which of our gateways and router interfaces is next-hop being set to?
-  (display-response (mtext (string-append "SHOW POPULATED "
-"ip-10-232-0-15(tas-next-hop)," 
-"ip-10-232-4-10(tas-next-hop),"
-"ip-10-232-4-0/ip-255-255-252-0(tas-next-hop),"
-"ip-10-232-104-0/ip-255-255-252-0 (tas-next-hop),"
-"ip-10-232-0-0/ip-255-255-252-0 (tas-next-hop),"
-"ip-10-232-100-0/ip-255-255-252-0 (tas-next-hop),"
-"ip-10-232-8-0/ip-255-255-252-0(tas-next-hop),"
-"ip-10-254-1-129(tas-next-hop),"
-"ip-10-254-1-130(tas-next-hop)")))
-  
-  
-  ; That query isn't too useful -- all it tells us is what we'd know from
-  ; looking at the config anyway: that ge0/0 gets packets whose next-hop
-  ; is 10.232.0.0/22 or 10.232.4.0/22. 
-  |#
-  
-  ; "Is the traffic going to the correct next-hop address?
-  
-  
-  
-  ; We really just want to ask the same
-  ; SHOW POSSIBLE, but for the whole internal-result query:
   (display-response (mtext (string-append "EXPLORE
  hostname-tas(tas) 
  AND internal-result1" tasvectorfull-fromtas
-" AND firewall-passed1" tasvectorpol-fromtas
+" AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
-
-AND (10.254.1.129(tas-next-hop) OR NOT 10.254.1.129(tas-next-hop))
-AND (10.232.0.15(tas-next-hop) OR NOT 10.232.0.15(tas-next-hop))
-AND (10.232.4.10(tas-next-hop) OR NOT 10.232.4.10(tas-next-hop))
-AND (10.254.1.130(tas-next-hop) OR NOT 10.254.1.130(tas-next-hop))
-AND (10.232.104.0/255.255.252.0 (tas-next-hop) OR NOT 10.232.104.0/255.255.252.0 (tas-next-hop))
-AND (10.232.4.0/255.255.252.0(tas-next-hop) OR NOT 10.232.4.0/255.255.252.0(tas-next-hop))
+INCLUDE 10.254.1.129(tas-next-hop), 10.232.0.15(tas-next-hop), 10.232.4.10(tas-next-hop),
+        10.254.1.130(tas-next-hop), 10.232.104.0/255.255.252.0 (tas-next-hop),
+        10.232.4.0/255.255.252.0(tas-next-hop)
 
 TUPLING")))  
   
-  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
-  ; TODO: resolve this.
+; INCLUDE is telling the tupler to keep those EDB facts, even if they 
+; don't appear in the query proper (we want to SHOW POPULATED for them!)
   
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15(tas-next-hop)," 
@@ -299,17 +254,14 @@ TUPLING")))
   (display-response (mtext (string-append "EXPLORE
  hostname-tas(tas) 
  AND internal-result1" tasvectorfull-fromtas
-" AND firewall-passed1" tasvectorpol-fromtas
+" AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0(tas-entry-interface)
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
  AND NOT LocalSwitching1:Forward" tasvectorpol-fromtas  
 
-" AND (10.254.1.129(tas-next-hop) OR NOT 10.254.1.129(tas-next-hop))
-AND (10.232.0.15(tas-next-hop) OR NOT 10.232.0.15(tas-next-hop))
-AND (10.232.4.10(tas-next-hop) OR NOT 10.232.4.10(tas-next-hop))
-AND (10.254.1.130(tas-next-hop) OR NOT 10.254.1.130(tas-next-hop))
-AND (10.232.104.0/255.255.252.0 (tas-next-hop) OR NOT 10.232.104.0/255.255.252.0 (tas-next-hop))
-AND (10.232.4.0/255.255.252.0(tas-next-hop) OR NOT 10.232.4.0/255.255.252.0(tas-next-hop))
+" INCLUDE 10.254.1.129(tas-next-hop), 10.232.0.15(tas-next-hop), 10.232.4.10(tas-next-hop),
+        10.254.1.130(tas-next-hop), 10.232.104.0/255.255.252.0 (tas-next-hop),
+        10.232.4.0/255.255.252.0(tas-next-hop)
 
 TUPLING")))  
   
@@ -338,7 +290,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result2" tasvectorfull-fromtas " AND
-firewall-passed2" tasvectorpol-fromtas " AND
+passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -355,8 +307,8 @@ hostname-baz(baz) AND
 
 internal-result2" tasvectorfull-fromtas " AND
 internal-result2" bazvectorfull-fromtas " AND
-firewall-passed2" tasvectorpol-fromtas " AND
-firewall-passed2" bazvectorpol-fromtas " AND
+passes-firewall2" tasvectorpol-fromtas " AND
+passes-firewall2" bazvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -381,7 +333,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result2" tasvectorfull-fromtas " AND
-firewall-passed2" tasvectorpol-fromtas " AND
+passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -403,7 +355,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result2" tasvectorfull-fromtas " AND
-firewall-passed2" tasvectorpol-fromtas " AND
+passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
@@ -428,7 +380,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result2" tasvectorfull-fromtas " AND
-firewall-passed2" tasvectorpol-fromtas " AND
+passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
@@ -471,7 +423,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result3" tasvectorfull-fromtas " AND
-firewall-passed3" tasvectorpol-fromtas " AND
+passes-firewall3" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
@@ -489,7 +441,7 @@ TUPLING")))
 hostname-tas(tas) AND
 
 internal-result3" tasvectorfull-fromtas " AND
-firewall-passed3" tasvectorpol-fromtas " AND
+passes-firewall3" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0(tas-entry-interface) AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
