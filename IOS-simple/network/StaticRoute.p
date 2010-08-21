@@ -4,97 +4,33 @@
  IOS-vocab
  (Target)
  (Rules
-  (route-hostname-intern-line-19-g1996
+  (route-hostname-int-line-19-g13182
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (IPAddress dest-addr-in)
    (= next-hop dest-addr-out)
    (in_dmz exit-interface)
    (IPAddress next-hop))
-  (route-hostname-intern-line-19-g1997
+  (route-hostname-int-line-19-g13183
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (IPAddress dest-addr-in))
-  (hostname-intern-default-route-g1936
+  (hostname-int-default-route-g13122
    =
-   (Pass
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    true
-   (hostname-intern hostname))
-  (hostname-extern-default-route-g1936
+   (hostname-int hostname))
+  (hostname-ext-default-route-g13122
    =
-   (Pass
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    true
-   (hostname-extern hostname)))
+   (hostname-ext hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))

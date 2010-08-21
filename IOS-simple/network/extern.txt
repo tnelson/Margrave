@@ -1,4 +1,4 @@
-hostname extern
+hostname ext
 !
 interface out_dmz
 ip access-group 103 in

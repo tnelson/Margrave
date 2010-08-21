@@ -2,6 +2,7 @@ package edu.wpi.margrave;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -816,6 +817,14 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		return fmla; // don't know what to do
 	}
 	
+	void tuplingFail(String msg)
+	{
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		MEnvironment.writeErrLine(msg);
+		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		System.exit(2);		
+	}	
+	
 	public Formula visit(ComparisonFormula cf)
 	{
 		if (cache.containsKey(cf))
@@ -1009,6 +1018,37 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 						oldparent + suffix);
 			}
 
+	}
+
+	public void forceIncludeEDB(String edbname, List<String> indexingVars)
+	{
+		// Numeric indexing (convert var names to indices)
+		String numIndexing = MVocab.constructIndexing(indexingVars, pv.indexing);
+		String suffix = "_" + numIndexing;
+		String newpredname = edbname + suffix;
+		
+		
+		// Is this a predicate or a sort? If a sort, does it have a parent?
+		boolean isSort = oldvocab.fastIsSort(edbname);
+		
+		try
+		{
+			if (!isSort)
+			{
+				// This is a predicate
+				newvocab.addPredicate(newpredname, pv.tupleTypeName);
+				addToCaches(edbname, suffix, newpredname);
+			} 
+			else
+			{
+				addSortWithSupers(newvocab, oldvocab, edbname, suffix);
+				// addToMap called by addSortWithSupers, no need to call here
+			}
+		}
+		catch (Exception e) 
+		{
+			tuplingFail(e.getLocalizedMessage());
+		}
 	}
 
 }

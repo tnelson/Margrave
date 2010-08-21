@@ -4,238 +4,78 @@
  IOS-vocab
  (Target)
  (Rules
-  (local-switch-primary-hostname-intern-in_dmz-g1984
+  (local-switch-primary-hostname-int-in_dmz-g13170
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (10.1.1.0/255.255.255.0 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (in_dmz exit-interface))
-  (local-switch-primary-drop-hostname-intern-in_dmz-g1985
+  (local-switch-primary-drop-hostname-int-in_dmz-g13171
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (10.1.1.0/255.255.255.0 dest-addr-in))
-  (local-switch-primary-hostname-intern-in_lan-g1986
+  (local-switch-primary-hostname-int-in_lan-g13172
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (192.168.0.0/255.255.0.0 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (in_lan exit-interface))
-  (local-switch-primary-drop-hostname-intern-in_lan-g1987
+  (local-switch-primary-drop-hostname-int-in_lan-g13173
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (192.168.0.0/255.255.0.0 dest-addr-in))
-  (hostname-intern-default-route-g1936
+  (hostname-int-default-route-g13122
    =
-   (Pass
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    true
-   (hostname-intern hostname))
-  (local-switch-primary-hostname-extern-out_dmz-g1988
+   (hostname-int hostname))
+  (local-switch-primary-hostname-ext-out_inet-g13174
    =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-extern hostname)
-   (10.1.1.0/255.255.255.0 dest-addr-in)
-   (= next-hop dest-addr-out)
-   (IPAddress next-hop)
-   (out_dmz exit-interface))
-  (local-switch-primary-drop-hostname-extern-out_dmz-g1989
-   =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
-   :-
-   (hostname-extern hostname)
-   (10.1.1.0/255.255.255.0 dest-addr-in))
-  (local-switch-primary-hostname-extern-out_inet-g1990
-   =
-   (Forward
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
-   :-
-   (hostname-extern hostname)
+   (hostname-ext hostname)
    (10.200.0.0/255.255.0.0 dest-addr-in)
    (= next-hop dest-addr-out)
    (IPAddress next-hop)
    (out_inet exit-interface))
-  (local-switch-primary-drop-hostname-extern-out_inet-g1991
+  (local-switch-primary-drop-hostname-ext-out_inet-g13175
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-extern hostname)
+   (hostname-ext hostname)
    (10.200.0.0/255.255.0.0 dest-addr-in))
-  (hostname-extern-default-route-g1936
+  (local-switch-primary-hostname-ext-out_dmz-g13176
    =
-   (Pass
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Forward hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-ext hostname)
+   (10.1.1.0/255.255.255.0 dest-addr-in)
+   (= next-hop dest-addr-out)
+   (IPAddress next-hop)
+   (out_dmz exit-interface))
+  (local-switch-primary-drop-hostname-ext-out_dmz-g13177
+   =
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-ext hostname)
+   (10.1.1.0/255.255.255.0 dest-addr-in))
+  (hostname-ext-default-route-g13122
+   =
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    true
-   (hostname-extern hostname)))
+   (hostname-ext hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))

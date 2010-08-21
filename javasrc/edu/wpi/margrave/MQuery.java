@@ -105,12 +105,14 @@ public class MQuery extends MIDBCollection
 
 
 	// For tupled queries. Need to know which tuple indexing to use for a given
-	// IDB.
-	// Setting function will confirm that it is a valid list of numbers, and
-	// that
-	// the arity matches the desired IDB name.
-	protected HashMap<String, Set<List<String>>> idbOutputIndexing;
+	// IDB. Setting function will confirm that it is a valid list of numbers, and
+	// that the arity matches the desired IDB name.
+	protected HashMap<String, Set<List<String>>> idbOutputIndexing = new HashMap<String, Set<List<String>>>();
 
+	// For instructing tupling to KEEP certain edb indexings, even if they do not appear in the condition
+	protected HashMap<String, Set<List<String>>> edbIncludesIndexing = new HashMap<String, Set<List<String>>>();;
+		
+	
 	public boolean doTupling;
 
 	// Set to true to enable special tupling debug logging.
@@ -174,8 +176,7 @@ public class MQuery extends MIDBCollection
 		doTupling = false;
 
 		msPreprocessingTime = 0;
-		msTuplingTime = 0;
-		idbOutputIndexing = new HashMap<String, Set<List<String>>>();
+		msTuplingTime = 0;		
 	}
 
 	// constructors
@@ -834,6 +835,11 @@ public class MQuery extends MIDBCollection
 					MEnvironment.writeOutLine("DEBUG: Starting matrix rewrite. ");
 
 				MatrixTuplingV mtup = new MatrixTuplingV(pren, vocab);
+								
+				for(String edbname : edbIncludesIndexing.keySet())
+					for(List<String> indexing : edbIncludesIndexing.get(edbname))
+						mtup.forceIncludeEDB(edbname, indexing);
+				
 				Formula tupledFormula = pren.matrix.accept(mtup);
 
 				if (debug_verbosity >= 3) {
@@ -3937,7 +3943,7 @@ public class MQuery extends MIDBCollection
 			for(String predname : idbOutputMap.keySet())
 			{
 				if(idbOutputMap.get(predname).size() < 1)
-					throw new MSemanticException("TUPLING was enabled but IDB output for pred: "+predname+" was not indexed.");
+					throw new MSemanticException("TUPLING was enabled but INCLUDE for pred: "+predname+" was not indexed.");
 			}
 		}
 		else
@@ -3945,7 +3951,7 @@ public class MQuery extends MIDBCollection
 			for(String predname : idbOutputMap.keySet())
 			{
 				if(idbOutputMap.get(predname).size() > 0)
-					throw new MSemanticException("TUPLING was not enabled but IDBOUTPUT for pred: "+predname+" was indexed.");
+					throw new MSemanticException("TUPLING was not enabled but INCLUDE for pred: "+predname+" was indexed.");
 			}
 		}
 		// TODO to give row/col for the above, need to keep their location in the outmod until we know whether or not we're tupled
@@ -4081,14 +4087,15 @@ public class MQuery extends MIDBCollection
 
 		// **********************************
 		// Handle IDB output parameters
-		for(String idbname : idbOutputMap.keySet())
+		for(String dbname : idbOutputMap.keySet())
 		{
-			// add to general list
-			result.addIDBOutputs(idbname);
-
-			for(List<String> indexing : idbOutputMap.get(idbname))
+			// Indexings if any
+			Set<List<String>> indexingsToAdd = new HashSet<List<String>>();
+			
+			try
 			{
-				try
+			
+				for(List<String> indexing : idbOutputMap.get(dbname))
 				{
 					// Can't add directly: user has provided a vector of identifiers.
 					// addIDBOutputIndexing expects an _indexing_ into the tupled ordering.
@@ -4104,19 +4111,40 @@ public class MQuery extends MIDBCollection
 						// if not found, error.
 						if(ii < 0)
 						{
-							throw new MGEArityMismatch("Unrecognized identifier in IDB output indexing: "+varname);
+							throw new MGEArityMismatch("Unrecognized identifier in INCLUDE indexing: "+varname);
 						}
 						nIndexing.add(String.valueOf(ii+1));
 					}
 
-					result.addIDBOutputIndexing(idbname, nIndexing);
-				}
-				catch(MGEArityMismatch e)
+					indexingsToAdd.add(nIndexing);
+				}							
+			
+				// Is this an edb or an idb?
+				// EDB?
+				if(uber.isSort(dbname) || uber.predicates.containsKey(dbname))
 				{
-					MEnvironment.writeErrLine(e.getLocalizedMessage());
-					return null;
+					result.addEDBIncludes(dbname);
+					for(List<String> nIndexing : indexingsToAdd)
+						result.addEDBIncludesIndexing(dbname, nIndexing);
 				}
+				else
+				{			
+					// IDB
+					String idbname = dbname;
+					
+					// add to general list
+					result.addIDBOutputs(idbname);
+					for(List<String> nIndexing : indexingsToAdd)
+						result.addIDBOutputIndexing(dbname, nIndexing);
+				} // end of IDB case
+			
 			}
+			catch(MGEArityMismatch e)
+			{
+				MEnvironment.writeErrLine(e.getLocalizedMessage());
+				return null;
+			}
+			
 		}
 
 		// TODO better errors for "no indexing" etc.
@@ -4252,6 +4280,23 @@ public class MQuery extends MIDBCollection
 		//System.err.println(idbOutputIndexing);
 	}
 
+	public void addEDBIncludes(String edbname)
+	{
+		if(!edbIncludesIndexing.containsKey(edbname))
+			edbIncludesIndexing.put(edbname, new HashSet<List<String>>());		
+	}
+	
+	public void addEDBIncludesIndexing(String edbname, List<String> indexing)
+	throws MGEArityMismatch, MGEUnknownIdentifier
+	{
+
+		// Add to indexing map
+		if(!edbIncludesIndexing.containsKey(edbname))
+			edbIncludesIndexing.put(edbname, new HashSet<List<String>>());
+		edbIncludesIndexing.get(edbname).add(indexing);
+	}
+	
+	
 	public void addIDBOutputs(List<String> idbnames)
 	{
 		for(String s : idbnames)

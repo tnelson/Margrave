@@ -58,7 +58,7 @@
 (display-response (mtext "GET ONE 0"))
 
 
-(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING" #t)
+(mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING")
 
 ; You don't need to pass an EXPLORE id if you're referencing the last explore:
 (display-response (mtext "GET ONE"))

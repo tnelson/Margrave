@@ -207,27 +207,27 @@
                            [tuple-elements (get-child-elements relation 'TUPLE)]) 
                       
                       (local [(define (parse-tuple-contents t-cont least-subsort-or-predicate)
-                                
-                                (let* ([atom (first t-cont)]
-                                       [atom-name (pcdata-string (first (element-content atom)))])                                                                    
-                                  (begin   
-                                    
-                                    ;if the atom doesn't exist in the hash yet, create it
-                                    ; (regardless of whether this relation is to be printed)
-                                    (when (not (hash-ref atom-hash atom-name #f))
-                                      (hash-set! atom-hash atom-name (make-atom atom-name empty)))
-                                    
-                                    ; If not least-subsort-or-predicate, don't print this atom
-                                    (when least-subsort-or-predicate  
-                                      (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
-                                        (if (equal? (string-ref relation-name 0) #\$)
-                                            (set-atom-name! atom-struct (substring relation-name 1))
-                                            (if (=  relation-arity 1) ;If relation is a type
-                                                (begin 
-                                                  (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                  (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
-                                                (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
-                                                       (parse-tuple-contents (rest t-cont))))))))))]
+                                (when (not (empty? t-cont))
+                                  (let* ([atom (first t-cont)]
+                                         [atom-name (pcdata-string (first (element-content atom)))])                                                                    
+                                    (begin   
+                                      
+                                      ;if the atom doesn't exist in the hash yet, create it
+                                      ; (regardless of whether this relation is to be printed)
+                                      (when (not (hash-ref atom-hash atom-name #f))
+                                        (hash-set! atom-hash atom-name (make-atom atom-name empty)))
+                                      
+                                      ; If not least-subsort-or-predicate, don't print this atom
+                                      (when least-subsort-or-predicate  
+                                        (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                          (if (equal? (string-ref relation-name 0) #\$)
+                                              (set-atom-name! atom-struct (substring relation-name 1))
+                                              (if (=  relation-arity 1) ;If relation is a type
+                                                  (begin 
+                                                    (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
+                                                    (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
+                                                  (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
+                                                         (parse-tuple-contents (rest t-cont) least-subsort-or-predicate))))))))))]
                         
                         (for-each parse-tuple-contents
                                   (map (lambda (tuple-element)

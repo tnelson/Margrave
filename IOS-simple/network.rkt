@@ -60,30 +60,38 @@
 192.168.1.2(fw1-src-addr-in) AND
 in_lan(fw1-entry-interface) AND
 out_dmz(fw2-entry-interface) AND
-hostname-intern(fw1) AND
-hostname-extern(fw2) AND
+hostname-int(fw1) AND
+hostname-ext(fw2) AND
 
 10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
+NOT 10.200.200.200(fw1-dest-addr-in) AND
 port-80(fw1-dest-port-in) AND
 
 internal-result" reqfull-1 " AND
 
-( NOT firewall-passed" reqpol-1 " OR
+( NOT passes-firewall" reqpol-1 " OR
 
 internal-result" reqfull-2 " AND
-NOT firewall-passed" reqpol-2 ")
+NOT passes-firewall" reqpol-2 ")
 
 UNDER InboundACL
 INCLUDE
-InboundACL:ACE-hostname-intern-line-12-g1961_applies" reqpol-1 ",
-InboundACL:ACE-hostname-intern-line-15-g1964_applies" reqpol-1 ",
-InboundACL:ACE-hostname-extern-line-17-g1970_applies" reqpol-2 ",
-InboundACL:ACE-hostname-extern-line-18-g1971_applies" reqpol-2 ",
-InboundACL:ACE-hostname-extern-line-20-g1973_applies" reqpol-2 "
+InboundACL:ACE-hostname-int-line-12-g13147_applies" reqpol-1 ",
+InboundACL:ACE-hostname-int-line-15-g13150_applies" reqpol-1 ",
+InboundACL:ACE-hostname-ext-line-17-g13152_applies" reqpol-2 ",
+InboundACL:ACE-hostname-ext-line-18-g13153_applies" reqpol-2 ",
+InboundACL:ACE-hostname-ext-line-20-g13155_applies" reqpol-2 "
 
 TUPLING")))
   
   (display-response (mtext "GET ONE"))  
+  
+  (display-response (mtext "SHOW POPULATED 
+                             InboundACL:ACE-hostname-int-line-12-g13147_applies" reqpol-1 ",
+InboundACL:ACE-hostname-int-line-15-g13150_applies" reqpol-1 ",
+InboundACL:ACE-hostname-ext-line-17-g13152_applies" reqpol-2 ",
+InboundACL:ACE-hostname-ext-line-18-g13153_applies" reqpol-2 ",
+InboundACL:ACE-hostname-ext-line-20-g13155_applies" reqpol-2))
   
   
   

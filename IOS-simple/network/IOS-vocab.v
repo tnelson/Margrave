@@ -1,16 +1,13 @@
 (PolicyVocab
  IOS-vocab
  (Types
-  (Hostname : hostname-intern hostname-extern)
-  (Interface : interf-drop (interf-real in_lan in_dmz out_inet out_dmz))
-  (IPAddress
-   (10.200.0.0/255.255.0.0 10.200.200.200)
-   (10.1.1.0/255.255.255.0 10.1.1.1 10.1.1.4 10.1.1.3)
-   (192.168.0.0/255.255.0.0 192.168.1.2 192.168.4.0/255.255.255.0))
+  (Hostname : hostname-int hostname-ext)
+  (Interface : interf-drop (interf-real in_lan in_dmz out_dmz out_inet))
+  (IPAddress (10.200.0.0/255.255.0.0 10.200.200.200) (10.1.1.0/255.255.255.0 10.1.1.1 10.1.1.4 10.1.1.3) (192.168.0.0/255.255.0.0 192.168.1.2 192.168.4.0/255.255.255.0))
   (Protocol : prot-ICMP prot-TCP prot-UDP)
   (Port port-23 port-80 port-25)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
-  (TCPFlags : NONE SYN ACK FIN PSH URG RST)
+  (TCPFlags : SYN ACK FIN PSH URG RST)
   (Length :))
  (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
  (Predicates)
@@ -64,7 +61,6 @@
   (disjoint-all Port)
   (atmostone icmp-echo)
   (atmostone icmp-echo-reply)
-  (atmostone-all TCPFlags)
   (atmostone-all Length)
   (nonempty Hostname)
   (nonempty Interface)

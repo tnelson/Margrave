@@ -4,97 +4,33 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-hostname-intern-line-0-g1974
+  (ACE-hostname-int-line-0-g13160
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (in_lan exit-interface)
    (IPAddress src-addr-in))
-  (ACE-hostname-intern-line-0-g1975
+  (ACE-hostname-int-line-0-g13161
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-intern hostname)
+   (hostname-int hostname)
    (in_dmz exit-interface)
    (IPAddress src-addr-in))
-  (ACE-hostname-extern-line-0-g1976
+  (ACE-hostname-ext-line-0-g13162
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
-   (hostname-extern hostname)
-   (out_inet exit-interface)
-   (IPAddress src-addr-in))
-  (ACE-hostname-extern-line-0-g1977
-   =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
-   :-
-   (hostname-extern hostname)
+   (hostname-ext hostname)
    (out_dmz exit-interface)
+   (IPAddress src-addr-in))
+  (ACE-hostname-ext-line-0-g13163
+   =
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-ext hostname)
+   (out_inet exit-interface)
    (IPAddress src-addr-in)))
  (RComb FAC)
  (PComb FAC)

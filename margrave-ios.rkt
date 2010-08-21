@@ -359,9 +359,9 @@ PUBLISH ahostname, entry-interface,
         length, next-hop, exit-interface
 
 TUPLING"))
-  (mtext (string-append "RENAME LAST " prefix "firewall-passed" suffix))
+  (mtext (string-append "RENAME LAST " prefix "passes-firewall" suffix))
 
   (when (equal? #t verbose)
-    (printf "Time to create and save internal-result and firewall-passed: ~a milliseconds.~n" (time-since-last)))
+    (printf "Time to create and save internal-result and passes-firewall: ~a milliseconds.~n" (time-since-last)))
   
 ) ; end of function (more clear as lone paren; we are adding more)

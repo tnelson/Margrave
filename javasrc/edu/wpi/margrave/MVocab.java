@@ -867,6 +867,22 @@ public class MVocab {
 			result += "," + lst.get(ii);
 		return result;
 	}
+	
+	public static String constructIndexing(List<String> vars,
+			HashMap<Variable, Integer> indexing)
+	{		
+		if (vars.size() < 1)
+			return "";
+
+		Variable theVar = MFormulaManager.makeVariable(vars.get(0));
+		String result = String.valueOf(indexing.get(theVar));
+		for (int ii = 1; ii < vars.size(); ii++)
+		{
+			theVar = MFormulaManager.makeVariable(vars.get(ii));
+			result += "," + String.valueOf(indexing.get(theVar));
+		}
+		return result;
+	}	
 
 	public static List<String> constructVarNameList(BinaryExpression be) {
 		return inorderTraversalOfVariableProduct(be, null, null);

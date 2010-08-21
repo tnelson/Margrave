@@ -193,11 +193,14 @@ public class MCommunicator
         					
         					Node underNode = getUnderNode(n);
         					Node publishNode = getPublishNode(n);
-        					Node idbOutputNode = getIdbNode(n);
         					Node tuplingNode = getTuplingNode(n);
         					Node debugNode = getDebugNode(n);
         					Node ceilingNode = getCeilingNode(n);
         					
+        					// Now called INCLUDE, and 
+        					// used to alert tupling that there are EDB indexings it needs
+        					// to include, even if they don't appear.
+        					Node idbOutputNode = getIdbNode(n);
         					
         					if (underNode != null)
         					{ 

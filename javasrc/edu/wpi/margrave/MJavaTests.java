@@ -221,6 +221,9 @@ public class MJavaTests
 		countTest("Solutions to above with (Assigned s r) only", qry, 3, 1, 3);
 
 		qry.doTupling = true;
+		List<String> indexing = new ArrayList<String>();
+		indexing.add("r"); 
+		qry.addEDBIncludesIndexing("review", indexing);
 		qry.debug_verbosity = 3;
 		/*MQueryResult result = qry.runQuery();
 		MTotalInstanceIterator sols = result.getTotalIterator();
@@ -3336,7 +3339,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 		
 		
 		// Main test blocks		
-		//runTests();		
+		runTests();		
 		
 		// tupling benchmarks
 		MEnvironment.writeOutLine("\n\nTUPLING BENCHMARKS\n\n");
