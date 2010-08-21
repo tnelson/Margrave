@@ -4,76 +4,238 @@
  IOS-vocab
  (Target)
  (Rules
-  (next-hop-line-39-g12395
+  (next-hop-hostname-tas-line-38-g1881
    =
-   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Route
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.0.0/255.255.252.0 src-addr-in)
    (10.232.0.15 next-hop))
-  (next-hop-line-39-g12396
+  (next-hop-hostname-tas-line-38-g1882
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.0.0/255.255.252.0 src-addr-in))
-  (next-hop-line-39-g12397
+  (next-hop-hostname-tas-line-38-g1883
    =
-   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Route
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.100.0/255.255.252.0 src-addr-in)
    (10.232.0.15 next-hop))
-  (next-hop-line-39-g12398
+  (next-hop-hostname-tas-line-38-g1884
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.100.0/255.255.252.0 src-addr-in))
-  (next-hop-line-43-g12401
+  (next-hop-hostname-tas-line-42-g1887
    =
-   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Route
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.4.0/255.255.252.0 src-addr-in)
    (10.232.4.10 next-hop))
-  (next-hop-line-43-g12402
+  (next-hop-hostname-tas-line-42-g1888
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.4.0/255.255.252.0 src-addr-in))
-  (next-hop-line-43-g12403
+  (next-hop-hostname-tas-line-42-g1889
    =
-   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Route
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.4.10 next-hop))
-  (next-hop-line-43-g12404
+  (next-hop-hostname-tas-line-42-g1890
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.104.0/255.255.252.0 src-addr-in))
-  (default-route-g12230
+  (hostname-tas-default-route-g1716
    =
-   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Pass
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
-   true)
-  (default-route-g12230
+   true
+   (hostname-tas hostname))
+  (hostname-baz-default-route-g1716
    =
-   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Pass
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
-   true))
+   true
+   (hostname-baz hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))

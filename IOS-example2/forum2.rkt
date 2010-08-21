@@ -7,7 +7,7 @@
 (define bazvectorfull-frombaz "(baz, baz-entry-interface, 
         baz-src-addr-in, baz-src-addr_, baz-src-addr-out, 
         baz-dest-addr-in, baz-dest-addr_, baz-dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         baz-src-port-in, baz-src-port_, baz-src-port-out, 
         baz-dest-port-in, baz-dest-port_, baz-dest-port-out, 
         length, baz-next-hop, baz-exit-interface)")
@@ -18,7 +18,7 @@
 (define tasvectorfull-frombaz "(tas, tas-entry-interface, 
         baz-src-addr-out, tas-src-addr_, tas-src-addr-out, 
         baz-dest-addr-out, tas-dest-addr_, tas-dest-addr-out, 
-        protocol, message,
+        protocol, message, flags,
         baz-src-port-out, tas-src-port_, tas-src-port-out, 
         baz-dest-port-out, tas-dest-port_, tas-dest-port-out, 
         length, tas-next-hop, tas-exit-interface)")
@@ -229,10 +229,10 @@ TUPLING")))
    ; "Is the traffic going to the correct next-hop address?"
   
   (display-response (mtext (string-append "EXPLORE
- hostname-tas(tas) 
+ hostname-tas =tas
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
-" AND GigabitEthernet0/0(tas-entry-interface)
+" AND GigabitEthernet0/0 = tas-entry-interface
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
@@ -263,10 +263,10 @@ TUPLING")))
   ; will be sent directly.
    ; 
   (display-response (mtext (string-append "EXPLORE
- hostname-tas(tas) 
+ hostname-tas=tas 
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
-" AND GigabitEthernet0/0(tas-entry-interface)
+" AND GigabitEthernet0/0=tas-entry-interface
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
  AND NOT LocalSwitching1:Forward" tasvectorpol-fromtas  
 
@@ -297,15 +297,15 @@ TUPLING")))
 
   ; Check just TAS:   
 (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
-\"Serial0/3/0:0\"(tas-exit-interface)
+\"Serial0/3/0:0\" =tas-exit-interface
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))  
@@ -315,21 +315,21 @@ TUPLING")))
   
   ; Check path across both TAS and BAZ:
   (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
-hostname-baz(baz) AND
+hostname-tas=tas AND
+hostname-baz=baz AND
 
 internal-result2" tasvectorfull-fromtas " AND
 internal-result2" bazvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 passes-firewall2" bazvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
-\"Serial0/3/0:0\"(tas-exit-interface) AND
+\"Serial0/3/0:0\"=tas-exit-interface AND
 
-\"Serial0/3/0:0\"(baz-entry-interface) AND
-GigabitEthernet0/0(baz-exit-interface)
+\"Serial0/3/0:0\"=baz-entry-interface AND
+GigabitEthernet0/0=baz-exit-interface
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
@@ -343,17 +343,17 @@ TUPLING")))
   
   ; Did we accidentally let the primary reach the secondary?
     (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 (10.232.4.0/255.255.252.0(tas-dest-addr-in)
    OR
  10.232.104.0/255.255.252.0(tas-dest-addr-in))
-AND \"Serial0/3/0:0\"(tas-exit-interface)
+AND \"Serial0/3/0:0\"=tas-exit-interface
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
@@ -365,15 +365,15 @@ TUPLING")))
   ; The secondary network 10.232.4.0/22 could access the internet. Did 
   ; we fix that too? This should involve only the TAS router:
       (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
 
-GigabitEthernet0/1(tas-exit-interface) AND
+GigabitEthernet0/1=tas-exit-interface AND
 
 NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
 AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
@@ -391,12 +391,12 @@ TUPLING")))
   
   ; Which next-hop? Which exit-interfaces? (Relax!)
         (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
 
 NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
@@ -436,17 +436,17 @@ TUPLING")))
   
     ; Hopefully primary cannot reach the secondary:
     (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result3" tasvectorfull-fromtas " AND
 passes-firewall3" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 (10.232.4.0/255.255.252.0(tas-dest-addr-in)
    OR
  10.232.104.0/255.255.252.0(tas-dest-addr-in))
-AND \"Serial0/3/0:0\"(tas-exit-interface)
+AND \"Serial0/3/0:0\"=tas-exit-interface
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
@@ -456,15 +456,15 @@ TUPLING")))
   
   ; Can the secondary network access the internet?
         (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas=tas AND
 
 internal-result3" tasvectorfull-fromtas " AND
 passes-firewall3" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0=tas-entry-interface AND
 10.232.4.0/255.255.252.0(tas-src-addr-in) AND
 
-GigabitEthernet0/1(tas-exit-interface) AND
+GigabitEthernet0/1=tas-exit-interface AND
 
 NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
 AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)

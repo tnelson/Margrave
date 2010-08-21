@@ -4,78 +4,238 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-line-0-g12342
+  (ACE-hostname-tas-line-0-g1828
    =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
-   :-
-   (hostname-tas hostname)
-   (GigabitEthernet0/0 exit-interface)
-   (IPAddress src-addr-in))
-  (ACE-line-0-g12343
-   =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (GigabitEthernet0/1 exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-25-g12344
+  (ACE-hostname-tas-line-0-g1829
    =
-   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
+   :-
+   (hostname-tas hostname)
+   (GigabitEthernet0/0 exit-interface)
+   (IPAddress src-addr-in))
+  (ACE-hostname-tas-line-24-g1830
+   =
+   (Deny
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (Serial0/3/0:0 exit-interface)
    (10.232.0.0/255.255.252.0 src-addr-in)
    (10.232.104.0/255.255.252.0 dest-addr-in))
-  (ACE-line-26-g12345
+  (ACE-hostname-tas-line-25-g1831
    =
-   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Deny
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (Serial0/3/0:0 exit-interface)
    (10.232.4.0/255.255.252.0 src-addr-in)
    (10.232.100.0/255.255.252.0 dest-addr-in))
-  (ACE-line-27-g12346
+  (ACE-hostname-tas-line-26-g1832
    =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-tas hostname)
    (Serial0/3/0:0 exit-interface)
    (IPAddress src-addr-in)
    (IPAddress dest-addr-in))
-  (ACE-line-0-g12347
+  (ACE-hostname-baz-line-0-g1833
    =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-baz hostname)
    (GigabitEthernet0/0 exit-interface)
    (IPAddress src-addr-in))
-  (ACE-line-32-g12348
+  (ACE-hostname-baz-line-31-g1834
    =
-   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Deny
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-baz hostname)
    (Serial0/3/0:0 exit-interface)
    (10.232.100.0/255.255.252.0 src-addr-in)
    (10.232.4.0/255.255.252.0 dest-addr-in))
-  (ACE-line-33-g12349
+  (ACE-hostname-baz-line-32-g1835
    =
-   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Deny
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-baz hostname)
    (Serial0/3/0:0 exit-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.0.0/255.255.252.0 dest-addr-in))
-  (ACE-line-34-g12350
+  (ACE-hostname-baz-line-33-g1836
    =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-baz hostname)
    (Serial0/3/0:0 exit-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.4.0/255.255.252.0 dest-addr-in))
-  (ACE-line-35-g12351
+  (ACE-hostname-baz-line-34-g1837
    =
-   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-baz hostname)
    (Serial0/3/0:0 exit-interface)

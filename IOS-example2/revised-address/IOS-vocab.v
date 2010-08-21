@@ -2,7 +2,10 @@
  IOS-vocab
  (Types
   (Hostname : hostname-tas hostname-baz)
-  (Interface : interf-drop (interf-real GigabitEthernet0/0 Serial0/3/0:0 GigabitEthernet0/1))
+  (Interface
+   :
+   interf-drop
+   (interf-real GigabitEthernet0/1 GigabitEthernet0/0 Serial0/3/0:0))
   (IPAddress
    (10.232.8.0/255.255.252.0 10.232.8.10)
    (10.232.0.0/255.255.252.0 10.232.0.15)
@@ -14,7 +17,7 @@
   (Protocol : prot-ICMP prot-TCP prot-UDP)
   (Port)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
-  (TCPFlags : NONE SYN ACK FIN PSH URG RST)
+  (TCPFlags : SYN ACK FIN PSH URG RST)
   (Length :))
  (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
  (Predicates)
@@ -51,6 +54,7 @@
   (disjoint-all ICMPMessage)
   (disjoint-all Length)
   (atmostone-all interf-real)
+  (atmostone-all Hostname)
   (atmostone interf-drop)
   (atmostone 10.254.1.130)
   (atmostone 10.254.1.129)
@@ -63,7 +67,6 @@
   (atmostone-all Protocol)
   (atmostone icmp-echo)
   (atmostone icmp-echo-reply)
-  (atmostone-all TCPFlags)
   (atmostone-all Length)
   (nonempty Hostname)
   (nonempty Interface)
