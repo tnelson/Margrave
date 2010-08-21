@@ -1,7 +1,12 @@
-#!/usr/local/bin/bash
+#!/bin/bash
+###!/usr/local/bin/bash
+# adjust the above depending on `which bash`
 # iptables Configuration Modeling
 # Copyright (C) Christopher Barratt 2010 All rights reserved.
 
+# TN: create the policy read-protected
+touch iptables-firewall.p
+chmod og-r iptables-firewall.p
 
 echo "(Policy iptables-firewall uses iptables-firewall" \
      "  (Target)" \
