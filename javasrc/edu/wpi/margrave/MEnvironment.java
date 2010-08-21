@@ -130,6 +130,9 @@ class MExploreCondition
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
 	
+	// **************************************************************
+	// **************************************************************
+	
 	/* Often want to build a query condition formula without first knowing 
 	 * the vocabulary the query operates under. This can cause a problem
 	 * for de-sugaring certain special syntax. 
@@ -138,18 +141,76 @@ class MExploreCondition
 	 * Therefore, we leave "placeholders" in the condition formula for late evaluation
 	 * when the vocabulary is known.
 	 */ 
-	Set<ComparisonFormula> eqPlaceholders = new HashSet<ComparisonFormula>();
-	Set<Expression> exprPlaceholders = new HashSet<Expression>();
-	
-	
-	// **************************************************************
-	
-	// When the vocabulary is known, turn the placeholders into real Nodes.
-	void resolvePlaceholders(MVocab vocab)
-	{
-		// TODO
-		// Create a replacer visitor
+	Set<Formula> eqPlaceholders = new HashSet<Formula>();
+	//Set<Expression> exprPlaceholders = new HashSet<Expression>();
 		
+	void resolvePlaceholders(MVocab vocab)
+	throws MSemanticException, MGEManagerException
+	{
+		// When the vocabulary is known, turn the placeholders into real Nodes.
+		
+		Map<Node, Node> replacementMap = new HashMap<Node, Node>();
+		
+		for(Formula eqf : eqPlaceholders)
+		{
+			MCommunicator.writeToLog("\nHandling placeholder: "+eqf);
+			
+			ComparisonFormula comparison = (ComparisonFormula) eqf;
+			Expression lhs = comparison.left();
+			Expression rhs = comparison.right();
+			
+			// Validate
+			if(!(lhs instanceof Variable))
+				throw new MSemanticException("Could not understand the LHS of equality: "+comparison);			
+			if(!(rhs instanceof Variable))
+				throw new MSemanticException("Could not understand the RHS of equality: "+comparison);
+
+			Variable lhv = (Variable) lhs;
+			Variable rhv = (Variable) rhs;			
+			MSort lsort = vocab.fastGetSort(lhv.name());
+			MSort rsort = vocab.fastGetSort(rhv.name());
+			
+			// Neither is a sort ~~ variable equality:  X = Y
+			if(lsort == null && rsort == null)
+				continue;
+			
+			// Don't allow sort = sort			
+			if(lsort != null && rsort != null)
+				throw new MSemanticException("Both sides of the equality "+comparison + " were sort symbols. Could not resolve the equality.");
+
+			MSort thesort;
+			Variable thevar;
+			
+			if(lsort != null)
+			{
+				thesort = lsort;
+				thevar = rhv;
+			}
+			else // only remaining option is rsort != null
+			{
+				thesort = rsort;
+				thevar = lhv;
+			}
+			
+			// Require at most one elements in the sort
+			if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
+			   !vocab.axioms.setsSingleton.contains(thesort.name))
+				throw new MSemanticException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
+						
+			// If we got this far, we know that this equality needs to be re-written to A(x)
+			Formula newFormula = MFormulaManager.makeAtom(thevar, thesort.rel);
+
+			MCommunicator.writeToLog("\n   "+eqf+ " should become: "+newFormula);
+
+			replacementMap.put(eqf, newFormula);			
+			
+		} // end for each eqPlaceholder
+		
+		
+		// Now perform the replacement(s)
+		
+		ReplaceComparisonFormulasV theVisitor = new ReplaceComparisonFormulasV(replacementMap);		
+		fmla = fmla.accept(theVisitor);		
 	}	
 	
 	// **************************************************************
@@ -174,7 +235,7 @@ class MExploreCondition
 		// No assertions. No free variables. Just a constant formula
 	}
 	
-	MExploreCondition(Formula f, Variable x, Variable y)
+	MExploreCondition(Formula f, Variable x, Variable y, boolean isPlaceholder)
 	{
 		fmla = f;		
 		// No assertions, but make an entry so we know there's a free variable.
@@ -185,7 +246,10 @@ class MExploreCondition
 		thisVarY.add(y);	// lists with equal elements are equal.
 		
 		initAssertionsForVectorIfNeeded(thisVarX);
-		initAssertionsForVectorIfNeeded(thisVarY);	
+		initAssertionsForVectorIfNeeded(thisVarY);
+		
+		if(isPlaceholder)
+			eqPlaceholders.add(fmla);
 	}
 	
 	MExploreCondition(Formula f, Relation made, List<String> varnamevector)
@@ -282,6 +346,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
+		eqPlaceholders.addAll(oth.eqPlaceholders);
 					
 		doAssertAnd(oth);
 				
@@ -293,6 +358,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
+		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		doAssertOr(oth);
 		
@@ -356,6 +422,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeImplication(fmla, oth.fmla);
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
+		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		// a -> b
 		// is equivalent to
@@ -370,7 +437,8 @@ class MExploreCondition
 	{
 		fmla = MFormulaManager.makeIFF(fmla, oth.fmla);
 		seenIDBs.addAll(oth.seenIDBs);	
-		madeEDBs.addAll(oth.madeEDBs);		
+		madeEDBs.addAll(oth.madeEDBs);	
+		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		// No assertions survive.
 		clearAssertions();

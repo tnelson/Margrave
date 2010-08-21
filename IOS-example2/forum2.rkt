@@ -87,7 +87,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up))
+  (start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
   
   ; Load all the policies 
   
@@ -113,79 +113,87 @@
   ;   * the hostname parameter of internal-result dictates which router's
   ;     results are bound to the rest of the vector
   (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
-hostname-baz(baz) AND
+hostname-tas = tas AND
+hostname-baz = baz AND
 
 internal-result1" tasvectorfull-fromtas " AND
 internal-result1" bazvectorfull-fromtas " AND
 passes-firewall1" tasvectorpol-fromtas " AND
 passes-firewall1" bazvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0 = tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
-\"Serial0/3/0:0\"(tas-exit-interface) AND
+\"Serial0/3/0:0\" = tas-exit-interface AND
 
-\"Serial0/3/0:0\"(baz-entry-interface) AND
-GigabitEthernet0/0(baz-exit-interface)
+\"Serial0/3/0:0\" = baz-entry-interface AND
+baz-exit-interface = GigabitEthernet0/0 
 
 TUPLING")))
-  (display-response (mtext "IS POSSIBLE?"))
-    
+  (display-response (mtext "IS POSSIBLE?"))    
   
+  (printf "^^^ Expected false above~n")
   
   ; The packets aren't getting through. Ok, but we knew that already.
   ; Are they getting through just the TAS router? 
   
 ; Restricted version of prior query, just asking about TAS.
 (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas = tas AND
 
 internal-result1" tasvectorfull-fromtas " AND
 passes-firewall1" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0 = tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
-\"Serial0/3/0:0\"(tas-exit-interface)
+\"Serial0/3/0:0\" = tas-exit-interface
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))  
   
   
+  (printf "^^^ Expected false above~n")
+
   
   
   ; Still nothing. So the TAS router is either dropping the packets
   ; or routing them wrong. Which is it?
   
   (display-response (mtext (string-append "EXPLORE
-hostname-tas(tas) AND
+hostname-tas = tas AND
 
 internal-result1" tasvectorfull-fromtas " AND
 NOT passes-firewall1" tasvectorpol-fromtas " AND
 
-GigabitEthernet0/0(tas-entry-interface) AND
+GigabitEthernet0/0 = tas-entry-interface AND
 10.232.0.0/255.255.252.0(tas-src-addr-in) AND
 10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
-\"Serial0/3/0:0\"(tas-exit-interface)
+tas-exit-interface = \"Serial0/3/0:0\" 
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?")) 
  
+  (printf "^^^ Expected false above~n")
+
+  
   
   ; Nothing. So the firewall isn't at fault. Must be routing?
   ; Which exit-interfaces can we be routing to?
     (display-response (mtext (string-append "EXPLORE
- hostname-tas(tas) 
+ hostname-tas = tas 
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
-" AND GigabitEthernet0/0(tas-entry-interface)
+" AND GigabitEthernet0/0 = tas-entry-interface
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
         
 TUPLING")))  
   (display-response (mtext "IS POSSIBLE?")) 
   
+  
+    (printf "^^^ Expected true above~n")
+
   
   ; There are scenarios. So we are on the right track!
   ; Find the interface names with show populated:
@@ -194,10 +202,10 @@ TUPLING")))
   ; keeps all its immediate children by default.
   
       (display-response (mtext (string-append "EXPLORE
- hostname-tas(tas) 
+ hostname-tas = tas
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
-" AND GigabitEthernet0/0(tas-entry-interface)
+" AND GigabitEthernet0/0 = tas-entry-interface
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
@@ -208,6 +216,9 @@ TUPLING")))
                            GigabitEthernet0/1(tas-exit-interface)")) 
   
   
+    (printf "^^^ Expected GigabitEthernet0/0 above~n")
+
+  ; There is no support for sham equality in SHOW POPULATED or INCLUDE
   
 ; All those packets are being sent out GigabitEthernet0/0 ---
 ; even the ones that are meant for 10.232.0.100/25. Surely
@@ -240,7 +251,7 @@ TUPLING")))
 "10.232.8.0/255.255.252.0(tas-next-hop),"
 "10.254.1.128/255.255.255.252(tas-next-hop)")))
 
-  
+      (printf "^^^ Expected 10.232.0.15 above~n")
   
   
   ; ******************
@@ -263,17 +274,16 @@ TUPLING")))
         10.254.1.130(tas-next-hop), 10.232.104.0/255.255.252.0 (tas-next-hop),
         10.232.4.0/255.255.252.0(tas-next-hop)
 
-TUPLING")))  
-  
-  ; Above (p or ~p) clauses are to force TUPLING to keep each p in the signature for show populated.
-  ; TODO: resolve this.
-  
+TUPLING")))    
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15(tas-next-hop)," 
 "10.232.4.10(tas-next-hop),"
 "10.232.8.0/255.255.252.0(tas-next-hop),"
 "10.254.1.128/255.255.255.252(tas-next-hop)")))
     
+        (printf "^^^ Expected 10.232.0.15 above~n")
+
+  
   ; So all traffic from 10.232.0.0/255.255.252.0 to 10.232.100.0/255.255.252.0
   ; is being sent via the internet gateway 10.232.0.15, and _NOT_ the BAZ router.
 
@@ -300,6 +310,9 @@ GigabitEthernet0/0(tas-entry-interface) AND
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))  
   
+  (printf "^^^ Expected true above~n")
+
+  
   ; Check path across both TAS and BAZ:
   (display-response (mtext (string-append "EXPLORE
 hostname-tas(tas) AND
@@ -321,7 +334,7 @@ GigabitEthernet0/0(baz-exit-interface)
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
     
-   
+  (printf "^^^ Expected true above~n")
   ; Great! Both are satisfiable now. 
  
   
@@ -345,7 +358,7 @@ AND \"Serial0/3/0:0\"(tas-exit-interface)
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
   ; Unsatisfiable. Good.
-  
+  (printf "^^^ Expected false above~n")
   
   
   ; But what about the other problem?
@@ -374,6 +387,7 @@ TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
   
   ; Unsatisfiable!
+  (printf "^^^ Expected false above~n")
   
   ; Which next-hop? Which exit-interfaces? (Relax!)
         (display-response (mtext (string-append "EXPLORE
@@ -403,6 +417,8 @@ TUPLING")))
                            10.232.4.10(tas-next-hop),
                            10.232.8.0/255.255.252.0(tas-next-hop),
                            10.254.1.128/255.255.255.252(tas-next-hop)"))
+  
+          (printf "^^^ Expected ge0/0 and 10.232.4.10 above~n")
   
   ; result:
   ;gigabitethernet0/0[tas-exit-interface]
@@ -436,6 +452,8 @@ TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
   ; Unsatisfiable. Good.
   
+  (printf "^^^ Expected false above~n")
+  
   ; Can the secondary network access the internet?
         (display-response (mtext (string-append "EXPLORE
 hostname-tas(tas) AND
@@ -459,6 +477,7 @@ AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
 
+  (printf "^^^ Expected true above~n")
   ; TRUE! So internet access has been restored (or at least some of it.)
   
     
