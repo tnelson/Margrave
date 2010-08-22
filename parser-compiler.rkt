@@ -445,6 +445,8 @@
                                   (build-so (list 'EMPTY-ATOMIC-FORMULA-Y $1 ":" $3 empty) 1 3)]
                                  [(<identifier>)
                                   (build-so (list 'EMPTY-ATOMIC-FORMULA-N $1 empty) 1 1)]
+                                 [(equals-formula)
+                                  $1]
                                  [(atomic-formula) 
                                   $1])
     

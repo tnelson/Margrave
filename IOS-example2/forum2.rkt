@@ -211,13 +211,14 @@ TUPLING")))
 
 TUPLING")))  
   (display-response (mtext "SHOW POPULATED 
-                           GigabitEthernet0/0(tas-exit-interface),
-                           \"Serial0/3/0:0\"(tas-exit-interface),
-                           GigabitEthernet0/1(tas-exit-interface)")) 
+                           GigabitEthernet0/0 = tas-exit-interface,
+                           \"Serial0/3/0:0\" = tas-exit-interface,
+                           GigabitEthernet0/1 = tas-exit-interface")) 
   
   
     (printf "^^^ Expected GigabitEthernet0/0 above~n")
 
+  
   ; There is no support for sham equality in SHOW POPULATED or INCLUDE
   
 ; All those packets are being sent out GigabitEthernet0/0 ---
@@ -236,8 +237,8 @@ TUPLING")))
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
-INCLUDE 10.254.1.129(tas-next-hop), 10.232.0.15(tas-next-hop), 10.232.4.10(tas-next-hop),
-        10.254.1.130(tas-next-hop), 10.232.104.0/255.255.252.0 (tas-next-hop),
+INCLUDE 10.254.1.129 = tas-next-hop, 10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
+        10.254.1.130 = tas-next-hop, 10.232.104.0/255.255.252.0(tas-next-hop),
         10.232.4.0/255.255.252.0(tas-next-hop)
 
 TUPLING")))  
@@ -246,13 +247,12 @@ TUPLING")))
 ; don't appear in the query proper (we want to SHOW POPULATED for them!)
   
     (display-response (mtext (string-append "SHOW POPULATED "
-"10.232.0.15(tas-next-hop)," 
-"10.232.4.10(tas-next-hop),"
+"10.232.0.15 = tas-next-hop," 
+"10.232.4.10 = tas-next-hop,"
 "10.232.8.0/255.255.252.0(tas-next-hop),"
 "10.254.1.128/255.255.255.252(tas-next-hop)")))
 
       (printf "^^^ Expected 10.232.0.15 above~n")
-  
   
   ; ******************
   ; Relaxation: Does this happen to _all_ traffic from 10.232.0.0?
@@ -270,14 +270,14 @@ TUPLING")))
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
  AND NOT LocalSwitching1:Forward" tasvectorpol-fromtas  
 
-" INCLUDE 10.254.1.129(tas-next-hop), 10.232.0.15(tas-next-hop), 10.232.4.10(tas-next-hop),
-        10.254.1.130(tas-next-hop), 10.232.104.0/255.255.252.0 (tas-next-hop),
+" INCLUDE 10.254.1.129 = tas-next-hop, 10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
+        10.254.1.130 = tas-next-hop, 10.232.104.0/255.255.252.0(tas-next-hop),
         10.232.4.0/255.255.252.0(tas-next-hop)
 
 TUPLING")))    
     (display-response (mtext (string-append "SHOW POPULATED "
-"10.232.0.15(tas-next-hop)," 
-"10.232.4.10(tas-next-hop),"
+"10.232.0.15 = tas-next-hop," 
+"10.232.4.10 = tas-next-hop,"
 "10.232.8.0/255.255.252.0(tas-next-hop),"
 "10.254.1.128/255.255.255.252(tas-next-hop)")))
     
@@ -410,11 +410,11 @@ AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
 TUPLING")))
   ; Can ask for both at once, here, since neither are constrained:
   (display-response (mtext "SHOW POPULATED  
-                           GigabitEthernet0/0(tas-exit-interface),
-                           \"Serial0/3/0:0\"(tas-exit-interface),
-                           GigabitEthernet0/1(tas-exit-interface),
-                           10.232.0.15(tas-next-hop),
-                           10.232.4.10(tas-next-hop),
+                           GigabitEthernet0/0 = tas-exit-interface,
+                           tas-exit-interface= \"Serial0/3/0:0\",
+                           tas-exit-interface =GigabitEthernet0/1,
+                           tas-next-hop = 10.232.0.15,
+                           10.232.4.10 = tas-next-hop,
                            10.232.8.0/255.255.252.0(tas-next-hop),
                            10.254.1.128/255.255.255.252(tas-next-hop)"))
   
