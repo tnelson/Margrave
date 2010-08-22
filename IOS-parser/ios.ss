@@ -2221,11 +2221,11 @@
                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     ))
 
-;; symbol -> rule%
+;; hostname% -> rule%
 ;;   Returns a default NAT rule
 (define (make-default-NAT-rule hostname)
   (make-object rule%
-    (string->symbol (string-append (symbol->string hostname) "-default-NAT"))
+    (string->symbol (string-append (symbol->string (send hostname name)) "-default-NAT"))
     'Translate
     `((= src-addr-in src-addr-out)
       (= dest-addr-in dest-addr-out)
@@ -3189,14 +3189,14 @@
     (define/public (inside-NAT-rules)
       (append (NAT-forward-rules 'inside)
               (NAT-reverse-rules 'outside)
-              (list (make-default-NAT-rule (send hostname name)))))
+              (list (make-default-NAT-rule hostname))))
 
     ;; -> (listof rule%)
     ;;   Returns a list of the outside-to-inside NAT rules
     (define/public (outside-NAT-rules)
       (append (NAT-forward-rules 'outside)
               (NAT-reverse-rules 'inside)
-              (list (make-default-NAT-rule (send hostname name)))))
+              (list (make-default-NAT-rule hostname))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of forwarding rules for directly connected networks
