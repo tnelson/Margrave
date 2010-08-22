@@ -4,96 +4,242 @@
  IOS-vocab
  (Target)
  (Rules
-  (NAT-line-23-g9393
+  (Router-line-22-trans
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
-   (ip-192-168-2-6 dest-addr-out)
+   (209.172.108.16 dest-addr-in)
+   (192.168.2.6 dest-addr-out)
    (prot-TCP protocol)
    (port-80 dest-port-in)
    (port-80 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-23-g9394
+  (Router-line-22-drop
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
+   (209.172.108.16 dest-addr-in)
    (port-80 dest-port-in))
-  (NAT-line-24-g9395
+  (Router-line-23-trans
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
-   (ip-192-168-2-6 dest-addr-out)
+   (209.172.108.16 dest-addr-in)
+   (192.168.2.6 dest-addr-out)
    (prot-TCP protocol)
    (port-21 dest-port-in)
    (port-21 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-24-g9396
+  (Router-line-23-drop
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
+   (209.172.108.16 dest-addr-in)
    (port-21 dest-port-in))
-  (NAT-line-25-g9397
+  (Router-line-24-trans
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
-   (ip-192-168-2-6 dest-addr-out)
+   (209.172.108.16 dest-addr-in)
+   (192.168.2.6 dest-addr-out)
    (prot-TCP protocol)
    (port-3389 dest-port-in)
    (port-3389 dest-port-out)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out))
-  (NAT-line-25-g9398
+  (Router-line-24-drop
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-209-172-108-16 dest-addr-in)
+   (209.172.108.16 dest-addr-in)
    (port-3389 dest-port-in))
-  (NAT-line-22-NAT-line-22-g9399g9400
+  (Router-FastEthernet0-line26-trans
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-192-168-2-0/ip-255-255-255-0 dest-addr-out)
-   (ip-209-172-108-16 dest-addr-in)
+   (192.168.2.0/255.255.255.0 dest-addr-out)
+   (209.172.108.16 dest-addr-in)
    (= src-addr-in src-addr-out)
    (= src-port-in src-port-out)
    (= dest-port-in dest-port-out))
-  (NAT-line-22-g9401
+  (Router-line-21-drop
    =
-   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Drop
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
-   (ip-192-168-2-0/ip-255-255-255-0 dest-addr-out)
-   (ip-209-172-108-16 dest-addr-in))
-  (default-NAT-g8890
+   (192.168.2.0/255.255.255.0 dest-addr-out)
+   (209.172.108.16 dest-addr-in)
+   (= dest-port-in dest-port-out))
+  (Router-default-NAT
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (= src-addr-in src-addr-out)
    (= dest-addr-in dest-addr-out)
    (= src-port-in src-port-out)
-   (= dest-port-in dest-port-out)))
+   (= dest-port-in dest-port-out)
+   (hostname-Router hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))

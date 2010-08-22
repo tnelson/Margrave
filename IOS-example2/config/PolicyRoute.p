@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (next-hop-hostname-tas-line-39-g1798
+  (tas-GigabitEthernet0/0-line32-route
    =
    (Route
     hostname
@@ -28,7 +28,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.0.0/255.255.252.0 src-addr-in)
    (10.232.0.15 next-hop))
-  (next-hop-hostname-tas-line-39-g1799
+  (tas-GigabitEthernet0/0-line32-drop
    =
    (Drop
     hostname
@@ -51,7 +51,7 @@
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.0.0/255.255.252.0 src-addr-in))
-  (next-hop-hostname-tas-line-39-g1800
+  (tas-GigabitEthernet0/0-line33-route
    =
    (Route
     hostname
@@ -75,7 +75,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.100.0/255.255.252.0 src-addr-in)
    (10.232.0.15 next-hop))
-  (next-hop-hostname-tas-line-39-g1801
+  (tas-GigabitEthernet0/0-line33-drop
    =
    (Drop
     hostname
@@ -98,7 +98,7 @@
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.100.0/255.255.252.0 src-addr-in))
-  (next-hop-hostname-tas-line-43-g1804
+  (tas-GigabitEthernet0/0-line34-route
    =
    (Route
     hostname
@@ -122,7 +122,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.4.0/255.255.252.0 src-addr-in)
    (10.232.4.10 next-hop))
-  (next-hop-hostname-tas-line-43-g1805
+  (tas-GigabitEthernet0/0-line34-drop
    =
    (Drop
     hostname
@@ -145,7 +145,7 @@
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.4.0/255.255.252.0 src-addr-in))
-  (next-hop-hostname-tas-line-43-g1806
+  (tas-GigabitEthernet0/0-line35-route
    =
    (Route
     hostname
@@ -169,7 +169,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.4.10 next-hop))
-  (next-hop-hostname-tas-line-43-g1807
+  (tas-GigabitEthernet0/0-line35-drop
    =
    (Drop
     hostname
@@ -192,7 +192,7 @@
    (hostname-tas hostname)
    (GigabitEthernet0/0 entry-interface)
    (10.232.104.0/255.255.252.0 src-addr-in))
-  (hostname-tas-default-route-g1716
+  (tas-default-route
    =
    (Pass
     hostname
@@ -212,9 +212,8 @@
     next-hop
     exit-interface)
    :-
-   true
    (hostname-tas hostname))
-  (hostname-baz-default-route-g1716
+  (baz-default-route
    =
    (Pass
     hostname
@@ -234,7 +233,6 @@
     next-hop
     exit-interface)
    :-
-   true
    (hostname-baz hostname)))
  (RComb FAC)
  (PComb FAC)

@@ -83,52 +83,6 @@
   ; Remember: AND binds tighter than OR, so wrap the OR in parens.
   ; 10.200.0.0/255.255.0.0 is "the internet" for this example: something outside the extern router
   
-  #|
-  (display-response (mtext (string-append "EXPLORE prot-TCP(protocol) AND
-192.168.1.2(fw1-src-addr-in)  AND
-in_lan(fw1-entry-interface) AND
-hostname-int(fw1) AND
-
-
-10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
-NOT 10.200.200.200(fw1-dest-addr-in) AND
-port-80(fw1-dest-port-in) 
-
-AND InsideNAT:Translate" nat1  "
-AND LocalSwitching:Pass" route1 "
-AND StaticRoute:Forward" route1 "
-
-
-
-UNDER InboundACL
-INCLUDE
-InboundACL:int-in_lan-line12_applies" reqpol-1 ",
-InboundACL:int-in_lan-line15_applies" reqpol-1 "
-
-TUPLING")))
-|#
-  
-  #|
-
-
-,
-InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
-InboundACL:ext-out_dmz-line18_applies" reqpol-2 ",
-InboundACL:ext-out_dmz-line20_applies" reqpol-2 "
-
-hostname-ext(fw2) AND
-out_dmz(fw2-entry-interface) AND
-
-AND OutsideNAT:Translate" nat2 "
-
-AND internal-result" reqfull-1 " 
-
-AND( NOT passes-firewall" reqpol-1 " OR
-internal-result" reqfull-2 " AND
-NOT passes-firewall" reqpol-2 ")
-
-|#
-  
   
     (display-response (mtext (string-append "EXPLORE prot-TCP = protocol AND
 192.168.1.2 = fw1-src-addr-in  AND

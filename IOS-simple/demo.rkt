@@ -63,8 +63,8 @@
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)
 
-        AND 10.1.1.2(src-addr-in)
-        AND fe0(entry-interface)
+        AND src-addr-in = 10.1.1.2 
+        AND fe0 = entry-interface
 
      TUPLING") )
   (display-response (mtext "IS POSSIBLE?"))
@@ -81,14 +81,14 @@
   
   (display-response (mtext (string-append "EXPLORE InboundACL1:Deny" vector
                         
-                        " AND 10.1.1.2(src-addr-in)"
-                        " AND fe0(entry-interface) "
+                        " AND 10.1.1.2 = src-addr-in"
+                        " AND fe0 = entry-interface "
                         
-                        " INCLUDE InboundACL1:ACE-line-10-g5468_applies" vector ","
-                        "InboundACL1:ACE-line-13-g5471_applies" vector
+                        " INCLUDE InboundACL1:Router-fe0-line9_applies" vector ","
+                        "InboundACL1:Router-fe0-line12_applies" vector
                         " TUPLING")))
-  (display-response (mtext (string-append "SHOW POPULATED 0 InboundACL1:ACE-line-10-g5468_applies" vector ","
-                        "InboundACL1:ACE-line-13-g5471_applies" vector)))
+  (display-response (mtext (string-append "SHOW POPULATED InboundACL1:Router-fe0-line9_applies" vector ","
+                        "InboundACL1:Router-fe0-line12_applies" vector)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; change-impact
@@ -131,7 +131,7 @@
         length, next-hop, exit-interface) )
 
      TUPLING"))  
-  (display-response (mtext "IS POSSIBLE? 0"))
+  (display-response (mtext "IS POSSIBLE?"))
   
   
   ; Vs. change 2
@@ -169,7 +169,7 @@
         length, next-hop, exit-interface) )
 
      TUPLING")  )
- (display-response  (mtext "IS POSSIBLE? 0"))
+ (display-response  (mtext "IS POSSIBLE?"))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Rule relationships
@@ -178,17 +178,17 @@
   (printf "~n~nRule relationships:~n")
   
   ;; This involves rules in the first change (InboundACL2)
-  ; line 13 wants to apply: what prevents it from doing so?
+  ; line 12 wants to apply: what prevents it from doing so?
   
-  (display-response (mtext (string-append "EXPLORE InboundACL2:ACE-line-13-g5484" vector
+  (display-response (mtext (string-append "EXPLORE InboundACL2:Router-fe0-line12_matches" vector
                         
-                        " INCLUDE InboundACL2:ACE-line-10-g5481_applies" vector ","
-                        "InboundACL2:ACE-line-11-g5482_applies" vector ","
-                        "InboundACL2:ACE-line-12-g5483_applies" vector
+                        " INCLUDE InboundACL2:Router-fe0-line9_applies" vector ","
+                        "InboundACL2:Router-fe0-line10_applies" vector ","
+                        "InboundACL2:Router-fe0-line11_applies" vector
                         " TUPLING"))) 
-  (display-response (mtext (string-append "SHOW POPULATED 0 InboundACL2:ACE-line-10-g5481_applies" vector ","
-                        "InboundACL2:ACE-line-11-g5482_applies" vector ","
-                        "InboundACL2:ACE-line-12-g5483_applies" vector)))
+  (display-response (mtext (string-append "SHOW POPULATED InboundACL2:Router-fe0-line9_applies" vector ","
+                        "InboundACL2:Router-fe0-line10_applies" vector ","
+                        "InboundACL2:Router-fe0-line11_applies" vector)))
   
   
   

@@ -194,16 +194,20 @@
 ; parses and compiles the string command into XML, executes it,
 ; and returns the result document.
 (define mtext
-  (lambda cmd
-    (let* ((response-doc (m (evalxml (apply string-append cmd)))))  
+  (lambda cmd    
+    ; May be a semicolon-separated script of commands
+    (let* ([cmd-maybe-list (evalxml (apply string-append cmd))]
+           [response-docs (mm cmd-maybe-list )])  
     
       ; Display the pretty-printed result
       ;(when autoprint
       ;  (printf "===================== RESPONSE (type: ~a) =====================~n" (get-response-type response-doc))
       ;  (printf "~a~n~n"(pretty-print-response-xml response-doc)))
       
-      ; Return the XML document
-      response-doc)))
+      ; Return the XML document or list of replies
+      (if (> (length response-docs) 1)
+          response-docs
+          (first response-docs)))))
 
 
 ; mmtext

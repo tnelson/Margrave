@@ -4,11 +4,27 @@
  IOS-vocab
  (Target)
  (Rules
-  (default-route-g8891
+  (Router-default-route
    =
-   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Pass
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
-   true))
+   (hostname-Router hostname)))
  (RComb FAC)
  (PComb FAC)
  (Children))

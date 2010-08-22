@@ -4,53 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (ACE-hostname-tas-line-0-g1828
-   =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
-   :-
-   (hostname-tas hostname)
-   (GigabitEthernet0/1 exit-interface)
-   (IPAddress src-addr-in))
-  (ACE-hostname-tas-line-0-g1829
-   =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
-   :-
-   (hostname-tas hostname)
-   (GigabitEthernet0/0 exit-interface)
-   (IPAddress src-addr-in))
-  (ACE-hostname-tas-line-24-g1830
+  (tas-Serial0/3/0:0-line24
    =
    (Deny
     hostname
@@ -74,7 +28,7 @@
    (Serial0/3/0:0 exit-interface)
    (10.232.0.0/255.255.252.0 src-addr-in)
    (10.232.104.0/255.255.252.0 dest-addr-in))
-  (ACE-hostname-tas-line-25-g1831
+  (tas-Serial0/3/0:0-line25
    =
    (Deny
     hostname
@@ -98,7 +52,7 @@
    (Serial0/3/0:0 exit-interface)
    (10.232.4.0/255.255.252.0 src-addr-in)
    (10.232.100.0/255.255.252.0 dest-addr-in))
-  (ACE-hostname-tas-line-26-g1832
+  (tas-Serial0/3/0:0-line26
    =
    (Permit
     hostname
@@ -122,7 +76,7 @@
    (Serial0/3/0:0 exit-interface)
    (IPAddress src-addr-in)
    (IPAddress dest-addr-in))
-  (ACE-hostname-baz-line-0-g1833
+  (tas-GigabitEthernet0/1-line0
    =
    (Permit
     hostname
@@ -142,10 +96,33 @@
     next-hop
     exit-interface)
    :-
-   (hostname-baz hostname)
+   (hostname-tas hostname)
+   (GigabitEthernet0/1 exit-interface)
+   (IPAddress src-addr-in))
+  (tas-GigabitEthernet0/0-line0
+   =
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
+   :-
+   (hostname-tas hostname)
    (GigabitEthernet0/0 exit-interface)
    (IPAddress src-addr-in))
-  (ACE-hostname-baz-line-31-g1834
+  (baz-Serial0/3/0:0-line31
    =
    (Deny
     hostname
@@ -169,7 +146,7 @@
    (Serial0/3/0:0 exit-interface)
    (10.232.100.0/255.255.252.0 src-addr-in)
    (10.232.4.0/255.255.252.0 dest-addr-in))
-  (ACE-hostname-baz-line-32-g1835
+  (baz-Serial0/3/0:0-line32
    =
    (Deny
     hostname
@@ -193,7 +170,7 @@
    (Serial0/3/0:0 exit-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.0.0/255.255.252.0 dest-addr-in))
-  (ACE-hostname-baz-line-33-g1836
+  (baz-Serial0/3/0:0-line33
    =
    (Permit
     hostname
@@ -217,7 +194,7 @@
    (Serial0/3/0:0 exit-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    (10.232.4.0/255.255.252.0 dest-addr-in))
-  (ACE-hostname-baz-line-34-g1837
+  (baz-Serial0/3/0:0-line34
    =
    (Permit
     hostname
@@ -240,7 +217,30 @@
    (hostname-baz hostname)
    (Serial0/3/0:0 exit-interface)
    (IPAddress src-addr-in)
-   (IPAddress dest-addr-in)))
+   (IPAddress dest-addr-in))
+  (baz-GigabitEthernet0/0-line0
+   =
+   (Permit
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
+   :-
+   (hostname-baz hostname)
+   (GigabitEthernet0/0 exit-interface)
+   (IPAddress src-addr-in)))
  (RComb FAC)
  (PComb FAC)
  (Children))

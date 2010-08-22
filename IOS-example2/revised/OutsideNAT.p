@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (hostname-tas-default-NAT-g1715
+  (tas-default-NAT
    =
    (Translate
     hostname
@@ -29,7 +29,7 @@
    (= src-port-in src-port-out)
    (= dest-port-in dest-port-out)
    (hostname-tas hostname))
-  (hostname-baz-default-NAT-g1715
+  (baz-default-NAT
    =
    (Translate
     hostname

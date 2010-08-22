@@ -4,7 +4,7 @@
  IOS-vocab
  (Target)
  (Rules
-  (default-route-hostname-tas-g1873
+  (tas-GigabitEthernet0/0-line31-default-route
    =
    (Pass
     hostname
@@ -28,7 +28,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.0.0/255.255.252.0 src-addr-in)
    true)
-  (default-route-hostname-tas-g1874
+  (tas-GigabitEthernet0/0-line32-default-route
    =
    (Pass
     hostname
@@ -52,7 +52,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.100.0/255.255.252.0 src-addr-in)
    true)
-  (default-route-hostname-tas-g1877
+  (tas-GigabitEthernet0/0-line33-default-route
    =
    (Pass
     hostname
@@ -76,7 +76,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.4.0/255.255.252.0 src-addr-in)
    true)
-  (default-route-hostname-tas-g1878
+  (tas-GigabitEthernet0/0-line34-default-route
    =
    (Pass
     hostname
@@ -100,7 +100,7 @@
    (GigabitEthernet0/0 entry-interface)
    (10.232.104.0/255.255.252.0 src-addr-in)
    true)
-  (hostname-tas-default-route-g1716
+  (tas-default-route
    =
    (Pass
     hostname
@@ -120,9 +120,8 @@
     next-hop
     exit-interface)
    :-
-   true
    (hostname-tas hostname))
-  (hostname-baz-default-route-g1716
+  (baz-default-route
    =
    (Pass
     hostname
@@ -142,7 +141,6 @@
     next-hop
     exit-interface)
    :-
-   true
    (hostname-baz hostname)))
  (RComb FAC)
  (PComb FAC)
