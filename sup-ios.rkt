@@ -3,12 +3,12 @@
 ; Originally written for SISC by tn
 ; Re-written for Racket by tn
 
-; IN PROGRESS
 ; todo: string buffer in Racket (stream?) to avoid long query-creation time
 
 ; todo: too much string manipulation going on here. Is it possible to send back more structured IDB data?
 ;       for example, why not send a triple: (collectionname, idbname, tupling-data)?
-; todo: similarly, why lists everywhere? Use sets for efficiency
+
+; todo: Use sets rather than lists for efficiency (we do intersections)
 
 
 (require (file "margrave.rkt"))
@@ -17,14 +17,6 @@
 ; Helper functions
 ; ********************************************************
 
-
-;(define (string-endswith str end)
-;  (if (> (string-length end) (string-length str))
-;      #f
-;      (string=? end
-;                (substring str
-;                           (- (string-length str) (string-length end))
-;                           (string-length str)))))
 
 (define (keys-not-mapped-to-empty a-map)
   (filter (lambda (x) (not (equal? #f x)))
@@ -51,38 +43,16 @@
   ;(printf "INTERSECT: ~a ~n ~a ~n" lst1 lst2)
   (filter (lambda (x) (not (equal? (member x lst2) #f))) lst1))
 
-(define (make-applied-list rlist)
+; for -keep-collection
+; replace rule-name with (string-append pol-name ":" rule-name)
+
+(define (cleanup-idb-list-no-applies thelist)
   (map (lambda (idbname)
-         (string-append idbname "_applies"))
-       rlist))
-
-(define (make-matches-list rlist)
-  (map (lambda (idbname)
-         (string-append idbname "_matches"))
-       rlist))
-
-
-; Strip everything up to and including the last :
-;(define (unqualified-part idbname)
-;  (last (regexp-split ":" idbname)))
-
-;(define (unqualified-non-applied-part idbname)
-;  (unqualified-part (if (string-endswith idbname "_applies")
-;                        (substring idbname 0 (- (string-length idbname) 8))
-;                        idbname)))
-
-; kludge: in general there may be brackets in the idb name. For our example, there aren't. (see todo above re: structured data)
-;(define (cleanup-idb-list thelist)
-;  (map (lambda (idbname) 
-;         (second (regexp-split ":" (first (regexp-split "\\[" idbname))))) 
-;       thelist))
-;(define (cleanup-idb-list-no-applies thelist)
-;  (map (lambda (idbname) 
-;         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
-;       thelist))
-(define (cleanup-idb-list-no-applies-keep-collection thelist)
-  (map (lambda (idbname) 
-         (first (regexp-split "_applies\\[" idbname)))
+         (let* ([qualified-rule (first (regexp-split "_applies\\[" idbname))]
+                [fragments (regexp-split ":" qualified-rule)]
+                [pol-name (first fragments)]
+                [rule-name (string-join (rest fragments) ":")])
+           rule-name))
        thelist))
 
 (define reqVector "hostname, entry-interface, src-addr-in, src-addr-out, dest-addr-in, dest-addr-out, protocol, message, flags, src-port-in, src-port-out, dest-port-in, dest-port-out, length, next-hop, exit-interface")
@@ -92,12 +62,6 @@
 ; ********************************************************
 ; Detecting overlaps for shadowed rules
 ; ********************************************************
-
-;IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND "
-;                                          " Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND "
-;                                          " ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND "
-;                                          " Protocol(protocol) AND Hostname(hostname) AND TCPFlags(flags)
-
 
 (define (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)
 
@@ -136,7 +100,7 @@
 
 (define (run-timed-script pFileName)
   ; Start the Java process
-  (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g"))
+  (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g") '("-log"))   ;; remove log for benchmarking
   
   ; Start the timer
   (time-since-last)
@@ -146,25 +110,23 @@
         
     (printf "Loading took: ~a milliseconds.~n" (time-since-last)) 
     
-    (let* ([all-rules (get-qualified-rule-list polname)]
-           [all-applied (make-applied-list all-rules) ]
-           [all-matches (make-matches-list all-rules) ]
-           [all-permit-rules (get-qualified-rule-list polname "permit")]
-           [all-deny-rules (get-qualified-rule-list polname "deny")]
-           [all-permit-applied (make-applied-list all-permit-rules)]
-           [all-deny-applied (make-applied-list all-deny-rules)]
-           [all-permit-matches (make-matches-list all-permit-rules)]
-           [all-deny-matches (make-matches-list all-deny-rules)]
+    (let* ([all-rules (get-rule-list polname)]
+           [all-applied (make-applies-list all-rules "InboundACL") ]
+           [all-matches (make-matches-list all-rules "InboundACL") ]
+           [all-permit-rules (get-rule-list polname "permit")]
+           [all-deny-rules (get-rule-list polname "deny")]
+           [all-permit-applied (make-applies-list all-permit-rules "InboundACL")]
+           [all-deny-applied (make-applies-list all-deny-rules "InboundACL")]
+           [all-permit-matches (make-matches-list all-permit-rules "InboundACL")]
+           [all-deny-matches (make-matches-list all-deny-rules "InboundACL")]
                 
            [idblistmatches (makeIdbList all-matches)]
            [idblistapplied (makeIdbList all-applied)]         
-           
            [neverApplyId 
-            (xml-explore-result->id  (mtext (string-append 
-                                             "EXPLORE true "
+            (xml-explore-result->id  (mtext  "EXPLORE true "
                                              "UNDER inboundacl "
                                              "INCLUDE " idblistapplied
-                                             " TUPLING")))])
+                                             " TUPLING"))])
       
       
       (printf "Time to make lists, strings, etc.: ~a milliseconds.~n" (time-since-last))
@@ -174,21 +136,23 @@
       
       ; **********************************************************************************************************
       
-      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
+      (let* ([neverApplyList (cleanup-idb-list-no-applies (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
-
+             [dbg (printf "~a~n" neverApplyList)]
              [idblistpa (makeIdbList all-permit-applied)]
-             [idblistdn-sup (makeIdbList (make-matches-list (list-intersection all-deny-rules neverApplyList)))]
+             [idblistdn-sup (makeIdbList (make-matches-list (list-intersection all-deny-rules neverApplyList) "InboundACL"))]
              [idblistda (makeIdbList all-deny-applied)]
-             [idblistpn-sup (makeIdbList (make-matches-list (list-intersection all-permit-rules neverApplyList)))])
+             [idblistpn-sup (makeIdbList (make-matches-list (list-intersection all-permit-rules neverApplyList) "InboundACL"))])
         
         
         (printf "Creating list intersections took: ~a milliseconds.~n" (time-since-last)) 
                
         (printf "superfluous rules count:~n~a~n" (length neverApplyList))
-        ;(printf "~a ~n ~a ~n" idblistpn-sup idblistdn-sup)
+        ;(printf "~a ~n~n~n ~a ~n~n~n" idblistpn-sup idblistdn-sup)
         
         ;(printf "idblists: ~a~n~n~a~n~n" idblistdn-sup idblistpn-sup)
+        
+       
         
         ; Look for permits overlapping denies (and vice versa)
         (find-overlaps-1 neverApplyList idblistpa idblistda idblistpn-sup idblistdn-sup)

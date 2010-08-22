@@ -21,6 +21,7 @@
 #lang racket
 
 (require xml
+         srfi/13
          "margrave-xml.rkt"
          "parser-compiler.rkt"
          "margrave-policy-vocab.rkt")
@@ -44,7 +45,9 @@
          response->string
          get-qualified-rule-list
          get-rule-list
-         time-since-last)
+         time-since-last
+         make-applies-list
+         make-matches-list)
 ;****************************************************************
 ;;Java Connection
 
@@ -414,6 +417,29 @@
       (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol))))
       (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol " WITH DECISION " decision))))))
 
+
+
+; Take a rule list and create a list of _applies (or _matches) IDB names from it. 
+; Optional policy name will be appended to the beginning.
+; If the rule name contains a colon, it will be quoted.
+(define (make-idb-list-with-suffix rlist suffix polname)
+  (let ([polprefix (if (equal? polname "")
+                       ""
+                       (string-append polname ":"))])
+    (map (lambda (rulename)
+           (if (equal? (string-contains rulename ":") #f)
+               (string-append polprefix rulename suffix)
+               (string-append polprefix "\"" rulename suffix "\"")))
+         rlist)))
+
+(define (make-applies-list rlist (polname ""))
+  (make-idb-list-with-suffix rlist "_applies" polname))
+
+(define (make-matches-list rlist (polname ""))
+  (make-idb-list-with-suffix rlist "_matches" polname))
+
+
+
 ; [not yet in]
 ; get-decision-for-idbname
 ; Policy String -> String
@@ -474,3 +500,31 @@
       (let ([ms-to-return (- (current-inexact-milliseconds) tick-tock)]) 
         (set! tick-tock (current-inexact-milliseconds))
         ms-to-return)))
+
+
+;(define (string-endswith str end)
+;  (if (> (string-length end) (string-length str))
+;      #f
+;      (string=? end
+;                (substring str
+;                           (- (string-length str) (string-length end))
+;                           (string-length str)))))
+
+; Strip everything up to and including the last :
+;(define (unqualified-part idbname)
+;  (last (regexp-split ":" idbname)))
+
+;(define (unqualified-non-applied-part idbname)
+;  (unqualified-part (if (string-endswith idbname "_applies")
+;                        (substring idbname 0 (- (string-length idbname) 8))
+;                        idbname)))
+
+; kludge: in general there may be brackets in the idb name. For our example, there aren't. (see todo above re: structured data)
+;(define (cleanup-idb-list thelist)
+;  (map (lambda (idbname) 
+;         (second (regexp-split ":" (first (regexp-split "\\[" idbname))))) 
+;       thelist))
+;(define (cleanup-idb-list-no-applies thelist)
+;  (map (lambda (idbname) 
+;         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
+;       thelist))

@@ -307,7 +307,7 @@ class MExploreCondition
 				bIsIDB = true;
 				
 				// Separate into polname and idbname
-				String collname = key.substring(0, key.lastIndexOf(":"));
+				String collname = key.substring(0, key.indexOf(":"));
 				pol = MEnvironment.getPolicyOrView(collname);
 				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was an IDB in collection: "+pol+"; coll name = "+collname);
 			}

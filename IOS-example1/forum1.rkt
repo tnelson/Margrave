@@ -38,7 +38,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up))  
+  (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))  
   
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
@@ -53,45 +53,48 @@
   (printf "~n---------------1--------------~n------------------------------~n")
   
   
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-firewall-passed1" policyvector " AND
+  (display-response (mtext "EXPLORE
+NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+FastEthernet0 = entry-interface AND
+prot-TCP = protocol AND
+port-80 = src-port-in AND
+passes-firewall1" policyvector " AND
 internal-result1" vector                  
-" TUPLING") #t)
+" TUPLING"))
   
-  (mtext "IS POSSIBLE?" #t)
-  (mtext "GET ONE" #t)
+  (mtext "IS POSSIBLE?")
+  (mtext "GET ONE")
   
-  (display-response (mtext (string-append "SHOW POPULATED port-80(dest-port-in)" 
-                                          ", port-20(dest-port-in)" 
-                                          ", port-21(dest-port-in)" 
-                                          ", port-23(dest-port-in)" 
-                                          ", port-3389(dest-port-in)")))
-  
-  
+  (display-response (mtext  "SHOW POPULATED port-80 = dest-port-in" 
+                                          ", port-20=dest-port-in" 
+                                          ", port-21=dest-port-in" 
+                                          ", port-23 = dest-port-in" 
+                                          ", port-3389=dest-port-in"))
   
   
   
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-firewall-passed1" policyvector " AND
+  (printf "^^^ Expected 80, 21, 20, 23 above.~n")
+  
+  
+  
+  (display-response (mtext "EXPLORE
+NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+FastEthernet0=entry-interface AND
+prot-TCP=protocol AND
+port-80=src-port-in AND
+passes-firewall1" policyvector " AND
 internal-result1" vector " AND
- NOT port-80(dest-port-in) AND
- NOT port-20(dest-port-in) AND
- NOT port-21(dest-port-in) AND
- NOT port-23(dest-port-in) AND
- NOT port-3389(dest-port-in)"
+ NOT port-80=dest-port-in AND
+ NOT port-20=dest-port-in AND
+ NOT port-21=dest-port-in AND
+ NOT port-23=dest-port-in AND
+ NOT port-3389=dest-port-in"
  " TUPLING"))
   
   (display-response (mtext "IS POSSIBLE?"))   
   
-  (display-response (mtext "GET ONE"))
+  (printf "^^^ Expected false above.~n")
+ 
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,21 +103,23 @@ internal-result1" vector " AND
   
   (printf "~n---------------2--------------~n------------------------------~n")
   
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-firewall-passed2" policyvector " AND
+  (display-response (mtext "EXPLORE
+NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+FastEthernet0=entry-interface AND
+prot-TCP=protocol AND
+port-80=src-port-in AND
+passes-firewall2" policyvector " AND
 internal-result2" vector " AND
- NOT port-80(dest-port-in) AND
- NOT port-20(dest-port-in) AND
- NOT port-21(dest-port-in) AND
- NOT port-23(dest-port-in) AND
- NOT port-3389(dest-port-in)"
+ NOT port-80=dest-port-in AND
+ NOT port-20=dest-port-in AND
+ NOT port-21=dest-port-in AND
+ NOT port-23=dest-port-in AND
+ NOT port-3389=dest-port-in"
                   " TUPLING"))
   
   (display-response (mtext "IS POSSIBLE?"))
+  
+    (printf "^^^ Expected true above.~n")
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 3
@@ -125,28 +130,32 @@ internal-result2" vector " AND
   
   ; Same as above, but assert that something in connection-returntcp must
   ; have had its source in the permit rule that populates the temporary list.    
-  (mtext (string-append "EXPLORE
-NOT ip-192-168-2-0/ip-255-255-255-0(src-addr-in) AND
-FastEthernet0(entry-interface) AND
-prot-TCP(protocol) AND
-port-80(src-port-in) AND
-firewall-passed3" policyvector " AND
+  (display-response (mtext "EXPLORE
+NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+FastEthernet0=entry-interface AND
+prot-TCP=protocol AND
+port-80=src-port-in AND
+passes-firewall3" policyvector " AND
 internal-result3" vector "AND
 ( Connection-returntcp(src-addr-in, src-port-in, protocol, dest-addr-in, dest-port-in) 
   IMPLIES
-  InboundACL3:ACE-line-30-g20001_applies" reversepolicyvector ") "
+  InboundACL3:Router-Vlan1-line29_applies" reversepolicyvector ") "
                                                                     
-"AND NOT port-80(dest-port-in) AND
- NOT port-20(dest-port-in) AND
- NOT port-21(dest-port-in) AND
- NOT port-23(dest-port-in) AND
- NOT port-3389(dest-port-in)"                                                                    
- " TUPLING") #t)
+"AND NOT port-80=dest-port-in AND
+ NOT port-20=dest-port-in AND
+ NOT port-21=dest-port-in AND
+ NOT port-23=dest-port-in AND
+ NOT port-3389=dest-port-in"                                                                    
+ " TUPLING"))
   
   (display-response (mtext "IS POSSIBLE?"))
+  
+  
+    (printf "^^^ Expected true above.~n")
+  
   (display-response (mtext "GET ONE"))
   
-  
+    (printf "^^^ Expected a model above.~n")
   
   ;(stop-margrave-engine)
   )

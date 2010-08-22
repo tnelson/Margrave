@@ -190,7 +190,7 @@ TUPLING
   ; Internal-Result
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (mtext (string-append "EXPLORE "
+  (define xml-response-ir (mtext (string-append "EXPLORE "
   (string-append prefix "OutsideNAT" suffix)
   ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
   dest-addr-in, dest-addr_, protocol, message, flags, src-port-in, src-port_,
@@ -322,7 +322,7 @@ PUBLISH ahostname, entry-interface,
         dest-port-in, dest-port_, dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING")) 
+TUPLING"))) 
   
   (mtext (string-append "RENAME LAST " prefix "internal-result" suffix))
 
@@ -339,7 +339,7 @@ TUPLING"))
   ;; negated to mean the packets the firewall drops (or rejects). It would then also
   ;; include all the nonsensical scenarios...
   ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
-  (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
+    (define xml-response-pf (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
                         prefix "InboundACL" suffix
                         ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
   dest-addr-in, dest-addr-in, protocol, message, flags, src-port-in, src-port-in,
@@ -358,7 +358,7 @@ PUBLISH ahostname, entry-interface,
         dest-port-in,  dest-port-out, 
         length, next-hop, exit-interface
 
-TUPLING"))
+TUPLING")))
   (mtext (string-append "RENAME LAST " prefix "passes-firewall" suffix))
 
   (when (equal? #t verbose)

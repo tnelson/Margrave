@@ -128,7 +128,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		// Use rules, not idbs, since rules contains the actual rule ordering
 		for(MRule aRule : rules)
-		{
+		{			
 			// Do we care about its decision?
 			if(decname == null || decname.length() == 0)
 			{
