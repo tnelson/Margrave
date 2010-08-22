@@ -4202,8 +4202,7 @@ public class MQuery extends MIDBCollection
 		for (List<Variable> varvector : toDo)
 		{
 
-			MCommunicator.writeToLog("\nProducing sort for variable vector: "+varvector);
-//			MEnvironment.writeErrLine("Checking for: "+varvector);
+			MCommunicator.writeToLog("\nProducing sorts for variable vector: "+varvector);
 
 			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
 					.get(varvector);
@@ -4220,6 +4219,10 @@ public class MQuery extends MIDBCollection
 			
 			for (Variable v : varvector) 
 			{
+				// If this is a placeholder variable, ignore it
+				if(mpc.knownPlaceholders.contains(v))
+					continue;
+				
 				MSort runningSort;
 				if(!freeVars.containsKey(v) || freeVars.get(v).equals(Expression.UNIV))
 				{

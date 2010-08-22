@@ -39,6 +39,32 @@
         length, fw2-next-hop, fw2-exit-interface)")
 
 
+; for testing
+
+(define nat1 "(fw1, fw1-entry-interface, 
+        fw1-src-addr-in, fw1-src-addr-out, 
+        fw1-dest-addr-in, fw1-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-in, fw1-src-port-out, 
+        fw1-dest-port-in, fw1-dest-port-out, 
+        length, fw1-next-hop, fw1-exit-interface)")
+
+(define nat2 "(fw1, fw1-entry-interface, 
+        fw1-src-addr-out, fw1-src-addr-out, 
+        fw1-dest-addr-out, fw1-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-out, fw1-src-port-out, 
+        fw1-dest-port-out, fw1-dest-port-out, 
+        length, fw1-next-hop, fw1-exit-interface)")
+
+(define route1 "(fw1, fw1-entry-interface, 
+        fw1-src-addr-out, fw1-src-addr-out, 
+        fw1-dest-addr-out, fw1-dest-addr-out, 
+        protocol, message, flags,
+        fw1-src-port-out, fw1-src-port-out, 
+        fw1-dest-port-out, fw1-dest-port-out, 
+        length, fw1-next-hop, fw1-exit-interface)")
+
 (define (run-queries-for-example)
   
   ; Start Margrave's java engine
@@ -56,16 +82,64 @@
   
   ; Remember: AND binds tighter than OR, so wrap the OR in parens.
   ; 10.200.0.0/255.255.0.0 is "the internet" for this example: something outside the extern router
+  
+  #|
   (display-response (mtext (string-append "EXPLORE prot-TCP(protocol) AND
-192.168.1.2(fw1-src-addr-in) AND
+192.168.1.2(fw1-src-addr-in)  AND
 in_lan(fw1-entry-interface) AND
-out_dmz(fw2-entry-interface) AND
 hostname-int(fw1) AND
-hostname-ext(fw2) AND
+
 
 10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
 NOT 10.200.200.200(fw1-dest-addr-in) AND
-port-80(fw1-dest-port-in) AND
+port-80(fw1-dest-port-in) 
+
+AND InsideNAT:Translate" nat1  "
+AND LocalSwitching:Pass" route1 "
+AND StaticRoute:Forward" route1 "
+
+
+
+UNDER InboundACL
+INCLUDE
+InboundACL:int-in_lan-line12_applies" reqpol-1 ",
+InboundACL:int-in_lan-line15_applies" reqpol-1 "
+
+TUPLING")))
+|#
+  
+  #|
+
+
+,
+InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line18_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line20_applies" reqpol-2 "
+
+hostname-ext(fw2) AND
+out_dmz(fw2-entry-interface) AND
+
+AND OutsideNAT:Translate" nat2 "
+
+AND internal-result" reqfull-1 " 
+
+AND( NOT passes-firewall" reqpol-1 " OR
+internal-result" reqfull-2 " AND
+NOT passes-firewall" reqpol-2 ")
+
+|#
+  
+  
+    (display-response (mtext (string-append "EXPLORE prot-TCP = protocol AND
+192.168.1.2 = fw1-src-addr-in  AND
+in_lan = fw1-entry-interface AND
+out_dmz = fw2-entry-interface AND
+hostname-int = fw1 AND
+hostname-ext = fw2 AND
+
+10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
+NOT 10.200.200.200 = fw1-dest-addr-in AND
+port-80 = fw1-dest-port-in AND
 
 internal-result" reqfull-1 " AND
 
@@ -76,22 +150,24 @@ NOT passes-firewall" reqpol-2 ")
 
 UNDER InboundACL
 INCLUDE
-InboundACL:ACE-hostname-int-line-12-g13147_applies" reqpol-1 ",
-InboundACL:ACE-hostname-int-line-15-g13150_applies" reqpol-1 ",
-InboundACL:ACE-hostname-ext-line-17-g13152_applies" reqpol-2 ",
-InboundACL:ACE-hostname-ext-line-18-g13153_applies" reqpol-2 ",
-InboundACL:ACE-hostname-ext-line-20-g13155_applies" reqpol-2 "
+InboundACL:int-in_lan-line12_applies" reqpol-1 ",
+InboundACL:int-in_lan-line15_applies" reqpol-1 ",
+InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line18_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line20_applies" reqpol-2 "
 
-TUPLING")))
+TUPLING"))) 
+
+  
   
   (display-response (mtext "GET ONE"))  
   
   (display-response (mtext "SHOW POPULATED 
-                             InboundACL:ACE-hostname-int-line-12-g13147_applies" reqpol-1 ",
-InboundACL:ACE-hostname-int-line-15-g13150_applies" reqpol-1 ",
-InboundACL:ACE-hostname-ext-line-17-g13152_applies" reqpol-2 ",
-InboundACL:ACE-hostname-ext-line-18-g13153_applies" reqpol-2 ",
-InboundACL:ACE-hostname-ext-line-20-g13155_applies" reqpol-2))
+InboundACL:int-in_lan-line12_applies" reqpol-1 ",
+InboundACL:int-in_lan-line15_applies" reqpol-1 ",
+InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line18_applies" reqpol-2 ",
+InboundACL:ext-out_dmz-line20_applies" reqpol-2))
   
   
   

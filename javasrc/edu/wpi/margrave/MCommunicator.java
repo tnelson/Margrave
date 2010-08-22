@@ -704,37 +704,52 @@ public class MCommunicator
 				
 				
 				// If this is not an atomic formula, pass over it
-				if(!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-Y") &&
-						!childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-N"))
-					continue;
-				
-				collectionName = getAtomicFormulaYCollection(childNode); // may be null!
-				if(collectionName != null)				
-					relationName = getAtomicFormulaYRelation(childNode);
-				else
-					relationName = getAtomicFormulaNRelation(childNode);
-				
-				identifiers = getIdentifierList(childNode); //could be empty!
-
-				writeToLog("\natomicFormulasToHashmap: "+collectionName+", "+relationName+", "+identifiers+"\n");
-				
-				// TODO: Should make a class to help with this eventually; right now
-				// there is too much string processing going on in the engine.
-				
-				String idbName;
-				if(collectionName != null && collectionName.length() > 0)
-					idbName = collectionName + ":" + relationName;
-				else
-					idbName = relationName;
-				
-				// initialize if needed
-				if(!hashMap.containsKey(idbName))
-					hashMap.put(idbName, new HashSet<List<String>>());
-				
-				if (identifiers.size() > 0)
+				if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-Y") ||
+						childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-N")) 
 				{
-					// indexed: need to add a variable vector to the entry's value
-					hashMap.get(idbName).add(identifiers);
+				
+					collectionName = getAtomicFormulaYCollection(childNode); // may be null!
+					if(collectionName != null)				
+						relationName = getAtomicFormulaYRelation(childNode);
+					else
+						relationName = getAtomicFormulaNRelation(childNode);
+					
+					identifiers = getIdentifierList(childNode); //could be empty!
+	
+					writeToLog("\natomicFormulasToHashmap (ATOMIC-FMLA): "+collectionName+", "+relationName+", "+identifiers+"\n");
+					
+					// TODO: Should make a class to help with this eventually; right now
+					// there is too much string processing going on in the engine.
+					
+					String idbName;
+					if(collectionName != null && collectionName.length() > 0)
+						idbName = collectionName + ":" + relationName;
+					else
+						idbName = relationName;
+					
+					// initialize if needed
+					if(!hashMap.containsKey(idbName))
+						hashMap.put(idbName, new HashSet<List<String>>());
+					
+					if (identifiers.size() > 0)
+					{
+						// indexed: need to add a variable vector to the entry's value
+						hashMap.get(idbName).add(identifiers);
+					}
+				}
+				else if(childNode.getNodeName().equalsIgnoreCase("EQUALS"))
+				{
+					String idname1 = getNodeAttribute(childNode, "EQUALS", "v1");
+	        		String idname2 = getNodeAttribute(childNode, "EQUALS", "v2");
+	        		
+	        		writeToLog("\natomicFormulasToHashmap (EQUALS): "+idname1+", "+idname2+"\n");
+	        		
+	        		if(!hashMap.containsKey("="))
+	        			hashMap.put("=", new HashSet<List<String>>());
+	        		List<String> params = new ArrayList<String>(2);
+	        		params.add(idname1);
+	        		params.add(idname2);
+	        		hashMap.get("=").add(params);	        			        		
 				}
 				
 			}
