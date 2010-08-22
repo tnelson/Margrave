@@ -137,7 +137,11 @@ class MExploreCondition
 	 */ 
 	Set<Formula> eqPlaceholders = new HashSet<Formula>();
 	//Set<Expression> exprPlaceholders = new HashSet<Expression>();
-		
+	
+	// Remember what we decided were true placeholders, so MQuery won't
+	// think they are real free variables.
+	Set<Variable> knownPlaceholders = new HashSet<Variable>();
+	
 	void resolvePlaceholders(MVocab vocab)
 	throws MSemanticException, MGEManagerException
 	{
@@ -174,15 +178,18 @@ class MExploreCondition
 
 			MSort thesort;
 			Variable thevar;
+			Variable theplaceholder;
 			
 			if(lsort != null)
 			{
 				thesort = lsort;
+				theplaceholder = lhv;
 				thevar = rhv;
 			}
 			else // only remaining option is rsort != null
 			{
 				thesort = rsort;
+				theplaceholder = rhv;
 				thevar = lhv;
 			}
 			
@@ -195,7 +202,8 @@ class MExploreCondition
 			Formula newFormula = MFormulaManager.makeAtom(thevar, thesort.rel);
 
 			MCommunicator.writeToLog("\n   "+eqf+ " should become: "+newFormula);
-
+			
+			knownPlaceholders.add(theplaceholder);
 			replacementMap.put(eqf, newFormula);			
 			
 		} // end for each eqPlaceholder
@@ -593,8 +601,7 @@ class MExploreCondition
 			assertAtomicNecessary.get(varvector).clear();
 		}
 	}
-
-	
+		
 	MExploreCondition addSeenIDBCollections(List<MIDBCollection> moreIDBCollections)
 	{
 		seenIDBs.addAll(moreIDBCollections);		

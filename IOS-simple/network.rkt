@@ -82,6 +82,8 @@
   
   ; Remember: AND binds tighter than OR, so wrap the OR in parens.
   ; 10.200.0.0/255.255.0.0 is "the internet" for this example: something outside the extern router
+  
+  #|
   (display-response (mtext (string-append "EXPLORE prot-TCP(protocol) AND
 192.168.1.2(fw1-src-addr-in)  AND
 in_lan(fw1-entry-interface) AND
@@ -104,7 +106,7 @@ InboundACL:int-in_lan-line12_applies" reqpol-1 ",
 InboundACL:int-in_lan-line15_applies" reqpol-1 "
 
 TUPLING")))
-
+|#
   
   #|
 
@@ -127,7 +129,7 @@ NOT passes-firewall" reqpol-2 ")
 
 |#
   
-  #|
+  
     (display-response (mtext (string-append "EXPLORE prot-TCP = protocol AND
 192.168.1.2 = fw1-src-addr-in  AND
 in_lan = fw1-entry-interface AND
@@ -154,7 +156,7 @@ InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
 InboundACL:ext-out_dmz-line18_applies" reqpol-2 ",
 InboundACL:ext-out_dmz-line20_applies" reqpol-2 "
 
-TUPLING"))) |#
+TUPLING"))) 
 
   
   
