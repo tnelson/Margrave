@@ -2315,13 +2315,13 @@
            (,dest-addr-in dest-addr-in)))))
     ))
 
-;; symbol -> rule%
+;; hostname% -> rule%
 ;;   Returns a default routing rule
 (define (make-default-routing-rule hostname)
   (make-object rule%
-    (string->symbol (string-append (symbol->string hostname) "-default-route"))
+    (string->symbol (string-append (symbol->string (send hostname name)) "-default-route"))
     'Pass
-    `(,hostname hostname)))
+    `((,hostname hostname))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Route Maps
@@ -3258,7 +3258,7 @@
                        (,(get-field secondary-network interf) dest-addr-in))))))
               (hash-filter interfaces (λ (name interf)
                                         (get-field secondary-address interf)))))
-        (list (make-default-routing-rule (send hostname name))))))
+        (list (make-default-routing-rule hostname)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of forwarding rules for adjacent networks
@@ -3305,7 +3305,7 @@
                       (send hostname name)
                       `((,hostname hostname))))
               static-routes))
-        (list (make-default-routing-rule (send hostname name))))))
+        (list (make-default-routing-rule hostname)))))
     
     ;; symbol (hash-table abstract-map%) -> (listof route-map%)
     ;;   Returns a list of maps with the given tag ordered by priority
@@ -3330,7 +3330,7 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list (make-default-routing-rule (send hostname name))))))
+        (list (make-default-routing-rule hostname)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the default policy-based routing rules (i.e., those that
@@ -3350,7 +3350,7 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list (make-default-routing-rule (send hostname name))))))
+        (list (make-default-routing-rule hostname)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the encryption rules
