@@ -216,7 +216,7 @@
           (eqv? disposition 'permit)
           src-addr
           (if (empty? line-tokens)
-              'icmp-any
+              'ICMPMessage
               (string->symbol (string-append "icmp-" (symbol->string (first line-tokens)))))
           dest-addr)))
 
