@@ -46,10 +46,21 @@
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
   (load-ios-policies (build-path (current-directory) "config") "" "1")
+  
+  (define n-load-one (time-since-last))
+  (write-string (string-append (number->string n-load-one) ", ") log-file)
+  
   (load-ios-policies (build-path (current-directory) "config-revised") "" "2")
+  
+  (define n-load-two (time-since-last))
+  (write-string (string-append (number->string n-load-two) ", ") log-file)
+  
   (load-ios-policies (build-path (current-directory) "config-reflexive") "" "3")
   
-  (write-string (string-append (number->string (time-since-last)) ", ") log-file)
+  (define n-load-three (time-since-last))
+  (write-string (string-append (number->string n-load-three) ", ") log-file)
+  
+  (write-string (string-append (number->string (+ n-load-one n-load-two n-load-three)) ", ") log-file)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 1

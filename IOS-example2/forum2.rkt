@@ -87,7 +87,8 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
+  ;(start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
+  (start-margrave-engine (build-path (current-directory) 'up) '() '())
   
   (define log-file (open-output-file "forum2-benchmarking.csv" #:exists 'append))
   (time-since-last) ; reset
@@ -97,13 +98,22 @@
   ; Original configuration
   (load-ios-policies (build-path (current-directory) "config") "" "1")
   
+  (define n-load-one (time-since-last))
+  (write-string (string-append (number->string n-load-one) ", ") log-file)
+  
   ; Configuration with "default" keyword
   (load-ios-policies (build-path (current-directory) "revised") "" "2")
+  
+  (define n-load-two (time-since-last))
+  (write-string (string-append (number->string n-load-two) ", ") log-file)
   
   ; Config with changed topology?
   (load-ios-policies (build-path (current-directory) "revised-address") "" "3")
   
-  (write-string (string-append (number->string (time-since-last)) ", ") log-file)
+  (define n-load-three (time-since-last))
+  (write-string (string-append (number->string n-load-three) ", ") log-file)
+  
+  (write-string (string-append (number->string (+ n-load-one n-load-two n-load-three)) ", ") log-file)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 1
