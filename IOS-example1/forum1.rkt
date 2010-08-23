@@ -60,6 +60,9 @@
   (define n-load-three (time-since-last))
   (write-string (string-append (number->string n-load-three) ", ") log-file)
   
+  
+  (display-response (mtext "INFO"))
+  
   (write-string (string-append (number->string (+ n-load-one n-load-two n-load-three)) ", ") log-file)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -198,8 +201,10 @@ internal-result3" vector "AND
   (write-string (string-append (number->string n-last-query) ", ") log-file)
   (write-string (string-append (number->string (+ n-so-far n-last-query)) "\n") log-file)
   
+  (display-response (mtext "INFO"))
+  
   (close-output-port log-file)  
-  (stop-margrave-engine)
+ ; (stop-margrave-engine)
   )
 
 (define (benchmark num-trials)
