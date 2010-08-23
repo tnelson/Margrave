@@ -40,11 +40,16 @@
   ; Pass path of the engine files: 1 level up from here.
   (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))  
   
+  (define log-file (open-output-file "forum1-benchmarking.csv" #:exists 'append))
+  (time-since-last) ; reset
+  
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
   (load-ios-policies (build-path (current-directory) "config") "" "1")
   (load-ios-policies (build-path (current-directory) "config-revised") "" "2")
   (load-ios-policies (build-path (current-directory) "config-reflexive") "" "3")
+  
+  (write-string (string-append (number->string (time-since-last)) ", ") log-file)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 1
@@ -156,6 +161,38 @@ internal-result3" vector "AND
   (display-response (mtext "GET ONE"))
   
     (printf "^^^ Expected a model above.~n")
+    
+  (define n-so-far (time-since-last))
   
-  ;(stop-margrave-engine)
+  
+  ; Did any changes NOT involve the Connection predicate?
+  
+    (display-response (mtext "EXPLORE
+( Connection-returntcp(src-addr-in, src-port-in, protocol, dest-addr-in, dest-port-in) 
+  IMPLIES
+  InboundACL3:Router-Vlan1-line29_applies" reversepolicyvector ") AND "
+
+"(InboundACL1:Permit" policyvector " AND NOT InboundACL3:Permit" policyvector ") OR "
+"(InboundACL3:Permit" policyvector " AND NOT InboundACL1:Permit" policyvector ")"
+
+" AND Connection-returntcp(src-addr-in, src-port-in, protocol, dest-addr-in, dest-port-in) "
+                                                                                                                                       
+ " TUPLING"))
+  
+  (display-response (mtext "GET ONE"))  
+  
+  (define n-last-query (time-since-last))
+  
+  
+  (write-string (string-append (number->string n-last-query) ", ") log-file)
+  (write-string (string-append (number->string (+ n-so-far n-last-query)) "\n") log-file)
+  
+  (close-output-port log-file)  
+  (stop-margrave-engine)
   )
+
+(define (benchmark num-trials)
+  (when (> num-trials 0)   
+    (printf " ~a trials left...~n" num-trials)
+    (run-queries-for-forum-1)    
+    (benchmark (- num-trials 1))))

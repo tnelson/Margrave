@@ -89,6 +89,9 @@
   ; Pass path of the engine files: 1 level up from here.
   (start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
   
+  (define log-file (open-output-file "forum2-benchmarking.csv" #:exists 'append))
+  (time-since-last) ; reset
+  
   ; Load all the policies 
   
   ; Original configuration
@@ -100,6 +103,7 @@
   ; Config with changed topology?
   (load-ios-policies (build-path (current-directory) "revised-address") "" "3")
   
+  (write-string (string-append (number->string (time-since-last)) ", ") log-file)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Version 1
@@ -464,6 +468,8 @@ TUPLING")))
   
   (printf "^^^ Expected false above~n")
   
+  (define n-so-far (time-since-last))
+  
   ; Can the secondary network access the internet?
         (display-response (mtext (string-append "EXPLORE
 hostname-tas=tas AND
@@ -487,9 +493,23 @@ AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
 
-  (printf "^^^ Expected true above~n")
-  ; TRUE! So internet access has been restored (or at least some of it.)
+  (define n-last-query (time-since-last))
   
-    
-  ;(stop-margrave-engine)
+  (printf "^^^ Expected true above~n")
+  
+  ; TRUE! So internet access has been restored (or at least some of it.)
+
+  (write-string (string-append (number->string n-last-query) ", ") log-file)
+  (write-string (string-append (number->string (+ n-so-far n-last-query)) "\n") log-file)
+  (close-output-port log-file)
+  
+    ; comment this line out to make additional queries after the function runs
+  (stop-margrave-engine)
   )
+
+
+(define (benchmark num-trials)
+  (when (> num-trials 0)   
+    (printf " ~a trials left...~n" num-trials)
+    (run-queries-for-forum-2)    
+    (benchmark (- num-trials 1))))
