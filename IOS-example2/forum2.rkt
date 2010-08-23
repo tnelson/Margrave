@@ -219,8 +219,6 @@ TUPLING")))
     (printf "^^^ Expected GigabitEthernet0/0 above~n")
 
   
-  ; There is no support for sham equality in SHOW POPULATED or INCLUDE
-  
 ; All those packets are being sent out GigabitEthernet0/0 ---
 ; even the ones that are meant for 10.232.0.100/25. Surely
 ; something is wrong with the routing policy. What next-hop
@@ -237,14 +235,20 @@ TUPLING")))
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
  AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
 
-INCLUDE 10.254.1.129 = tas-next-hop, 10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
-        10.254.1.130 = tas-next-hop, 10.232.104.0/255.255.252.0(tas-next-hop),
-        10.232.4.0/255.255.252.0(tas-next-hop)
+INCLUDE 
+10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
+10.254.1.128/255.255.255.252(tas-next-hop), 
+10.232.8.0/255.255.252.0(tas-next-hop)  
+
 
 TUPLING")))  
   
 ; INCLUDE is telling the tupler to keep those EDB facts, even if they 
 ; don't appear in the query proper (we want to SHOW POPULATED for them!)
+
+  ; (In THIS case, the tupler is smart enough to include them since they are
+  ; mentioned directly by internal-result. However, including the INCLUDE
+  ; as an example.)
   
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15 = tas-next-hop," 
@@ -253,6 +257,11 @@ TUPLING")))
 "10.254.1.128/255.255.255.252(tas-next-hop)")))
 
       (printf "^^^ Expected 10.232.0.15 above~n")
+
+  
+ 
+  
+  
   
   ; ******************
   ; Relaxation: Does this happen to _all_ traffic from 10.232.0.0?
@@ -268,11 +277,12 @@ TUPLING")))
 " AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0=tas-entry-interface
  AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
- AND NOT LocalSwitching1:Forward" tasvectorpol-fromtas  
+ AND NOT LocalSwitching1:Forward" routingpol-tas
 
-" INCLUDE 10.254.1.129 = tas-next-hop, 10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
-        10.254.1.130 = tas-next-hop, 10.232.104.0/255.255.252.0(tas-next-hop),
-        10.232.4.0/255.255.252.0(tas-next-hop)
+" INCLUDE 
+10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
+10.254.1.128/255.255.255.252(tas-next-hop), 
+10.232.8.0/255.255.252.0(tas-next-hop)  
 
 TUPLING")))    
     (display-response (mtext (string-append "SHOW POPULATED "
