@@ -177,3 +177,9 @@
         (close-output-port log-file)
         
         (stop-margrave-engine))))) ; close JVM and end function
+
+(define (benchmark num-trials file-name)
+  (when (> num-trials 0)   
+    (printf " ~a trials left...~n" num-trials)
+    (run-timed-script file-name)    
+    (benchmark (- num-trials 1) file-name)))
