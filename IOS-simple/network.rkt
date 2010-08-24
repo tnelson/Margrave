@@ -91,7 +91,7 @@ out_dmz = fw2-entry-interface AND
 hostname-int = fw1 AND
 hostname-ext = fw2 AND
 
-10.200.0.0/255.255.0.0(fw1-dest-addr-in) AND
+fw1-dest-addr-in IN 10.200.0.0/255.255.0.0 AND
 NOT 10.200.200.200 = fw1-dest-addr-in AND
 port-80 = fw1-dest-port-in AND
 

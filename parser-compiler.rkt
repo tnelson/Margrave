@@ -217,7 +217,12 @@
           (nonassoc IMPLIES)          
           (left OR)
           (left AND)
-          (nonassoc NOT))
+          (nonassoc NOT)
+          
+          (left COMMA)
+          (nonassoc IN)
+          (nonassoc COLON))
+   (debug "parser-debug.txt")
    
    (grammar
     
@@ -281,7 +286,7 @@
      [(SHOW UNPOPULATED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
       (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
 
-     ; SHOW POPULATED without a numeric-d
+     ; SHOW POPULATED without a numeric-id
      [(SHOW POPULATED atomic-formula-list) 
       (build-so (list 'LSHOWPOPULATED $3 empty) 1 3)]
      [(SHOW UNPOPULATED atomic-formula-list)
@@ -290,7 +295,7 @@
       (build-so (list 'LSHOWPOPULATED $3 $6) 1 6)]
      [(SHOW UNPOPULATED atomic-formula-list FOR CASES atomic-formula-list)
       (build-so (list 'LSHOWUNPOPULATED $3 $6) 1 6)]     
-          
+         
      ;IS POSSIBLE?
      [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
      [(IS POSSIBLEQMARK) (build-so (list 'IS-POSSIBLE?) 1 1)]
@@ -319,6 +324,7 @@
     ; ADD
     (add-statement
      [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)]
+
      ;TODO!!: Have to finish this up
      ;These are the functions to use:
      ;(xml-make-decision-type dtype) 
@@ -405,6 +411,7 @@
      [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
      [(equals-formula) (build-so $1 1 1)]
      [(atomic-formula) (build-so $1 1 1)]
+     [(in-formula) (build-so $1 1 1)]
      
      ;[(relation) $1]
      ;[(<identifier> COLON relation) "a"]
@@ -416,6 +423,20 @@
     (condition [(condition-formula) (list 'CONDITION $1)]
                [(TRUE) (list 'CONDITION (build-so (list 'TRUE) 1 1))])
 
+    ; *************************************************
+    ; (x, y, z) IN DB   or x in DB    
+    ; syntactic sugar for predicate notation
+    ; needs the parens to resolve shift/reduce (deal with this)
+    (in-formula ((LPAREN variable-list RPAREN IN <identifier> COLON <identifier>) 
+                 (build-so (list 'ATOMIC-FORMULA-Y $5 ":" $7 (append (list 'VARIABLE-VECTOR) $2)) 1 7))
+                ((LPAREN variable-list RPAREN IN <identifier>)
+                 (build-so (list 'ATOMIC-FORMULA-N $5 (append (list 'VARIABLE-VECTOR) $2)) 1 5))
+                ((<identifier> IN <identifier> COLON <identifier>)
+                 (build-so (list 'ATOMIC-FORMULA-Y $3 ":" $5 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 5))
+                ((<identifier> IN <identifier>)
+                 (build-so (list 'ATOMIC-FORMULA-N $3 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 3))
+                )
+    
     
     
     ; *************************************************
@@ -435,27 +456,38 @@
     (atomic-formula [(<identifier> LPAREN variable-list RPAREN) 
                      (build-so (list 'ATOMIC-FORMULA-N $1 (append (list 'VARIABLE-VECTOR) $3)) 1 4)]
                     [(<identifier> COLON <identifier> LPAREN variable-list RPAREN) 
-                     (build-so (list 'ATOMIC-FORMULA-Y $1 ":" $3 (append (list 'VARIABLE-VECTOR) $5)) 1 5)])
+                     (build-so (list 'ATOMIC-FORMULA-Y $1 ":" $3 (append (list 'VARIABLE-VECTOR) $5)) 1 6)]
+                    )
     
     ; ***********************************************************
     ; Used by IDBOUTPUT, SHOW POPULATED, SHOW UNPOPULATED
     ; May be a normal atomic formula. May also have an empty vector (no parens).
     
-    (poss-nullary-atomic-formula [(<identifier> COLON <identifier>)
-                                  (build-so (list 'EMPTY-ATOMIC-FORMULA-Y $1 ":" $3 empty) 1 3)]
-                                 [(<identifier>)
-                                  (build-so (list 'EMPTY-ATOMIC-FORMULA-N $1 empty) 1 1)]
-                                 [(equals-formula)
-                                  $1]
-                                 [(atomic-formula) 
-                                  $1])
+    (nullary-atomic-formula [(<identifier> COLON <identifier>)
+                             (build-so (list 'EMPTY-ATOMIC-FORMULA-Y $1 ":" $3 empty) 1 3)]
+                            [(<identifier>)
+                             (build-so (list 'EMPTY-ATOMIC-FORMULA-N $1 empty) 1 1)])
     
-    (atomic-formula-list
-     [(poss-nullary-atomic-formula) (list $1)]
-     [(poss-nullary-atomic-formula COMMA atomic-formula-list) (append (list $1) $3)])
+    (non-nullary-atomic-formula ((equals-formula) 
+                                 $1)
+                                [(atomic-formula) 
+                                 $1]
+                                [(in-formula)
+                                 $1])   
     
+    (non-nullary-atomic-formula-list
+     [(non-nullary-atomic-formula) (list $1)]
+     [(non-nullary-atomic-formula-list COMMA non-nullary-atomic-formula) (append $1 (list $3))])
     
-    ;    (atom [(<identifier>) (build-so (list 'VARIABLE $1) 1 1)])
+    (nullary-atomic-formula-list
+     [(nullary-atomic-formula) (list $1)]
+     [(nullary-atomic-formula-list COMMA nullary-atomic-formula) (append $1 (list $3))])    
+    
+    (atomic-formula-list 
+     ((nullary-atomic-formula-list) $1)
+     ((non-nullary-atomic-formula-list) $1))
+    
+
     
     ; *************************************************
     ; a vector of variables. e.g.     x, y, z
@@ -463,9 +495,6 @@
     (variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
                    ;[(<identifier> variable-list) (cons $1 $2)]
                    [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )]))))
-
-;(define (e stx)
-;  (syntax-e stx))
 
 
 (define (helper-syn->xml syn)

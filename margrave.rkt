@@ -357,20 +357,17 @@
 ; to the backend in lower-case.
 (define (load-policy fn)
   
-  ; !!! TODO Check whether case-sensitivity problems remain in DrRacket
-  
-  ;  (case-sensitive #t)
-  ;  (display (read (open-input-file fn))) (newline)
-  ;  (case-sensitive #f)  
-  ; (display "*** ") (display fn) (newline)
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. Is there a fix for this?
-  ; (case-sensitive #t)
+
   (let* ([pol-result-list (evaluate-policy fn)]
          [polname (first pol-result-list)])
     
+    ; XML commands for the vocab
     (mm (third pol-result-list))
+    
+    ; XML commands for the policy
     (mm (fourth pol-result-list))
     polname))
 

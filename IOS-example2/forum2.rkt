@@ -136,8 +136,8 @@ passes-firewall1" tasvectorpol-fromtas " AND
 passes-firewall1" bazvectorpol-fromtas " AND
 
 GigabitEthernet0/0 = tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+tas-dest-addr-in IN 10.232.100.0/255.255.252.0 AND
 \"Serial0/3/0:0\" = tas-exit-interface AND
 
 \"Serial0/3/0:0\" = baz-entry-interface AND
@@ -159,8 +159,8 @@ internal-result1" tasvectorfull-fromtas " AND
 passes-firewall1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0 = tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+tas-dest-addr-in IN 10.232.100.0/255.255.252.0 AND
 \"Serial0/3/0:0\" = tas-exit-interface
 
 TUPLING")))
@@ -181,8 +181,8 @@ internal-result1" tasvectorfull-fromtas " AND
 NOT passes-firewall1" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0 = tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+tas-dest-addr-in IN 10.232.100.0/255.255.252.0 AND
 tas-exit-interface = \"Serial0/3/0:0\" 
 
 TUPLING")))
@@ -199,8 +199,8 @@ TUPLING")))
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0 = tas-entry-interface
- AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
- AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
+ AND tas-src-addr-in IN 10.232.0.0/255.255.252.0
+ AND tas-dest-addr-in IN 10.232.100.0/255.255.252.0  
         
 TUPLING")))  
   (display-response (mtext "IS POSSIBLE?")) 
@@ -220,8 +220,8 @@ TUPLING")))
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0 = tas-entry-interface
- AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
- AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
+ AND tas-src-addr-in IN 10.232.0.0/255.255.252.0
+ AND tas-dest-addr-in IN 10.232.100.0/255.255.252.0  
 
 TUPLING")))  
   (display-response (mtext "SHOW POPULATED 
@@ -246,13 +246,14 @@ TUPLING")))
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0 = tas-entry-interface
- AND 10.232.0.0/255.255.252.0(tas-src-addr-in)
- AND 10.232.100.0/255.255.252.0(tas-dest-addr-in)  
+ AND tas-src-addr-in IN 10.232.0.0/255.255.252.0
+ AND tas-dest-addr-in IN 10.232.100.0/255.255.252.0  
 
 INCLUDE 
-10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
-10.254.1.128/255.255.255.252(tas-next-hop), 
-10.232.8.0/255.255.252.0(tas-next-hop)  
+10.232.0.15 = tas-next-hop, 
+10.232.4.10 = tas-next-hop,
+tas-next-hop IN 10.254.1.128/255.255.255.252, 
+tas-next-hop IN 10.232.8.0/255.255.252.0  
 
 
 TUPLING")))  
@@ -267,8 +268,8 @@ TUPLING")))
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15 = tas-next-hop," 
 "10.232.4.10 = tas-next-hop,"
-"10.232.8.0/255.255.252.0(tas-next-hop),"
-"10.254.1.128/255.255.255.252(tas-next-hop)")))
+"tas-next-hop IN 10.232.8.0/255.255.252.0,"
+"tas-next-hop IN 10.254.1.128/255.255.255.252")))
 
       (printf "^^^ Expected 10.232.0.15 above~n")
 
@@ -290,20 +291,21 @@ TUPLING")))
  AND internal-result1" tasvectorfull-fromtas
 " AND passes-firewall1" tasvectorpol-fromtas
 " AND GigabitEthernet0/0=tas-entry-interface
- AND 10.232.0.0/255.255.252.0(tas-src-addr-in)  
+ AND tas-src-addr-in IN 10.232.0.0/255.255.252.0  
  AND NOT LocalSwitching1:Forward" routingpol-tas
 
 " INCLUDE 
-10.232.0.15 = tas-next-hop, 10.232.4.10 = tas-next-hop,
-10.254.1.128/255.255.255.252(tas-next-hop), 
-10.232.8.0/255.255.252.0(tas-next-hop)  
+10.232.0.15 = tas-next-hop, 
+10.232.4.10 = tas-next-hop,
+tas-next-hop IN 10.254.1.128/255.255.255.252, 
+tas-next-hop IN 10.232.8.0/255.255.252.0 
 
 TUPLING")))    
     (display-response (mtext (string-append "SHOW POPULATED "
 "10.232.0.15 = tas-next-hop," 
 "10.232.4.10 = tas-next-hop,"
-"10.232.8.0/255.255.252.0(tas-next-hop),"
-"10.254.1.128/255.255.255.252(tas-next-hop)")))
+"tas-next-hop IN 10.232.8.0/255.255.252.0,"
+"tas-next-hop IN 10.254.1.128/255.255.255.252")))
     
         (printf "^^^ Expected 10.232.0.15 above~n")
 
@@ -327,8 +329,8 @@ internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+tas-dest-addr-in IN 10.232.100.0/255.255.252.0 AND
 \"Serial0/3/0:0\" =tas-exit-interface
 
 TUPLING")))
@@ -348,8 +350,8 @@ passes-firewall2" tasvectorpol-fromtas " AND
 passes-firewall2" bazvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-10.232.100.0/255.255.252.0(tas-dest-addr-in) AND
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+tas-dest-addr-in IN 10.232.100.0/255.255.252.0 AND
 \"Serial0/3/0:0\"=tas-exit-interface AND
 
 \"Serial0/3/0:0\"=baz-entry-interface AND
@@ -373,10 +375,10 @@ internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-(10.232.4.0/255.255.252.0(tas-dest-addr-in)
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+(tas-dest-addr-in IN 10.232.4.0/255.255.252.0
    OR
- 10.232.104.0/255.255.252.0(tas-dest-addr-in))
+ tas-dest-addr-in IN 10.232.104.0/255.255.252.0)
 AND \"Serial0/3/0:0\"=tas-exit-interface
 
 TUPLING")))
@@ -395,17 +397,17 @@ internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+tas-src-addr-in IN 10.232.4.0/255.255.252.0 AND
 
 GigabitEthernet0/1=tas-exit-interface AND
 
-NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
-AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
-AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+NOT tas-dest-addr-in IN 10.232.4.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.104.0/255.255.252.0
+AND NOT tas-dest-addr-in IN  10.232.0.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.100.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.254.1.128/255.255.255.252
+AND NOT tas-dest-addr-in IN 192.168.1.0/255.255.255.0
+AND NOT tas-dest-addr-in IN 10.232.8.0/255.255.252.0
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
@@ -421,15 +423,15 @@ internal-result2" tasvectorfull-fromtas " AND
 passes-firewall2" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+tas-src-addr-in IN 10.232.4.0/255.255.252.0 AND
 
-NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
-AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
-AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+NOT tas-dest-addr-in IN 10.232.4.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.104.0/255.255.252.0
+AND NOT tas-dest-addr-in IN  10.232.0.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.100.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.254.1.128/255.255.255.252
+AND NOT tas-dest-addr-in IN 192.168.1.0/255.255.255.0
+AND NOT tas-dest-addr-in IN 10.232.8.0/255.255.252.0
 
 TUPLING")))
   ; Can ask for both at once, here, since neither are constrained:
@@ -439,8 +441,8 @@ TUPLING")))
                            tas-exit-interface =GigabitEthernet0/1,
                            tas-next-hop = 10.232.0.15,
                            10.232.4.10 = tas-next-hop,
-                           10.232.8.0/255.255.252.0(tas-next-hop),
-                           10.254.1.128/255.255.255.252(tas-next-hop)"))
+                           tas-next-hop IN 10.232.8.0/255.255.252.0,
+                           tas-next-hop IN 10.254.1.128/255.255.255.252 "))
   
           (printf "^^^ Expected ge0/0 and 10.232.4.10 above~n")
   
@@ -466,10 +468,10 @@ internal-result3" tasvectorfull-fromtas " AND
 passes-firewall3" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.0.0/255.255.252.0(tas-src-addr-in) AND
-(10.232.4.0/255.255.252.0(tas-dest-addr-in)
+tas-src-addr-in IN 10.232.0.0/255.255.252.0 AND
+(tas-dest-addr-in IN 10.232.4.0/255.255.252.0
    OR
- 10.232.104.0/255.255.252.0(tas-dest-addr-in))
+ tas-dest-addr-in IN 10.232.104.0/255.255.252.0)
 AND \"Serial0/3/0:0\"=tas-exit-interface
 
 TUPLING")))
@@ -488,17 +490,17 @@ internal-result3" tasvectorfull-fromtas " AND
 passes-firewall3" tasvectorpol-fromtas " AND
 
 GigabitEthernet0/0=tas-entry-interface AND
-10.232.4.0/255.255.252.0(tas-src-addr-in) AND
+tas-src-addr-in IN 10.232.4.0/255.255.252.0 AND
 
 GigabitEthernet0/1=tas-exit-interface AND
 
-NOT 10.232.4.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.104.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.0.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.232.100.0/255.255.252.0(tas-dest-addr-in)
-AND NOT 10.254.1.128/255.255.255.252(tas-dest-addr-in)
-AND NOT 192.168.1.0/255.255.255.0(tas-dest-addr-in)
-AND NOT 10.232.8.0/255.255.252.0(tas-dest-addr-in)
+NOT tas-dest-addr-in IN 10.232.4.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.104.0/255.255.252.0
+AND NOT tas-dest-addr-in IN  10.232.0.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.232.100.0/255.255.252.0
+AND NOT tas-dest-addr-in IN 10.254.1.128/255.255.255.252
+AND NOT tas-dest-addr-in IN 192.168.1.0/255.255.255.0
+AND NOT tas-dest-addr-in IN 10.232.8.0/255.255.252.0
 
 TUPLING")))
   (display-response (mtext "IS POSSIBLE?"))
@@ -512,6 +514,8 @@ TUPLING")))
   (write-string (string-append (number->string n-last-query) ", ") log-file)
   (write-string (string-append (number->string (+ n-so-far n-last-query)) "\n") log-file)
   (close-output-port log-file)
+  
+  (display-response (mtext "INFO"))
   
     ; comment this line out to make additional queries after the function runs
   (stop-margrave-engine)

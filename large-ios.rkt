@@ -23,7 +23,8 @@
 (define (run-timed-script pFileName1 pFileName2 target-interface target-src-address)
   
   ; Start the Java process
-  (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g")  )  ; '( "-log")
+  (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g")  ) 
+   ;(start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g") '("-log") ) 
   
   ; Print out baseline memory consumption (before policies loaded)
 ;  (display-response (mtext "INFO"))
@@ -38,6 +39,9 @@
   (load-policy pFileName1)
   (display-response (mtext "RENAME InboundACL InboundACL1"))
     
+  (printf "1~n")
+  (display-response (mtext "INFO"))
+  
   (define n-load-one (time-since-last))
   (write-string (string-append (number->string n-load-one) ", ") log-file)
   
@@ -47,7 +51,8 @@
   (load-policy pFileName2)
   (display-response (mtext "RENAME InboundACL InboundACL2"))
 
-  
+  (printf "2~n")
+  (display-response (mtext "INFO"))
   
   (printf "~nLoading complete.~n~n")
   
@@ -71,13 +76,13 @@
                            ;" AND src-addr-in = " target-src-address
                            target-src-address "(src-addr-in) "
                            " TUPLING"))
-  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-      (begin
-        (printf "-------------------------------------------------~n")
-        (printf "It is indeed possible:~n")
-        (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE")))
-      (printf "No, the query was impossible.~n~n"))
+  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+  ;    (begin
+  ;      (printf "-------------------------------------------------~n")
+  ;      (printf "It is indeed possible:~n")
+  ;      (printf "-------------------------------------------------~n")
+        (display-response (mtext "GET ONE"))   ;;)
+  ;    (printf "No, the query was impossible.~n~n"))
 
   (define n-which-1 (time-since-last))
   (write-string (string-append (number->string n-which-1) ", ") log-file)  
@@ -101,7 +106,9 @@
   (define idblistmatches-1 (makeIdbList all-matches-1))
   (define idblistmatches-2 (makeIdbList all-matches-2))
 
-  
+  (define n-processing (time-since-last))
+  (write-string (string-append (number->string n-processing) ", ") log-file)  
+  (printf "Time to construct strings: ~a~n " n-processing)
   
   (printf "Which-packets #2~n")
   (display-response (mtext "EXPLORE InboundACL2:permit" reqpol " AND "
@@ -112,13 +119,13 @@
                            " UNDER InboundACL1 "
                            " INCLUDE " idblistapplied-1 ", " idblistapplied-2       
                            " TUPLING"))
-  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-      (begin
-        (printf "-------------------------------------------------~n")
-        (printf "It is indeed possible:~n")
-        (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE")))
-      (printf "No, the query was impossible.~n~n"))
+  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+  ;    (begin
+  ;      (printf "-------------------------------------------------~n")
+  ;      (printf "It is indeed possible:~n")
+  ;      (printf "-------------------------------------------------~n")
+        (display-response (mtext "GET ONE"))   ;)
+  ;    (printf "No, the query was impossible.~n~n"))
 
   (define n-which-2 (time-since-last))
   (write-string (string-append (number->string n-which-2) ", ") log-file)  
@@ -126,7 +133,9 @@
   
   
   
-  
+    (printf "3~n")
+  (display-response (mtext "INFO"))
+
   
   
   ; ------------------------------------------------------------------
@@ -141,13 +150,13 @@
                            " OR (InboundACL1:deny" reqpol " AND NOT InboundACL2:deny" reqpol ")"
                            " OR (InboundACL2:deny" reqpol " AND NOT InboundACL1:deny" reqpol ")"                           
                            " TUPLING"))
-  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-      (begin
-        (printf "-------------------------------------------------~n")
-        (printf "Found semantic differences. First scenario found:~n")
-        (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE")))
-      (printf "No semantic differences found.~n~n"))
+ ; (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+ ;     (begin
+ ;       (printf "-------------------------------------------------~n")
+ ;       (printf "Found semantic differences. First scenario found:~n")
+ ;       (printf "-------------------------------------------------~n")
+        (display-response (mtext "GET ONE"))   ;)
+    ;  (printf "No semantic differences found.~n~n"))
 
   (define n-ch-imp-1 (time-since-last))
   (write-string (string-append (number->string n-ch-imp-1) ", ") log-file)
@@ -174,20 +183,23 @@
                            
                            " INCLUDE " idblistapplied-1 ", " idblistapplied-2                         
                            " TUPLING"))
-  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-      (begin
-        (printf "-------------------------------------------------~n")
-        (printf "Found semantic differences. First scenario found:~n")
-        (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE")))
-      (printf "No semantic differences found.~n~n"))
+ ; (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+  ;    (begin
+    ;    (printf "-------------------------------------------------~n")
+    ;    (printf "Found semantic differences. First scenario found:~n")
+    ;    (printf "-------------------------------------------------~n")
+        (display-response (mtext "GET ONE"))   ;)
+     ; (printf "No semantic differences found.~n~n"))
   
   
   (define n-ch-imp-2 (time-since-last))
-  (write-string (string-append (number->string n-ch-imp-2) ", ") log-file)
+  (write-string (string-append (number->string n-ch-imp-2) "\n") log-file)
   
   (printf "Time: ~a~n " n-ch-imp-2)
  
+  
+  #|
+  
    ; ------------------------------------------------------------------
   ;   Change-impact #3: InboundACL vs. InboundACL, matches rule blaming
   ;  (fast, less obvious)
@@ -205,13 +217,13 @@
                            
                            " INCLUDE " idblistmatches-1 ", " idblistmatches-2                         
                            " TUPLING"))
-  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-      (begin
-        (printf "-------------------------------------------------~n")
-        (printf "Found semantic differences. First scenario found:~n")
-        (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE")))
-      (printf "No semantic differences found.~n~n"))
+;  (if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+;      (begin
+;        (printf "-------------------------------------------------~n")
+;        (printf "Found semantic differences. First scenario found:~n")
+;        (printf "-------------------------------------------------~n")
+        (display-response (mtext "GET ONE")) ;)
+;      (printf "No semantic differences found.~n~n"))
   
   
   (define n-ch-imp-3 (time-since-last))
@@ -219,7 +231,7 @@
   
   (printf "Time: ~a~n " n-ch-imp-3)
   
-  
+  |#
   #|
   ; ------------------------------------------------------------------
   ;   entire firewall config vs. entire new config
@@ -265,6 +277,10 @@
     (printf "Time: ~a~n " (time-since-last))
   
   |#
+  
+    (printf "4~n")
+  (display-response (mtext "INFO"))
+
   
     (close-output-port log-file)  
   

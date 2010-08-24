@@ -73,7 +73,7 @@
   
   
   (display-response (mtext "EXPLORE
-NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+NOT src-addr-in IN 192.168.2.0/255.255.255.0 AND
 FastEthernet0 = entry-interface AND
 prot-TCP = protocol AND
 port-80 = src-port-in AND
@@ -97,7 +97,7 @@ internal-result1" vector
   
   
   (display-response (mtext "EXPLORE
-NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+NOT src-addr-in IN 192.168.2.0/255.255.255.0 AND
 FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
@@ -123,7 +123,7 @@ internal-result1" vector " AND
   (printf "~n---------------2--------------~n------------------------------~n")
   
   (display-response (mtext "EXPLORE
-NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+NOT src-addr-in IN 192.168.2.0/255.255.255.0 AND
 FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
@@ -150,7 +150,7 @@ internal-result2" vector " AND
   ; Same as above, but assert that something in connection-returntcp must
   ; have had its source in the permit rule that populates the temporary list.    
   (display-response (mtext "EXPLORE
-NOT 192.168.2.0/255.255.255.0(src-addr-in) AND
+NOT src-addr-in IN 192.168.2.0/255.255.255.0 AND
 FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
