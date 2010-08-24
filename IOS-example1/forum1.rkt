@@ -26,6 +26,13 @@
 ; Src-port <---> dest-port
 ; entry-interface <---> exit-interface
 ; Used for reflexive ACL axiom
+
+; Note that this check DOES NOT CONSIDER NAT!
+; As the paper says, Margrave does not support general 
+; dynamic NAT, only models the *outgoing* packets.
+; 6.1 fixes the ephemeral port issue, which comes up before
+; NAT has a chance to apply.
+
 (define reversepolicyvector "(ahostname, exit-interface, 
         dest-addr-in,  dest-addr-out,         
         src-addr-in,  src-addr-out,  
@@ -33,6 +40,16 @@
         dest-port-in, dest-port-out,         
         src-port-in,  src-port-out,         
         length, next-hop, entry-interface)")
+
+;(define reversepolicyvector "(ahostname, exit-interface, 
+;        dest-addr-out,  dest-addr-in,         
+;        src-addr-out,  src-addr-in,  
+;        protocol, message, flags,
+;        dest-port-out, dest-port-in,         
+;        src-port-out,  src-port-in,         
+;       length, prior-next-hop, entry-interface)")
+
+
 
 (define (run-queries-for-forum-1)
   
