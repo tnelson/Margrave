@@ -87,7 +87,7 @@
                         " INCLUDE InboundACL1:Router-fe0-line9_applies" vector ","
                         "InboundACL1:Router-fe0-line12_applies" vector
                         " TUPLING")))
-  (display-response (mtext (string-append "SHOW POPULATED InboundACL1:Router-fe0-line9_applies" vector ","
+  (display-response (mtext (string-append "SHOW REALIZED InboundACL1:Router-fe0-line9_applies" vector ","
                         "InboundACL1:Router-fe0-line12_applies" vector)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,7 +186,7 @@
                         "InboundACL2:Router-fe0-line10_applies" vector ","
                         "InboundACL2:Router-fe0-line11_applies" vector
                         " TUPLING"))) 
-  (display-response (mtext (string-append "SHOW POPULATED InboundACL2:Router-fe0-line9_applies" vector ","
+  (display-response (mtext (string-append "SHOW REALIZED InboundACL2:Router-fe0-line9_applies" vector ","
                         "InboundACL2:Router-fe0-line10_applies" vector ","
                         "InboundACL2:Router-fe0-line11_applies" vector)))
   

@@ -62,9 +62,9 @@
 
 ; You don't need to pass an EXPLORE id if you're referencing the last explore:
 (display-response (mtext "GET ONE"))
-(display-response (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
-(display-response (mtext "SHOW UNPOPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
-(display-response (mtext "SHOW POPULATED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)"))
+(display-response (mtext "SHOW REALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
+(display-response (mtext "SHOW UNREALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
+(display-response (mtext "SHOW REALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)"))
 
 
 ;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
@@ -88,7 +88,7 @@
 ;(mtext "prepare mypol")
 
 ;(mtext "explore xsort(x) and xsort(y) UNDER mypol INCLUDE mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
-;(mtext "show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
+;(mtext "show REALIZED 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
 
 ;(mtext "info myvoc")
 

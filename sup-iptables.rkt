@@ -13,7 +13,14 @@
 ;       for example, why not send a triple: (collectionname, idbname, tupling-data)?
 ; todo: similarly, why lists everywhere? Use sets for efficiency
 
-; 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; IMPORTANT
+; This code is not yet complete, needs updating from the new sup-ios.rkt code.
+; Will not run out-of-box.
+; - TN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (require (file "margrave.rkt"))
@@ -103,7 +110,7 @@
                                           "UNDER iptables-firewall "
                                           "INCLUDE " (string-append idblistda ", " idblistpn-sup)
                                           " TUPLING")))]                  
-         [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
+         [denyOverlapPermitGet (string-append "SHOW REALIZED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
     
     (define themap (xml-map-response->map (mtext denyOverlapPermitGet)))
     (define overlapped (keys-not-mapped-to-empty themap))
@@ -121,7 +128,7 @@
                                           "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
                                           " TUPLING")))]         
          
-         [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
+         [permitOverlapDenyGet (string-append "SHOW REALIZED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
     (define themap (xml-map-response->map (mtext permitOverlapDenyGet)))
     (define overlapped (keys-not-mapped-to-empty themap))
@@ -174,7 +181,7 @@
       
       ; **********************************************************************************************************
       
-      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
+      (let* ([neverApplyList (cleanup-idb-list-no-applies-keep-collection (xml-set-response->list (mtext (string-append "SHOW UNREALIZED " neverApplyId " " idblistapplied ))))]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" (time-since-last))]
             ; [prnt2 (printf "superfluous rules: ~a~n"  neverApplyList)]
              [idblistpa (makeIdbList all-permit-applied)]

@@ -19,14 +19,14 @@
 (define-empty-tokens empty-terminals
   (             EXPLORE AND OR NOT COLON IMPLIES IFF LPAREN RPAREN EQUALS SHOW
                         ALL ONE IS POSSIBLEQMARK PUBLISH COMMA UNDER TUPLING DEBUG
-                        CEILING RENAME INFO COLLAPSE COMPARE INCLUDE POPULATED
-                        UNPOPULATED FOR CASES ADD SUBSORT SORT CONSTRAINT DISJOINT
+                        CEILING RENAME INFO COLLAPSE COMPARE INCLUDE 
+                        FOR CASES ADD SUBSORT SORT CONSTRAINT DISJOINT
                         NONEMPTY SINGLETON ATMOSTONE PARTIAL FUNCTION TOTAL ABSTRACT
                         SUBSET SET TARGET PREDICATE RULE TO CREATE VOCABULARY DECISION
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE))
+                        EOF WITH TRUE REALIZED UNREALIZED))
 (define-tokens terminals (<identifier> <unsigned-integer>))
 
 
@@ -78,8 +78,8 @@
    ["collapse" (token-COLLAPSE)] 
    ["compare" (token-COMPARE)] 
    ["include" (token-INCLUDE)] 
-   ["populated" (token-POPULATED)] 
-   ["unpopulated" (token-UNPOPULATED)] 
+   ["realized" (token-REALIZED)] 
+   ["unrealized" (token-UNREALIZED)] 
    ["for" (token-FOR)] 
    ["cases" (token-CASES)] 
    ["add" (token-ADD)] 
@@ -276,25 +276,26 @@
      [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
      [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3) 1 3)]
      
-     ; SHOW POPULATED and friends
-     [(SHOW POPULATED numeric-id atomic-formula-list) 
-      (build-so (list 'SHOWPOPULATED $3 $4 empty) 1 4)]
-     [(SHOW UNPOPULATED numeric-id atomic-formula-list)
-      (build-so (list 'SHOWUNPOPULATED $3 $4 empty) 1 4)]
-     [(SHOW POPULATED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
-      (build-so (list 'SHOWPOPULATED $3 $4 $7) 1 7)]
-     [(SHOW UNPOPULATED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
-      (build-so (list 'SHOWUNPOPULATED $3 $4 $7) 1 7)]     
+     ; SHOW REALIZED and friends
+     ; TN 8/26: replaced "populated" with "realized"
+     [(SHOW REALIZED numeric-id atomic-formula-list) 
+      (build-so (list 'SHOWREALIZED $3 $4 empty) 1 4)]
+     [(SHOW UNREALIZED numeric-id atomic-formula-list)
+      (build-so (list 'SHOWUNREALIZED $3 $4 empty) 1 4)]
+     [(SHOW REALIZED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'SHOWREALIZED $3 $4 $7) 1 7)]
+     [(SHOW UNREALIZED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'SHOWUNREALIZED $3 $4 $7) 1 7)]     
 
-     ; SHOW POPULATED without a numeric-id
-     [(SHOW POPULATED atomic-formula-list) 
-      (build-so (list 'LSHOWPOPULATED $3 empty) 1 3)]
-     [(SHOW UNPOPULATED atomic-formula-list)
-      (build-so (list 'LSHOWUNPOPULATED $3 empty) 1 3)]
-     [(SHOW POPULATED atomic-formula-list FOR CASES atomic-formula-list)
-      (build-so (list 'LSHOWPOPULATED $3 $6) 1 6)]
-     [(SHOW UNPOPULATED atomic-formula-list FOR CASES atomic-formula-list)
-      (build-so (list 'LSHOWUNPOPULATED $3 $6) 1 6)]     
+     ; SHOW REALIZED without a numeric-id
+     [(SHOW REALIZED atomic-formula-list) 
+      (build-so (list 'LSHOWREALIZED $3 empty) 1 3)]
+     [(SHOW UNREALIZED atomic-formula-list)
+      (build-so (list 'LSHOWUNREALIZED $3 empty) 1 3)]
+     [(SHOW REALIZED atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'LSHOWREALIZED $3 $6) 1 6)]
+     [(SHOW UNREALIZED atomic-formula-list FOR CASES atomic-formula-list)
+      (build-so (list 'LSHOWUNREALIZED $3 $6) 1 6)]     
          
      ;IS POSSIBLE?
      [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
@@ -460,7 +461,7 @@
                     )
     
     ; ***********************************************************
-    ; Used by IDBOUTPUT, SHOW POPULATED, SHOW UNPOPULATED
+    ; Used by IDBOUTPUT, SHOW REALIZED, SHOW UNREALIZED
     ; May be a normal atomic formula. May also have an empty vector (no parens).
     
     (nullary-atomic-formula [(<identifier> COLON <identifier>)
@@ -625,35 +626,35 @@
         ;(append (list 'AND) (map helper-syn->xml (rest interns)))]
         
         ; id, list, optional for-cases list
-        [(equal? first-datum 'SHOWPOPULATED)
+        [(equal? first-datum 'SHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (fourth interns))
-             (xml-make-show-populated-command (helper-syn->xml (second interns)) 
+             (xml-make-show-realized-command (helper-syn->xml (second interns)) 
                                               (map helper-syn->xml (syntax-e (third interns))))
-             (xml-make-show-populated-command (helper-syn->xml (second interns)) 
+             (xml-make-show-realized-command (helper-syn->xml (second interns)) 
                                               (append (map helper-syn->xml (syntax-e (third interns))) 
                                                       (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
-        [(equal? first-datum 'SHOWUNPOPULATED)
+        [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (fourth interns))
-             (xml-make-show-unpopulated-command (helper-syn->xml (second interns)) 
+             (xml-make-show-unrealized-command (helper-syn->xml (second interns)) 
                                                 (map helper-syn->xml (syntax-e (third interns))))
-             (xml-make-show-unpopulated-command (helper-syn->xml (second interns))
+             (xml-make-show-unrealized-command (helper-syn->xml (second interns))
                                                 (append (map helper-syn->xml (syntax-e (third interns))) 
                                                         (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
         ; same but without the result ID
-        [(equal? first-datum 'LSHOWPOPULATED)
+        [(equal? first-datum 'LSHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (third interns))
-             (xml-make-show-populated-command (xml-make-id "-1") 
+             (xml-make-show-realized-command (xml-make-id "-1") 
                                               (map helper-syn->xml (syntax-e (second interns))))
-             (xml-make-show-populated-command (xml-make-id "-1")
+             (xml-make-show-realized-command (xml-make-id "-1")
                                               (append (map helper-syn->xml (syntax-e (second interns))) 
                                                       (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
-        [(equal? first-datum 'LSHOWUNPOPULATED)
+        [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (third interns))
-             (xml-make-show-unpopulated-command (xml-make-id "-1")
+             (xml-make-show-unrealized-command (xml-make-id "-1")
                                                 (map helper-syn->xml (syntax-e (second interns))))
-             (xml-make-show-unpopulated-command (xml-make-id "-1")
+             (xml-make-show-unrealized-command (xml-make-id "-1")
                                                 (append (map helper-syn->xml (syntax-e (second interns))) 
                                                         (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
         

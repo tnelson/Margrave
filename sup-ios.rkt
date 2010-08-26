@@ -71,7 +71,7 @@
                                           "UNDER inboundacl "
                                           "INCLUDE " (string-append idblistda ", " idblistpn-sup)
                                           " TUPLING")))]                  
-         [denyOverlapPermitGet (string-append "SHOW POPULATED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
+         [denyOverlapPermitGet (string-append "SHOW REALIZED " denyOverlapPermitId " " idblistda " FOR CASES " idblistpn-sup)])
     
     (define themap (xml-map-response->map (mtext denyOverlapPermitGet)))
     (define n-runtime (time-since-last))
@@ -88,7 +88,7 @@
                                           "INCLUDE " (string-append idblistpa ", " idblistdn-sup)
                                           " TUPLING")))]         
          
-         [permitOverlapDenyGet (string-append "SHOW POPULATED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
+         [permitOverlapDenyGet (string-append "SHOW REALIZED " permitOverlapDenyId " " idblistpa " FOR CASES " idblistdn-sup)])
     
     (define themap (xml-map-response->map (mtext permitOverlapDenyGet)))    
     (define n-runtime (time-since-last))
@@ -146,7 +146,7 @@
       
       ; **********************************************************************************************************
       
-      (let* ([neverApplyList (cleanup-idb-list-no-applies (xml-set-response->list (mtext (string-append "SHOW UNPOPULATED " neverApplyId " " idblistapplied ))))]
+      (let* ([neverApplyList (cleanup-idb-list-no-applies (xml-set-response->list (mtext (string-append "SHOW UNREALIZED " neverApplyId " " idblistapplied ))))]
              [n-sup-time (time-since-last)]
              [prnt (printf "superfluous-rule finder took: ~a milliseconds.~n" n-sup-time)]
              ;[dbg (printf "~a~n" neverApplyList)]

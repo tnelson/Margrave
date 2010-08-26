@@ -210,7 +210,7 @@ TUPLING")))
 
   
   ; There are scenarios. So we are on the right track!
-  ; Find the interface names with show populated:
+  ; Find the interface names with show REALIZED:
   ; (again, the serial interface is quoted since ":" is a special character)
   ; no INCLUDE since Interface is "abstract" constrained, and the tupler 
   ; keeps all its immediate children by default.
@@ -224,7 +224,7 @@ TUPLING")))
  AND tas-dest-addr-in IN 10.232.100.0/255.255.252.0  
 
 TUPLING")))  
-  (display-response (mtext "SHOW POPULATED 
+  (display-response (mtext "SHOW REALIZED 
                            GigabitEthernet0/0 = tas-exit-interface,
                            \"Serial0/3/0:0\" = tas-exit-interface,
                            GigabitEthernet0/1 = tas-exit-interface")) 
@@ -259,13 +259,13 @@ tas-next-hop IN 10.232.8.0/255.255.252.0
 TUPLING")))  
   
 ; INCLUDE is telling the tupler to keep those EDB facts, even if they 
-; don't appear in the query proper (we want to SHOW POPULATED for them!)
+; don't appear in the query proper (we want to SHOW REALIZED for them!)
 
   ; (In THIS case, the tupler is smart enough to include them since they are
   ; mentioned directly by internal-result. However, including the INCLUDE
   ; as an example.)
   
-    (display-response (mtext (string-append "SHOW POPULATED "
+    (display-response (mtext (string-append "SHOW REALIZED "
 "10.232.0.15 = tas-next-hop," 
 "10.232.4.10 = tas-next-hop,"
 "tas-next-hop IN 10.232.8.0/255.255.252.0,"
@@ -301,7 +301,7 @@ tas-next-hop IN 10.254.1.128/255.255.255.252,
 tas-next-hop IN 10.232.8.0/255.255.252.0 
 
 TUPLING")))    
-    (display-response (mtext (string-append "SHOW POPULATED "
+    (display-response (mtext (string-append "SHOW REALIZED "
 "10.232.0.15 = tas-next-hop," 
 "10.232.4.10 = tas-next-hop,"
 "tas-next-hop IN 10.232.8.0/255.255.252.0,"
@@ -435,7 +435,7 @@ AND NOT tas-dest-addr-in IN 10.232.8.0/255.255.252.0
 
 TUPLING")))
   ; Can ask for both at once, here, since neither are constrained:
-  (display-response (mtext "SHOW POPULATED  
+  (display-response (mtext "SHOW REALIZED  
                            GigabitEthernet0/0 = tas-exit-interface,
                            tas-exit-interface= \"Serial0/3/0:0\",
                            tas-exit-interface =GigabitEthernet0/1,

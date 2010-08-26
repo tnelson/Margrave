@@ -72,7 +72,7 @@
     (let* ([path-value (getenv "path")]
            [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
            [paths-with-java (filter (lambda (a-path)
-                                      (printf "    searching in: ~a~n" a-path)
+                                      ;(printf "    searching in: ~a~n" a-path)
                                       (and (> (string-length a-path) 0)                                     
                                            (file-exists? (build-path a-path "java.exe"))))
                                     env-paths)]
@@ -370,6 +370,8 @@
     ; XML commands for the policy
     (mm (fourth pol-result-list))
     polname))
+
+
 
 ; !!!
 ; Need to support these once more. Commands exist, need to route them in java. - TN

@@ -101,7 +101,7 @@ internal-result1" vector
   (mtext "IS POSSIBLE?")
   (mtext "GET ONE")
   
-  (display-response (mtext  "SHOW POPULATED port-80 = dest-port-in" 
+  (display-response (mtext  "SHOW REALIZED port-80 = dest-port-in" 
                                           ", port-20=dest-port-in" 
                                           ", port-21=dest-port-in" 
                                           ", port-23 = dest-port-in" 

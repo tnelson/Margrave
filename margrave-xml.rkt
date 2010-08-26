@@ -67,8 +67,8 @@
  xml-make-load
  xml-make-load-with-schema
  xml-make-quit
- xml-make-show-populated-command
- xml-make-show-unpopulated-command
+ xml-make-show-realized-command
+ xml-make-show-unrealized-command
  xml-make-forcases
  xml-make-parent-identifier
  xml-make-child-identifier
@@ -924,10 +924,11 @@
 (define (xml-make-idbout list-of-atomic-formulas)
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
-(define (xml-make-show-populated-command id childlist)
+; TN: left populated as XML data rather than changing it, since "realized" isn't final either
+(define (xml-make-show-realized-command id childlist)
   (xml-make-command "SHOW" (list `(SHOW ((type "POPULATED") ,id) ,@childlist))))
 
-(define (xml-make-show-unpopulated-command id childlist)
+(define (xml-make-show-unrealized-command id childlist)
   (xml-make-command "SHOW" (list `(SHOW ((type "UNPOPULATED") ,id) ,@childlist))))
 
 (define (xml-make-forcases the-cases)

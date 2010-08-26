@@ -116,7 +116,7 @@ TUPLING")))
   
   (display-response (mtext "GET ONE"))  
   
-  (display-response (mtext "SHOW POPULATED 
+  (display-response (mtext "SHOW REALIZED 
 InboundACL:int-in_lan-line12_applies" reqpol-1 ",
 InboundACL:int-in_lan-line15_applies" reqpol-1 ",
 InboundACL:ext-out_dmz-line17_applies" reqpol-2 ",
