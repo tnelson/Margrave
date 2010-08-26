@@ -1576,11 +1576,22 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document addSubsort(String vname, String parent, String child)
+	static MVocab makeNewVocabIfNeeded(String vname)
 	{
 		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+		{
+			MVocab voc = new MVocab(vname);
+			envVocabularies.put(vname, voc);
+			return voc;
+		}
+		else
+			return envVocabularies.get(vname);
+	}
+	
+	public static Document addSubsort(String vname, String parent, String child)
+	{
+	
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.addSubSort(parent, child);
@@ -1592,10 +1603,10 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addSort(String vname, String sname) {
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+	public static Document addSort(String vname, String sname)
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.addSort(sname);
@@ -1609,9 +1620,7 @@ public class MEnvironment
 
 	public static Document addConstraintAbstract(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintAbstract(s);
@@ -1625,9 +1634,7 @@ public class MEnvironment
 
 	public static Document addConstraintAbstractAll(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintAbstractAll(s);
@@ -1641,9 +1648,8 @@ public class MEnvironment
 
 	public static Document addConstraintTotalFunction(String vname, String s) 
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintTotalFunction(s);
@@ -1657,9 +1663,8 @@ public class MEnvironment
 
 	public static Document addConstraintPartialFunction(String vname, String s) 
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintPartialFunction(s);
@@ -1673,9 +1678,8 @@ public class MEnvironment
 
 	public static Document addConstraintSubset(String vname, String parent, String child)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintSubset(child, parent); // reverse of how it usually is?
@@ -1689,9 +1693,8 @@ public class MEnvironment
 
 	public static Document addConstraintNonemptyAll(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintNonemptyAll(s);
@@ -1705,9 +1708,8 @@ public class MEnvironment
 
 	public static Document addConstraintNonempty(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintNonempty(s);
@@ -1721,9 +1723,8 @@ public class MEnvironment
 
 	public static Document addConstraintAtMostOneAll(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintAtMostOneAll(s);
@@ -1737,9 +1738,8 @@ public class MEnvironment
 
 	public static Document addConstraintAtMostOne(String vname, String s) 
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintAtMostOne(s);
@@ -1753,9 +1753,8 @@ public class MEnvironment
 
 	public static Document addConstraintSingletonAll(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintSingletonAll(s);
@@ -1769,9 +1768,8 @@ public class MEnvironment
 
 	public static Document addConstraintSingleton(String vname, String s)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintSingleton(s);
@@ -1785,15 +1783,14 @@ public class MEnvironment
 
 	public static Document addConstraintDisjointAll(String vname, String s)
 	{
-		MCommunicator.writeToLog("In addConstraintDisjointAll (env): "+s);
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+		//MCommunicator.writeToLog("In addConstraintDisjointAll (env): "+s);
+		
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
-			MCommunicator.writeToLog("Calling voc.axioms.add...: "+s);
+			//MCommunicator.writeToLog("Calling voc.axioms.add...: "+s);
 			voc.axioms.addConstraintDisjointAll(s);
-			MCommunicator.writeToLog("Called voc");
+			//MCommunicator.writeToLog("Called voc");
 			return successResponse();
 		} 
 		catch (MGException e)
@@ -1804,9 +1801,8 @@ public class MEnvironment
 
 	public static Document addConstraintDisjoint(String vname, String s1, String s2)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.axioms.addConstraintDisjoint(s1, s2);
@@ -1820,9 +1816,8 @@ public class MEnvironment
 
 	public static Document addDecision(String vname, String decname)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.addDecision(decname);
@@ -1836,9 +1831,8 @@ public class MEnvironment
 
 	public static Document addOtherVariable(String vname, String varname, String domainsort)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.addOtherVar(varname, domainsort);
@@ -1852,9 +1846,8 @@ public class MEnvironment
 
 	public static Document addRequestVariable(String vname, String varname, String domainsort)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			voc.addRequestVar(varname, domainsort);
@@ -1868,9 +1861,8 @@ public class MEnvironment
 
 	public static Document addPredicate(String vname, String sname, List<String> constr)
 	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
 		try 
 		{
 			String constructstr = foldConcatWithSpaces(constr);

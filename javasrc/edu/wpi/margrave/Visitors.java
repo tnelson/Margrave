@@ -2,6 +2,7 @@ package edu.wpi.margrave;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,7 @@ import kodkod.ast.Decl;
 import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
+import kodkod.ast.NaryExpression;
 import kodkod.ast.NaryFormula;
 import kodkod.ast.Node;
 import kodkod.ast.NotFormula;
@@ -1136,3 +1138,68 @@ class RelationsUsedCollectionV extends AbstractCacheAllCollector<Relation> {
 	}
 
 }
+
+/*
+// Return a set of all expressions in the join.
+// Do not inherit AbstractCacheAllDetector. May not be safe, and this should only be called on a small Expression, not a Formula.
+
+class BreakUpJoinsV extends AbstractDetector
+{
+	List<Expression> elist;
+	boolean seenRelation;
+
+	public BreakUpJoinsV() {
+		super(new HashSet<Node>());
+		elist = new LinkedList<Expression>();
+		seenRelation = false;
+	}
+
+	public Boolean visit(Relation r) {
+		// DO NOT CACHE RELATIONS
+
+		if (seenRelation)
+			return false;
+		seenRelation = true;
+		elist.add(r);
+		return true;
+	}
+
+	public Boolean visit(Variable v) {
+		// DO NOT CACHE VARIABLES
+
+		elist.add(v);
+		return true;
+	}
+
+	public Boolean visit(NaryExpression expr) {
+		// This is untested.
+		MEnvironment.errorStream
+				.println("Entering unsafe functionality: BreakUpJoinV.visit(NaryExpression). Please notify developer.");
+
+		if (expr.op().equals(ExprOperator.JOIN))
+			for (int ii = 0; ii < expr.arity(); ii++) {
+				if (!expr.child(ii).accept(this))
+					return cache(expr, false);
+			}
+		else {
+			return cache(expr, false);
+		}
+
+		return cache(expr, true);
+	}
+
+	public Boolean visit(BinaryExpression expr) {
+
+		if (expr.op().equals(ExprOperator.JOIN)) {
+			if (!expr.left().accept(this))
+				return cache(expr, false);
+			if (!expr.right().accept(this))
+				return cache(expr, false);
+		} else
+			return cache(expr, false);
+
+		return cache(expr, true);
+	}
+}
+
+*/

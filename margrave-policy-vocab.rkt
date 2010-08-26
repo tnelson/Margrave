@@ -26,16 +26,19 @@
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
 ; !!TODO: When loading #lang margrave, we cannot use this function, and must instead simply return a list of the commands to execute
 (define (evaluate-policy fn)
+  
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. Is there a fix for this?
+  
   (let* ([file-port (open-input-file fn)]
          [pol-result-list ((eval (read file-port) the-margrave-namespace) fn)])    
-    ; don't keep the handle open! call-with-input-file would be better here.
+
+    ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
     
     ; Return the script needed to create this policy
-    pol-result-list) )
+    pol-result-list))
 
 
 
@@ -152,23 +155,16 @@
      
      ; TN: Removed explicit colon after root types. Changed add-subtypes-of to remove ': 
      ; Makes the syntax cleaner not to require the colon.
-     
-     ; FOR NOW, just always delete and then create
-     ; Instantiate a new MVocab object
-     ; If already created, wipe and start over.
-     #;(let ([ create-reply-doc 
-               (xml-make-command "CREATE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))])
-         (when (response-is-error? create-reply-doc) 
-           (begin 
-             (m (xml-make-command "DELETE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)))))
-             (m (xml-make-command "CREATE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))))))
+    
      
      ;Return a list containing the vocabname, and then a list of commands to be sent to java
      `(
        ; Return the object for use by the policy macro
        ,(symbol->string 'myvocabname)
-       (,(xml-make-command "DELETE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))
-        ,(xml-make-command "CREATE VOCABULARY" (list (xml-make-vocab-identifier (symbol->string 'myvocabname))))
+       (
+        ; Here, we have no idea whether the vocabulary has been created yet or not. 
+        ; Java will handle creation of the object if the identifier hasn't been seen before.
+        
         ; These sections must be in order.                     
         ; Types
         ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort (symbol->string 't))))

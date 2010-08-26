@@ -232,11 +232,31 @@
       (list (m cmds))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+; Default handler for responses: throw user errors if needed
+; xml doc ---> xml doc
+(define (default-response-handler xml-response)
+  (cond [(response-is-exception? xml-response) 
+         (raise-user-error 'margrave-error "Could not process Margrave command: Java engine returned an exception: ~a~n"
+                           (pretty-print-response-xml xml-response) )
+         xml-response]
+        
+        [(response-is-error? xml-response)
+         (raise-user-error 'margrave-error "~a~n"
+                           (pretty-print-response-xml xml-response))
+         xml-response]
+        
+        [else xml-response]))
+
+
 ; m
-; XML string -> document or #f
+; XML string, func -> document or #f
 ; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
-(define (m cmd)
+; Optional response handler func may change the result XML, throw exceptions, etc.
+(define (m cmd (response-handler-func default-response-handler))
   (if (equal? java-process-list #f) 
       (begin
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
@@ -336,7 +356,8 @@
                     ;(printf "~a~n" result)                    
                     
                     ; Parse the reply and return the document struct
-                    (read-xml (open-input-string result)))
+                    ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
+                    (response-handler-func (read-xml (open-input-string result))))
                   
                   (begin
                     ; Got eof, the port has been cloed.
@@ -349,7 +370,7 @@
                     
                     #f))))))))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; policy-file-name -> policy-id
 ; This function is used because a raw (load x) call will return void, not the object desired.
@@ -357,21 +378,21 @@
 ; to the backend in lower-case.
 (define (load-policy fn)
   
-  ;; Macro returns a func 
-  ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
-  ;; innocent policy definition. Is there a fix for this?
-
   (let* ([pol-result-list (evaluate-policy fn)]
-         [polname (first pol-result-list)])
+         [polname (first pol-result-list)]
+         [vocabname (second pol-result-list)]
+         
+         ; Java will handle creation of the vocab if it hasn't already been created.
+         
+         ; XML commands for the vocab
+         [vocab-results (mm (third pol-result-list))]
+         ; XML commands for the policy
+         [policy-results (mm (fourth pol-result-list))])
     
-    ; XML commands for the vocab
-    (mm (third pol-result-list))
     
-    ; XML commands for the policy
-    (mm (fourth pol-result-list))
     polname))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; !!!
 ; Need to support these once more. Commands exist, need to route them in java. - TN
@@ -389,17 +410,7 @@
 
 
 
-
-
-
-; !!! This is now an argument to the java invocation. pass "debug" after the class name to activate it - TN
-;(define (parser-debug b)
-;  (m (string-append "DEBUG PARSER " myMargrave " " b)))
-
-
-
-; !!! We now have sat4j-specific code. Not sure if it can be extended to minisat. Maybe.
-; !!!  -- the new code was worthwhile (huge speed up for populated/unpopulated). - TN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Functions to support easier query string creation
 
@@ -416,6 +427,7 @@
       (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol))))
       (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol " WITH DECISION " decision))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ; Take a rule list and create a list of _applies (or _matches) IDB names from it. 
@@ -438,6 +450,7 @@
   (make-idb-list-with-suffix rlist "_matches" polname))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; [not yet in]
 ; get-decision-for-idbname
