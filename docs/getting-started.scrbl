@@ -1,4 +1,4 @@
-#lang scribble/base
+#lang scribble/manual
 
 @title{Getting Started}
 
@@ -34,12 +34,14 @@ sent to tn@"@"cs.wpi.edu.
 
 Result:
 
+@racketblock[
 *** SOLUTION: Size = 3.
 $s: reviewer author
 $r: paper
 $a: readpaper
 conflicted = {[$s, $r]}
 assigned = {}
+]
 
 @subsection["Understanding Scenario Output"]
 

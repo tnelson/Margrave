@@ -1,6 +1,6 @@
-#lang scribble/base
+#lang scribble/manual
 
-@title{Margrave}
+@title[#:style '(toc)]{Margrave}
 @author["Tim Nelson"]
 
 @table-of-contents[]
