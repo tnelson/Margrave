@@ -9,9 +9,13 @@
 
 @include-section["commands.scrbl"]
 
-@section["Policies"]
-<Pol + Vocabs; close with fact that the language is being changed and so new documentation will be forthcoming.>
-
-
+@include-section["representing-policies.scrbl"]
 
 @include-section["api.scrbl"]
+
+
+
+@section["Forthcoming Changes"]
+
+<<We should be up-front about which parts of the API we are changing soon.>>
+
