@@ -641,27 +641,90 @@
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
-        (write "Collection Info:\n")
+        (write "~~~~~~~~~~ Information ~~~~~~~~~~\n")                
         (let* ((policy-leaf-element (get-child-element info-element 'policy-leaf))
-               (idbs (get-child-element policy-leaf-element 'idbs))
-               (free-variables (get-child-element policy-leaf-element 'free-variables)))
+               (policy-set-element (get-child-element info-element 'policy-set))
+               (saved-query-element (get-child-element info-element 'saved-query)))
+          
           (when (not (empty? policy-leaf-element))
-            (write (string-append "Policy Name: " (get-attribute-value policy-leaf-element 'name)
-                                  "\nCombine rule: " (get-attribute-value policy-leaf-element 'rule-combine) "\n")))
-          (when (not (empty? idbs))
-            (map (lambda(elem)
-                   (write (string-append "IDB: Base name: " (get-attribute-value elem 'base-name) "\n")))
-                 (filter (lambda(elem) (element? elem))
-                         (element-content idbs))))
-          (when (not (empty? free-variables))
-            (write "Free Variables: \n")
-            (map (lambda(elem)
-                   (write (string-append "Variable name: " (get-pc-data elem) "\n")))
-                 (filter (lambda(elem) (element? elem))
-                         (element-content free-variables)))))
-        ; debug
-        ;(display (get-output-string string-buffer))
-        (get-output-string string-buffer)))))
+            (write (pretty-print-policy-leaf policy-leaf-element)))
+
+          (when (not (empty? policy-set-element))
+            (write (pretty-print-policy-set policy-set-element)))
+          
+          (when (not (empty? saved-query-element))
+            (write (pretty-print-saved-query saved-query-element)))
+          
+          (write "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")                
+          ; debug
+          ;(display (get-output-string string-buffer))
+          (get-output-string string-buffer))))))
+
+(define (pretty-print-provided-idbs idbs-element)
+  (let ([string-buffer (open-output-string)])
+    (write-string "IDBs provided: \n" string-buffer)
+    (map (lambda(elem)
+           (write-string (string-append "    " (get-attribute-value elem 'base-name) "\n") string-buffer))
+         (filter (lambda(elem) (element? elem))
+                 (element-content idbs-element)))
+    (write-string "\n" string-buffer)
+    (get-output-string string-buffer)))
+
+(define (pretty-print-free-variables vars-element)
+  (let ([string-buffer (open-output-string)])
+    (write-string "Variables (in order): \n" string-buffer)
+    (map (lambda(elem)
+           (write-string (string-append "    " (get-pc-data elem) "\n") string-buffer))
+         (filter (lambda(elem) (element? elem))
+                 (element-content vars-element)))
+    (get-output-string string-buffer)))
+
+(define (pretty-print-saved-query the-element)
+  (let* ([string-buffer (open-output-string)]
+         (idbs (get-child-element the-element 'idbs))
+         (free-variables (get-child-element the-element 'free-variables)))
+    
+    (write-string "This is a saved query.\n" string-buffer)
+    
+    (when (not (empty? idbs))
+      (write-string (pretty-print-provided-idbs idbs)) string-buffer)
+    
+    (when (not (empty? free-variables))
+      (write-string (pretty-print-free-variables free-variables) string-buffer))
+    
+    (get-output-string string-buffer)))
+
+(define (pretty-print-policy-leaf the-element)
+  (let* ([string-buffer (open-output-string)]
+         (idbs (get-child-element the-element 'idbs))
+         (free-variables (get-child-element the-element 'free-variables)))
+    
+    (write-string (string-append "This is policy named: " (get-attribute-value the-element 'name) "\n"))
+    (write-string "  This policy is a LEAF; it contains rules and no sub-policies.\n")
+    
+    (when (not (empty? idbs))
+      (write-string (pretty-print-provided-idbs idbs)) string-buffer)
+    
+    (when (not (empty? free-variables))
+      (write-string (pretty-print-free-variables free-variables) string-buffer))
+    
+    (get-output-string string-buffer)))
+  
+(define (pretty-print-policy-set the-element)
+  (let* ([string-buffer (open-output-string)]
+         (idbs (get-child-element the-element 'idbs))
+         (free-variables (get-child-element the-element 'free-variables)))
+    
+    (write-string (string-append "This is policy named: " (get-attribute-value the-element 'name) "\n"))
+    (write-string "  This policy is a SET; it contains sub-policies and no rules.\n")
+    
+    (when (not (empty? idbs))
+      (write-string (pretty-print-provided-idbs idbs)) string-buffer)
+    
+    (when (not (empty? free-variables))
+      (write-string (pretty-print-free-variables free-variables) string-buffer))
+    
+    (get-output-string string-buffer)))
 
 ;Pass this function a <MARGRAVE-RESPONSE type=\"vocabulary-info\"> element
 ; element -> string
@@ -685,7 +748,16 @@
                                                      ""
                                                      (filter (lambda(elem) (element? elem))
                                                              (element-content elem)))
-                                              "")))))
+                                              ""))))
+                  (define (write-sorts-disj elem)
+                    (write (string-append 
+                            (if (< 1 (length (element-content elem)))
+                                (foldr (lambda (other-elem rest)
+                                         (string-append "    " (get-attribute-value elem 'name) " -DISJ- " (get-attribute-value other-elem 'name) "\n" rest))
+                                       ""
+                                       (filter (lambda(e) (element? e))
+                                               (element-content elem)))
+                                "")))))
             (map write-sorts
                  (filter (lambda(elem) (element? elem))
                          (element-content sorts-element)))
@@ -700,7 +772,7 @@
                      (begin (write (string-append (symbol->string (element-name elem)) "\n"))
                    (cond
                      [(equal? elem-name "DISJOINT")
-                          (map write-sorts
+                          (map write-sorts-disj
                                (filter (lambda(elem) (element? elem))
                                        (element-content elem)))]
                      [(equal? elem-name "SUBSETS")

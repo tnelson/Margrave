@@ -17,7 +17,8 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up))
+;  (start-margrave-engine (build-path (current-directory) 'up))
+  (start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
   
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.

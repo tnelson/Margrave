@@ -58,7 +58,3 @@ Loads the policy at the given filename, returning the name of the policy (as giv
 <<< make-applies-list, make-matches-list >>>
 
 
-@section["Forthcoming Changes"]
-
-<<We should be up-front about which parts of the API we are changing soon. (What about changes to the query language?)>>
-
