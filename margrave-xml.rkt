@@ -504,7 +504,7 @@
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin 
-        (write "No more solutions\n")
+        (write "---> No more solutions! <---\n")
         (write (print-statistics statistics-element))
         (get-output-string string-buffer)))))
 
