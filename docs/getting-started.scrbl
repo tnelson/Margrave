@@ -2,37 +2,74 @@
 
 @title{Getting Started}
 
+@;defmodule[margrave]
+
 Welcome to Margrave!
 
 Margrave is a tool for analysis of access-control and configuration
 policies. Margrave allows users to ask questions about the 
-behavior of their policies, and responses with scenarios where the
-behavior can occur.
+behavior of their policies, such as "Can a student ever access
+another student's grades?" or "Does this new firewall allow any
+unexpected new traffic?" 
 
-<<< Maybe take better prose from LISA paper >>>
-
-
-
+The following examples demonstrate Margrave, first on a general
+access-control policy, and then on an IOS firewall configuration.
 
 Margrave is part of an ongoing research project. We appreciate your
 feedback and suggestions (including feature requests). These can be
 sent to tn@"@"cs.wpi.edu.
 
 
-@section["An Access-Control Example"]
+@;--------------------------------------------------------------------
+@section[#:tag "getting-started-1"]{"An Access-Control Example"}
 
-<< Simple subject/action/resource example; use one from old examples script >>
+First, let's consider an access-control policy for a conference management system. 
+
+@subsection["What Does A Policy Look Like?"]
+
+A @deftech{policy} is a list of @tech{rules} and a method of resolving rule
+conflicts, such as @tech{first-applicable} or @tech{permit-overrides}.
+
+A @deftech{rule} asserts a @tech{decision} for certain @tech{requests}.
+
+But what is a @tech{request} exactly, and what @tech{decision}s can the policy render? 
+Don't they depend on the application?
+
+Yes. Margrave allows users to specify these things using 
+@tech{vocabularies}. For details, see @secref["vocabularies"]; for this
+first example, a request contains a subject, an action, and a resource.
+A decision is either permit or deny.
 
 @subsection["Loading Policies"]
 
-<< load-policy >>
+<<no mention of DrRacket yet. So what's all this about functions?>>
 
+
+To load a policy, use the @racket{load-policy} function. 
+E.g., to load our conference-manager example:
+
+@racket[(load-policy "tests/conference.p")]
+                 
 @subsection["Asking Questions"]
 
-<< very simple query >>
+Let's ask Margrave whether a reviewer can ever be denied access to read a paper. The following Margrave query captures this question:
 
+<<< need to insert this into examples rkt file and test >>>
 
-Result:
+@racketblock[
+EXPLORE Conference:Deny(s, a, r) AND 
+        reviewer(s) AND paper(r) AND readpaper(a)
+]        
+
+<<< for more info on the language, see... >>>
+ 
+We can ask for satisfying scenarios with:
+
+@racketblock[
+SHOW ALL
+]
+            
+One of the solutions will be this one:
 
 @racketblock[
 *** SOLUTION: Size = 3.
@@ -74,15 +111,31 @@ because a reviewer is always a subject.
 
 
 
+
+@;--------------------------------------------------------------------
 @section["An IOS Firewall Example"]
 
-<< from section 2; demo.rkt>>
+Margrave has built-in parsers to handle certain industry-standard 
+configuration languages, such as Cisco's IOS language. In this
+example, we bring Margrave to bear on an IOS configuration, as well
+as asking more complex queries.
+
+<<< Don't make it sound like we support *the entire IOS language* >>>
+
+
+
+
+
+
+<< from section 2; demo.rkt. Change-impact, Rule-responsibility, superfluous checking>>
 
 
 @subsection["Using Margrave Output in Your Programs"]
 
-<< Suppose we wanted to... >>
+<< Go from superfluous list to WHY each is superfluous >>
 
+
+@;--------------------------------------------------------------------
 @section["For More Information"]
 
 << links to other example files, test files, etc. >>

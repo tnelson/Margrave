@@ -24,7 +24,6 @@ Otherwise, starts the Java engine for a Margrave installation at
 @italic{margrave-home}. The JVM is given each string in @italic{engine-args} as
 arguments, and the Margrave engine is given each string in 
 @italic{margrave-args} as arguments. Returns #t.
-                              
 }
 
 @defproc[(stop-margrave-engine) boolean?]{                                          
@@ -32,6 +31,34 @@ If the Java engine is started, terminates it and returns #t.
 
 Otherwise, returns #f.
 }
-                  
-@section{Converting Results}
+
+@section{Loading Policies}
+
+@defproc[(load-policy 
+          (filename string?))
+         string?]{
+Loads the policy at the given filename, returning the name of the policy (as given in the policy file).                  
+}
+
+                 
+<<< IOS auto-load functions >>>
+                 
+
+@section{Running Queries}
+
+<<< mtext >>>
+
+
+@section{Handling Query Results}
+
+<<< display-response, conversion functions, ... >>>
+
+@section{Other Functions}
+
+<<< make-applies-list, make-matches-list >>>
+
+
+@section["Forthcoming Changes"]
+
+<<We should be up-front about which parts of the API we are changing soon. (What about changes to the query language?)>>
 

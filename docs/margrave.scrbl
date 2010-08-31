@@ -1,7 +1,8 @@
 #lang scribble/manual
 
-@title[#:style '(toc)]{Margrave}
-@author["Tim Nelson"]
+@; [#:style '(toc)]
+@title{The @bold{Margrave} Tool for Policy Analysis}
+@author+email["Tim Nelson" "tn@cs.wpi.edu"]
 
 @table-of-contents[]
 
@@ -13,9 +14,5 @@
 
 @include-section["api.scrbl"]
 
-
-
-@section["Forthcoming Changes"]
-
-<<We should be up-front about which parts of the API we are changing soon.>>
+@;index-section[]
 
