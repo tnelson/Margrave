@@ -1,35 +1,66 @@
 package edu.wpi.margrave;
 
-import java.io.IOException;
 
 //***********************************************
 //Margrave Exceptions
 //***********************************************
 
-class MGException extends Exception
+abstract class MBaseException extends Exception
 {
 	private static final long serialVersionUID = 100; 
 	
-	MGException(String s)
+	MBaseException(String s)
 	{
 		super(s);
 	}
 }
 
-//class MSemanticException extends IOException
-class MSemanticException extends MGException
+/* Should be displayed nicely to the user. e.g.
+ * "Pardon me, but I do not recognize that identifier. Please pass the crumpets."
+ */
+// TODO should be abstract; will want some new exception types first
+class MUserException extends MBaseException
 {	
-	String problem;
-
-	MSemanticException(String problem)
+	private static final long serialVersionUID = 100; 
+	
+	MUserException(String problem)
 	{
-		super("Margrave could not understand..."); // don't have a null message
-		this.problem = problem;
+		super(problem);
 	}
 }
 
+/* Should be displayed as a nasty error. e.g.
+ * "Argh! Here is a stacktrace."
+ */
+abstract class MFatalException extends MBaseException
+{	
+	private static final long serialVersionUID = 100; 
+	
+	MFatalException(String problem)
+	{
+		super(problem);
+	}
+}
 
-class MGECombineVocabs extends MGException
+// ------------------------------------------------------------------
+
+/* Thrown when the formula given cannot be tupled, or the 
+ *  tupling process gets confused.
+ */
+class MGETuplingFailure extends MUserException
+{
+	private static final long serialVersionUID = 100; 
+	
+	MGETuplingFailure(String s)
+	{
+		super(s);
+	}
+}
+
+/* Thrown if a pair of vocabularies used in the same query cannot be combined.
+ * (e.g., they may have different request vectors)
+ */
+class MGECombineVocabs extends MUserException
 {
 	private static final long serialVersionUID = 100; 
 	
@@ -39,17 +70,31 @@ class MGECombineVocabs extends MGException
 	}
 }
 
-class MGEUnsortedVariable extends MGException
+//Thrown by FormulaSigInfo if a given Formula contains 
+//unsupported features or quantification over a non-sort.
+class MUnsupportedFormulaException extends MUserException
 {
-	private static final long serialVersionUID = 100;
+	private static final long serialVersionUID = 100; 
 	
-	MGEUnsortedVariable(String s)
+	MUnsupportedFormulaException(String str)
 	{
-		super(s);
+		super(str);
 	}
 }
 
-class MGEBadQueryString extends MGException
+//Thrown by FormulaSigInfo if the user asks about an 
+//Expression which is not a sort w/r/t the given Sig.
+class MNotASortException extends MUserException
+{
+	private static final long serialVersionUID = 100; 
+	
+	MNotASortException(String str)
+	{
+		super(str);
+	}
+}
+
+class MGEBadQueryString extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
@@ -59,7 +104,7 @@ class MGEBadQueryString extends MGException
 	}
 }
 
-class MGEUnknownIdentifier extends MGException
+class MGEUnknownIdentifier extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
@@ -69,17 +114,17 @@ class MGEUnknownIdentifier extends MGException
 	}
 }
 
-class MGEArityMismatch extends MGException
+class MGEArityMismatch extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
-public MGEArityMismatch(String message)
-{         
-  super(message);
-}
+	public MGEArityMismatch(String message)
+	{         
+		super(message);
+	}
 }
 
-class MGEBadCombinator extends MGException
+class MGEBadCombinator extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
@@ -89,27 +134,34 @@ class MGEBadCombinator extends MGException
 	}
 }
 
-class MGEBadIdentifierName extends MGException
+class MGEBadIdentifierName extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
-public MGEBadIdentifierName(String message)
-{         
-  super(message);
-}
+	public MGEBadIdentifierName(String message)
+	{         
+		super(message);
+	}
 }
 
-class MGENoMoreSolutions extends MGException
+/* Thrown if a solution iterator's next() method is called
+ * but the iterator is empty.
+ */
+class MGENoMoreSolutions extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
-public MGENoMoreSolutions(String message)
-{         
-  super(message);
-}
+	public MGENoMoreSolutions(String message)
+	{         
+		super(message);
+	}
 }
 
-class MGEUnsupportedXACML extends MGException
+/*
+ * Thrown by the XACML parser if the document contains
+ * unsupported XACML features
+ */
+class MGEUnsupportedXACML extends MUserException
 {
 	private static final long serialVersionUID = 100;
 	
@@ -126,7 +178,7 @@ class MGEUnsupportedXACML extends MGException
  * @author Tim
  *
  */
-class MGEManagerException extends MGException
+class MGEManagerException extends MUserException
 {
 	private static final long serialVersionUID = 100; 
 	

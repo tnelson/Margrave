@@ -2,7 +2,6 @@ package edu.wpi.margrave;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +15,6 @@ import kodkod.ast.Decl;
 import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
-import kodkod.ast.NaryExpression;
 import kodkod.ast.NaryFormula;
 import kodkod.ast.Node;
 import kodkod.ast.NotFormula;

@@ -264,7 +264,7 @@ public abstract class MPolicy extends MIDBCollection
 	 * @throws MGEManagerException 
 	 */
 	public MQuery compareWithPolicy(MPolicy p2) throws MGECombineVocabs, MGEUnknownIdentifier, MGEArityMismatch, 
-	MGEBadQueryString, MGEBadIdentifierName, MGEUnsortedVariable, MGEManagerException
+	MGEBadQueryString, MGEBadIdentifierName, MGEManagerException
 	{
 		// All query creation must go through MGQuery.queryThesePolicies. So construct a query string.
 		String thequery = "";
@@ -326,7 +326,7 @@ public abstract class MPolicy extends MIDBCollection
 	 */
 	public MQuery queryPolicy(String prop) 
 	throws MGEBadQueryString, MGEUnknownIdentifier, MGEArityMismatch, MGECombineVocabs, 
-	MGEBadIdentifierName, MGEUnsortedVariable, MGEManagerException
+	MGEBadIdentifierName,  MGEManagerException
 	{
 		// Convert the text query into a MGQuery object.
 		ArrayList<MIDBCollection> temp = new ArrayList<MIDBCollection>();

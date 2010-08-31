@@ -21,31 +21,17 @@
 
 package edu.wpi.margrave;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import kodkod.instance.Instance;
-
-
-import com.sun.xacml.ParsingException;
-import com.sun.xacml.UnknownIdentifierException;
 
 public class MJavaTests
 {
 
 	static void countTest(String testname, MQuery qry, int expected_size, int expected_sols, int expected_hbu)
-	throws MGException
+	throws MBaseException
 	{
 
 		if(qry.runTestCase(expected_size, expected_sols, expected_hbu))
@@ -62,7 +48,7 @@ public class MJavaTests
 	}
 
 	static void do_test_1()
-	throws MGException
+	throws MBaseException
 	{
 		MVocab env = new MVocab("Test Vocab");
 
@@ -456,7 +442,7 @@ public class MJavaTests
 	}
 
 	static void do_test_2()
-	throws MGException
+	throws MBaseException
 	{
 		MVocab env = new MVocab("Bigger Test Vocab");
 		MPolicyLeaf pol = new MPolicyLeaf("ipeqtest", env);
@@ -570,7 +556,7 @@ public class MJavaTests
 	}
 
 	static void do_test_3()
-	throws MGException
+	throws MBaseException
 	{
 		MVocab env = new MVocab("Vocab for closure tests");
 		MPolicyLeaf pol = new MPolicyLeaf("closuretest", env);
@@ -623,13 +609,13 @@ public class MJavaTests
 
 
 
-		MQuery qry2 = qry.refineQuery("(forAll potential Subject (not (Delegate potential potential)))");
+	/*	MQuery qry2 = qry.refineQuery("(forAll potential Subject (not (Delegate potential potential)))");
 		qry2.sizeCeiling = 1;
 
 		// 1 soln (only one of the last test)
 		//qry2.prettyPrintSolutions(); // 14 @ 2
 		countTest("Basic Closure Test 2", qry2, 1, 1, -1);
-
+*/
 		// Now, what if we require that s is not an admin?
 		// then 2 solns: One admin, one user (disjoint), where admin delegates to user, whether or not
 		// another 2 where $s: subject (non-user)
@@ -677,7 +663,7 @@ public class MJavaTests
 	}
 
 	static void do_test_4()
-	throws MGException
+	throws MBaseException
 	{
 
 		// try different types of policy networks (need to implement this stuff!)
@@ -908,7 +894,7 @@ public class MJavaTests
 
 
 	static void do_test_5()
-	throws MGException
+	throws MBaseException
 	{
 
 
@@ -959,7 +945,7 @@ public class MJavaTests
 	}
 
 	public static void runTests()
-	throws MGException
+	throws MBaseException
 	{
 
 		// TODO: need to update these to EXPLORE language
@@ -1501,7 +1487,7 @@ public class MJavaTests
 
 	public static void addEasyRulesNew(MPolicyLeaf pol, MPolicyLeaf pol2, int numRules)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs
 	{
 		ArrayList<String> templist = new ArrayList<String>();
 
@@ -1547,7 +1533,7 @@ public class MJavaTests
 
 	public static MVocab setupFirewallVocabNew(String name)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs
 	{
 		MVocab env = new MVocab(name);
 
@@ -1598,8 +1584,7 @@ public class MJavaTests
 	}
 
 	public static MVocab setupFirewallVocab(String name, int numIPs, int rangeSize, int numPorts)
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	throws MUserException
 	{
 		MVocab env = new MVocab(name);
 
@@ -1694,7 +1679,7 @@ public class MJavaTests
 
 	public static void addEasyRules(MPolicyLeaf pol, MPolicyLeaf pol2, int numRules)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs
 	{
 		ArrayList<String> templist = new ArrayList<String>();
 
@@ -1728,7 +1713,7 @@ public class MJavaTests
 
 	public static void do_test_child_sort_exhaustive()
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable, MGEManagerException
+	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs,  MGEManagerException
 	{
 
 		// removed 1/28/10 TN
@@ -1768,7 +1753,7 @@ public class MJavaTests
 	}
 
 	public static void do_test_tupling_basic()
-	throws MGException
+	throws MBaseException
 
 	{
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_tupling_basic()");
@@ -2025,11 +2010,14 @@ public class MJavaTests
 
 
 		MEnvironment.writeErrLine("\n\n\n\n\n");
-		MEnvironment myInterface = new MEnvironment(); // use default stream
+		//MEnvironment myInterface = new MEnvironment(); // use default stream
 
-		myInterface.savePolicyAs("SmallFwTestPol1", fwpol);
-		myInterface.savePolicyAs("SmallFwTestPol2", fwpol2);
+		//MEnvironment.savePolicyAs("SmallFwTestPol1", fwpol);
+		//MEnvironment.savePolicyAs("SmallFwTestPol2", fwpol2);
 
+		// OLD explore test cases, need updating
+		/*
+		
 		String eol = System.getProperty("line.separator");
 
 
@@ -2367,9 +2355,9 @@ public class MJavaTests
 		testCommandPop("Query 19", query19, query19Result);
 		testCommandPop("Query 20", query20, query20Result);
 
-		*/
+		
 		System.exit(1);
-
+		*/
 	}
 
 	/*public static boolean testCommandPop(String desc, String cmd, Map<String, Set<String>> expected)
@@ -2474,8 +2462,7 @@ public class MJavaTests
 	}*/
 
 	public static MVocab setup3Vocab(String name, int numSubs, int numActs, int numRes)
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	throws MUserException
 	{
 		MVocab env = new MVocab(name);
 
@@ -2515,8 +2502,7 @@ public class MJavaTests
 	}
 
 	public static void addEasy3Rules(MPolicyLeaf pol, MPolicyLeaf pol2, int numRules)
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs, MGEUnsortedVariable
+	throws MUserException
 	{
 		ArrayList<String> templist = new ArrayList<String>();
 
@@ -2540,7 +2526,7 @@ public class MJavaTests
 	
 
 	public static void do_time_tupling_new()
-	throws MGException
+	throws MBaseException
 	{
 		// 1000 rules, vector size = 14
 		MVocab fw = setupFirewallVocabNew("large");
@@ -2619,7 +2605,7 @@ public class MJavaTests
 	}
 
 	public static void do_time_tupling()
-	throws MGException
+	throws MBaseException
 	{
 		// Time trials of tupling vs. non-tupling
 		// Test both a small s/a/r policy and a larger firewall ACL
@@ -2949,7 +2935,7 @@ public class MJavaTests
 	}
 
 	public static void do_test_tupling_1()
-	throws MGException
+	throws MBaseException
 	{
 		//do_test_child_sort_exhaustive();
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_tupling_1()");
@@ -3187,8 +3173,7 @@ public class MJavaTests
 	}
 
 	public static void main(String[] args)
-	throws MGException,
-      UnsupportedFormulaException
+	throws MBaseException
 	{
 
 	   /* Variable v = Variable.unary("v");
@@ -3331,7 +3316,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 	
 		try {
 			FormulaSigInfo.unitTests();
-		} catch (NotASortException e) {
+		} catch (MNotASortException e) {
 			
 			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
@@ -3367,8 +3352,7 @@ rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
 	}
 
 	public static void benchmarkXACML(String continueFileName)
-    throws MGEBadIdentifierName, MGEBadCombinator, MGEUnsupportedXACML, MGEUnknownIdentifier,
-    MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGECombineVocabs, MGEUnsortedVariable
+    throws MUserException
     {
         ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
         long start = mxBean.getCurrentThreadCpuTime();

@@ -24,8 +24,6 @@ package edu.wpi.margrave;
 import java.lang.management.*;
 
 import kodkod.ast.*;
-import kodkod.ast.operator.*;
-import kodkod.ast.visitor.*;
 import kodkod.engine.Statistics;
 
 import kodkod.engine.satlab.SATFactory;
@@ -145,7 +143,7 @@ public class MQuery extends MIDBCollection
 		MEnvironment.writeOutLine("Size ceiling: " + sizeCeiling);
 	}
 
-	private void init(Formula nFormula) throws MGEUnsortedVariable {
+	private void init(Formula nFormula) {
 		// Simplify query formula before anything else.
 		// MREPL.outStream.println("Before: "+nFormula);
 
@@ -181,7 +179,7 @@ public class MQuery extends MIDBCollection
 
 	// constructors
 	private MQuery(Formula nFormula, MPolicy initialPolicy)
-			throws MGEUnsortedVariable, MGEUnknownIdentifier,
+			throws  MGEUnknownIdentifier,
 			MGEBadQueryString, MGEArityMismatch {
 		vocab = initialPolicy.vocab;
 		init(nFormula);
@@ -194,7 +192,7 @@ public class MQuery extends MIDBCollection
 	}
 
 	private MQuery(MVocab uber, Formula nFormula,
-			List<MIDBCollection> idbcollections) throws MGEUnsortedVariable {
+			List<MIDBCollection> idbcollections) {
 		vocab = uber;
 		init(nFormula);
 
@@ -204,7 +202,7 @@ public class MQuery extends MIDBCollection
 	}
 
 	protected MQuery(MVocab uber, Formula nFormula,
-			Set<MIDBCollection> idbcollections) throws MGEUnsortedVariable {
+			Set<MIDBCollection> idbcollections) {
 		vocab = uber;
 		init(nFormula);
 
@@ -215,7 +213,7 @@ public class MQuery extends MIDBCollection
 
 	private MQuery(MVocab prevVocab, Formula nFormula,
 			HashMap<String, MIDBCollection> prevIDBsList)
-			throws MGEUnsortedVariable, MGEUnknownIdentifier,
+			throws MGEUnknownIdentifier,
 			MGEBadQueryString, MGEArityMismatch {
 		// This constructor is used for query refinement.
 		// No combination of vocabs is done.
@@ -226,8 +224,8 @@ public class MQuery extends MIDBCollection
 
 	}
 
-	private MQuery(Formula nFormula, MVocab voc) throws MGEUnsortedVariable,
-			MGEUnknownIdentifier, MGEBadQueryString, MGEArityMismatch {
+	private MQuery(Formula nFormula, MVocab voc) 
+			throws MGEUnknownIdentifier, MGEBadQueryString, MGEArityMismatch {
 		// *** This constructor exists for testing purposes only. It should
 		// NEVER
 		// be used outside of a unit test. (Note no IDB collections passed.)
@@ -416,10 +414,10 @@ public class MQuery extends MIDBCollection
 			}
 
 			return result;
-		} catch (UnsupportedFormulaException E) {
+		} catch (MUnsupportedFormulaException E) {
 			// unsupported
 			return -1;
-		} catch (NotASortException E) {
+		} catch (MNotASortException E) {
 			// unsupported
 			return -1;
 		}
@@ -670,7 +668,7 @@ public class MQuery extends MIDBCollection
 	 * @throws MGEBadIdentifierName
 	 */
 
-	public MQueryResult runQuery() throws MGException
+	public MQueryResult runQuery() throws MBaseException
 	{				
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Beginning to execute query (runQuery) ");
@@ -1849,13 +1847,13 @@ public class MQuery extends MIDBCollection
 				// Failed to tuple! (why?)
 
 				if (!idbs_ok)
-					throw new MGException("Could not tuple: IDBs were not quantifier-free.");
+					throw new MUnsupportedFormulaException("Could not tuple: IDBs were not quantifier-free.");
 				if(!prenexExistential)
-					throw new MGException("Could not tuple: Query was not prenex existential.");
+					throw new MGETuplingFailure("Could not tuple: Query was not prenex existential.");
 				if(vocab.axioms.funcPartial.size() > 0 || vocab.axioms.funcTotal.size() > 0)
-					throw new MGException("Could not tuple: The vocabulary contained functional constraints.");
+					throw new MGETuplingFailure("Could not tuple: The vocabulary contained functional constraints.");
 				if(vocab.axioms.otherConstraintStrings.size() > 0)
-					throw new MGException("Could not tuple: Custom constraints are not allowed when tupling.");
+					throw new MGETuplingFailure("Could not tuple: Custom constraints are not allowed when tupling.");
 
 			}
 			// PUT NOTHING HERE! Tupling stuff goes in the above if statement
@@ -2062,10 +2060,10 @@ public class MQuery extends MIDBCollection
 	 * @param expected_sols
 	 * @param expected_hbu
 	 * @return Whether the test case passed.
-	 * @throws MGException
+	 * @throws MBaseException
 	 */
 	public boolean runTestCase(int expected_size, int expected_sols,
-			int expected_hbu) throws MGException
+			int expected_hbu) throws MBaseException
 	{
 		MQueryResult res = runQuery();
 
@@ -2089,8 +2087,8 @@ public class MQuery extends MIDBCollection
 	 * @throws MGEManagerException
 	 * @throws MGEBadIdentifierName
 	 */
-	public MQuery refineQuery(String more) throws MGEBadQueryString,
-			MGEUnknownIdentifier, MGEUnsortedVariable, MGEArityMismatch,
+	/*public MQuery refineQuery(String more) throws MGEBadQueryString,
+			MGEUnknownIdentifier, MGEArityMismatch,
 			MGEManagerException, MGEBadIdentifierName {
 		// Take the conjunction of the existing query formula and the new one
 		// (But don't duplicate request variable quantifiers...)
@@ -2108,7 +2106,8 @@ public class MQuery extends MIDBCollection
 
 		return new MQuery(vocab, qryFormula, myIDBCollections); // overloaded
 	}
-
+*/
+	
 	private static List<String> splitAndRespectParens(String str) {
 		LinkedList<String> resultList = new LinkedList<String>();
 
@@ -2599,7 +2598,7 @@ public class MQuery extends MIDBCollection
 	public static MQuery queryThesePolicies(String qry,
 			List<MIDBCollection> idbCollections) throws MGEBadQueryString,
 			MGEUnknownIdentifier, MGEArityMismatch, MGECombineVocabs,
-			MGEBadIdentifierName, MGEUnsortedVariable, MGEManagerException {
+			MGEBadIdentifierName, MGEManagerException {
 		// Record time used to pre-process the query: Vocab combination, string
 		// parsing, etc.
 		ThreadMXBean mx = ManagementFactory.getThreadMXBean();
@@ -2904,16 +2903,16 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
-	public void prettyPrintOneSolution() throws MGException {
+	public void prettyPrintOneSolution() throws MBaseException {
 		prettyPrintSolutions(1);
 	}
 
-	public void prettyPrintSolutions() throws MGException {
+	public void prettyPrintSolutions() throws MBaseException {
 		// print them all
 		prettyPrintSolutions(-1);
 	}
 
-	public void prettyPrintSolutionsCondensed() throws MGException {
+	public void prettyPrintSolutionsCondensed() throws MBaseException {
 		// disabled special code for now
 
 		//MQueryOutputSpec.DefaultIteratorType savedCondense = otSpec.itDefault;
@@ -2924,7 +2923,8 @@ public class MQuery extends MIDBCollection
 
 
 	public void prettyPrintSolutions(int max_to_print)
-			throws MGException {
+			throws MBaseException
+	{
 		int counter = 0;
 		Statistics stats = null;
 
@@ -3284,7 +3284,7 @@ public class MQuery extends MIDBCollection
 		return new MSolutionInstance(newInstance, dontcare, annotations);
 	}
 
-	static public void unitTest() throws MGException
+	static public void unitTest() throws MBaseException
 	{
 		MEnvironment.writeErrLine("----- Begin MGQuery Tests (No messages is good.) -----");
 
@@ -3697,7 +3697,7 @@ public class MQuery extends MIDBCollection
 		sort2bx = env.getRelation("Sort2bx");
 		sort2cx = env.getRelation("Sort2cx");
 		Expression sort2axx = env.getRelation("Sort2axx");
-		Expression sort2bxx = env.getRelation("Sort2bxx");
+		//Expression sort2bxx = env.getRelation("Sort2bxx");
 
 		// Another unproductive function (which would otherwise induce inf. many
 		// terms)
@@ -3912,9 +3912,7 @@ public class MQuery extends MIDBCollection
 			MExploreCondition mpc, List<String> publish,
 			Map<String, Set<List<String>>> includeMap,
 			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName,
-			MGECombineVocabs, MGEManagerException, MGEUnsortedVariable,
-			MSemanticException
+			throws  MUserException
 			{
 
 		// TODO, repurpose these exceptions in context of new qry language
@@ -3943,7 +3941,7 @@ public class MQuery extends MIDBCollection
 			for(String predname : includeMap.keySet())
 			{
 				if(includeMap.get(predname).size() < 1)
-					throw new MSemanticException("TUPLING was enabled but INCLUDE for pred: "+predname+" was not indexed.");
+					throw new MGETuplingFailure("TUPLING was enabled but INCLUDE for pred: "+predname+" was not indexed.");
 			}
 		}
 		else
@@ -3951,7 +3949,7 @@ public class MQuery extends MIDBCollection
 			for(String predname : includeMap.keySet())
 			{
 				if(includeMap.get(predname).size() > 0)
-					throw new MSemanticException("TUPLING was not enabled but INCLUDE for pred: "+predname+" was indexed.");
+					throw new MGETuplingFailure("TUPLING was not enabled but INCLUDE for pred: "+predname+" was indexed.");
 			}
 		}
 		// TODO to give row/col for the above, need to keep their location in the outmod until we know whether or not we're tupled
@@ -3972,8 +3970,7 @@ public class MQuery extends MIDBCollection
 		// No IDBS, no UNDER clause?
 		if (uber == null) {
 			// no vocab! Error out.
-			throw new MSemanticException(
-					"A query that mentions neither policies nor prior queries must use the UNDER clause.");
+			throw new MGEUnknownIdentifier("A query that mentions neither policies nor prior queries must use the UNDER clause.");
 		}
 
 		// **********************************************************
@@ -3985,8 +3982,7 @@ public class MQuery extends MIDBCollection
 			try {
 				uber.getSortForExpression(r);
 			} catch (MGEUnknownIdentifier e) {
-				throw new MSemanticException("Unknown EDB " + r
-						+ ". The given policies were unaware of this EDB name.");
+				throw new MGEUnknownIdentifier("Unknown EDB " + r + ". The given policies were unaware of this EDB name.");
 			}
 		}
 
@@ -4060,7 +4056,7 @@ public class MQuery extends MIDBCollection
 			// Throw an exception if it is garbage.
 			if(!freeVars.containsKey(v))
 			{
-				throw new MSemanticException("Variable in publish clause: "+v+" did not appear in the query.");
+				throw new MGEUnknownIdentifier("Variable in publish clause: "+v+" did not appear in the query.");
 			}
 			
 			Decl d = MFormulaManager.makeOneOfDecl(v, freeVars.get(v));

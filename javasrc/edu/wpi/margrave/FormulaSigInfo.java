@@ -34,30 +34,11 @@ import kodkod.ast.operator.Multiplicity;
 import kodkod.ast.operator.Quantifier;
 import kodkod.ast.visitor.*;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
+//import java.lang.management.ManagementFactory;
+//import java.lang.management.ThreadMXBean;
 import java.util.*;
 import java.math.BigInteger;
 
-// Thrown by FormulaSigInfo if a given Formula contains 
-// unsupported features or quantification over a non-sort.
-class UnsupportedFormulaException extends Exception
-{
-	UnsupportedFormulaException(String str)
-	{
-		super(str);
-	}
-}
-
-// Thrown if the user asks about an Expression which is not
-// a sort w/r/t the given Sig.
-class NotASortException extends Exception
-{
-	NotASortException(String str)
-	{
-		super(str);
-	}
-}
 
 // -------- Helper class: SigFunction ----------
 // Represents a function: EITHER a Skolem function or an original function.
@@ -656,7 +637,7 @@ public class FormulaSigInfo
 			Formula fmla,
 			EnumSAPHandling sap,
 			boolean htmlOutput)
-				throws UnsupportedFormulaException, NotASortException
+				throws MUnsupportedFormulaException, MNotASortException
 	{
 		init(sorts, supersorts, predicates, originalFunctions, originalConstants, fmla, sap, htmlOutput);
 	}
@@ -668,7 +649,7 @@ public class FormulaSigInfo
 			Set<SigFunction> originalConstants,
 			Formula fmla,
 			EnumSAPHandling sap)
-	throws UnsupportedFormulaException, NotASortException
+	throws MUnsupportedFormulaException, MNotASortException
 	{
 		init(sorts, supersorts, predicates, originalFunctions, originalConstants, fmla, sap, false);
 	}
@@ -691,7 +672,7 @@ public class FormulaSigInfo
 			Formula fmla,
 			EnumSAPHandling sap,
 			boolean htmlOutput)
-	throws UnsupportedFormulaException, NotASortException
+	throws MUnsupportedFormulaException, MNotASortException
 	{
 		// Fix a set of Sorts, a partial order on them, and a Formula.
 		this.fmla = fmla;
@@ -773,27 +754,27 @@ public class FormulaSigInfo
 	
 	
 	private void validateFunction(SigFunction f, String appearedAs)
-	throws NotASortException
+	throws MNotASortException
 	{
 		for(LeafExpression inArity : f.arity)
 			if(!sorts.contains(inArity))
-				throw new NotASortException("The LeafExpression "+inArity.toString() + 
+				throw new MNotASortException("The LeafExpression "+inArity.toString() + 
 						" appeared as a sort symbol "+appearedAs+", but was not declared to be a sort.");
 		
 		if(!sorts.contains(f.sort))
-			throw new NotASortException("The LeafExpression "+f.sort.toString() + 
+			throw new MNotASortException("The LeafExpression "+f.sort.toString() + 
 				" appeared as a sort symbol "+appearedAs+", but was not declared to be a sort.");		
 	}
 	
 	private void collectSkolemFunctions()
-	throws UnsupportedFormulaException
+	throws MUnsupportedFormulaException
 	{
 		WalkAST walker = new WalkAST();
 		Set<SigFunction> results = fmla.accept(walker);
 		if(walker.error)
 		{
 			MEnvironment.writeErrLine(walker.error_condition);
-			throw new UnsupportedFormulaException(walker.error_condition);
+			throw new MUnsupportedFormulaException(walker.error_condition);
 		}
 		
 		// **************************
@@ -815,7 +796,7 @@ public class FormulaSigInfo
 		if(sap.equals(EnumSAPHandling.sapThrowException))
 		{
 			// sapThrowException
-			throw new UnsupportedFormulaException("Sort symbol was used as predicate and handler was set to disallow this.");
+			throw new MUnsupportedFormulaException("Sort symbol was used as predicate and handler was set to disallow this.");
 		}
 		else if(sap.equals(EnumSAPHandling.sapIgnore))
 		{
@@ -1350,7 +1331,7 @@ public class FormulaSigInfo
 	// ------------- Unit tests ----------------
 	
 	public static void unitTests() 
-	throws UnsupportedFormulaException, NotASortException
+	throws MUnsupportedFormulaException, MNotASortException
 	{
 		MEnvironment.writeErrLine("----- Begin FormulaSigInfo Tests (No messages is good.) -----");
 		LeafExpression Sort1 = Relation.unary("Sort1");
@@ -1592,10 +1573,10 @@ public class FormulaSigInfo
 	// ------------- Interface ----------------
 
 	public int getTermCount(LeafExpression s)
-	throws NotASortException
+	throws MNotASortException
 	{		
 		if(!sorts.contains(s))
-			throw new NotASortException("isSortFinitary: LeafExpression "+s+" was not declared as a sort.");
+			throw new MNotASortException("isSortFinitary: LeafExpression "+s+" was not declared as a sort.");
 		if(!finitarySorts.contains(s))
 			return -1;
 		if(termCounts.containsKey(s))
@@ -1620,10 +1601,10 @@ public class FormulaSigInfo
 	}
 	
 	public boolean isSortFinitary(LeafExpression s)
-	throws NotASortException
+	throws MNotASortException
 	{
 		if(!sorts.contains(s))
-			throw new NotASortException("isSortFinitary: LeafExpression "+s+" was not declared as a sort.");
+			throw new MNotASortException("isSortFinitary: LeafExpression "+s+" was not declared as a sort.");
 		return finitarySorts.contains(s);
 	}
 	

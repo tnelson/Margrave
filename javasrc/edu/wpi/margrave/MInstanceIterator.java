@@ -103,7 +103,7 @@ class MTotalInstanceIterator extends MInstanceIterator
 	boolean newKodkodIterator = true;
 		
 	MTotalInstanceIterator(MQueryResult qr) 
-	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName	
+	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName	
 	{
 		super(qr);
 		
@@ -177,7 +177,7 @@ class MTotalInstanceIterator extends MInstanceIterator
 	}
 	
 	private Iterator<Solution> doBoundsAndKodKod_All(Universe u, Formula f)
-	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
+	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
 	{				
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		long start = mxBean.getCurrentThreadCpuTime();	
@@ -296,7 +296,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 	
 	
 	public Map<String, Set<String>> getPopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases)
-	throws MSemanticException
+	throws MUserException
 	{
 								
 		// This version contains indexings for tupling
@@ -325,7 +325,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			if(!fromResult.forQuery.vocab.isSort(predname) && 
 					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
 					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
-				throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+
+				throw new MUserException("Candidate in SHOW REALIZED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 		}
 		for(String predname : indexedCases)
@@ -333,7 +333,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			if(!fromResult.forQuery.vocab.isSort(predname) && 
 					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
 					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
-				throw new MSemanticException("Case in SHOW POPULATED: "+predname+
+				throw new MUserException("Case in SHOW REALIZED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
 	
 		} 	
@@ -369,7 +369,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			
 	}
 	
-	public Set<String> getPopulatedRelations(Map<String, Set<List<String>>> candidates) throws MSemanticException
+	public Set<String> getPopulatedRelations(Map<String, Set<List<String>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getPopulatedRelations(candidates, cases).get("");
@@ -381,7 +381,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		return getPopulatedRelations(candidates, cases).get("");		
 	}
 
-	public Set<String> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates) throws MSemanticException
+	public Set<String> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getUnpopulatedRelations(candidates, cases).get("");
@@ -456,7 +456,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		return result;				
 	}
 	
-	public Map<String, Set<String>> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases ) throws MSemanticException
+	public Map<String, Set<String>> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases ) throws MUserException
 	{
 		Map<String, String> originalPreds = new HashMap<String, String>();
 		Map<String, List<String>> originalIndexing = new HashMap<String, List<String>>();
@@ -472,7 +472,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			if(!fromResult.forQuery.vocab.isSort(predname) && 
 					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
 					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
-				throw new MSemanticException("Candidate in SHOW UNPOPULATED: "+predname+
+				throw new MUserException("Candidate in SHOW UNREALIZED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());		
 		}
 		for(String predname : indexedCases)
@@ -480,7 +480,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			if(!fromResult.forQuery.vocab.isSort(predname) && 
 					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
 					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
-				throw new MSemanticException("Case in SHOW UNPOPULATED: "+predname+
+				throw new MUserException("Case in SHOW UNREALIZED: "+predname+
 						" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());		
 		} 	
 		// TODO de-index the error messages
@@ -1748,7 +1748,7 @@ class MQueryResult
 	}
 	
 	public MTotalInstanceIterator getTotalIterator() 
-	throws MGEUnknownIdentifier, MGEUnsortedVariable, MGEManagerException, MGEBadIdentifierName
+	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
 	{
 		return new MTotalInstanceIterator(this);
 	}
@@ -1793,14 +1793,14 @@ class MQueryResult
 			
 			return count;
 		}
-		catch(MGException e)
+		catch(MBaseException e)
 		{
 			return -1; // error
 		}		
 	}
 
 	public boolean isSatisfiable()
-	throws MGException
+	throws MBaseException
 	{
 		MInstanceIterator it = getTotalIterator();
 						 

@@ -1,10 +1,8 @@
 package edu.wpi.margrave;
 
-import java_cup.*;
 import kodkod.ast.*;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +10,6 @@ import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,14 +30,12 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
+//import org.w3c.dom.Element;
+//import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-
-import com.sun.java_cup.internal.runtime.Symbol;
 
 public class MCommunicator 
 {
@@ -153,7 +148,7 @@ public class MCommunicator
         }
 
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node, String originalXMLText) throws MGException
+        private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException
         {
         	writeToLog("In XMLHelper\n");
         	NodeList childNodes = node.getChildNodes();
@@ -245,7 +240,7 @@ public class MCommunicator
 	        				}
 	  
         				} 
-          				catch(MGException e)
+          				catch(MBaseException e)
         				{
           					MEnvironment.lastResult = -1;
           					throw e;
@@ -363,7 +358,7 @@ public class MCommunicator
         					{
         						writeToLog("In Show One");
 								theResponse = MEnvironment.getFirstModel(id);
-							} catch (MGException e) {
+							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
 							//MEnvironment.showFirstModel(id);
@@ -373,7 +368,7 @@ public class MCommunicator
         					try
         					{
 								theResponse = MEnvironment.getNextModel(id);
-							} catch (MGException e) {
+							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
 							//MEnvironment.showNextModel(id);
@@ -472,7 +467,10 @@ public class MCommunicator
         				}
         			}
         			
-        			else if (type.equalsIgnoreCase("COMPARE")) {
+        			else if (type.equalsIgnoreCase("COMPARE"))
+        			{
+        				// TODO support compare
+        				
         				String pol1 = "";//getCompareFirstPolicy(n);
         				String pol2 = "";//getCompareSecondPolicy(n);
         				
@@ -1029,7 +1027,7 @@ public class MCommunicator
         }
 
         //Expects the node one down from condition node
-        private static MExploreCondition exploreHelper(Node n) throws MSemanticException, MGEManagerException, MGEUnknownIdentifier
+        private static MExploreCondition exploreHelper(Node n) throws MUserException, MGEManagerException, MGEUnknownIdentifier
         {
         	NodeList childNodes = n.getChildNodes();
 
@@ -1344,7 +1342,7 @@ public class MCommunicator
 	}
 	
 	private static Formula performSubstitution(Object collectionIdSymbol, MIDBCollection coll, Formula f, List<String> newvarnames)
-	throws MSemanticException, MGEUnknownIdentifier
+	throws MUserException, MGEUnknownIdentifier
 	{		
 		if(f == null)
 			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
@@ -1369,29 +1367,29 @@ public class MCommunicator
 	}
 	
 	protected static Formula validateDBIdentifier(String objn, String dbn)
-	throws MSemanticException
+	throws MUserException
 	{
 		
 		// Is objn a policy name? If not, error.
 		 MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
 		 
 		 if(pol == null)
-			 throw new MSemanticException("Unknown IDB Collection: "+objn);
+			 throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);
 			   	
 		 // Is idb an idb in objn? If not, error
 		 Formula idbf = MEnvironment.getIDB(objn, dbn);
 		 if(idbf == null)
-			 throw new MSemanticException("Unknown IDB: "+dbn+" in collection: "+objn);
+			 throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);
 		 
 		 return idbf;
 	}
 	
-	private static void report_arity_error(Object idbSymbol, List<String> varlist, MIDBCollection coll) throws MSemanticException
+	private static void report_arity_error(Object idbSymbol, List<String> varlist, MIDBCollection coll) throws MUserException
 	{
-		throw new MSemanticException("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".");
+		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".");
 	}
 
-	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MSemanticException
+	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MUserException
 	{
 		if(names == null)
 			return new ArrayList<MIDBCollection>();
@@ -1401,7 +1399,7 @@ public class MCommunicator
 		for(String n : names)
 		{
 			if(MEnvironment.getPolicyOrView(n) == null)
-				throw new MSemanticException("Unknown symbol in UNDER clause: "+n);
+				throw new MGEUnknownIdentifier("Unknown symbol in UNDER clause: "+n);
 			result.add(MEnvironment.getPolicyOrView(n));
 		}
 		

@@ -22,13 +22,11 @@
 package edu.wpi.margrave;
 
 import java.io.*;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
+//import java.lang.management.ManagementFactory;
+//import java.lang.management.ThreadMXBean;
 import java.util.*;
 
 import kodkod.ast.*;
-import kodkod.ast.operator.ExprOperator;
-import kodkod.ast.visitor.*;
 
 
 class MSort
@@ -422,7 +420,7 @@ public class MVocab {
 		try {
 			MSort t = getSort(rname);
 			return t.rel;
-		} catch (MGException E) {
+		} catch (MBaseException E) {
 			if (predicates.containsKey(rname))
 				return predicates.get(rname);
 			throw new MGEUnknownIdentifier("Error: Unable to get Relation for unknown sort name: " + rname);

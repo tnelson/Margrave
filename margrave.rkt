@@ -239,7 +239,7 @@
 ; xml doc ---> xml doc
 (define (default-response-handler xml-response)
   (cond [(response-is-exception? xml-response) 
-         (raise-user-error 'margrave-error "Could not process Margrave command: Java engine returned an exception: ~a~n"
+         (raise-user-error 'margrave-error "~a~n"
                            (pretty-print-response-xml xml-response) )
          xml-response]
         

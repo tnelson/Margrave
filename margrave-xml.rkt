@@ -293,8 +293,11 @@
 ; Get value for attribute name-symbol of element ele
 ; Element -> Symbol -> String
 (define (get-attribute-value ele name-symbol)
-  (attribute-value (first (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
-                                  (element-attributes ele)))))
+  (let ([that-attribute-list (filter (lambda (attr) (equal? (attribute-name attr) name-symbol))
+                                     (element-attributes ele))])
+    (if (empty? that-attribute-list)
+        ""
+        (attribute-value (first that-attribute-list)))))
 
 ; element -> list
 (define (get-child-elements element name-symb-or-str)
@@ -539,24 +542,36 @@
          (exception-element (get-child-element element 'exception))
          (exception-attributes (element-attributes exception-element))
          (message-element (get-child-element exception-element 'message))
+         (message-text (pcdata-string (first (element-content message-element))))
          (location-element (get-child-element exception-element 'location))
          (command-element (get-child-element exception-element 'command))) ;TODO Don't have an example of this, so not implemented (VS)
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
         (cond
-          ;Supported exceptions
-          [(string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MSemanticException")
-           (write (string-append (get-attribute-value location-element 'problem) "\n"))]
-         ; [(string-contains? (get-attribute-value exception-element 'class) "java.lang.IllegalArgumentException")
-        ;  (write (string-append "Arity Mismatch:\n" (pcdata-string (first (element-content message-element))) "\n"))]
-          ;Otherwise just raw print the returned exception:
+          ; Special handling for user exceptions
+          ; Nothing interesting for now, later will add more
+          ; (Should have fields depending on the exception type)
+          [(or (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MUserException")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEUnknownIdentifier")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGETuplingFailure")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGECombineVocabs")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MUnsupportedFormulaException")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MNotASortException")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEArityMismatch")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEBadCombinator")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEBadIdentifierName")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEUnsupportedXACML"))
+           (write (string-append message-text "\n"))]
+   
+          
+          ;Otherwise just raw print the returned exception. it must be something serious.
           [else (begin     
-                  (write "Exception:\n")
+                  (write "Could not process Margrave command; The Java engine returned an exception:\n")
                   (write (string-append "Class: " (get-attribute-value exception-element 'class) "\n"))
                   (write (string-append "Stack Trace: " (get-attribute-value exception-element 'stack-trace) "\n"))
                   (when (not (empty? message-element))
-                    (write (string-append "Message: " (pcdata-string (first (element-content message-element))) "\n")))
+                    (write (string-append "Message: " message-text "\n")))
                   (when (not (empty? location-element))
                     (write (string-append "Location of Problem: " (get-attribute-value location-element 'problem) "\n"))))])
         

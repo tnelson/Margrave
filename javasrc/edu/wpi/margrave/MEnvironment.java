@@ -26,7 +26,6 @@ import java.io.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
@@ -34,12 +33,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 
 import kodkod.ast.*;
-import kodkod.ast.visitor.ReturnVisitor;
-import kodkod.ast.visitor.VoidVisitor;
 import kodkod.instance.Instance;
 import kodkod.instance.Tuple;
-
-import java_cup.runtime.Symbol;
 
 
 class MVariableVectorAssertion
@@ -143,7 +138,7 @@ class MExploreCondition
 	Set<Variable> knownPlaceholders = new HashSet<Variable>();
 	
 	void resolvePlaceholders(MVocab vocab)
-	throws MSemanticException, MGEManagerException
+	throws MUserException, MGEManagerException
 	{
 		// When the vocabulary is known, turn the placeholders into real Nodes.
 		
@@ -159,9 +154,9 @@ class MExploreCondition
 			
 			// Validate
 			if(!(lhs instanceof Variable))
-				throw new MSemanticException("Could not understand the LHS of equality: "+comparison);			
+				throw new MUserException("Could not understand the LHS of equality: "+comparison);			
 			if(!(rhs instanceof Variable))
-				throw new MSemanticException("Could not understand the RHS of equality: "+comparison);
+				throw new MUserException("Could not understand the RHS of equality: "+comparison);
 
 			Variable lhv = (Variable) lhs;
 			Variable rhv = (Variable) rhs;			
@@ -174,7 +169,7 @@ class MExploreCondition
 			
 			// Don't allow sort = sort			
 			if(lsort != null && rsort != null)
-				throw new MSemanticException("Both sides of the equality "+comparison + " were sort symbols. Could not resolve the equality.");
+				throw new MUserException("Both sides of the equality "+comparison + " were sort symbols. Could not resolve the equality.");
 
 			MSort thesort;
 			Variable thevar;
@@ -196,7 +191,7 @@ class MExploreCondition
 			// Require at most one elements in the sort
 			if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
 			   !vocab.axioms.setsSingleton.contains(thesort.name))
-				throw new MSemanticException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
+				throw new MUserException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
 						
 			// If we got this far, we know that this equality needs to be re-written to A(x)
 			Formula newFormula = MFormulaManager.makeAtom(thevar, thesort.rel);
@@ -216,7 +211,7 @@ class MExploreCondition
 	}	
 	
 	public static void resolveMapPlaceholders(MVocab vocab,
-			Map<String, Set<List<String>>> themap) throws MSemanticException
+			Map<String, Set<List<String>>> themap) throws MUserException
 	{		
 		if(themap == null)
 			return;
@@ -241,7 +236,7 @@ class MExploreCondition
 					
 					// Don't allow sort = sort			
 					if(lsort != null && rsort != null)
-						throw new MSemanticException("Both sides of the equality "+left+"="+right+" were sort symbols. Could not resolve the equality.");
+						throw new MUserException("Both sides of the equality "+left+"="+right+" were sort symbols. Could not resolve the equality.");
 
 					MSort thesort;
 					String thevar;
@@ -260,7 +255,7 @@ class MExploreCondition
 					// Require at most one elements in the sort
 					if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
 					   !vocab.axioms.setsSingleton.contains(thesort.name))
-						throw new MSemanticException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
+						throw new MUserException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
 								
 					// If we got this far, we know that this equality needs to be re-written to A(x)
 					if(!themap.containsKey(thesort.name))
@@ -717,7 +712,7 @@ public class MEnvironment
 		return null;
 	}
 
-	static MQueryResult getQueryResult(int num) throws MSemanticException
+	static MQueryResult getQueryResult(int num) throws MUserException
 	{
 		num = convertQueryNumber(num); // special case
 		
@@ -728,13 +723,13 @@ public class MEnvironment
 		
 	//If num is !- -1, returns num.
 	//If num is == -1, return the last results id (lastresult)
-	static int convertQueryNumber(int num) throws MSemanticException
+	static int convertQueryNumber(int num) throws MUserException
 	{
 		if (num == -1) 
 		{
 			if(lastResult < 0) // do we HAVE a last result?
 			{
-				throw new MSemanticException("No prior EXPLORE statement to reference. Perhaps the last EXPLORE statement returned an error?");
+				throw new MUserException("No prior EXPLORE statement to reference. Perhaps the last EXPLORE statement returned an error?");
 			}
 			return lastResult;
 		}
@@ -791,7 +786,7 @@ public class MEnvironment
 	}
 	
 	static Document getNextModel(int numResult)
-	throws MGException
+	throws MBaseException
 	{
 		numResult = convertQueryNumber(numResult);
 		
@@ -817,7 +812,7 @@ public class MEnvironment
 	}
 				
 	static Document getFirstModel(int numResult) 
-	throws MGException
+	throws MBaseException
 	{
 		numResult = convertQueryNumber(numResult);
 		
@@ -1355,7 +1350,7 @@ public class MEnvironment
 	
 	public static Document showPopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist) throws MGException
+			Map<String, Set<List<String>>> clist) throws MBaseException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1382,7 +1377,7 @@ public class MEnvironment
 			return mapResponse(outsets);
 			
 		}
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1394,14 +1389,14 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MGException
+	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MBaseException
 	{
 		return showPopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
 	public static Document showUnpopulated(Integer id,
 			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist) throws MSemanticException
+			Map<String, Set<List<String>>> clist) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1424,18 +1419,18 @@ public class MEnvironment
 			return mapResponse(outsets);
 			
 		}
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
 	}
 	
-	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MSemanticException 
+	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MUserException 
 	{
 		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static Document countModels(Integer id, Integer n) throws MSemanticException
+	public static Document countModels(Integer id, Integer n) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1443,12 +1438,12 @@ public class MEnvironment
 		return intResponse(aResult.countModelsAtSize(n));				
 	}
 
-	public static Document countModels(Integer id) throws MSemanticException
+	public static Document countModels(Integer id) throws MUserException
 	{
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
-	public static Document isGuar(Integer id) throws MSemanticException
+	public static Document isGuar(Integer id) throws MUserException
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
 		MQueryResult aResult = getQueryResult(id);
@@ -1459,7 +1454,7 @@ public class MEnvironment
 		return boolResponse(true);
 	}
 
-	public static Document isPoss(Integer id) throws MSemanticException 
+	public static Document isPoss(Integer id) throws MUserException 
 	{	
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1468,13 +1463,13 @@ public class MEnvironment
 		{
 			return boolResponseWithStats(aResult, id, aResult.isSatisfiable());
 		}
-		catch(MGException e)
+		catch(MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
 	}
 
-	public static Document showCeiling(Integer id) throws MSemanticException
+	public static Document showCeiling(Integer id) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1551,7 +1546,7 @@ public class MEnvironment
 				((MPolicy)pol).initIDBs();
 				return successResponse();
 			}
-			catch(MGException e)
+			catch(MBaseException e)
 			{
 				return exceptionResponse(e);
 			}
@@ -1597,7 +1592,7 @@ public class MEnvironment
 			voc.addSubSort(parent, child);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1612,7 +1607,7 @@ public class MEnvironment
 			voc.addSort(sname);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1626,7 +1621,7 @@ public class MEnvironment
 			voc.axioms.addConstraintAbstract(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1640,7 +1635,7 @@ public class MEnvironment
 			voc.axioms.addConstraintAbstractAll(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1655,7 +1650,7 @@ public class MEnvironment
 			voc.axioms.addConstraintTotalFunction(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1670,7 +1665,7 @@ public class MEnvironment
 			voc.axioms.addConstraintPartialFunction(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1685,7 +1680,7 @@ public class MEnvironment
 			voc.axioms.addConstraintSubset(child, parent); // reverse of how it usually is?
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1700,7 +1695,7 @@ public class MEnvironment
 			voc.axioms.addConstraintNonemptyAll(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1715,7 +1710,7 @@ public class MEnvironment
 			voc.axioms.addConstraintNonempty(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1730,7 +1725,7 @@ public class MEnvironment
 			voc.axioms.addConstraintAtMostOneAll(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1745,7 +1740,7 @@ public class MEnvironment
 			voc.axioms.addConstraintAtMostOne(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1760,7 +1755,7 @@ public class MEnvironment
 			voc.axioms.addConstraintSingletonAll(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1775,7 +1770,7 @@ public class MEnvironment
 			voc.axioms.addConstraintSingleton(s);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1793,7 +1788,7 @@ public class MEnvironment
 			//MCommunicator.writeToLog("Called voc");
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1808,7 +1803,7 @@ public class MEnvironment
 			voc.axioms.addConstraintDisjoint(s1, s2);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1823,7 +1818,7 @@ public class MEnvironment
 			voc.addDecision(decname);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1838,7 +1833,7 @@ public class MEnvironment
 			voc.addOtherVar(varname, domainsort);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1853,7 +1848,7 @@ public class MEnvironment
 			voc.addRequestVar(varname, domainsort);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1869,7 +1864,7 @@ public class MEnvironment
 			voc.addPredicate(sname, constructstr);
 			return successResponse();
 		} 
-		catch (MGException e)
+		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1887,7 +1882,7 @@ public class MEnvironment
 		{
 			pol.addRule(rname, decision, cc);
 		}
-		catch(MGException e)
+		catch(MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -1906,7 +1901,7 @@ public class MEnvironment
 		{
 			pol.setTarget(cc);
 		}
-		catch(MGException e)
+		catch(MBaseException e)
 		{
 			return exceptionResponse(e);
 		}
@@ -2095,9 +2090,9 @@ public class MEnvironment
 			errorElement.appendChild(placeElement);
 		}
 		else */
-		if(e instanceof MSemanticException)
+		/*if(e instanceof MUserException)
 		{
-			MSemanticException ex = (MSemanticException) e;
+			MUserException ex = (MUserException) e;
 			Element placeElement = xmldoc.createElementNS(null, "LOCATION");
 			//placeElement.setAttribute("row", String.valueOf(ex.row));
 			//placeElement.setAttribute("col", String.valueOf(ex.col));
@@ -2106,7 +2101,7 @@ public class MEnvironment
 			//if(String.valueOf(ex.errorValue).length() > 0)
 			//	placeElement.appendChild(xmldoc.createTextNode(String.valueOf(ex.errorValue)));
 			errorElement.appendChild(placeElement);
-		}
+		}*/
 		
 		// Include the query that caused the problem.
 		Element queryElement = xmldoc.createElementNS(null, "COMMAND");
