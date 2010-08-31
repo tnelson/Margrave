@@ -19,18 +19,24 @@ Margrave is part of an ongoing research project. We appreciate your
 feedback and suggestions (including feature requests). These can be
 sent to tn@"@"cs.wpi.edu.
 
+@;--------------------------------------------------------------------
+@section[#:tag "running-margrave"]{Running Margrave}
+
+
+<<< Context. DrRacket. Require Margrave. >>>
+
 
 @;--------------------------------------------------------------------
-@section[#:tag "getting-started-1"]{"An Access-Control Example"}
+@section[#:tag "getting-started-1"]{An Access-Control Example}
 
 First, let's consider an access-control policy for a conference management system. 
 
-@subsection["What Does A Policy Look Like?"]
+@subsection{What Does A Policy Look Like?}
 
-A @deftech{policy} is a list of @tech{rules} and a method of resolving rule
+A @tech{policy} is a list of @tech{rules} and a method of resolving rule
 conflicts, such as @tech{first-applicable} or @tech{permit-overrides}.
 
-A @deftech{rule} asserts a @tech{decision} for certain @tech{requests}.
+A @tech{rule} asserts a @tech{decision} for certain @tech{requests}.
 
 But what is a @tech{request} exactly, and what @tech{decision}s can the policy render? 
 Don't they depend on the application?
@@ -40,17 +46,16 @@ Yes. Margrave allows users to specify these things using
 first example, a request contains a subject, an action, and a resource.
 A decision is either permit or deny.
 
-@subsection["Loading Policies"]
+@subsection{Loading Policies}
 
-<<no mention of DrRacket yet. So what's all this about functions?>>
-
+<<Give sufficient context before this so the user understands what "use the load-policy function" means>>
 
 To load a policy, use the @racket{load-policy} function. 
 E.g., to load our conference-manager example:
 
 @racket[(load-policy "tests/conference.p")]
                  
-@subsection["Asking Questions"]
+@subsection{Asking Questions}
 
 Let's ask Margrave whether a reviewer can ever be denied access to read a paper. The following Margrave query captures this question:
 
@@ -61,7 +66,7 @@ EXPLORE Conference:Deny(s, a, r) AND
         reviewer(s) AND paper(r) AND readpaper(a)
 ]        
 
-<<< for more info on the language, see... >>>
+For more information on Margrave's query language, see @secref["query-language"].
  
 We can ask for satisfying scenarios with:
 
@@ -80,7 +85,7 @@ conflicted = {[$s, $r]}
 assigned = {}
 ]
 
-@subsection["Understanding Scenario Output"]
+@subsection{Understanding Scenario Output}
 
 The block above represents a scenario where the query could be 
 satisfied. "SHOW" commands format query results and display them 
@@ -90,30 +95,25 @@ both a Reviewer and an Author, the Resource is a Paper, and
 the action is reading the paper, provided that
 the subject is Conflicted on the Paper but not Assigned to it."
 
-Size = 3 means that in this solution to the query, there were 3
-objects in the universe. In this case, one is BOTH a Reviewer and an
+Here, $s $a and $r correspond to the variables that appear in
+the query.
+Size = 3 means that in this scenario, there were 3 objects. 
+In this case, one is BOTH a Reviewer and an
 Author, another is a Paper, and the third is the action ReadPaper.
 
-Here, $s $a and $r correspond to the
-variables that appear in the query. Conflicted and Assigned are
-binary predicates mentioned in the policy. Any predicates that
-represent an environment state (rather than a property of the
-request itself) will be displayed fully.
-
-
-<<< Clean up this language for a "getting started" user. ("Predicate? Huh?") >>>
-
+Conflicted and Assigned are
+binary @tech{predicates} mentioned in the policy. Any such facts 
+will be printed after information about individual variables.
 
 Note: When printing, only the most specific applicable 
-sort information will be shown. E.g., you will never see
+information will be shown. E.g., you will never see
 $s: reviewer subject
 because a reviewer is always a subject.
 
 
 
-
 @;--------------------------------------------------------------------
-@section["An IOS Firewall Example"]
+@section{An IOS Firewall Example}
 
 Margrave has built-in parsers to handle certain industry-standard 
 configuration languages, such as Cisco's IOS language. In this
@@ -123,19 +123,43 @@ as asking more complex queries.
 <<< Don't make it sound like we support *the entire IOS language* >>>
 
 
+@subsection{Loading IOS Configurations}
+
+<<how to load >>
+
+@subsection{Change-Impact Analysis}
+
+<< from section 2; demo.rkt >>
 
 
+@subsection{Rule Applicability}
 
+<<_matches and _applies IDBs>>
 
-<< from section 2; demo.rkt. Change-impact, Rule-responsibility, superfluous checking>>
+<< rule-responsibility; section 2; demo.rkt >>
 
+<< checking for superfluous rules >>
 
-@subsection["Using Margrave Output in Your Programs"]
+@subsection{Using Margrave Output in Your Programs}
 
-<< Go from superfluous list to WHY each is superfluous >>
+The above query lists all superfluous firewall rules --- it would be even better if we could explain @italic{why} the rules are superfluous. Query output can be re-used programatically to create queries based on prior results. Instead of simply displaying the response, we save it as a racket list:
+
+<<...>>
+
+and then use that list to construct a new query:
+
+<<...>>
+
+The result of this query is a map from each superfluous rule to the set of non-superfluous rules that overlap it. Of course, this mapping can be either printed,
+
+<<example entry in the map>>
+
+or saved as a Racket hash table for re-use:
+
+<<code to save>>
 
 
 @;--------------------------------------------------------------------
-@section["For More Information"]
+@section{For More Information}
 
 << links to other example files, test files, etc. >>
