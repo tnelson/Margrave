@@ -26,6 +26,7 @@
  response-is-success?
  response-is-error?
  response-is-exception?
+ response-is-unsat?
  get-response-type
  get-response-error-type
  get-response-error-subtype
@@ -161,6 +162,10 @@
 (define (response-is-exception? doc)
   (equal? (get-response-type doc)
           "exception"))
+(define (response-is-unsat? doc)
+  (equal? (get-response-type doc)
+          "unsat"))
+
 
 ; Fetch various error properties
 ; Document -> String

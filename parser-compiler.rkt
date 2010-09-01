@@ -692,16 +692,31 @@
   `(lambda () (let* ([string-buffer (open-output-string)]
                      [the-generator-func ,(make-get-all explore-id)]
                      [the-generator (the-generator-func)])
-                ; TODO: iterate over results of make-get-all
-                ;; !!! below should only be appending the first model string
-                (write-string (pretty-print-response-xml (the-generator)) string-buffer)
-                (get-output-string string-buffer))))
+                
+                ; iterate over results of the generator.
+                ; make sure to STOP at unsat.  
+                (letrec ([helper-func (lambda () 
+                                        (let ([response (the-generator)]) 
+                                          (when (not (response-is-unsat? response))
+                                            (write-string (pretty-print-response-xml response) string-buffer) 
+                                            (write-string "\n" string-buffer)                                                 
+                                            (helper-func))))])
+                  (helper-func)
+                  (get-output-string string-buffer)))))
 
 ; GET ALL returns a generator for all the models
-;; TODO: s/b one to begin with, then NEXT
+; using 2nd form of let and being tail-recursive
 (define (make-get-all explore-id)
-  `(lambda () (generator () 
-                         (yield (send-and-receive-xml ,(xml-make-get-command `(type "ONE") explore-id))))))
+  `(lambda () 
+     (generator ()  
+                (let loop-func ([is-first #t])
+                  (if (equal? is-first #f)
+                      (begin
+                        (yield (send-and-receive-xml ,(xml-make-get-command `(type "NEXT") explore-id)))
+                        (loop-func #f))
+                      (begin
+                        (yield (send-and-receive-xml ,(xml-make-get-command `(type "ONE") explore-id)))                                 
+                        (loop-func #f)))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function
 ; It gets evaluated in a context where we know what the symbol means.

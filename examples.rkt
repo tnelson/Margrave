@@ -102,7 +102,7 @@
 (printf "~a~n" (mtext "SHOW ONE"))
 (printf "~a~n" (mtext "SHOW ONE 0"))
 (printf "~a~n" (mtext "GET ALL"))
-(printf "~a~n" (mtext "SHOW ALL"))
+(printf "~n~n~a~n" (mtext "SHOW ALL"))
 ;(stop-margrave-engine)
 
 
