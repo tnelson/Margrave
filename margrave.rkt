@@ -31,6 +31,7 @@
          mtext
          pause-for-user
          load-policy
+         send-and-receive-xml
          
          xml-explore-result->id
          xml-set-response->list
@@ -45,6 +46,12 @@
          time-since-last
          make-applies-list
          make-matches-list)
+
+;****************************************************************
+(define-namespace-anchor margrave-namespace-anchor)
+(define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
+
+
 ;****************************************************************
 ;;Java Connection
 
@@ -191,13 +198,16 @@
   (lambda cmd    
     ; May be a semicolon-separated script of commands
     (let* ([cmd-func-syntax (parse-and-compile (apply string-append cmd))]
-           [cmd-closure (eval cmd-func-syntax)]
+           [cmd-closure (eval cmd-func-syntax the-margrave-namespace)]
            [response-docs (cmd-closure)])  
           
       ; Return the XML document or list of replies
-      (if (> (length response-docs) 1)
-          response-docs
-          (first response-docs)))))
+      (cond [(and (list? response-docs) (> (length response-docs) 1))
+             response-docs]
+            [(list? response-docs)
+             (first response-docs)]
+            [else ; not a list, single response
+             response-docs]))))
 
   
 
@@ -349,16 +359,27 @@
   (let* ([pol-result-list (evaluate-policy fn)]
          [polname (first pol-result-list)]
          [vocabname (second pol-result-list)]
+         [vocab-script (make-simple-script (third pol-result-list))]
+         [policy-script (make-simple-script (fourth pol-result-list))]
+        ; [dbg (printf "~a~n" vocab-script)]
          
          ; Java will handle creation of the vocab if it hasn't already been created.
          
+         ; Use the namespace anchor or else caller's namespace may be insufficient.
+         
          ; Eval and invoke the function to create the vocab
-         [vocab-results ((eval (third pol-result-list)))]
+         [vocab-results ((eval vocab-script the-margrave-namespace))]
          
          ; Eval and invoke the function to create the policy
-         [policy-results ((eval (fourth pol-result-list)))])
+         [policy-results ((eval policy-script the-margrave-namespace))])
         
     polname))
+
+
+(define (make-simple-script list-of-xml)
+  `(lambda () (begin ,@(map (lambda (an-xml) 
+                       `(send-and-receive-xml ,an-xml))
+                     list-of-xml))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

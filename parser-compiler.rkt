@@ -1,5 +1,21 @@
-#lang racket
+;    Copyright (c) 2009-2010 Brown University and Worcester Polytechnic Institute.
+;    
+;    This file is part of Margrave.
 
+;    Margrave is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU Lesser General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    Margrave is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU Lesser General Public License for more details.
+;
+;    You should have received a copy of the GNU Lesser General Public License
+;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
+
+#lang racket
 
 (require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) syntax/readerr)
 (require "margrave-xml.rkt" "margrave-policy-vocab.rkt")
@@ -500,7 +516,7 @@
 
 ; Take a syntax object for a Margrave command. Return a '(lambda ... 
 ; May be a single COMMAND, or a MARGRAVE-SCRIPT with a list of commands.
-(define (compile-syntax syn)
+(define (compile-margrave-syntax syn)
   (let* ([interns (syntax-e syn)])
    ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
     (let* ([first-intern (first interns)] 
@@ -510,13 +526,13 @@
         ; ************************************
         
         ; Single command: compile its contents
-        [(equal? first-datum 'COMMAND) (compile-syntax (second interns))]
+        [(equal? first-datum 'COMMAND) (compile-margrave-syntax (second interns))]
         ; Multiple commands: compile each command separately and return a list.
-        [(equal? first-datum 'MARGRAVE-SCRIPT) (compose-scripts (map helper-syn->xml (rest interns)))]
+        [(equal? first-datum 'MARGRAVE-SCRIPT) (compose-scripts (map compile-margrave-syntax (rest interns)))]
         
         ; ************************************
         [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
-         (compile-syntax (second interns))]
+         (compile-margrave-syntax (second interns))]
         
         ; third and fourth of the list are func syntax that create vocab, pol respectively
         ; So create an uber-func that does both
@@ -526,100 +542,121 @@
                                   (fourth policy-creation-list))))]
         
         ; ************************************        
-        ; Commands: 
-        
-        ; keep helper-syn->xml for inner recursion; start process in this func only for command-level syntax
+        ; Commands are handled here. Inner syntax is handled by
+        ; recursive calls to helper-syn->xml
         
         [(equal? first-datum 'CREATE-VOCABULARY)
-         (xml-make-command "CREATE VOCABULARY" (map helper-syn->xml (rest interns)))]
+         (make-single-wrapper (xml-make-command "CREATE VOCABULARY" (map helper-syn->xml (rest interns))))]
         
         [(equal? first-datum 'ADD)
-         (xml-make-command "ADD" (map helper-syn->xml (rest interns)))]
+         (make-single-wrapper (xml-make-command "ADD" (map helper-syn->xml (rest interns))))]
                        
         [(equal? first-datum 'CREATE-POLICY-LEAF)
-         (xml-make-create-policy-leaf-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (make-single-wrapper (xml-make-create-policy-leaf-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns))))]
         
         [(equal? first-datum 'IS-POSSIBLE?)
-         (xml-make-is-possible-command (if (< 1 (length interns))
-                                   (helper-syn->xml (second interns))
-                                   (xml-make-id "-1")))]
+         (make-single-wrapper (xml-make-is-possible-command (if (< 1 (length interns))
+                                                                (helper-syn->xml (second interns))
+                                                                (xml-make-id "-1"))))]
         [(equal? first-datum 'COUNT)
-         (xml-make-count-command (if (< 1 (length interns))
+         (make-single-wrapper (xml-make-count-command (if (< 1 (length interns))
                                    (helper-syn->xml (second interns))
-                                   (xml-make-id "-1")))]
+                                   (xml-make-id "-1"))))]
         [(equal? first-datum 'COUNT-WITH-SIZE)
-         (xml-make-count-with-size-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns)))]
+         (make-single-wrapper (xml-make-count-with-size-command (helper-syn->xml (second interns)) (helper-syn->xml (third interns))))]
         
         
         [(equal? first-datum 'EXPLORE)
          ; (printf "Symbol exp: ~a ~a ~a~n" first-intern (second interns) (third interns))
          (begin
-           (xml-make-explore-command (list (helper-syn->xml (second interns)))
+           (make-single-wrapper (xml-make-explore-command (list (helper-syn->xml (second interns)))
                                      ;List of modifiers could be empty
                                      (if (empty? (rest (rest interns)))
                                          empty
-                                         (map helper-syn->xml (syntax-e (third interns))))))] ;(syntax-e (third interns)) is the list of modifiers
+                                         (map helper-syn->xml (syntax-e (third interns)))))))] ;(syntax-e (third interns)) is the list of modifiers
         
         
         ; id, list, optional for-cases list
         [(equal? first-datum 'SHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (fourth interns))
-             (xml-make-show-realized-command (helper-syn->xml (second interns)) 
-                                              (map helper-syn->xml (syntax-e (third interns))))
-             (xml-make-show-realized-command (helper-syn->xml (second interns)) 
+             (make-single-wrapper (xml-make-show-realized-command (helper-syn->xml (second interns)) 
+                                              (map helper-syn->xml (syntax-e (third interns)))))
+             (make-single-wrapper (xml-make-show-realized-command (helper-syn->xml (second interns)) 
                                               (append (map helper-syn->xml (syntax-e (third interns))) 
-                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
+                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns)))))))))]
         [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (fourth interns))
-             (xml-make-show-unrealized-command (helper-syn->xml (second interns)) 
-                                                (map helper-syn->xml (syntax-e (third interns))))
-             (xml-make-show-unrealized-command (helper-syn->xml (second interns))
+             (make-single-wrapper (xml-make-show-unrealized-command (helper-syn->xml (second interns)) 
+                                                (map helper-syn->xml (syntax-e (third interns)))))
+             (make-single-wrapper (xml-make-show-unrealized-command (helper-syn->xml (second interns))
                                                 (append (map helper-syn->xml (syntax-e (third interns))) 
-                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns))))))))]
+                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (fourth interns)))))))))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (third interns))
-             (xml-make-show-realized-command (xml-make-id "-1") 
-                                              (map helper-syn->xml (syntax-e (second interns))))
-             (xml-make-show-realized-command (xml-make-id "-1")
+             (make-single-wrapper (xml-make-show-realized-command (xml-make-id "-1") 
+                                              (map helper-syn->xml (syntax-e (second interns)))))
+             (make-single-wrapper (xml-make-show-realized-command (xml-make-id "-1")
                                               (append (map helper-syn->xml (syntax-e (second interns))) 
-                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
+                                                      (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns)))))))))]
         [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (third interns))
-             (xml-make-show-unrealized-command (xml-make-id "-1")
-                                                (map helper-syn->xml (syntax-e (second interns))))
-             (xml-make-show-unrealized-command (xml-make-id "-1")
+             (make-single-wrapper (xml-make-show-unrealized-command (xml-make-id "-1")
+                                                (map helper-syn->xml (syntax-e (second interns)))))
+             (make-single-wrapper (xml-make-show-unrealized-command (xml-make-id "-1")
                                                 (append (map helper-syn->xml (syntax-e (second interns))) 
-                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns))))))))]
+                                                        (list (xml-make-forcases (map helper-syn->xml (syntax-e (third interns)))))))))]
         
         [(equal? first-datum 'RENAME)
-         (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
-                                  (symbol->string (syntax->datum (third interns))))]
+         (make-single-wrapper (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
+                                  (symbol->string (syntax->datum (third interns)))))]
         [(equal? first-datum 'GET)
-         (xml-make-get-command (helper-syn->xml (second interns)) 
+         (make-single-wrapper (xml-make-get-command (helper-syn->xml (second interns)) 
                                ;Use -1 if nothing is supplied
                                (if (< 2 (length interns))
                                    (helper-syn->xml (third interns))
-                                   (xml-make-id "-1")))]
+                                   (xml-make-id "-1"))))]
         [(equal? first-datum 'INFO)
          (if (empty? (rest interns))
-             (xml-make-info-command)
-             (xml-make-info-id-command (symbol->string (syntax->datum (second interns)))))]
+             (make-single-wrapper (xml-make-info-command))
+             (make-single-wrapper (xml-make-info-id-command (symbol->string (syntax->datum (second interns))))))]
         ; Allow user to get the rules in a policy
         [(equal? first-datum 'GETRULES)
-         (xml-make-get-rules-command (syntax->datum (second interns)))]
+         (make-single-wrapper (xml-make-get-rules-command (syntax->datum (second interns))))]
         [(equal? first-datum 'GETQRULES)
-         (xml-make-get-qrules-command (syntax->datum (second interns)))]
+         (make-single-wrapper (xml-make-get-qrules-command (syntax->datum (second interns))))]
         [(equal? first-datum 'GETRULESDEC)
-         (xml-make-get-rules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns))))]
+         (make-single-wrapper (xml-make-get-rules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns)))))]
         [(equal? first-datum 'GETQRULESDEC)
-         (xml-make-get-qrules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns))))]
+         (make-single-wrapper (xml-make-get-qrules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns)))))]
                 
         [(equal? first-datum 'QUIT)
-         (xml-make-quit)]
+         '(lambda () (close-margrave-engine))]
+        
+        [else
+         (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
+;; TODO
+; Design for this is not so good right now. Needs work
+(define (compose-scripts list-of-func-syntax)
+  0)
+
+; This is the *symbol* 'send-and-receive-xml, not the function
+; It gets evaluated in a context where we know what the symbol means.
+(define (make-single-wrapper thexml)
+  `(lambda () (send-and-receive-xml ,thexml)))
+
+(define (syntax->string s)
+  (symbol->string (syntax->datum s)))
+
+(define (helper-syn->xml syn)
+  (let* ([interns (syntax-e syn)])
+   ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
+    (let* ([first-intern (first interns)] 
+           [first-datum (syntax->datum first-intern)])
+      (cond 
         ; ************************************      
         ; Syntax inside commands. These have XML semantics, not function-syntax semantics
         
@@ -719,12 +756,8 @@
          (xml-make-id (syntax->string (second interns)))]
         [(equal? first-datum 'IDBOUTPUT)
          (xml-make-idbout (map helper-syn->xml (rest interns)))]
-        
         [else
-         (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
-
-(define (syntax->string s)
-  (symbol->string (syntax->datum s)))
+         (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
 ; ***************************************************************************************
 ; These functions enforce case-insensitivity by downcasing the input string before lexing.
@@ -738,7 +771,7 @@
 (define (parse-and-compile s)
   (let ((in (open-input-string (string-downcase s))))
     (port-count-lines! in)
-    (compile-syntax ((parse "source") (λ() (lex in))))))
+    (compile-margrave-syntax ((parse "source") (λ() (lex in))))))
 
 ;(define (port->xml in-port)
 ;  (port-count-lines! in-port)

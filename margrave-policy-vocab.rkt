@@ -1,3 +1,20 @@
+;    Copyright (c) 2009-2010 Brown University and Worcester Polytechnic Institute.
+;    
+;    This file is part of Margrave.
+
+;    Margrave is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU Lesser General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    Margrave is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU Lesser General Public License for more details.
+;
+;    You should have received a copy of the GNU Lesser General Public License
+;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
+
 #lang racket
 (require "margrave-xml.rkt")
 
@@ -6,8 +23,8 @@
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
 ; and PolicyVocab syntax.
-(define-namespace-anchor the-margrave-namespace-anchor)
-(define the-margrave-namespace (namespace-anchor->namespace the-margrave-namespace-anchor))
+(define-namespace-anchor margrave-policy-vocab-namespace-anchor)
+(define margrave-policy-vocab-namespace (namespace-anchor->namespace margrave-policy-vocab-namespace-anchor))
 
 ;****************************************************************
 
@@ -20,19 +37,16 @@
 ; removeall is remove* in Racket, no need to define it here. Removed. -- TN
 
 
-
-
-
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
 ; !!TODO: When loading #lang margrave, we cannot use this function, and must instead simply return a list of the commands to execute
 (define (evaluate-policy fn)
   
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
-  ;; innocent policy definition. Is there a fix for this?
+  ;; innocent policy definition. As soon as we have a language-level, stop using eval!
   
   (let* ([file-port (open-input-file fn)]
-         [pol-result-list ((eval (read file-port) the-margrave-namespace) fn)])    
+         [pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn)])    
 
     ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
@@ -220,7 +234,7 @@
               (call-with-input-file 
                                   (build-path (path-only local-policy-filename) 
                                               (string-append (symbol->string 'vocabname) ".v"))
-                                (lambda (in-port) (eval (read in-port) the-margrave-namespace))))
+                                (lambda (in-port) (eval (read in-port) margrave-policy-vocab-namespace))))
              (vocab-name (first vocab-macro-return))
              (vocab-commands (second vocab-macro-return)))
          
