@@ -29,9 +29,6 @@
 (provide stop-margrave-engine
          start-margrave-engine
          mtext
-         m
-         mm
-         mmtext
          pause-for-user
          load-policy
          
@@ -170,19 +167,13 @@
   (if (eq? java-process-list #f)
       #f
       (begin
-        (m "<MARGRAVE-COMMAND type=\"QUIT\" />")
-        ;Should be this: (m (evalxml "QUIT"))
+        (send-and-receive-xml "<MARGRAVE-COMMAND type=\"QUIT\" />")
         (ctrl-function 'kill)  ; may not be necessary
         
         (flush-output output-port)    
         (cleanup-margrave-engine)
         #t))) 
 
-
-; exit-handler doesn't get called when exiting DrRacket or when hitting Run, only when explicitly calling (exit x)
-; (exit:insert-on-callback) doesn't work for some reason either
-;Kill process on exit
-; (exit:insert-on-callback stop-margrave-engine)
 
 ; ***************************************************************************************
 ; User Functions
@@ -199,38 +190,16 @@
 (define mtext
   (lambda cmd    
     ; May be a semicolon-separated script of commands
-    (let* ([cmd-maybe-list (evalxml (apply string-append cmd))]
-           [response-docs (mm cmd-maybe-list )])  
-    
-      ; Display the pretty-printed result
-      ;(when autoprint
-      ;  (printf "===================== RESPONSE (type: ~a) =====================~n" (get-response-type response-doc))
-      ;  (printf "~a~n~n"(pretty-print-response-xml response-doc)))
-      
+    (let* ([cmd-func-syntax (parse-and-compile (apply string-append cmd))]
+           [cmd-closure (eval cmd-func-syntax)]
+           [response-docs (cmd-closure)])  
+          
       ; Return the XML document or list of replies
       (if (> (length response-docs) 1)
           response-docs
           (first response-docs)))))
 
-
-; mmtext
-; string or list of string -> list of (document or #f)
-; Like mtext, but accepts lists of commands and returns a list of results.
-(define (mmtext cmds)
-  (mm (map evalxml cmds)))
   
-
-; mm
-; XML string or list of XML string -> list of (document or #f)
-(define (mm cmds)
-  (if (list? cmds)
-      ; Execute each in sequence.
-      (map (lambda (cmd) (m cmd))
-           cmds)
-      
-      ; Non list: Execute the single command; return a singleton list.
-      (list (m cmds))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -256,7 +225,7 @@
 ; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 ; Optional response handler func may change the result XML, throw exceptions, etc.
-(define (m cmd (response-handler-func default-response-handler))
+(define (send-and-receive-xml cmd (response-handler-func default-response-handler))
   (if (equal? java-process-list #f) 
       (begin
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
@@ -373,7 +342,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; policy-file-name -> policy-id
-; This function is used because a raw (load x) call will return void, not the object desired.
 ; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
 ; to the backend in lower-case.
 (define (load-policy fn)
@@ -384,12 +352,12 @@
          
          ; Java will handle creation of the vocab if it hasn't already been created.
          
-         ; XML commands for the vocab
-         [vocab-results (mm (third pol-result-list))]
-         ; XML commands for the policy
-         [policy-results (mm (fourth pol-result-list))])
-    
-    
+         ; Eval and invoke the function to create the vocab
+         [vocab-results ((eval (third pol-result-list)))]
+         
+         ; Eval and invoke the function to create the policy
+         [policy-results ((eval (fourth pol-result-list)))])
+        
     polname))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
