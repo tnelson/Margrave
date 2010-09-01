@@ -95,11 +95,14 @@
 (display-response (mtext "GET QUALIFIED RULES IN conf1"))
 
 
-;(display-response (mtext "EXPLORE subject(x) and subject(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
+(display-response (mtext "EXPLORE subject(x) and subject(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
 ;(display-response (mtext "EXPLORE subject(x) and notasort(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
-(display-response (mtext "EXPLORE subject(x) and notasort(y) and subject(z) and x=y and y=z TUPLING"))
+;(display-response (mtext "EXPLORE subject(x) and notasort(y) and subject(z) and x=y and y=z TUPLING"))
 (display-response (mtext "GET ONE"))
-
+(printf "~a~n" (mtext "SHOW ONE"))
+(printf "~a~n" (mtext "SHOW ONE 0"))
+(printf "~a~n" (mtext "GET ALL"))
+(printf "~a~n" (mtext "SHOW ALL"))
 ;(stop-margrave-engine)
 
 

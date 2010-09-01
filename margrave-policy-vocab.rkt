@@ -229,7 +229,8 @@
      (lambda (local-policy-filename) 
        (let* ((mychildren (list child ...))
              
-             ; !!! TODO: Is there a safer alternative to eval here? Look into sandboxing?
+             ; !!! TODO: Only using eval here because we had to in SISC;
+              ; stop using it when switch to language-level
              (vocab-macro-return                            
               (call-with-input-file 
                                   (build-path (path-only local-policy-filename) 

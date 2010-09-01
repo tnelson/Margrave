@@ -17,7 +17,15 @@
 
 #lang racket
 
-(require racket syntax/stx parser-tools/yacc parser-tools/lex (prefix-in : parser-tools/lex-sre) syntax/readerr)
+(require racket 
+         syntax/stx
+         parser-tools/yacc 
+         parser-tools/lex
+         (prefix-in : parser-tools/lex-sre)
+         syntax/readerr
+         
+         ; Need to require here since SHOW/GET ALL symbols are evaluated here.
+         racket/generator)
 (require "margrave-xml.rkt" "margrave-policy-vocab.rkt")
 
 (provide
@@ -281,7 +289,14 @@
      ;[(LOAD exp) (build-so (list 'LOAD $2) 1 2)]
      
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
-     
+
+     ; ALL
+     [(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
+     [(GET ALL) (build-so (list 'GETALL) 1 2)]
+     [(SHOW ALL numeric-id) (build-so (list 'SHOWALL $3) 1 3)]
+     [(SHOW ALL) (build-so (list 'SHOWALL) 1 2)]
+          
+     ; NEXT/ONE/CEILING
      [(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
      [(GET get-type) (build-so (list 'GET $2) 1 2)]
      [(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
@@ -612,12 +627,41 @@
         [(equal? first-datum 'RENAME)
          (make-single-wrapper (xml-make-rename-command (symbol->string (syntax->datum (second interns)))
                                   (symbol->string (syntax->datum (third interns)))))]
+        
+        ; pass (type ONE) to get first
+        ;;     (type NEXT) to get next in Java's iterator
+        
         [(equal? first-datum 'GET)
          (make-single-wrapper (xml-make-get-command (helper-syn->xml (second interns)) 
                                ;Use -1 if nothing is supplied
                                (if (< 2 (length interns))
                                    (helper-syn->xml (third interns))
                                    (xml-make-id "-1"))))]
+        ; Like GET, only pretty-print the result
+        [(equal? first-datum 'SHOW)
+;         (printf "~a ~a ~n" (second interns) (if (< 2 (length interns)) (third interns) "last" ))
+         `(lambda () (pretty-print-response-xml 
+                      (send-and-receive-xml
+                       ,(xml-make-get-command (helper-syn->xml (second interns)) 
+                                              ;Use -1 if nothing is supplied
+                                              (if (< 2 (length interns))
+                                                  (helper-syn->xml (third interns))
+                                                  (xml-make-id "-1"))))))]
+        
+        
+       ; ALL gets its own command type:
+        [(equal? first-datum 'SHOWALL)
+         (make-show-all  
+          (if (< 2 (length interns))
+              (helper-syn->xml (second interns))
+              (xml-make-id "-1")))]
+        
+        [(equal? first-datum 'GETALL)
+         (make-get-all  
+          (if (< 2 (length interns))
+              (helper-syn->xml (second interns))
+              (xml-make-id "-1")))]
+        
         [(equal? first-datum 'INFO)
          (if (empty? (rest interns))
              (make-single-wrapper (xml-make-info-command))
@@ -633,7 +677,7 @@
          (make-single-wrapper (xml-make-get-qrules-command (syntax->datum (second interns)) (symbol->string (syntax->datum (third interns)))))]
                 
         [(equal? first-datum 'QUIT)
-         '(lambda () (close-margrave-engine))]
+         '(lambda () (stop-margrave-engine))]
         
         [else
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
@@ -642,6 +686,22 @@
 ; Design for this is not so good right now. Needs work
 (define (compose-scripts list-of-func-syntax)
   0)
+
+; Show-all is based on get-all
+(define (make-show-all explore-id)
+  `(lambda () (let* ([string-buffer (open-output-string)]
+                     [the-generator-func ,(make-get-all explore-id)]
+                     [the-generator (the-generator-func)])
+                ; TODO: iterate over results of make-get-all
+                ;; !!! below should only be appending the first model string
+                (write-string (pretty-print-response-xml (the-generator)) string-buffer)
+                (get-output-string string-buffer))))
+
+; GET ALL returns a generator for all the models
+;; TODO: s/b one to begin with, then NEXT
+(define (make-get-all explore-id)
+  `(lambda () (generator () 
+                         (yield (send-and-receive-xml ,(xml-make-get-command `(type "ONE") explore-id))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function
 ; It gets evaluated in a context where we know what the symbol means.

@@ -24,7 +24,9 @@
          srfi/13
          "margrave-xml.rkt"
          "parser-compiler.rkt"
-         "margrave-policy-vocab.rkt")
+         "margrave-policy-vocab.rkt"
+         
+         racket/generator)
 
 (provide stop-margrave-engine
          start-margrave-engine
