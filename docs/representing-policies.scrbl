@@ -5,6 +5,9 @@
 <<Pol + Vocabs; close with fact that the language is being changed and so new documentation will be forthcoming.>>
 
 
+<< CONCRETE EXAMPLE to work on throughout >>
+
+
 @;--------------------------------------------------------------------
 @section[#:tag "policies"]{Elements of a Policy}
 

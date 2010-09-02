@@ -3,7 +3,7 @@
 @; (Still getting warning message... why?)
 @(require (for-label "../margrave.rkt"))
 
-@title{Margrave's Racket API}
+@title{Reference: Racket API}
 
 
 
