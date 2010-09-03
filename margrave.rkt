@@ -203,6 +203,10 @@
            [cmd-closure (eval cmd-func-syntax the-margrave-namespace)]
            [response-docs (cmd-closure)])  
           
+      ; DEBUG
+      ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
+      ;(printf "RESPONSE-DOCS: ~a~n" response-docs)
+      
       ; Return the XML document or list of replies
       (cond [(and (list? response-docs) (> (length response-docs) 1))
              response-docs]

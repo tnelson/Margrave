@@ -605,9 +605,14 @@ public class MCommunicator
         							else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
         								theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
         							}
+        							else if (constraintType.equalsIgnoreCase("SUBSET")) 
+        							{
+        								theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));	
+        							}
         							else
         							{
-        								theResponse = MEnvironment.addConstraintSubset(MEnvironment.sUnknown, MEnvironment.sConstraint, relations.get(1));	
+        								// Unknown constraint type; throw an exception
+        								theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
         							}
         						}
         					}
