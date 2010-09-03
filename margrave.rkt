@@ -482,7 +482,7 @@
 
 (define (pause-for-user) 
   (printf "======================== Hit enter to continue. ========================~n~n")
-  (read-char))
+  (read-line))
 
 (define (display-response the-response)
   (printf "~a~n" (pretty-print-response-xml the-response)))

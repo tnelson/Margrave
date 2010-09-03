@@ -93,7 +93,7 @@
  xml-make-get-rules-command
  xml-make-get-qrules-command
  xml-make-equals-formula
-
+ 
  fold-append-with-spaces
  fold-append-with-spaces-quotes
  fold-append-with-separator
@@ -106,14 +106,17 @@
 ; May be a list, may not be a list
 (define (fold-append-with-separator posslist separator)
   (if (list? posslist)
-      (foldr (lambda (s t) 
-               (cond
-                 [(and (symbol? s) (symbol? t)) (string-append (symbol->string s) separator (symbol->string t))]
-                 [(and (symbol? s) (string=? t "")) (symbol->string s)] 
-                 [(symbol? s) (string-append (symbol->string s) separator t)] 
-                 [(symbol? t) (string-append s separator (symbol->string t))] 
-                 [(string=? t "") s]
-                 [else (string-append s separator t)]))
+      (foldr (lambda (s t)
+               (let ([s-str (if (symbol? s)
+                                (symbol->string s)
+                                s)]
+                     [t-str (if (symbol? t)
+                                (symbol->string t)
+                                t)])                  
+                 (cond
+                   [(string=? s-str "") t-str]
+                   [(string=? t-str "") s-str]
+                   [else (string-append s-str separator t-str)])))
              ""
              posslist)
       (if (symbol? posslist)
@@ -190,7 +193,7 @@
 (define-struct atom (name list-of-types) #:mutable)
 
 ;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-atoms) #:mutable)
+(define-struct predicate (name arity list-of-tuples) #:mutable)
 
 ;Maps strings (such as "s") to their corresponding atoms
 ;(define atom-hash (make-hash))
@@ -210,27 +213,34 @@
          [annotation-elements (get-child-elements model-element 'ANNOTATION)]
          [statistics-element (get-child-element xml-model 'STATISTICS)]         
          [string-buffer (open-output-string)]) 
-
+    
     ;First, go through the XML and update the 2 hashes. Then afterwards print them out.
     (local ((define (write s)
               (write-string s string-buffer))
             
             (define (handle-relation relation)                   
-                (let* ([relation-arity (string->number (get-attribute-value relation 'arity))]
-                       [relation-name  (get-attribute-value relation 'name)]
-                       [relation-is-sort (equal? "sort" (get-attribute-value relation 'type))])
-                  (begin
+              (let* ([relation-arity (string->number (get-attribute-value relation 'arity))]
+                     [relation-name  (get-attribute-value relation 'name)]
+                     [relation-is-sort (equal? "sort" (get-attribute-value relation 'type))])
+                (begin
+                  
+                  ;if the relation (predicate) doesn't exist in the hash yet, create it
+                  (when (not (hash-ref predicate-hash relation-name #f))
+                    (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))                    
+                  
+                  (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
+                         [tuple-elements (get-child-elements relation 'TUPLE)]) 
                     
-                     ;if the relation (predicate) doesn't exist in the hash yet, create it
-                    (when (not (hash-ref predicate-hash relation-name #f))
-                      (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))
-                    
-                    (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
-                           [tuple-elements (get-child-elements relation 'TUPLE)]) 
-                      
-                      (local [(define (parse-tuple-contents t-cont least-subsort-or-predicate)
-                                (when (not (empty? t-cont))
-                                  (let* ([atom (first t-cont)]
+                    (local [(define (insert-tuple tuple-element)
+                              (when (or (not relation-is-sort)
+                                        (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
+                                (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
+                                                                                      (predicate-list-of-tuples predicate-struct)))))
+                            
+                            (define (parse-tuple-contents atom-elements)
+                              (if (empty? atom-elements)
+                                  '()
+                                  (let* ([atom (first atom-elements)]
                                          [atom-name (pcdata-string (first (element-content atom)))])                                                                    
                                     (begin   
                                       
@@ -239,26 +249,26 @@
                                       (when (not (hash-ref atom-hash atom-name #f))
                                         (hash-set! atom-hash atom-name (make-atom atom-name empty)))
                                       
-                                      ; If not least-subsort-or-predicate, don't print this atom
-                                      (when least-subsort-or-predicate  
-                                        (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
-                                          (if (equal? (string-ref relation-name 0) #\$)
-                                              (set-atom-name! atom-struct (substring relation-name 1))
-                                              (if (=  relation-arity 1) ;If relation is a type
-                                                  (begin 
-                                                    (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct)))
-                                                    (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct))))
-                                                  (begin (set-predicate-list-of-atoms! predicate-struct (cons atom-struct (predicate-list-of-atoms predicate-struct)))
-                                                         (parse-tuple-contents (rest t-cont) least-subsort-or-predicate))))))))))]
-                        
-                        (for-each parse-tuple-contents
-                                  (map (lambda (tuple-element)
-                                         (get-child-elements tuple-element 'ATOM))
-                                       tuple-elements)
-                                  (map (lambda (tuple-element)
-                                         (or (not relation-is-sort)
-                                             (equal? "true" (get-attribute-value tuple-element 'not-in-subsort))))
-                                       tuple-elements))))))))
+                                      (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                        (if (equal? (string-ref relation-name 0) #\$)
+                                            (set-atom-name! atom-struct (substring relation-name 1))
+                                            
+                                            ; Sort or predicate?
+                                            (if (= relation-arity 1) 
+                                                
+                                                ; Sort (tuple is unary)                                                  
+                                                (begin 
+                                                  ; Note that this atom belongs to this sort
+                                                  (when relation-is-sort
+                                                    (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))                             
+                                                  ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
+                                                  (list atom-struct)) 
+                                                
+                                                
+                                                ; Predicate (tuple is k-ary, where k is the arity of the pred)                           
+                                                (cons atom-struct (parse-tuple-contents (rest atom-elements) )))))))))]
+                      
+                      (for-each insert-tuple tuple-elements)))))))
       
       (begin
         (for-each handle-relation relation-elements)
@@ -271,9 +281,9 @@
         (write "********************************************************")
         
         
-             ; Debugging (let the caller decide whether to print or not)
-             ;(display (get-output-string string-buffer))
-             (get-output-string string-buffer)))))
+        ; Debugging (let the caller decide whether to print or not)
+        ;(display (get-output-string string-buffer))
+        (get-output-string string-buffer)))))
 
 (define (print-annotations buffer list-of-annot)
   (for-each (lambda (annotation-element)
@@ -299,13 +309,20 @@
                               (predicate-helper (hash-iterate-next predicate-hash hash-pos))
                               (string-append
                                (predicate-name predicate)
-                               " = {["
-                               (foldl (lambda (atom rest) (string-append (atom-name atom)
-                                                                   (if (not (equal? rest ""))
-                                                                       ", "
-                                                                       "") 
-                                                                   rest)) "" (predicate-list-of-atoms predicate))
-                               "]}"
+                               " = {"
+                               ; For each tuple (as a list of atoms) 
+                               (foldl (lambda (a-tuple so-far) 
+                                        ;(printf "l: ~a ~a ~a ~a ~n" a-tuple so-far (map atom-name a-tuple) (fold-append-with-separator (map atom-name a-tuple) ", " ))
+                                        (string-append 
+                                         "[" 
+                                         (fold-append-with-separator (map atom-name a-tuple) ", ")
+                                         (if (not (equal? so-far ""))
+                                             "], "
+                                             "]") 
+                                         so-far))
+                                      ""
+                                      (predicate-list-of-tuples predicate))
+                               "}"
                                "\n"
                                (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
     (string-append "********* SOLUTION FOUND at size = " model-size " ******************\n"
@@ -429,10 +446,10 @@
       (begin 
         (write "{\n")
         (for-each (lambda (item-element)             
-                   (write (string-append "  " (pcdata-string (first (element-content item-element))) "\n")))
-                 item-elements)
+                    (write (string-append "  " (pcdata-string (first (element-content item-element))) "\n")))
+                  item-elements)
         (write "}\n")                 
-                
+        
         (when (not (empty? statistics-element))
           (write (string-append "\n" (print-statistics statistics-element))))
         
@@ -585,7 +602,7 @@
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEBadIdentifierName")
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEUnsupportedXACML"))
            (write (string-append message-text "\n"))]
-   
+          
           
           ;Otherwise just raw print the returned exception. it must be something serious.
           [else (begin     
@@ -665,7 +682,7 @@
           (write (string-append "\nVocabularies count: " (get-attribute-value vocab-element 'count )))
           (write (string-append "\nCollections count: " (get-attribute-value collections-element 'count)))
           (write (string-append "\nCached Results count: " (get-attribute-value results-element 'count )))
-         
+          
           ; debug
           ; (display (get-output-string string-buffer))
           (get-output-string string-buffer))))))
@@ -685,7 +702,7 @@
           
           (when (not (empty? policy-leaf-element))
             (write (pretty-print-policy-leaf policy-leaf-element)))
-
+          
           (when (not (empty? policy-set-element))
             (write (pretty-print-policy-set policy-set-element)))
           
@@ -746,7 +763,7 @@
       (write-string (pretty-print-free-variables free-variables) string-buffer))
     
     (get-output-string string-buffer)))
-  
+
 (define (pretty-print-policy-set the-element)
   (let* ([string-buffer (open-output-string)]
          (idbs (get-child-element the-element 'idbs))
@@ -807,23 +824,23 @@
             (map (lambda(elem)
                    (let ((elem-name (symbol->string (element-name elem))))
                      (begin (write (string-append (symbol->string (element-name elem)) "\n"))
-                   (cond
-                     [(equal? elem-name "DISJOINT")
-                          (map write-sorts-disj
-                               (filter (lambda(elem) (element? elem))
-                                       (element-content elem)))]
-                     [(equal? elem-name "SUBSETS")
-                        (map (lambda (subset-elem)
-                               (begin
-                               (write (string-append "Parent: " (get-attribute-value subset-elem 'parent) "\n" 
-                                              "Children: \n"))
-                               (map (lambda (child-elem)
-                                      (write (string-append "\tChild: " (get-attribute-value child-elem 'name) "\n")))
-                                    (filter (lambda (element) (element? element))
-                                              (element-content subset-elem)))
-                               (write "\n")))
-                             (filter (lambda(element) (element? element))
-                                     (element-content elem)))]))))
+                            (cond
+                              [(equal? elem-name "DISJOINT")
+                               (map write-sorts-disj
+                                    (filter (lambda(elem) (element? elem))
+                                            (element-content elem)))]
+                              [(equal? elem-name "SUBSETS")
+                               (map (lambda (subset-elem)
+                                      (begin
+                                        (write (string-append "Parent: " (get-attribute-value subset-elem 'parent) "\n" 
+                                                              "Children: \n"))
+                                        (map (lambda (child-elem)
+                                               (write (string-append "\tChild: " (get-attribute-value child-elem 'name) "\n")))
+                                             (filter (lambda (element) (element? element))
+                                                     (element-content subset-elem)))
+                                        (write "\n")))
+                                    (filter (lambda(element) (element? element))
+                                            (element-content elem)))]))))
                  (filter (lambda(elem) (element? elem))
                          (element-content axioms-element))))
           ; debug
@@ -897,8 +914,8 @@
 
 ;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
 (define (xml-make-rule-list orig-rule-list)
- ; (printf "~a~n" rule-list)
-
+  ; (printf "~a~n" rule-list)
+  
   ; Don't keep un-necessary 'true
   (let ([rule-list (filter (lambda (relation) (not (equal? 'true relation)))
                            orig-rule-list)])
