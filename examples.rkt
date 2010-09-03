@@ -1,109 +1,321 @@
+; Copyright © 2009-2010 Brown University and Worcester Polytechnic Institute.
+;
+; This file is part of Margrave.
+
+; Margrave is free software: you can redistribute it and/or modify
+; it under the terms of the GNU Lesser General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+;
+; Margrave is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+; GNU Lesser General Public License for more details.
+;
+; You should have received a copy of the GNU Lesser General Public License
+; along with Margrave. If not, see <http://www.gnu.org/licenses/>.
+
+; tn
+
 #lang racket
-
-; TEMPORARY! Will be a nice module path soon.
-(require ;(file "./read.rkt")
-         "margrave.rkt"
-         "margrave-xml.rkt"
-         "margrave-policy-vocab.rkt"
-         xml)
-
+(require "margrave.rkt")
 
 ; Welcome to Margrave! This file contains examples that are separated by (pause-for-user) so that you can
-; execute it and read it in tandem. 
+; execute it and read it in tandem.
 
 
+; First, start up the Margrave engine. 
+;(start-margrave-engine)
 (start-margrave-engine (current-directory) '() '("-log"))
 
-;(load-policy (build-path (current-directory) "tests" "extconference.p"))
+
+;; Define the policies used in this script.
+; Each policy references a vocabulary, which is loaded automatically.
+; The vocabulary defines (among other things) what shape a policy request takes.
 (load-policy (build-path (current-directory) "tests" "conference1.p"))
-;(load-policy (build-path (current-directory) "tests" "conference2.p"))
-;(load-policy (build-path (current-directory) "tests" "phone1.p"))
+(load-policy (build-path (current-directory) "tests" "conference2.p"))
+(load-policy (build-path (current-directory) "tests" "phone1.p"))
 (load-policy (build-path (current-directory) "tests" "fwex1.p"))
-;(load-policy (build-path (current-directory) "tests" "fwex1a.p"))
-;(load-policy (build-path (current-directory) "tests" "fwex2.p"))
-;(load-policy (build-path (current-directory) "tests" "fwex3.p"))
-;(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
-;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
-;(load-policy (build-path (current-directory) "tests" "iout.p"))
-;(mtext "info")
-;(mtext "info fwex1")
-;(mtext "info examplefw1")
-;(m (xml-make-rename-command "conferencepolicy1" "conf1"))
-;(m (xml-make-rename-command "conferencepolicy2" "conf2"))
-;(m (xml-make-rename-command "fwex1" "firewall1"))
-;(m (xml-make-rename-command "fwex1a" "firewall1a"))
-;(m (xml-make-rename-command "fwex2" "firewall2"))
-;(m (xml-make-rename-command "happyrouterless" "HRless"))
-;(m (xml-make-rename-command "happyroutermore" "HRmore"))
+(load-policy (build-path (current-directory) "tests" "fwex1a.p"))
+(load-policy (build-path (current-directory) "tests" "fwex2.p"))
+(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
+(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
 
+; Policies are loaded under the name given in their policy file;
+; we'd like to change that and use some better names in these examples.
 (display-response (mtext "rename conferencepolicy1 conf1"))
-;(mtext "rename conferencepolicy2 conf2")
-;(mtext "rename fwex1 firewall1")
-;(mtext "rename fwex1a firewall1a")
-;(mtext "rename fwex2 firewall2")
-;(mtext "rename happyrouterless HRless")
-;(mtext "rename happyroutermore HRmore")
-
-;(mtext "info")
-;(mtext "info conf1")
-
-; Mypol doesn't exist: expect an error on UNDER clause.
-;(define test-string "EXPLORE xsort(x) AND xsort(y) UNDER mypol INCLUDE mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) TUPLING")
-;(define test-stream (open-input-string test-string))
-;(define test-xml (evalxml test-string))
-;(m test-xml)
-
-(define theid (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"))
-;(printf "Id: ~a~n" (xml-explore-result->id theid))
-(display-response (mtext "GET ONE"))
+(display-response (mtext "rename conferencepolicy2 conf2"))
+(display-response (mtext "rename fwex1 firewall1"))
+(display-response (mtext "rename fwex1a firewall1a"))
+(display-response (mtext "rename fwex2 firewall2"))
+(display-response (mtext "rename happyrouterless HRless"))
+(display-response (mtext "rename happyroutermore HRmore"))
 
 
-(display-response (mtext "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit(s, a, r), conf1:deny(s, a, r) DEBUG 3 TUPLING"))
+; The mtext function executes a Margrave command, as seen in the
+; RENAME statements above.
 
-; You don't need to pass an EXPLORE id if you're referencing the last explore:
-(display-response (mtext "GET ONE"))
-(display-response (mtext "SHOW REALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
-(display-response (mtext "SHOW UNREALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r)"))
-(display-response (mtext "SHOW REALIZED conf1:permit(s, a, r), conf1:deny(s, a, r), assigned(s, r) FOR CASES assigned(s, r), conf1:deny(s, a, r)"))
+;; ********************************************
+;; General examples
+;; ********************************************
 
+; In the basic conference policy: When can someone read a paper?  
+(display-response (mtext "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"))
+; The EXPLORE statement defines a query. Now we need to get its results.
 
-;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING")
-;(mtext "GET ONE 0")
+; First, are there ANY scenarios that satisfy the query?
+(display-response (mtext "IS POSSIBLE?"))
 
-;(mtext "EXPLORE firewall1:accept(ipsrc, ipdest, portsrc, portdest, pro) INCLUDE firewall1:accept")
-;(mtext "GET ONE 0")
-
-;(mtext "create vocabulary myvoc")
-;(mtext "add to myvoc sort xsort")
-;(mtext "add to myvoc subsort xsort s1")
-;(mtext "add to myvoc subsort xsort s2")
-;(mtext "add to myvoc decision permit")
-;(mtext "add to myvoc decision deny")
-;(mtext "add to myvoc requestvar x xsort")
-;(mtext "add to myvoc requestvar y xsort")
-
-;(mtext "create policy leaf mypol myvoc")
-;(mtext "add rule to mypol rule1 permit (s1 x) (s2 y)")
-;(mtext "add rule to mypol rule2 deny (s2 x) (s1 y)")
-;(mtext "prepare mypol")
-
-;(mtext "explore xsort(x) and xsort(y) UNDER mypol INCLUDE mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y) tupling")
-;(mtext "show REALIZED 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)")
-
-;(mtext "info myvoc")
-
-(display-response (mtext "GET QUALIFIED RULES IN conf1"))
+; Yes there are. But how many?
+(display-response (mtext "COUNT"))
 
 
-(display-response (mtext "EXPLORE subject(x) and subject(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
-;(display-response (mtext "EXPLORE subject(x) and notasort(y) and subject(z) and x=y and y=z UNDER conf1 TUPLING"))
-;(display-response (mtext "EXPLORE subject(x) and notasort(y) and subject(z) and x=y and y=z TUPLING"))
-(display-response (mtext "GET ONE"))
+; 7 solutions. What are they?
+(printf "~a~n" (mtext "SHOW ALL"))
+
+; (Margrave's result order isn't fixed, so these may be out of order.)
+; * Both author and reviewer, and assigned to the paper
+; * Both author and reviewer, both conflicted and assigned
+; * Just a reviewer, both conflicted and assigned
+; * Just a reviewer, neither conflicted nor assigned
+; * Just a reviewer, only assigned
+; * Just an author, neither conflicted nor assigned
+; * Both author and reviewer, neither conflicted nor assigned
+
+(pause-for-user)
+;; ********************************************
+
+
+;; Want to continue to refine? Restate the same query, using the PUBLISH clause.
+;; The PUBLISH clause gives an ordering on the variables so you can use previous
+;; queries in new ones.
+
+(display-response (mtext "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r) PUBLISH s,a,r"))
+
+; Now we can refine that query.
+; The LAST identifier means the last query created via EXPLORE.
+(display-response (mtext "EXPLORE reviewer(s) and last(s,a,r)"))
+
+; How many of the solutions involve a reviewer?
+(display-response (mtext "COUNT"))
+
+; Now there are 6 solutions. We ruled out this one:
+; * Just an author, neither conflicted nor assigned
+(pause-for-user)
+;; ********************************************
+
+
+
+; Ok, so when is reading a paper NOT permitted?
+(display-response (mtext "EXPLORE readpaper(a) and paper(r) and subject(s) and not conf1:permit(s, a, r)"))
+
+; Let's just ask for the first solution:
 (printf "~a~n" (mtext "SHOW ONE"))
-(printf "~a~n" (mtext "SHOW ONE 0"))
-(printf "~a~n" (mtext "GET ALL"))
-(printf "~n~n~a~n" (mtext "SHOW ALL"))
-;(stop-margrave-engine)
+
+; And the second:
+(printf "~a~n" (mtext "SHOW NEXT"))
+
+; When no solutions remain, SHOW NEXT will give a 
+; "no more solutions" message.
+
+(pause-for-user)
+;; ********************************************
 
 
 
+
+; Ok, so we can ask the most basic of questions:
+; "When does this policy render that decision?"
+
+; How about something more complex:
+; "When can a reviewer read ALL papers?" 
+
+; Like in Datalog, we get universals by defining subqueries and negating them.
+
+; First query: There exists a reviewer who cannot read some paper.
+(display-response (mtext "EXPLORE reviewer(s) AND readpaper(a) AND paper(r)
+            AND NOT conf1:Permit(s, a, r)
+    PUBLISH s, a"))
+
+; The PUBLISH clause lets us dictate which variables are available for
+; later use, and what order to use them in. Un-PUBLISHED variables are
+; bound within the query and can be negated as seen below.
+
+; You can always see what parameters a saved query takes, and in what order:
+(display-response (mtext "INFO last"))
+
+; And rename "last" to something more meaningful
+(display-response (mtext "RENAME LAST notallowed"))
+
+; Query: There is a reviewer to whom the last query does not apply."
+(display-response (mtext "EXPLORE reviewer(s) AND readpaper(a) AND NOT notallowed(s, a)"))
+
+; Uncomment this line to see all the solutions
+;(printf "~a~n" (mtext "SHOW ALL"))
+(display-response (mtext "COUNT"))
+
+; That's odd: there are two solutions where there seem to be no papers
+; at all! The policy's vocabulary says that all scenarios involve some 
+; *Resource*, but we never said there had to be a *Paper*,
+; and any scenario with no papers satisfies this query vacuously.
+(pause-for-user)
+
+; Let's remove those confusing solutions:
+(display-response (mtext "EXPLORE reviewer(s) AND readpaper(a) AND NOT notallowed(s, a) AND paper(p)"))
+(display-response (mtext "COUNT"))
+
+; That query forces some paper to exist, which
+; weeds out the two vacuous solutions from before.
+
+(pause-for-user)
+;; ********************************************
+
+
+; A major feature of Margrave is change-impact analysis: Discovering all
+; situations in which 2 policies will render different decisions.
+; Suppose the two policies are Conference1 and Conference2: Conference2
+; has a rule that Conference1 lacks.
+
+; You can create your own change-impact query like so:
+
+(display-response (mtext "EXPLORE (conf1:Permit(sub, act, res) AND NOT conf2:Permit(sub, act, res)) OR
+            (conf2:Permit(sub, act, res) AND NOT conf1:Permit(sub, act, res)) OR
+            (conf1:Deny(sub, act, res) AND NOT conf2:Deny(sub, act, res)) OR
+            (conf2:Deny(sub, act, res) AND NOT conf1:Deny(sub, act, res))
+            PUBLISH sub, act, res"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ALL"))
+
+(printf "That was the manual change impact.~n")
+(pause-for-user)
+
+; Margrave can also make a change-impact query for you via the COMPARE command:
+; Not yet in for first version; coming soon. (See Issues on github.) -- TN
+;(mtext "COMPARE conf1 conf2")
+;(mtext "COUNT")
+;(mtext "get one")
+;(newline) (display "That was the change impact via COMPARE.") (newline)
+;(pause-for-user)
+
+; the ordering used by LAST is now the standard ordering given by the policys' vocabulary.
+; To confirm:
+(display-response (mtext "INFO last"))
+
+; And of course, change-impact queries can always be re-used via the LAST keyword.
+(display-response (mtext "EXPLORE author(sub) AND last(sub, act, res)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ALL"))
+
+; A word of caution: If you use your own queries instead of the CHANGE command,
+; be sure to provide a PUBLISH keyword, or the ordering may not be standard!
+
+(pause-for-user)
+
+
+
+
+
+
+; ***********************************************************************************************
+
+; You aren't restricted to simple "Permit" and "Deny" either. This
+; example phone company policy has 3 different decisions: TollFree,
+; Toll, and Refuse.
+
+; When can someone make a toll-free call?
+(display-response (mtext "EXPLORE Phone1:TollFree(ncaller, nreceive)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+(pause-for-user)
+
+
+
+
+
+
+;; **********************************************************************************************
+; Example 1: Simple firewall policy, no state
+;; **********************************************************************************************
+
+
+; What sorts of incoming packets do we allow through?
+(display-response (mtext "EXPLORE Firewall1:Accept(ipsrc, ipdest, portsrc, portdest, pro)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+(pause-for-user)
+
+
+
+
+; That is a lot of packet types (18), and so not very useful. Let's narrow the scope a bit.
+; What packets are allowed through using TCP to port 21? (Should be 9.)
+(display-response (mtext "EXPLORE Firewall1:Accept(ipsrc, ipdest, portsrc, portdest, pro)
+            AND TCP(pro) AND port21(portdest)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+(pause-for-user)
+
+
+
+
+
+; Now suppose we changed this policy a bit. What has changed?
+; (This doesn't break out by what *kind* of change. Can run separate queries if needed.)
+;(display-response (mtext "COMPARE Firewall1 Firewall1a"))
+;(display-response (mtext "COUNT"))
+;(printf "~a~n" (mtext "SHOW ONE"))
+;(pause-for-user)
+
+; Above is not yet in; could do a manual change-impact here.
+; TODO: update when compare keyword is added. -TN
+
+
+
+;; *********************************************************************************************
+; Example 2: Simple stateless firewall policy, with ip ranges
+;; **********************************************************************************************
+
+; What packets are allowed through using TCP to port 21?
+(display-response (mtext "EXPLORE Firewall2:Accept(ipsrc, ipdest, portsrc, portdest, pro) and tcp(pro) and port21(portdest)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+
+; Zero solutions.
+; Nothing can connect to port 21 because of a misordering of rules.
+(pause-for-user)
+
+
+
+
+
+
+
+; *********************************************************************************************
+; Example 3: Sample ACL config from HappyRouter.com's Cisco ACL tutorial
+; http://happyrouter.com/free-video-harden-your-cisco-router-with-ios-aclS
+
+; When can a host on the less secure network have a 2-way TCP conversation with port 80 on the PC?
+(display-response (mtext "EXPLORE HRLess:Accept(ipoutside, ipinside, portoutside, portinside, pro)
+    and HRMore:Accept(ipinside, ipoutside, portinside, portoutside, pro)
+    and tcp(pro) and http(portinside) and 10network(ipoutside) and pc(ipinside)"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+(pause-for-user)
+
+
+
+; For large firewalls, it may help to turn on the TUPLING optimization:
+(display-response (mtext "EXPLORE HRLess:Accept(ipoutside, ipinside, portoutside, portinside, pro)
+    and HRMore:Accept(ipinside, ipoutside, portinside, portoutside, pro)
+    and tcp(pro) and http(portinside) and 10network(ipoutside) and pc(ipinside)
+    TUPLING"))
+(display-response (mtext "COUNT"))
+(printf "~a~n" (mtext "SHOW ONE"))
+
+; Tupling often results in fewer solutions, but those solutions still
+; characterize all possible satisfying scenarios for the query.
+
+;(pause-for-user)
+
+; Close down the Margrave engine.
+(stop-margrave-engine)
