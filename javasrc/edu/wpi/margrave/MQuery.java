@@ -801,6 +801,18 @@ public class MQuery extends MIDBCollection
 			List<String> indexedIDBNamesToOutput = new ArrayList<String>();			
 
 
+			
+			// ~~~~~~ !!! ~~~~~~
+			
+			// ***************************************************************
+			// non-emptiness constraints (ONE, SOME)
+			// cannot be converted to the same in the new vocab (or we'd get
+			// additional existentials AFTER tupling the ones we have now.)
+			
+			// TODO
+
+			
+			
 
 			// ********************************************************************
 			// First check to see if the user query is prenex existential-only
@@ -1233,10 +1245,14 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
+				
+			
+				Set<String> nonempty = new HashSet<String>();
+				nonempty.addAll(vocab.axioms.setsNonempty);
+				nonempty.addAll(vocab.axioms.setsSingleton);
 
-				
-				
-				
+							
+			
 				
 				// ***************************************************************
 				// LONE (applies to sorts only)
@@ -1269,14 +1285,7 @@ public class MQuery extends MIDBCollection
 
 				int iLoneEqCounter = 0;
 				Set<Formula> ij_triggers = new HashSet<Formula>();
-
-				// *****************************
-				// TODO Leaving out SOME for now.
-				// Print warning message for "ONE" vs. "LONE": Tupling doesn't
-				// treat them as different
-				if (vocab.axioms.setsSingleton.size() > 0)
-					MEnvironment.writeOutLine("\nWarning: Tupling treats ONE as if it were LONE.\n");
-
+		
 				long triggerCount = 0;
 
 				// For each pair of distinct indices
@@ -1391,6 +1400,7 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - startTime)
 							/ 1000000);
 				startTime = mxBean.getCurrentThreadCpuTime();
+
 
 				// *******************************
 				// FINALIZE *single* top-level sort

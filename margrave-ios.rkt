@@ -1,24 +1,39 @@
 #lang racket
 
 ; Assume same dir for now (later, module path!)
-(require "margrave.rkt")
+(require "margrave.rkt"
+         "IOS-parser/ios-compile.ss")
 
 (provide load-ios-policies)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
 ; updated tn july 2010
+; updated for release aug-sept 2010
+
+; ------------------------------------------------
+; parse-and-load-ios: First parses an IOS config file
+;  and then calls load-ios-policies on the directory
+;  containing the sub-policies.
+(define (parse-and-load-ios config-file-name dirpath prefix suffix)
+  (printf "Parsing IOS configuration ~a in directory ~a.~n" config-file-name dirpath)
+  (compile-configurations dirpath (list config-file-name) #f)
+  (load-ios-policies dirpath prefix suffix))
+
 
 (define (load-ios-helper filename dirpath prefix suffix) 
   (let ([ polname (load-policy (build-path dirpath (string-append filename ".p")))])
     
+    ;(printf ".~a~n" filename)
     (printf ".")
     
     (when (or (> (string-length prefix) 0)
               (> (string-length suffix) 0))
       (mtext (string-append "RENAME " polname " " prefix polname suffix))))) 
   
-; Remember to start the engine before calling this. Also wrap in an exception check!
+; ------------------------------------------------
+; load-ios-policies: Given a directory with post-parse sub-policies, load them all.
+; Remember to start the engine before calling this.
 ; dirpath says where to find the policies
 ; prefix (and suffix) are prepended (and appended) to the 
 ;   policy's name to avoid naming conflicts.
@@ -26,24 +41,31 @@
 
   (time-since-last) ; init timer
   
-  (printf "Loading IOS policies in path: ~a with prefix: ~a and suffix: ~a ~n" dirpath prefix suffix)
+  (printf "Loading IOS policies in path: ~a. Adding prefix: ~a and suffix: ~a ~n" dirpath prefix suffix)
   
-  (load-ios-helper "InboundACL" dirpath prefix suffix)  
-  
+  ; ACLs
+  (load-ios-helper "InboundACL" dirpath prefix suffix)    
   (when (equal? #t verbose)
     (printf "Time to load InboundACL: ~a ms.~n" (time-since-last))
     (display-response (mtext "INFO")))
   
+  (load-ios-helper "OutboundACL" dirpath prefix suffix) 
+  
+  ; NATs
   (load-ios-helper "InsideNAT" dirpath prefix suffix)  
+  (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+  
+  ; Routing and switching
   (load-ios-helper "StaticRoute" dirpath prefix suffix)  
-  (load-ios-helper "LocalSwitching" dirpath prefix suffix)  
   (load-ios-helper "PolicyRoute" dirpath prefix suffix)  
   (load-ios-helper "DefaultPolicyRoute" dirpath prefix suffix)  
+  
+  (load-ios-helper "LocalSwitching" dirpath prefix suffix)  
   (load-ios-helper "NetworkSwitching" dirpath prefix suffix)  
-  (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
-  (load-ios-helper "OutboundACL" dirpath prefix suffix)  
+ 
+  ; Encryption (not currently tested)
   (load-ios-helper "Encryption" dirpath prefix suffix)  
-  (load-ios-helper "OutsideNAT" dirpath prefix suffix)  
+
   (printf "~n")
   (when (equal? #t verbose)
     (printf "Time to load all other sub-policies: ~a ms.~n" (time-since-last))
@@ -328,8 +350,34 @@ TUPLING")))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Internally-dropped: Just check for NOT interf-drop(exit-interface).
+  ; Int-dropped: Just check for NOT interf-drop(exit-interface).
+  ; Need to use an UNDER clause since there are no policies appearing.
+  ; 
+  ; Technically there's no reason to have this IDB take more than exit-interface.
+  ; However, for now, we use the standard policy request vector, and so must
+  ; use EACH variable in the query definition.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define xml-response-id (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND
+
+IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND 
+Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND 
+ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND 
+Protocol-any(protocol) AND Hostname(ahostname) AND TCPFlags(flags)
+
+UNDER " prefix "InboundACL" suffix " 
+
+PUBLISH ahostname, entry-interface, 
+        src-addr-in,  src-addr-out, 
+        dest-addr-in, dest-addr-out, 
+        protocol, message, flags,
+        src-port-in,  src-port-out, 
+        dest-port-in,  dest-port-out, 
+        length, next-hop, exit-interface
+
+TUPLING")))
+  (mtext (string-append "RENAME LAST " prefix "int-dropped" suffix))
+  
+  
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Firewall-Passed
@@ -339,7 +387,7 @@ TUPLING")))
   ;; negated to mean the packets the firewall drops (or rejects). It would then also
   ;; include all the nonsensical scenarios...
   ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
-    (define xml-response-pf (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
+  (define xml-response-pf (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
                         prefix "InboundACL" suffix
                         ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
   dest-addr-in, dest-addr-in, protocol, message, flags, src-port-in, src-port-in,
@@ -362,6 +410,6 @@ TUPLING")))
   (mtext (string-append "RENAME LAST " prefix "passes-firewall" suffix))
 
   (when (equal? #t verbose)
-    (printf "Time to create and save internal-result and passes-firewall: ~a milliseconds.~n" (time-since-last)))
+    (printf "Time to create and save internal-result, int-dropped, and passes-firewall: ~a milliseconds.~n" (time-since-last)))
   
 ) ; end of function (more clear as lone paren; we are adding more)

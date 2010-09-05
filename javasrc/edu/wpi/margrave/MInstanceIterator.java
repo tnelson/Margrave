@@ -154,9 +154,16 @@ class MTotalInstanceIterator extends MInstanceIterator
 				}
 				newKodkodIterator = false;
 			}
-			
+
 			if(unsatSol(sol))
 			{
+				
+				
+				// Proof isn't supported in Kodkod for SAT4j 
+				// (SAT4j has been adding "explanations" that may provide what we need?)
+				//System.err.println(" PROOF: "+sol.proof());
+				
+				
 				iteratorlist.remove(0);
 				newKodkodIterator = true;
 			}
@@ -183,8 +190,10 @@ class MTotalInstanceIterator extends MInstanceIterator
 		long start = mxBean.getCurrentThreadCpuTime();	
 		
 		// Pass to KodKod for satsolving
-		Solver qrySolver = new Solver();		
+		Solver qrySolver = new Solver();	
+		
 		qrySolver.options().setFlatten(true);
+
 		qrySolver.options().setSolver(fromResult.forQuery.mySATFactory);
 		qrySolver.options().setSymmetryBreaking(fromResult.forQuery.mySB);
 					

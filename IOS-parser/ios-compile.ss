@@ -13,6 +13,8 @@
 (require "ios.ss")
 (require "ios-parse.ss")
 
+(provide compile-configurations)
+
 (define-syntax combine-rules
   (syntax-rules ()
     [(_ configurations accessor)

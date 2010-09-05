@@ -2281,6 +2281,17 @@ public class MEnvironment
 		
 		modelElement.setAttribute("size", String.valueOf(facts.universe().size()));
 				
+		// What is the universe?
+		Element universeElement = xmldoc.createElementNS(null, "UNIVERSE");
+		for(Object o : facts.universe())
+		{
+			Element atomElement = xmldoc.createElementNS(null, "ATOM");			
+			atomElement.appendChild(xmldoc.createTextNode(o.toString()));	
+			universeElement.appendChild(atomElement);
+		}
+		modelElement.appendChild(universeElement);
+		
+		
 		// For each relation, what's in it?
 		for(Relation r : facts.relations())
 		{
