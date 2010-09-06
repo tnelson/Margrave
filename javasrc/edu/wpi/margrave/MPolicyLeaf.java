@@ -1,5 +1,5 @@
 /*
-  	Copyright 2009 Brown University and Worcester Polytechnic Institute.
+  	Copyright 2009-2010 Brown University and Worcester Polytechnic Institute.
     
     This file is part of Margrave.
 
