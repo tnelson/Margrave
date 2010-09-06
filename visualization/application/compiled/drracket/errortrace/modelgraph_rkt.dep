@@ -1,1 +1,0 @@
-("5.0" ("b0ee7353ca266493a5ef4a27b09bc809ccba2beb" . "58b890e31d60be90e2f7521fd981d6457877c209") (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"gui.rkt") #"C:\\Users\\morganquirk\\Desktop\\margrave2\\Margrave\\visualization\\application\\netgraph.rkt" (collects #"racket" #"gui" #"lang" #"reader.rkt"))
