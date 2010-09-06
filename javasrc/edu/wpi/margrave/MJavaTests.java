@@ -3294,25 +3294,12 @@ public class MJavaTests
 	//	benchmarkXACML();
 	//	System.exit(1);
 
-		 /*
-		  * Starting time trials. numTrials=100
-rules = 100; k = 3; sm = 1; NO; mean tup=0 mean is-sat=141
-rules = 100; k = 3; sm = 1; YES; mean tup=17 mean is-sat=19
-rules = 100; k = 3; sm = 3; NO; mean tup=0 mean is-sat=691
-rules = 100; k = 3; sm = 3; YES; mean tup=64 mean is-sat=212
-numTrials for firewall tests = 10
-rules = 1000; k = 14; sm = 6; NO; mean tup=0 mean is-sat=7923
-rules = 1000; k = 14; sm = 6; YES; mean tup=457 mean is-sat=1053
-rules = 1000; k = 14; sm = 10; NO; mean tup=0 mean is-sat=18239
-rules = 1000; k = 14; sm = 10; YES; mean tup=493 mean is-sat=1115
-rules = 1000; k = 14; sm = 14; NO; mean tup=0 mean is-sat=32751
-rules = 1000; k = 14; sm = 14; YES; mean tup=558 mean is-sat=1148
-		  */
 
 		MEnvironment.writeOutLine("Starting java-based tests.");
 		
 		RelationAndVariableReplacementV.unitTests();
 		MQuery.unitTest();
+		MVocab.unitTest();
 	
 		try {
 			FormulaSigInfo.unitTests();

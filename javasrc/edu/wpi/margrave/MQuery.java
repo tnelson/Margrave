@@ -1068,12 +1068,16 @@ public class MQuery extends MIDBCollection
 				// Deal with the abstract constraint
 				// For everything abstract in the pre-tupling vocab
 				// [[[ 1/28/10 subsort exhaustiveness no longer *required*, but optional ]]] 
-				for (String relName : vocab.axioms.setsAbstract)
+				for (String relName : vocab.assertSortOrdering(vocab.axioms.setsAbstract))
 				{
 					MSort oldSort = vocab.getSort(relName);
 
 					// Get the list of tupled extensions of relName
 					Set<String> newPreds = mtup.getPredicateToIndexings(relName);
+										
+					if (debug_verbosity >= 3)
+						MEnvironment.writeOutLine("DEBUG: Examining abstract sort "+relName);
+					
 					if (newPreds == null)
 						continue;
 
@@ -1093,16 +1097,27 @@ public class MQuery extends MIDBCollection
 							{
 								String newchildname = oldChild.name + "_" + idxStr;
 								mtup.newvocab.addSubSort(newName, newchildname);
+								
 								// Not using mtup.addSortWithSupers since here we already have the parent
 								mtup.addToCaches(oldChild.name, "_"+idxStr, newchildname);
 								
+								if (debug_verbosity >= 3)
+									MEnvironment.writeOutLine("  DEBUG: Abstract sort "
+											+ relName + " at index " + idxStr
+											+ ": Forced addition of tupled child "
+											+ oldChild.name + "_" + idxStr);
+								
+							}
+							else
+							{
+								if (debug_verbosity >= 3)
+									MEnvironment.writeOutLine("  DEBUG: Abstract sort "
+											+ relName + " at index " + idxStr
+											+ ": child "
+											+ oldChild.name + "_" + idxStr +" already existed.");
 							}
 
-							if (debug_verbosity >= 3)
-								MEnvironment.writeOutLine("DEBUG: Abstract sort "
-										+ relName + " at index " + idxStr
-										+ ": Forced addition of tupled child "
-										+ oldChild.name + "_" + idxStr);
+
 						}
 
 	
@@ -3296,7 +3311,7 @@ public class MQuery extends MIDBCollection
 
 	static public void unitTest() throws MBaseException
 	{
-		MEnvironment.writeErrLine("----- Begin MGQuery Tests (No messages is good.) -----");
+		MEnvironment.writeErrLine("----- Begin MQuery Tests (No messages is good.) -----");
 
 		Variable x = MFormulaManager.makeVariable("x");
 		Variable y = MFormulaManager.makeVariable("y");
@@ -3889,7 +3904,7 @@ public class MQuery extends MIDBCollection
 		if (test9.runQuery().get_hu_ceiling() != 2)
 			MEnvironment.writeErrLine("Test 9b failed!");
 
-		MEnvironment.writeErrLine("----- End MGQuery Tests -----");
+		MEnvironment.writeErrLine("----- End MQuery Tests -----");
 
 		/*
 		 * Relation A = Relation.unary("A"); Formula testf =

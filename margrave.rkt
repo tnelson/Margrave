@@ -103,6 +103,7 @@
 (define ctrl-function #f)
 (define margrave-home-path (current-directory))
 
+
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 ; If not passed, will use (current-directory).
 (define (start-margrave-engine (home-path margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
@@ -237,6 +238,22 @@
         
         [else xml-response]))
 
+(define (flush-error error-buffer target-port)  ; read until nothing is left. This WILL block.
+  (let ([next-char (read-char target-port)])                                                
+    (when (not (equal? next-char eof))
+      (begin
+        (write-string (string next-char) error-buffer)
+        (flush-error error-buffer target-port)))))
+
+
+(define (finish-error error-buffer target-port)
+  (when (char-ready? err-port)  ; If there is a character waiting, read it.
+    (let ([next-char (read-char target-port)])
+      (when (not (equal? next-char eof))
+        (begin
+          (write-string (string next-char) error-buffer)
+          (finish-error error-buffer target-port))))))
+
 
 ; m
 ; XML string, func -> document or #f
@@ -261,20 +278,8 @@
         ; Deal with the result
         (let ([command-buffer (open-output-string)]
               [error-buffer (open-output-string)]) 
-          (local ((define (flush-error)  ; read until nothing is left. This WILL block.
-                    (let ([next-char (read-char err-port)])                                                
-                      (when (not (equal? next-char eof))
-                        (begin
-                          (write-string (string next-char) error-buffer)
-                          (flush-error)))))
+          (local (
                   
-                  (define (finish-error)
-                    (when (char-ready? err-port)  ; If there is a character waiting, read it.
-                      (let ([next-char (read-char err-port)])
-                        (when (not (equal? next-char eof))
-                          (begin
-                            (write-string (string next-char) error-buffer)
-                            (finish-error))))))
                   
                   ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                   ; version before change to polling. this version will freeze up if
@@ -313,18 +318,18 @@
                         (let ([next-char (read-char input-port)])                      
                           (cond [(equal? next-char #\nul)
                                  ; End of command's response. Finish any error data that may be waiting.
-                                 (finish-error)
+                                 (finish-error error-buffer err-port)
                                  #t]
                                 [(equal? next-char eof)
                                  ; Port closed. Read error until eof.
-                                 (flush-error)
+                                 (flush-error error-buffer err-port)
                                  #f]
                                 [else 
                                   ; In progress. Keep reading.  
                                  (write-string (string next-char) command-buffer)                                                                  
                                  (fetch-result)]))
                         (begin
-                          (finish-error)
+                          (finish-error error-buffer err-port)
                           (fetch-result))))
                   
                   )
@@ -481,6 +486,63 @@
 ;      (display (string-append desc ": Passed."))
 ;      (display (string-append desc ": FAILED!")))
 ;  (newline))
+
+; To run tests:
+(define (run-java-test-cases (home-path margrave-home-path) (user-jvm-params empty))
+  (let* ([error-buffer (open-output-string)]
+         [ vital-margrave-params
+           (list "-cp"
+                 
+                 ; PARAM: classpath
+                 (string-append
+                  
+                  ;For testing, use the .class files instead of the .jar:
+                  (path->string
+                   (build-path home-path
+                               "bin"))
+                  #;(path->string
+                     (build-path home-path
+                                 "bin"
+                                 "margrave.jar"))
+                  
+                  ; Margrave requires these JAR files to run:
+                  java-class-separator
+                  (path->string
+                   (build-path home-path
+                               "bin"
+                               "kodkod.jar"))
+                  java-class-separator
+                  (path->string
+                   (build-path home-path
+                               "bin"
+                               "org.sat4j.core.jar"))
+                  java-class-separator
+                  (path->string
+                   (build-path home-path
+                               "bin"
+                               "sunxacml.jar"))
+                  java-class-separator
+                  (path->string
+                   (build-path home-path
+                               "bin"
+                               "json.jar"))))]
+         ; Class name comes AFTER jvm params and BEFORE margrave params
+         [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MJavaTests"))])
+    
+    ;(printf "~a~n" margrave-params)        
+    ;(display (cons (string-append java-path "java.exe")  margrave-params))
+    (printf "--------------------------------------------------~n")
+    (printf "Running Margrave's Java test library...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~n"
+            home-path java-path user-jvm-params)
+    (printf "--------------------------------------------------~n")
+    
+    (define test-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
+    ; Keep waiting until the JVM closes on its own (tests will print results via error port)
+    
+    (flush-error error-buffer (fourth test-process-list))
+    (printf "~a~n" (get-output-string error-buffer))    
+    #t))
+
 
 (define (pause-for-user) 
   (printf "======================== Hit enter to continue. ========================~n~n")

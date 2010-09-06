@@ -2255,18 +2255,18 @@ public class MEnvironment
 		{
 			next = mQueryResult.forQuery.processTupledSolutionForThis(nextPreTup);
 			theVocab = mQueryResult.forQuery.internalTupledQuery.vocab;
-			//MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
-			//MCommunicator.writeToLog("\ninternal's tupling = "+mQueryResult.forQuery.internalTupledQuery.doTupling);
-			//MCommunicator.writeToLog("\nAnnotations: ");
-			//MCommunicator.writeToLog(next.getAnnotations().toString());
+			MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
+			MCommunicator.writeToLog("\ntupled model = "+nextPreTup.getFacts());
+			MCommunicator.writeToLog("\nconverted model = "+next.getFacts());			
+			MCommunicator.writeToLog("\nAnnotations: ");
+			MCommunicator.writeToLog(next.getAnnotations().toString());
 		}
 		else
 		{
 			next = nextPreTup;
 			theVocab = mQueryResult.forQuery.vocab;
-			//MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
-			//MCommunicator.writeToLog("\njust-in-case, tupling = "+mQueryResult.forQuery.doTupling);
-			//MCommunicator.writeToLog("\njust-in-case, internal = "+mQueryResult.forQuery.internalTupledQuery);
+			MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
+			
 		}
 		
 		//writeToLog("\nORIG INSTANCE: "+nextPreTup.getFacts());

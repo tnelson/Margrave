@@ -1403,5 +1403,87 @@ public class MVocab {
 		return true;
 	}
 
-	
+	/**
+	 * Given a set of sort names, asserts the internal sort ordering 
+	 * and returns the set as a list.
+	 * @param theSet
+	 * @return 
+	 */
+	public List<String> assertSortOrdering(Set<String> theSet) 
+	{
+		List<String> result = new ArrayList<String>(theSet.size());
+		
+		// BFS through the sort hierarchy, adding sorts from theSet as they match.
+		
+		List<MSort> todo = new ArrayList<MSort>();
+		Set<MSort> done = new HashSet<MSort>();
+		
+		// Start with the top-level sorts.
+		for(MSort aSort : sorts.values())
+			if(aSort.parent == null)
+				todo.add(aSort);
+		
+		while(todo.size() > 0)
+		{
+			MSort current = todo.get(0);
+			todo.remove(0);
+			done.add(current);
+			
+			// This is the correct position (or at least "a" correct position)
+			// since there are no cycles in the sort hierarchy
+			
+			if(theSet.contains(current.name))
+				result.add(current.name);
+			
+			for(MSort aSort : current.subsorts)
+				if(!done.contains(aSort))
+				{
+					todo.add(aSort);
+					done.add(aSort); // don't do more than once
+				}
+		}
+		
+		return result;
+	}
+
+	static public void unitTest() throws MBaseException
+	{
+		MEnvironment.writeErrLine("----- Begin MVocab Tests (No messages is good.) -----");
+		
+		// assertSortOrdering
+		// Need to allow multiple valid results since the hierarchy is a poset
+		// some non-determinism for incomparable sorts due to internal Set representation.
+		MVocab voc = new MVocab("test");
+		
+		voc.addSort("a");
+		voc.addSort("b");
+		
+		Set<String> testSet = new HashSet<String>();
+		testSet.add("a"); testSet.add("b");
+		
+		Set<String> validResults = new HashSet<String>();
+		validResults.add("[a, b]"); validResults.add("[b, a]");
+		
+		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
+		{
+			MEnvironment.errorStream.println("MVocab test 1: FAILED!");
+		}
+		
+		voc.addSubSort("a", "c");
+		testSet.clear();
+		testSet.add("a"); testSet.add("c"); testSet.add("b");
+		validResults.clear();
+		validResults.add("[a, b, c]"); validResults.add("[b, a, c]");
+		
+		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
+		{
+			MEnvironment.errorStream.println("MVocab test 2: FAILED!");
+		}
+		
+		
+		
+		// TODO more tests for other funcs
+		
+		MEnvironment.writeErrLine("----- End MVocab Tests -----");	
+	}
 }

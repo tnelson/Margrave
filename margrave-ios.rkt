@@ -358,7 +358,7 @@ TUPLING")))
   ; However, for now, we use the standard policy request vector, and so must
   ; use EACH variable in the query definition.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define xml-response-id (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND
+  (define xml-response-id (mtext (string-append "EXPLORE interf-drop(exit-interface) AND
 
 IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND 
 Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND 
