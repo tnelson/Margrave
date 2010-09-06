@@ -4,7 +4,8 @@
 (require "margrave.rkt"
          "IOS-parser/ios-compile.ss")
 
-(provide load-ios-policies)
+(provide load-ios-policies
+         parse-and-load-ios)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010

@@ -47,7 +47,9 @@
          get-rule-list
          time-since-last
          make-applies-list
-         make-matches-list)
+         make-matches-list
+         
+         the-margrave-namespace)
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
