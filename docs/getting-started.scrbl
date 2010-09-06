@@ -12,8 +12,15 @@ behavior of their policies, such as "Can a student ever access
 another student's grades?" or "Does this new firewall allow any
 unexpected new traffic?" 
 
-The following examples demonstrate Margrave, first on a general
-access-control policy, and then on an IOS firewall configuration.
+The following examples demonstrate how to get started using Margrave.
+If you have an IOS firewall configuration and want to get started
+immediately, see @secref{gs-ios}. 
+To see a series of instructive examples, see @secref{gs-existing}. 
+If you want to create a specific policy in Margrave's
+intermediate language, see @secref{gs-create). 
+
+@;The following examples demonstrate Margrave, first on a general
+@;access-control policy, and then on an IOS firewall configuration.
 
 Margrave is part of an ongoing research project. We appreciate your
 feedback and suggestions (including feature requests). These can be
@@ -22,8 +29,64 @@ sent to tn@"@"cs.wpi.edu.
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
+<<< Distributing BOTH as platform-specific zipfiles/tarfiles 
+ (no DrRacket) and as .rkt sources. Which is the reader of 
+ this document using? Both will be using a repl, in any case. >>>
 
-<<< Context. DrRacket. Require Margrave. >>>
+<< Unpackage instructions >> 
+ 
+Always invoke @racket{(start-margrave-engine margrave-home)} before
+using any of the commands in this section. Here @racket{margrave-home}
+is the root path of your Margrave installation. 
+ 
+@;--------------------------------------------------------------------
+@section[#:tag "gs-ios"]{IOS in Margrave}
+
+<< Does this section assume that the reader has at least skimmed the 
+LISA paper? >>>
+
+
+Margrave supports a core subset of the IOS language that involves 
+<<FILL>>. To parse and load an IOS policy into Margrave, use:
+
+@racket{(parse-and-load-ios config-file-name config-file-path)}
+
+where @racket{config-file-name} is the file name of the configuration 
+saved as a text file and @racket{config-file-path} is the directory
+containing the configuration. 
+
+Margrave will produce several intermediate policy files in
+@racket{config-file-path} and load them (provided the engine has
+been started; see @secref{running-margrave}). 
+
+For instance, if you have a configuration saved to a file demo.txt in
+the directory "C:\Margrave\IOS", you should invoke:
+
+@racket{(parse-and-load-ios "demo.txt" "C:\\Margrave\\IOS")}.
+
+To avoid the awkward double-backslash in Windows, you can use the
+@racket{build-path} Racket function, e.g.:
+@racket{(parse-and-load-ios "demo.txt" (build-path "C:" "Margrave" "IOS"))}.
+
+
+
+
+<<<sub-policy decomposition?>>
+
+<<queries>>
+
+
+@;--------------------------------------------------------------------
+@section[#:tag "gs-existing"]{Some Quick Examples}
+
+
+@;--------------------------------------------------------------------
+@section[#:tag "gs-create"]{Creating Your Own Policy}
+
+
+ 
+ 
+ 
 
 
 @;--------------------------------------------------------------------
@@ -158,8 +221,3 @@ or saved as a Racket hash table for re-use:
 
 <<code to save>>
 
-
-@;--------------------------------------------------------------------
-@section{For More Information}
-
-<< links to other example files, test files, etc. >>
