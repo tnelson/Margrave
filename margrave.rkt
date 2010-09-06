@@ -30,6 +30,7 @@
 
 (provide stop-margrave-engine
          start-margrave-engine
+         run-java-test-cases
          mtext
          pause-for-user
          load-policy
@@ -104,49 +105,52 @@
 (define margrave-home-path (current-directory))
 
 
+(define (build-classpath-param home-path)
+  (string-append
+   
+   ;For testing, use the .class files instead of the .jar:
+   (path->string
+    (build-path home-path
+                "bin"))
+   #;(path->string
+      (build-path home-path
+                  "bin"
+                  "margrave.jar"))
+   
+   ; Margrave requires these JAR files to run:
+   java-class-separator
+   (path->string
+    (build-path home-path
+                "bin"
+                "kodkod.jar"))
+   java-class-separator
+   (path->string
+    (build-path home-path
+                "bin"
+                "org.sat4j.core.jar"))
+   java-class-separator
+   (path->string
+    (build-path home-path
+                "bin"
+                "sunxacml.jar"))
+   java-class-separator
+   (path->string
+    (build-path home-path
+                "bin"
+                "json.jar"))))
+
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 ; If not passed, will use (current-directory).
 (define (start-margrave-engine (home-path margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
   (if (eq? java-process-list #f)
       (let* ([ vital-margrave-params
                (list "-cp"
-                  
+                     
                      ; PARAM: classpath
-                     (string-append
-                   
-                   ;For testing, use the .class files instead of the .jar:
-                   (path->string
-                    (build-path home-path
-                                "bin"))
-                   #;(path->string
-                      (build-path home-path
-                                  "bin"
-                                  "margrave.jar"))
-                   
-                   ; Margrave requires these JAR files to run:
-                   java-class-separator
-                   (path->string
-                    (build-path home-path
-                                "bin"
-                                "kodkod.jar"))
-                   java-class-separator
-                   (path->string
-                    (build-path home-path
-                                "bin"
-                                "org.sat4j.core.jar"))
-                   java-class-separator
-                   (path->string
-                    (build-path home-path
-                                "bin"
-                                "sunxacml.jar"))
-                   java-class-separator
-                   (path->string
-                    (build-path home-path
-                                "bin"
-                                "json.jar"))))]
+                     (build-classpath-param home-path))]
              ; Class name comes AFTER jvm params and BEFORE margrave params
              [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
-
+        
         ;(printf "~a~n" margrave-params)        
         ;(display (cons (string-append java-path "java.exe")  margrave-params))
         (printf "--------------------------------------------------~n")
@@ -494,38 +498,7 @@
            (list "-cp"
                  
                  ; PARAM: classpath
-                 (string-append
-                  
-                  ;For testing, use the .class files instead of the .jar:
-                  (path->string
-                   (build-path home-path
-                               "bin"))
-                  #;(path->string
-                     (build-path home-path
-                                 "bin"
-                                 "margrave.jar"))
-                  
-                  ; Margrave requires these JAR files to run:
-                  java-class-separator
-                  (path->string
-                   (build-path home-path
-                               "bin"
-                               "kodkod.jar"))
-                  java-class-separator
-                  (path->string
-                   (build-path home-path
-                               "bin"
-                               "org.sat4j.core.jar"))
-                  java-class-separator
-                  (path->string
-                   (build-path home-path
-                               "bin"
-                               "sunxacml.jar"))
-                  java-class-separator
-                  (path->string
-                   (build-path home-path
-                               "bin"
-                               "json.jar"))))]
+                 (build-classpath-param home-path))]
          ; Class name comes AFTER jvm params and BEFORE margrave params
          [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MJavaTests"))])
     

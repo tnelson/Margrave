@@ -33,12 +33,10 @@
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
 
-(start-margrave-engine)
+; Cannot auto-load because we don't know where the user has installed the engine.
+;(start-margrave-engine)
 
 ; Just calling read-eval-print-loop results in an error (no #%app ...)
 ; Works if we give it a namespace
 (parameterize ([current-namespace margrave-repl-namespace])
   (read-eval-print-loop))
-
-(printf "~nClosing Margrave engine...~n")
-(stop-margrave-engine)
