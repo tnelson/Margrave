@@ -33,10 +33,19 @@
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
 
-; Cannot auto-load because we don't know where the user has installed the engine.
-;(start-margrave-engine)
+; (exit) kills the Java engine in DrRacket, but *NOT* in 
+; Racket and GRacket. So we use the exit-handler parameter.
+(define orig-exit-handler (exit-handler)) 
+(define (margrave-repl-exit-handler n)
+  (stop-margrave-engine)
+  (orig-exit-handler n))
+
+; Defaults to the value of MARGRAVE_HOME environment var.
+; If no such var, uses current directory.
+(start-margrave-engine)
 
 ; Just calling read-eval-print-loop results in an error (no #%app ...)
 ; Works if we give it a namespace
-(parameterize ([current-namespace margrave-repl-namespace])
+(parameterize ([current-namespace margrave-repl-namespace]
+               [exit-handler margrave-repl-exit-handler])
   (read-eval-print-loop))

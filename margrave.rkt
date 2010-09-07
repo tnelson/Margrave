@@ -102,7 +102,16 @@
 (define process-id #f)
 (define err-port #f)
 (define ctrl-function #f)
-(define margrave-home-path (current-directory))
+
+; Default margrave-home:
+; If MARGRAVE_HOME environment variable exists, use it.
+; If not, use (current-directory).
+
+(define margrave-home-path-env "MARGRAVE_HOME")
+(define margrave-home-path 
+  (if (equal? (getenv margrave-home-path-env) #f)
+      (current-directory)
+      (getenv margrave-home-path-env)))
 
 
 (define (build-classpath-param home-path)
