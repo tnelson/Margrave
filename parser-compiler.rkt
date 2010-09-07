@@ -702,7 +702,10 @@
                                             (write-string "\n" string-buffer)                                                 
                                             (helper-func))))])
                   (helper-func)
-                  (get-output-string string-buffer)))))
+                  (let ([result (get-output-string string-buffer)])
+                    (if (equal? result "")
+                        "---> NO RESULTS <---"
+                        result))))))
 
 ; GET ALL returns a generator for all the models
 ; using 2nd form of let and being tail-recursive

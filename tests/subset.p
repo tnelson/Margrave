@@ -1,7 +1,7 @@
 ; Deny any non-Margrave tool.
 ; Permit otherwise
 
-(Policy SubsPolicy uses Subset
+(Policy SubsPolicy uses SubsetVoc
 	(Target )
 	(Rules
          (Rule1 = (Deny t) :- (!Margrave t))

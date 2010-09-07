@@ -42,6 +42,8 @@
 ;(load-policy (build-path (current-directory) "tests" "happyrouterless.p"))
 ;(load-policy (build-path (current-directory) "tests" "happyroutermore.p"))
 ;(load-policy (build-path (current-directory) "tests" "iout.p"))
+(load-policy (build-path (current-directory) "tests" "subset.p"))
+
 ;(mtext "info")
 ;(mtext "info fwex1")
 ;(mtext "info examplefw1")
@@ -126,6 +128,11 @@
 ; Should display x, y, and z anyway.
 (printf "~a~n" (mtext "SHOW ONE"))
 
+; No sort inference can be done here. Only know 2 variables x and y.
+; Ceiling should be 2, both assertions should be UNIV.
+(display-response (mtext "EXPLORE x = y UNDER subspolicy DEBUG 3 TUPLING"))
+;(display-response (mtext "EXPLORE x = y AND NOT potato(x) AND NOT tool(x) UNDER subspolicy"))
+(printf "~a~n" (mtext "SHOW ALL"))
 
 ;(stop-margrave-engine)
 
