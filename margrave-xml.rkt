@@ -189,8 +189,13 @@
 ;****************************************************************
 ;;Pretty Printing returned XML
 
-;name is the name of the atom, such as "s" or "r" (doesn't include the $), and list of types is a list of types (which are really predicates that have only one atom in (predicate-list-of-atoms))
-(define-struct atom (name list-of-types) #:mutable)
+;name is the name of the atom, such as "s" or "r" (doesn't include the $),
+; and list of types is a list of types (which are really predicates that
+; have only one atom in (predicate-list-of-atoms))
+(define-struct atom (name 
+                     display-name 
+                     list-of-types                     
+                     ) #:mutable)
 
 ;Note that a type is also a predicate, but with only one atom.
 (define-struct predicate (name arity list-of-tuples) #:mutable)
@@ -204,17 +209,25 @@
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 ;This function goes through the xml and updates atom-hash and predicate-hash
 ;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
-(define (pretty-print-model xml-model)
+(define (pretty-print-model xml-response)
   (let* ([atom-hash (make-hash)]
          [predicate-hash (make-hash)]
-         [model-element (get-child-element xml-model 'MODEL)]
+         [model-element (get-child-element xml-response 'MODEL)]
          [relation-elements (get-child-elements model-element 'RELATION)]
+         [universe-element (get-child-element model-element 'UNIVERSE)]         
          [model-size (get-attribute-value model-element 'size)] 
          [annotation-elements (get-child-elements model-element 'ANNOTATION)]
-         [statistics-element (get-child-element xml-model 'STATISTICS)]         
+         [statistics-element (get-child-element xml-response 'STATISTICS)]         
          [string-buffer (open-output-string)]) 
     
-    ;First, go through the XML and update the 2 hashes. Then afterwards print them out.
+    ; Initialize the atom hash with everything in UNIVERSE
+    ; Initial display name is equal to atom-name    
+    (for-each (lambda (an-atom-element)
+                (let ([atom-name (pcdata-string (first (element-content an-atom-element)))])
+                  (hash-set! atom-hash atom-name (make-atom atom-name atom-name empty))))
+              (get-child-elements universe-element 'atom))
+    
+    ; go through the XML and update the 2 hashes. Then afterwards print them out.
     (local ((define (write s)
               (write-string s string-buffer))
             
@@ -231,29 +244,41 @@
                   (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
                          [tuple-elements (get-child-elements relation 'TUPLE)]) 
                     
-                    (local [(define (insert-tuple tuple-element)
+                    (local [; Insert a tuple into the current relation
+                            (define (insert-tuple tuple-element)
                               (when (or (not relation-is-sort)
                                         (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
                                 (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
                                                                                       (predicate-list-of-tuples predicate-struct)))))
-                            
+                            ; Produce a tuple (list of atom structs) from XML
                             (define (parse-tuple-contents atom-elements)
                               (if (empty? atom-elements)
                                   '()
-                                  (let* ([atom (first atom-elements)]
-                                         [atom-name (pcdata-string (first (element-content atom)))])                                                                    
+                                  (let* ([an-atom-element (first atom-elements)]
+                                         [atom-element-name (pcdata-string (first (element-content an-atom-element)))])                                                                    
                                     (begin   
                                       
+                                      ; to be removed
                                       ;if the atom doesn't exist in the hash yet, create it
                                       ; (regardless of whether this relation is to be printed)
-                                      (when (not (hash-ref atom-hash atom-name #f))
-                                        (hash-set! atom-hash atom-name (make-atom atom-name empty)))
+                                     ; (when (not (hash-ref atom-hash atom-name #f))
+                                     ;   (hash-set! atom-hash atom-name (make-atom atom-name empty)))
                                       
-                                      (let ((atom-struct (hash-ref atom-hash atom-name))) ;should definitely exist, since we just created it if it didn't
+                                      ; Get the atom struct for this atom
+                                      ;should definitely exist, since we just created it if it didn't
+                                      (let ([atom-struct (hash-ref atom-hash atom-element-name)]) 
+                                        
+                                        ; If this is a $var relation, change displayed name for the atom
+                                        ; otherwise, add to the appropriate relation                                       
                                         (if (equal? (string-ref relation-name 0) #\$)
-                                            (set-atom-name! atom-struct (substring relation-name 1))
+                                            (if (equal? (atom-name atom-struct)
+                                                        (atom-display-name atom-struct))                                                
+                                                (set-atom-display-name! atom-struct (substring relation-name 1))
+                                                (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
+                                                                                           "="
+                                                                                           (substring relation-name 1))))
                                             
-                                            ; Sort or predicate?
+                                            ; Not a $var. Is it a sort or predicate?
                                             (if (= relation-arity 1) 
                                                 
                                                 ; Sort (tuple is unary)                                                  
@@ -297,7 +322,7 @@
             (cond [(false? hash-pos) ""]
                   [else (let ((atom (hash-iterate-value atom-hash hash-pos)))
                           (string-append
-                           (atom-name atom)
+                           (atom-display-name atom)
                            ": "
                            (foldl (lambda (type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
                            "\n"
@@ -315,7 +340,7 @@
                                         ;(printf "l: ~a ~a ~a ~a ~n" a-tuple so-far (map atom-name a-tuple) (fold-append-with-separator (map atom-name a-tuple) ", " ))
                                         (string-append 
                                          "[" 
-                                         (fold-append-with-separator (map atom-name a-tuple) ", ")
+                                         (fold-append-with-separator (map atom-display-name a-tuple) ", ")
                                          (if (not (equal? so-far ""))
                                              "], "
                                              "]") 
@@ -342,12 +367,14 @@
 (define (get-child-elements element name-symb-or-str)
   (if (empty? element)
       empty
-      (let* ((name (string-downcase (if (symbol? name-symb-or-str)
+      (let* ([name (string-downcase (if (symbol? name-symb-or-str)
                                         (symbol->string name-symb-or-str)
-                                        name-symb-or-str)))
-             (result (filter (lambda (element) (equal? name (string-downcase (symbol->string (element-name element)))))
-                             (filter (lambda (maybe-elem) (element? maybe-elem))
-                                     (element-content element)))))
+                                        name-symb-or-str))]
+             [elements (filter (lambda (maybe-elem) (element? maybe-elem))
+                               (element-content element))]
+             [result (filter (lambda (element) (equal? name (string-downcase (symbol->string (element-name element)))))
+                             elements)])
+       ; (printf "get-child-elements: ~a~n~a~n~a~n~a~n" name-symb-or-str name elements result)
         result)))
 
 ;Pass name a symbol or a string, case doesn't matter

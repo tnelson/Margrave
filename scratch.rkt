@@ -122,9 +122,10 @@
 (printf "~n~n~a~n" (mtext "SHOW ALL"))
 
 
-(display-response (mtext "EXPLORE NOT subject (x) AND x=y and y=z UNDER conf1"))
+(display-response (mtext "EXPLORE NOT subject (x) AND x=y and NOT y=z UNDER conf1"))
 ; Should display x, y, and z anyway.
 (printf "~a~n" (mtext "SHOW ONE"))
+
 
 ;(stop-margrave-engine)
 

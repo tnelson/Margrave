@@ -23,7 +23,7 @@
 
 ;*************************************************************************
 ;parser-compiler
-(evalxml "info")
+(parse-and-compile "info")
 
 ;*************************************************************************
 ;XML
@@ -269,7 +269,7 @@
    ;Actual returned results
    (start-margrave-engine)
    (load-policy (build-path (current-directory) "sampleconfig.p"))
-   (mm (evalxml "info SampleConfig"))
+   (mtext "info SampleConfig")
    (test-command "info SampleConfig"
                  "SUBSETS")
    (stop-margrave-engine)))
@@ -295,7 +295,7 @@
 ; *******************************************************************
 ; Testing helper functions
 (define (test-command command-string test-string (msg "(no test name)"))
-  (let ([response-string (response->string (first (mm (evalxml command-string))))])
+  (let ([response-string (response->string (mtext command-string))])
     (check-true (string-contains? response-string test-string) 
                 (string-append msg ": " test-string " expected; saw: " response-string))))
 
@@ -305,8 +305,8 @@
    "Conference1.p test"
    (start-margrave-engine)
    (load-policy (build-path (current-directory) "tests" "conference1.p"))      
-   (mm (evalxml "RENAME ConferencePolicy1 conf1"))
-   (display (first (mm (evalxml "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"))))
+   (mtext "RENAME ConferencePolicy1 conf1")
+   (display (mtext "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"))
    ;7 Solutions
    (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)" "Result handle was: 0" "1")
    (test-command "GET ONE 0" "SOLUTION FOUND at size = 3" "2")
@@ -337,9 +337,9 @@
    ;</FREE-VARIABLES>
    ;</SAVED-QUERY>
    ;</MARGRAVE-RESPONSE>
-   (mm (evalxml "INFO last"))
+   (mtext "INFO last")
    
-   ;(mm (evalxml "RENAME conf1 conf1"))
+   ;(mtext "RENAME conf1 conf1")
    (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r)" 
                  "Result handle was: 0" "14")
    (test-command "GET CEILING 0" "4" "15")
@@ -349,7 +349,7 @@
    (test-command "GET CEILING 0" "3"  "17")
    
    (load-policy (build-path (current-directory) "tests" "conference2.p"))
-   (mm (evalxml "RENAME ConferencePolicy2 conf2"))
+   (mtext "RENAME ConferencePolicy2 conf2")
    
    (test-command "EXPLORE (conf1:Permit(sub, act, res) AND NOT conf2:Permit(sub, act, res)) OR 
             (conf2:Permit(sub, act, res) AND NOT conf1:Permit(sub, act, res)) OR 
@@ -387,7 +387,7 @@
    (start-margrave-engine)
    
    (load-policy (build-path (current-directory) "tests" "conference1.p"))      
-   (mm (evalxml "RENAME ConferencePolicy1 conf1"))   
+   (mtext "RENAME ConferencePolicy1 conf1")
    (test-command "EXPLORE readpaper(a) and junk(b) and conf1:permit(s, a, r)"
                 "Unknown relation error:")
    (test-command "EXPLORE readpaper(a, b) and conf1:permit(s, a, r)"
@@ -400,16 +400,12 @@
    (start-margrave-engine)
    
    (load-policy (build-path (current-directory) "tests" "conference1.p"))      
-   (mm (evalxml "RENAME ConferencePolicy1 conf1"))   
-   (mm (evalxml "EXPLORE readpaper(a) and conf1:permit(s, a, r)"))
+   (mtext "RENAME ConferencePolicy1 conf1")
+   (mtext "EXPLORE readpaper(a) and conf1:permit(s, a, r)")
 
-   ; quit does not exit gracefully (yet)
-   ;(mm (evalxml "quit"))   
-   ;;(start-margrave-engine) ;; graceful restart possible?
-   ;;(mm (evalxml "INFO"))   
    (stop-margrave-engine)
    (start-margrave-engine) ;; restart after closed by func?
-   (mm (evalxml "INFO"))   
+   (mtext "INFO")
    (stop-margrave-engine)))
    
    
