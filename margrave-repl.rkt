@@ -37,7 +37,10 @@
 ; Racket and GRacket. So we use the exit-handler parameter.
 (define orig-exit-handler (exit-handler)) 
 (define (margrave-repl-exit-handler n)
-  (stop-margrave-engine)
+  ; If stop-margrave-engine fails, don't gum up the exit.
+  (with-handlers (((lambda (e) #t) 
+                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))))
+    (stop-margrave-engine))  
   (orig-exit-handler n))
 
 ; Defaults to the value of MARGRAVE_HOME environment var.

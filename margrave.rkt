@@ -151,7 +151,9 @@
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 ; If not passed, will use (current-directory).
 (define (start-margrave-engine (home-path margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
-  (if (eq? java-process-list #f)
+  ; If the engine isn't running (either uninitialized, or it died before we called this)
+  (if (or (eq? java-process-list #f) 
+          (not (eq? (ctrl-function 'status) 'running)))
       (let* ([ vital-margrave-params
                (list "-cp"
                      
