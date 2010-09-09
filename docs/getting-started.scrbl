@@ -48,7 +48,7 @@ support for writing programs involving Margrave queries.
         @url{http://www.java.com/en/download/}.}
   @item{Download the LITE Margrave distribution from
         
-        <<<FILL>>>.
+        @url{http://www.margrave-tool.org/v3}.
         
         This is available for both Windows (as a zip file) and 
         *nix (as a tar.gz file).}
@@ -73,7 +73,7 @@ support for writing programs involving Margrave queries.
         @url{http://racket-lang.org/download/}}
   @item{Download the FULL Margrave distribution from
         
-        <<<FILL>>>.
+        @url{http://www.margrave-tool.org/v3}.
         
         This is available for both Windows (as a zip file) and 
         *nix (as a tar.gz file).}
@@ -120,15 +120,20 @@ require the appropriate modules!
   @racket[(start-margrave-engine)] before
   attempting to load policies or execute commands.}
 
-For more information, see the files in <MARGRAVE_HOME>/examples/full.
+For more information, see the files in @italic{<MARGRAVE_HOME>/examples/full}.
 
   
 @;--------------------------------------------------------------------
 @section[#:tag "gs-ios"]{IOS in Margrave}
 
-Margrave supports a core subset of the IOS language that involves 
-<<FILL>>. The IOS modules implement the abstraction given 
-in <<<FILL: LISA paper>>>.
+Margrave supports a core subset of the IOS language involving
+standard and most extended ACLs, static NAT,
+ACL-based and map-based dynamic NAT, static routing,
+and policy-based routing. At the moment, our support for state is
+limited to reflexive access-lists.
+
+The IOS modules implement the abstraction given 
+in @cite{nbdfk10}.
 
 To parse and load an IOS policy into Margrave, use:
 
@@ -153,7 +158,7 @@ To avoid the awkward double-backslash in Windows, you can use the
 
 
 For detailed examples of running queries in IOS, see the IOS examples
-in <MARGRAVE_HOME>/examples/full or <MARGRAVE_HOME>/examples/lite 
+in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/lite} 
 (depending on your version).
 
 @;--------------------------------------------------------------------
