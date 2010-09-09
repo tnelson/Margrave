@@ -13,6 +13,7 @@ another student's grades?" or "Does this new firewall allow any
 unexpected new traffic?" 
 
 The following examples demonstrate how to get started using Margrave.
+If you have not yet installed Margrave, see @secref{install}. 
 If you have an IOS firewall configuration and want to get started
 immediately, see @secref{gs-ios}. 
 To see a series of instructive examples, see @secref{gs-existing}. 
@@ -27,18 +28,57 @@ feedback and suggestions (including feature requests). These can be
 sent to tn@"@"cs.wpi.edu.
 
 @;--------------------------------------------------------------------
+@section[#:tag "install"]{Installing Margrave}
+
+There are two versions of Margrave available: lite and full. The lite
+version allows commands and queries to be entered at a prompt. The full
+version requires a Racket installation, but provides a GUI and better
+support for writing programs involving Margrave queries. 
+
+<<< The "prompt" is really a repl, don't make it sound like they enter
+    EXPLORE... directly. >>>
+
+@subsection{Lite Margrave}
+
+<< FILL>>>
+
+
+
+@subsection{Full Margrave}
+    
+* Make sure that you have a recent version of Java installed. Margrave
+requires <<<FILL>>> or later. You can download the latest version of 
+Java at <<<FILL>>>.
+
+* Download and install Racket. You can download Racket at <<<FILL>>>.
+
+* Download the FULL Margrave distribution from <<<FILL>>>. This is 
+available both as a zip file and as a tar.gz file.
+
+* Extract the full distribution to the location of your choice.
+
+* Set your MARGRAVE_HOME environment variable to the location of 
+margrave.rkt in the distribution. 
+
+
+<<< Ok, now what? Redirect to example? Actually: running margrave!>>>
+
+
+Notes:
+
+When running the full version, always invoke 
+@racket{(start-margrave-engine)} before
+using any of the commands in this section. 
+
+<<< Can we make it so this is called automatically when the margrave 
+module loads? Would that be good or bad? >>>
+
+@;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
-<<< Distributing BOTH as platform-specific zipfiles/tarfiles 
- (no DrRacket) and as .rkt sources. Which is the reader of 
- this document using? Both will be using a repl, in any case. >>>
 
-<< Unpackage instructions >> 
- 
-Always invoke @racket{(start-margrave-engine margrave-home)} before
-using any of the commands in this section. Here @racket{margrave-home}
-is the root path of your Margrave installation. 
- 
+
+  
 @;--------------------------------------------------------------------
 @section[#:tag "gs-ios"]{IOS in Margrave}
 
