@@ -29,6 +29,7 @@
 (require "margrave.rkt"
          "margrave-ios.rkt")
 
+
 ;****************************************************************
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
@@ -42,6 +43,18 @@
                    (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))))
     (stop-margrave-engine))  
   (orig-exit-handler n))
+
+;****************************************************************
+
+; For the REPL, we don't support #lang and require, etc. in scripts.
+; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
+(define (load-margrave filename)
+  (parameterize ([current-namespace margrave-repl-namespace])
+    (load filename)))
+
+
+
+;****************************************************************
 
 ; Defaults to the value of MARGRAVE_HOME environment var.
 ; If no such var, uses current directory.

@@ -35,7 +35,14 @@
 ;  containing the sub-policies.
 (define (parse-and-load-ios config-file-name dirpath prefix suffix)
   (printf "Parsing IOS configuration ~a in directory ~a.~n" config-file-name dirpath)
-  (compile-configurations dirpath (list config-file-name) #f)
+  
+  ; May be a #path or a string. IOS parser expects a string.
+  (cond [(string? dirpath)
+         (compile-configurations dirpath (list config-file-name) #f)]
+        [(path? dirpath)
+         (compile-configurations (path->string dirpath) (list config-file-name) #f)]
+        [else (raise-user-error (format "Expected a directory path in the second argument of parse-and-load-ios; given: ~a." dirpath))])
+      
   (load-ios-policies dirpath prefix suffix))
 
 
