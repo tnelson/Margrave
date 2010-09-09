@@ -6,6 +6,16 @@
 
 (printf "Running example: Margrave Lite simple IOS:~n~n")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Margrave's query language currently requires request vectors to be
+; provided in full. That is, users must spell out
+; R(x1, x2, x3, x4, ...) instead of 
+; R(<x>).
+
+; We are working on adding features that will make vectors easier to
+; manage. For now, we do the following to make vectors less cumbersome:
+
 (define polvector "(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
@@ -13,6 +23,8 @@
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; The engine is already loaded when Margrave Lite starts up. 
 
@@ -75,6 +87,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; example: rule responsibility
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Here, we start using the polvector variable that we defined above.
 
 (printf "~n~nRule-blaming:~n")
 
@@ -202,3 +216,6 @@
 ; Expect to see that line9 applies.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; To exit Margrave Lite, use the (exit) command.
+; (exit)

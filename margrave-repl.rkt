@@ -63,6 +63,9 @@
 ; If no such var, uses current directory.
 (start-margrave-engine)
 
+; Tell them how to exit.
+(printf "~nWelcome to Racket Lite. To exit, type (exit) at the command prompt.~n~n")
+
 ; Just calling read-eval-print-loop results in an error (no #%app ...)
 ; Works if we give it a namespace
 (parameterize ([current-namespace margrave-repl-namespace]

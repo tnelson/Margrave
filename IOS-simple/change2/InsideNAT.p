@@ -6,7 +6,23 @@
  (Rules
   (Router-default-NAT
    =
-   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Translate
+    hostname
+    entry-interface
+    src-addr-in
+    src-addr-out
+    dest-addr-in
+    dest-addr-out
+    protocol
+    message
+    flags
+    src-port-in
+    src-port-out
+    dest-port-in
+    dest-port-out
+    length
+    next-hop
+    exit-interface)
    :-
    (= src-addr-in src-addr-out)
    (= dest-addr-in dest-addr-out)

@@ -16,9 +16,10 @@ The following examples demonstrate how to get started using Margrave.
 If you have not yet installed Margrave, see @secref{install}. 
 If you have an IOS firewall configuration and want to get started
 immediately, see @secref{gs-ios}. 
-To see a series of instructive examples, see @secref{gs-existing}. 
+To see a series of instructive non-IOS examples, see 
+@secref{gs-existing}. 
 If you want to create a specific policy in Margrave's
-intermediate language, see @secref{gs-create). 
+intermediate language, see @secref{gs-create}. 
 
 @;The following examples demonstrate Margrave, first on a general
 @;access-control policy, and then on an IOS firewall configuration.
@@ -35,86 +36,125 @@ version allows commands and queries to be entered at a prompt. The full
 version requires a Racket installation, but provides a GUI and better
 support for writing programs involving Margrave queries. 
 
-<<< The "prompt" is really a repl, don't make it sound like they enter
-    EXPLORE... directly. >>>
-
 @subsection{Lite Margrave}
 
-<< FILL>>>
+<<< Note: need to get DrRacket on *nix to create Lite for *nix >>>
+
+@itemlist[
+  @item{Make sure that you have a recent version of Java installed.
+        Margrave requires Java 6 or later. You can download the latest
+        version of Java at
+        
+        @url{http://www.java.com/en/download/}.}
+  @item{Download the LITE Margrave distribution from
+        
+        <<<FILL>>>.
+        
+        This is available for both Windows (as a zip file) and 
+        *nix (as a tar.gz file).}
+  @item{Extract the distribution archive to the location of your choice.}
+  @item{Set your MARGRAVE_HOME environment variable to the location of
+        margrave-repl.exe in the extracted distribution.}      
+]
+
 
 
 
 @subsection{Full Margrave}
-    
-* Make sure that you have a recent version of Java installed. Margrave
-requires <<<FILL>>> or later. You can download the latest version of 
-Java at <<<FILL>>>.
 
-* Download and install Racket. You can download Racket at <<<FILL>>>.
+@itemlist[
+  @item{Make sure that you have a recent version of Java installed.
+        Margrave requires Java 6 or later. You can download the latest
+        version of Java at 
+        
+        @url{http://www.java.com/en/download/}.}
+  @item{Download and install Racket. You can download Racket at
+        
+        @url{http://racket-lang.org/download/}}
+  @item{Download the FULL Margrave distribution from
+        
+        <<<FILL>>>.
+        
+        This is available for both Windows (as a zip file) and 
+        *nix (as a tar.gz file).}
+  @item{Extract the distribution archive to the location of your choice.}
+  @item{Set your MARGRAVE_HOME environment variable to the location of
+        margrave.rkt in the extracted distribution.}
+]
 
-* Download the FULL Margrave distribution from <<<FILL>>>. This is 
-available both as a zip file and as a tar.gz file.
-
-* Extract the full distribution to the location of your choice.
-
-* Set your MARGRAVE_HOME environment variable to the location of 
-margrave.rkt in the distribution. 
-
-
-<<< Ok, now what? Redirect to example? Actually: running margrave!>>>
-
-
-Notes:
-
-When running the full version, always invoke 
-@racket{(start-margrave-engine)} before
-using any of the commands in this section. 
-
-<<< Can we make it so this is called automatically when the margrave 
-module loads? Would that be good or bad? >>>
 
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
+@subsection{Running Lite Margrave}
 
+Execute margrave-repl.exe. It will automatically detect where your Java
+installation is located, and attempt to start the Margrave engine from
+the directory you provided via the MARGRAVE_HOME environment variable.
+
+The command prompt accepts Racket commands (in Lisp terms, it is a  
+read-eval-print-loop, or REPL). For instance, entering:
+
+@racket[(display-response (mtext "INFO"))]
+
+will execute the @tech{INFO} Margrave command, returning information about the 
+state of Margrave, including memory usage and other statistics. The 
+@tech{mtext} function runs the command and the @tech{display-response}
+function prints human-readable results.
+
+To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
+you close Lite Margrave via ctrl-C, the Java-based engine may be left 
+running.
+
+For more information, see the files in <MARGRAVE_HOME>/examples/lite.
+
+@subsection{Running Full Margrave}
+
+With Full Margrave, you can use Margrave in your Racket programs. Simply
+require the appropriate modules! 
+
+@margin-note{
+  @bold{Caution:}
+   
+  When running the full version, always invoke 
+  @racket[(start-margrave-engine)] before
+  attempting to load policies or execute commands.}
+
+For more information, see the files in <MARGRAVE_HOME>/examples/full.
 
   
 @;--------------------------------------------------------------------
 @section[#:tag "gs-ios"]{IOS in Margrave}
 
-<< Does this section assume that the reader has at least skimmed the 
-LISA paper? >>>
-
-
 Margrave supports a core subset of the IOS language that involves 
-<<FILL>>. To parse and load an IOS policy into Margrave, use:
+<<FILL>>. The IOS modules implement the abstraction given 
+in <<<FILL: LISA paper>>>.
 
-@racket{(parse-and-load-ios config-file-name config-file-path)}
+To parse and load an IOS policy into Margrave, use:
 
-where @racket{config-file-name} is the file name of the configuration 
-saved as a text file and @racket{config-file-path} is the directory
+@racket[(parse-and-load-ios config-file-name config-file-path)]
+
+where @racket[config-file-name] is the file name of the configuration 
+saved as a text file and @racket[config-file-path] is the directory
 containing the configuration. 
 
 Margrave will produce several intermediate policy files in
-@racket{config-file-path} and load them (provided the engine has
-been started; see @secref{running-margrave}). 
+@racket[config-file-path] and, if the engine has been started,
+load them.
 
-For instance, if you have a configuration saved to a file demo.txt in
+For instance, if you have a configuration saved to a file config.txt in
 the directory "C:\Margrave\IOS", you should invoke:
 
-@racket{(parse-and-load-ios "demo.txt" "C:\\Margrave\\IOS")}.
+@racket[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
 
 To avoid the awkward double-backslash in Windows, you can use the
-@racket{build-path} Racket function, e.g.:
-@racket{(parse-and-load-ios "demo.txt" (build-path "C:" "Margrave" "IOS"))}.
+@racket[build-path] Racket function, e.g.:
+@racket[(parse-and-load-ios "config.txt" (build-path "C:" "Margrave" "IOS"))].
 
 
-
-
-<<<sub-policy decomposition?>>
-
-<<queries>>
-
+For detailed examples of running queries in IOS, see the IOS examples
+in <MARGRAVE_HOME>/examples/full or <MARGRAVE_HOME>/examples/lite 
+(depending on your version).
 
 @;--------------------------------------------------------------------
 @section[#:tag "gs-existing"]{Some Quick Examples}

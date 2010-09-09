@@ -12,7 +12,8 @@
 
 @include-section["representing-policies.scrbl"]
 
-@include-section["api.scrbl"]
+@; Not including API yet, just basic user docs and examples
+@;include-section["api.scrbl"]
 
 @;index-section[]
 

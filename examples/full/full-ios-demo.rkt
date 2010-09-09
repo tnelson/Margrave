@@ -10,7 +10,17 @@
 ; so you can step through this file and read the examples while
 ; running it.
 
-(printf "Running example: Margrave Lite simple IOS:~n~n")
+(printf "Running example: Margrave Full simple IOS:~n~n")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Margrave's query language currently requires request vectors to be
+; provided in full. That is, users must spell out
+; R(x1, x2, x3, x4, ...) instead of 
+; R(<x>).
+
+; We are working on adding features that will make vectors easier to
+; manage. For now, we do the following to make vectors less cumbersome:
 
 (define polvector "(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
@@ -19,6 +29,8 @@
         src-port-in,  src-port-out, 
         dest-port-in, dest-port-out, 
         length, next-hop, exit-interface)")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Margrave full has control over the engine, and must start and stop it:
 (start-margrave-engine)
@@ -82,6 +94,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; example: rule responsibility
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Here, we start using the polvector variable that we defined above.
 
 (printf "~n~nRule-blaming:~n")
 
