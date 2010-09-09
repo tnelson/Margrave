@@ -50,7 +50,8 @@
          make-applies-list
          make-matches-list
          
-         the-margrave-namespace)
+         the-margrave-namespace
+         margrave-home-path)
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
@@ -107,12 +108,12 @@
 ; If MARGRAVE_HOME environment variable exists, use it.
 ; If not, use (current-directory).
 
-(define margrave-home-path-env "MARGRAVE_HOME")
-(define margrave-home-path 
-  (if (equal? (getenv margrave-home-path-env) #f)
+(define default-margrave-home-path-env "MARGRAVE_HOME")
+(define default-margrave-home-path 
+  (if (equal? (getenv default-margrave-home-path-env) #f)
       (current-directory)
-      (getenv margrave-home-path-env)))
-
+      (getenv default-margrave-home-path-env)))
+(define margrave-home-path #f)
 
 (define (build-classpath-param home-path)
   (string-append
@@ -149,8 +150,7 @@
                 "json.jar"))))
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-; If not passed, will use (current-directory).
-(define (start-margrave-engine (home-path margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
+(define (start-margrave-engine (home-path default-margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
   ; If the engine isn't running (either uninitialized, or it died before we called this)
   (if (or (eq? java-process-list #f) 
           (not (eq? (ctrl-function 'status) 'running)))
@@ -188,7 +188,8 @@
   (set! output-port #f)
   (set! process-id #f)
   (set! err-port #f)
-  (set! ctrl-function #f))
+  (set! ctrl-function #f)
+  (set! margrave-home-path #f))
 
 (define (stop-margrave-engine)
   (if (eq? java-process-list #f)
@@ -503,7 +504,7 @@
 ;  (newline))
 
 ; To run tests:
-(define (run-java-test-cases (home-path margrave-home-path) (user-jvm-params empty))
+(define (run-java-test-cases (home-path default-margrave-home-path) (user-jvm-params empty))
   (let* ([error-buffer (open-output-string)]
          [ vital-margrave-params
            (list "-cp"
