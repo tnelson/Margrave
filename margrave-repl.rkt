@@ -36,7 +36,9 @@
 
 ; (exit) kills the Java engine in DrRacket, but *NOT* in 
 ; Racket and GRacket. So we use the exit-handler parameter.
+
 (define orig-exit-handler (exit-handler)) 
+
 (define (margrave-repl-exit-handler n)
   ; If stop-margrave-engine fails, don't gum up the exit.
   (with-handlers (((lambda (e) #t) 
@@ -48,7 +50,8 @@
 
 ; For the REPL, we don't support #lang and require, etc. in scripts.
 ; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
-(define (load-margrave filename)
+
+(define (run-lite filename)
   (parameterize ([current-namespace margrave-repl-namespace])
     (load filename)))
 

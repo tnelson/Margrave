@@ -43,7 +43,7 @@
    (port-25 dest-port-in))
   (Router-fe0-line12
    =
-   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (fe0 entry-interface)
@@ -51,7 +51,7 @@
    (prot-tcp protocol)
    (Port src-port-in)
    (192.168.5.10 dest-addr-in)
-   (port-80 dest-port-in))
+   (port-443 dest-port-in))
   (Router-fe0-line13
    =
    (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
