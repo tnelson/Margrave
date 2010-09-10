@@ -2,10 +2,10 @@
  IOS-vocab
  (Types
   (Hostname : hostname-Router)
-  (Interface : interf-drop (interf-real fe0 vlan1))
+  (Interface : interf-drop (interf-real vlan1 fe0))
   (IPAddress
-   10.1.1.0/255.255.255.254
    192.128.5.0/255.255.255.0
+   10.1.1.0/255.255.255.254
    192.168.5.11
    192.168.5.10
    10.1.1.2)

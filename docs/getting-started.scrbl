@@ -16,7 +16,7 @@ The following examples demonstrate how to get started using Margrave.
 If you have not yet installed Margrave, see @secref{install}. 
 If you have an IOS firewall configuration and want to get started
 immediately, see @secref{gs-ios}. 
-To see a series of instructive non-IOS examples, see 
+For an instructive non-IOS examples, see 
 @secref{gs-existing}. 
 If you want to create a specific policy in Margrave's
 intermediate language, see @secref{gs-create}. 
@@ -38,7 +38,7 @@ support for writing programs involving Margrave queries.
 
 @subsection{Lite Margrave}
 
-<<< Note: need to get DrRacket on *nix to create Lite for *nix >>>
+<<< TN Note: need to get DrRacket on *nix to create Lite for *nix >>>
 
 @itemlist[
   @item{Make sure that you have a recent version of Java installed.
@@ -162,66 +162,85 @@ in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/li
 (depending on your version).
 
 @;--------------------------------------------------------------------
-@section[#:tag "gs-existing"]{Some Quick Examples}
+@section[#:tag "gs-existing"]{General Policies in Margrave}
 
+Margrave applies to more than just IOS firewall policies. Its intermediate
+policy language can express many different kinds of policy. In this section, 
+we discuss how to use Margrave's intermediate policy language to express
+and analyze non-IOS policies. 
 
-@;--------------------------------------------------------------------
-@section[#:tag "gs-create"]{Creating Your Own Policy}
+@italic{What does a policy look like in Margrave?}
 
+For details, see @secref{policies}, but for the moment
+a @tech{policy} is just a list of @tech{rules} that each map certain 
+@tech{request}s to @tech{decision}s. 
 
+@;and a method of resolving rule conflicts, such as @tech{first-applicable} or @tech{permit-overrides}.
  
+@italic{But what is a @tech{request} exactly, and what @tech{decision}s can the policy render?} 
  
- 
+That depends on what the policy is meant to do. 
+A policy for a door lock may take keys as requests, and decide whether or not the door opens. 
+A phone company policy may take source and destination phone numbers and decide whether the call is denied, toll-free, or toll. 
+Margrave allows users to specify these domain-specific details about a policy using @tech{vocabularies}, which are discussed
+in detail in @secref["vocabularies"].
 
+@subsection{A Brief Example}
 
-@;--------------------------------------------------------------------
-@section[#:tag "getting-started-1"]{An Access-Control Example}
+Let's examine one of Margrave's built-in examples, 
+an access-control policy for a conference management system.
+In this basic example, a request contains a subject, an action,
+and a resource, and a decision is either permit or deny.
 
-First, let's consider an access-control policy for a conference management system. 
+Margrave loads policies using the @racket[load-policy] function. 
+@racket[load-policy] takes a single parameter: the filename of the policy file.
+Since this policy is stored in the tests subfolder of Margrave, we load it by 
+calling:
 
-@subsection{What Does A Policy Look Like?}
+@racket[(load-policy (build-path margrave-home-path "tests" "conference1.p"))]
 
-A @tech{policy} is a list of @tech{rules} and a method of resolving rule
-conflicts, such as @tech{first-applicable} or @tech{permit-overrides}.
+If the policy loads successfully, @racket[load-policy] returns the policy's identifier for use in queries. In this case, it returns:
 
-A @tech{rule} asserts a @tech{decision} for certain @tech{requests}.
+@racket["ConferencePolicy"]
 
-But what is a @tech{request} exactly, and what @tech{decision}s can the policy render? 
-Don't they depend on the application?
+This policy acts based on the roles of users (Are they a reviewer? An author?) and the nature of the resource they are trying to access (A paper? A review?)
 
-Yes. Margrave allows users to specify these things using 
-@tech{vocabularies}. For details, see @secref["vocabularies"]; for this
-first example, a request contains a subject, an action, and a resource.
-A decision is either permit or deny.
-
-@subsection{Loading Policies}
-
-<<Give sufficient context before this so the user understands what "use the load-policy function" means>>
-
-To load a policy, use the @racket{load-policy} function. 
-E.g., to load our conference-manager example:
-
-@racket[(load-policy "tests/conference.p")]
-                 
-@subsection{Asking Questions}
-
-Let's ask Margrave whether a reviewer can ever be denied access to read a paper. The following Margrave query captures this question:
+Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
+The following Margrave query captures this question. 
 
 <<< need to insert this into examples rkt file and test >>>
 
 @racketblock[
-EXPLORE Conference:Deny(s, a, r) AND 
+EXPLORE ConferencePolicy:Deny(s, a, r) AND 
         reviewer(s) AND paper(r) AND readpaper(a)
 ]        
 
-For more information on Margrave's query language, see @secref["query-language"].
+@italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]
+signify properties about the request: The subject is a reviewer,
+etc. The term 
+@italic["ConferencePolicy:Deny(s, a, r)"] states that the policy
+renders the "Deny" decision for the request. @margin-note{Rendering deny is
+not the same as failing to render permit!}
+The @racket[EXPLORE] statement as a whole instructs Margrave to find 
+scenarios that meet all of those conditions.
+
+(For more information on Margrave's query language, see @secref["query-language"].) 
  
-We can ask for satisfying scenarios with:
+Once the query is created, 
+we can ask for @italic{all} scenarios that satisfy the query with:
 
 @racketblock[
 SHOW ALL
 ]
             
+whereas 
+
+@racketblock[
+SHOW ONE
+]
+
+shows only the first scenario found.
+
 One of the solutions will be this one:
 
 @racketblock[
@@ -233,7 +252,7 @@ conflicted = {[$s, $r]}
 assigned = {}
 ]
 
-@subsection{Understanding Scenario Output}
+@subsubsection{Understanding Scenario Output}
 
 The block above represents a scenario where the query could be 
 satisfied. "SHOW" commands format query results and display them 
@@ -255,54 +274,17 @@ will be printed after information about individual variables.
 
 Note: When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-$s: reviewer subject
+@italic{$s: reviewer subject}
 because a reviewer is always a subject.
 
 
-
 @;--------------------------------------------------------------------
-@section{An IOS Firewall Example}
+@section[#:tag "gs-create"]{Creating Your Own Policy}
 
-Margrave has built-in parsers to handle certain industry-standard 
-configuration languages, such as Cisco's IOS language. In this
-example, we bring Margrave to bear on an IOS configuration, as well
-as asking more complex queries.
+To create your own policy, first decide on its vocabulary. What decisions should it render? What do its requests look like? What contraints always hold in the policy's domain? Then consult @secref["vocabularies"]. Create a text-file with the vocabulary expression and save it with the .v extension.
 
-<<< Don't make it sound like we support *the entire IOS language* >>>
+Once your vocabulary is created, consult @secref["policies"], and create your policy expression in a text-file in the same directory with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
 
 
-@subsection{Loading IOS Configurations}
 
-<<how to load >>
-
-@subsection{Change-Impact Analysis}
-
-<< from section 2; demo.rkt >>
-
-
-@subsection{Rule Applicability}
-
-<<_matches and _applies IDBs>>
-
-<< rule-responsibility; section 2; demo.rkt >>
-
-<< checking for superfluous rules >>
-
-@subsection{Using Margrave Output in Your Programs}
-
-The above query lists all superfluous firewall rules --- it would be even better if we could explain @italic{why} the rules are superfluous. Query output can be re-used programatically to create queries based on prior results. Instead of simply displaying the response, we save it as a racket list:
-
-<<...>>
-
-and then use that list to construct a new query:
-
-<<...>>
-
-The result of this query is a map from each superfluous rule to the set of non-superfluous rules that overlap it. Of course, this mapping can be either printed,
-
-<<example entry in the map>>
-
-or saved as a Racket hash table for re-use:
-
-<<code to save>>
 
