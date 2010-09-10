@@ -32,9 +32,9 @@
 ; These are three different versions of the same configuration. The policies are loaded 
 ; with the suffixes 1,2, and 3 respectively.
 
-(parse-and-load-ios "demo.txt" (build-path margrave-home-path "IOS-simple" "initial") "" "1")
-(parse-and-load-ios "change1.txt" (build-path margrave-home-path "IOS-simple" "change1") "" "2")
-(parse-and-load-ios "change2.txt" (build-path margrave-home-path "IOS-simple" "change2") "" "3")
+(parse-and-load-ios "demo.txt" (build-path margrave-home-path "examples" "policies" "ios-demo" "initial") "" "1")
+(parse-and-load-ios "change1.txt" (build-path margrave-home-path "examples" "policies" "ios-demo" "change1") "" "2")
+(parse-and-load-ios "change2.txt" (build-path margrave-home-path "examples" "policies" "ios-demo" "change2") "" "3")
 
 ; If you have already parsed, and do not want to re-parse, you can load the intermediate IOS policies
 ; directly by using:
