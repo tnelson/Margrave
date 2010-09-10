@@ -102,6 +102,14 @@ state of Margrave, including memory usage and other statistics. The
 @tech{mtext} function runs the command and the @tech{display-response}
 function prints human-readable results.
 
+To load and run an example script for Margrave Lite, use the @racket[run-lite] function.
+For instance, to load the example IOS firewall script, enter this at the 
+REPL prompt:
+
+@racketblock[(run-lite 
+              (build-path margrave-home-path
+                          "examples" "lite" "lite-ios-demo.rkt"))]
+
 To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
 you close Lite Margrave via ctrl-C, the Java-based engine may be left 
 running.
