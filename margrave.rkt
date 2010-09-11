@@ -531,7 +531,12 @@
 
 (define (pause-for-user) 
   (printf "======================== Hit enter to continue. ========================~n~n")
-  (read-line))
+  (local ((define (clear-port-helper)            
+            (when (char-ready?)
+              (read-char))))
+    ; clear out the port before reading the line.
+    (clear-port-helper)
+    (read-line)))
 
 (define (display-response the-response)
   (printf "~a~n" (pretty-print-response-xml the-response)))

@@ -582,7 +582,8 @@
   (let* ((string-buffer (open-output-string))
          (result-element (get-child-element element 'result-handle)))
     (begin 
-      (write-string (string-append "Query created. Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      ; Omit result handle since only zero is ever returned (for the moment).
+      (write-string (string-append "Query created successfully.")) ;Result handle was: " (get-pc-data result-element) "\n") string-buffer)
       ; debug
       ;(display (get-output-string string-buffer))
       (get-output-string string-buffer))))
