@@ -6,9 +6,9 @@ Policies map @tech{request}s to @tech{decision}s. Each @tech{policy} is associat
 
 @margin-note{We are in the process of making the vocabulary and policy languages more intuitive, and new documentation will be forthcoming.}
 
-By way of example, we include the policy and vocabulary from the conference policy in @secref["gs-existing"] below.
+In this section, we use the policy and vocabulary from the conference policy presented in @secref["gs-existing"] as examples.
 
-@subsubsub*section{An Example Policy}
+@subsubsub*section{The Example Policy}
 
 @racketblock[(Policy ConferencePolicy1 uses conferencepolicy
         (Target )
@@ -23,7 +23,7 @@ By way of example, we include the policy and vocabulary from the conference poli
 ]
 
 
-@subsubsub*section{An Example Vocabulary}
+@subsubsub*section{The Example Vocabulary}
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
@@ -70,9 +70,9 @@ Every policy has a single @tech{vocabulary} that dictates what a @tech{request} 
 
 @racket[uses conferencepolicy]
 
-@subsection{@deftech{Target} Condition}
+@subsection{Target Condition}
 
-Similar to a @tech{rule}, a policy condition must be satisfied before any of the policy's rules can apply. A policy with an empty @tech{target} always applies.
+Similar to a @tech{rule}, a policy's @deftech{target} must be satisfied before any of the policy's rules can apply. A policy with an empty @tech{target} always applies.
 
 @racket[(Target )]
 
@@ -86,9 +86,9 @@ A list of statements mapping requests to decisions.  Each @deftech{rule} has a n
 	  (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r))
         )]
 
-@subsection{@deftech{Children}}
+@subsection{Children}
 
-A list of sub-policies that together comprise the parent policy. A policy contains either @tech{rules} or @tech{children} but never both.
+A policy's @deftech{children} are a list of sub-policies that together form the parent policy. A policy contains either @tech{rules} or @tech{children} but never both.
 
 @racket[(Children )]
 
@@ -110,48 +110,15 @@ In @deftech{first-applicable} policies, rules apply in the order in which they a
 @;--------------------------------------------------------------------
 @section[#:tag "vocabularies"]{Elements of a Vocabulary}
 
-
-
-
-
-
-
-
-
-(PolicyVocab ConferencePolicy
-             (Types
-              (Subject : Author Reviewer)
-              (Action : SubmitPaper ReadPaper SubmitReview)
-              (Resource : Paper Review))
-             (Decisions 
-              Permit
-              Deny)
-             (Predicates
-              (Conflicted : Reviewer Paper)
-              (Assigned : Reviewer Paper))
-
-	     (ReqVariables (s : Subject)
-                           (a : Action)
-                           (r : Resource))
-             (OthVariables )
-             (Constraints
-              (disjoint-all Resource)
-              (disjoint-all Action)
-              (atmostone-all Action)
-	      (abstract Subject)
-	      (abstract Action)
-              (abstract Resource)
-              (nonempty Subject)
-              (nonempty Resource)))
-
-
-
+A policy for a door lock may take keys as requests, and decide whether or not the door opens. 
+A phone company policy may take source and destination phone numbers and decide whether the call is denied, toll-free, or toll. 
+Margrave allows users to specify these domain-specific details about a policy using @tech{vocabularies}.
 
 A @deftech{vocabulary} in Margrave contains the following:
 
 @subsection{Types (also called Sorts)}
 
-A hierarchy of types that elements of a request may belong to. 
+A hierarchy of @deftech{type}s (@deftech{sort}s) that elements of a request may belong to. 
 
 @racketblock[(Types
               (Subject : Author Reviewer)
@@ -162,7 +129,10 @@ Top-level sorts (Subject, Action, Resource in the above example) are always pair
 
 @subsection{Predicates}
 
-Relations that hold of request elements. For instance, the relation Assigned from @secref{getting-started-1} contains reviewer-to-paper assignments in a given scenario.
+@deftech{Predicates} represent relations that may hold of request
+properties in a scenario. For instance, the relation Assigned from
+@secref{gs-existing} contains reviewer-to-paper assignments in a 
+given scenario.
 
 @racketblock[(Predicates
               (Conflicted : Reviewer Paper)
@@ -200,21 +170,21 @@ Domain-specific assertions about how sorts and predicates can be populated. Marg
 
 Valid @deftech{constraint} types are:
 
-@subsubsection{@deftech{At-most-one}}
+@subsubsection{At-most-one}
 
-If a sort is @tech{at-most-one} constrained, it can never contain more than one thing.
+If a sort is @deftech{at-most-one} constrained, it can never contain more than one thing.
 
-@subsubsection{@deftech{Singleton}}
+@subsubsection{Singleton}
 
-If a sort is @tech{singleton} constrained, it must contain exactly one thing.
+If a sort is @deftech{singleton} constrained, it must contain exactly one thing.
 
-@subsubsection{@deftech{Nonempty}}
+@subsubsection{Nonempty}
 
-A @tech{nonempty} sort must never be empty.
+A @deftech{nonempty} sort must never be empty.
 
-@subsubsection{@deftech{Abstract}}
+@subsubsection{Abstract}
 
-An @tech{abstract} sort is fully covered by its children. 
+An @deftech{abstract} sort is fully covered by its children. 
 For instance, consider a sort Bit with child sorts ZeroBit and OneBit.
 If Bit is abstract, every Bit must be either a zero or a one. 
 
@@ -222,14 +192,14 @@ If Bit is abstract, every Bit must be either a zero or a one.
 
 A binary predicate P: (A x B) can be constrained to behave as a total or partial function from A to B.
 
-@subsubsection{@deftech{Disjoint}}
+@subsubsection{Disjoint}
 
-Two sorts that are @tech{disjoint} must never share an atom.
+Two sorts that are @deftech{disjoint} must never share an atom.
 
-@subsubsection{@deftech{Subset}}
+@subsubsection{Subset}
 
 Used to enforce subset constraints that cannot be captured in the sort hierarchy. 
-If sort A is constrained to be a @tech{subset} of B, every scenario will have A contained in B, even if B is not a super-sort of A.
+If sort A is constrained to be a @deftech{subset} of B, every scenario will have A contained in B, even if B is not a super-sort of A.
 
 @tech{Disjoint}, @tech{at-most-one}, @tech{singleton}, and @tech{nonempty}
 contraints can be applied to @italic{all} subsorts of a sort at once by using the @racket[-all] suffix.

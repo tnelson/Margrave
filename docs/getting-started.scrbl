@@ -6,23 +6,20 @@
 
 Welcome to Margrave!
 
-Margrave is a tool for analysis of access-control and configuration
+Margrave is a tool for analyzing access-control and configuration
 policies. Margrave allows users to ask questions about the 
 behavior of their policies, such as "Can a student ever access
-another student's grades?" or "Does this new firewall allow any
-unexpected new traffic?" 
+another student's grades?" or "Did my changes to this firewall allow
+any unexpected new traffic?" 
 
 The following examples demonstrate how to get started using Margrave.
 If you have not yet installed Margrave, see @secref{install}. 
-If you have an IOS firewall configuration and want to get started
-immediately, see @secref{gs-ios}. 
-For an instructive non-IOS examples, see 
-@secref{gs-existing}. 
-If you want to create a specific policy in Margrave's
-intermediate language, see @secref{gs-create}. 
+To analyze your own IOS firewall configuration,
+see @secref{gs-ios}. For non-IOS uses, see the overview in 
+@secref{gs-existing} and the instructions for @secref{gs-create}
+in Margrave's intermediate language.
 
-@;The following examples demonstrate Margrave, first on a general
-@;access-control policy, and then on an IOS firewall configuration.
+
 
 Margrave is part of an ongoing research project. We appreciate your
 feedback and suggestions (including feature requests). These can be
@@ -33,12 +30,12 @@ sent to tn@"@"cs.wpi.edu.
 
 There are two versions of Margrave available: lite and full. The lite
 version allows commands and queries to be entered at a prompt. The full
-version requires a Racket installation, but provides a GUI and better
-support for writing programs involving Margrave queries. 
+version provides a GUI and better
+support for writing programs involving Margrave queries, but requires
+installing a host environment. 
 
 @subsection{Lite Margrave}
 
-<<< TN Note: need to get DrRacket on *nix to create Lite for *nix >>>
 
 @itemlist[
   @item{Make sure that you have a recent version of Java installed.
@@ -102,7 +99,7 @@ state of Margrave, including memory usage and other statistics. The
 @tech{mtext} function runs the command and the @tech{display-response}
 function prints human-readable results.
 
-To load and run an example script for Margrave Lite, use the @racket[run-lite] function.
+To load and run a script for Margrave Lite, use the @racket[run-lite] function.
 For instance, to load the example IOS firewall script, enter this at the 
 REPL prompt:
 
@@ -114,21 +111,32 @@ To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
 you close Lite Margrave via ctrl-C, the Java-based engine may be left 
 running.
 
-For more information, see the files in <MARGRAVE_HOME>/examples/lite.
+For more information, see the files in @italic{<MARGRAVE_HOME>/examples/lite}.
 
 @subsection{Running Full Margrave}
 
-With Full Margrave, you can use Margrave in your Racket programs. Simply
-require the appropriate modules! 
+The full version of Margrave runs in DrRacket, the graphical development
+environment for the Racket programming language. 
 
-@margin-note{
-  @bold{Caution:}
+You can use Margrave in your racket programs by importing the Margrave modules.
+To do this, just
+@racket[(require "<margrave-home>/margrave.rkt")], where <margrave-home> is 
+the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
+in the same way.
+
+To run a Margrave script, load the file in DrRacket and click the Run button.
+The bottom half of the screen will provide a REPL prompt similar to the lite version.
+The @racket[run-lite] function is limited to the lite version only.
+
+For more information, including a demonstration of how to import the Margrave
+modules, see the files in @italic{<MARGRAVE_HOME>/examples/full}. 
+
+@subsubsub*section{A Word of Caution}
    
-  When running the full version, always invoke 
-  @racket[(start-margrave-engine)] before
-  attempting to load policies or execute commands.}
+When running the full version, you must start Margrave's scenario-finding engine by
+invoking @racket[(start-margrave-engine)] before
+attempting to load policies or execute commands.
 
-For more information, see the files in @italic{<MARGRAVE_HOME>/examples/full}.
 
   
 @;--------------------------------------------------------------------
@@ -142,6 +150,15 @@ limited to reflexive access-lists.
 
 The IOS modules implement the abstraction given 
 in @cite{nbdfk10}.
+
+Whether you installed the lite or full version of Margrave, 
+the IOS commands are the same, and should be entered at your version's
+command prompt. 
+
+
+
+
+
 
 To parse and load an IOS policy into Margrave, use:
 
@@ -161,37 +178,89 @@ the directory "C:\Margrave\IOS", you should invoke:
 @racket[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
 
 To avoid the awkward double-backslash in Windows, you can use the
-@racket[build-path] Racket function, e.g.:
-@racket[(parse-and-load-ios "config.txt" (build-path "C:" "Margrave" "IOS"))].
+@racket[build-path] Racket function:
+@racketblock[(parse-and-load-ios "config.txt" 
+                                 (build-path "C:" "Margrave" "IOS"))]
 
 
-For detailed examples of running queries in IOS, see the IOS examples
+For detailed examples of running queries in IOS, see the "ios-demo" example
 in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/lite} 
-(depending on your version).
+(depending on your version). If you would like to experiment with a small IOS 
+configuration, we suggest using
+@italic{<MARGRAVE_HOME>/examples/policies/ios-demo/initial/demo.txt}.
 
 @;--------------------------------------------------------------------
 @section[#:tag "gs-existing"]{General Policies in Margrave}
 
-Margrave applies to more than just IOS firewall policies. Its intermediate
+Margrave's intermediate
 policy language can express many different kinds of policy. In this section, 
-we discuss how to use Margrave's intermediate policy language to express
-and analyze non-IOS policies. 
+we discuss how to use the intermediate language to express policies for analysis.
 
 @italic{What does a policy look like in Margrave?}
 
-For details, see @secref{policies}, but for the moment
-a @tech{policy} is just a list of @tech{rules} that each map certain 
-@tech{request}s to @tech{decision}s. 
+A policy's form depends on its @tech{vocabulary}. A vocabulary dictates what
+a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
+and so on.  The vocabulary for this example is:
 
-@;and a method of resolving rule conflicts, such as @tech{first-applicable} or @tech{permit-overrides}.
- 
-@italic{But what is a @tech{request} exactly, and what @tech{decision}s can the policy render?} 
- 
-That depends on what the policy is meant to do. 
-A policy for a door lock may take keys as requests, and decide whether or not the door opens. 
-A phone company policy may take source and destination phone numbers and decide whether the call is denied, toll-free, or toll. 
-Margrave allows users to specify these domain-specific details about a policy using @tech{vocabularies}, which are discussed
-in detail in @secref["vocabularies"].
+
+@racketblock[(PolicyVocab ConferencePolicy
+             (Types
+              (Subject : Author Reviewer)
+              (Action : SubmitPaper ReadPaper SubmitReview)
+              (Resource : Paper Review))
+             (Decisions 
+              Permit
+              Deny)
+             (Predicates
+              (Conflicted : Reviewer Paper)
+              (Assigned : Reviewer Paper))
+
+	     (ReqVariables (s : Subject)
+                           (a : Action)
+                           (r : Resource))
+             (OthVariables )
+             (Constraints
+              (disjoint-all Resource)
+              (disjoint-all Action)
+              (atmostone-all Action)
+	      (abstract Subject)
+	      (abstract Action)
+              (abstract Resource)
+              (nonempty Subject)
+              (nonempty Resource)))
+             ]
+
+
+@secref["vocabularies"] contains details about this language. For now, note that this particular vocabulary gives the following:
+
+@itemlist[
+          @item{A notion of "subjects", "actions", and "resources" and some sub-types for each;}
+          @item{"permit" and "deny" as valid decisions; and}
+          @item{a "subject", an "action", and a "resource" as part of each request.}
+          ]
+
+The policy for this example @tech{uses} the above vocabulary:
+
+@racketblock[(Policy ConferencePolicy1 uses conferencepolicy
+        (Target )
+        (Rules 
+  	  (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
+	  (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
+	  (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r))
+        )
+        (RComb FAC)
+        (PComb FAC)
+	(Children ))
+]
+
+
+
+This @tech{policy} contains three @tech{rules} that each map certain 
+@tech{request}s to @tech{decision}s. For instance, the first rule,
+named PaperNoConflict, causes the policy to permit requests to read 
+papers, provided the subject is not known to be conflicted on the
+paper. (For details, see @secref{policies}.)
+
 
 @subsection{A Brief Example}
 
@@ -287,11 +356,13 @@ because a reviewer is always a subject.
 
 
 @;--------------------------------------------------------------------
-@section[#:tag "gs-create"]{Creating Your Own Policy}
+@section[#:tag "gs-create"]{Creating Your Own Policies}
 
-To create your own policy, first decide on its vocabulary. What decisions should it render? What do its requests look like? What contraints always hold in the policy's domain? Then consult @secref["vocabularies"]. Create a text-file with the vocabulary expression and save it with the .v extension.
+You can create your own policies in the same style as the examples above. @secref["policies"] and @secref["vocabularies"] contain more details on the policy language. Place the vocabulary in a text-file with the .v extension, and the policy in a text-file with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
 
-Once your vocabulary is created, consult @secref["policies"], and create your policy expression in a text-file in the same directory with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
+@;To create your own policy, first decide on its vocabulary. What decisions should it render? What do its requests look like? What contraints always hold in the policy's domain? Then consult @secref["vocabularies"]. Create a text-file with the vocabulary expression and save it with the .v extension.
+
+@;Once your vocabulary is created, consult @secref["policies"], and create your policy expression in a text-file in the same directory with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
 
 
 
