@@ -137,4 +137,8 @@
 ;(stop-margrave-engine)
 
 
+(display-response (mtext "EXPLORE conf1:Deny(s, a, r) AND 
+        reviewer(s) AND paper(r) AND readpaper(a)"))
+(printf "~a~n" (mtext "SHOW ALL"))
+
 

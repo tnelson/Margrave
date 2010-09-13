@@ -29,11 +29,11 @@
 (require "margrave-xml.rkt" "margrave-policy-vocab.rkt")
 
 (provide
- 
  ; Access the parser through these functions only! (They pre-process)
-; port->xml
  parse-and-compile
- evaluate-parse)
+ evaluate-parse 
+ parse-and-compile-read
+ parse-and-compile-read-syntax)
 
 ;
 
@@ -849,7 +849,22 @@
 (define (parse-and-compile s)
   (let ((in (open-input-string (string-downcase s))))
     (port-count-lines! in)
-    (compile-margrave-syntax ((parse "source") (λ() (lex in))))))
+    (compile-margrave-syntax ((parse "source") (lambda () (lex in))))))
+
+
+
+;; Do not use these functions yet. They do not downcase. 
+; Can convert to str, downcase, re-portize OR build a custom port?
+; End goal for these: #lang margrave
+
+(define (parse-and-compile-read in)
+  (port-count-lines! in)
+  (compile-margrave-syntax ((parse "source") (lambda () (lex in)))))
+
+(define (parse-and-compile-read-syntax in src line col pos)
+  (port-count-lines! in)
+  (compile-margrave-syntax ((parse src) (lambda () (lex in)))))
+
 
 ;(define (port->xml in-port)
 ;  (port-count-lines! in-port)

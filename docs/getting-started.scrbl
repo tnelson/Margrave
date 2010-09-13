@@ -22,13 +22,13 @@ in Margrave's intermediate language.
 
 
 Margrave is part of an ongoing research project. We appreciate your
-feedback and suggestions (including feature requests). These can be
-sent to tn@"@"cs.wpi.edu.
+feedback and suggestions (including feature requests). Send these
+to tn@"@"cs.wpi.edu.
 
 @;--------------------------------------------------------------------
 @section[#:tag "install"]{Installing Margrave}
 
-There are two versions of Margrave available: lite and full. The lite
+There are two versions of Margrave: lite and full. The lite
 version allows commands and queries to be entered at a prompt. The full
 version provides a GUI and better
 support for writing programs involving Margrave queries, but requires
@@ -51,7 +51,7 @@ installing a host environment.
         *nix (as a tar.gz file).}
   @item{Extract the distribution archive to the location of your choice.}
   @item{Set your MARGRAVE_HOME environment variable to the location of
-        margrave-repl.exe in the extracted distribution.}      
+        the margrave-repl executable in the extracted distribution.}      
 ]
 
 
@@ -65,7 +65,7 @@ installing a host environment.
         version of Java at 
         
         @url{http://www.java.com/en/download/}.}
-  @item{Download and install Racket. You can download Racket at
+  @item{Download and install Racket from
         
         @url{http://racket-lang.org/download/}}
   @item{Download the FULL Margrave distribution from
@@ -83,13 +83,10 @@ installing a host environment.
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
-@subsection{Running Lite Margrave}
-
-Execute margrave-repl.exe. It will automatically detect where your Java
-installation is located, and attempt to start the Margrave engine from
-the directory you provided via the MARGRAVE_HOME environment variable.
-
-The command prompt accepts Racket commands (in Lisp terms, it is a  
+Both versions of Margrave run in the Racket programming environment.
+Whichever version you use, you will either enter individual commands at the 
+prompt or execute scripts (multiple commands at once). The command prompt 
+accepts Racket commands (in Lisp terms, it is a  
 read-eval-print-loop, or REPL). For instance, entering:
 
 @racket[(display-response (mtext "INFO"))]
@@ -97,9 +94,33 @@ read-eval-print-loop, or REPL). For instance, entering:
 will execute the @tech{INFO} Margrave command, returning information about the 
 state of Margrave, including memory usage and other statistics. The 
 @tech{mtext} function runs the command and the @tech{display-response}
-function prints human-readable results.
+function prints human-readable results. All Margrave commands must be
+wrapped this way. 
 
-To load and run a script for Margrave Lite, use the @racket[run-lite] function.
+@;margin-note{In-lining of Margrave commands in Racket is forthcoming.}
+
+Commands may use standard Racket functions as well. For instance,
+the @racket[build-path] function will construct a relative path:
+
+@racketblock[(build-path margrave-home-path
+                          "examples" "lite" "lite-ios-demo.rkt")]
+
+Use the @racket[margrave-home-path] identifier to refer to the directory given 
+in the MARGRAVE_HOME environment variable.
+
+
+
+@subsection{Running Lite Margrave}
+
+Execute the margrave-repl executable (margrave-repl.exe or ./margrave-repl,
+depending on your OS). It will automatically detect where your Java
+installation is located, and attempt to start the Margrave engine from
+the directory you provided via the MARGRAVE_HOME environment variable.
+
+To execute individual commands, enter them at the prompt.
+
+To load and run a script in Margrave Lite, call the @racket[run-lite] function
+with the relative path of the script file.
 For instance, to load the example IOS firewall script, enter this at the 
 REPL prompt:
 
@@ -116,26 +137,33 @@ For more information, see the files in @italic{<MARGRAVE_HOME>/examples/lite}.
 @subsection{Running Full Margrave}
 
 The full version of Margrave runs in DrRacket, the graphical development
-environment for the Racket programming language. 
+environment for Racket. 
 
-You can use Margrave in your racket programs by importing the Margrave modules.
-To do this, just
-@racket[(require "<margrave-home>/margrave.rkt")], where <margrave-home> is 
-the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
-in the same way.
+To execute individual commands, load the "margrave-repl.rkt" file in DrRacket and click Run.
+It will automatically detect where your Java installation is located. After clicking Run, the 
+bottom half of the screen will provide a REPL prompt similar to the lite version.
 
-To run a Margrave script, load the file in DrRacket and click the Run button.
-The bottom half of the screen will provide a REPL prompt similar to the lite version.
-The @racket[run-lite] function is limited to the lite version only.
 
-For more information, including a demonstration of how to import the Margrave
-modules, see the files in @italic{<MARGRAVE_HOME>/examples/full}. 
+@;You can use Margrave in your racket programs by importing the Margrave modules.
+@;To do this, just
+@;@racket[(require "<margrave-home>/margrave.rkt")], where <margrave-home> is 
+@;the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
+@;in the same way.
+
+To run a Margrave script, load the script file in DrRacket and click the Run button.
+The script will execute, and then a REPL prompt will appear at the bottom of the DrRacket window.
+Do not attempt to use @racket[run-lite] in the full version.
+
+For more information, see the files in @italic{<MARGRAVE_HOME>/examples/full}. 
 
 @subsubsub*section{A Word of Caution}
    
-When running the full version, you must start Margrave's scenario-finding engine by
+Margrave's scenario-finding engine must be started by
 invoking @racket[(start-margrave-engine)] before
-attempting to load policies or execute commands.
+any policies are loaded or Margrave commands are executed. 
+Running margrave-repl.rkt will do this automatically. If you
+are writing your own script, make sure that it calls
+@racket[(start-margrave-engine)].
 
 
   
@@ -148,17 +176,9 @@ ACL-based and map-based dynamic NAT, static routing,
 and policy-based routing. At the moment, our support for state is
 limited to reflexive access-lists.
 
-The IOS modules implement the abstraction given 
-in @cite{nbdfk10}.
-
 Whether you installed the lite or full version of Margrave, 
 the IOS commands are the same, and should be entered at your version's
 command prompt. 
-
-
-
-
-
 
 To parse and load an IOS policy into Margrave, use:
 
@@ -168,7 +188,7 @@ where @racket[config-file-name] is the file name of the configuration
 saved as a text file and @racket[config-file-path] is the directory
 containing the configuration. 
 
-Margrave will produce several intermediate policy files in
+Margrave will produce several intermediate policy files (discussed in Section 4 of @cite{nbdfk10}) in
 @racket[config-file-path] and, if the engine has been started,
 load them.
 
@@ -177,8 +197,8 @@ the directory "C:\Margrave\IOS", you should invoke:
 
 @racket[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
 
-To avoid the awkward double-backslash in Windows, you can use the
-@racket[build-path] Racket function:
+or
+
 @racketblock[(parse-and-load-ios "config.txt" 
                                  (build-path "C:" "Margrave" "IOS"))]
 
@@ -189,19 +209,59 @@ in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/li
 configuration, we suggest using
 @italic{<MARGRAVE_HOME>/examples/policies/ios-demo/initial/demo.txt}.
 
+
+@margin-note{TODO: proofread this}
+
+@subsection{Understanding IOS Scenarios}
+
+"SHOW" commands format query results and display them 
+in this concise format. Issuing a SHOW ONE for an IOS
+query will result in something like this:
+
+@racketblock[
+********* SOLUTION FOUND at size = 15
+src-addr-in: IPAddress
+protocol: prot-tcp
+dest-addr-in: 192.168.5.10
+src-port-in: port
+exit-interface: interface
+entry-interface: fe0
+dest-port-in: port-80
+length: length
+ahostname: hostname-router
+src-addr-out: IPAddress
+message: icmpmessage]
+
+
+
+The scenario above says that the query can be satisfied by when the packet 
+is a TCP request to the host 192.168.5.10 on port 80, entering the firewall at the fe0 interface.
+
+There are no restrictions on the source fields of the packet: "IPAddress" represents some IP
+address not explicitly mentioned in the IOS configuration. Similarly for "Port" and "Interface".
+
+Note: When printing, only the most specific applicable 
+information will be shown. E.g., you will never see
+@italic{src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100},
+since the host 10.100.100.100 is contained in the mask 
+10.0.0.0/255.0.0.0.
+
 @;--------------------------------------------------------------------
 @section[#:tag "gs-existing"]{General Policies in Margrave}
 
 Margrave's intermediate
-policy language can express many different kinds of policy. In this section, 
+language can capture many different kinds of policies. In this section, 
 we discuss how to use the intermediate language to express policies for analysis.
 
 @italic{What does a policy look like in Margrave?}
 
 A policy's form depends on its @tech{vocabulary}. A vocabulary dictates what
 a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
-and so on.  The vocabulary for this example is:
+and so on.  
 
+Let's examine one of Margrave's built-in examples, 
+an access-control policy for a conference management system.
+The vocabulary for this example is:
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
@@ -262,12 +322,8 @@ papers, provided the subject is not known to be conflicted on the
 paper. (For details, see @secref{policies}.)
 
 
-@subsection{A Brief Example}
+@subsection{Example Queries}
 
-Let's examine one of Margrave's built-in examples, 
-an access-control policy for a conference management system.
-In this basic example, a request contains a subject, an action,
-and a resource, and a decision is either permit or deny.
 
 Margrave loads policies using the @racket[load-policy] function. 
 @racket[load-policy] takes a single parameter: the filename of the policy file.
@@ -280,16 +336,16 @@ If the policy loads successfully, @racket[load-policy] returns the policy's iden
 
 @racket["ConferencePolicy"]
 
-This policy acts based on the roles of users (Are they a reviewer? An author?) and the nature of the resource they are trying to access (A paper? A review?)
+@; no longer belongs here
+@;This policy acts based on the roles of users (Are they a reviewer? An author?) and the nature of the resource they are trying to access (A paper? A review?)
+
 
 Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
 The following Margrave query captures this question. 
 
-<<< need to insert this into examples rkt file and test >>>
-
 @racketblock[
-EXPLORE ConferencePolicy:Deny(s, a, r) AND 
-        reviewer(s) AND paper(r) AND readpaper(a)
+(display-response (mtext "EXPLORE ConferencePolicy:Deny(s, a, r) AND 
+                         reviewer(s) AND paper(r) AND readpaper(a)"))
 ]        
 
 @italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]
@@ -307,13 +363,13 @@ Once the query is created,
 we can ask for @italic{all} scenarios that satisfy the query with:
 
 @racketblock[
-SHOW ALL
+(printf "~a~n" (mtext "SHOW ALL"))
 ]
             
 whereas 
 
 @racketblock[
-SHOW ONE
+(printf "~a~n" (mtext "SHOW ONE"))
 ]
 
 shows only the first scenario found.
@@ -334,12 +390,12 @@ assigned = {}
 The block above represents a scenario where the query could be 
 satisfied. "SHOW" commands format query results and display them 
 in this concise format. The scenario above says:
-"The query can be satisfied by when the Subject is
+"The query can be satisfied when the Subject is
 both a Reviewer and an Author, the Resource is a Paper, and 
 the action is reading the paper, provided that
 the subject is Conflicted on the Paper but not Assigned to it."
 
-Here, $s $a and $r correspond to the variables that appear in
+Here, $s, $a, and $r correspond to the variables that appear in
 the query.
 Size = 3 means that in this scenario, there were 3 objects. 
 In this case, one is BOTH a Reviewer and an

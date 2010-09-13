@@ -23,6 +23,34 @@ tells Margrave to look for scenarios where @italic{x} is either an administrator
 
 Clauses enclosed in [] are optional, and can appear in any order.
 
+A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, and NOT) of atomic formulas. An atomic formula is of the form:
+
+@itemlist[
+          @item{x = y, where x and y are variable symbols}
+          @item{sortname(x), where sortname is the name of a sort in the statement's vocabulary context and x is a variable symbol;}
+          @item{predname(x1, ..., xk), where predname is the name of a k-ary predicate in the statement's vocabulary context and x1, ..., xk are (not necessarily distinct) variable symbols;}
+          @item{policyid:idbname(x1, ..., xk), where policyID is an identifier for a policy with a k-ary request vector, idbname is a valid IDB in that policy, and x1,...,xk are (not necessarily distinct) variable symbols;}
+          @item{savedquery(x1, ..., xk), where savedquery is an identifier for a k-ary saved query, and x1, ..., xk are (not necessarily distinct) variable symbols}
+          ]
+
+@margin-note{
+-- does not include recent syntactic sugar (x=A/A=x; IN)
+
+-- IDB above, need to clarify (decision, rule match, rule applies)
+
+-- Every EXPLORE statement has a vocabulary context [terrible name; terrible description. can we get away with not describing the vocabulary combination process in this doc?]: The vocabularies of all policies that appear in the <condition> and the UNDER clause
+
+
+--Note to Dan: In later version of language, want to know the difference between a variable and a sort/pred/idb at the lexer level... sugar is difficult now because "sort-ness" resides in java engine
+}
+
+
+
+
+
+
+
+
 The @deftech{UNDER} clause adds policies to the query's scope that do not appear in the query condition.
 If a condition does not explicitly refer to a policy, the query must include an UNDER clause.
 
