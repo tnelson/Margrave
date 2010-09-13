@@ -195,8 +195,7 @@ load them.
 For instance, if you have a configuration saved to a file config.txt in
 the directory "C:\Margrave\IOS", you should invoke:
 
-@racket[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
-
+@racketblock[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
 or
 
 @racketblock[(parse-and-load-ios "config.txt" 
@@ -209,17 +208,13 @@ in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/li
 configuration, we suggest using
 @italic{<MARGRAVE_HOME>/examples/policies/ios-demo/initial/demo.txt}.
 
-
-@margin-note{TODO: proofread this}
-
 @subsection{Understanding IOS Scenarios}
 
 "SHOW" commands format query results and display them 
-in this concise format. Issuing a SHOW ONE for an IOS
-query will result in something like this:
+in a concise format. A SHOW ONE command for an IOS
+query will produce output in this style:
 
 @racketblock[
-********* SOLUTION FOUND at size = 15
 src-addr-in: IPAddress
 protocol: prot-tcp
 dest-addr-in: 192.168.5.10
@@ -230,21 +225,28 @@ dest-port-in: port-80
 length: length
 ahostname: hostname-router
 src-addr-out: IPAddress
+dest-addr-out: 192.168.5.10
 message: icmpmessage]
-
-
 
 The scenario above says that the query can be satisfied by when the packet 
 is a TCP request to the host 192.168.5.10 on port 80, entering the firewall at the fe0 interface.
+There are no restrictions on the source fields of the packet header in this
+scenario: "IPAddress" represents some IP address not explicitly
+mentioned in the IOS configuration. Similarly for "Port" and "Interface".
 
-There are no restrictions on the source fields of the packet: "IPAddress" represents some IP
-address not explicitly mentioned in the IOS configuration. Similarly for "Port" and "Interface".
+The @italic{message} binding is only applicable for ICMP packets,
+and can be ignored in this scenario. The @italic{length} binding is not yet used.
+The @italic{-out} bindings give information about NAT effects on the packet; there
+are none in this scenario.
 
-Note: When printing, only the most specific applicable 
+
+When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-@italic{src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100},
-since the host 10.100.100.100 is contained in the mask 
-10.0.0.0/255.0.0.0.
+@racketblock[src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100]
+
+since the host 10.100.100.100 is always contained in the network 
+10.0.0.0/255.0.0.0. Instead, you would see
+@racketblock[src-addr-in: 10.100.100.100]
 
 @;--------------------------------------------------------------------
 @section[#:tag "gs-existing"]{General Policies in Margrave}
@@ -344,8 +346,9 @@ Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
 The following Margrave query captures this question. 
 
 @racketblock[
-(display-response (mtext "EXPLORE ConferencePolicy:Deny(s, a, r) AND 
-                         reviewer(s) AND paper(r) AND readpaper(a)"))
+(display-response 
+ (mtext "EXPLORE ConferencePolicy:Deny(s, a, r) AND "
+        "reviewer(s) AND paper(r) AND readpaper(a)"))
 ]        
 
 @italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]

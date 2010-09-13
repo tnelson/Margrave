@@ -170,36 +170,19 @@ Domain-specific assertions about how sorts and predicates can be populated. Marg
 
 Valid @deftech{constraint} types are:
 
-@subsubsection{At-most-one}
+@itemlist[
+           @item{@bold{At-most-one}: If a sort is @deftech{at-most-one} constrained, it can never contain more than one thing.}
+           @item{@bold{Singleton}: If a sort is @deftech{singleton} constrained, it must contain exactly one thing.}
+           @item{@bold{Nonempty}: A @deftech{nonempty} sort must never be empty.}
+           @item{@bold{Abstract}: An @deftech{abstract} sort is fully covered by its children. 
+                  For instance, consider a sort Bit with child sorts ZeroBit and OneBit.
+                  If Bit is abstract, every Bit must be either a zero or a one. }
+           @item{@bold{Function}: A binary predicate P: (A x B) can be constrained to behave as a total or partial function from A to B.}
+           @item{@bold{Disjoint}: Two sorts that are @deftech{disjoint} must never share an atom.}
+           @item{@bold{Subset}: Used to enforce subset constraints that cannot be captured in the sort hierarchy. 
+                  If sort A is constrained to be a @deftech{subset} of B, every scenario will have A contained in B, even if B is not a super-sort of A.}
+           ]
+           
 
-If a sort is @deftech{at-most-one} constrained, it can never contain more than one thing.
-
-@subsubsection{Singleton}
-
-If a sort is @deftech{singleton} constrained, it must contain exactly one thing.
-
-@subsubsection{Nonempty}
-
-A @deftech{nonempty} sort must never be empty.
-
-@subsubsection{Abstract}
-
-An @deftech{abstract} sort is fully covered by its children. 
-For instance, consider a sort Bit with child sorts ZeroBit and OneBit.
-If Bit is abstract, every Bit must be either a zero or a one. 
-
-@subsubsection{Function (Total, Partial)}
-
-A binary predicate P: (A x B) can be constrained to behave as a total or partial function from A to B.
-
-@subsubsection{Disjoint}
-
-Two sorts that are @deftech{disjoint} must never share an atom.
-
-@subsubsection{Subset}
-
-Used to enforce subset constraints that cannot be captured in the sort hierarchy. 
-If sort A is constrained to be a @deftech{subset} of B, every scenario will have A contained in B, even if B is not a super-sort of A.
-
-@tech{Disjoint}, @tech{at-most-one}, @tech{singleton}, and @tech{nonempty}
-contraints can be applied to @italic{all} subsorts of a sort at once by using the @racket[-all] suffix.
+The constraints @tech{Disjoint}, @tech{at-most-one}, @tech{singleton}, and @tech{nonempty}
+can be applied to @italic{all} subsorts of a sort at once by using the @racket[-all] suffix.
