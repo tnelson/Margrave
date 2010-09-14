@@ -41,8 +41,8 @@
 
 (define (margrave-repl-exit-handler n)
   ; If stop-margrave-engine fails, don't gum up the exit.
-  (with-handlers (((lambda (e) #t) 
-                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))))
+  (with-handlers ([(lambda (e) #t) 
+                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))])
     (stop-margrave-engine))  
   (orig-exit-handler n))
 
@@ -51,9 +51,14 @@
 ; For the REPL, we don't support #lang and require, etc. in scripts.
 ; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
 
+;; !!! TODO
 (define (run-lite filename)
-  (parameterize ([current-namespace margrave-repl-namespace])
-    (load filename)))
+  ;(parameterize ([current-namespace margrave-repl-namespace])
+  (parameterize ([current-namespace (make-base-empty-namespace)])
+;    (load filename)))
+    (if (relative-path? filename)
+        (namespace-require filename)
+        (namespace-require `(file ,filename)))))
 
 
 

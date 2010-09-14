@@ -6,8 +6,6 @@
 
 @section[#:tag "query-language"]{The Query Sub-Language}
 
-@margin-note{BNF and semantics coming later...}
-
 Margrave's query language contains only one statement: @deftech{EXPLORE}. Explore statements instruct Margrave to look for scenarios that satisfy the statement's conditions. For instance,
 
 @racketblock[EXPLORE administrator(x) OR (CEO(y) AND supervisor(y, x))]
@@ -25,28 +23,36 @@ tells Margrave to look for scenarios where @italic{x} is either an administrator
 
 Clauses enclosed in [] are optional, and can appear in any order.
 
-A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, and NOT) of @tech{atomic formula}s. An @deftech{atomic formula} is one of:
+A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, NOT, and parentheses) of @tech{atomic formula}s. An @deftech{atomic formula} is one of:
 
 @itemlist[
-          @item{An @deftech{atomic sort formula}: 
+          @item{An @deftech{atomic type formula}: 
                 @itemlist[
-                          @item{@bold{sortname(x)}, where sortname is the name of a sort in the statement's @tech{vocabulary context} and x is a variable symbol;}
-                          @item{@bold{x IN sortname}, where sortname is the name of a sort in the statement's @tech{vocabulary context} and x is a variable symbol;}
-                          @item{@bold{x = sortname}, where sortname is the name of a @tech{at-most-one}
-                                 or @tech{singleton} constrained sort in the statement's @tech{vocabulary context} and x is a variable symbol}
+                          @item{@bold{typename(x)}, where typename is the name 
+                                 of a type in the statement's @tech{vocabulary context} and x is a variable symbol;}
+                          @item{@bold{x IN typename}, where typename is the
+                                 name of a type in the statement's @tech{vocabulary context} and x is a variable symbol;}
+                          @item{@bold{x = typename}, where typename is the name of a @tech{at-most-one}
+                                 or @tech{singleton} constrained type in the
+                                 statement's @tech{vocabulary context} and x is a variable symbol}
                            ]}
           @item{An @deftech{atomic predicate formula}:
                 @itemlist[
-                          @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})}, where predname is the name of a k-ary predicate
-                                 in the statement's @tech{vocabulary context} and x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols;}                          
-                          @item{@bold{(x@subscript{1}, ..., x@subscript{k})IN predname}, where predname is the name of a k-ary predicate in 
-                                 the statement's @tech{vocabulary context} and x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
+                          @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})},
+                                 where predname is the name of a k-ary predicate
+                                 in the statement's @tech{vocabulary context} and
+                                 x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols;}  
+                           
+                          @item{@bold{(x@subscript{1}, ..., x@subscript{k})IN predname},
+                                 where predname is the name of a k-ary predicate in 
+                                 the statement's @tech{vocabulary context} and
+                                 x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
                           ]}
           @item{An @deftech{atomic IDB formula}:
                 @itemlist[
                           @item{@bold{policyid:idbname(x@subscript{1}, ..., x@subscript{k})}, where policyid is an identifier
-                                for a policy with a k-ary request vector, idbname is a valid IDB
-                                in that policy (such as a decision name; see @cite{nbdfk10}), 
+                                for a policy with a k-ary request vector, idbname is a valid @tech{IDB}
+                                in that policy), 
                                 and x@subscript{1},...,x@subscript{k} are (not necessarily distinct) variable symbols;}
                            
                           @item{@bold{savedquery(x@subscript{1}, ..., x@subscript{k})}, where savedquery is an identifier for a
@@ -57,7 +63,7 @@ A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, and NOT) of @
 
 @margin-note{The saved query identifier @bold{last} always refers to the last successful EXPLORE statement.}
 
-@;bold{!!! TODO --- To discuss with Dan: In later version of language, want to know the difference between a variable and a sort/pred/idb at the lexer level. sugar is difficult now because "sort-ness" resides in java engine}
+@;bold{!!! TODO --- To discuss with Dan: In later version of language, want to know the difference between a variable and a type/pred/idb at the lexer level. sugar is difficult now because "type-ness" resides in java engine}
 
 Every EXPLORE statement has a @deftech{vocabulary context}: the set of
 vocabularies across all policies mentioned in the query's <condition>
@@ -65,10 +71,17 @@ and its UNDER clause, if any. If the policies have incompatable vocabularies
 (for example, if they both define the same predicate name, but with a
 different arity) the query will return an error. 
 
+@;Every policy provides the following set of @deftech{IDB} names for use in queries:
+@;@itemlist[
+@;          @item{Each @tech{decision} that the policy can render;}
+@;           @item{For each rule R, }
+   @;        @item{For each rule R, }
+  @;        ]
 
-
-
-
+The term @deftech{IDB} is taken from the database field.
+Each policy provides a set of @tech{IDB}s that represent
+policy decisions, rule applicability, and more.
+For details, see Section 2 of @cite{nbdfk10}. 
 
 The @deftech{UNDER} clause adds policies to the query's @tech{vocabulary context} that do not appear in the query <condition>.
 If the <condition> does not explicitly refer to a policy, the query must include an UNDER clause.
@@ -79,9 +92,13 @@ The @deftech{TUPLING} clause activates the optional tupling optimization.
 
 The syntax of the @deftech{INCLUDE} clause differs depending on whether tupling has been enabled.
 
-If @tech{TUPLING} is not enabled, then the @tech{INCLUDE} clause contains a list of policy IDB names (see the Margrave firewall paper @cite{nbdfk10} for more information}) that should be included explicitly in scenario output. By default, no policy IDBs will appear in scenario output, since there is overhead involved in explicitly computing each.
+@itemlist[ #:style #f
 
-If @tech{TUPLING} is enabled, then the @tech{INCLUDE} clause contains a list of @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and @tech{atomic sort formula}s whose truth should be included in scenario output.
+           @item{If @tech{TUPLING} is not enabled, then the @tech{INCLUDE} clause contains a list of policy @tech{IDB} names (see the Margrave firewall paper @cite{nbdfk10} for more information) that should be included explicitly in scenario output. By default, no policy @tech{IDB}s will appear in scenario output, since there is overhead involved in explicitly computing each.}
+
+            @item{If @tech{TUPLING} is enabled, then the @tech{INCLUDE} clause contains a list of @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and @tech{atomic type formula}s whose truth should be included in scenario output. The atomic formulas given must only use variables that appear in the <condition>.}
+
+]
 
 @; really is "truth" above. hundreds of INCLUDEs possible with tupling, and scenarios got very very cluttered. Consider use case: "which rule applies?" Only want to see the positives.
 
@@ -115,12 +132,12 @@ If the @tech{TUPLING} optimization is enabled, the following commands also becom
 
 @deftech{SHOW (UN)REALIZED <atom>, ...}: Given a list ("candidates") of 
 @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and
-@tech{atomic sort formula}s, 
+@tech{atomic type formula}s, 
 returns a list of all atomic formualas given that can be true in a satisfying scenario.
 
 @deftech{SHOW (UN)REALIZED <atom>, ... FOR CASES <atom>, ...}: 
 Given two lists ("candidates" and "cases") of @tech{atomic IDB formula}s, 
-@tech{atomic predicate formula}s, and @tech{atomic sort formula}s,
+@tech{atomic predicate formula}s, and @tech{atomic type formula}s,
 returns a map taking each case to a separate @tech{SHOW (UN)REALIZED} list
 where the case was included in the <condition>.
 

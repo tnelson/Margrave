@@ -195,7 +195,7 @@ load them.
 For instance, if you have a configuration saved to a file config.txt in
 the directory "C:\Margrave\IOS", you should invoke:
 
-@racketblock[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")].
+@racketblock[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")]
 or
 
 @racketblock[(parse-and-load-ios "config.txt" 
@@ -298,7 +298,7 @@ The vocabulary for this example is:
 @itemlist[
           @item{A notion of "subjects", "actions", and "resources" and some sub-types for each;}
           @item{"permit" and "deny" as valid decisions; and}
-          @item{a "subject", an "action", and a "resource" as part of each request.}
+          @item{a "subject", an "action", and a "resource" as part of each request (given by the ReqVariables construct).}
           ]
 
 The policy for this example @tech{uses} the above vocabulary:
@@ -387,8 +387,6 @@ $a: readpaper
 conflicted = {[$s, $r]}
 assigned = {}
 ]
-
-@subsubsection{Understanding Scenario Output}
 
 The block above represents a scenario where the query could be 
 satisfied. "SHOW" commands format query results and display them 

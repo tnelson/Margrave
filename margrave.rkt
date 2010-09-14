@@ -81,14 +81,11 @@
     (printf "Searching for java.exe ...~n")
     (let* ([path-value (getenv "path")]
            [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
-           [paths-with-java (filter (lambda (a-path)
-                                      ;(printf "    searching in: ~a~n" a-path)
-                                      (and (> (string-length a-path) 0)                                     
-                                           (file-exists? (build-path a-path "java.exe"))))
-                                    env-paths)]
-           [the-path (if (empty? paths-with-java)
-                         ""
-                         (first paths-with-java))])
+           [paths-with-java (findf (lambda (a-path) ; find first match in list                                    
+                                     (and (> (string-length a-path) 0)                                     
+                                          (file-exists? (build-path a-path "java.exe"))))
+                                   env-paths)]
+           [the-path (or paths-with-java "")])
       (if (equal? the-path "")
           (printf "Could not find java.exe in PATH. Margrave will be unable to run.~n")
           (printf "Using the java.exe in: ~a~n" the-path))
@@ -110,13 +107,13 @@
 
 (define default-margrave-home-path-env "MARGRAVE_HOME")
 (define default-margrave-home-path 
-  (if (equal? (getenv default-margrave-home-path-env) #f)
-      (current-directory)
-      (getenv default-margrave-home-path-env)))
+  (or (getenv default-margrave-home-path-env)
+      (current-directory)))
+      
 (define margrave-home-path #f)
 
 (define (build-classpath-param home-path)
-  (string-append
+  (string-append ;; gmarceau : string-join
    
    ;For testing, use the .class files instead of the .jar:
    (path->string
@@ -149,10 +146,17 @@
                 "bin"
                 "json.jar"))))
 
+#|
+gmarceau
+(define (engine-has-died?) ...)
+(define (engine-never-started?) ...)
+(define (engine-needs-starting)  ...)
+|#
+
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-(define (start-margrave-engine (home-path default-margrave-home-path) (user-jvm-params empty) (user-margrave-params empty))
+(define (start-margrave-engine [home-path default-margrave-home-path] [user-jvm-params empty] [user-margrave-params empty])
   ; If the engine isn't running (either uninitialized, or it died before we called this)
-  (if (or (eq? java-process-list #f) 
+  (if (or (not java-process-list) 
           (not (eq? (ctrl-function 'status) 'running)))
       (let* ([ vital-margrave-params
                (list "-cp"
@@ -168,6 +172,7 @@
         (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
                 home-path java-path user-jvm-params user-margrave-params)
         (printf "--------------------------------------------------~n")
+        ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
         (set! java-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
@@ -192,15 +197,14 @@
   (set! margrave-home-path #f))
 
 (define (stop-margrave-engine)
-  (if (eq? java-process-list #f)
-      #f
+  (or (not java-process-list)
       (begin
         (send-and-receive-xml "<MARGRAVE-COMMAND type=\"QUIT\" />")
         (ctrl-function 'kill)  ; may not be necessary
         
         (flush-output output-port)    
         (cleanup-margrave-engine)
-        #t))) 
+        #t)))
 
 
 ; ***************************************************************************************
@@ -215,24 +219,29 @@
 ; string (arbitrary number which will be automatically concatenated) -> document or #f
 ; parses and compiles the string command into XML, executes it,
 ; and returns the result document.
-(define mtext
-  (lambda cmd    
-    ; May be a semicolon-separated script of commands
-    (let* ([cmd-func-syntax (parse-and-compile (apply string-append cmd))]
-           [cmd-closure (eval cmd-func-syntax the-margrave-namespace)]
-           [response-docs (cmd-closure)])  
-          
-      ; DEBUG
-      ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
-      ;(printf "RESPONSE-DOCS: ~a~n" response-docs)
-      
-      ; Return the XML document or list of replies
-      (cond [(and (list? response-docs) (> (length response-docs) 1))
-             response-docs]
-            [(list? response-docs)
-             (first response-docs)]
-            [else ; not a list, single response
-             response-docs]))))
+(define (mtext . cmd)
+  ; May be a semicolon-separated script of commands
+  (let* ([cmd-func-syntax (parse-and-compile (string-append* cmd))]
+         [cmd-closure (eval cmd-func-syntax the-margrave-namespace)]
+         [response-docs (cmd-closure)])  
+    
+    ; DEBUG
+    ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
+    ;(printf "RESPONSE-DOCS: ~a~n" response-docs)
+    
+    ; Return the XML document or list of replies
+    #| gmarceau
+    (match response-docs
+      [(list one) one]
+      [(list items ...) items]
+      [else response-docs])
+|#
+    (cond [(and (list? response-docs) (> (length response-docs) 1))
+           response-docs]
+          [(list? response-docs)
+           (first response-docs)]
+          [else ; not a list, single response
+           response-docs])))
 
   
 
@@ -242,6 +251,14 @@
 ; Default handler for responses: throw user errors if needed
 ; xml doc ---> xml doc
 (define (default-response-handler xml-response)
+  #| gmarceau
+  (match xml-response
+    [(? response-is-exception?)
+     ...]
+    [(? response-is-error?)
+     ...]
+    [else ...]))
+|#
   (cond [(response-is-exception? xml-response) 
          (raise-user-error 'margrave-error "~a~n"
                            (pretty-print-response-xml xml-response) )
@@ -257,18 +274,16 @@
 (define (flush-error error-buffer target-port)  ; read until nothing is left. This WILL block.
   (let ([next-char (read-char target-port)])                                                
     (when (not (equal? next-char eof))
-      (begin
-        (write-string (string next-char) error-buffer)
-        (flush-error error-buffer target-port)))))
+      (write-string (string next-char) error-buffer)
+      (flush-error error-buffer target-port))))
 
 
 (define (finish-error error-buffer target-port)
   (when (char-ready? err-port)  ; If there is a character waiting, read it.
     (let ([next-char (read-char target-port)])
       (when (not (equal? next-char eof))
-        (begin
-          (write-string (string next-char) error-buffer)
-          (finish-error error-buffer target-port))))))
+        (write-string (string next-char) error-buffer)
+        (finish-error error-buffer target-port)))))
 
 
 ; m
@@ -276,8 +291,9 @@
 ; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 ; Optional response handler func may change the result XML, throw exceptions, etc.
-(define (send-and-receive-xml cmd (response-handler-func default-response-handler))
-  (if (equal? java-process-list #f) 
+(define (send-and-receive-xml cmd [response-handler-func default-response-handler])
+  ;; gmarceau: use cond perhaps? 
+  (if (not java-process-list) 
       (begin
         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
         #f)
@@ -384,7 +400,13 @@
 ; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
 ; to the backend in lower-case.
 (define (load-policy fn)
-  
+  #| gmarceau
+  (match-define 
+   (list polname vocabname
+         (app make-simple-script vocab-script)
+         (app make-simple-script policy-script))
+   (evaluate-policy fn))
+  |#
   (let* ([pol-result-list (evaluate-policy fn)]
          [polname (first pol-result-list)]
          [vocabname (second pol-result-list)]
@@ -406,9 +428,14 @@
 
 
 (define (make-simple-script list-of-xml)
-  `(lambda () (begin ,@(map (lambda (an-xml) 
+#| gmarceau personal preference:
+  `(lambda () ,@(for/list ([an-xml list-of-xml])
+                          `(send-and-receive-xml ,an-xml))))
+|#
+  
+  `(lambda () ,@(map (lambda (an-xml) 
                        `(send-and-receive-xml ,an-xml))
-                     list-of-xml))))
+                     list-of-xml)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -433,7 +460,14 @@
 ; Functions to support easier query string creation
 
 ; get-idbname-list
-(define (get-rule-list pol (decision ""))
+(define (get-rule-list pol [decision ""])
+#| gmarceau
+  (define str (string-append "GET RULES IN " pol
+                             (match decision
+                               ["" ""] [else " WITH DECISION " decision])))
+  (xml-list-response->list (document-element (mtext str))))
+|#
+  
   (if (equal? decision "")      
       (xml-list-response->list (document-element (mtext (string-append "GET RULES IN " pol))))
       (xml-list-response->list (document-element (mtext (string-append "GET RULES IN " pol " WITH DECISION " decision))))))
@@ -455,11 +489,13 @@
   (let ([polprefix (if (equal? polname "")
                        ""
                        (string-append polname ":"))])
-    (map (lambda (rulename)
-           (if (equal? (string-contains rulename ":") #f)
-               (string-append polprefix rulename suffix)
-               (string-append polprefix "\"" rulename suffix "\"")))
-         rlist)))
+    (for/list ([rulename rlist])
+              (if (string-contains rulename ":")
+                  #| gmarceau (format "~a\"~a\"" polprefix rulename suffix) |#
+
+                  (string-append polprefix "\"" rulename suffix "\"")
+                  (string-append polprefix rulename suffix)))))
+
 
 (define (make-applies-list rlist (polname ""))
   (make-idb-list-with-suffix rlist "_applies" polname))
@@ -554,7 +590,7 @@
 ; Initial value
 (define tick-tock #f)
 (define (time-since-last)
-  (if (eq? tick-tock #f)
+  (if (eq? tick-tock #f) ; gmarceau
       (begin 
         (set! tick-tock (current-inexact-milliseconds))
         #f)
