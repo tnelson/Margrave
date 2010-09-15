@@ -33,7 +33,9 @@
  parse-and-compile
  evaluate-parse 
  parse-and-compile-read
- parse-and-compile-read-syntax)
+ parse-and-compile-read-syntax
+ 
+ make-simple-script)
 
 ;
 
@@ -286,7 +288,6 @@
      [(add-statement) $1]
      
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
-     ;[(LOAD exp) (build-so (list 'LOAD $2) 1 2)]
      
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
 
@@ -553,8 +554,8 @@
         ; So create an uber-func that does both
         [(equal? first-datum 'LOAD-POLICY)
          (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns))))])
-           (compose-scripts (list (third policy-creation-list)
-                                  (fourth policy-creation-list))))]
+           (make-simple-script (append (third policy-creation-list)
+                                       (fourth policy-creation-list))))]
         
         ; ************************************        
         ; Commands are handled here. Inner syntax is handled by
@@ -682,10 +683,11 @@
         [else
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
-;; TODO
-; Design for this is not so good right now. Needs work
+
 (define (compose-scripts list-of-func-syntax)
-  0)
+  ;(printf "CS: ~a~n" list-of-func-syntax)
+  `(lambda () (list ,@(map (lambda (f) `(,f)) 
+                           list-of-func-syntax))))
 
 ; Show-all is based on get-all
 (define (make-show-all explore-id)
@@ -725,6 +727,16 @@
 ; It gets evaluated in a context where we know what the symbol means.
 (define (make-single-wrapper thexml)
   `(lambda () (send-and-receive-xml ,thexml)))
+
+(define (make-simple-script list-of-xml)
+#| gmarceau personal preference:
+  `(lambda () ,@(for/list ([an-xml list-of-xml])
+                          `(send-and-receive-xml ,an-xml))))
+|#
+  
+  `(lambda () (list ,@(map (lambda (an-xml) 
+                             `(send-and-receive-xml ,an-xml))
+                           list-of-xml))))
 
 (define (syntax->string s)
   (symbol->string (syntax->datum s)))

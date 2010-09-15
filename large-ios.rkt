@@ -37,8 +37,10 @@
 
 
 
-(define (run-timed-script pFileName1 pFileName2 target-interface target-src-address)
+;(define (run-timed-script pFileName1 pFileName2 target-interface target-src-address)
   
+(define (run-timed-script pFileName1 pFileName2)
+
   ; Start the Java process
   (start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g")  ) 
    ;(start-margrave-engine (current-directory) '("-Xss2048k" "-Xmx1g") '("-log") ) 
@@ -76,42 +78,42 @@
   (time-since-last) ; reset timer
    
   
-  
-  
-  ; ------------------------------------------------------------------
-  ;   Which-packets #1: Can a certain address ever be permitted?
-  ;   Identity of server is passed as param in order to preserve privacy
-  ;   of the network.
-  ;   second version of the policy was changed to permit this blacklisted
-  ;   addr through
-  ; ------------------------------------------------------------------
- 
-  (printf "Which-packets #1~n")
-  (display-response (mtext "EXPLORE InboundACL2:permit" reqpol " AND "
-                           ;" entry-interface = " target-interface
-                           target-interface "(entry-interface) AND "
-                           ;" AND src-addr-in = " target-src-address
-                           target-src-address "(src-addr-in) "
-                           " TUPLING"))
-  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-  ;    (begin
-  ;      (printf "-------------------------------------------------~n")
-  ;      (printf "It is indeed possible:~n")
-  ;      (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE"))   ;;)
-  ;    (printf "No, the query was impossible.~n~n"))
-
-  (define n-which-1 (time-since-last))
-  (write-string (string-append (number->string n-which-1) ", ") log-file)  
-  (printf "Time: ~a~n " n-which-1)
-  
-  
-  
-  ; ------------------------------------------------------------------
-  ;   Which-packets #1: same, with rule-blaming
-  ; ------------------------------------------------------------------
- 
-  ; assemble query (no "all rule applies" keyword in include yet)
+;  
+;  
+;  ; ------------------------------------------------------------------
+;  ;   Which-packets #1: Can a certain address ever be permitted?
+;  ;   Identity of server is passed as param in order to preserve privacy
+;  ;   of the network.
+;  ;   second version of the policy was changed to permit this blacklisted
+;  ;   addr through
+;  ; ------------------------------------------------------------------
+; 
+;  (printf "Which-packets #1~n")
+;  (display-response (mtext "EXPLORE InboundACL2:permit" reqpol " AND "
+;                           ;" entry-interface = " target-interface
+;                           target-interface "(entry-interface) AND "
+;                           ;" AND src-addr-in = " target-src-address
+;                           target-src-address "(src-addr-in) "
+;                           " TUPLING"))
+;  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+;  ;    (begin
+;  ;      (printf "-------------------------------------------------~n")
+;  ;      (printf "It is indeed possible:~n")
+;  ;      (printf "-------------------------------------------------~n")
+;        (display-response (mtext "GET ONE"))   ;;)
+;  ;    (printf "No, the query was impossible.~n~n"))
+;
+;  (define n-which-1 (time-since-last))
+;  (write-string (string-append (number->string n-which-1) ", ") log-file)  
+;  (printf "Time: ~a~n " n-which-1)
+;  
+;  
+;  
+;  ; ------------------------------------------------------------------
+;  ;   Which-packets #1: same, with rule-blaming
+;  ; ------------------------------------------------------------------
+; 
+;  ; assemble query (no "all rule applies" keyword in include yet)
   (define all-rules-1 (get-rule-list "InboundACL1"))
   (define all-applied-1 (make-applies-list all-rules-1 "InboundACL1"))
   (define all-rules-2 (get-rule-list "InboundACL2"))
@@ -122,36 +124,36 @@
   (define all-matches-2 (make-matches-list all-rules-2 "InboundACL2"))
   (define idblistmatches-1 (makeIdbList all-matches-1))
   (define idblistmatches-2 (makeIdbList all-matches-2))
-
-  (define n-processing (time-since-last))
-  (write-string (string-append (number->string n-processing) ", ") log-file)  
-  (printf "Time to construct strings: ~a~n " n-processing)
-  
-  (printf "Which-packets #2~n")
-  (display-response (mtext "EXPLORE InboundACL2:permit" reqpol " AND "
-                           ;" entry-interface = " target-interface
-                           target-interface "(entry-interface) AND "
-                           ;" AND src-addr-in = " target-src-address
-                           target-src-address "(src-addr-in) "
-                           " UNDER InboundACL1 "
-                           " INCLUDE " idblistapplied-1 ", " idblistapplied-2       
-                           " TUPLING"))
-  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
-  ;    (begin
-  ;      (printf "-------------------------------------------------~n")
-  ;      (printf "It is indeed possible:~n")
-  ;      (printf "-------------------------------------------------~n")
-        (display-response (mtext "GET ONE"))   ;)
-  ;    (printf "No, the query was impossible.~n~n"))
-
-  (define n-which-2 (time-since-last))
-  (write-string (string-append (number->string n-which-2) ", ") log-file)  
-  (printf "Time: ~a~n " n-which-2)
-  
-  
-  
-    (printf "3~n")
-  (display-response (mtext "INFO"))
+;
+;  (define n-processing (time-since-last))
+;  (write-string (string-append (number->string n-processing) ", ") log-file)  
+;  (printf "Time to construct strings: ~a~n " n-processing)
+;  
+;  (printf "Which-packets #2~n")
+;  (display-response (mtext "EXPLORE InboundACL2:permit" reqpol " AND "
+;                           ;" entry-interface = " target-interface
+;                           target-interface "(entry-interface) AND "
+;                           ;" AND src-addr-in = " target-src-address
+;                           target-src-address "(src-addr-in) "
+;                           " UNDER InboundACL1 "
+;                           " INCLUDE " idblistapplied-1 ", " idblistapplied-2       
+;                           " TUPLING"))
+;  ;(if (xml-bool-response->bool (mtext "IS POSSIBLE?"))
+;  ;    (begin
+;  ;      (printf "-------------------------------------------------~n")
+;  ;      (printf "It is indeed possible:~n")
+;  ;      (printf "-------------------------------------------------~n")
+;        (display-response (mtext "GET ONE"))   ;)
+;  ;    (printf "No, the query was impossible.~n~n"))
+;
+;  (define n-which-2 (time-since-last))
+;  (write-string (string-append (number->string n-which-2) ", ") log-file)  
+;  (printf "Time: ~a~n " n-which-2)
+;  
+;  
+;  
+;    (printf "3~n")
+;  (display-response (mtext "INFO"))
 
   
   

@@ -427,15 +427,6 @@ gmarceau
     polname))
 
 
-(define (make-simple-script list-of-xml)
-#| gmarceau personal preference:
-  `(lambda () ,@(for/list ([an-xml list-of-xml])
-                          `(send-and-receive-xml ,an-xml))))
-|#
-  
-  `(lambda () ,@(map (lambda (an-xml) 
-                       `(send-and-receive-xml ,an-xml))
-                     list-of-xml)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -567,12 +558,14 @@ gmarceau
 
 (define (pause-for-user) 
   (printf "======================== Hit enter to continue. ========================~n~n")
-  (local ((define (clear-port-helper)            
-            (when (char-ready?)
-              (read-char))))
-    ; clear out the port before reading the line.
-    (clear-port-helper)
-    (read-line)))
+
+  (define (clear-port-helper)            
+    (when (char-ready?)
+      (read-char)))
+
+  (clear-port-helper)
+  (read-line)
+  (clear-port-helper))
 
 (define (display-response the-response)
   (printf "~a~n" (pretty-print-response-xml the-response)))

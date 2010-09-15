@@ -18,9 +18,9 @@ In this section, we demonstrate the elements of policies and vocabularies using 
 (Policy ConferencePolicy1 uses conferencepolicy
         (Target )
         (Rules 
-         (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
-         (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
-         (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r)))
+          (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
+          (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
+          (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r)))
         (RComb FAC)
         (PComb FAC)
         (Children ))
@@ -57,11 +57,11 @@ In this section, we demonstrate the elements of policies and vocabularies using 
                     
                     @racketblock[(PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))]
                     
-                    is nameed @racket[PaperNoConflict], renders the @racket[Permit] decision, and applies when
-                    The subject is trying to read a paper on which he or she is not conflicted. 
+                    is named @racket[PaperNoConflict], renders the @racket[Permit] decision, and applies when
+                    the subject is trying to read a paper on which he or she is not conflicted. 
                     
-                    The variables that appear after the decision name (e.g. @racket[Permit s a r]) must match
-                    the request variables declared in the policy's @tech{vocabulary}. New variables can
+                    The variable names that appear after the decision name (e.g. @racket[Permit s a r]) must exactly match
+                    the names of the request variables declared in the policy's @tech{vocabulary}. New variables can
                     be introduced on the right hand side of the rule, in which case they are interpreted
                     existentially. E.g., this rule would apply for any subject who owns @italic{some} car,
                     regardless of the action and resource involved:
@@ -106,7 +106,7 @@ In this section, we demonstrate the elements of policies and vocabularies using 
                                                         (Children))))]
                  
                  Conflicts between sub-policies are resolved via a @deftech{policy-combination algorithm}, which is set
-                 with the @racket[(PComb ...)] construct. The same algorithms can be applied to policy combination as to
+                 with the @racket[(PComb ...)] construct. The same options are available to policy combination as to
                  rule combination.}
                     
           ]
@@ -119,29 +119,29 @@ In this section, we demonstrate the elements of policies and vocabularies using 
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
-              (Subject : Author Reviewer)
-              (Action : SubmitPaper ReadPaper SubmitReview)
-              (Resource : Paper Review))
+               (Subject : Author Reviewer)
+               (Action : SubmitPaper ReadPaper SubmitReview)
+               (Resource : Paper Review))
              (Decisions 
-              Permit
-              Deny)
+               Permit
+               Deny)
              (Predicates
-              (Conflicted : Reviewer Paper)
-              (Assigned : Reviewer Paper))
+               (Conflicted : Reviewer Paper)
+               (Assigned : Reviewer Paper))
 
 	     (ReqVariables (s : Subject)
                            (a : Action)
                            (r : Resource))
              (OthVariables )
              (Constraints
-              (disjoint-all Resource)
-              (disjoint-all Action)
-              (atmostone-all Action)
-	      (abstract Subject)
-	      (abstract Action)
-              (abstract Resource)
-              (nonempty Subject)
-              (nonempty Resource)))
+               (disjoint-all Resource)
+               (disjoint-all Action)
+               (atmostone-all Action)
+	       (abstract Subject)
+	       (abstract Action)
+               (abstract Resource)
+               (nonempty Subject)
+               (nonempty Resource)))
              ]
 
 

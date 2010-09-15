@@ -27,7 +27,8 @@
 #lang racket
 
 (require "margrave.rkt"
-         "margrave-ios.rkt")
+         "margrave-ios.rkt"
+         racket/enter)
 
 
 ;****************************************************************
@@ -46,22 +47,44 @@
     (stop-margrave-engine))  
   (orig-exit-handler n))
 
+
+
+
 ;****************************************************************
 
 ; For the REPL, we don't support #lang and require, etc. in scripts.
 ; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
 
-;; !!! TODO
+; Using THIS namespace instead of make-base-empty-namespace
+; because we want the user to have access to stuff like
+; margrave-home-path and module-tests for this module.
 (define (run-lite filename)
-  ;(parameterize ([current-namespace margrave-repl-namespace])
-  (parameterize ([current-namespace (make-base-empty-namespace)])
-;    (load filename)))
-    (if (relative-path? filename)
-        (namespace-require filename)
-        (namespace-require `(file ,filename)))))
+  (parameterize ([current-namespace margrave-repl-namespace])
+  ;(parameterize ([current-namespace (make-base-empty-namespace)])
+    (load filename)
+    
+    ; Using load for now.
+    ; Advantage: can re-run a "script" as many times as desired
+    ; Disadvantage: Annoying requirement to leave out #lang and require in "lite" scripts.
+    
+    ;(if (relative-path? filename)
+    ;    (namespace-require filename)
+    ;    (namespace-require `(file ,filename)))
+    ))
+
+;****************************************************************
+;****************************************************************
+;****************************************************************
+; TESTS
+
+(define (module-tests)
+  ;(run-lite (path->string (build-path margrave-home-path "examples" "full" "full-ios-demo.rkt"))) 
+  (run-lite (build-path margrave-home-path "examples" "lite" "lite-ios-demo.rkt"))
+       )
 
 
-
+;****************************************************************
+;****************************************************************
 ;****************************************************************
 
 ; Defaults to the value of MARGRAVE_HOME environment var.
@@ -76,3 +99,6 @@
 (parameterize ([current-namespace margrave-repl-namespace]
                [exit-handler margrave-repl-exit-handler])
   (read-eval-print-loop))
+
+
+

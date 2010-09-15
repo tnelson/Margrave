@@ -215,6 +215,7 @@ in a concise format. A SHOW ONE command for an IOS
 query will produce output in this style:
 
 @racketblock[
+*** SOLUTION: Size = 15.
 src-addr-in: IPAddress
 protocol: prot-tcp
 dest-addr-in: 192.168.5.10
@@ -228,7 +229,10 @@ src-addr-out: IPAddress
 dest-addr-out: 192.168.5.10
 message: icmpmessage]
 
-The scenario above says that the query can be satisfied by when the packet 
+On the first line, the @racket[Size = 15] says that this scenario involves 15 atoms, where
+each atom is an IP address, port, interface, etc.
+
+The scenario itself says that the query can be satisfied by when the packet 
 is a TCP request to the host 192.168.5.10 on port 80, entering the firewall at the fe0 interface.
 There are no restrictions on the source fields of the packet header in this
 scenario: "IPAddress" represents some IP address not explicitly
@@ -238,6 +242,7 @@ The @italic{message} binding is only applicable for ICMP packets,
 and can be ignored in this scenario. The @italic{length} binding is not yet used.
 The @italic{-out} bindings give information about NAT effects on the packet; there
 are none in this scenario.
+
 
 
 When printing, only the most specific applicable 
@@ -267,29 +272,29 @@ The vocabulary for this example is:
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
-              (Subject : Author Reviewer)
-              (Action : SubmitPaper ReadPaper SubmitReview)
-              (Resource : Paper Review))
+               (Subject : Author Reviewer)
+               (Action : SubmitPaper ReadPaper SubmitReview)
+               (Resource : Paper Review))
              (Decisions 
-              Permit
-              Deny)
+               Permit
+               Deny)
              (Predicates
-              (Conflicted : Reviewer Paper)
-              (Assigned : Reviewer Paper))
+               (Conflicted : Reviewer Paper)
+               (Assigned : Reviewer Paper))
 
 	     (ReqVariables (s : Subject)
                            (a : Action)
                            (r : Resource))
              (OthVariables )
              (Constraints
-              (disjoint-all Resource)
-              (disjoint-all Action)
-              (atmostone-all Action)
-	      (abstract Subject)
-	      (abstract Action)
-              (abstract Resource)
-              (nonempty Subject)
-              (nonempty Resource)))
+               (disjoint-all Resource)
+               (disjoint-all Action)
+               (atmostone-all Action)
+	       (abstract Subject)
+	       (abstract Action)
+               (abstract Resource)
+               (nonempty Subject)
+               (nonempty Resource)))
              ]
 
 
@@ -303,19 +308,17 @@ The vocabulary for this example is:
 
 The policy for this example @tech{uses} the above vocabulary:
 
-@racketblock[(Policy ConferencePolicy1 uses conferencepolicy
+@racketblock[
+(Policy ConferencePolicy1 uses conferencepolicy
         (Target )
         (Rules 
-  	  (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
-	  (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
-	  (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r))
-        )
+          (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
+          (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
+          (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r)))
         (RComb FAC)
         (PComb FAC)
-	(Children ))
+        (Children ))
 ]
-
-
 
 This @tech{policy} contains three @tech{rules} that each map certain 
 @tech{request}s to @tech{decision}s. For instance, the first rule,

@@ -14,48 +14,15 @@
 ;
 ; You should have received a copy of the GNU Lesser General Public License
 ; along with Margrave. If not, see <http://www.gnu.org/licenses/>.
+
 #lang racket
 
-#|
-         (define command-delimiter ";")
-         
-         ;delim and str are both strings
-         ;Returns the string up to the first instance of delim (not including delim)
-         ;If no instance of delim, returns the entire string
-         (define (read-till delim str)
-           (local [(define (helper s string-to-return)
-                     (cond [(equal? s "") string-to-return]
-                           [(equal? (substring s 0 (string-length delim)) delim) string-to-return]
-                           [else (helper (substring s 1) 
-                                         (string-append string-to-return (substring s 0 1)))]))]
-             (helper str "")))
-         
-         (define (whitespace? s)
-           (if (equal? s "")
-               true
-               (and (equal? (substring s 0 1) " ")
-                    (whitespace? (substring s 1)))))
-         
-         ;Takes a string and returns a list of strings which are substrings of the original string, delimited by semicolons
-         (define (separate-commands s)
-           (cond [(whitespace? s) empty]
-                 [else (let ((command (read-till command-delimiter s)))
-                         (if (eq? (string-length command) (string-length s))
-                             (cons command empty)
-                             (cons command (separate-commands (substring s (+ 1 (string-length command)))))))]))
-         
-         ;Process one command string
-         (define (process-string s)
-           (pretty-print-response-xml (m (evalxml s))))         
-|#
 
-(require syntax/strip-context)
-
-;(require (for-syntax "margrave.rkt"))
+(require syntax/strip-context
+         "parser-compiler.rkt")
 
 (provide (rename-out [read-m read]
                      [read-syntax-m read-syntax]))
-
 
 ; **********************************************************
 
@@ -63,29 +30,36 @@
   (syntax->datum
    (read-syntax-m #f in)))
 
-
-; !!! TODO
-; Why can you not access the port directly? This is an ugly work-around!
-; (port->string then open-input-string)
-; Commented out original lines for comparison
+; **********************************************************
 
 (define (read-syntax-m src in)
   (error-print-source-location #t)
   
-  ;(with-syntax ([in-port in])
-    (with-syntax ( [str (port->string in)])
-      (strip-context
-     #'(module anything racket
-         (require "margrave-xml.rkt" xml "margrave.rkt" "parser-compiler.rkt")         
-         (let* ([new-in-port (open-input-string 'str) ]
-                [list-of-xml-commands (flatten (port->xml new-in-port))]) ;Flatten because load-policy return a list of list of commands
+  (define lowercase-input (string-downcase (port->string in)))
+  (define compiled-func-syntax (parse-and-compile lowercase-input))
 
-           ; port->xml may return a _list_ of xml commands to send. Execute them all separately.
-           ; Don't start engine until parser completes successfully (above)
-           (start-margrave-engine)
-           ;(display list-of-xml-commands)
-           (let ((list-of-results (mm list-of-xml-commands)))
-             (stop-margrave-engine)
-             (display list-of-results)
-             list-of-results))))))
+  ;DEBUG
+  ; (printf "~a ~a ~n" lowercase-input compiled-func-syntax)
+  
+  (with-syntax ( [results-closure-syntax compiled-func-syntax])
+    (strip-context       
+     #'(module anything racket
+         (require "margrave.rkt"
+                  racket/generator) 
+         (provide margrave-results)
+         
+         (start-margrave-engine)             
+         (define unprocessed-results (results-closure-syntax))
+         
+         ; Engine is left running so that caller can use the results.
+         
+         ; Make the results available
+         (define margrave-results            
+           (if (list? unprocessed-results)
+               (flatten unprocessed-results)
+               unprocessed-results))
+         
+         ; Print the results
+         ;(for-each display-response margrave-results)
+         ))))
 
