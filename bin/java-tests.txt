@@ -1,3 +1,0 @@
-To run java tests:
-
-java -cp .;..\kodkod.jar;..\org.sat4j.core.jar edu.wpi.margrave.MJavaTests
