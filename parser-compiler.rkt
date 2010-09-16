@@ -34,7 +34,7 @@
  evaluate-parse 
  parse-and-compile-read
  parse-and-compile-read-syntax
- 
+ parse-and-compile-port
  make-simple-script)
 
 ;
@@ -62,101 +62,122 @@
   [lex:digit (:/ #\0 #\9)]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)])
 
-
-
+; Lexer syntax-transformer that creates SRE syntax for case-insensitive string tokens
+; Example (lex-ci "explore") becomes an SRE for the regexp [Ee][Xx] ...
+(define-lex-trans 
+  lex-ci 
+  (lambda (s) 
+    (define the-string-syntax (car (cdr (syntax->list s))))
+    (define the-string (syntax->datum the-string-syntax))
+    
+    (define (make-both-case-or the-char)
+      `(union ,(char-upcase the-char) ,(char-downcase the-char)))
+    (define (make-case-insensitive-regexp-symbol str)
+      `(:: ,@ (map make-both-case-or (string->list str))))
+    
+    ; reconstruct using old syntax object's context, srcloc, prop, cert.
+    (define result (datum->syntax the-string-syntax
+                                  (make-case-insensitive-regexp-symbol the-string)
+                                  the-string-syntax
+                                  the-string-syntax 
+                                  the-string-syntax))
+   ; (printf "~a ~a~n" the-string-syntax result)
+    result))
 
 
 ; *************************************************
 ; Produce a lexer function
 ; Assume the caller has downcased the input
-(define lex
+(define lex  
   (lexer-src-pos
    [(:+ lex:whitespace) (begin 
                           ;(printf "Skipping whitespace~n") 
                           (return-without-pos (lex input-port)))]
    [(eof) 'EOF]
-   ["explore" (token-EXPLORE)]
-   ["load" (token-LOAD)]
-   ["policy" (token-POLICY)] 
-   ["and" (token-AND)] 
-   ["or" (token-OR)] 
-   ["not" (token-NOT)] 
+   
    [":" (token-COLON)] 
    [";" (token-SEMICOLON)] 
-   ["implies" (token-IMPLIES)] 
-   ["iff" (token-IFF)] 
    ["(" (token-LPAREN)] 
    [")" (token-RPAREN)] 
    ["=" (token-EQUALS)] 
-   ["show" (token-SHOW)] 
-   ["all" (token-ALL)] 
-   ["one" (token-ONE)] 
-   ["is" (token-IS)]   
-   ["possible?" (token-POSSIBLEQMARK)] 
-   ["publish" (token-PUBLISH)] 
-   ["," (token-COMMA)] 
-   ["under" (token-UNDER)] 
-   ["tupling" (token-TUPLING)] 
-   ["debug" (token-DEBUG)] 
-   ["ceiling" (token-CEILING)] 
-   ["rename" (token-RENAME)] 
-   ["info" (token-INFO)] 
-   ["collapse" (token-COLLAPSE)] 
-   ["compare" (token-COMPARE)] 
-   ["include" (token-INCLUDE)] 
-   ["realized" (token-REALIZED)] 
-   ["unrealized" (token-UNREALIZED)] 
-   ["for" (token-FOR)] 
-   ["cases" (token-CASES)] 
-   ["add" (token-ADD)] 
-   ["subsort" (token-SUBSORT)] 
-   ["sort" (token-SORT)] 
-   ["constraint" (token-CONSTRAINT)] 
-   ["disjoint" (token-DISJOINT) ] 
-   ["nonempty" (token-NONEMPTY)] 
-   ["singleton" (token-SINGLETON)] 
-   ["atmostone" (token-ATMOSTONE)] 
-   ["partial" (token-PARTIAL)] 
-   ["function" (token-FUNCTION)] 
-   ["total" (token-TOTAL)] 
-   ["abstract" (token-ABSTRACT)] 
-   ["subset" (token-SUBSET)] 
-   ["set" (token-SET)] 
-   ["target" (token-TARGET)] 
-   ["predicate" (token-PREDICATE)] 
-   ["rule" (token-RULE)] 
-   ["to" (token-TO)] 
-   ["create" (token-CREATE)] 
-   ["vocabulary" (token-VOCABULARY)] 
-   ["decision" (token-DECISION)] 
-   ["requestvar" (token-REQUESTVAR)] 
-   ["othervar" (token-OTHERVAR)] 
-   ["leaf" (token-LEAF)] 
-   ["rcombine" (token-RCOMBINE)] 
-   ["pcombine" (token-PCOMBINE)] 
-   ["prepare" (token-PREPARE)] 
-   ["load" (token-LOAD)] 
-   ["xacml" (token-XACML)] 
-   ["sqs" (token-SQS)] 
-   ["get" (token-GET)] 
-   ["count" (token-COUNT)] 
-   ["size" (token-SIZE)] 
-   ["rules" (token-RULES)] 
-   ["higher" (token-HIGHER)] 
-   ["priority" (token-PRIORITY)] 
-   ["than" (token-THAN)] 
-   ["qualified" (token-QUALIFIED)] 
-   ["next" (token-NEXT)] 
-   ["guaranteed?" (token-GUARANTEEDQMARK)] 
-   ["in" (token-IN)]	
-   ["at" (token-AT)] 
-   ["child" (token-CHILD)] 
-   ["request" (token-REQUEST)] 
-   ["vector" (token-VECTOR)] 
-   ["quit" (token-QUIT)] 
-   ["delete" (token-DELETE)]
-   ["with" (token-WITH)]
-   ["true" (token-TRUE)]
+   ["," (token-COMMA)]
+   
+   [(lex-ci "explore") (token-EXPLORE)]
+   [(lex-ci "load") (token-LOAD)]
+   [(lex-ci "policy") (token-POLICY)] 
+   [(lex-ci "and") (token-AND)] 
+   [(lex-ci "or") (token-OR)] 
+   [(lex-ci "not") (token-NOT)]  
+   [(lex-ci "implies") (token-IMPLIES)] 
+   [(lex-ci "iff") (token-IFF)] 
+   [(lex-ci "show") (token-SHOW)] 
+   [(lex-ci "all") (token-ALL)] 
+   [(lex-ci "one") (token-ONE)] 
+   [(lex-ci "is") (token-IS)]   
+   [(lex-ci "possible?") (token-POSSIBLEQMARK)] 
+   [(lex-ci "publish") (token-PUBLISH)] 
+   [(lex-ci "under") (token-UNDER)] 
+   [(lex-ci "tupling") (token-TUPLING)] 
+   [(lex-ci "debug") (token-DEBUG)] 
+   [(lex-ci "ceiling") (token-CEILING)] 
+   [(lex-ci "rename") (token-RENAME)] 
+   [(lex-ci "info") (token-INFO)] 
+   [(lex-ci "collapse") (token-COLLAPSE)] 
+   [(lex-ci "compare") (token-COMPARE)] 
+   [(lex-ci "include") (token-INCLUDE)] 
+   [(lex-ci "realized") (token-REALIZED)] 
+   [(lex-ci "unrealized") (token-UNREALIZED)] 
+   [(lex-ci "for") (token-FOR)] 
+   [(lex-ci "cases") (token-CASES)] 
+   [(lex-ci "add") (token-ADD)] 
+   [(lex-ci "subsort") (token-SUBSORT)] 
+   [(lex-ci "sort") (token-SORT)] 
+   [(lex-ci "constraint") (token-CONSTRAINT)] 
+   [(lex-ci "disjoint") (token-DISJOINT) ] 
+   [(lex-ci "nonempty") (token-NONEMPTY)] 
+   [(lex-ci "singleton") (token-SINGLETON)] 
+   [(lex-ci "atmostone") (token-ATMOSTONE)] 
+   [(lex-ci "partial") (token-PARTIAL)] 
+   [(lex-ci "function") (token-FUNCTION)] 
+   [(lex-ci "total") (token-TOTAL)] 
+   [(lex-ci "abstract") (token-ABSTRACT)] 
+   [(lex-ci "subset") (token-SUBSET)] 
+   [(lex-ci "set") (token-SET)] 
+   [(lex-ci "target") (token-TARGET)] 
+   [(lex-ci "predicate") (token-PREDICATE)] 
+   [(lex-ci "rule") (token-RULE)] 
+   [(lex-ci "to") (token-TO)] 
+   [(lex-ci "create") (token-CREATE)] 
+   [(lex-ci "vocabulary") (token-VOCABULARY)] 
+   [(lex-ci "decision") (token-DECISION)] 
+   [(lex-ci "requestvar") (token-REQUESTVAR)] 
+   [(lex-ci "othervar") (token-OTHERVAR)] 
+   [(lex-ci "leaf") (token-LEAF)] 
+   [(lex-ci "rcombine") (token-RCOMBINE)] 
+   [(lex-ci "pcombine") (token-PCOMBINE)] 
+   [(lex-ci "prepare") (token-PREPARE)] 
+   [(lex-ci "load") (token-LOAD)] 
+   [(lex-ci "xacml") (token-XACML)] 
+   [(lex-ci "sqs") (token-SQS)] 
+   [(lex-ci "get") (token-GET)] 
+   [(lex-ci "count") (token-COUNT)] 
+   [(lex-ci "size") (token-SIZE)] 
+   [(lex-ci "rules") (token-RULES)] 
+   [(lex-ci "higher") (token-HIGHER)] 
+   [(lex-ci "priority") (token-PRIORITY)] 
+   [(lex-ci "than") (token-THAN)] 
+   [(lex-ci "qualified") (token-QUALIFIED)] 
+   [(lex-ci "next") (token-NEXT)] 
+   [(lex-ci "guaranteed?") (token-GUARANTEEDQMARK)] 
+   [(lex-ci "in") (token-IN)]	
+   [(lex-ci "at") (token-AT)] 
+   [(lex-ci "child") (token-CHILD)] 
+   [(lex-ci "request") (token-REQUEST)] 
+   [(lex-ci "vector") (token-VECTOR)] 
+   [(lex-ci "quit") (token-QUIT)] 
+   [(lex-ci "delete") (token-DELETE)]
+   [(lex-ci "with") (token-WITH)]
+   [(lex-ci "true") (token-TRUE)]
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
@@ -850,8 +871,7 @@
          (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
 ; ***************************************************************************************
-; These functions enforce case-insensitivity by downcasing the input string before lexing.
-; They also activate line counting 
+; !!! Don't need to string-downcase anymore. The lexer is case-insensitive now.
 ; Access the parser through these functions ONLY!
 (define (evaluate-parse sn s)
   (let ((in (open-input-string (string-downcase s))))
@@ -863,11 +883,9 @@
     (port-count-lines! in)
     (compile-margrave-syntax ((parse "source") (lambda () (lex in))))))
 
-
-
-;; Do not use these functions yet. They do not downcase. 
-; Can convert to str, downcase, re-portize OR build a custom port?
-; End goal for these: #lang margrave
+(define (parse-and-compile-port src in)
+  (port-count-lines! in)  
+  (compile-margrave-syntax ((parse src) (lambda () (lex in)))))
 
 (define (parse-and-compile-read in)
   (port-count-lines! in)
@@ -877,8 +895,4 @@
   (port-count-lines! in)
   (compile-margrave-syntax ((parse src) (lambda () (lex in)))))
 
-
-;(define (port->xml in-port)
-;  (port-count-lines! in-port)
-;  (syntax->xml ((parse "source") (λ() (lex in-port)))))
 ; ***************************************************************************************

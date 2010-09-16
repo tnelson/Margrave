@@ -51,7 +51,8 @@
          make-matches-list
          
          the-margrave-namespace
-         margrave-home-path)
+         margrave-home-path         
+         resolve-java-path!)
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
@@ -73,24 +74,39 @@
   (if windows?
       ";"
       ":")) 
+(define java-exe-name
+  (if windows?
+      "java.exe"
+      "java"))
 
-; Where is the java executable?
+; Must be capitalized (unix, macosx)
+(define path-env "PATH")
+
+; Where is the java executable? Will be set below.
+(define java-path #f)
+
 ; Do what the shell would do: search through the user's path
-(define java-path
-  (begin
-    (printf "Searching for java.exe ...~n")
-    (let* ([path-value (getenv "path")]
-           [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
-           [paths-with-java (findf (lambda (a-path) ; find first match in list                                    
-                                     (and (> (string-length a-path) 0)                                     
-                                          (file-exists? (build-path a-path "java.exe"))))
-                                   env-paths)]
-           [the-path (or paths-with-java "")])
-      (if (equal? the-path "")
-          (printf "Could not find java.exe in PATH. Margrave will be unable to run.~n")
-          (printf "Using the java.exe in: ~a~n" the-path))
-      the-path)))
+(define (resolve-java-path! [concrete-path #f])
+  (if concrete-path
+      (begin
+        (printf "Using the java executable in the path given: ~a.~n" concrete-path)
+        (set! java-path concrete-path))
+      (begin
+        (printf "Searching for java executable ...~n")
+        (let* ([path-value (getenv path-env)]
+               [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
+               [paths-with-java (findf (lambda (a-path) ; find first match in list                                    
+                                         (and (> (string-length a-path) 0)                                     
+                                              (file-exists? (build-path a-path java-exe-name))))
+                                       env-paths)]
+               [the-path (or paths-with-java "")])
+          (if (equal? the-path "")
+              (printf "Could not find java executable in PATH. Margrave will be unable to run.~n")
+              (printf "Using the java executable in: ~a~n" the-path))
+          (set! java-path the-path)))))
 
+; Search for the java exe
+(resolve-java-path!)
    
 
 ; Initial values
@@ -167,13 +183,13 @@ gmarceau
              [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
         
         ;(printf "~a~n" margrave-params)        
-        ;(display (cons (string-append java-path "java.exe")  margrave-params))
+        ;(display (cons (string-append java-path java-exe-name)  margrave-params))
         (printf "--------------------------------------------------~n")
         (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
                 home-path java-path user-jvm-params user-margrave-params)
         (printf "--------------------------------------------------~n")
         ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
-        (set! java-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
+        (set! java-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
         (set! input-port (first java-process-list))
         (set! output-port (second java-process-list))
         (set! process-id (third java-process-list))
@@ -542,13 +558,13 @@ gmarceau
          [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MJavaTests"))])
     
     ;(printf "~a~n" margrave-params)        
-    ;(display (cons (string-append java-path "java.exe")  margrave-params))
+    ;(display (cons (string-append java-path java-exe-name)  margrave-params))
     (printf "--------------------------------------------------~n")
     (printf "Running Margrave's Java test library...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~n"
             home-path java-path user-jvm-params)
     (printf "--------------------------------------------------~n")
     
-    (define test-process-list (apply process* (cons (path->string (build-path java-path "java.exe")) margrave-params)))
+    (define test-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
     ; Keep waiting until the JVM closes on its own (tests will print results via error port)
     
     (flush-error error-buffer (fourth test-process-list))

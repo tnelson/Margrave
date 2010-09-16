@@ -38,16 +38,18 @@
 
 
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
-; !!TODO: When loading #lang margrave, we cannot use this function, and must instead simply return a list of the commands to execute
+
 (define (evaluate-policy fn)
   
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. As soon as we have a language-level, stop using eval!
   
-  (let* ([file-port (open-input-file fn)]
-         [pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn)])    
-
+  ; If using #lang margrave, case-sensitivity may be turned off. Macros need the case (for now)
+  (parameterize ([read-case-sensitive #t])
+    (define file-port (open-input-file fn))
+    (define pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn))
+    
     ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
     

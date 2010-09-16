@@ -412,27 +412,30 @@
 ;************ Pretty Print Info *******************
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
-; element -> string
+; document? or string? -> string?
 (define (pretty-print-response-xml response-doc)
-  (if (false? response-doc)
-      "Engine stopped!"
-      (let* ((response-element (document-element response-doc))
-             (type (get-attribute-value response-element 'type)))
-        ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
-        (cond [(equal? type "model") (pretty-print-model response-element)] 
-              [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
-              [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
-              [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
-              [(equal? type "error") (pretty-print-error-xml response-element)]
-              [(equal? type "exception") (pretty-print-exception-xml response-element)]
-              [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
-              [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
-              [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
-              [(equal? type "string") (pretty-print-string-xml response-element)]
-              [(equal? type "set") (pretty-print-set-xml response-element)]
-              [(equal? type "list") (pretty-print-list-xml response-element)]
-              [(equal? type "map") (pretty-print-map-xml response-element)]
-              [(equal? type "success") "Success\n"]))))
+  (cond [(false? response-doc)
+         "Engine stopped!"]
+        [(document? response-doc)
+         (let* ((response-element (document-element response-doc))
+                (type (get-attribute-value response-element 'type)))
+           ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
+           (cond [(equal? type "model") (pretty-print-model response-element)] 
+                 [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
+                 [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
+                 [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
+                 [(equal? type "error") (pretty-print-error-xml response-element)]
+                 [(equal? type "exception") (pretty-print-exception-xml response-element)]
+                 [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
+                 [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
+                 [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
+                 [(equal? type "string") (pretty-print-string-xml response-element)]
+                 [(equal? type "set") (pretty-print-set-xml response-element)]
+                 [(equal? type "list") (pretty-print-list-xml response-element)]
+                 [(equal? type "map") (pretty-print-map-xml response-element)]
+                 [(equal? type "success") "Success\n"]))]
+        [(string? response-doc) response-doc]
+        [else response-doc]))
 
 ; element -> string
 (define (pretty-print-string-xml element)

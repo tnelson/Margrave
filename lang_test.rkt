@@ -1,7 +1,8 @@
 #lang margrave
 
+
 LOAD POLICY ./tests/fwex1.p; 
-explore fwex1:accept(ipsrc, ipdest, portsrc, portdest, pro );
-show one;
+explore fWeX1:ACCepT(ipsrc, ipdest, portsrc, portdest, pro );
+shoW one;
 count;
-get all;
+shoW AlL;
