@@ -16,11 +16,16 @@
 ; along with Margrave. If not, see <http://www.gnu.org/licenses/>.
 
 #lang s-exp syntax/module-reader
-margrave/lang
+; Doesn't work. Can't find module, etc. But racket seems fine?
+;margrave/lang
 
+racket
+
+; Define our own readers
 #:read read-syntax
 #:read-syntax read-syntax-m
 
+; Yes, read the whole body with one call of the reader
 #:whole-body-readers? #t
 
 ; key: kind of info requested
@@ -29,18 +34,13 @@ margrave/lang
 #:info (lambda (key defval default)
          (case key           
            [(color-lexer)
-            (dynamic-require 'syntax-color/scribble-lexer 'scribble-inside-lexer)]
+            (dynamic-require 'syntax-color/default-lexer 'default-lexer)]
            [else (default key defval)]))
 
 
 (require racket
          syntax/strip-context
          "parser-compiler.rkt")
-
-; (provide (rename-out [read-m read]
-;                      [read-syntax-m read-syntax])
-;          get-info)
-;
 
 ; **********************************************************
 
@@ -63,8 +63,9 @@ margrave/lang
   
   (with-syntax ( [results-closure-syntax compiled-func-syntax])
     (strip-context       
-     #'(module anything racket
-         (require "margrave.rkt"
+     ;#'(module anything racket
+     #' ( 
+     (require "margrave.rkt"
                   racket/generator) 
          (provide margrave-results)
          
