@@ -51,7 +51,7 @@ installing a host environment.
         *nix (as a tar.gz file).}
   @item{Extract the distribution archive to the location of your choice.}
   @item{Set your MARGRAVE_HOME environment variable to the location of
-        the margrave-repl executable in the extracted distribution.}      
+        the margrave-lite executable in the extracted distribution.}      
 ]
 
 
@@ -76,7 +76,7 @@ installing a host environment.
         *nix (as a tar.gz file).}
   @item{Extract the distribution archive to the location of your choice.}
   @item{Set your MARGRAVE_HOME environment variable to the location of
-        margrave.rkt in the extracted distribution.}
+        margrave-full-main.rkt in the extracted distribution.}
 ]
 
 
@@ -112,7 +112,7 @@ in the MARGRAVE_HOME environment variable.
 
 @subsection{Running Lite Margrave}
 
-Execute the margrave-repl executable (margrave-repl.exe or ./margrave-repl,
+Execute the margrave-lite executable (margrave-lite.exe or ./margrave-lite,
 depending on your OS). It will automatically detect where your Java
 installation is located, and attempt to start the Margrave engine from
 the directory you provided via the MARGRAVE_HOME environment variable.
@@ -139,7 +139,7 @@ For more information, see the files in @italic{<MARGRAVE_HOME>/examples/lite}.
 The full version of Margrave runs in DrRacket, the graphical development
 environment for Racket. 
 
-To execute individual commands, load the "margrave-repl.rkt" file in DrRacket and click Run.
+To execute individual commands, load the "margrave-full-main.rkt" file in DrRacket and click Run.
 It will automatically detect where your Java installation is located. After clicking Run, the 
 bottom half of the screen will provide a REPL prompt similar to the lite version.
 
@@ -161,7 +161,7 @@ For more information, see the files in @italic{<MARGRAVE_HOME>/examples/full}.
 Margrave's scenario-finding engine must be started by
 invoking @racket[(start-margrave-engine)] before
 any policies are loaded or Margrave commands are executed. 
-Running margrave-repl.rkt will do this automatically. If you
+Running margrave-full-main.rkt will do this automatically. If you
 are writing your own script, make sure that it calls
 @racket[(start-margrave-engine)].
 

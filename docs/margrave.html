@@ -18,11 +18,11 @@ installing a host environment.</p><h5>1.1.1<tt>&nbsp;</tt><a name="(part._.Lite_
 Margrave requires Java 6 or later. You can download the latest
 version of Java at</p><p><a href="http://www.java.com/en/download/"><span class="url">http://www.java.com/en/download/</span></a>.</p></li><li><p>Download the LITE Margrave distribution from</p><p><a href="http://www.margrave-tool.org/v3"><span class="url">http://www.margrave-tool.org/v3</span></a>.</p><p>This is available for both Windows (as a zip file) and
 *nix (as a tar.gz file).</p></li><li><p>Extract the distribution archive to the location of your choice.</p></li><li><p>Set your MARGRAVE_HOME environment variable to the location of
-the margrave-repl executable in the extracted distribution.</p></li></ul><h5>1.1.2<tt>&nbsp;</tt><a name="(part._.Full_.Margrave)"></a>Full Margrave</h5><ul><li><p>Make sure that you have a recent version of Java installed.
+the margrave-lite executable in the extracted distribution.</p></li></ul><h5>1.1.2<tt>&nbsp;</tt><a name="(part._.Full_.Margrave)"></a>Full Margrave</h5><ul><li><p>Make sure that you have a recent version of Java installed.
 Margrave requires Java 6 or later. You can download the latest
 version of Java at</p><p><a href="http://www.java.com/en/download/"><span class="url">http://www.java.com/en/download/</span></a>.</p></li><li><p>Download and install Racket from</p><p><a href="http://racket-lang.org/download/"><span class="url">http://racket-lang.org/download/</span></a></p></li><li><p>Download the FULL Margrave distribution from</p><p><a href="http://www.margrave-tool.org/v3"><span class="url">http://www.margrave-tool.org/v3</span></a>.</p><p>This is available for both Windows (as a zip file) and
 *nix (as a tar.gz file).</p></li><li><p>Extract the distribution archive to the location of your choice.</p></li><li><p>Set your MARGRAVE_HOME environment variable to the location of
-margrave.rkt in the extracted distribution.</p></li></ul><h4>1.2<tt>&nbsp;</tt><a name="(part._running-margrave)"></a>Running Margrave</h4><p>Both versions of Margrave run in the Racket programming environment.
+margrave-full-main.rkt in the extracted distribution.</p></li></ul><h4>1.2<tt>&nbsp;</tt><a name="(part._running-margrave)"></a>Running Margrave</h4><p>Both versions of Margrave run in the Racket programming environment.
 Whichever version you use, you will either enter individual commands at the
 prompt or execute scripts (multiple commands at once). The command prompt
 accepts Racket commands (in Lisp terms, it is a
@@ -32,7 +32,7 @@ state of Margrave, including memory usage and other statistics. The
 function prints human-readable results. All Margrave commands must be
 wrapped this way.</p><p>Commands may use standard Racket functions as well. For instance,
 the <span class="RktSym">build-path</span> function will construct a relative path:</p><p><table cellspacing="0" class="RktBlk"><tr><td><span class="hspace">&nbsp;&nbsp;</span><span class="RktPn">(</span><span class="RktSym">build-path</span><span class="hspace">&nbsp;</span><span class="RktSym">margrave-home-path</span></td></tr><tr><td><span class="RktPlain"><span class="hspace">&nbsp;&nbsp;</span></span><span class="hspace">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="RktVal">"examples"</span><span class="hspace">&nbsp;</span><span class="RktVal">"lite"</span><span class="hspace">&nbsp;</span><span class="RktVal">"lite-ios-demo.rkt"</span><span class="RktPn">)</span></td></tr></table></p><p>Use the <span class="RktSym">margrave-home-path</span> identifier to refer to the directory given
-in the MARGRAVE_HOME environment variable.</p><h5>1.2.1<tt>&nbsp;</tt><a name="(part._.Running_.Lite_.Margrave)"></a>Running Lite Margrave</h5><p>Execute the margrave-repl executable (margrave-repl.exe or ./margrave-repl,
+in the MARGRAVE_HOME environment variable.</p><h5>1.2.1<tt>&nbsp;</tt><a name="(part._.Running_.Lite_.Margrave)"></a>Running Lite Margrave</h5><p>Execute the margrave-lite executable (margrave-lite.exe or ./margrave-lite,
 depending on your OS). It will automatically detect where your Java
 installation is located, and attempt to start the Margrave engine from
 the directory you provided via the MARGRAVE_HOME environment variable.</p><p>To execute individual commands, enter them at the prompt.</p><p>To load and run a script in Margrave Lite, call the <span class="RktSym">run-lite</span> function
@@ -41,14 +41,14 @@ For instance, to load the example IOS firewall script, enter this at the
 REPL prompt:</p><p><table cellspacing="0" class="RktBlk"><tr><td><span class="hspace">&nbsp;&nbsp;</span><span class="RktPn">(</span><span class="RktSym">run-lite</span></td></tr><tr><td><span class="RktPlain"><span class="hspace">&nbsp;&nbsp;</span></span><span class="hspace">&nbsp;</span><span class="RktPn">(</span><span class="RktSym">build-path</span><span class="hspace">&nbsp;</span><span class="RktSym">margrave-home-path</span></td></tr><tr><td><span class="RktPlain"><span class="hspace">&nbsp;&nbsp;</span></span><span class="hspace">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="RktVal">"examples"</span><span class="hspace">&nbsp;</span><span class="RktVal">"lite"</span><span class="hspace">&nbsp;</span><span class="RktVal">"lite-ios-demo.rkt"</span><span class="RktPn">)</span><span class="RktPn">)</span></td></tr></table></p><p>To exit Lite Margrave, type <span class="RktPn">(</span><span class="RktSym">exit</span><span class="RktPn">)</span> at the command prompt. If
 you close Lite Margrave via ctrl-C, the Java-based engine may be left
 running.</p><p>For more information, see the files in <span style="font-style: italic">&lt;MARGRAVE_HOME&gt;/examples/lite</span>.</p><h5>1.2.2<tt>&nbsp;</tt><a name="(part._.Running_.Full_.Margrave)"></a>Running Full Margrave</h5><p>The full version of Margrave runs in DrRacket, the graphical development
-environment for Racket.</p><p>To execute individual commands, load the "margrave-repl.rkt" file in DrRacket and click Run.
+environment for Racket.</p><p>To execute individual commands, load the "margrave-full-main.rkt" file in DrRacket and click Run.
 It will automatically detect where your Java installation is located. After clicking Run, the
 bottom half of the screen will provide a REPL prompt similar to the lite version.</p><p>To run a Margrave script, load the script file in DrRacket and click the Run button.
 The script will execute, and then a REPL prompt will appear at the bottom of the DrRacket window.
 Do not attempt to use <span class="RktSym">run-lite</span> in the full version.</p><p>For more information, see the files in <span style="font-style: italic">&lt;MARGRAVE_HOME&gt;/examples/full</span>.</p><p><span style="font-weight: bold">A Word of Caution</span></p><p>Margrave&rsquo;s scenario-finding engine must be started by
 invoking <span class="RktPn">(</span><span class="RktSym">start-margrave-engine</span><span class="RktPn">)</span> before
 any policies are loaded or Margrave commands are executed.
-Running margrave-repl.rkt will do this automatically. If you
+Running margrave-full-main.rkt will do this automatically. If you
 are writing your own script, make sure that it calls
 <span class="RktPn">(</span><span class="RktSym">start-margrave-engine</span><span class="RktPn">)</span>.</p><h4>1.3<tt>&nbsp;</tt><a name="(part._gs-ios)"></a>IOS in Margrave</h4><p>Margrave supports a core subset of the IOS language involving
 standard and most extended ACLs, static NAT,
