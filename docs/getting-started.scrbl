@@ -54,7 +54,8 @@ installing a host environment.
         the margrave-lite executable in the extracted distribution.}      
 ]
 
-
+Now that Margrave Lite is installed, 
+see @secref["running-lite"] for instructions on running it.
 
 
 @subsection{Full Margrave}
@@ -79,6 +80,17 @@ installing a host environment.
         margrave-full-main.rkt in the extracted distribution.}
 ]
 
+@bold{For Mac OSX users:}
+
+Environment variables set in your .bashrc 
+file will only affect your terminal environment, and thus
+will only be visible to DrRacket if you run it from your terminal prompt.
+Making MARGRAVE_HOME available globally requires altering your 
+~/.MacOSX/environment.plist file. For more information see 
+@url{http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html}.
+
+Now that Margrave is installed, 
+see @secref["running-full"] for instructions on running it.
 
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
@@ -110,7 +122,7 @@ in the MARGRAVE_HOME environment variable.
 
 
 
-@subsection{Running Lite Margrave}
+@subsection[#:tag "running-lite"]{Running Lite Margrave}
 
 Execute the margrave-lite executable (margrave-lite.exe or ./margrave-lite,
 depending on your OS). It will automatically detect where your Java
@@ -132,9 +144,11 @@ To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
 you close Lite Margrave via ctrl-C, the Java-based engine may be left 
 running.
 
-For more information, see the files in @italic{<MARGRAVE_HOME>/examples/lite}.
+To use Margrave on IOS configurations, go to @secref["gs-ios"].
+To use Margrave on other kinds of policies, go to @secref["gs-existing"].
+Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/lite}.
 
-@subsection{Running Full Margrave}
+@subsection[#:tag "running-full"]{Running Full Margrave}
 
 The full version of Margrave runs in DrRacket, the graphical development
 environment for Racket. 
@@ -154,7 +168,10 @@ To run a Margrave script, load the script file in DrRacket and click the Run but
 The script will execute, and then a REPL prompt will appear at the bottom of the DrRacket window.
 Do not attempt to use @racket[run-lite] in the full version.
 
-For more information, see the files in @italic{<MARGRAVE_HOME>/examples/full}. 
+To use Margrave on IOS configurations, go to @secref["gs-ios"].
+To use Margrave on other kinds of policies, go to @secref["gs-existing"].
+Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/full}.
+
 
 @subsubsub*section{A Word of Caution}
    
@@ -267,8 +284,10 @@ a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
 and so on.  
 
 Let's examine one of Margrave's built-in examples, 
-an access-control policy for a conference management system.
-The vocabulary for this example is:
+an access-control policy for a conference management system. Its vocabulary and policy files
+are respectively @italic{conference1.v} and @italic{conference1.p} in @italic{<MARGRAVE_HOME>/tests}.
+
+The vocabulary is:
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
@@ -306,7 +325,7 @@ The vocabulary for this example is:
           @item{a "subject", an "action", and a "resource" as part of each request (given by the ReqVariables construct).}
           ]
 
-The policy for this example @tech{uses} the above vocabulary:
+The policy for this example is:
 
 @racketblock[
 (Policy ConferencePolicy1 uses conferencepolicy
@@ -320,7 +339,8 @@ The policy for this example @tech{uses} the above vocabulary:
         (Children ))
 ]
 
-This @tech{policy} contains three @tech{rules} that each map certain 
+This @tech{policy} @tech{uses} the above vocabulary, and 
+contains three @tech{rules} that each map certain 
 @tech{request}s to @tech{decision}s. For instance, the first rule,
 named PaperNoConflict, causes the policy to permit requests to read 
 papers, provided the subject is not known to be conflicted on the

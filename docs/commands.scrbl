@@ -23,47 +23,56 @@ tells Margrave to look for scenarios where @italic{x} is either an administrator
 
 Clauses enclosed in [] are optional, and can appear in any order.
 
-A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, NOT, and parentheses) of @tech{atomic formula}s. An @deftech{atomic formula} is one of:
+
+
+
+A @deftech{vocabulary predicate} is the name of either a @tech{type} or
+@tech{other predicate} in the query's @tech{vocabulary context}.
+Every @tech{vocabulary predicate} has an arity no less than 1.
+If a @tech{vocabulary predicate} is the name of a @tech{type}, 
+its arity is 1, and it is called a @deftech{unary} predicate.
+
+
+
+
+A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, NOT, and parentheses) of @tech{atomic formula}s.
+
+An @deftech{atomic formula} is one of:
 
 @itemlist[
-          @item{An @deftech{atomic type formula}: 
+          @item{an @deftech{atomic vocabulary formula}, which is one of: 
                 @itemlist[
-                          @item{@bold{typename(x)}, where typename is the name 
-                                 of a type in the statement's @tech{vocabulary context} and x is a variable symbol;}
-                          @item{@bold{x IN typename}, where typename is the
-                                 name of a type in the statement's @tech{vocabulary context} and x is a variable symbol;}
-                          @item{@bold{x = typename}, where typename is the name of a @tech{at-most-one}
-                                 or @tech{singleton} constrained type in the
-                                 statement's @tech{vocabulary context} and x is a variable symbol}
-                           ]}
-          @item{An @deftech{atomic predicate formula}:
-                @itemlist[
-                          @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})},
-                                 where predname is the name of a k-ary predicate
-                                 in the statement's @tech{vocabulary context} and
-                                 x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols;}  
+                          @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})}, 
+                                 where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols 
+                                 and <predname> is a @tech{vocabulary predicate} of arity k;}
                            
-                          @item{@bold{(x@subscript{1}, ..., x@subscript{k})IN predname},
-                                 where predname is the name of a k-ary predicate in 
-                                 the statement's @tech{vocabulary context} and
-                                 x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
-                          ]}
-          @item{An @deftech{atomic IDB formula}:
+                          @item{@bold{x IN predname}, where x is a variable symbol and 
+                                 <predname> is a unary @tech{vocabulary predicate};}
+                          
+                          @item{@bold{(x@subscript{1}, ..., x@subscript{k}) IN predname},
+                                 where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols
+                                 and <predname> is a k-ary @tech{vocabulary predicate};}                          
+                          
+                          @item{@bold{x = typename}, where x is a variable symbol and
+                                 <typename> is the name of an @tech{at-most-one}
+                                 or @tech{singleton} constrained type in the
+                                 statement's @tech{vocabulary context}}
+                           ]}
+          @item{an @deftech{atomic IDB formula}, which is one of:
                 @itemlist[
                           @item{@bold{policyid:idbname(x@subscript{1}, ..., x@subscript{k})}, where policyid is an identifier
-                                for a policy with a k-ary request vector, idbname is a valid @tech{IDB}
+                                for a @tech{policy} with a k-ary @tech{request vector}, idbname is a valid @tech{IDB}
                                 in that policy), 
                                 and x@subscript{1},...,x@subscript{k} are (not necessarily distinct) variable symbols;}
                            
                           @item{@bold{savedquery(x@subscript{1}, ..., x@subscript{k})}, where savedquery is an identifier for a
                                 k-ary saved query, and x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
                            ]}
-          @item{A @deftech{variable equality formula}: @bold{x = y}, where x and y are variable symbols}
+          @item{or a @deftech{variable equality formula}: @bold{x = y}, where x and y are variable symbols.}
           ]
 
 @margin-note{The saved query identifier @bold{last} always refers to the last successful EXPLORE statement.}
 
-@;bold{!!! TODO --- To discuss with Dan: In later version of language, want to know the difference between a variable and a type/pred/idb at the lexer level. sugar is difficult now because "type-ness" resides in java engine}
 
 Every EXPLORE statement has a @deftech{vocabulary context}: the set of
 vocabularies across all policies mentioned in the query's <condition>
@@ -88,17 +97,42 @@ If the <condition> does not explicitly refer to a policy, the query must include
 
 The @deftech{PUBLISH} clause dictates which variables in the query condition are published for use in later queries. 
 
-The @deftech{TUPLING} clause activates the optional tupling optimization.
+The @deftech{TUPLING} clause activates the optional tupling optimization. In order to qualify for tupling, 
+all of the query's saved-query predicates (if any) must refer to saved queries that @tech{PUBLISH}ed all of their variables. 
 
 The syntax of the @deftech{INCLUDE} clause differs depending on whether tupling has been enabled.
 
-@itemlist[ #:style #f
 
-           @item{If @tech{TUPLING} is not enabled, then the @tech{INCLUDE} clause contains a list of policy @tech{IDB} names (see the Margrave firewall paper @cite{nbdfk10} for more information) that should be included explicitly in scenario output. By default, no policy @tech{IDB}s will appear in scenario output, since there is overhead involved in explicitly computing each.}
 
-            @item{If @tech{TUPLING} is enabled, then the @tech{INCLUDE} clause contains a list of @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and @tech{atomic type formula}s whose truth should be included in scenario output. The atomic formulas given must only use variables that appear in the <condition>.}
+@itemlist[
+          @item{If @tech{TUPLING} is not enabled, then the @tech{INCLUDE} clause contains a nonempty list of
+                   policy @tech{IDB} predicates whose instantiations are to be included in the scenario
+                   output.
+                   
+                   @bold{Example:}
+                   @italic{INCLUDE mypolicy:permit} will cause each output scenario to include the requests that @italic{mypolicy} permits.
+}
+           
+           
+           @item{If @tech{TUPLING} is enabled, then the @tech{INCLUDE} clause may contain a nonempty list of IDB
+                    and/or @tech{vocabulary predicate}s; however a tuple of
+                    arguments must be supplied to each predicate.
+                    Variable names shared between @tech{INCLUDE} and 
+                    the <condition> are assumed to refer to the same variable.
+                    
+                    @bold{Examples:}
+                    @italic{INCLUDE mypolicy:permit(r, a, s)} causes each scenario to report if the request (r, a, s) is permitted by mypol.
+                    
+                    @italic{INCLUDE mypolicy:permit(s, a, r), mypolicy:permit(r, a, s)} sets the watch on both (s, a, r) and (r, a, s). }
+           
+@;           @item{If @tech{TUPLING} is not enabled, then the @tech{INCLUDE} clause contains a list of policy @tech{IDB} names (see the Margrave firewall paper @cite{nbdfk10} for more information) that should be included explicitly in scenario output. By default, no policy @tech{IDB}s will appear in scenario output, since there is overhead involved in explicitly computing each.}
 
+@;            @item{If @tech{TUPLING} is enabled, then the @tech{INCLUDE} clause contains a list of @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and @tech{atomic type formula}s whose truth should be included in scenario output. The atomic formulas given must only use variables that appear in the <condition>.}                                                                       
+                                                                       
 ]
+
+
+
 
 @; really is "truth" above. hundreds of INCLUDEs possible with tupling, and scenarios got very very cluttered. Consider use case: "which rule applies?" Only want to see the positives.
 
