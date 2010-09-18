@@ -52,15 +52,21 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED))
-(define-tokens terminals (<identifier> <unsigned-integer>))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN))
+(define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
 
 (define-lex-abbrevs
   [lex:letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [lex:digit (:/ #\0 #\9)]
-  [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)])
+  [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
+  [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
+  
+  ; The last line of a file may be a comment. Greedy matching will match the entire line up to the end.
+  [lex:comment (:: #\/ #\/ (:* (char-complement (:or #\newline #\return))))])
+
+; still rquires whitespace between // and comment text. WHY?
 
 ; Lexer syntax-transformer that creates SRE syntax for case-insensitive string tokens
 ; Example (lex-ci "explore") becomes an SRE for the regexp [Ee][Xx] ...
@@ -101,6 +107,8 @@
    [")" (token-RPAREN)] 
    ["=" (token-EQUALS)] 
    ["," (token-COMMA)]
+   ["<" (token-LTHAN)] 
+   [">" (token-GTHAN)]
    
    [(lex-ci "explore") (token-EXPLORE)]
    [(lex-ci "load") (token-LOAD)]
@@ -179,21 +187,25 @@
    [(lex-ci "with") (token-WITH)]
    [(lex-ci "true") (token-TRUE)]
    
+      
+   ; Comment. Must appear before <identifier> rules or else something like
+   ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
+   [lex:comment (token-<comment> lexeme)]
+   
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
     (token-<unsigned-integer> (string->symbol lexeme))]
    
-   ; Un-quoted Identifiers -- everything but whitespace and: ( ) \" , = :
+   ; Un-quoted Identifiers -- everything but whitespace and: ( ) < > \" , = :
    ; Use ----> char-complement <----, not complement.
-   [(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "," "=" ":" ";"))))
+   [(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "<" ">" "," "=" ":" ";"))))
     (token-<identifier> (string->symbol lexeme))]
    
-   ; Quoted Identifiers -- anything but quote or whitespace wrapped in quotes
+   ; Quoted Identifiers -- anything but quote or non-space-whitespace wrapped in quotes
    ; strip the quotes when returning the identifier value
-   ;; !!!TODO!!! Why disallow whitespace in quotes? XACML likes sort names with spaces in them.
-   [(:: "\"" (:+ (char-complement (:or lex:whitespace "\""))) "\"") 
+   [(:: "\"" (:+ (char-complement (:or lex:nswhitespace "\""))) "\"") 
     (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]
-   
+      
    ))
 
 ; *************************************************
@@ -220,7 +232,7 @@
                              (string->symbol 
                               (format "$~a-end-pos"
                                       (syntax->datum (syntax end))
-                                      ))))
+                                      ))))                   
                    ;Source is passed in to parse
                    (source (datum->syntax
                             (syntax end)
@@ -276,17 +288,13 @@
     ;**************************************************
     ; Streams of tokens are either empty, an error, or a valid margrave-command.
     
-    (start ;[() #f]
-           
+    (start 
            ;; If there is an error, ignore everything before the error
            ;; and try to start over right after the error
            [(error start) $2]
            
            ; stand-alone Margrave command without a semicolon:
-           [(margrave-command) $1]
-           
-           ; causes reduce/reduce conflict. covered by script case anyway
-           ;           [(margrave-command SEMICOLON) $1]
+           [(margrave-command) $1]            
            
            ; A margrave-script is a list of margrave commands each ending in a semicolon
            [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
@@ -296,18 +304,19 @@
     
     (margrave-script
      [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
-     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
+     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)]
+     
+     ; Comments are not terminated with semicolons.
+     [(comment-token) (list (build-so (list 'COMMENT $1) 1 1))]
+     [(comment-token margrave-script) (append (list (build-so (list 'COMMENT $1) 1 1)) $2) ])    
     
-    ; unused at the moment:
-    #;(variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
-                     ;[(<identifier> variable-list) (cons $1 $2)]
-                     [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )])
+    ;**************************************************
     
     (margrave-command 
      [(explore-statement) $1]
      [(create-statement) $1]
      [(add-statement) $1]
-     
+         
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
@@ -368,6 +377,11 @@
      ; Margrave command wrapped in parantheses
      [(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
      )
+     ; end of margrave-commend
+    
+    ;**************************************************
+    
+    (comment-token [(<comment>) (build-so (list 'COMMENT $1) 1 1)])
     
     ;**************************************************
     ; CREATE statements
@@ -375,6 +389,7 @@
      [(CREATE VOCABULARY vocabulary) (build-so (list 'CREATE-VOCABULARY $3) 1 3)]
      [(CREATE POLICY LEAF policy vocabulary) (build-so (list 'CREATE-POLICY-LEAF $4 $5) 1 5)])
     
+    ;**************************************************
     ; ADD
     (add-statement
      [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)]
@@ -394,6 +409,7 @@
     (rule-list
      [(<identifier>) (build-so (list 'RULE-LIST $1) 1 1)])
     
+    ;**************************************************
     (add-content
      [(SORT sort) $2]
      [(SUBSORT subsort) $2]
@@ -700,6 +716,10 @@
                 
         [(equal? first-datum 'QUIT)
          '(lambda () (stop-margrave-engine))]
+        
+        ; Do nothing with a comment
+        [(equal? first-datum 'COMMENT)
+         '(lambda () (void))]
         
         [else
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
