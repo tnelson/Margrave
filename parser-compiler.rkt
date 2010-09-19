@@ -52,7 +52,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON IOS))
 (define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
@@ -90,6 +90,10 @@
    ; (printf "~a ~a~n" the-string-syntax result)
     result))
 
+; *************************************************
+; Lexer func only takes the input port, not the source
+; (as parser does). We want to syntax-highlight lexer-level errors.
+(define current-lexer-source (make-parameter #f))
 
 ; *************************************************
 ; Produce a lexer function
@@ -207,6 +211,17 @@
    [(:: "\"" (:+ (char-complement (:or lex:nswhitespace "\""))) "\"") 
     (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]
       
+   ; Custom error
+   [any-char
+    (raise-read-error (format "Could not assign a lexical token starting at character: ~a.~n" lexeme)
+                      ;input-port
+                      (if (not (current-lexer-source))
+                          input-port
+                          (current-lexer-source))
+                      (position-line start-pos)
+                      (position-col start-pos)
+                      (position-offset start-pos)      
+                      (- (position-offset end-pos) (position-offset start-pos)))]
    ))
 
 ; *************************************************
@@ -321,8 +336,21 @@
      [(create-statement) $1]
      [(add-statement) $1]
          
+     ; .p/v policy
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      
+     ; Cisco IOS configuration
+     [(LOAD IOS <identifier>) (build-so (list 'LOAD-IOS $3) 1 3)]
+     
+     ;; TODO how to introduce prefix/suffix renaming?
+     
+     
+     ; XACML configuration
+     [(LOAD XACML <identifier>) (build-so (list 'LOAD-XACML $3) 1 3)]
+     
+     ; Amazon SQS configuration
+     [(LOAD SQS <identifier>) (build-so (list 'LOAD-SQS $3) 1 3)]
+          
      [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
 
      ; ALL
@@ -941,7 +969,8 @@
 
 (define (parse-and-compile-port src in)
   (port-count-lines! in)  
-  (compile-margrave-syntax ((parse src) (lambda () (lex in)))))
+  (parameterize ([current-lexer-source src])
+    (compile-margrave-syntax ((parse src) (lambda () (lex in))))))
 
 (define (parse-and-compile-read in)
   (port-count-lines! in)

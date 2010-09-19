@@ -12,4 +12,5 @@ LOAD POLICY ./tests/fwex1.p; // this is also a comment
 EXPLORE fwex1:accept(<fwex1:req>) and ipaddress(ipsrc) implies ipaddress(ipsrc);
 show one;
 //This is yet another comment
+info "";
 info;;
