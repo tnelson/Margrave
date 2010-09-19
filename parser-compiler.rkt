@@ -52,7 +52,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON IOS))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON IOS EMPTYID))
 (define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
@@ -114,6 +114,7 @@
    ["," (token-COMMA)]
    ["<" (token-LTHAN)] 
    [">" (token-GTHAN)]
+   ["" (token-EMPTYID)]
    
    [(lex-ci "explore") (token-EXPLORE)]
    [(lex-ci "load") (token-LOAD)]
@@ -191,7 +192,9 @@
    [(lex-ci "delete") (token-DELETE)]
    [(lex-ci "with") (token-WITH)]
    [(lex-ci "true") (token-TRUE)]
-   
+   [(lex-ci "ios") (token-IOS)]
+   [(lex-ci "sqs") (token-SQS)]
+   [(lex-ci "xacml") (token-XACML)]
       
    ; Comment. Must appear before <identifier> rules or else something like
    ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
@@ -207,11 +210,11 @@
     (token-<identifier> (string->symbol lexeme))]
    
    ; Quoted Identifiers -- anything but quote or non-space-whitespace wrapped in quotes
-   ; strip the quotes when returning the identifier value
+   ; strip the quotes when returning the identifier value     
    [(:: "\"" (:+ (char-complement (:or lex:nswhitespace "\""))) "\"") 
-    (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]
-      
-   ; Custom error
+    (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]  
+   
+   ; Lexer error (parameter allows for syntax highlighting on the first character)
    [any-char
     (raise-read-error (format "Could not assign a lexical token starting at character: ~a.~n" lexeme)
                       ;input-port
@@ -331,6 +334,10 @@
     
     ;**************************************************
     
+    (poss-empty-id 
+     [(<identifier>) $1]
+     [(EMPTYID) ""])
+    
     (margrave-command 
      [(explore-statement) $1]
      [(create-statement) $1]
@@ -340,10 +347,9 @@
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      
      ; Cisco IOS configuration
-     [(LOAD IOS <identifier>) (build-so (list 'LOAD-IOS $3) 1 3)]
-     
-     ;; TODO how to introduce prefix/suffix renaming?
-     
+     [(LOAD IOS <identifier>) (build-so (list 'LOAD-IOS $3) 1 3)]     
+     ; With prefix and suffix
+     [(LOAD IOS <identifier> WITH poss-empty-id poss-empty-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
      
      ; XACML configuration
      [(LOAD XACML <identifier>) (build-so (list 'LOAD-XACML $3) 1 3)]
@@ -640,6 +646,16 @@
          (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns))))])
            (make-simple-load-script (append (third policy-creation-list)
                                        (fourth policy-creation-list))))]
+        
+        [(equal? first-datum 'LOAD-IOS)
+         `(parse-and-load-ios ,(symbol->string (syntax->datum (second interns)))
+                              ""
+                              "")]
+        
+        [(equal? first-datum 'LOAD-IOS-WITH)
+         `(parse-and-load-ios ,(symbol->string (syntax->datum (second interns)))
+                              ,(symbol->string (syntax->datum (third interns)))
+                              ,(symbol->string (syntax->datum (fourth interns))))]
         
         ; ************************************        
         ; Commands are handled here. Inner syntax is handled by

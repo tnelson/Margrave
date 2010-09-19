@@ -66,6 +66,7 @@ racket
     (strip-context       
      #'((require "margrave.rkt"
                  "margrave-xml.rkt" ; for response-is-unsat?
+                 "margrave-ios.rkt" ; for parse-and-load-ios
                  racket/generator) 
         (provide margrave-results)            
         
