@@ -572,7 +572,10 @@
                    ;   but it doesn't always have one (saved query, for instance)
                    
                    ; Allow <>, <> for later (via above production)
-                   [(LTHAN <identifier> COLON <identifier> GTHAN) (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5))]
+                   [(LTHAN <identifier> COLON <identifier> GTHAN) 
+                    (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5))]
+                   [(LTHAN <identifier> COLON <identifier> GTHAN COMMA variable-list)
+                    (append (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5)) $7)]
                    )))) 
 ; end of parser def
 
@@ -841,11 +844,7 @@
         ; <polname>:<vecname>
         [(equal? first-datum 'CUSTOM-VECTOR)
          ; Is there a better way to do this?
-         (string->symbol (string-append "custom-vector-" 
-                                        (symbol->string (syntax->datum (second interns)))
-                                        "-"
-                                        (symbol->string (syntax->datum (third interns)))))]
-        
+         `(resolve-custom-vector ',(syntax->datum (second interns)) ',(syntax->datum (third interns)) ,(syntax-line (second interns)) ,(syntax-column (second interns)))]        
         
         ; If vecname is not "req", error.
         ; If polname does not exist, error.                           
@@ -855,7 +854,8 @@
         
         [(equal? first-datum 'VARIABLE-VECTOR)
          ;(printf "Symbol varvec: ~a~n" first-intern)
-         `(xml-make-identifiers-list ',(map helper-syn->xml (rest interns)))]
+         ; flatten, not append because some map results are lists, others not
+         `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml (rest interns)))))]
         
         [(equal? first-datum 'TRUE)
          '(TRUE)]
@@ -901,15 +901,15 @@
         [(equal? first-datum 'PUBLISH)
          `(xml-make-publish ,(helper-syn->xml (second interns)))]
         [(equal? first-datum 'AND)
-         `(AND ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]                
+         `(xml-make-and ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]                
         [(equal? first-datum 'OR)
-         `(OR ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]
+         `(xml-make-or ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]
         [(equal? first-datum 'IMPLIES)
-         `(IMPLIES (list 'ANTE ,(helper-syn->xml (second interns))) (CONS ,(helper-syn->xml (third interns))))]
+         `(xml-make-implies ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]
         [(equal? first-datum 'IFF)
-         `(IFF ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]
+         `(xml-make-iff ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))]
         [(equal? first-datum 'NOT)
-         `(NOT ,(helper-syn->xml (second interns)))]
+         `(xml-make-not ,(helper-syn->xml (second interns)))]
 
         
         

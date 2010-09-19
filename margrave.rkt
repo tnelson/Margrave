@@ -36,12 +36,8 @@
          load-policy
          send-and-receive-xml
          
-         xml-explore-result->id
-         xml-set-response->list
-         xml-list-response->list
-         xml-map-response->map
-         xml-bool-response->bool
-         pretty-print-response-xml
+         (all-from-out "margrave-xml.rkt")
+
          display-response
          response->string
          get-qualified-rule-list
@@ -170,7 +166,7 @@ gmarceau
 |#
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-(define (start-margrave-engine [home-path default-margrave-home-path] [user-jvm-params empty] [user-margrave-params empty])
+(define (start-margrave-engine #:margrave-path [home-path default-margrave-home-path] #:jvm-params [user-jvm-params empty] #:margrave-params [user-margrave-params empty])
   ; If the engine isn't running (either uninitialized, or it died before we called this)
   (if (or (not java-process-list) 
           (not (eq? (ctrl-function 'status) 'running)))

@@ -93,6 +93,12 @@
  xml-make-get-rules-command
  xml-make-get-qrules-command
  xml-make-equals-formula
+ xml-make-and
+ xml-make-or
+ xml-make-implies
+ xml-make-iff
+ xml-make-not
+ xml-policy-info->req-vector
  
  fold-append-with-spaces
  fold-append-with-spaces-quotes
@@ -142,16 +148,27 @@
       arg))
 
 
+(define (xml-policy-info->req-vector response-doc)
+  (define response-element (document-element response-doc))
+  
+  ; TODO: only cover the 3 cases, should have a failure case for else
+  (define policy-leaf-element (get-child-element response-element 'POLICY-LEAF))
+  (define policy-set-element (get-child-element response-element 'POLICY-SET))
+  (define saved-query-element (get-child-element response-element 'SAVED-QUERY))
+  (define free-vars-element (cond [(and (empty? policy-leaf-element) (empty? policy-set-element))
+                                   (get-child-element saved-query-element 'FREE-VARIABLES)]
+                                  [(empty? policy-leaf-element)
+                                   (get-child-element policy-set-element 'FREE-VARIABLES)]
+                                  [else (get-child-element policy-leaf-element 'FREE-VARIABLES)]))
+  (define vars-elements (get-child-elements free-vars-element 'VARIABLE))
+  
+  (map (lambda (var-element) 
+         (pcdata-string (first (element-content var-element)))) 
+       vars-elements))
+
 
 ;****************************************************************
 ;;XML
-
-; Get list of child elements with name = name-symbol.
-; Element -> Symbol -> List(Element)
-(define (get-element-children-named ele name-symbol)
-  (filter (lambda (con) (and (element? con) (equal? (element-name con) name-symbol)))
-          (element-content ele)))
-
 
 ; Get the response type of a MARGRAVE-RESPONSE element:
 ; Document/#f -> String
@@ -179,11 +196,11 @@
 ; Fetch various error properties
 ; Document -> String
 (define (get-response-error-type doc)
-  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'type))
+  (get-attribute-value (first (get-child-elements (document-element doc) 'ERROR)) 'type))
 (define (get-response-error-subtype doc)
-  (get-attribute-value (first (get-element-children-named (document-element doc) 'ERROR)) 'subtype))
+  (get-attribute-value (first (get-child-elements (document-element doc) 'ERROR)) 'subtype))
 (define (get-response-error-descriptor doc)
-  (pcdata-string (first (element-content (first (get-element-children-named (document-element doc) 'ERROR))))))
+  (pcdata-string (first (element-content (first (get-child-elements (document-element doc) 'ERROR))))))
 
 ;Helper function
 (define (string-contains? str phrase)
@@ -1111,7 +1128,7 @@
   `(EQUALS ((v1 ,v1-name) (v2 ,v2-name))))
 
 (define (xml-make-atomic-formula-n relName xml-identifier-list)
-  `(ATOMIC-FORMULA-N ((relation-name ,relName)) ,xml-identifier-list))  
+  `(ATOMIC-FORMULA-N ((relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))  
 
 (define (xml-make-atomic-formula-y collName relName xml-identifier-list)
   ;  (printf "~a ~a ~n" collName relName)
@@ -1169,6 +1186,18 @@
 (define (xml-make-quit)
   (xml-make-command "QUIT" empty))
 
+
+(define (xml-make-and p1 p2)
+  `(AND ,p1 ,p2))
+(define (xml-make-or p1 p2)
+  `(OR ,p1 ,p2))
+(define (xml-make-implies p1 p2)
+  `(IMPLIES (ANTE ,p1) (CONS ,p2)))
+(define (xml-make-iff p1 p2)
+  `(IFF ,p1 ,p2))
+(define (xml-make-not p1)
+  `(NOT ,p1))
+ 
 
 
 ;Takes a command type (string) and a list of children (x-exprs) and returns a margrave-command xexpr

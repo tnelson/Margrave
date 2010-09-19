@@ -69,9 +69,25 @@ racket
                  racket/generator) 
         (provide margrave-results)            
         
-        (start-margrave-engine)             
-        (define unprocessed-results (let ([custom-vector-foo-bar '(v1 v2 v3)]) 
-                                      (results-closure-syntax)))
+        ; -------------------------
+        (define (resolve-custom-vector polid vecid polline polcol)
+          (printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
+          (define polid-str (symbol->string/safe polid))
+          (when (not (symbol=? vecid 'req))
+            (raise-user-error 'margrave-language-error "~a was an unknown vector ID.~n" vecid))
+          
+          ; Get request vector for this policy id
+          (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str)))
+          (xml-policy-info->req-vector info-result))
+        
+        
+        ; if pol doesn't exist, standard send-and-receive will throw an error. need to catch or define a new response handler
+        
+        ; -------------------------        
+        
+        
+        (start-margrave-engine #:margrave-params '("-log"))             
+        (define unprocessed-results (results-closure-syntax))
         
         ; Engine is left running so that caller can use the results.       
         
