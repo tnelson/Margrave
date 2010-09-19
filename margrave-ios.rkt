@@ -22,19 +22,30 @@
          "IOS-parser/ios-compile.ss")
 
 (provide load-ios-policies
-         parse-and-load-ios)
+         parse-and-load-ios
+         parse-and-load-ios-by-filename)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
 ; updated tn july 2010
 ; updated for release aug-sept 2010
 
+(define (parse-and-load-ios-by-filename the-filename #:prefix [prefix ""] #:suffix [suffix ""])
+  (define-values (fn-path fn-filepath must-dir) (split-path the-filename))
+  (define fn-file (path->string fn-filepath))
+  (when must-dir
+    (raise-user-error (format "Expected a filename, but given: ~a." the-filename)))
+  (if (equal? 'relative fn-path)
+      (parse-and-load-ios fn-file (current-directory) prefix suffix)
+      (parse-and-load-ios fn-file fn-path prefix suffix)))
+
+
 ; ------------------------------------------------
 ; parse-and-load-ios: First parses an IOS config file
 ;  and then calls load-ios-policies on the directory
 ;  containing the sub-policies.
 (define (parse-and-load-ios config-file-name dirpath prefix suffix)
-  (printf "Parsing IOS configuration ~a in directory ~a.~n" config-file-name dirpath)
+  (printf "Parsing IOS configuration ~a in directory ~a ...~n" config-file-name dirpath) 
   
   ; May be a #path or a string. IOS parser expects a string.
   (cond [(string? dirpath)

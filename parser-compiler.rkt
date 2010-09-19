@@ -648,14 +648,12 @@
                                        (fourth policy-creation-list))))]
         
         [(equal? first-datum 'LOAD-IOS)
-         `(parse-and-load-ios ,(symbol->string (syntax->datum (second interns)))
-                              ""
-                              "")]
+         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string (syntax->datum (second interns)))))]
         
         [(equal? first-datum 'LOAD-IOS-WITH)
-         `(parse-and-load-ios ,(symbol->string (syntax->datum (second interns)))
-                              ,(symbol->string (syntax->datum (third interns)))
-                              ,(symbol->string (syntax->datum (fourth interns))))]
+         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string (syntax->datum (second interns)))
+                                                     #:prefix ,(symbol->string (syntax->datum (third interns)))
+                                                     #:suffix ,(symbol->string (syntax->datum (fourth interns)))))]
         
         ; ************************************        
         ; Commands are handled here. Inner syntax is handled by

@@ -41,7 +41,7 @@
 ;; string (listof string) boolean -> void
 ;; pass filename only if there is more than one configuration to do
 (define (compile-configurations root-path filenames default-ACL-permit)
-  (let* [(configurations (map (λ (filename)
+  (let* [(configurations (map (λ (filename)                                
                                 (parse-IOS (open-input-file (make-path root-path filename)
                                                             #:mode
                                                             'text)
