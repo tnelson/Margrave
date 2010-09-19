@@ -57,27 +57,28 @@ racket
   ; DEBUG
   ;(printf "IN read-syntax-m~n~a~n" in)
   
-  (define compiled-func-syntax (parse-and-compile-port src in))
+  (define compiled-func-syntax (parse-and-compile-port src in)) 
   
   ;DEBUG
-  ;(printf "~a ~n" compiled-func-syntax)
+  (printf "~a ~n" compiled-func-syntax)
   
   (with-syntax ( [results-closure-syntax compiled-func-syntax])
     (strip-context       
      #'((require "margrave.rkt"
                  "margrave-xml.rkt" ; for response-is-unsat?
                  racket/generator) 
-        (provide margrave-results)
+        (provide margrave-results)            
         
         (start-margrave-engine)             
-        (define unprocessed-results (results-closure-syntax))
+        (define unprocessed-results (let ([custom-vector-foo-bar '(v1 v2 v3)]) 
+                                      (results-closure-syntax)))
         
-        ; Engine is left running so that caller can use the results.
+        ; Engine is left running so that caller can use the results.       
         
         ; Make the results available
         (define margrave-results            
           (if (list? unprocessed-results)
-              (flatten unprocessed-results)
+              (filter (lambda (x) (not (void? x))) (flatten unprocessed-results))
               unprocessed-results))
         
         ; Print the results

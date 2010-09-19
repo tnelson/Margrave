@@ -97,7 +97,8 @@
  fold-append-with-spaces
  fold-append-with-spaces-quotes
  fold-append-with-separator
- symbol->quoted-string)
+ symbol->quoted-string
+ symbol->string/safe)
 ; ********************************************************
 ; Helpers
 (define (fold-append-with-spaces posslist)
@@ -134,6 +135,11 @@
   (if (symbol? arg)
       (string-append "\"" (symbol->string arg)"\"")
       (string-append "\"" arg "\"")))
+
+(define (symbol->string/safe arg)
+  (if (symbol? arg)
+      (symbol->string arg)
+      arg))
 
 
 
@@ -1111,7 +1117,7 @@
   ;  (printf "~a ~a ~n" collName relName)
   (if (empty? xml-identifier-list)
       `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)))
-      `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)) ,xml-identifier-list))) 
+      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
 
 ;;EXPLORE
 ;Makes an xexpr for a list of atomic formulas (can be of size 1). symbol can be "and" or "or"
@@ -1165,7 +1171,6 @@
 
 
 
-;Takes a command type (string) and a list of children (x-exprs) and returns a formatted margrave-command as an XML string
+;Takes a command type (string) and a list of children (x-exprs) and returns a margrave-command xexpr
 (define (xml-make-command command-type list-of-children)
-  (xexpr->string
-   `(MARGRAVE-COMMAND ((type ,command-type)) ,@list-of-children)))
+   `(MARGRAVE-COMMAND ((type ,command-type)) ,@list-of-children))

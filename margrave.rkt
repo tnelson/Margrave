@@ -215,7 +215,7 @@ gmarceau
 (define (stop-margrave-engine)
   (or (not java-process-list)
       (begin
-        (send-and-receive-xml "<MARGRAVE-COMMAND type=\"QUIT\" />")
+        (send-and-receive-xml (xml-make-quit))
         (ctrl-function 'kill)  ; may not be necessary
         
         (flush-output output-port)    
@@ -303,11 +303,13 @@ gmarceau
 
 
 ; m
-; XML string, func -> document or #f
+; xexpr, func -> document or #f
 ; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 ; Optional response handler func may change the result XML, throw exceptions, etc.
-(define (send-and-receive-xml cmd [response-handler-func default-response-handler])
+(define (send-and-receive-xml cmd-xexpr [response-handler-func default-response-handler])
+  (define cmd (xexpr->string cmd-xexpr))
+  
   ;; gmarceau: use cond perhaps? 
   (if (not java-process-list) 
       (begin
@@ -419,15 +421,15 @@ gmarceau
   #| gmarceau
   (match-define 
    (list polname vocabname
-         (app make-simple-script vocab-script)
-         (app make-simple-script policy-script))
+         (app make-simple-load-script vocab-script)
+         (app make-simple-load-script policy-script))
    (evaluate-policy fn))
   |#
   (let* ([pol-result-list (evaluate-policy fn)]
          [polname (first pol-result-list)]
          [vocabname (second pol-result-list)]
-         [vocab-script (make-simple-script (third pol-result-list))]
-         [policy-script (make-simple-script (fourth pol-result-list))]
+         [vocab-script (make-simple-load-script (third pol-result-list))]
+         [policy-script (make-simple-load-script (fourth pol-result-list))]
         ; [dbg (printf "~a~n" vocab-script)]
          
          ; Java will handle creation of the vocab if it hasn't already been created.

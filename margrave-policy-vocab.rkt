@@ -45,7 +45,6 @@
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. As soon as we have a language-level, stop using eval!
   
-  ; If using #lang margrave, case-sensitivity may be turned off. Macros need the case (for now)
   (parameterize ([read-case-sensitive #t])
     (define file-port (open-input-file fn))
     (define pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn))
@@ -235,9 +234,9 @@
               ; stop using it when switch to language-level
              (vocab-macro-return                            
               (call-with-input-file 
-                                  (build-path (path-only local-policy-filename) 
-                                              (string-append (symbol->string 'vocabname) ".v"))
-                                (lambda (in-port) (eval (read in-port) margrave-policy-vocab-namespace))))
+                  (build-path (path-only local-policy-filename) 
+                              (string-append (symbol->string 'vocabname) ".v"))
+                (lambda (in-port) (eval (read in-port) margrave-policy-vocab-namespace))))
              (vocab-name (first vocab-macro-return))
              (vocab-commands (second vocab-macro-return)))
          
