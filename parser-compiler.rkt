@@ -114,7 +114,7 @@
    ["," (token-COMMA)]
    ["<" (token-LTHAN)] 
    [">" (token-GTHAN)]
-   ["" (token-EMPTYID)]
+   ["\"\"" (token-EMPTYID)]
    
    [(lex-ci "explore") (token-EXPLORE)]
    [(lex-ci "load") (token-LOAD)]
@@ -648,12 +648,12 @@
                                        (fourth policy-creation-list))))]
         
         [(equal? first-datum 'LOAD-IOS)
-         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string (syntax->datum (second interns)))))]
+         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))))]
         
         [(equal? first-datum 'LOAD-IOS-WITH)
-         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string (syntax->datum (second interns)))
-                                                     #:prefix ,(symbol->string (syntax->datum (third interns)))
-                                                     #:suffix ,(symbol->string (syntax->datum (fourth interns)))))]
+         `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))
+                                                     #:prefix ,(symbol->string/safe (syntax->datum (third interns)))
+                                                     #:suffix ,(symbol->string/safe (syntax->datum (fourth interns)))))]
         
         ; ************************************        
         ; Commands are handled here. Inner syntax is handled by

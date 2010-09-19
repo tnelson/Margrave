@@ -1,4 +1,4 @@
-#lang margrave
+#lang margrave/script
 
 // This is a comment
 //LOAD POLICY ./tests/fwex1.p; // this is also a comment
