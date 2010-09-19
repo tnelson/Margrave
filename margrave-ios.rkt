@@ -18,8 +18,8 @@
 #lang racket
 
 ; Assume same dir for now (later, module path!)
-(require "margrave.rkt"
-         "IOS-parser/ios-compile.ss")
+(require margrave/margrave
+         margrave/IOS-parser/ios-compile)
 
 (provide load-ios-policies
          parse-and-load-ios
@@ -35,8 +35,11 @@
   (define fn-file (path->string fn-filepath))
   (when must-dir
     (raise-user-error (format "Expected a filename, but given: ~a." the-filename)))
+  
+  ; TODO fix relative !!!!!!
+  (printf "~a ~a ~a ~a ~a~n" fn-file fn-path margrave-home-path fn-filepath the-filename)
   (if (equal? 'relative fn-path)
-      (parse-and-load-ios fn-file (current-directory) prefix suffix)
+      (parse-and-load-ios fn-file margrave-home-path prefix suffix)
       (parse-and-load-ios fn-file fn-path prefix suffix)))
 
 

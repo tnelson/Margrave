@@ -26,7 +26,9 @@
          
          ; Need to require here since SHOW/GET ALL symbols are evaluated here.
          racket/generator)
-(require "margrave-xml.rkt" "margrave-policy-vocab.rkt")
+
+(require margrave/margrave-xml
+         margrave/margrave-policy-vocab)
 
 (provide
  ; Access the parser through these functions only! (They pre-process)
@@ -702,7 +704,7 @@
              (make-single-wrapper 
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
                                                ,(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                        (list `(xml-make-forcases ,(map helper-syn->xml (syntax-e (fourth interns)))))))))]
+                                                        (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
         [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (fourth interns))
              (make-single-wrapper
@@ -711,18 +713,18 @@
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns))
                                                  ,(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                          (list `(xml-make-forcases ,(map helper-syn->xml (syntax-e (fourth interns)))))))))]
+                                                          (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (third interns))
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1") 
-                                               (map helper-syn->xml (syntax-e (second interns)))))
+                                               ,(map helper-syn->xml (syntax-e (second interns)))))
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1")
-                                               (append (map helper-syn->xml (syntax-e (second interns))) 
-                                                       (list `(xml-make-forcases ,(map helper-syn->xml (syntax-e (third interns)))))))))]
+                                               ,(append (map helper-syn->xml (syntax-e (second interns))) 
+                                                        (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns)))))))))]
         [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (third interns))
              (make-single-wrapper 
@@ -731,7 +733,7 @@
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
                                                  ,(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                          (list `(xml-make-forcases ,(map helper-syn->xml (syntax-e (third interns)))))))))]
+                                                          (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns)))))))))]
         
         [(equal? first-datum 'RENAME)
          (make-single-wrapper

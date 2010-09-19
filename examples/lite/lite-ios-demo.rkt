@@ -9,9 +9,9 @@
 // use margrave-home-path ALWAYS as relative path?
 // that would make sense
 
-LOAD IOS "examples/policies/ios-demo/initial/demo.txt" WITH "" "1";
-LOAD IOS "examples/policies/ios-demo/change1/change1.txt" WITH "" "2";
-LOAD IOS "examples/policies/ios-demo/change2/change2.txt" WITH "" "3";
+LOAD IOS "../policies/ios-demo/initial/demo.txt" WITH "" "1";
+LOAD IOS "../policies/ios-demo/change1/change1.txt" WITH "" "2";
+LOAD IOS "../policies/ios-demo/change2/change2.txt" WITH "" "3";
 
 //////////////////////////////////////////////
 // example: which-packets

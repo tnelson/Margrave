@@ -40,7 +40,8 @@ racket
 
 (require racket
          syntax/strip-context
-         "parser-compiler.rkt")
+         
+         margrave/parser-compiler)
 
 ; **********************************************************
 
@@ -64,9 +65,8 @@ racket
   
   (with-syntax ( [results-closure-syntax compiled-func-syntax])
     (strip-context       
-     #'((require "margrave.rkt"
-                 "margrave-xml.rkt" ; for response-is-unsat?
-                 "margrave-ios.rkt" ; for parse-and-load-ios
+     #'((require margrave/margrave
+                 margrave/margrave-ios ; for parse-and-load-ios
                  racket/generator) 
         (provide margrave-results)            
         
