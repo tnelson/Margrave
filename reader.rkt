@@ -71,8 +71,10 @@ racket
         
         ; -------------------------
         (define (resolve-custom-vector polid vecid polline polcol)
-          (printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
+          ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
           (define polid-str (symbol->string/safe polid))
+          
+          ; Only allow req for now. (Later, DEFINE VECTOR command)
           (when (not (symbol=? vecid 'req))
             (raise-user-error 'margrave-language-error "~a was an unknown vector ID.~n" vecid))
           

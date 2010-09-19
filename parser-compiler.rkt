@@ -52,7 +52,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON))
 (define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
@@ -102,6 +102,7 @@
    [(eof) 'EOF]
    
    [":" (token-COLON)] 
+   [";;" (token-DOUBLESEMICOLON)] 
    [";" (token-SEMICOLON)] 
    ["(" (token-LPAREN)] 
    [")" (token-RPAREN)] 
@@ -256,7 +257,8 @@
   (parser
    (src-pos) 
    (start start)
-   (end EOF)
+   ; Stop at either end of file or a ;;
+   (end EOF DOUBLESEMICOLON)
    (tokens empty-terminals terminals)
    
    (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
@@ -294,7 +296,8 @@
            [(error start) $2]
            
            ; stand-alone Margrave command without a semicolon:
-           [(margrave-command) $1]            
+           ; removed this production since it's now covered by margrave-script. was a reduce/reduce conflict without removal.
+          ; [(margrave-command) $1]            
            
            ; A margrave-script is a list of margrave commands each ending in a semicolon
            [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
@@ -304,6 +307,7 @@
     
     (margrave-script
      [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
+     [(margrave-command) (list (build-so (list 'COMMAND $1) 1 1))]
      [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)]
      
      ; Comments are not terminated with semicolons.
