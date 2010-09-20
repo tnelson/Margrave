@@ -234,8 +234,11 @@ gmarceau
 (define (mtext . cmd)
   ; May be a semicolon-separated script of commands
   (let* ([cmd-func-syntax (parse-and-compile (string-append* cmd))]
-         [cmd-closure (eval cmd-func-syntax the-margrave-namespace)]
-         [response-docs (cmd-closure)])  
+         [cmd-closures (eval cmd-func-syntax the-margrave-namespace)]        
+         [response-docs (if (list? cmd-closures)
+                            (map (lambda (x) (x)) cmd-closures)
+                            (cmd-closures))])  
+         ;[response-docs (eval cmd-func-syntax the-margrave-namespace)])
     
     ; DEBUG
     ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
@@ -417,15 +420,15 @@ gmarceau
   #| gmarceau
   (match-define 
    (list polname vocabname
-         (app make-simple-load-script vocab-script)
-         (app make-simple-load-script policy-script))
+         (app make-simple-load-func vocab-script)
+         (app make-simple-load-func policy-script))
    (evaluate-policy fn))
   |#
   (let* ([pol-result-list (evaluate-policy fn)]
          [polname (first pol-result-list)]
          [vocabname (second pol-result-list)]
-         [vocab-script (make-simple-load-script (third pol-result-list))]
-         [policy-script (make-simple-load-script (fourth pol-result-list))]
+         [vocab-script (make-simple-load-func polname vocabname (third pol-result-list))]
+         [policy-script (make-simple-load-func polname vocabname (fourth pol-result-list))]
         ; [dbg (printf "~a~n" vocab-script)]
          
          ; Java will handle creation of the vocab if it hasn't already been created.

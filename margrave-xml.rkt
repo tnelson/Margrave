@@ -435,30 +435,35 @@
 ;************ Pretty Print Info *******************
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
-; document? or string? -> string?
-(define (pretty-print-response-xml response-doc)
-  (cond [(false? response-doc)
+; document? or element? or string? -> string?
+(define (pretty-print-response-xml the-response)
+  (cond [(false? the-response)
          "Engine stopped!"]
-        [(document? response-doc)
-         (let* ((response-element (document-element response-doc))
-                (type (get-attribute-value response-element 'type)))
+        
+        [(document? the-response)
+         (pretty-print-response-xml (document-element the-response))]
+        
+        [(element? the-response)
+         (let* ([type (get-attribute-value the-response 'type)])
            ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
-           (cond [(equal? type "model") (pretty-print-model response-element)] 
-                 [(equal? type "sysinfo") (pretty-print-sys-info-xml response-element)]
-                 [(equal? type "collection-info") (pretty-print-collection-info-xml response-element)]
-                 [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml response-element)]
-                 [(equal? type "error") (pretty-print-error-xml response-element)]
-                 [(equal? type "exception") (pretty-print-exception-xml response-element)]
-                 [(equal? type "explore-result") (pretty-print-explore-xml response-element)]
-                 [(equal? type "unsat") (pretty-print-unsat-xml response-element)]
-                 [(equal? type "boolean") (pretty-print-boolean-xml response-element)]
-                 [(equal? type "string") (pretty-print-string-xml response-element)]
-                 [(equal? type "set") (pretty-print-set-xml response-element)]
-                 [(equal? type "list") (pretty-print-list-xml response-element)]
-                 [(equal? type "map") (pretty-print-map-xml response-element)]
+           (cond [(equal? type "model") (pretty-print-model the-response)] 
+                 [(equal? type "sysinfo") (pretty-print-sys-info-xml the-response)]
+                 [(equal? type "collection-info") (pretty-print-collection-info-xml the-response)]
+                 [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml the-response)]
+                 [(equal? type "error") (pretty-print-error-xml the-response)]
+                 [(equal? type "exception") (pretty-print-exception-xml the-response)]
+                 [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
+                 [(equal? type "unsat") (pretty-print-unsat-xml the-response)]
+                 [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
+                 [(equal? type "string") (pretty-print-string-xml the-response)]
+                 [(equal? type "set") (pretty-print-set-xml the-response)]
+                 [(equal? type "list") (pretty-print-list-xml the-response)]
+                 [(equal? type "map") (pretty-print-map-xml the-response)]
                  [(equal? type "success") "Success\n"]))]
-        [(string? response-doc) response-doc]
-        [else response-doc]))
+        
+        [(string? the-response) the-response]
+        
+        [else the-response]))
 
 ; element -> string
 (define (pretty-print-string-xml element)

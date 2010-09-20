@@ -40,7 +40,8 @@
   (printf "~a ~a ~a ~a ~a~n" fn-file fn-path margrave-home-path fn-filepath the-filename)
   (if (equal? 'relative fn-path)
       (parse-and-load-ios fn-file margrave-home-path prefix suffix)
-      (parse-and-load-ios fn-file fn-path prefix suffix)))
+      (parse-and-load-ios fn-file fn-path prefix suffix))
+  "success")
 
 
 ; ------------------------------------------------

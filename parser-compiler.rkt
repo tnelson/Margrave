@@ -37,7 +37,7 @@
  parse-and-compile-read
  parse-and-compile-read-syntax
  parse-and-compile-port
- make-simple-load-script)
+ make-simple-load-func)
 
 ;
 
@@ -612,7 +612,7 @@
 ; end of parser def
 
 
-; Take a syntax object for a Margrave command. Return a '(lambda ... 
+; Take a syntax object for a Margrave command. Return a '(lambda ... OR a list of them
 ; May be a single COMMAND, or a MARGRAVE-SCRIPT with a list of commands.
 (define (compile-margrave-syntax syn)
   (let* ([interns (syntax-e syn)])
@@ -630,7 +630,7 @@
            (compile-margrave-syntax (second interns)))]
         
         ; Multiple commands: compile each command separately and return a list.
-        [(equal? first-datum 'MARGRAVE-SCRIPT) (compose-scripts (map compile-margrave-syntax (rest interns)))]
+        [(equal? first-datum 'MARGRAVE-SCRIPT) (create-script-list (map compile-margrave-syntax (rest interns)))]
         
         ; ************************************
         ; ************************************
@@ -642,8 +642,10 @@
         ; So create an uber-func that does both
         [(equal? first-datum 'LOAD-POLICY)
          (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns))))])
-           (make-simple-load-script (append (third policy-creation-list)
-                                       (fourth policy-creation-list))))]
+           (make-simple-load-func (first policy-creation-list)
+                                  (second policy-creation-list)
+                                  (append (third policy-creation-list)
+                                          (fourth policy-creation-list))))]
         
         [(equal? first-datum 'LOAD-IOS)
          `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))))]
@@ -794,10 +796,11 @@
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
 
-(define (compose-scripts list-of-func-syntax)
+(define (create-script-list list-of-func-syntax)
   ;(printf "CS: ~a~n" list-of-func-syntax)
-  `(lambda () (list ,@(map (lambda (f) `(,f)) 
-                           list-of-func-syntax))))
+;  `(list ,@(map (lambda (f) `(,f)) 
+;                           list-of-func-syntax)))
+         `(list ,@list-of-func-syntax))
 
 ; Show-all is based on get-all
 (define (make-show-all explore-id)
@@ -838,14 +841,16 @@
 (define (make-single-wrapper thexml-constructor)  
   `(lambda () (send-and-receive-xml ,thexml-constructor)))
 
-(define (make-simple-load-script list-of-xexprs)
+(define (make-simple-load-func polname vocname list-of-xexprs)
 #| gmarceau personal preference:
   `(lambda () ,@(for/list ([an-xml list-of-xml])
                           `(send-and-receive-xml ,an-xml))))
 |#
-  `(lambda () (list ,@(map (lambda (an-xexpr) 
-                             `(send-and-receive-xml ',an-xexpr)) 
-                           list-of-xexprs))))
+  ; Using implicit begin; the policy name will be the result of the func
+  `(lambda () ,@(append (map (lambda (an-xexpr) 
+                               `(send-and-receive-xml ',an-xexpr)) 
+                             list-of-xexprs)
+                        (list polname))))
 
 (define (syntax->string s)
   (symbol->string (syntax->datum s)))

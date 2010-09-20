@@ -15,9 +15,10 @@
 ; You should have received a copy of the GNU Lesser General Public License
 ; along with Margrave. If not, see <http://www.gnu.org/licenses/>.
 
+; This module describes language of Margrave commands.
+; For Margrave embedded in Racket code, see margrave/racket.
+
 #lang s-exp syntax/module-reader
-; Doesn't work. Can't find module, etc. But racket seems fine?
-;margrave/lang
 
 racket
 
@@ -39,8 +40,7 @@ racket
 
 
 (require racket
-         syntax/strip-context
-         
+         syntax/strip-context         
          margrave/parser-compiler)
 
 ; **********************************************************
@@ -53,21 +53,19 @@ racket
 
 
 (define (read-syntax-m src in)
-  (error-print-source-location #t)
-   
-  ; DEBUG
-  ;(printf "IN read-syntax-m~n~a~n" in)
+  (error-print-source-location #t)   
   
   (define compiled-func-syntax (parse-and-compile-port src in)) 
   
   ;DEBUG
-  (printf "~a ~n" compiled-func-syntax)
+  ;(printf "~a ~n" compiled-func-syntax)
   
   (with-syntax ( [results-closure-syntax compiled-func-syntax])
     (strip-context       
      #'((require margrave/margrave
                  margrave/margrave-ios ; for parse-and-load-ios
                  racket/generator) 
+        
         (provide margrave-results)            
         
         ; -------------------------
@@ -84,21 +82,34 @@ racket
           (xml-policy-info->req-vector info-result))
         
         
+        ; !!!!! TODO !!!!!!!!!!!!!
         ; if pol doesn't exist, standard send-and-receive will throw an error. need to catch or define a new response handler
         
         ; -------------------------        
         
         
-        (start-margrave-engine #:margrave-params '("-log"))             
-        (define unprocessed-results (results-closure-syntax))
+        
+        (start-margrave-engine #:margrave-params '("-log")) 
+        
+        ; May have a list of functions or a single one.
+
+        (define (handle-func a-func)          
+          (define a-result (a-func))
+          (display-response a-result)
+          a-result)
+        
+        (define margrave-results (if (list? results-closure-syntax)
+                                     (map handle-func results-closure-syntax)
+                                     (handle-func results-closure-syntax)))
+                                        
         
         ; Engine is left running so that caller can use the results.       
         
         ; Make the results available
-        (define margrave-results            
-          (if (list? unprocessed-results)
-              (filter (lambda (x) (not (void? x))) (flatten unprocessed-results))
-              unprocessed-results))
+     ;   (define margrave-results            
+      ;    (if (list? unprocessed-results)
+      ;        (filter (lambda (x) (not (void? x))) (flatten unprocessed-results))
+      ;        unprocessed-results))
         
         ; Print the results
         ;(for-each display-response margrave-results)
