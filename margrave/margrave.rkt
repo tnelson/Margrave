@@ -48,7 +48,8 @@
          
          the-margrave-namespace
          margrave-home-path         
-         resolve-java-path!)
+         resolve-java-path!
+         resolve-custom-vector)
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
@@ -635,3 +636,23 @@ gmarceau
 ;  (map (lambda (idbname) 
 ;         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
 ;       thelist))
+
+    
+; -------------------------
+(define (resolve-custom-vector polid vecid polline polcol)
+  ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
+  (define polid-str (symbol->string/safe polid))
+  
+  ; Only allow req for now. (Later, DEFINE VECTOR command)
+  (when (not (symbol=? vecid 'req))
+    (raise-user-error 'margrave-language-error "~a was an unknown vector ID.~n" vecid))
+  
+  ; Get request vector for this policy id
+  (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str)))
+  (xml-policy-info->req-vector info-result))
+
+
+; !!!!! TODO !!!!!!!!!!!!!
+; if pol doesn't exist, standard send-and-receive will throw an error. need to catch or define a new response handler
+
+; -------------------------     

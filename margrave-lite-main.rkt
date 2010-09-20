@@ -26,31 +26,41 @@
 
 #lang racket
 
-(require "margrave.rkt"
-         "margrave-ios.rkt"
-         racket/enter)
+(require margrave/margrave
+         margrave/lang/reader)
+
+
+; current-command-line-arguments
+
 
 
 ;****************************************************************
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
 
+
+
+; Removed exit handler since the QUIT command will (stop-margrave-engine) before (exit).
+
 ; (exit) kills the Java engine in DrRacket, but *NOT* in 
 ; Racket and GRacket. So we use the exit-handler parameter.
 
-(define orig-exit-handler (exit-handler)) 
-
-(define (margrave-repl-exit-handler n)
-  ; If stop-margrave-engine fails, don't gum up the exit.
-  (with-handlers ([(lambda (e) #t) 
-                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))])
-    (stop-margrave-engine))  
-  (orig-exit-handler n))
+;(define orig-exit-handler (exit-handler)) 
+;
+;(define (margrave-repl-exit-handler n)
+;  ; If stop-margrave-engine fails, don't gum up the exit.
+;  (with-handlers ([(lambda (e) #t) 
+;                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))])
+;    (stop-margrave-engine))  
+;  (orig-exit-handler n))
 
 
 
 
 ;****************************************************************
+
+; No run-lite: command line param for script to run, if any
+
 
 ; For the REPL, we don't support #lang and require, etc. in scripts.
 ; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
@@ -58,10 +68,10 @@
 ; Using THIS namespace instead of make-base-empty-namespace
 ; because we want the user to have access to stuff like
 ; margrave-home-path and module-tests for this module.
-(define (run-lite filename)
-  (parameterize ([current-namespace margrave-repl-namespace])
-  ;(parameterize ([current-namespace (make-base-empty-namespace)])
-    (load filename)
+;(define (run-lite filename)
+;  (parameterize ([current-namespace margrave-repl-namespace])
+;  ;(parameterize ([current-namespace (make-base-empty-namespace)])
+;    (load filename)
     
     ; Using load for now.
     ; Advantage: can re-run a "script" as many times as desired
@@ -70,17 +80,17 @@
     ;(if (relative-path? filename)
     ;    (namespace-require filename)
     ;    (namespace-require `(file ,filename)))
-    ))
+  ;  ))
 
 ;****************************************************************
 ;****************************************************************
 ;****************************************************************
 ; TESTS
 
-(define (module-tests)
-  ;(run-lite (path->string (build-path margrave-home-path "examples" "full" "full-ios-demo.rkt"))) 
-  (run-lite (build-path margrave-home-path "examples" "lite" "lite-ios-demo.rkt"))
-       )
+;(define (module-tests)
+;  ;(run-lite (path->string (build-path margrave-home-path "examples" "full" "full-ios-demo.rkt"))) 
+;  (run-lite (build-path margrave-home-path "examples" "lite" "lite-ios-demo.rkt"))
+;       )
 
 
 ;****************************************************************
@@ -92,12 +102,28 @@
 (start-margrave-engine)
 
 ; Tell them how to exit.
-(printf "~nWelcome to Margrave Lite. To exit, type (exit) at the command prompt.~n~n")
+(printf "~nWelcome to Margrave Lite. To exit, type QUIT; at the command prompt.~n~n")
+
+;; TODO: ;; vs ;? can i re-use the same parser?
+
+
+;; <<----- if there is a parameter, it is the filename of a script to load. load first, then show repl
+
+
+;; TODO Do we need a new reader that produces no top-level stuff? 
+
 
 ; Just calling read-eval-print-loop results in an error (no #%app ...)
 ; Works if we give it a namespace
+(define orig-eval (current-eval))
+
 (parameterize ([current-namespace margrave-repl-namespace]
-               [exit-handler margrave-repl-exit-handler])
+               [current-read-interaction read-syntax-m]
+               
+               ;; This is very bad. Apparently.
+               [current-eval (lambda (val) 
+                               (printf "~a~n" val)
+                               (orig-eval val))])
   (read-eval-print-loop))
 
 

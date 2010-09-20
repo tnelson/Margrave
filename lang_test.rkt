@@ -31,4 +31,5 @@ info last;
 //LOAD IOS ./examples/policies/ios-demo/initial/demo.txt;
 //info
 
-quit;
+// trailing whitespace (and comment, which can't be trimmed!) after the next command, make sure it doesn't clog the parser
+quit;             //comment

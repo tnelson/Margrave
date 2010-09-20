@@ -23,9 +23,10 @@
          parser-tools/lex
          (prefix-in : parser-tools/lex-sre)
          syntax/readerr
-         
+         )
          ; Need to require here since SHOW/GET ALL symbols are evaluated here.
-         racket/generator)
+; checking if not
+         ;racket/generator)
 
 (require margrave/margrave-xml
          margrave/margrave-policy-vocab)
@@ -54,7 +55,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN DOUBLESEMICOLON IOS EMPTYID))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN IOS EMPTYID))
 (define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
@@ -109,10 +110,9 @@
    ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
    [lex:comment (return-without-pos (lex input-port))]
    
-   [(eof) 'EOF]
+   [(eof) (token-EOF)]
    
    [":" (token-COLON)] 
-   [";;" (token-DOUBLESEMICOLON)] 
    [";" (token-SEMICOLON)] 
    ["(" (token-LPAREN)] 
    [")" (token-RPAREN)] 
@@ -273,12 +273,13 @@
          stx-for-original-property)))))) 
 
 
+; Parse ONE COMMAND
 (define (parse source-name)
   (parser
    (src-pos) 
    (start start)
-   ; Stop at either end of file or a ;;
-   (end EOF DOUBLESEMICOLON)
+   ; Stop at either end of file or a ;
+   (end EOF SEMICOLON)
    (tokens empty-terminals terminals)
    
    (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
@@ -318,17 +319,20 @@
            ; stand-alone Margrave command without a semicolon:
            ; removed this production since it's now covered by margrave-script. was a reduce/reduce conflict without removal.
           ; [(margrave-command) $1]            
+          
+           ; No more script in parser. Single command. Semicolon is dealt with as a termination token above
+           [(margrave-command) $1])
            
            ; A margrave-script is a list of margrave commands each ending in a semicolon
-           [(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
+           ;[(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
     
     ;**************************************************
     ; One production for each kind of command
     
-    (margrave-script
-     [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
-     [(margrave-command) (list (build-so (list 'COMMAND $1) 1 1))]
-     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
+   ; (margrave-script
+   ;  [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
+   ;  [(margrave-command) (list (build-so (list 'COMMAND $1) 1 1))]
+   ;  [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
          
     ;**************************************************
     
