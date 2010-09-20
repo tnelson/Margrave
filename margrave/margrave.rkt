@@ -22,9 +22,9 @@
 
 (require xml
          srfi/13
-         "margrave-xml.rkt"
-         "parser-compiler.rkt"
-         "margrave-policy-vocab.rkt"
+         margrave/margrave-xml
+         margrave/compiler
+         margrave/margrave-policy-vocab
          
          racket/generator)
 
@@ -36,7 +36,7 @@
          load-policy
          send-and-receive-xml
          
-         (all-from-out "margrave-xml.rkt")
+         (all-from-out margrave/margrave-xml)
 
          display-response
          response->string

@@ -16,7 +16,7 @@
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
 #lang racket
-(require "margrave-xml.rkt")
+(require margrave/margrave-xml)
 
 (provide evaluate-policy)
 

@@ -2,7 +2,6 @@
 
 // This is a comment
 
-
 LOAD POLICY ./tests/fwex1.p; // this is also a comment
 
 //explore fWeX1:ACCepT(ipsrc, ipdest, portsrc, portdest, pro ) TUPLING; 

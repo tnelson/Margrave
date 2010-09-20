@@ -41,7 +41,7 @@ racket
 
 (require racket
          syntax/strip-context         
-         margrave/parser-compiler)
+         margrave/compiler)
 
 (provide read-syntax-m)
 
@@ -60,7 +60,7 @@ racket
   ; Parse one. Deal with it. Parse the next. Deal with it...
   
   (define (make-syntax-for-one-func f)
-    (printf "Making syntax for f: ~a~n" f)
+   ; (printf "Making syntax for f: ~a~n" f)
     (with-syntax ( [the-func-syntax f])
       (strip-context       
        #'the-func-syntax))) ; '(lambda ... ) at this stage. invoked in syntax below
