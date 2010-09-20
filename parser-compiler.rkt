@@ -697,42 +697,42 @@
          ;(printf "~a ~n" (syntax->datum (second interns)))
          (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper 
-
+              
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                               (list ,@(map helper-syn->xml (syntax-e (third interns)))))) ; if works, need to change the other cases
+                                               (list ,@(map helper-syn->xml (syntax-e (third interns))))))
              (make-single-wrapper 
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                               ,(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                        (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
+                                               (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
+                                                               (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns))))))))))]
         [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns)) 
-                                                 ,(map helper-syn->xml (syntax-e (third interns)))))
+                                                 (list ,@(map helper-syn->xml (syntax-e (third interns))))))
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns))
-                                                 ,(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                          (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
+                                                 (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
+                                                                  (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns))))))))))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
          
          (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1") 
-                                               (list ,@(map helper-syn->xml (syntax-e (second interns)))))) ;; if works... !!!!!
+                                               (list ,@(map helper-syn->xml (syntax-e (second interns)))))) 
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1")
-                                               ,(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                        (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns)))))))))]
+                                               (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
+                                                               (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns))))))))))]
         [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
-                                                 ,(map helper-syn->xml (syntax-e (second interns)))))
+                                                 (list ,@(map helper-syn->xml (syntax-e (second interns))))))
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
-                                                 ,(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                          (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns)))))))))]
+                                                 (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
+                                                                 (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns))))))))))]
         
         [(equal? first-datum 'RENAME)
          (make-single-wrapper
@@ -790,7 +790,10 @@
          (make-single-wrapper `(xml-make-get-qrules-command ,(syntax->datum (second interns)) ,(symbol->string (syntax->datum (third interns)))))]
                 
         [(equal? first-datum 'QUIT)
-         '(lambda () (stop-margrave-engine))]
+         '(lambda () 
+            (stop-margrave-engine)
+            (printf "Closing Margrave. Have a nice day.~n" )
+            (exit))]
                 
         [else
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))

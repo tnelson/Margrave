@@ -28,17 +28,9 @@ SHOW ONE;
 // example: verification
 //////////////////////////////////////////////
 
-EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-
+EXPLORE InboundACL1:Permit(<InboundACL1:req>)
         AND src-addr-in = 10.1.1.2 
         AND fe0 = entry-interface
-
      TUPLING;
      
 IS POSSIBLE?;
