@@ -43,7 +43,10 @@ racket
          syntax/strip-context         
          margrave/compiler)
 
-(provide read-syntax-m)
+(provide read-syntax-m
+         read-m
+         read-syntax-m-single
+         read-m-single)
 
 ; **********************************************************
 
@@ -52,33 +55,31 @@ racket
    (read-syntax-m #f in)))
 
 ; **********************************************************
+(define (make-syntax-for-one-func f)
+  ; (printf "Making syntax for f: ~a~n" f)
+  (with-syntax ( [the-func-syntax f])
+    (strip-context       
+     #'the-func-syntax))) ; '(lambda ... ) at this stage. invoked in syntax below
 
+(define (parse-helper src in func-list-so-far)
+  (if (eof-object? (peek-char in))      
+      func-list-so-far
+      (parse-helper src in (cons (make-syntax-for-one-func 
+                                  (parse-and-compile-port src in))
+                                 func-list-so-far))))
+
+; **********************************************************
 
 (define (read-syntax-m src in)
   (error-print-source-location #t)   
   
-  ; Parse one. Deal with it. Parse the next. Deal with it...
-  
-  (define (make-syntax-for-one-func f)
-   ; (printf "Making syntax for f: ~a~n" f)
-    (with-syntax ( [the-func-syntax f])
-      (strip-context       
-       #'the-func-syntax))) ; '(lambda ... ) at this stage. invoked in syntax below
-  
-  (define (parse-helper func-list-so-far)
-    (if (eof-object? (peek-char in))      
-        func-list-so-far
-        (parse-helper (cons (make-syntax-for-one-func 
-                             (parse-and-compile-port src in))
-                            func-list-so-far))))
-  
+  ; Parse one. Deal with it. Parse the next. Deal with it...  
   ; Built the list in reverse
-  (define func-list (reverse (parse-helper empty)))
+  (define func-list (reverse (parse-helper src in empty)))
   
   ; DEBUG
   ;(printf "Func list: ~a~n" func-list)
-  
-  
+    
   (define result-syntax 
     (with-syntax ([syntax-func-list `(list ,@func-list)])
       (strip-context 
@@ -92,12 +93,28 @@ racket
            
            (define (handle-func a-func)          
              (define a-result (a-func))
-             (display-response a-result)
+             (when (not (void? a-result))
+               (display-response a-result))
              a-result)
            
+           ; voids may be inserted as no-ops (see parser)
+           ;; !!! todo: isn't there a func that maps and filters at the same time?
            (define margrave-results 
-             (map handle-func syntax-func-list))))))
+             (filter (lambda (v) (not (void? v)))
+                     (map handle-func syntax-func-list)))))))
   ; DEBUG  
   (printf "Result syntax ~a~n~n" result-syntax) 
   
   result-syntax)
+
+; **********************************************************
+
+; Single-command readers. Used by Lite version's REPL
+
+(define (read-syntax-m-single src in)
+  (make-syntax-for-one-func (parse-and-compile-port src in)))
+
+(define (read-m-single in)
+  (syntax->datum
+   (read-syntax-m-single #f in)))
+

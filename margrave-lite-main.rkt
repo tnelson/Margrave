@@ -104,26 +104,21 @@
 ; Tell them how to exit.
 (printf "~nWelcome to Margrave Lite. To exit, type QUIT; at the command prompt.~n~n")
 
-;; TODO: ;; vs ;? can i re-use the same parser?
-
 
 ;; <<----- if there is a parameter, it is the filename of a script to load. load first, then show repl
 
-
-;; TODO Do we need a new reader that produces no top-level stuff? 
 
 
 ; Just calling read-eval-print-loop results in an error (no #%app ...)
 ; Works if we give it a namespace
 (define orig-eval (current-eval))
 
-(parameterize ([current-namespace margrave-repl-namespace]
-               [current-read-interaction read-syntax-m]
-               
-               ;; This is very bad. Apparently.
-               [current-eval (lambda (val) 
-                               (printf "~a~n" val)
-                               (orig-eval val))])
+(parameterize ([current-namespace margrave-repl-namespace]               
+               [current-read-interaction read-syntax-m-single]               
+               [current-eval (lambda (val)                
+                               (define a-result ((orig-eval val)))
+                               (when (not (void? a-result))
+                                 (display-response a-result)))])
   (read-eval-print-loop))
 
 
