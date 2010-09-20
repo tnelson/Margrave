@@ -104,8 +104,12 @@
 ; Tell them how to exit.
 (printf "~nWelcome to Margrave Lite. To exit, type QUIT; at the command prompt.~n~n")
 
+; Next step: build and try out command line args. What form do they take?
+; Looks like a list of syntax objects?
+(printf "Args were: ~a ~n~n" (current-command-line-arguments))
 
 ;; <<----- if there is a parameter, it is the filename of a script to load. load first, then show repl
+;; (current-command-line-arguments)
 
 
 
