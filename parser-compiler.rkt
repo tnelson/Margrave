@@ -102,9 +102,13 @@
 ; Assume the caller has downcased the input
 (define lex  
   (lexer-src-pos
-   [(:+ lex:whitespace) (begin 
-                          ;(printf "Skipping whitespace~n") 
-                          (return-without-pos (lex input-port)))]
+   ; Skip whitespace and comments
+   [(:+ lex:whitespace) (return-without-pos (lex input-port))]
+   
+   ; Comment. Must appear before <identifier> rules or else something like
+   ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
+   [lex:comment (return-without-pos (lex input-port))]
+   
    [(eof) 'EOF]
    
    [":" (token-COLON)] 
@@ -196,11 +200,7 @@
    [(lex-ci "true") (token-TRUE)]
    [(lex-ci "ios") (token-IOS)]
    [(lex-ci "sqs") (token-SQS)]
-   [(lex-ci "xacml") (token-XACML)]
-      
-   ; Comment. Must appear before <identifier> rules or else something like
-   ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
-   [lex:comment (token-<comment> lexeme)]
+   [(lex-ci "xacml") (token-XACML)]     
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
@@ -328,12 +328,8 @@
     (margrave-script
      [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
      [(margrave-command) (list (build-so (list 'COMMAND $1) 1 1))]
-     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)]
-     
-     ; Comments are not terminated with semicolons.
-     [(comment-token) (list (build-so (list 'COMMENT $1) 1 1))]
-     [(comment-token margrave-script) (append (list (build-so (list 'COMMENT $1) 1 1)) $2) ])    
-    
+     [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
+         
     ;**************************************************
     
     (poss-empty-id 
@@ -418,11 +414,7 @@
      [(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
      )
      ; end of margrave-commend
-    
-    ;**************************************************
-    
-    (comment-token [(<comment>) (build-so (list 'COMMENT $1) 1 1)])
-    
+        
     ;**************************************************
     ; CREATE statements
     (create-statement
@@ -632,7 +624,11 @@
         ; ************************************
         
         ; Single command: compile its contents
-        [(equal? first-datum 'COMMAND) (compile-margrave-syntax (second interns))]
+        [(equal? first-datum 'COMMAND)
+         (let ()
+           ;(printf "COMMAND: ~a~n ~a~n~n" (syntax->datum (second interns)) (compile-margrave-syntax (second interns)))
+           (compile-margrave-syntax (second interns)))]
+        
         ; Multiple commands: compile each command separately and return a list.
         [(equal? first-datum 'MARGRAVE-SCRIPT) (compose-scripts (map compile-margrave-syntax (rest interns)))]
         
@@ -697,16 +693,17 @@
         ; id, list, optional for-cases list
         [(equal? first-datum 'SHOWREALIZED)
          ;(printf "~a ~n" (syntax->datum (second interns)))
-         (if (empty? (fourth interns))
+         (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper 
+
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                               ,(map helper-syn->xml (syntax-e (third interns)))))
+                                               (list ,@(map helper-syn->xml (syntax-e (third interns)))))) ; if works, need to change the other cases
              (make-single-wrapper 
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
                                                ,(append (map helper-syn->xml (syntax-e (third interns))) 
                                                         (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
         [(equal? first-datum 'SHOWUNREALIZED)
-         (if (empty? (fourth interns))
+         (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns)) 
                                                  ,(map helper-syn->xml (syntax-e (third interns)))))
@@ -716,17 +713,17 @@
                                                           (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns)))))))))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
-         ;(printf "~a ~n" (syntax->datum (second interns)))
-         (if (empty? (third interns))
+         
+         (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1") 
-                                               ,(map helper-syn->xml (syntax-e (second interns)))))
+                                               (list ,@(map helper-syn->xml (syntax-e (second interns)))))) ;; if works... !!!!!
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1")
                                                ,(append (map helper-syn->xml (syntax-e (second interns))) 
                                                         (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns)))))))))]
         [(equal? first-datum 'LSHOWUNREALIZED)
-         (if (empty? (third interns))
+         (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
                                                  ,(map helper-syn->xml (syntax-e (second interns)))))
@@ -792,11 +789,7 @@
                 
         [(equal? first-datum 'QUIT)
          '(lambda () (stop-margrave-engine))]
-        
-        ; Do nothing with a comment
-        [(equal? first-datum 'COMMENT)
-         '(lambda () (void))]
-        
+                
         [else
          (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
@@ -966,7 +959,8 @@
         [(equal? first-datum 'id)
          `(xml-make-id ,(syntax->string (second interns)))]
         [(equal? first-datum 'IDBOUTPUT)
-         `(xml-make-idbout ,(map helper-syn->xml (rest interns)))]
+         ; List instead of quote since there's evaluation to be done inside
+         `(xml-make-idbout (list ,@(map helper-syn->xml (rest interns))))]
         [else
          (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
