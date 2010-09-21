@@ -50,10 +50,6 @@
     (stop-margrave-engine))  
   (orig-exit-handler n))
 
-
-
-
-
 ;****************************************************************
 
 (define (load-necessary-scripts)
@@ -72,26 +68,20 @@
   (for-each load-margrave-script args))
 
 
-(define (start-margrave-repl)
-  ; Do NOT parameterize current-eval, since we eval within. 
-  ; Instead, parameterize current-read-interaction and current-print
-    
-  ; A command does not have #lang margrave. Use read-syntax-m-single
-  ; Funcs will come back as (lambda ...) not #procedure. Need to invoke below.
-  (parameterize ([current-namespace margrave-repl-namespace]               
-                 [current-read-interaction read-syntax-m-single]  
-                 [exit-handler margrave-repl-exit-handler]
-                 [current-print (lambda (proc)
-                                  (printf "print: ~a~n" proc)
-                                  (if (void? proc)  ;; DEBUG
-                                      (printf "void!~n")
-                                      (let ()                                     
-                                        (define a-result (proc))
-                                        (when (not (void? a-result))
-                                          (display-response a-result)))))])
-    (read-eval-print-loop)))
-
 ;****************************************************************
+
+(define orig-print (current-print))
+
+(define (margrave-repl-print proc)
+  ;(printf "print: ~a~n" proc)
+  ; Dev note: We get 7 #<void>s at the beginning of the repl. Why?
+  ; (Doesn't seem to be due to the reader, no debug info for the voids).
+  (if (procedure? proc)                                       
+      (let ()                                     
+        (define a-result (proc))
+        (when (not (void? a-result))
+          (display-response a-result)))
+      (orig-print proc)))
 
 (define (margrave-repl-exception-handler e)
   (printf "------------------------------------------------------------~n")
@@ -103,7 +93,20 @@
         [else (begin
                 (stop-margrave-engine)
                 (exit))]))
-               
+
+
+(define (start-margrave-repl)
+  ; Do NOT parameterize current-eval, since we eval within. 
+  ; Instead, parameterize current-read-interaction and current-print
+    
+  ; A command does not have #lang margrave. Use read-syntax-m-single
+  ; Funcs will come back as (lambda ...) not #procedure. Need to invoke below.
+  (parameterize ([current-namespace margrave-repl-namespace]               
+                 [current-read-interaction read-syntax-m-single]  
+                 [exit-handler margrave-repl-exit-handler]
+                 [current-print margrave-repl-print])
+    (read-eval-print-loop)))
+
 ;****************************************************************
 ;****************************************************************
 ;****************************************************************
