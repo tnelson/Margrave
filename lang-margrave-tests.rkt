@@ -43,6 +43,38 @@ explore conf1:permit(s, a, r) AND
 // expect: unsat
 IS POSSIBLE?;
 
+// basic request vector sugar
+explore conf1:permit(<conf1:req>);
+
+// publish and vector in publish
+explore conf1:permit(<conf1:req>) PUBLISH <conf1:req>;
+
+// last ID, info saved query
+info last;
+
+// Result accessor commands with and without explicit ID
+IS POSSIBLE? 0;
+SHOW ONE 0;
+SHOW NEXT 0;
+GET ONE 0;
+GET NEXT 0;
+GET ALL 0;
+COUNT 0;
+
+SHOW ONE;
+SHOW NEXT;
+GET ONE;
+GET NEXT;
+GET ALL;
+COUNT;
+
+// Accessing a policy's rule set
+GET RULES IN conf1;
+GET QUALIFIED RULES IN conf1;
+GET RULES IN conf1 WITH DECISION permit;
+GET QUALIFIED RULES IN conf1 WITH DECISION permit;
+
+
 
 // TODO: rest of syntax
 
@@ -71,7 +103,10 @@ IS POSSIBLE?;
 // expect: false
 
 
+// TODO: import the rest of the old SISC tests
 
+
+// ***************************************
 
 
 

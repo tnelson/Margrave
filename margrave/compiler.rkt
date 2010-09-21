@@ -204,13 +204,22 @@
         
         ; Allow user to get the rules in a policy
         [(equal? first-datum 'GETRULES)
-         (make-single-wrapper `(xml-make-get-rules-command ,(syntax->datum (second interns))))]
+         (make-single-wrapper
+          `(xml-make-get-rules-command ',(syntax->datum (second interns))))]
+        
         [(equal? first-datum 'GETQRULES)
-         (make-single-wrapper `(xml-make-get-qrules-command ,(syntax->datum (second interns))))]
+         (make-single-wrapper
+          `(xml-make-get-qrules-command ',(syntax->datum (second interns))))]
+        
         [(equal? first-datum 'GETRULESDEC)
-         (make-single-wrapper `(xml-make-get-rules-command ,(syntax->datum (second interns)) ,(symbol->string (syntax->datum (third interns)))))]
+         (make-single-wrapper 
+          `(xml-make-get-rules-command ',(syntax->datum (second interns))
+                                       ,(symbol->string (syntax->datum (third interns)))))]
+        
         [(equal? first-datum 'GETQRULESDEC)
-         (make-single-wrapper `(xml-make-get-qrules-command ,(syntax->datum (second interns)) ,(symbol->string (syntax->datum (third interns)))))]
+         (make-single-wrapper 
+          `(xml-make-get-qrules-command ',(syntax->datum (second interns))
+                                        ,(symbol->string (syntax->datum (third interns)))))]
                 
         [(equal? first-datum 'QUIT)
          '(lambda () 

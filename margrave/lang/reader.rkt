@@ -107,7 +107,7 @@ racket
              (filter (lambda (v) (not (void? v)))
                      (map handle-func syntax-func-list)))))))
   ; DEBUG  
-  (printf "Result syntax ~a~n~n" result-syntax) 
+  ;(printf "Result syntax ~a~n~n" result-syntax) 
   
   result-syntax)
 

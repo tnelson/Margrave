@@ -6,6 +6,8 @@ INFO;
 
 LOAD POLICY ./tests/fwex1.p; // this is also a comment
 
+GET RULES IN fwex1;
+
 //explore fWeX1:ACCepT(ipsrc, ipdest, portsrc, portdest, pro ) TUPLING; 
 
 explore fWeX1:ACCepT(ipsrc, ipdest, portsrc, portdest, pro ) and ipaddress(ipsrc) and not ipaddress(ipsrc); 
