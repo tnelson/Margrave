@@ -227,6 +227,12 @@ FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
         happyroutermore:rule2_applies(<happyroutermore:req>),
         happyroutermore:rule3_applies(<happyroutermore:req>),
         happyroutermore:ruleX_applies(<happyroutermore:req>);       
+
+        
+EXPLORE happyroutermore:rulex_matches(<happyroutermore:req>)
+INCLUDE happyroutermore:rulex_matches(<happyroutermore:req>)
+TUPLING;
+SHOW ONE;
         
 
 //explore xsort(x) and xsort(y)
