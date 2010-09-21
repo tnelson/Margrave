@@ -60,8 +60,11 @@
   ; A script has #lang margrave. Use read-syntax-m, not read-syntax-m-single
   (define args (vector->list (current-command-line-arguments)))
   
+  (when (> (length args) 0)
+    (printf "Loading ~a Margrave scripts...~n" (length args)))
+    
   (define (load-margrave-script filename)
-    (printf "Loading Margrave script: ~a~n" filename)
+    (printf "  Loading Margrave script: ~a~n" filename)
     (parameterize ([current-namespace margrave-repl-namespace]               
                    [exit-handler margrave-repl-exit-handler])
       (namespace-require filename)))
@@ -74,13 +77,18 @@
   ; Instead, parameterize current-read-interaction and current-print
     
   ; A command does not have #lang margrave. Use read-syntax-m-single
+  ; Funcs will come back as (lambda ...) not #procedure. Need to invoke below.
   (parameterize ([current-namespace margrave-repl-namespace]               
                  [current-read-interaction read-syntax-m-single]  
                  [exit-handler margrave-repl-exit-handler]
                  [current-print (lambda (proc)
-                                  (define a-result (proc))
-                                  (when (not (void? a-result))
-                                    (display-response a-result)))])
+                                  (printf "print: ~a~n" proc)
+                                  (if (void? proc)  ;; DEBUG
+                                      (printf "void!~n")
+                                      (let ()                                     
+                                        (define a-result (proc))
+                                        (when (not (void? a-result))
+                                          (display-response a-result)))))])
     (read-eval-print-loop)))
 
 ;****************************************************************
@@ -106,6 +114,9 @@
 
 ; Tell them how to exit.
 (printf "~nWelcome to Margrave Lite. To exit, type QUIT; at the command prompt.~n~n")
+
+; Load a script for each command line arg
+(load-necessary-scripts)
 
 ; Make sure the Java engine gets terminated on an error.
 ; Make sure that user errors don't terminate the repl.

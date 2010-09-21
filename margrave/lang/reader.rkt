@@ -56,11 +56,12 @@ racket
 
 ; **********************************************************
 (define (make-syntax-for-one-func f)
-  ; (printf "Making syntax for f: ~a~n" f)
-  (with-syntax ( [the-func-syntax f])
-    (strip-context       
-     #'the-func-syntax))) ; '(lambda ... ) at this stage. invoked in syntax below
-
+  (define result-syntax (with-syntax ( [the-func-syntax f])
+                         (strip-context       
+                          #'the-func-syntax)))
+  ;(printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
+  result-syntax)
+  
 (define (parse-helper src in func-list-so-far)
   (if (eof-object? (peek-char in))      
       func-list-so-far
@@ -76,6 +77,8 @@ racket
   ; Parse one. Deal with it. Parse the next. Deal with it...  
   ; Built the list in reverse
   (define func-list (reverse (parse-helper src in empty)))
+  
+  ;(printf "Reading: ~a ~a ~n" src in)
   
   ; DEBUG
   ;(printf "Func list: ~a~n" func-list)
@@ -93,6 +96,7 @@ racket
            
            (define (handle-func a-func)          
              (define a-result (a-func))
+             ;(printf "handle-func: ~a ~a~n" a-func a-result)
              (when (not (void? a-result))
                (display-response a-result))
              a-result)
