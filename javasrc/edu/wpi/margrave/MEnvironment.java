@@ -278,7 +278,7 @@ class MExploreCondition
 	// **************************************************************	
 	
 	public void inferFromInclude(MVocab uber,
-			Map<String, Set<List<String>>> includeMap)
+			Map<String, Set<List<String>>> includeMap) throws MGEUnknownIdentifier
 	{
 		for(String key : includeMap.keySet())
 		{
@@ -301,11 +301,33 @@ class MExploreCondition
 			{
 				bIsIDB = true;
 				
-				// Separate into polname and idbname
-				String collname = key.substring(0, key.indexOf(":"));
-				pol = MEnvironment.getPolicyOrView(collname);
-				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was an IDB in collection: "+pol+"; coll name = "+collname);
+				String collname; 
+				
+				// view or policy IDB?
+				int colonpos = key.indexOf(":"); 
+				if(colonpos < 0)
+				{
+					// view
+					collname = key;
+					pol = MEnvironment.getPolicyOrView(collname);
+					MCommunicator.writeToLog("\ninferFromInclude: "+key+" was a saved query with name = "+collname);
+
+				}
+				else
+				{
+					// policy idb
+					collname = key.substring(0, colonpos);
+					pol = MEnvironment.getPolicyOrView(collname);
+					MCommunicator.writeToLog("\ninferFromInclude: "+key+" was an IDB in collection: "+pol+"; coll name = "+collname);					
+				}
+				
+				if(pol == null)
+				{
+					// Invalid collection name
+					throw new MGEUnknownIdentifier("Could not find a policy or saved query named: "+collname);
+				}
 			}
+			
 			
 			for(List<String> varnamevector : includeMap.get(key))
 			{

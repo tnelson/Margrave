@@ -187,7 +187,8 @@ include happyroutermore:rule1_matches(<happyroutermore:req>),
 TUPLING;
 
 
-// TODO: error when user forgets qualifier in INCLUDE
+// Don't enable this: error when user forgets qualifier in INCLUDE
+// But check for exn:fail:user, not null ptr
 //explore ipaddress(ipsrc) and ipaddress(ipdest)
 //UNDER happyroutermore
 //include rule1_matches(<happyroutermore:req>),
@@ -195,9 +196,6 @@ TUPLING;
 //        rule3_matches(<happyroutermore:req>),
 //        ruleX_matches(<happyroutermore:req>)
 //TUPLING;
-
-
-// TODO: why is catch-all rule unrealized?
 
 SHOW REALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
         happyroutermore:rule2_matches(<happyroutermore:req>),
