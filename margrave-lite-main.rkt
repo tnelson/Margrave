@@ -35,9 +35,10 @@
 ;****************************************************************
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
+;****************************************************************
 
+; Much of this code is devoted to making sure the Java engine exits.
 
-; (Keep exit handler in case of error)
 ; (exit) kills the Java engine in DrRacket, but *NOT* in 
 ; Racket and GRacket. So we use the exit-handler parameter.
 
@@ -58,12 +59,18 @@
   
   (when (> (length args) 0)
     (printf "Loading ~a Margrave scripts...~n" (length args)))
-    
+  
   (define (load-margrave-script filename)
     (printf "  Loading Margrave script: ~a~n" filename)
-    (parameterize ([current-namespace margrave-repl-namespace]               
-                   [exit-handler margrave-repl-exit-handler])
-      (namespace-require filename)))
+    
+    ; If one of the filenames is bad, close out gracefully
+    (with-handlers ([(lambda (e) #t) (lambda (e) 
+                                       (printf "Error loading script: ~a.~nClosing Margrave. Please try again with the correct script name.~a Error was: ~a.~n" filename e) 
+                                       (stop-margrave-engine)
+                                       (exit))])
+      (parameterize ([current-namespace margrave-repl-namespace]               
+                     [exit-handler margrave-repl-exit-handler])
+        (namespace-require filename))))
   
   (for-each load-margrave-script args))
 
