@@ -1037,6 +1037,11 @@ public class MQuery extends MIDBCollection
  							indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
 
  							tupledIDBCollections.get(polName).idbs.put(new_internal_name, new_idbformula);
+ 							tupledIDBCollections.get(polName).varOrdering = new ArrayList<Variable>();
+ 							tupledIDBCollections.get(polName).varOrdering.add(mtup.newvar);
+ 							// ^^^ No sort yet (calculated below), but we know the variable
+ 							
+ 							
 
 							//System.err.println("Tupling IDB: "+new_internal_name);
 							//System.err.println(new_idbformula.hashCode());

@@ -2018,8 +2018,13 @@ public abstract class MInstanceIterator
 					// Zero arity means either always true or always false... 
 					// Would be nice to support but KodKod doesn't allow nullary relations
 					if(idbArity < 1)
-						continue;
-									
+					{
+						// Get around it by using the full arity of the LHS relation:
+						idbArity = idbs.varOrdering.size();
+						tempvars = new HashSet<Variable>(); // adding is unsupported in prior instance
+						for(Variable v : idbs.varOrdering)
+							tempvars.add(v);
+					}				
 					// Create a temporary relation 
 					// (If tupled, attach the indexing -- uglier but desirable for correctness checking.)
 					Relation therel;
@@ -2077,12 +2082,9 @@ public abstract class MInstanceIterator
 					{
 						// Tupled query's IDB. This was a policy before.
 						
-						// Use the first (and only) variable in tempvars. We've tupled the formula, so it 
-						// does indeed have only one free variable now.
-						Iterator<Variable> itv = tempvars.iterator();
-						if(!itv.hasNext())
-							throw new MGEBadIdentifierName("No free variables detected in IDB flagged for tupled output: "+idbs.name);
-						tup = itv.next();
+						if(idbs.varOrdering.size() < 1 )
+							throw new MGEBadIdentifierName("Error finding arity of collection: "+idbs.name);						
+						tup = idbs.varOrdering.get(0);
 					}
 					else
 						throw new MGEUnknownIdentifier("Bad IDB collection type: "+idbs.getClass().getName());
