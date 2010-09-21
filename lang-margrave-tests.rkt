@@ -205,8 +205,7 @@ SHOW REALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
 SHOW UNREALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
         happyroutermore:rule2_matches(<happyroutermore:req>),
         happyroutermore:rule3_matches(<happyroutermore:req>),
-        happyroutermore:ruleX_matches(<happyroutermore:req>);
-
+        happyroutermore:ruleX_matches(<happyroutermore:req>);                
         
 SHOW REALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
         happyroutermore:rule2_matches(<happyroutermore:req>),
@@ -227,25 +226,38 @@ FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
         happyroutermore:ruleX_applies(<happyroutermore:req>);       
 
         
-EXPLORE happyroutermore:rulex_matches(<happyroutermore:req>)
-INCLUDE happyroutermore:rulex_matches(<happyroutermore:req>)
+// Test: EDB in tupled INCLUDE ---> forces the EDB to be included if it doesn't appear in the query
+EXPLORE happyroutermore:rulex_applies(<happyroutermore:req>) DEBUG 3
+INCLUDE happyroutermore:rulex_applies(<happyroutermore:req>), udp(pro)
 TUPLING;
 SHOW ONE;
+
+
+
+// Test SHOW REALIZED with non-standard variable ordering:
+// matches reverse packet when normal pkt is accepted?
+// rules 1, 2, 3 apply: dest 10net --> src 10net. only X can match.
+// rule X applies: there is still some room available to have 10network(ipdest), so 1,2,3 can all match
+explore ipaddress(ipsrc) and ipaddress(ipdest)
+UNDER happyroutermore
+include happyroutermore:rule1_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:rule2_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:rule3_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:ruleX_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:rule1_applies(<happyroutermore:req>),
+        happyroutermore:rule2_applies(<happyroutermore:req>),
+        happyroutermore:rule3_applies(<happyroutermore:req>),
+        happyroutermore:ruleX_applies(<happyroutermore:req>)
+TUPLING;
+
+SHOW REALIZED happyroutermore:rule1_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:rule2_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:rule3_matches(ipdest, ipsrc, portdest, portsrc, pro),
+        happyroutermore:ruleX_matches(ipdest, ipsrc, portdest, portsrc, pro)
+FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
+        happyroutermore:rule2_applies(<happyroutermore:req>),
+        happyroutermore:rule3_applies(<happyroutermore:req>),
+        happyroutermore:ruleX_applies(<happyroutermore:req>);   
         
-
-//explore xsort(x) and xsort(y)
-//UNDER mypol
-//include mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)
-//tupling;
-
-//show realized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-
-//show realized 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-//show realized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
-
-//show unrealized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-
-//show unrealized 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-//show unrealized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
-
-
+        
+// TODO: test show realized WITHOUT tupling        
