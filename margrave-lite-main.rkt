@@ -26,73 +26,76 @@
 
 #lang racket
 
+; Need to require everything that generated syntax from lang margrave could require
+; otherwise it will not be included in the executable that raco exe generates.
 (require margrave/margrave
+         margrave/margrave-ios
          margrave/lang/reader)
-
-
-; current-command-line-arguments
-
-
 
 ;****************************************************************
 (define-namespace-anchor repl-namespace-anchor)
 (define margrave-repl-namespace (namespace-anchor->namespace repl-namespace-anchor))
 
 
-
-; Removed exit handler since the QUIT command will (stop-margrave-engine) before (exit).
-
+; (Keep exit handler in case of error)
 ; (exit) kills the Java engine in DrRacket, but *NOT* in 
 ; Racket and GRacket. So we use the exit-handler parameter.
 
-;(define orig-exit-handler (exit-handler)) 
-;
-;(define (margrave-repl-exit-handler n)
-;  ; If stop-margrave-engine fails, don't gum up the exit.
-;  (with-handlers ([(lambda (e) #t) 
-;                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))])
-;    (stop-margrave-engine))  
-;  (orig-exit-handler n))
+(define orig-exit-handler (exit-handler)) 
+
+(define (margrave-repl-exit-handler n)
+  ; If stop-margrave-engine fails, don't gum up the exit.
+  (with-handlers ([(lambda (e) #t) 
+                   (lambda (e) (printf "Unable to close Margrave's Java engine. Caught exception:~n  ~a~n." e))])
+    (stop-margrave-engine))  
+  (orig-exit-handler n))
+
 
 
 
 
 ;****************************************************************
 
-; No run-lite: command line param for script to run, if any
+(define (load-necessary-scripts)
+  ; A script has #lang margrave. Use read-syntax-m, not read-syntax-m-single
+  (define args (vector->list (current-command-line-arguments)))
+  
+  (define (load-margrave-script filename)
+    (printf "Loading Margrave script: ~a~n" filename)
+    (parameterize ([current-namespace margrave-repl-namespace]               
+                   [exit-handler margrave-repl-exit-handler])
+      (namespace-require filename)))
+  
+  (for-each load-margrave-script args))
 
 
-; For the REPL, we don't support #lang and require, etc. in scripts.
-; load won't work out-of-box (c.f. sec 15.3 of Racket docs)
-
-; Using THIS namespace instead of make-base-empty-namespace
-; because we want the user to have access to stuff like
-; margrave-home-path and module-tests for this module.
-;(define (run-lite filename)
-;  (parameterize ([current-namespace margrave-repl-namespace])
-;  ;(parameterize ([current-namespace (make-base-empty-namespace)])
-;    (load filename)
+(define (start-margrave-repl)
+  ; Do NOT parameterize current-eval, since we eval within. 
+  ; Instead, parameterize current-read-interaction and current-print
     
-    ; Using load for now.
-    ; Advantage: can re-run a "script" as many times as desired
-    ; Disadvantage: Annoying requirement to leave out #lang and require in "lite" scripts.
-    
-    ;(if (relative-path? filename)
-    ;    (namespace-require filename)
-    ;    (namespace-require `(file ,filename)))
-  ;  ))
+  ; A command does not have #lang margrave. Use read-syntax-m-single
+  (parameterize ([current-namespace margrave-repl-namespace]               
+                 [current-read-interaction read-syntax-m-single]  
+                 [exit-handler margrave-repl-exit-handler]
+                 [current-print (lambda (proc)
+                                  (define a-result (proc))
+                                  (when (not (void? a-result))
+                                    (display-response a-result)))])
+    (read-eval-print-loop)))
 
 ;****************************************************************
-;****************************************************************
-;****************************************************************
-; TESTS
 
-;(define (module-tests)
-;  ;(run-lite (path->string (build-path margrave-home-path "examples" "full" "full-ios-demo.rkt"))) 
-;  (run-lite (build-path margrave-home-path "examples" "lite" "lite-ios-demo.rkt"))
-;       )
-
-
+(define (margrave-repl-exception-handler e)
+  (printf "------------------------------------------------------------~n")
+  (printf "~a~n" e)
+  (printf "------------------------------------------------------------~n")
+  (cond [(exn:fail:user? e) ((error-escape-handler))] ; user error
+        [(exn:fail:read? e) ((error-escape-handler))] ; syntax error
+        [(exn:fail:filesystem? e) ((error-escape-handler))] ; file not found, etc.
+        [else (begin
+                (stop-margrave-engine)
+                (exit))]))
+               
 ;****************************************************************
 ;****************************************************************
 ;****************************************************************
@@ -104,26 +107,13 @@
 ; Tell them how to exit.
 (printf "~nWelcome to Margrave Lite. To exit, type QUIT; at the command prompt.~n~n")
 
-; Next step: build and try out command line args. What form do they take?
-; Looks like a list of syntax objects?
-(printf "Args were: ~a ~n~n" (current-command-line-arguments))
+; Make sure the Java engine gets terminated on an error.
+; Make sure that user errors don't terminate the repl.
+(call-with-exception-handler margrave-repl-exception-handler
+                             start-margrave-repl)
 
-;; <<----- if there is a parameter, it is the filename of a script to load. load first, then show repl
-;; (current-command-line-arguments)
+; When REPL terminates, stop the engine (just in case)
+(stop-margrave-engine)
 
-
-
-; Just calling read-eval-print-loop results in an error (no #%app ...)
-; Works if we give it a namespace
-(define orig-eval (current-eval))
-
-(parameterize ([current-namespace margrave-repl-namespace]               
-               [current-read-interaction read-syntax-m-single]               
-               [current-eval (lambda (val)                
-                               (define a-result ((orig-eval val)))
-                               (when (not (void? a-result))
-                                 (display-response a-result)))])
-  (read-eval-print-loop))
-
-
-
+; user error is causing margrave to exit STILL
+; ahhh -- of course, it isn't force exiting, it's just propagating up to OUTSIDE the start-margrave-repl call in order to find this handler.

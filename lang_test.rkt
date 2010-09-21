@@ -2,6 +2,8 @@
 
 // This is a comment
 
+INFO;
+
 LOAD POLICY ./tests/fwex1.p; // this is also a comment
 
 //explore fWeX1:ACCepT(ipsrc, ipdest, portsrc, portdest, pro ) TUPLING; 
@@ -31,4 +33,4 @@ info last;
 //info
 
 // trailing whitespace (and comment, which can't be trimmed!) after the next command, make sure it doesn't clog the parser
-quit;             //comment
+//quit;             //comment
