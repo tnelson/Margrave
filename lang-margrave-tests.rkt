@@ -76,6 +76,8 @@ GET QUALIFIED RULES IN conf1 WITH DECISION permit;
 
 
 
+// TODO: realized (later in doc?)
+
 // TODO: rest of syntax
 
 
@@ -92,6 +94,7 @@ LOAD POLICY "tests/hospitaldenypayrollmedrecsdo.p";
 rename hospitaldenypayrollmedrecs hospitaldo;
 LOAD POLICY "tests/awfw.p";
 LOAD POLICY "tests/bigfw.p";
+LOAD POLICY "tests/phone1.p";
 
 EXPLORE BigFW:Accept(ipsrc, ipdest, portsrc, portdest);
 IS POSSIBLE?;
@@ -130,7 +133,7 @@ IS POSSIBLE?;
 //UNDER mypol
 //include mypol:rule1, mypol:rule2, mypol:rule1_applies, mypol:rule2_applies
 
-//show populated 0 mypol:rule1, mypol:rule2 for cases mypol:rule1_applies, mypol:rule2_applies;
+//show realized 0 mypol:rule1, mypol:rule2 for cases mypol:rule1_applies, mypol:rule2_applies;
 
 
 // test with tupling
@@ -140,7 +143,7 @@ IS POSSIBLE?;
 //include mypol:rule1(x), mypol:rule2(x), mypol:rule1_applies(x), mypol:rule2_applies(x)
 //tupling;
 
-//show populated 0 mypol:rule1(x), mypol:rule2(x) for cases mypol:rule1_applies(x), mypol:rule2_applies(x);
+//show realized 0 mypol:rule1(x), mypol:rule2(x) for cases mypol:rule1_applies(x), mypol:rule2_applies(x);
 
 
 
@@ -164,19 +167,81 @@ IS POSSIBLE?;
 //prepare mypol;
 
 
+// *****************************
+
+LOAD POLICY "tests/happyroutermore.p";
+
+// TUPLING, INCLUDE, SHOW REALIZED
+// Need a policy with q-free IDBs to TUPLE (so can't use the phone policy)
+
+explore ipaddress(ipsrc) and ipaddress(ipdest)
+UNDER happyroutermore
+include happyroutermore:rule1_matches(<happyroutermore:req>),
+        happyroutermore:rule2_matches(<happyroutermore:req>),
+        happyroutermore:rule3_matches(<happyroutermore:req>),
+        happyroutermore:ruleX_matches(<happyroutermore:req>),
+        happyroutermore:rule1_applies(<happyroutermore:req>),
+        happyroutermore:rule2_applies(<happyroutermore:req>),
+        happyroutermore:rule3_applies(<happyroutermore:req>),
+        happyroutermore:ruleX_applies(<happyroutermore:req>)
+TUPLING;
+
+
+// TODO: error when user forgets qualifier in INCLUDE
+//explore ipaddress(ipsrc) and ipaddress(ipdest)
+//UNDER happyroutermore
+//include rule1_matches(<happyroutermore:req>),
+//        rule2_matches(<happyroutermore:req>),
+//        rule3_matches(<happyroutermore:req>),
+//        ruleX_matches(<happyroutermore:req>)
+//TUPLING;
+
+
+// TODO: why is catch-all rule unrealized?
+
+SHOW REALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
+        happyroutermore:rule2_matches(<happyroutermore:req>),
+        happyroutermore:rule3_matches(<happyroutermore:req>),
+        happyroutermore:ruleX_matches(<happyroutermore:req>);
+
+SHOW UNREALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
+        happyroutermore:rule2_matches(<happyroutermore:req>),
+        happyroutermore:rule3_matches(<happyroutermore:req>),
+        happyroutermore:ruleX_matches(<happyroutermore:req>);
+
+        
+SHOW REALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
+        happyroutermore:rule2_matches(<happyroutermore:req>),
+        happyroutermore:rule3_matches(<happyroutermore:req>),
+        happyroutermore:ruleX_matches(<happyroutermore:req>)
+FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
+        happyroutermore:rule2_applies(<happyroutermore:req>),
+        happyroutermore:rule3_applies(<happyroutermore:req>),
+        happyroutermore:ruleX_applies(<happyroutermore:req>);       
+       
+SHOW UNREALIZED happyroutermore:rule1_matches(<happyroutermore:req>),
+        happyroutermore:rule2_matches(<happyroutermore:req>),
+        happyroutermore:rule3_matches(<happyroutermore:req>),
+        happyroutermore:ruleX_matches(<happyroutermore:req>)
+FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
+        happyroutermore:rule2_applies(<happyroutermore:req>),
+        happyroutermore:rule3_applies(<happyroutermore:req>),
+        happyroutermore:ruleX_applies(<happyroutermore:req>);       
+        
+
 //explore xsort(x) and xsort(y)
 //UNDER mypol
 //include mypol:rule1(x, y), mypol:rule2(x, y), mypol:rule1_applies(x, y), mypol:rule2_applies(x, y)
 //tupling;
 
-//show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
+//show realized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
 
-//show populated 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-//show populated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
+//show realized 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
+//show realized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
 
-//show unpopulated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
+//show unrealized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
 
-//show unpopulated 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
-//show unpopulated 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
+//show unrealized 0 mypol:rule1(y, x), mypol:rule2(x, y) for cases mypol:rule1_applies(x, y), mypol:rule2_applies(x, y);
+//show unrealized 0 mypol:rule1(x, y), mypol:rule2(x, y) for cases mypol:rule1_applies(y, x), mypol:rule2_applies(x, y);
 
 

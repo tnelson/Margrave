@@ -126,7 +126,7 @@
              (make-single-wrapper 
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
                                                (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                               (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns))))))))))]
+                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (fourth interns)))))))))))]
         [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper
@@ -135,7 +135,7 @@
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns))
                                                  (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                                  (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (fourth interns))))))))))]
+                                                                  (list `(xml-make-forcases (list ,(map helper-syn->xml (syntax-e (fourth interns)))))))))))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
          
@@ -146,7 +146,7 @@
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1")
                                                (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                               (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns))))))))))]
+                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))))]
         [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
@@ -155,7 +155,7 @@
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
                                                  (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                                 (list `(xml-make-forcases ',(map helper-syn->xml (syntax-e (third interns))))))))))]
+                                                                 (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))))]
         
         [(equal? first-datum 'RENAME)
          (make-single-wrapper
