@@ -114,15 +114,24 @@
 (define err-port #f)
 (define ctrl-function #f)
 
+
+(define (safe-get-margrave-collection-path)
+  (with-handlers ([(lambda (e) (exn:fail:filesystem? e))
+                   (lambda (e) #f)])
+    (collection-path "margrave")))
+
 ; Default margrave-home:
-; If MARGRAVE_HOME environment variable exists, use it.
-; If not, use (current-directory).
+; (1) If the margrave collection is installed, use that path.
+; (2) Else, if the MARGRAVE_HOME environment variable exists, use it.
+; (3) If not, use (current-directory).
 
 (define default-margrave-home-path-env "MARGRAVE_HOME")
 (define default-margrave-home-path 
-  (or (getenv default-margrave-home-path-env)
+  (or (safe-get-margrave-collection-path)
+      (getenv default-margrave-home-path-env)
       (current-directory)))
       
+; Home path is undefined until the engine is started.
 (define margrave-home-path #f)
 
 (define (build-classpath-param home-path)
