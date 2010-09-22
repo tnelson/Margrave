@@ -19,8 +19,7 @@
 ; For Margrave embedded in Racket code, see margrave/racket.
 
 #lang s-exp syntax/module-reader
-
-racket
+#:language 'margrave
 
 ; Define our own readers
 #:read read-syntax
@@ -29,14 +28,18 @@ racket
 ; Yes, read the whole body with one call of the reader
 #:whole-body-readers? #t
 
+; #:info is for *SOURCE* manipulation
 ; key: kind of info requested
 ; default value if symbol is not recognized
 ; default-filtering function that takes the first two and returns a result
 #:info (lambda (key defval default)
          (case key           
            [(color-lexer)
-            (dynamic-require 'syntax-color/default-lexer 'default-lexer)]
+            (dynamic-require 'syntax-color/default-lexer 'default-lexer)]           
            [else (default key defval)]))
+
+; #:language-info is for *COMPILE-TIME* manipulation
+#:language-info '#(margrave/language-info language-info #f)
 
 
 (require racket
@@ -48,6 +51,8 @@ racket
          read-syntax-m-single
          read-m-single)
 
+ 
+ 
 ; **********************************************************
 
 (define (read-m in)
@@ -84,13 +89,14 @@ racket
   ;(printf "Func list: ~a~n" func-list)
     
   (define result-syntax 
-    (with-syntax ([syntax-func-list `(list ,@func-list)])
+    (with-syntax ([syntax-func-list `(list ,@func-list)]
+                  [read-syntax-m-single read-syntax-m-single])
       (strip-context 
        #`( (require margrave/margrave
                     margrave/margrave-ios ; for parse-and-load-ios
                     racket/generator) 
            
-           (provide margrave-results)  
+           ;(provide margrave-results)  
            
            (start-margrave-engine #:margrave-params '("-log")) 
            
