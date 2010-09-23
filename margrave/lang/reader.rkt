@@ -62,7 +62,7 @@
   (define result-syntax (with-syntax ( [the-func-syntax f])
                          (strip-context       
                           #'the-func-syntax)))
-  (printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
+  ;(printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
   result-syntax)
   
 (define (parse-helper src in func-list-so-far)
@@ -118,17 +118,17 @@
 
 ; **********************************************************
 
-; Single-command readers. Used by Lite version's REPL
+; Single-command readers. Used by the REPL.
 
 (define (read-syntax-m-single src in)
-  (printf "-----------> In read-syntax-m-single. src=~a. in=~a.~n" src in)
+ ;(printf "-----------> In read-syntax-m-single. src=~a. in=~a.~n" src in)
   
   ; REPL will keep calling this over and over.
   ; Check to make sure there is a character waiting.
   ; If there isn't one, stop looking for one until triggered again.
   (if (char-ready? in)
       (begin
-        (printf "First 100 characters: ~a~n" (peek-string 100 0 in))
+       ; (printf "First 100 characters: ~a~n" (peek-string 100 0 in))
         (make-syntax-for-one-func (parse-and-compile-port src in)))
       eof))
 

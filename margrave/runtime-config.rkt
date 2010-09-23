@@ -6,7 +6,7 @@
 (provide configure)
 
 (define (configure data)
-  (printf "In configure~nCPR was: ~a~n" (current-prompt-read))
+ ; (printf "In configure~nCPR was: ~a~n" (current-prompt-read))
   (current-read-interaction margrave-repl-read-interaction)
   (current-prompt-read margrave-repl-prompt-read)
   (current-print margrave-repl-print))
@@ -26,7 +26,7 @@
 |#
 
 (define (margrave-repl-read-interaction src in)
-  (printf "In read interaction...")
+ ; (printf "In read interaction...")
   (read-syntax-m-single src in))
 
 (define orig-print (current-print))
@@ -34,7 +34,7 @@
   ;(printf "print: ~a~n" proc)
   ; Dev note: We get 7 #<void>s at the beginning of the repl. Why?
   ; (Doesn't seem to be due to the reader, no debug info for the voids).
-    (printf "In m-r-print~nCPR was: ~a~n"(current-prompt-read))
+   ; (printf "In m-r-print~nCPR was: ~a~n"(current-prompt-read))
   (if (procedure? proc)                                       
       (let ()                                     
         (define a-result (proc))
