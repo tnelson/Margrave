@@ -49,9 +49,7 @@
 (provide read-syntax-m
          read-m
          read-syntax-m-single
-         read-m-single)
-
- 
+         read-m-single) 
  
 ; **********************************************************
 
@@ -64,7 +62,7 @@
   (define result-syntax (with-syntax ( [the-func-syntax f])
                          (strip-context       
                           #'the-func-syntax)))
-  ;(printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
+  (printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
   result-syntax)
   
 (define (parse-helper src in func-list-so-far)
@@ -111,7 +109,8 @@
            ;; !!! todo: isn't there a func that maps and filters at the same time?
            (define margrave-results 
              (filter (lambda (v) (not (void? v)))
-                     (map handle-func syntax-func-list)))))))
+                     (map handle-func syntax-func-list)))
+           ))))
   ; DEBUG  
   ;(printf "Result syntax ~a~n~n" result-syntax) 
   
@@ -122,7 +121,16 @@
 ; Single-command readers. Used by Lite version's REPL
 
 (define (read-syntax-m-single src in)
-  (make-syntax-for-one-func (parse-and-compile-port src in)))
+  (printf "-----------> In read-syntax-m-single. src=~a. in=~a.~n" src in)
+  
+  ; REPL will keep calling this over and over.
+  ; Check to make sure there is a character waiting.
+  ; If there isn't one, stop looking for one until triggered again.
+  (if (char-ready? in)
+      (begin
+        (printf "First 100 characters: ~a~n" (peek-string 100 0 in))
+        (make-syntax-for-one-func (parse-and-compile-port src in)))
+      eof))
 
 (define (read-m-single in)
   (syntax->datum
