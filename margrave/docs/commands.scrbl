@@ -203,7 +203,7 @@ To get concrete scenarios, use:
 
 @deftech{SHOW ONE}: Returns a string containing a single satisfying scenario that Margrave finds, pretty-printed for human consumption.
 
-@deftech{SHOW NEXT}: Returns a string containing a @italic{different} satisfying scenario, if one exists. Use in concert with SHOW ONE. @margin-note{Without a preceding SHOW ONE, the first SHOW NEXT will behave like SHOW ONE.}
+@deftech{SHOW NEXT}: Returns a string containing a @italic{different} satisfying scenario, if one exists. Each successive use of @tech{SHOW NEXT} will produce a different scenario until all have been given. Using SHOW ONE or defining a new query with EXPLORE will cause Margrave to forget which scenarios it has already printed. @margin-note{Without a preceding SHOW ONE, the first SHOW NEXT will behave like SHOW ONE.}
 
 @deftech{GET ONE}, @deftech{GET NEXT}, @deftech{GET ALL}: Same as SHOW, except returns an XML object that represents the scenario and can be used in programs.
 
@@ -215,9 +215,9 @@ If the @tech{TUPLING} optimization is enabled, the following commands also becom
 @deftech{SHOW (UN)REALIZED <atom>, ...}: Given a list ("candidates") of 
 @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and
 @tech{atomic type formula}s, 
-returns a list of all atomic formualas given that can be true (are never true) in a satisfying scenario.
+returns the subset of the atomic formualas given that can be true (are never true) in a satisfying scenario.
 
-// Caveats about model size ceilings here. Refer to paper? !!!!!!! TODO 
+(The Margrave paper @cite{nbdfk10} contains more information on the subtleties of the SHOW (UN)REALIZED command.)
 
 
 @deftech{SHOW (UN)REALIZED <atom>, ... FOR CASES <atom>, ...}: 
@@ -264,6 +264,10 @@ then load the new version and
 Now you can write a single query that refers to both policies, such as this partial change-impact query:
 
 @italic{EXPLORE policy_old:deny(x) AND policy_new:permit(x)}
+
+You can also use the RENAME command to save the "last" query created under a unique name:
+
+@italic{RENAME last otherquery}
 
 @subsection{Getting INFO}
 
