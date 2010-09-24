@@ -30,18 +30,24 @@
 ; updated tn july 2010
 ; updated for release aug-sept 2010
 
-(define (parse-and-load-ios-by-filename the-filename #:prefix [prefix ""] #:suffix [suffix ""])
+(define (parse-and-load-ios-by-filename raw-filename #:prefix [prefix ""] #:suffix [suffix ""])
+
+  ;; <MARGRAVE> --> margrave collection path
+  (define the-filename (resolve-margrave-filename-keyword raw-filename))
   (define-values (fn-path fn-filepath must-dir) (split-path the-filename))
   (define fn-file (path->string fn-filepath))
   (when must-dir
     (raise-user-error (format "Expected a filename, but given: ~a." the-filename)))
   
-  ; TODO fix relative !!!!!!
-  (printf "~a ~a ~a ~a ~a~n" fn-file fn-path margrave-home-path fn-filepath the-filename)
+  ; 'relative for the path if no "path" given
+
+  ;(printf "~a ~a ~a ~a ~a~n" fn-file fn-path margrave-home-path fn-filepath the-filename)
   (if (equal? 'relative fn-path)
-      (parse-and-load-ios fn-file margrave-home-path prefix suffix)
+      (parse-and-load-ios fn-file (string->path ".") prefix suffix)
       (parse-and-load-ios fn-file fn-path prefix suffix))
-  "success")
+  
+  (string-append "Success: loaded IOS configuration at: " 
+                 the-filename))
 
 
 ; ------------------------------------------------

@@ -16,15 +16,40 @@
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
 #lang racket
-(require margrave/margrave-xml)
+(require margrave/margrave-xml
+         srfi/13)
 
-(provide evaluate-policy)
+(provide evaluate-policy
+         resolve-margrave-filename-keyword
+         safe-get-margrave-collection-path)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
 ; and PolicyVocab syntax.
 (define-namespace-anchor margrave-policy-vocab-namespace-anchor)
 (define margrave-policy-vocab-namespace (namespace-anchor->namespace margrave-policy-vocab-namespace-anchor))
+
+;****************************************************************
+
+; HELPERS
+
+(define (safe-get-margrave-collection-path)
+  (with-handlers ([(lambda (e) (exn:fail:filesystem? e))
+                   (lambda (e) #f)])
+    (collection-path "margrave")))
+
+(define (resolve-margrave-filename-keyword raw-filename)
+  
+  (define the-filename (if (path? raw-filename)
+                           (path->string raw-filename)
+                           raw-filename))
+  
+  (define loc (string-contains-ci the-filename "<MARGRAVE>"))
+  
+  (cond [(or (not loc) (> loc 0)) the-filename]
+        [else (string-replace the-filename
+                              (path->string (safe-get-margrave-collection-path))
+                              0 10)]))
 
 ;****************************************************************
 
@@ -39,8 +64,11 @@
 
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
 
-(define (evaluate-policy fn)
+(define (evaluate-policy raw-fn)
   
+  ; If fn begins with <MARGRAVE>, replace with the path of the Margrave collections folder.
+  (define fn (resolve-margrave-filename-keyword raw-fn))
+      
   ;; Macro returns a func 
   ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
   ;; innocent policy definition. As soon as we have a language-level, stop using eval!

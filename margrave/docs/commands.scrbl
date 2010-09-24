@@ -35,15 +35,16 @@ its arity is 1, and it is called a @deftech{unary} predicate.
 @; --------------------------------------------------------------
 @; Variable vectors: explicit of <pol:req> style.
 
-A k-ary @deftech{variable vector} is one of:
-@itemlist[ @item{@bold{x@subscript{1}, ..., x@subscript{k}}, where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols;}
-          @item{@bold{<@italic{id}:req>}, where @italic{id} is the name of a policy or saved query with a k-ary @tech{request vector};}
-          @item{@bold{X, Y}, where @italic{X} and @italic{Y} are @tech{variable vectors} whose arities total k.}
+A @deftech{variable vector} is one of:
+
+@itemlist[ @item{@bold{x}, where x is a variable symbol;}
+          @item{@bold{<@italic{id}:req>}, where @italic{id} is the name of a policy or saved query;}
+          @item{A comma-delimited sequence of @tech{variable vector}s.}
           ]
 
-@; !!! writing
-
 The @tech{variable vector} of the form <id:req> is equivalent to explicitly stating the request vector of the vocabulary associated with @italic{id}.
+
+Each @tech{variable vector} has an associated @italic{arity}. A single variable @bold{x} has arity 1. An @bold{<@italic{id}:req>} reference has the same arity as @italic{id}'s @tech{request vector}. A comma-delimited sequence of vectors has arity equal to the sum of its sub-vectors' arities.
 
 @; --------------------------------------------------------------
 A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, NOT, and parentheses) of @tech{atomic formula}s.
@@ -246,6 +247,10 @@ LOAD IOS @italic{filename} WITH @italic{prefix} @italic{suffix}
 
 also creates the above 7 policies, but renames them with the given prefix and suffix.
 For instance, given the prefix "pre" and the suffix "suff", instead of a policy named @italic{InboundACL}, one named @italic{preInboundACLsuff} will be created. To avoid naming conflicts, use this variant command when loading multiple IOS configurations in the same Margrave session.
+
+@margin-note{If the filename path begins with @racket[<MARGRAVE>], the @racket[<MARGRAVE>] will be replaced with Margrave's installation directory.}
+
+@margin-note{A relative path will be interpreted relative to the location of the script file. If the file is unsaved, or if you are working at the prompt, do not use a relative path.}
 
 @subsection{Renaming Prior Queries}
 

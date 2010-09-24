@@ -1,5 +1,6 @@
-Margrave is Copyright 2009 Brown University and Worcester Polytechnic
-Institute. It is released under the GNU LGPL. See COPYING.LESSER.
+Margrave is Copyright 2009-2010 Brown University and Worcester 
+Polytechnic Institute. It is released under the GNU LGPL. 
+See COPYING.LESSER.
 
 We use KodKod, a model finding library, which is released
 under the MIT License. Kodkod is available from: 

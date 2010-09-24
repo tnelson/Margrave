@@ -49,7 +49,13 @@
          the-margrave-namespace
          margrave-home-path         
          resolve-java-path!
-         resolve-custom-vector)
+         resolve-custom-vector
+         
+         ; From policy-vocab
+         resolve-margrave-filename-keyword
+         
+         )
+
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
@@ -115,10 +121,6 @@
 (define ctrl-function #f)
 
 
-(define (safe-get-margrave-collection-path)
-  (with-handlers ([(lambda (e) (exn:fail:filesystem? e))
-                   (lambda (e) #f)])
-    (collection-path "margrave")))
 
 ; Default margrave-home:
 ; (1) If the margrave collection is installed, use that path.

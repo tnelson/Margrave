@@ -347,15 +347,13 @@ paper. (For details, see @secref{policies}.)
 
 
 Margrave loads policies using the LOAD POLICY command. 
-LOAD POLICY takes a single parameter: the filename of the policy file.
+LOAD POLICY takes a single parameter: the filename of the policy file. 
 Since this policy is stored in the tests sub-folder of Margrave, we load it by 
 calling:
 
-LOAD POLICY "tests/conference1.p";
+LOAD POLICY "<MARGRAVE>/tests/conference1.p";
 
-
-<<<!!! TODO: double-check that relative paths are relative to the margrave collects folder>>>
-
+@margin-note{If the filename path begins with @racket[<MARGRAVE>], the @racket[<MARGRAVE>] will be replaced with Margrave's installation directory.}
 
 If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
