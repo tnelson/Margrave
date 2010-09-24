@@ -7,7 +7,8 @@
 Welcome to Margrave!
 
 Margrave is a tool for analyzing access-control and configuration
-policies. Margrave allows users to ask questions about the 
+policies (such as firewall policies). 
+Margrave allows users to ask questions about the 
 behavior of their policies, such as "Can a student ever access
 another student's grades?" or "Did my changes to this firewall allow
 any unexpected new traffic?" 
@@ -28,37 +29,37 @@ to tn@"@"cs.wpi.edu.
 @;--------------------------------------------------------------------
 @section[#:tag "install"]{Installing Margrave}
 
-There are two versions of Margrave: lite and full. The lite
-version allows commands and queries to be entered at a prompt. The full
-version provides a GUI and better
-support for writing programs involving Margrave queries, but requires
-installing a host environment. 
+@;There are two versions of Margrave: lite and full. The lite
+@;version allows commands and queries to be entered at a prompt. The full
+@;version provides a GUI and better
+@;support for writing programs involving Margrave queries, but requires
+@;installing a host environment. 
 
-@subsection{Lite Margrave}
+@;@subsection{Lite Margrave}
+@;
+@;
+@;@itemlist[
+@;  @item{Make sure that you have a recent version of Java installed.
+@;        Margrave requires Java 6 or later. You can download the latest
+@;        version of Java at
+@;        
+@;        @url{http://www.java.com/en/download/}.}
+@;  @item{Download the LITE Margrave distribution from
+@;        
+@;        @url{http://www.margrave-tool.org/v3}.
+@;        
+@;        This is available for both Windows (as a zip file) and 
+@;        *nix (as a tar.gz file).}
+@;  @item{Extract the distribution archive to the location of your choice.}
+@;  @item{Set your MARGRAVE_HOME environment variable to the location of
+@;        the margrave-lite executable in the extracted distribution.}      
+@;]
+
+@;Now that Margrave Lite is installed, 
+@;see @secref["running-lite"] for instructions on running it.
 
 
-@itemlist[
-  @item{Make sure that you have a recent version of Java installed.
-        Margrave requires Java 6 or later. You can download the latest
-        version of Java at
-        
-        @url{http://www.java.com/en/download/}.}
-  @item{Download the LITE Margrave distribution from
-        
-        @url{http://www.margrave-tool.org/v3}.
-        
-        This is available for both Windows (as a zip file) and 
-        *nix (as a tar.gz file).}
-  @item{Extract the distribution archive to the location of your choice.}
-  @item{Set your MARGRAVE_HOME environment variable to the location of
-        the margrave-lite executable in the extracted distribution.}      
-]
-
-Now that Margrave Lite is installed, 
-see @secref["running-lite"] for instructions on running it.
-
-
-@subsection{Full Margrave}
+@;@subsection{Full Margrave}
 
 @itemlist[
   @item{Make sure that you have a recent version of Java installed.
@@ -69,93 +70,97 @@ see @secref["running-lite"] for instructions on running it.
   @item{Download and install Racket from
         
         @url{http://racket-lang.org/download/}}
-  @item{Download the FULL Margrave distribution from
+  @item{Download the Margrave distribution from
         
         @url{http://www.margrave-tool.org/v3}.
+        
+        <<<!!! TODO: .plt for the collection? Maybe that's all they should have to do! >>>
+        
         
         This is available for both Windows (as a zip file) and 
         *nix (as a tar.gz file).}
   @item{Extract the distribution archive to the location of your choice.}
-  @item{Set your MARGRAVE_HOME environment variable to the location of
-        margrave-full-main.rkt in the extracted distribution.}
+ @; @item{Set your MARGRAVE_HOME environment variable to the location of
+ @;       margrave-full-main.rkt in the extracted distribution.}
 ]
 
-@bold{For Mac OSX users:}
+@;@bold{For Mac OSX users:}
 
-Environment variables set in your .bashrc 
-file will only affect your terminal environment, and thus
-will only be visible to DrRacket if you run it from your terminal prompt.
-Making MARGRAVE_HOME available globally requires altering your 
-~/.MacOSX/environment.plist file. For more information see 
-@url{http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html}.
+@;Environment variables set in your .bashrc 
+@;file will only affect your terminal environment, and thus
+@;will only be visible to DrRacket if you run it from your terminal prompt.
+@;Making MARGRAVE_HOME available globally requires altering your 
+@;~/.MacOSX/environment.plist file. For more information see 
+@;@url{http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html}.
 
 Now that Margrave is installed, 
-see @secref["running-full"] for instructions on running it.
+@;see @secref["running-full"] for instructions on running it.
+see @secref["running-margrave"] for instructions on running it.
 
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
-Both versions of Margrave run in the Racket programming environment.
-Whichever version you use, you will either enter individual commands at the 
+@;Both versions of Margrave 
+Margrave runs in the Racket programming environment.
+@;Whichever version you use, y
+You will either enter individual commands at the 
 prompt or execute scripts (multiple commands at once). The command prompt 
-accepts Racket commands (in Lisp terms, it is a  
-read-eval-print-loop, or REPL). For instance, entering:
+accepts semicolon-terminated Margrave commands. For instance, entering:
 
-@racket[(display-response (mtext "INFO"))]
+INFO;
 
 will execute the @tech{INFO} Margrave command, returning information about the 
-state of Margrave, including memory usage and other statistics. The 
-@tech{mtext} function runs the command and the @tech{display-response}
-function prints human-readable results. All Margrave commands must be
-wrapped this way. 
+state of Margrave, including memory usage and other statistics. 
 
 @;margin-note{In-lining of Margrave commands in Racket is forthcoming.}
 
-Commands may use standard Racket functions as well. For instance,
-the @racket[build-path] function will construct a relative path:
+@;Commands may use standard Racket functions as well. For instance,
+@;the @racket[build-path] function will construct a relative path:
 
-@racketblock[(build-path margrave-home-path
-                          "examples" "lite" "lite-ios-demo.rkt")]
+@;@racketblock[(build-path margrave-home-path
+@;                          "examples" "lite" "lite-ios-demo.rkt")]
 
-Use the @racket[margrave-home-path] identifier to refer to the directory given 
-in the MARGRAVE_HOME environment variable.
+@;Use the @racket[margrave-home-path] identifier to refer to the directory given 
+@;in the MARGRAVE_HOME environment variable.
 
 
 
-@subsection[#:tag "running-lite"]{Running Lite Margrave}
+@;@subsection[#:tag "running-lite"]{Running Lite Margrave}
 
-Execute the margrave-lite executable (margrave-lite.exe or ./margrave-lite,
-depending on your OS). It will automatically detect where your Java
-installation is located, and attempt to start the Margrave engine from
-the directory you provided via the MARGRAVE_HOME environment variable.
+@;Execute the margrave-lite executable (margrave-lite.exe or ./margrave-lite,
+@;depending on your OS). It will automatically detect where your Java
+@;installation is located, and attempt to start the Margrave engine from
+@;the directory you provided via the MARGRAVE_HOME environment variable.
 
-To execute individual commands, enter them at the prompt.
+@;To execute individual commands, enter them at the prompt.
 
-To load and run a script in Margrave Lite, call the @racket[run-lite] function
-with the relative path of the script file.
-For instance, to load the example IOS firewall script, enter this at the 
-REPL prompt:
+@;To load and run a script in Margrave Lite, call the @racket[run-lite] function
+@;with the relative path of the script file.
+@;For instance, to load the example IOS firewall script, enter this at the 
+@;REPL prompt:
 
-@racketblock[(run-lite 
-              (build-path margrave-home-path
-                          "examples" "lite" "lite-ios-demo.rkt"))]
+@;@racketblock[(run-lite 
+@;              (build-path margrave-home-path
+@;                          "examples" "lite" "lite-ios-demo.rkt"))]
 
-To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
-you close Lite Margrave via ctrl-C, the Java-based engine may be left 
-running.
+@;To exit Lite Margrave, type @racket[(exit)] at the command prompt. If
+@;you close Lite Margrave via ctrl-C, the Java-based engine may be left 
+@;running.
 
-To use Margrave on IOS configurations, go to @secref["gs-ios"].
-To use Margrave on other kinds of policies, go to @secref["gs-existing"].
-Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/lite}.
+@;To use Margrave on IOS configurations, go to @secref["gs-ios"].
+@;To use Margrave on other kinds of policies, go to @secref["gs-existing"].
+@;Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/lite}.
 
-@subsection[#:tag "running-full"]{Running Full Margrave}
+@;@subsection[#:tag "running-full"]{Running Full Margrave}
 
-The full version of Margrave runs in DrRacket, the graphical development
-environment for Racket. 
+@;The full version of Margrave runs in DrRacket, the graphical development
+@;environment for Racket. 
 
-To execute individual commands, load the "margrave-full-main.rkt" file in DrRacket and click Run.
-It will automatically detect where your Java installation is located. After clicking Run, the 
-bottom half of the screen will provide a REPL prompt similar to the lite version.
+To execute individual commands, open a new DrRacket editor and change the first line to
+@racket{#lang margrave}, then click Run.
+Margrave will automatically detect where your Java installation is located and start the
+Java engine. The 
+bottom half of the screen will provide a Margrave prompt.
 
 
 @;You can use Margrave in your racket programs by importing the Margrave modules.
@@ -164,23 +169,23 @@ bottom half of the screen will provide a REPL prompt similar to the lite version
 @;the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
 @;in the same way.
 
-To run a Margrave script, load the script file in DrRacket and click the Run button.
-The script will execute, and then a REPL prompt will appear at the bottom of the DrRacket window.
-Do not attempt to use @racket[run-lite] in the full version.
+To run a Margrave script, open the script file via DrRacket's File->Open menu and click the Run button.
+The script will execute, and its results will be shown in the bottom half of the window. Once the script is 
+done, a Margrave prompt will appear at the bottom of the output.
 
 To use Margrave on IOS configurations, go to @secref["gs-ios"].
 To use Margrave on other kinds of policies, go to @secref["gs-existing"].
 Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/full}.
 
 
-@subsubsub*section{A Word of Caution}
+@;@subsubsub*section{A Word of Caution}
    
-Margrave's scenario-finding engine must be started by
-invoking @racket[(start-margrave-engine)] before
-any policies are loaded or Margrave commands are executed. 
-Running margrave-full-main.rkt will do this automatically. If you
-are writing your own script, make sure that it calls
-@racket[(start-margrave-engine)].
+@;Margrave's scenario-finding engine must be started by
+@;invoking @racket[(start-margrave-engine)] before
+@;any policies are loaded or Margrave commands are executed. 
+@;Running margrave-full-main.rkt will do this automatically. If you
+@;are writing your own script, make sure that it calls
+@;@racket[(start-margrave-engine)].
 
 
   
@@ -193,35 +198,26 @@ ACL-based and map-based dynamic NAT, static routing,
 and policy-based routing. At the moment, our support for state is
 limited to reflexive access-lists.
 
-Whether you installed the lite or full version of Margrave, 
-the IOS commands are the same, and should be entered at your version's
-command prompt. 
-
 To parse and load an IOS policy into Margrave, use:
 
-@racket[(parse-and-load-ios config-file-name config-file-path)]
+@;@racket[(parse-and-load-ios config-file-name config-file-path)]
+
+LOAD IOS config-file-name
 
 where @racket[config-file-name] is the file name of the configuration 
-saved as a text file and @racket[config-file-path] is the directory
-containing the configuration. 
+saved as a text file.
 
 Margrave will produce several intermediate policy files (discussed in Section 4 of @cite{nbdfk10}) in
-@racket[config-file-path] and, if the engine has been started,
-load them.
+the same path as @racket[config-file-name] and load them.
 
 For instance, if you have a configuration saved to a file config.txt in
-the directory "C:\Margrave\IOS", you should invoke:
+the directory "/myfiles/Margrave/IOS", you should invoke:
 
-@racketblock[(parse-and-load-ios "config.txt" "C:\\Margrave\\IOS")]
-or
-
-@racketblock[(parse-and-load-ios "config.txt" 
-                                 (build-path "C:" "Margrave" "IOS"))]
-
+LOAD IOS "/myfiles/Margrave/IOS/config.txt";
 
 For detailed examples of running queries in IOS, see the "ios-demo" example
-in @italic{<MARGRAVE_HOME>/examples/full} or @italic{<MARGRAVE_HOME>/examples/lite} 
-(depending on your version). If you would like to experiment with a small IOS 
+in @italic{<MARGRAVE_HOME>/examples/scripts}. 
+If you would like to experiment with a small IOS 
 configuration, we suggest using
 @italic{<MARGRAVE_HOME>/examples/policies/ios-demo/initial/demo.txt}.
 
@@ -350,28 +346,28 @@ paper. (For details, see @secref{policies}.)
 @subsection{Example Queries}
 
 
-Margrave loads policies using the @racket[load-policy] function. 
-@racket[load-policy] takes a single parameter: the filename of the policy file.
-Since this policy is stored in the tests subfolder of Margrave, we load it by 
+Margrave loads policies using the LOAD POLICY command. 
+LOAD POLICY takes a single parameter: the filename of the policy file.
+Since this policy is stored in the tests sub-folder of Margrave, we load it by 
 calling:
 
-@racket[(load-policy (build-path margrave-home-path "tests" "conference1.p"))]
+LOAD POLICY "tests/conference1.p";
 
-If the policy loads successfully, @racket[load-policy] returns the policy's identifier for use in queries. In this case, it returns:
+
+<<<!!! TODO: double-check that relative paths are relative to the margrave collects folder>>>
+
+
+If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
 @racket["ConferencePolicy"]
-
-@; no longer belongs here
-@;This policy acts based on the roles of users (Are they a reviewer? An author?) and the nature of the resource they are trying to access (A paper? A review?)
 
 
 Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
 The following Margrave query captures this question. 
 
 @racketblock[
-(display-response 
- (mtext "EXPLORE ConferencePolicy:Deny(s, a, r) AND "
-        "reviewer(s) AND paper(r) AND readpaper(a)"))
+EXPLORE ConferencePolicy:Deny(s, a, r) AND 
+        reviewer(s) AND paper(r) AND readpaper(a);
 ]        
 
 @italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]
@@ -389,13 +385,13 @@ Once the query is created,
 we can ask for @italic{all} scenarios that satisfy the query with:
 
 @racketblock[
-(printf "~a~n" (mtext "SHOW ALL"))
+SHOW ALL;
 ]
             
 whereas 
 
 @racketblock[
-(printf "~a~n" (mtext "SHOW ONE"))
+SHOW ONE;
 ]
 
 shows only the first scenario found.

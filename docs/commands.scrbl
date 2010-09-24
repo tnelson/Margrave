@@ -32,26 +32,72 @@ Every @tech{vocabulary predicate} has an arity no less than 1.
 If a @tech{vocabulary predicate} is the name of a @tech{type}, 
 its arity is 1, and it is called a @deftech{unary} predicate.
 
+@; --------------------------------------------------------------
+@; Variable vectors: explicit of <pol:req> style.
 
+A k-ary @deftech{variable vector} is one of:
+@itemlist[ @item{@bold{x@subscript{1}, ..., x@subscript{k}}, where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols;}
+          @item{@bold{<@italic{id}:req>}, where @italic{id} is the name of a policy or saved query with a k-ary @tech{request vector};}
+          @item{@bold{X, Y}, where @italic{X} and @italic{Y} are @tech{variable vectors} whose arities total k.}
+          ]
 
+@; !!! writing
 
+The @tech{variable vector} of the form <id:req> is equivalent to explicitly stating the request vector of the vocabulary associated with @italic{id}.
+
+@; --------------------------------------------------------------
 A <condition> is a boolean combination (via AND, OR, IFF, IMPLIES, NOT, and parentheses) of @tech{atomic formula}s.
 
+@; --------------------------------------------------------------
+
 An @deftech{atomic formula} is one of:
+
+@;
+@;@itemlist[
+ @;         @item{an @deftech{atomic vocabulary formula}, which is one of: 
+ @;               @itemlist[
+ @;                         @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})}, 
+ @;                                where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols 
+ @;                                and <predname> is a @tech{vocabulary predicate} of arity k;}
+ @;                          
+   @;                       @item{@bold{x IN predname}, where x is a variable symbol and 
+  @;                               <predname> is a unary @tech{vocabulary predicate};}
+    @;                      
+      @;                    @item{@bold{(x@subscript{1}, ..., x@subscript{k}) IN predname},
+        @;                         where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols
+          @;                       and <predname> is a k-ary @tech{vocabulary predicate};}                          
+            @;              
+              @;            @item{@bold{x = typename}, where x is a variable symbol and
+                @;                 <typename> is the name of an @tech{at-most-one}
+     @;                            or @tech{singleton} constrained type in the
+       @;                          statement's @tech{vocabulary context}}
+         @;                  ]}
+  @;        @item{an @deftech{atomic IDB formula}, which is one of:
+    @;            @itemlist[
+     @;                     @item{@bold{policyid:idbname(x@subscript{1}, ..., x@subscript{k})}, where policyid is an identifier
+       @;                         for a @tech{policy} with a k-ary @tech{request vector}, idbname is a valid @tech{IDB}
+         @;                       in that policy), 
+           @;                     and x@subscript{1},...,x@subscript{k} are (not necessarily distinct) variable symbols;}
+             @;              
+               @;           @item{@bold{savedquery(x@subscript{1}, ..., x@subscript{k})}, where savedquery is an identifier for a
+                 @;               k-ary saved query, and x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
+                   @;        ]}
+@;          @item{or a @deftech{variable equality formula}: @bold{x = y}, where x and y are variable symbols.}
+  @;        ]
+
+
 
 @itemlist[
           @item{an @deftech{atomic vocabulary formula}, which is one of: 
                 @itemlist[
-                          @item{@bold{predname(x@subscript{1}, ..., x@subscript{k})}, 
-                                 where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols 
-                                 and <predname> is a @tech{vocabulary predicate} of arity k;}
+                          @item{@bold{predname(X)}, 
+                                 where @italic{X} is a @tech{variable vector} and @italic{predname} is a @tech{vocabulary predicate} of the same arity;}
                            
                           @item{@bold{x IN predname}, where x is a variable symbol and 
                                  <predname> is a unary @tech{vocabulary predicate};}
                           
-                          @item{@bold{(x@subscript{1}, ..., x@subscript{k}) IN predname},
-                                 where x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols
-                                 and <predname> is a k-ary @tech{vocabulary predicate};}                          
+                          @item{@bold{(X) IN predname},
+                                 where @italic{X} is a @tech{variable vector} and @italic{predname} is a @tech{vocabulary predicate} of the same arity;}                          
                           
                           @item{@bold{x = typename}, where x is a variable symbol and
                                  <typename> is the name of an @tech{at-most-one}
@@ -60,19 +106,21 @@ An @deftech{atomic formula} is one of:
                            ]}
           @item{an @deftech{atomic IDB formula}, which is one of:
                 @itemlist[
-                          @item{@bold{policyid:idbname(x@subscript{1}, ..., x@subscript{k})}, where policyid is an identifier
+                          @item{@bold{policyid:idbname(X)}, where @italic{policyid} is an identifier
                                 for a @tech{policy} with a k-ary @tech{request vector}, idbname is a valid @tech{IDB}
                                 in that policy), 
-                                and x@subscript{1},...,x@subscript{k} are (not necessarily distinct) variable symbols;}
+                                and X is a @tech{variable vector} of arity k;}
                            
-                          @item{@bold{savedquery(x@subscript{1}, ..., x@subscript{k})}, where savedquery is an identifier for a
-                                k-ary saved query, and x@subscript{1}, ..., x@subscript{k} are (not necessarily distinct) variable symbols}
+                          @item{@bold{savedquery(X)}, where @italic{savedquery} is an identifier for a
+                                k-ary saved query, and X is a @tech{variable vector} of arity k;}
                            ]}
           @item{or a @deftech{variable equality formula}: @bold{x = y}, where x and y are variable symbols.}
           ]
 
+
 @margin-note{The saved query identifier @bold{last} always refers to the last successful EXPLORE statement.}
 
+@; --------------------------------------------------------------
 
 Every EXPLORE statement has a @deftech{vocabulary context}: the set of
 vocabularies across all policies mentioned in the query's <condition>
@@ -179,8 +227,22 @@ where the case was included in the <condition>.
 The example files contain sample uses of each of these. SHOW REALIZED is especially useful when reasoning about interactions between rules.
 
 
+@subsection{Loading Policies}
 
+To load a policy in Margrave's intermediate language (@secref["gs-existing"]) use the @italic{LOAD POLICY} command:
 
+LOAD POLICY @italic{filename}
+
+To load a Cisco IOS configuration (that uses the subset of IOS we support, see @secref["gs-ios"]) use the @italic{LOAD IOS} command:
+
+LOAD IOS @italic{filename}
+
+This command will create several new policies in Margrave: @italic{InboundACL}, @italic{OutboundACL}, @italic{LocalSwitching}, @italic{NetworkSwitching}, @italic{StaticRoute}, @italic{PolicyRoute}, and @italic{DefaultPolicyRoute}, each representing a part of the configuration. (For details, see @cite{nbdfk10}.)
+
+LOAD IOS @italic{filename} WITH @italic{prefix} @italic{suffix}
+
+also creates the above 7 policies, but renames them with the given prefix and suffix.
+For instance, given the prefix "pre" and the suffix "suff", instead of a policy named @italic{InboundACL}, one named @italic{preInboundACLsuff} will be created. To avoid naming conflicts, use this variant command when loading multiple IOS configurations in the same Margrave session.
 
 @subsection{Renaming Prior Queries}
 
@@ -209,3 +271,4 @@ To get general information about the Margrave engine, including memory use and o
 To get information about a specific policy, vocabulary, or saved query, append the policy, vocabulary, or query identifier:
 
 @italic{@tech{INFO} mypolicy}
+
