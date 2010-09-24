@@ -199,6 +199,7 @@ A @deftech{vocabulary} in Margrave contains the following:
 
 The constraints @tech{Disjoint}, @tech{at-most-one}, @tech{singleton}, and @tech{nonempty}
 can be applied to @italic{all} subtypes of a type at once by using the @racket[-all] suffix.
+For instance: Declaring that the IPAddress type is @italic{disjoint-all} constrained forces all of its sub-types to be pairwise disjoint.
 }
  
  

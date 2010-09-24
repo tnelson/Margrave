@@ -70,28 +70,26 @@ to tn@"@"cs.wpi.edu.
   @item{Download and install Racket from
         
         @url{http://racket-lang.org/download/}}
-  @item{Download the Margrave distribution from
+  @item{Open DrRacket (the graphical development environment for Racket) and select the 
+        @italic{File -> Install .plt file} menu option. Enter this URL in the @italic{Web} tab:
         
-        @url{http://www.margrave-tool.org/v3}.
+        @url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
         
-        <<<!!! TODO: .plt for the collection? Maybe that's all they should have to do! >>>
-        
-        
-        This is available for both Windows (as a zip file) and 
-        *nix (as a tar.gz file).}
-  @item{Extract the distribution archive to the location of your choice.}
+        Alternatively, download the .PLT file linked above and enter its location in the @italic{File} tab.}
+  @;@item{Extract the distribution archive to the location of your choice.}
  @; @item{Set your MARGRAVE_HOME environment variable to the location of
  @;       margrave-full-main.rkt in the extracted distribution.}
 ]
 
 @;@bold{For Mac OSX users:}
-
 @;Environment variables set in your .bashrc 
 @;file will only affect your terminal environment, and thus
 @;will only be visible to DrRacket if you run it from your terminal prompt.
 @;Making MARGRAVE_HOME available globally requires altering your 
 @;~/.MacOSX/environment.plist file. For more information see 
 @;@url{http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html}.
+
+@; ^^^^^ IF adding this back in, explain why they care (If you WANT to run DrRacket from outside your command prompt...)
 
 Now that Margrave is installed, 
 @;see @secref["running-full"] for instructions on running it.
@@ -101,16 +99,8 @@ see @secref["running-margrave"] for instructions on running it.
 @section[#:tag "running-margrave"]{Running Margrave}
 
 @;Both versions of Margrave 
-Margrave runs in the Racket programming environment.
+Margrave runs in the DrRacket programming environment. To begin, first open DrRacket.
 @;Whichever version you use, y
-You will either enter individual commands at the 
-prompt or execute scripts (multiple commands at once). The command prompt 
-accepts semicolon-terminated Margrave commands. For instance, entering:
-
-INFO;
-
-will execute the @tech{INFO} Margrave command, returning information about the 
-state of Margrave, including memory usage and other statistics. 
 
 @;margin-note{In-lining of Margrave commands in Racket is forthcoming.}
 
@@ -156,11 +146,18 @@ state of Margrave, including memory usage and other statistics.
 @;The full version of Margrave runs in DrRacket, the graphical development
 @;environment for Racket. 
 
-To execute individual commands, open a new DrRacket editor and change the first line to
-@racket{#lang margrave}, then click Run.
-Margrave will automatically detect where your Java installation is located and start the
-Java engine. The 
-bottom half of the screen will provide a Margrave prompt.
+Open a new DrRacket editor and change the first line to
+@bold{#lang margrave}, then click Run.
+Margrave will automatically detect where your Java installation is located and start its
+Java engine. The bottom half of the screen will provide a Margrave prompt.
+
+You can enter individual commands at the prompt or run scripts of multiple commands 
+at once. The command prompt accepts semicolon-terminated Margrave commands. For instance, entering:
+
+INFO;
+
+will execute the @tech{INFO} Margrave command, returning information about the 
+state of Margrave, including memory usage and other statistics. 
 
 
 @;You can use Margrave in your racket programs by importing the Margrave modules.
@@ -169,13 +166,14 @@ bottom half of the screen will provide a Margrave prompt.
 @;the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
 @;in the same way.
 
-To run a Margrave script, open the script file via DrRacket's File->Open menu and click the Run button.
+Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. 
+To run a Margrave script, open the file via DrRacket's File->Open menu and click the Run button.
 The script will execute, and its results will be shown in the bottom half of the window. Once the script is 
 done, a Margrave prompt will appear at the bottom of the output.
 
 To use Margrave on IOS configurations, go to @secref["gs-ios"].
 To use Margrave on other kinds of policies, go to @secref["gs-existing"].
-Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/full}.
+Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/scripts}.
 
 
 @;@subsubsub*section{A Word of Caution}
@@ -273,13 +271,15 @@ Margrave's intermediate
 language can capture many different kinds of policies. In this section, 
 we discuss how to use the intermediate language to express policies for analysis.
 
-@italic{What does a policy look like in Margrave?}
+Before running an example, we'll quickly overview just what a Margrave policy looks like.
+
+@;@italic{What does a policy look like in Margrave?}
 
 A policy's form depends on its @tech{vocabulary}. A vocabulary dictates what
 a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
 and so on.  
 
-Let's examine one of Margrave's built-in examples, 
+Let's look at one of Margrave's built-in example policies, 
 an access-control policy for a conference management system. Its vocabulary and policy files
 are respectively @italic{conference1.v} and @italic{conference1.p} in @italic{<MARGRAVE_HOME>/tests}.
 
@@ -359,14 +359,14 @@ LOAD POLICY "tests/conference1.p";
 
 If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
-@racket["ConferencePolicy"]
+@racket["ConferencePolicy1"]
 
 
 Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
 The following Margrave query captures this question. 
 
 @racketblock[
-EXPLORE ConferencePolicy:Deny(s, a, r) AND 
+EXPLORE ConferencePolicy1:Deny(s, a, r) AND 
         reviewer(s) AND paper(r) AND readpaper(a);
 ]        
 
@@ -394,7 +394,13 @@ whereas
 SHOW ONE;
 ]
 
-shows only the first scenario found.
+shows only the first scenario found. After using @racket[SHOW ONE], 
+
+@racketblock[
+SHOW NEXT;             
+]
+
+will cycle through the remaining scenarios.
 
 One of the solutions will be this one:
 

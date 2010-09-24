@@ -199,11 +199,11 @@ If you just want to know if any scenarios exist to satisfy a query, follow it up
 
 To get concrete scenarios, use:
 
-@deftech{SHOW ALL}: Returns a string containing @italic{all} satisfying scenarios, pretty-printed for Human consumption. @margin-note{Beware casual use of the SHOW ALL and GET ALL commands, as some queries can have enormous numbers of satisfying scenarios.} 
+@deftech{SHOW ALL}: Returns a string containing @italic{all} satisfying scenarios, pretty-printed for human consumption. @margin-note{Beware casual use of the SHOW ALL and GET ALL commands, as some queries can have enormous numbers of satisfying scenarios.} 
 
-@deftech{SHOW ONE}: Returns a string containing @italic{the first} satisfying scenario that Margrave finds, pretty-printed for Human consumption.
+@deftech{SHOW ONE}: Returns a string containing a single satisfying scenario that Margrave finds, pretty-printed for human consumption.
 
-@deftech{SHOW NEXT}: Returns a string containing @italic{the next} satisfying scenario. Use in concert with SHOW ONE. @margin-note{Without a preceding SHOW ONE, the first SHOW NEXT will behave like SHOW ONE.}
+@deftech{SHOW NEXT}: Returns a string containing a @italic{different} satisfying scenario, if one exists. Use in concert with SHOW ONE. @margin-note{Without a preceding SHOW ONE, the first SHOW NEXT will behave like SHOW ONE.}
 
 @deftech{GET ONE}, @deftech{GET NEXT}, @deftech{GET ALL}: Same as SHOW, except returns an XML object that represents the scenario and can be used in programs.
 
@@ -215,7 +215,10 @@ If the @tech{TUPLING} optimization is enabled, the following commands also becom
 @deftech{SHOW (UN)REALIZED <atom>, ...}: Given a list ("candidates") of 
 @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and
 @tech{atomic type formula}s, 
-returns a list of all atomic formualas given that can be true in a satisfying scenario.
+returns a list of all atomic formualas given that can be true (are never true) in a satisfying scenario.
+
+// Caveats about model size ceilings here. Refer to paper? !!!!!!! TODO 
+
 
 @deftech{SHOW (UN)REALIZED <atom>, ... FOR CASES <atom>, ...}: 
 Given two lists ("candidates" and "cases") of @tech{atomic IDB formula}s, 
@@ -271,4 +274,8 @@ To get general information about the Margrave engine, including memory use and o
 To get information about a specific policy, vocabulary, or saved query, append the policy, vocabulary, or query identifier:
 
 @italic{@tech{INFO} mypolicy}
+
+@subsection{Comments}
+
+Lines beginning with @italic{//} are treated as comments in Margrave scripts.
 
