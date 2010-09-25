@@ -32,6 +32,48 @@
 ;Taken from /collects/parser-tools/examples/read.ss
 (define stx-for-original-property (read-syntax #f (open-input-string "original")))
 
+; Special Margrave parser error
+; Modified from build-so
+(define-syntax (margrave-parse-error stx)
+  (syntax-case stx ()    
+    ((_ msg start end)
+     (with-syntax ((start-pos (datum->syntax 
+                  (syntax end)
+                  (string->symbol 
+                   (format "$~a-start-pos"
+                           ;Have to wrap in syntax and then unwrap to datum, because otherwise
+                           ; we get this error: "end: pattern variable cannot be used outside of a template in: end"
+                           (syntax->datum (syntax start))
+                           ))))
+      (end-pos (datum->syntax
+                (syntax end)
+                (string->symbol 
+                 (format "$~a-end-pos"
+                         (syntax->datum (syntax end))
+                         ))))                   
+      ;Source is passed in to parse
+      (source (datum->syntax
+               (syntax end)
+               (string->symbol "source-name"))))
+
+       (syntax
+        (datum->syntax
+         #f
+         (raise-read-error 
+          msg
+          source
+          (position-line start-pos)
+          (position-col start-pos)
+          (position-offset start-pos)      
+          (- (position-offset end-pos) (position-offset start-pos)))
+         (list source 
+               (position-line start-pos)
+               (position-col start-pos)
+               (position-offset start-pos)
+               (- (position-offset end-pos)
+                  (position-offset start-pos)))))))))
+
+
 ;Macro that takes a value and the start and end positions of the total expression, and returns a syntax object
 (define-syntax (build-so stx)
   (syntax-case stx ()
@@ -113,27 +155,11 @@
            
            ; Prevent trailing whitespace and comments from clogging the parser
            [() #'(IGNORE)]
-           
-           ; stand-alone Margrave command without a semicolon:
-           ; removed this production since it's now covered by margrave-script. was a reduce/reduce conflict without removal.
-          ; [(margrave-command) $1]            
-          
+                     
            ; No more script in parser. Single command. Semicolon is dealt with as a termination token above
            [(margrave-command) $1])
-           
-           ; A margrave-script is a list of margrave commands each ending in a semicolon
-           ;[(margrave-script) (build-so (append (list 'MARGRAVE-SCRIPT) $1) 1 1)]) 
-    
-    ;**************************************************
-    ; One production for each kind of command
-    
-   ; (margrave-script
-   ;  [(margrave-command SEMICOLON) (list (build-so (list 'COMMAND $1) 1 2))]
-   ;  [(margrave-command) (list (build-so (list 'COMMAND $1) 1 1))]
-   ;  [(margrave-command SEMICOLON margrave-script) (append (list (build-so (list 'COMMAND $1) 1 2)) $3)])
-         
-    ;**************************************************
-    
+
+    ;**************************************************        
     (poss-empty-id 
      [(<identifier>) $1]
      [(EMPTYID) ""])
@@ -142,7 +168,29 @@
      [(explore-statement) $1]
      [(create-statement) $1]
      [(add-statement) $1]
-         
+
+     ;**************************************************        
+    ; Special error messages (malformed SHOW, etc.)
+     
+     [(SHOW)  
+      (margrave-parse-error 
+       "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"
+       1 1)]   
+     [(GET)  
+      (margrave-parse-error 
+       "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"
+       1 1)]   
+     [(LOAD)  
+      (margrave-parse-error 
+       "LOAD what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)"
+       1 1)]
+     
+    ;**************************************************
+    ;**************************************************    
+    ;**************************************************
+    ; Error message handling ends here
+     
+     
      ; .p/v policy
      [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
      
@@ -315,11 +363,7 @@
      [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
      [(equals-formula) (build-so $1 1 1)]
      [(atomic-formula) (build-so $1 1 1)]
-     [(in-formula) (build-so $1 1 1)]
-     
-     ;[(relation) $1]
-     ;[(<identifier> COLON relation) "a"]
-     )
+     [(in-formula) (build-so $1 1 1)])
     
     ; *************************************************
     ; represents a top-level condition, the fully-developed formula in EXPLORE 
@@ -354,9 +398,7 @@
     ; An atomic formula can be either of the form
     ; R(x, y, ...)   or
     ; Policyname:R(x, y, ...)   
-    
-    
-    
+            
     (atomic-formula [(<identifier> LPAREN variable-list RPAREN) 
                      (build-so (list 'ATOMIC-FORMULA-N $1 (append (list 'VARIABLE-VECTOR) $3)) 1 4)]
                     [(<identifier> COLON <identifier> LPAREN variable-list RPAREN) 
@@ -409,6 +451,12 @@
                    [(LTHAN <identifier> COLON <identifier> GTHAN) 
                     (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5))]
                    [(LTHAN <identifier> COLON <identifier> GTHAN COMMA variable-list)
-                    (append (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5)) $7)]
-                   )))) 
+                    (append (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5)) $7)])
+    
+        ;**************************************************    
+    
+    ))) 
+
+
+
 ; end of parser def

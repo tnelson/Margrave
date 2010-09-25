@@ -91,6 +91,19 @@ to tn@"@"cs.wpi.edu.
 
 @; ^^^^^ IF adding this back in, explain why they care (If you WANT to run DrRacket from outside your command prompt...)
 
+Your Margrave installation will be placed in a location that depends on your username and the version of Racket you have installed, among other things. 
+Every time you run Margrave, it will tell you where it is installed. For instance:
+
+@verbatim|{
+Searching for java executable ...
+Using the java executable in: C:\Program Files\Java\jdk1.6.0_13\bin
+--------------------------------------------------
+Starting Margrave's Java engine...
+    Margrave path was: C:\Documents and Settings\Tim\Application Data\Racket\5.0.1\collects\margrave
+}|
+
+would tell you that Margrave is installed in @italic{C:\Documents and Settings\Tim\Application Data\Racket\5.0.1\collects\margrave}.
+
 Now that Margrave is installed, 
 @;see @secref["running-full"] for instructions on running it.
 see @secref["running-margrave"] for instructions on running it.
@@ -100,6 +113,12 @@ see @secref["running-margrave"] for instructions on running it.
 
 @;Both versions of Margrave 
 Margrave runs in the DrRacket programming environment. To begin, first open DrRacket.
+
+@bold{If this is your first time running DrRacket}, you will see a message about choosing a language.
+Go to the @italic{Language->Choose Language} menu and select "Use the language declared in the source", then click Ok.
+Margrave scripts all begin with @bold{#lang margrave}, which tells DrRacket to interpret them as Margrave scripts.
+
+
 @;Whichever version you use, y
 
 @;margin-note{In-lining of Margrave commands in Racket is forthcoming.}
@@ -146,13 +165,14 @@ Margrave runs in the DrRacket programming environment. To begin, first open DrRa
 @;The full version of Margrave runs in DrRacket, the graphical development
 @;environment for Racket. 
 
-Open a new DrRacket editor and change the first line to
-@bold{#lang margrave}, then click Run.
-Margrave will automatically detect where your Java installation is located and start its
-Java engine. The bottom half of the screen will provide a Margrave prompt.
+@subsection[#:tag "margrave-prompt"]{The Command Prompt}
 
-You can enter individual commands at the prompt or run scripts of multiple commands 
-at once. The command prompt accepts semicolon-terminated Margrave commands. For instance, entering:
+Open a new DrRacket editor and change the first line to
+@bold{#lang margrave}, then click Run. 
+@margin-note{When you click Run, Margrave will always print out its current install location.}
+Margrave will automatically detect where your Java installation is located, start its
+Java engine, and display a Margrave prompt on the bottom half of the screen.
+The command prompt accepts semicolon-terminated Margrave commands. For instance, entering:
 
 INFO;
 
@@ -166,14 +186,23 @@ state of Margrave, including memory usage and other statistics.
 @;the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
 @;in the same way.
 
-Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. 
-To run a Margrave script, open the file via DrRacket's File->Open menu and click the Run button.
-The script will execute, and its results will be shown in the bottom half of the window. Once the script is 
-done, a Margrave prompt will appear at the bottom of the output.
+@subsection[#:tag "margrave-scripts"]{Margrave Scripts}
+
+Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. In 
+@secref["margrave-prompt"], you created and ran an empty script to get the prompt. If you had
+continued to enter Margrave commands, they would have been executed before the prompt appeared.
+
+To run a saved Margrave script, open the file via DrRacket's File->Open menu and click the Run button.
+The script will execute, and its results will be shown in the bottom half of the window. 
+
+A Margrave prompt will always appear when the script is complete.
+
+@subsection{Moving On}
 
 To use Margrave on IOS configurations, go to @secref["gs-ios"].
 To use Margrave on other kinds of policies, go to @secref["gs-existing"].
-Examples of both can be found in @italic{<MARGRAVE_HOME>/examples/scripts}.
+Examples of both can be found in the @italic{examples/scripts} sub-directory
+of your Margrave installation.
 
 
 @;@subsubsub*section{A Word of Caution}
@@ -214,16 +243,18 @@ the directory "/myfiles/Margrave/IOS", you should invoke:
 LOAD IOS "/myfiles/Margrave/IOS/config.txt";
 
 For detailed examples of running queries in IOS, see the "ios-demo" example
-in @italic{<MARGRAVE_HOME>/examples/scripts}. 
+in the @italic{examples/scripts} sub-directory of your Margrave installation.
 If you would like to experiment with a small IOS 
 configuration, we suggest using
-@italic{<MARGRAVE_HOME>/examples/policies/ios-demo/initial/demo.txt}.
+@italic{examples/policies/ios-demo/initial/demo.txt}.
+
+@;  This works if the user is using the docs in their installation:
+@; @url{../examples/policies/ios-demo/initial/demo.txt}
 
 @subsection{Understanding IOS Scenarios}
 
-"SHOW" commands format query results and display them 
-in a concise format. A SHOW ONE command for an IOS
-query will produce output in this style:
+The SHOW ALL, SHOW ONE, and SHOW NEXT commands format query results and display them 
+in a concise format. A SHOW ONE command for an IOS query will produce output in this style:
 
 @racketblock[
 *** SOLUTION: Size = 15.
@@ -281,7 +312,8 @@ and so on.
 
 Let's look at one of Margrave's built-in example policies, 
 an access-control policy for a conference management system. Its vocabulary and policy files
-are respectively @italic{conference1.v} and @italic{conference1.p} in @italic{<MARGRAVE_HOME>/tests}.
+are respectively @italic{conference1.v} and @italic{conference1.p} in your installation's
+@italic{tests} directory.
 
 The vocabulary is:
 
@@ -353,7 +385,7 @@ calling:
 
 LOAD POLICY "<MARGRAVE>/tests/conference1.p";
 
-@margin-note{If the filename path begins with @racket[<MARGRAVE>], the @racket[<MARGRAVE>] will be replaced with Margrave's installation directory.}
+@margin-note{@bold{Shortcut: } If the filename path begins with @racket[<MARGRAVE>], the @racket[<MARGRAVE>] will be replaced with Margrave's installation directory.}
 
 If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
@@ -412,7 +444,8 @@ assigned = {}
 ]
 
 The block above represents a scenario where the query could be 
-satisfied. "SHOW" commands format query results and display them 
+satisfied. The SHOW ALL, SHOW ONE, and SHOW NEXT
+commands format query results and display them 
 in this concise format. The scenario above says:
 "The query can be satisfied when the Subject is
 both a Reviewer and an Author, the Resource is a Paper, and 
