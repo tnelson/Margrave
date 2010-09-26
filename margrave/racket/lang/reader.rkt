@@ -60,6 +60,14 @@
 
 ; **********************************************************
 
+(define (read-helper src in)
+  (if (and (char-ready? in) 
+           (not (eof-object? (peek-char in))))
+      (let ()
+        (define this-datum (read-syntax src in))
+        (cons this-datum (read-helper src in)))
+      '()))
+
 (define (read-syntax-m-r src in)
   (error-print-source-location #t)   
   
@@ -67,15 +75,17 @@
   
   ; Add a read-table and call the normal Racket reader.
   (define read-results 
-     (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
-       (read-syntax src in)))
+    (cons #'(require margrave/margrave
+                     margrave/margrave-ios)
+          (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
+            (read-helper src in))))
   
-  (printf "~a~n" read-results)
+  (printf "~a~n" read-results) 
   
-  ; caller expects LIST of syntax
+  ; caller expects LIST of syntax, but no need to #'( ...) here since we use the helper
   (with-syntax ([the-read-results read-results])
     (strip-context 
-     #'(the-read-results))))
+     #'the-read-results)))
 
 ; **********************************************************
 
