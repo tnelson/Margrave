@@ -75,27 +75,41 @@
   
   ; Add a read-table and call the normal Racket reader.
   (define read-results 
-    (cons #'(require margrave/margrave
+    (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
+      (read-helper src in)))
+  
+  (define read-preamble
+    (list #'(require margrave/margrave
                      margrave/margrave-ios)
-          (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
-            (read-helper src in))))
+          #'(start-margrave-engine)))
   
   (printf "~a~n" read-results) 
   
   ; caller expects LIST of syntax, but no need to #'( ...) here since we use the helper
-  (with-syntax ([the-read-results read-results])
+  (with-syntax ([the-read-results (append read-preamble read-results)])
     (strip-context 
      #'the-read-results)))
+
+
+; Q: how to ESCAPE from margrave mode?
+;   answer: #M lasts until the margrave reader finishes with a single commmand.
+
+; todo: how to color margrave mode?
+; todo: multi-char #? Like #margrave?
+; todo: data vs. display (#M info; results in XML spam. We don't want that, or do we?)
+
+; BIG TODO: "quasi-margrave" (racket inside margrave expression)
+
 
 ; **********************************************************
 
 ; Structure taken from docs section 12.9.1
-
+; Wrap the result in parens to call it
 (define m-r-reader
   (case-lambda
     [(ch port)
      ; `read' mode
-     (read-m-single)]
+     `(,(read-m-single))]
     [(ch port src line col pos)
      ; `read-syntax' mode
-     (read-syntax-m-single src port)]))
+     `(,(read-syntax-m-single src port))]))
