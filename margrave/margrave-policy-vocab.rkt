@@ -44,12 +44,18 @@
                            (path->string raw-filename)
                            raw-filename))
   
-  (define loc (string-contains-ci the-filename "<MARGRAVE>"))
+  (define loc (string-contains-ci the-filename "*MARGRAVE*"))
+  (define coll-path-string (path->string (safe-get-margrave-collection-path)))
   
-  (cond [(or (not loc) (> loc 0)) the-filename]
-        [else (string-replace the-filename
-                              (path->string (safe-get-margrave-collection-path))
-                              0 10)]))
+  (define result (cond [(or (not loc) (> loc 1)) 
+                        the-filename]
+                      [(equal? loc 1)
+                       (string-replace the-filename coll-path-string 0 11)]
+                      [else 
+                       (string-replace the-filename coll-path-string 0 10)]))
+  
+  ; Avoid confusion: prevent mixed use of / and \ in the same path.
+  (path->string (simplify-path result)))
 
 ;****************************************************************
 

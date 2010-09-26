@@ -17,7 +17,7 @@
 info;
 
 // LOAD POLICY
-load policy "<MARGRAVE>/tests/conference1.p";
+load policy "*MARGRAVE*/tests/conference1.p";
 
 // RENAME
 rename conferencepolicy1 conf1;
@@ -85,16 +85,16 @@ GET QUALIFIED RULES IN conf1 WITH DECISION permit;
 // Tests from old SISC suite
 // ***************************************
 
-load policy "<MARGRAVE>/tests/emptyconference.p";
-load policy "<MARGRAVE>/tests/extconference.p";
-load policy "<MARGRAVE>/tests/conference1.p";
-load policy "<MARGRAVE>/tests/hospitaldenypayrollmedrecsfa.p";
+load policy "*MARGRAVE*/tests/emptyconference.p";
+load policy "*MARGRAVE*/tests/extconference.p";
+load policy "*MARGRAVE*/tests/conference1.p";
+load policy "*MARGRAVE*/tests/hospitaldenypayrollmedrecsfa.p";
 rename hospitaldenypayrollmedrecs hospitalfa;
-load policy "<MARGRAVE>/tests/hospitaldenypayrollmedrecsdo.p";
+load policy "*MARGRAVE*/tests/hospitaldenypayrollmedrecsdo.p";
 rename hospitaldenypayrollmedrecs hospitaldo;
-load policy "<MARGRAVE>/tests/awfw.p";
-load policy "<MARGRAVE>/tests/bigfw.p";
-load policy "<MARGRAVE>/tests/phone1.p";
+load policy "*MARGRAVE*/tests/awfw.p";
+load policy "*MARGRAVE*/tests/bigfw.p";
+load policy "*MARGRAVE*/tests/phone1.p";
 
 EXPLORE BigFW:Accept(ipsrc, ipdest, portsrc, portdest);
 IS POSSIBLE?;
@@ -169,7 +169,7 @@ IS POSSIBLE?;
 
 // *****************************
 
-load policy "<MARGRAVE>/tests/happyroutermore.p";
+load policy "*MARGRAVE*/tests/happyroutermore.p";
 
 // TUPLING, INCLUDE, SHOW REALIZED
 // Need a policy with q-free IDBs to TUPLE (so can't use the phone policy)

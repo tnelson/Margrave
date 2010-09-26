@@ -91,18 +91,18 @@ to tn@"@"cs.wpi.edu.
 
 @; ^^^^^ IF adding this back in, explain why they care (If you WANT to run DrRacket from outside your command prompt...)
 
-Your Margrave installation will be placed in a location that depends on your username and the version of Racket you have installed, among other things. 
+Your Margrave installation is in a location that depends on your username and the version of Racket you have installed. 
 Every time you run Margrave, it will tell you where it is installed. For instance:
 
 @verbatim|{
 Searching for java executable ...
-Using the java executable in: C:\Program Files\Java\jdk1.6.0_13\bin
+Using the java executable in: /usr/bin/java
 --------------------------------------------------
 Starting Margrave's Java engine...
-    Margrave path was: C:\Documents and Settings\Tim\Application Data\Racket\5.0.1\collects\margrave
+    Margrave path was: /export/users1/tn/Racket/5.0.1/collects/margrave
 }|
 
-would tell you that Margrave is installed in @italic{C:\Documents and Settings\Tim\Application Data\Racket\5.0.1\collects\margrave}.
+would tell you that Margrave is installed in @italic{/export/users1/tn/Racket/5.0.1/collects/margrave}.
 
 Now that Margrave is installed, 
 @;see @secref["running-full"] for instructions on running it.
@@ -383,9 +383,9 @@ LOAD POLICY takes a single parameter: the filename of the policy file.
 Since this policy is stored in the tests sub-folder of Margrave, we load it by 
 calling:
 
-LOAD POLICY "<MARGRAVE>/tests/conference1.p";
+LOAD POLICY "*MARGRAVE*/tests/conference1.p";
 
-@margin-note{@bold{Shortcut: } If the filename path begins with @racket[<MARGRAVE>], the @racket[<MARGRAVE>] will be replaced with Margrave's installation directory.}
+@margin-note{@bold{Shortcut: } If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
 
 If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
