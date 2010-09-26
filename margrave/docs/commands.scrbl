@@ -235,6 +235,8 @@ The example files contain sample uses of each of these. SHOW REALIZED is especia
 
 To load a policy in Margrave's intermediate language (@secref["gs-existing"]) use the @italic{LOAD POLICY} command:
 
+@margin-note{If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
+
 LOAD POLICY @italic{filename}
 
 To load a Cisco IOS configuration (that uses the subset of IOS we support, see @secref["gs-ios"]) use the @italic{LOAD IOS} command:
@@ -247,8 +249,6 @@ LOAD IOS @italic{filename} WITH @italic{prefix} @italic{suffix}
 
 also creates the above 7 policies, but renames them with the given prefix and suffix.
 For instance, given the prefix "pre" and the suffix "suff", instead of a policy named @italic{InboundACL}, one named @italic{preInboundACLsuff} will be created. To avoid naming conflicts, use this variant command when loading multiple IOS configurations in the same Margrave session.
-
-@margin-note{If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
 
 @margin-note{A relative path will be interpreted relative to the location of the script file. If the file is unsaved, or if you are working at the prompt, do not use a relative path.}
 

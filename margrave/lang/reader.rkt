@@ -22,7 +22,7 @@
 #:language 'margrave
 
 ; Define our own readers
-#:read read-syntax
+#:read read-m
 #:read-syntax read-syntax-m
 
 ; Yes, read the whole body with one call of the reader
