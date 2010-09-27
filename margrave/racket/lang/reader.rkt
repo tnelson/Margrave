@@ -38,7 +38,7 @@
 ;           [else (default key defval)]))
 
 ; #:language-info is for *COMPILE-TIME* manipulation
-;#:language-info '#(margrave/racket/language-info language-info #f)
+#:language-info '#(margrave/racket/language-info language-info #f)
 
 
 (require racket
@@ -48,7 +48,8 @@
                   read-m-single))
 
 (provide read-syntax-m-r
-         read-m-r) 
+         read-m-r
+         read-syntax-m-r-single) 
  
 ; **********************************************************
 
@@ -61,18 +62,17 @@
 ; **********************************************************
 
 (define (read-helper src in)
-  (if (and (char-ready? in) 
-           (not (eof-object? (peek-char in))))
+  (if (char-ready? in)       
       (let ()
-        (define this-datum (read-syntax src in))
-        (cons this-datum (read-helper src in)))
+        (define this-datum (read-syntax src in))       
+        (if (eof-object? this-datum)
+            '()
+            (cons this-datum (read-helper src in))))
       '()))
 
 (define (read-syntax-m-r src in)
   (error-print-source-location #t)   
-  
-  (printf "In read-syntax-m-r~n")
-  
+   
   ; Add a read-table and call the normal Racket reader.
   (define read-results 
     (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
@@ -83,7 +83,7 @@
                      margrave/margrave-ios)
           #'(start-margrave-engine)))
   
-  (printf "~a~n" read-results) 
+  ;(printf "~a~n" read-results) 
   
   ; caller expects LIST of syntax, but no need to #'( ...) here since we use the helper
   (with-syntax ([the-read-results (append read-preamble read-results)])
@@ -100,6 +100,22 @@
 
 ; BIG TODO: "quasi-margrave" (racket inside margrave expression)
 
+
+; **********************************************************
+
+; Like read-syntax-m-r, but no require 
+(define (read-syntax-m-r-single src in)
+  (if (char-ready? in)
+      (let ()
+        (error-print-source-location #t)     
+        (define read-results 
+          (parameterize ([current-readtable (make-readtable (current-readtable) #\M 'dispatch-macro m-r-reader) ])
+            (read-syntax src in)))
+        ;(printf "Results: ~a~n" read-results)
+        (with-syntax ([the-read-results read-results])
+          (strip-context 
+           #'the-read-results))) ;; given list, expects 1 only?
+      eof))
 
 ; **********************************************************
 
