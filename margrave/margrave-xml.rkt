@@ -643,7 +643,9 @@
          (exception-element (get-child-element element 'exception))
          (exception-attributes (element-attributes exception-element))
          (message-element (get-child-element exception-element 'message))
-         (message-text (pcdata-string (first (element-content message-element))))
+         (message-text (if (empty? (element-content message-element))
+                           ""
+                           (pcdata-string (first (element-content message-element)))))
          (location-element (get-child-element exception-element 'location))
          (command-element (get-child-element exception-element 'command))) ;TODO Don't have an example of this, so not implemented (VS)
     (local ((define (write s)
@@ -682,18 +684,22 @@
 ;Pass this function a <MARGRAVE-RESPONSE type="error"> element
 ; element -> string
 (define (pretty-print-error-xml element)
-  (let ([string-buffer (open-output-string)]
-        (error-element (get-child-element element 'error)))
-    (local ((define (write s)
-              (write-string s string-buffer)))
-      (begin
-        (write "Error:\n")
-        (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
-        (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
-        (write (pcdata-string (first (element-content error-element))))
-        ; debug
-        ;(display (get-output-string string-buffer))
-        (get-output-string string-buffer)))))
+  (define string-buffer (open-output-string))
+  (define error-element (get-child-element element 'error))
+  (define more-details (if (empty? (element-content error-element))
+                           ""
+                           (pcdata-string (first (element-content error-element)))))
+  
+  (local ((define (write s)
+            (write-string s string-buffer)))
+    (begin
+      (write "Error:\n")
+      (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
+      (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
+      (write more-details)
+      ; debug
+      ;(display (get-output-string string-buffer))
+      (get-output-string string-buffer))))
 
 
 ;Pass this function a <MARGRAVE-RESPONSE type="sysinfo"> element
