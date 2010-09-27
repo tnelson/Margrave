@@ -35,6 +35,8 @@
          pause-for-user
          load-policy
          send-and-receive-xml
+         load-xacml-policy
+         load-sqs-policy
          
          (all-from-out margrave/margrave-xml)
 
@@ -459,18 +461,16 @@ gmarceau
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; !!!
-; Need to support these once more. Commands exist, need to route them in java. - TN
-
 ; xacml-policy-filename -> MPolicy
 ; Loads an XACML policy 
-;(define (load-xacml-policy fn)
-;  ((generic-java-method '|readXACML|) (java-null <MPolicy>) (->jstring fn) (->jstring (string-append my-directory "xacml20.xsd"))))
+(define (load-xacml-policy fn)
+  (send-and-receive-xml (xml-make-load-xacml fn 
+                                             (path->string (build-path (safe-get-margrave-collection-path) "xacml20.xsd")))))
 
 ; sqs-policy-filename -> MPolicy
 ; Loads an XACML policy 
-;(define (load-sqs-policy fn)
-;  ((generic-java-method '|loadSQS|) (java-null <MPolicy>) (->jstring fn) ))
+(define (load-sqs-policy fn)
+ (send-and-receive-xml (xml-make-load-sqs fn)))
 
 
 

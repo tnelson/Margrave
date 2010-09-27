@@ -78,6 +78,13 @@
                                                      #:prefix ,(symbol->string/safe (syntax->datum (third interns)))
                                                      #:suffix ,(symbol->string/safe (syntax->datum (fourth interns)))))]
         
+        [(equal? first-datum 'LOAD-XACML)
+         `(lambda () (load-xacml-policy ,(resolve-margrave-filename-keyword (syntax->datum (second interns)))))]
+        
+        [(equal? first-datum 'LOAD-SQS)
+         `(lambda () (load-sqs-policy ,(resolve-margrave-filename-keyword (syntax->datum (second interns)))))]
+        
+        
         ; ************************************        
         ; Commands are handled here. Inner syntax is handled by
         ; recursive calls to helper-syn->xml

@@ -38,6 +38,9 @@
  xml-map-response->map
  xml-bool-response->bool
  
+ xml-make-load-xacml
+ xml-make-load-sqs
+ 
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
  xml-make-decision
@@ -947,6 +950,19 @@
   (xml-make-command "GET-INFO" (list (xml-make-get-rules "RULES" polid decid-str))))
 (define (xml-make-get-qrules-command polid (decid-str ""))
   (xml-make-command "GET-INFO" (list (xml-make-get-rules "QUALIFIED-RULES" polid decid-str))))
+
+(define (xml-make-load-xacml fn sfn)
+  (xml-make-command "LOAD XACML POLICY" (list (xml-make-xacml-load fn sfn))))
+
+(define (xml-make-load-sqs fn)
+  (xml-make-command "LOAD SQS POLICY" (list (xml-make-sqs-load fn))))
+
+
+(define (xml-make-xacml-load fn sfn)
+  `(LOAD ((file-name ,fn) (schema-file-name ,sfn))))
+
+(define (xml-make-sqs-load fn)
+    `(LOAD ((file-name ,fn))))
 
 (define (xml-make-get-rules get-type polid decid-str)
   (if (not (equal? "" decid-str))

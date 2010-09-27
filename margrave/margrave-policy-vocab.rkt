@@ -40,9 +40,12 @@
 
 (define (resolve-margrave-filename-keyword raw-filename)
   
-  (define the-filename (if (path? raw-filename)
-                           (path->string raw-filename)
-                           raw-filename))
+  (define the-filename (cond [(path? raw-filename)
+                              (path->string raw-filename)]
+                             [(symbol? raw-filename)
+                              (symbol->string raw-filename)]
+                             [else 
+                              raw-filename]))
   
   (define loc (string-contains-ci the-filename "*MARGRAVE*"))
   (define coll-path-string (path->string (safe-get-margrave-collection-path)))
