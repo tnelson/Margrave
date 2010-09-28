@@ -90,25 +90,25 @@
         ; recursive calls to helper-syn->xml
         
         [(equal? first-datum 'CREATE-VOCABULARY)
-         (make-single-wrapper `(xml-make-command "CREATE VOCABULARY" ,(map helper-syn->xml (rest interns))))]
+         (make-single-wrapper `(xml-make-command "CREATE VOCABULARY" ,(map helper-syn->xml (rest interns))) syn)]
         
         [(equal? first-datum 'ADD)
-         (make-single-wrapper `(xml-make-command "ADD" ,(map helper-syn->xml (rest interns))))]
+         (make-single-wrapper `(xml-make-command "ADD" ,(map helper-syn->xml (rest interns)))  syn)]
                        
         [(equal? first-datum 'CREATE-POLICY-LEAF)
-         (make-single-wrapper `(xml-make-create-policy-leaf-command ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns))))]
+         (make-single-wrapper `(xml-make-create-policy-leaf-command ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))  syn)]
         
         [(equal? first-datum 'IS-POSSIBLE?)
          (make-single-wrapper `(xml-make-is-possible-command ,(if (< 1 (length interns))
                                                                 (helper-syn->xml (second interns))
-                                                                '(xml-make-id "-1"))))]
+                                                                '(xml-make-id "-1")))  syn)]
         [(equal? first-datum 'COUNT)
          (make-single-wrapper `(xml-make-count-command 
                                 ,(if (< 1 (length interns))
                                      (helper-syn->xml (second interns))
-                                     '(xml-make-id "-1"))))]
+                                     '(xml-make-id "-1"))) syn)]
         [(equal? first-datum 'COUNT-WITH-SIZE)
-         (make-single-wrapper `(xml-make-count-with-size-command ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns))))]
+         (make-single-wrapper `(xml-make-count-with-size-command ,(helper-syn->xml (second interns)) ,(helper-syn->xml (third interns)))  syn)]
         
         
         [(equal? first-datum 'EXPLORE)
@@ -119,7 +119,7 @@
              ;List of modifiers could be empty, but use (list instead of '( since we may have funcs to evaluate inside
              (list ,@(if (empty? (rest (rest interns)))
                         empty
-                        (map helper-syn->xml (syntax-e (third interns)))))))] 
+                        (map helper-syn->xml (syntax-e (third interns))))))  syn)] 
         
         
         ; id, list, optional for-cases list
@@ -129,45 +129,45 @@
              (make-single-wrapper 
               
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                               (list ,@(map helper-syn->xml (syntax-e (third interns))))))
+                                               (list ,@(map helper-syn->xml (syntax-e (third interns)))))  syn)
              (make-single-wrapper 
               `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
                                                (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (fourth interns)))))))))))]
+                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (fourth interns)))))))))  syn))]
         [(equal? first-datum 'SHOWUNREALIZED)
          (if (empty? (syntax->datum (fourth interns)))
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns)) 
-                                                 (list ,@(map helper-syn->xml (syntax-e (third interns))))))
+                                                 (list ,@(map helper-syn->xml (syntax-e (third interns)))))  syn)
              (make-single-wrapper
               `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns))
                                                  (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                                  (list `(xml-make-forcases (list ,(map helper-syn->xml (syntax-e (fourth interns)))))))))))]
+                                                                  (list `(xml-make-forcases (list ,(map helper-syn->xml (syntax-e (fourth interns)))))))))  syn))]
         ; same but without the result ID
         [(equal? first-datum 'LSHOWREALIZED)
          
          (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1") 
-                                               (list ,@(map helper-syn->xml (syntax-e (second interns)))))) 
+                                               (list ,@(map helper-syn->xml (syntax-e (second interns)))))  syn) 
              (make-single-wrapper 
               `(xml-make-show-realized-command (xml-make-id "-1")
                                                (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))))]
+                                                               (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))  syn))]
         [(equal? first-datum 'LSHOWUNREALIZED)
          (if (empty? (syntax->datum (third interns)))
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
-                                                 (list ,@(map helper-syn->xml (syntax-e (second interns))))))
+                                                 (list ,@(map helper-syn->xml (syntax-e (second interns)))))  syn)
              (make-single-wrapper 
               `(xml-make-show-unrealized-command (xml-make-id "-1")
                                                  (list ,@(append (map helper-syn->xml (syntax-e (second interns))) 
-                                                                 (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))))]
+                                                                 (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (third interns)))))))))  syn))]
         
         [(equal? first-datum 'RENAME)
          (make-single-wrapper
           `(xml-make-rename-command ,(symbol->string (syntax->datum (second interns)))
-                                    ,(symbol->string (syntax->datum (third interns)))))]
+                                    ,(symbol->string (syntax->datum (third interns))))  syn)]
         
         ; pass (type ONE) to get first
         ;;     (type NEXT) to get next in Java's iterator
@@ -178,7 +178,7 @@
                                  ;Use -1 if nothing is supplied
                                  ,(if (< 2 (length interns))
                                     (helper-syn->xml (third interns))
-                                    '(xml-make-id "-1"))))]
+                                    '(xml-make-id "-1")))  syn)]
         ; Like GET, only pretty-print the result
         [(equal? first-datum 'SHOW)
          ;         (printf "~a ~a ~n" (second interns) (if (< 2 (length interns)) (third interns) "last" ))
@@ -188,7 +188,7 @@
                                              ;Use -1 if nothing is supplied
                                              ,(if (< 2 (length interns))
                                                   (helper-syn->xml (third interns))
-                                                  '(xml-make-id "-1"))))))]
+                                                  '(xml-make-id "-1"))) #:syntax  #',syn)))]
         
         
        ; ALL gets its own command type:
@@ -196,37 +196,37 @@
          (make-show-all  
           (if (< 2 (length interns))
               (helper-syn->xml (second interns))
-              '(xml-make-id "-1")))]
+              '(xml-make-id "-1")) syn)]
         
         [(equal? first-datum 'GETALL)
          (make-get-all  
           (if (< 2 (length interns))
               (helper-syn->xml (second interns))
-              '(xml-make-id "-1")))]
+              '(xml-make-id "-1"))  syn)]
         
         [(equal? first-datum 'INFO)
          (if (empty? (rest interns))
-             (make-single-wrapper `(xml-make-info-command))
-             (make-single-wrapper `(xml-make-info-id-command ,(symbol->string (syntax->datum (second interns))))))]
+             (make-single-wrapper `(xml-make-info-command) syn)
+             (make-single-wrapper `(xml-make-info-id-command ,(symbol->string (syntax->datum (second interns)))) syn))]
         
         ; Allow user to get the rules in a policy
         [(equal? first-datum 'GETRULES)
          (make-single-wrapper
-          `(xml-make-get-rules-command ',(syntax->datum (second interns))))]
+          `(xml-make-get-rules-command ',(syntax->datum (second interns)))  syn)]
         
         [(equal? first-datum 'GETQRULES)
          (make-single-wrapper
-          `(xml-make-get-qrules-command ',(syntax->datum (second interns))))]
+          `(xml-make-get-qrules-command ',(syntax->datum (second interns)))  syn)]
         
         [(equal? first-datum 'GETRULESDEC)
          (make-single-wrapper 
           `(xml-make-get-rules-command ',(syntax->datum (second interns))
-                                       ,(symbol->string (syntax->datum (third interns)))))]
+                                       ,(symbol->string (syntax->datum (third interns))))  syn)]
         
         [(equal? first-datum 'GETQRULESDEC)
          (make-single-wrapper 
           `(xml-make-get-qrules-command ',(syntax->datum (second interns))
-                                        ,(symbol->string (syntax->datum (third interns)))))]
+                                        ,(symbol->string (syntax->datum (third interns))))  syn)]
                 
         [(equal? first-datum 'QUIT)
          '(lambda () 
@@ -245,9 +245,9 @@
          `(list ,@list-of-func-syntax))
 
 ; Show-all is based on get-all
-(define (make-show-all explore-id)
+(define (make-show-all explore-id syn)
   `(lambda () (let* ([string-buffer (open-output-string)]
-                     [the-generator-func ,(make-get-all explore-id)]
+                     [the-generator-func ,(make-get-all explore-id syn)]
                      [the-generator (the-generator-func)])
                 
                 ; iterate over results of the generator.
@@ -266,22 +266,29 @@
 
 ; GET ALL returns a generator for all the models
 ; using 2nd form of let and being tail-recursive
-(define (make-get-all explore-id)
+(define (make-get-all explore-id syn)
   `(lambda () 
      (generator ()  
                 (let loop-func ([is-first #t])
                   (if (equal? is-first #f)
                       (begin
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id)))
+                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn))
                         (loop-func #f))
                       (begin
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id)))                                 
+                        (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))  
                         (loop-func #f)))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function
 ; It gets evaluated in a context where we know what the symbol means.
-(define (make-single-wrapper thexml-constructor)  
-  `(lambda () (send-and-receive-xml ,thexml-constructor)))
+(define (make-single-wrapper thexml-constructor syn)  
+  
+  ; #',syn here because (INFO) will still read as "evaluate INFO" even if it's a syntax object.
+  ; Behavior of #':
+  ;(define foo #'14)
+  ;(define bar #'`,foo)
+  ; (eval bar) results in the correct, original syntax object (pointing to the initial 14.)
+  
+  `(lambda () (send-and-receive-xml ,thexml-constructor #:syntax #',syn)))
 
 (define (make-simple-load-func polname vocname list-of-xexprs)
 #| gmarceau personal preference:
@@ -331,8 +338,8 @@
         
         ; <polname>:<vecname>
         [(equal? first-datum 'CUSTOM-VECTOR)
-         ; Is there a better way to do this?
-         `(resolve-custom-vector ',(syntax->datum (second interns)) ',(syntax->datum (third interns)) ,(syntax-line (second interns)) ,(syntax-column (second interns)))]        
+         ; Is there a better way to do this?                 
+         `(resolve-custom-vector ',(syntax->datum (second interns)) ',(syntax->datum (third interns)) #',syn)]        
         
         ; If vecname is not "req", error.
         ; If polname does not exist, error.                           

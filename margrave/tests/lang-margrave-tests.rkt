@@ -20,6 +20,8 @@
 
 info;
 
+//info doesntexist;
+
 // LOAD POLICY
 load policy "*MARGRAVE*/tests/conference1.p";
 
@@ -117,47 +119,36 @@ load policy "*MARGRAVE*/tests/happyroutermore.p";
 
 
 // Tests for REALIZED without tupling
+// Much slower without tupling
+// IMPORTANT: Note below rulex_applies -> rule1_matches, which seems
+// nonsensical. But without tupling, realized can be read as populated.
+// other packets exist populating rule1_matches...
 
 
-explore happyroutermore:accept(<happyroutermorex:req>)
-UNDER happyroutermore
+//explore happyroutermore:accept(<happyroutermorex:req>)
+explore happyroutermore:accept(<happyroutermore:req>) AND 
+  tcp=pro AND ipsrc=webserver and portdest=portsrc and portdest=http
 include happyroutermore:rule1_matches,
-        happyroutermore:rule2_matches,
-        happyroutermore:rule3_matches,
         happyroutermore:ruleX_matches,
         happyroutermore:rule1_applies,
-        happyroutermore:rule2_applies,
-        happyroutermore:rule3_applies,
         happyroutermore:ruleX_applies;
 
 SHOW ONE;        
         
-SHOW REALIZED happyroutermore:rule1_matches,
-        happyroutermore:rule2_matches,
-        happyroutermore:rule3_matches,
+SHOW REALIZED happyroutermore:rule1_matches,        
         happyroutermore:ruleX_matches;
 
 SHOW UNREALIZED happyroutermore:rule1_matches,
-        happyroutermore:rule2_matches,
-        happyroutermore:rule3_matches,
         happyroutermore:ruleX_matches; 
         
 SHOW REALIZED happyroutermore:rule1_matches,
-        happyroutermore:rule2_matches,
-        happyroutermore:rule3_matches,
         happyroutermore:ruleX_matches
 FOR CASES happyroutermore:rule1_applies,
-        happyroutermore:rule2_applies,
-        happyroutermore:rule3_applies,
-        happyroutermore:ruleX_applies;
-       
+        happyroutermore:ruleX_applies;                     
+        
 SHOW UNREALIZED happyroutermore:rule1_matches,
-        happyroutermore:rule2_matches,
-        happyroutermore:rule3_matches,
         happyroutermore:ruleX_matches
 FOR CASES happyroutermore:rule1_applies,
-        happyroutermore:rule2_applies,
-        happyroutermore:rule3_applies,
         happyroutermore:ruleX_applies;       
 
 

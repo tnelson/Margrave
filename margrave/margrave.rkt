@@ -25,7 +25,7 @@
          margrave/margrave-xml
          margrave/compiler
          margrave/margrave-policy-vocab
-         
+         syntax/readerr
          racket/generator)
 
 (provide stop-margrave-engine
@@ -279,7 +279,7 @@ gmarceau
 
 ; Default handler for responses: throw user errors if needed
 ; xml doc ---> xml doc
-(define (default-response-handler src-loc-list xml-response)
+(define (default-response-handler src-syntax xml-response)
   #| gmarceau
   (match xml-response
     [(? response-is-exception?)
@@ -289,12 +289,17 @@ gmarceau
     [else ...]))
 |#
   
+  ; Syntax and Reader errors both highlight a location you give. We
+  ; need that to highlight the original Margrave command.
   (define (local-report-error)
-    (if (list? src-loc-list)
-        (raise-syntax-error 
-          '|Margrave Error:|
+    (if (syntax? src-syntax)
+        (raise-read-error 
           (pretty-print-response-xml xml-response)
-          (datum->syntax #f 'fake-datum src-loc-list))
+          (syntax-source src-syntax)
+          (syntax-line src-syntax)
+          (syntax-column src-syntax)
+          (syntax-position src-syntax)
+          (syntax-span src-syntax))
         (raise-user-error (pretty-print-response-xml xml-response))))
   
 ;  (match-define (list src line col pos span) (or src-loc-list
@@ -663,16 +668,19 @@ gmarceau
 
     
 ; -------------------------
-(define (resolve-custom-vector polid vecid polline polcol)
+(define (resolve-custom-vector polid vecid vector-syntax)
   ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
   (define polid-str (symbol->string/safe polid))
   
   ; Only allow req for now. (Later, DEFINE VECTOR command)
   (when (not (symbol=? vecid 'req))
-    (raise-user-error 'margrave-language-error "~a was an unknown vector ID.~n" vecid))
+    (raise-syntax-error 
+          '|Margrave Error:|
+          (format "~a was an unknown vector ID.~n" vecid)
+          vector-syntax))
   
   ; Get request vector for this policy id
-  (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str)))
+  (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str) #:syntax vector-syntax))
   (xml-policy-info->req-vector info-result))
 
 

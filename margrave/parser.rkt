@@ -96,7 +96,8 @@
                    ;Source is passed in to parse
                    (source (datum->syntax
                             (syntax end)
-                            "source-name"
+                            (string->symbol "source-name")
+                            ;"source-name"
                             ;'source-name
                             )))
        (syntax

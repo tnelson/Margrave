@@ -1159,7 +1159,7 @@
   `(ATOMIC-FORMULA-N ((relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))  
 
 (define (xml-make-atomic-formula-y collName relName xml-identifier-list)
-  ;  (printf "~a ~a ~n" collName relName)
+  ;(printf "~n~nY: ~a ~a ~n" collName relName)
   (if (empty? xml-identifier-list)
       `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))))
       `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
