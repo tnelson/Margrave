@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet   xmlns="urn:oasis:names:tc:xacml:1.0:policy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xacml:1.0:policy /pro/xacml/summer2004/xacml/schema/cs-xacml-schema-policy-01.xsd" 
+   PolicySetId="PPS_paper-review-info-reviewer_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">   
+    <Target><Subjects><AnySubject/></Subjects><Resources><AnyResource/></Resources><Actions><AnyAction/></Actions></Target>
+
+ <PolicySetIdReference>PPS_paper-review-info_rc</PolicySetIdReference>
+
+</PolicySet>
+

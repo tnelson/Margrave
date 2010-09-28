@@ -551,13 +551,14 @@ public abstract class MPolicy extends MIDBCollection
 	{
 		// Strip off leading "file:" if it is there.
 		// (SISC will prepend everything with it.)
-		if(s.startsWith("file:"))
-			s = s.substring(5);
+		//if(s.startsWith("file:"))
+		//	s = s.substring(5);
+		// ^^ Removed Sept 2010, no more SISC. - TN
 		
 		// Convert separator characters
 		if(File.separator.equals("/"))
 			s = s.replace("\\", "/");
-		if(File.separator.equals("\\"))
+		else if(File.separator.equals("\\"))
 			s = s.replace("/", "\\");
 		
 		return s;
@@ -586,14 +587,13 @@ public abstract class MPolicy extends MIDBCollection
 	// XACML Input	
 		
 	public static MPolicy readXACML(String xacmlFileName, String xacml20SchemaFile) 
-	throws MGEBadIdentifierName, MGEBadCombinator, MGEUnsupportedXACML, MGEUnknownIdentifier, 
-	MGEArityMismatch, MGEBadQueryString, MGEManagerException
+	throws MUserException
 	{
 		xacmlFileName = convertSeparators(xacmlFileName);
 		xacml20SchemaFile = convertSeparators(xacml20SchemaFile);
 		
 		// Given an XACML file name, parse the policy file and return an MGPolicy object.
-		MEnvironment.errorStream.println("* (XACML) Reading file: "+xacmlFileName);
+		//MEnvironment.errorStream.println("* (XACML) Reading file: "+xacmlFileName);
 		
 		// Try to load as XACML 2.0, then fall back on 1.0 (Sun's implementation).
 		try
@@ -601,28 +601,26 @@ public abstract class MPolicy extends MIDBCollection
 			File f = new File(xacmlFileName);			
 						
 			MPolicy result =  XACML20Reader.loadXACML20(xacmlFileName, xacml20SchemaFile, f.getParent());
-			MEnvironment.errorStream.println("* XACML 2.0 succeeded in reading: "+result.name);
+			//MEnvironment.errorStream.println("* XACML 2.0 succeeded in reading: "+result.name);
 			return result;
 		}
 		catch(MGEUnsupportedXACML e)
 		{
 			// Continue with Sun's 1.0 implementation
-			MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
+			//MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
 		}
 		catch(SAXException e)
 		{
 			// Continue with Sun's 1.0 implementation
-			MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
+			//MEnvironment.errorStream.println("* File was not a valid XACML 2 policy or policy set.");
 		}
 		
-		MEnvironment.errorStream.println("* Attempting to treat file as XACML 1...");
+		//MEnvironment.errorStream.println("* Attempting to treat file as XACML 1...");
 		return readXACML10(xacmlFileName);
 	}
 	
 	public static MPolicy readXACML10(String xacmlFileName)
-	throws MGEBadIdentifierName, MGEBadCombinator, MGEUnsupportedXACML, 
-	       MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString,
-	       MGEManagerException
+	throws MUserException
 	{
 		
 			
@@ -640,16 +638,16 @@ public abstract class MPolicy extends MIDBCollection
                       
         // Load the abstract policy via Sun's XACML API                      
         mgfind.setLocalPath(xacmlFileName);
-        AbstractPolicy p = FilePolicyModule.loadPolicy(xacmlFileName, policyFinder);
-
+        AbstractPolicy p = FilePolicyModule.loadPolicy(xacmlFileName, policyFinder);       
+        
         if(p == null)
-        	throw new MGEUnsupportedXACML("XACML 1.0 implementation returned null when loading: "+xacmlFileName);
+        	throw new MGEUnsupportedXACML("XACML 1.0 implementation could not load: "+xacmlFileName);
         
         // Instantiate MGPolicy object
         MPolicy thepol = recXACMLPolicy(p, voc);
         
         if(thepol == null)
-        	throw new MGEUnsupportedXACML("XACML 1.0 converter returned null when creating policy: "+p.getId());
+        	throw new MGEUnsupportedXACML("XACML 1.0 converter could not create policy: "+p.getId());
         
         // Trigger calculation of decision Formulas.        
         thepol.initIDBs();

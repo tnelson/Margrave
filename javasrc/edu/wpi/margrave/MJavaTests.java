@@ -3140,8 +3140,7 @@ public class MJavaTests
 	}
 
 	public static void testxacml(String mgDirectory, String xacml20SchemaFile)
-	throws MGEBadIdentifierName, MGEBadCombinator, MGEUnsupportedXACML, MGEUnknownIdentifier, MGEArityMismatch,
-	MGEBadQueryString, MGEManagerException
+	throws MUserException
 	{
 		// BEWARE: Filenames are case-sensitive.
 

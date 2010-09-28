@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet   xmlns="urn:oasis:names:tc:xacml:1.0:policy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xacml:1.0:policy /pro/xacml/summer2004/xacml/schema/cs-xacml-schema-policy-01.xsd" 
+   PolicySetId="PPS_Faculty"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides">   
+  <Target>
+    <Subjects><AnySubject/></Subjects>
+    <Resources><AnyResource/></Resources>
+    <Actions><AnyAction/></Actions>
+  </Target>
+  <Policy
+     PolicyId="Assignp"
+     RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides">
+    <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources><AnyResource/></Resources>
+      <Actions><AnyAction/></Actions>
+    </Target>
+    <Rule
+       RuleId="gradeAsgn-Assign-grades"
+       Effect="Permit">
+      <Target>
+        <Subjects><AnySubject/></Subjects>
+        <Resources>
+           <Resource>
+  	    <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">ExternalGrades</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+  	 </Resource>
+        </Resources>
+        <Actions>
+           <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">Assign</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="command"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ActionMatch>
+  	 </Action>
+	 <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">View</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="command"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ActionMatch>
+  	 </Action>
+        </Actions>
+      </Target>
+    </Rule>
+  </Policy> 
+
+ <!-- inhert from TA -->
+ <PolicySetIdReference>PPS_TA</PolicySetIdReference>
+
+</PolicySet>

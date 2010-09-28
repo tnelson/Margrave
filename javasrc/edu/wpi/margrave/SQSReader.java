@@ -32,16 +32,6 @@ import kodkod.ast.Formula;
 
 import org.json.*;
 
-class MGEUnsupportedSQS extends Exception
-{
-	private static final long serialVersionUID = 100;
-	
-	MGEUnsupportedSQS(String s)
-	{ 
-		super(s);
-	}
-}
-
 public class SQSReader 
 {
 	protected static MVocab createSQSVocab(String polId)

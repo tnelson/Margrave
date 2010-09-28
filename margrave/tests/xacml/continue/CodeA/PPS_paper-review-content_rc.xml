@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet   xmlns="urn:oasis:names:tc:xacml:1.0:policy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xacml:1.0:policy /pro/xacml/summer2004/xacml/schema/cs-xacml-schema-policy-01.xsd" 
+   PolicySetId="PPS_paper-review-content_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">   
+    <Target><Subjects><AnySubject/></Subjects><Resources><AnyResource/></Resources><Actions><AnyAction/></Actions></Target>
+
+  <Policy
+     PolicyId="policy"
+     RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:first-applicable">
+  <Target>
+    <Subjects>
+          <Subject>
+  	    <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pc-member</AttributeValue>
+                 <SubjectAttributeDesignator
+                    AttributeId="role"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </SubjectMatch>
+         	 <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                   <AttributeValue
+                      DataType="http://www.w3.org/2001/XMLSchema#string">true</AttributeValue>
+                   <SubjectAttributeDesignator
+                      AttributeId="isEq-subjUserId-resUserId"
+                      DataType="http://www.w3.org/2001/XMLSchema#string"/>
+                 </SubjectMatch>
+  	 </Subject>
+   </Subjects>
+    <Resources><AnyResource/></Resources>
+    <Actions>
+       <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">write</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="action-type"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </ActionMatch>
+        </Action>
+       <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">create</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="action-type"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </ActionMatch>
+        </Action>
+       <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">delete</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="action-type"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </ActionMatch>
+        </Action>
+    </Actions>
+  </Target>
+    <Rule
+       RuleId="rule"
+       Effect="Permit">
+      <Target><Subjects><AnySubject/></Subjects><Resources><AnyResource/></Resources><Actions><AnyAction/></Actions></Target>
+    </Rule>
+ </Policy>
+
+  <Policy
+     PolicyId="policy"
+     RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:first-applicable">
+  <Target>
+    <Subjects>
+          <Subject>
+  	    <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">subreviewer</AttributeValue>
+                 <SubjectAttributeDesignator
+                    AttributeId="role"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </SubjectMatch>
+         	 <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                   <AttributeValue
+                      DataType="http://www.w3.org/2001/XMLSchema#string">true</AttributeValue>
+                   <SubjectAttributeDesignator
+                      AttributeId="isEq-subjUserId-resUserId"
+                      DataType="http://www.w3.org/2001/XMLSchema#string"/>
+                 </SubjectMatch>
+  	 </Subject>
+   </Subjects>
+    <Resources><AnyResource/></Resources>
+    <Actions>
+       <Action>
+  	    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">create</AttributeValue>
+                 <ActionAttributeDesignator
+                    AttributeId="action-type"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+             </ActionMatch>
+        </Action>
+    </Actions>
+  </Target>
+    <Rule
+       RuleId="rule"
+       Effect="Permit">
+      <Target><Subjects><AnySubject/></Subjects><Resources><AnyResource/></Resources><Actions><AnyAction/></Actions></Target>
+    </Rule>
+ </Policy>
+
+
+ <PolicySetIdReference>PPS_paper-review_rc</PolicySetIdReference>
+
+</PolicySet>

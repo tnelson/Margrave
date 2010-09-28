@@ -1506,7 +1506,7 @@ public class MEnvironment
 		if(!envVocabularies.containsKey(vname))
 			return errorResponse(sUnknown, sVocabulary, vname);
 		if(envIDBCollections.containsKey(pname))
-			return errorResponse(sUsed, sPolicy, vname);
+			return errorResponse(sUsed, sPolicy, pname);
 		
 		MVocab voc = envVocabularies.get(vname);
 		MPolicySet pol = new MPolicySet(pname, voc);
@@ -1577,20 +1577,27 @@ public class MEnvironment
 			return errorResponse(sNotExpected, sPolicy, pname);
 	}
 
-	public static Document loadXACML(String fname, String sfname)
+	public static Document loadXACML(String fname, String sfname) throws MUserException
 	{
-		//MPolicy pol = MPolicy.readXACML(fname, sfname);
-	
-		// TODO
-		// Get name from where? Filename? Can't use internal name since its often duplicated in our tests
+		MPolicy pol = MPolicy.readXACML(fname, sfname);
 		
-		return unsupportedResponse();
+		if(envIDBCollections.containsKey(pol.name))
+			return errorResponse(sUsed, sPolicy, pol.name);
+		
+		envIDBCollections.put(pol.name, pol);			
+		return stringResponse(pol.name);
 	}
 
 	public static Document loadSQS(String fname)
+	throws MUserException
 	{
-		// TODO Auto-generated method stub
-		return unsupportedResponse();
+		MPolicy pol = MPolicy.loadSQS(fname);
+		
+		if(envIDBCollections.containsKey(pol.name))
+			return errorResponse(sUsed, sPolicy, pol.name);
+		
+		envIDBCollections.put(pol.name, pol);			
+		return stringResponse(pol.name);	
 	}
 
 	static MVocab makeNewVocabIfNeeded(String vname)

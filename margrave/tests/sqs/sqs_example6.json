@@ -1,0 +1,19 @@
+{
+  "Version": "2008-10-17",
+  "Id": "Queue1_Policy_UUID",
+  "Statement": 
+     {
+        "Sid":"Queue1_AnonymousAccess_AllActions_WhitelistIP",
+        "Effect": "Allow",
+        "Principal": {
+           "AWS": "*"
+         },
+        "Action": "SQS:*",
+        "Resource": "/987654321098/queue1",
+        "Condition" : {
+            "IpAddress" : {
+            "AWS:SourceIp":"192.168.143.0/24"
+            }
+        }
+     }
+}

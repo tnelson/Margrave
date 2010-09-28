@@ -189,6 +189,15 @@ class MGEUnsupportedXACML extends MUserException
 		super(s);
 	}
 }
+class MGEUnsupportedSQS extends MUserException
+{
+	private static final long serialVersionUID = 100;
+	
+	MGEUnsupportedSQS(String s)
+	{ 
+		super(s);
+	}
+}
 
 
 /**

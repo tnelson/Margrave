@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet   xmlns="urn:oasis:names:tc:xacml:1.0:policy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xacml:1.0:policy /pro/xacml/summer2004/xacml/schema/cs-xacml-schema-policy-01.xsd" 
+  PolicySetId="RPSlist"
+  PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+  <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources><AnyResource/></Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>
+
+  <PolicySet
+   PolicySetId="RPS_conference_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">conference_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+        </Resource>
+      </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_conference_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_conferenceInfo_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">conferenceInfo_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+        </Resource>
+      </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_conferenceInfo_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+        </Resource>
+      </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-assignments_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-assignments_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-assignments_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-conflicts_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-conflicts_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-conflicts_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-assignmentCount_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-assignmentCount_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-assignmentCount_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-info_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-info_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-info_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-info-password_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-info-password_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-info-password_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_pcMember-info-isChairFlag_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">pcMember-info-isChairFlag_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_pcMember-info-isChairFlag_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-submission-info_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-submission-info_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-submission-info_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-submission_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-submission_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-submission_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-submission-file_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-submission-file_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-submission-file_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-decision_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-decision_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-decision_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-conflicts_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-conflicts_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-conflicts_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-assignments_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-assignments_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-assignments_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-info_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-info_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-info_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-content_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-content_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-content_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-info-submissionStatus_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-info-submissionStatus_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-info-submissionStatus_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-content-rating_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-content-rating_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-content-rating_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-content-commentsAll_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-content-commentsAll_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+    <PolicySetIdReference>PPS_paper-review-content-commentsAll_rc</PolicySetIdReference>
+
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-content-commentsPc_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-content-commentsPc_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-content-commentsPc_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_paper-review-info-reviewer_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">paper-review-info-reviewer_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_paper-review-info-reviewer_rc</PolicySetIdReference>
+   </PolicySet>
+
+  <PolicySet
+   PolicySetId="RPS_isMeetingFlag_rc"
+   PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+   <Target>
+      <Subjects><AnySubject/></Subjects>
+      <Resources>
+	<Resource>
+	  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+                 <AttributeValue
+                    DataType="http://www.w3.org/2001/XMLSchema#string">isMeetingFlag_rc</AttributeValue>
+                 <ResourceAttributeDesignator
+                    AttributeId="resource-class"
+                    DataType="http://www.w3.org/2001/XMLSchema#string"/>
+               </ResourceMatch>
+      </Resource> </Resources>
+      <Actions><AnyAction/></Actions>
+   </Target>   
+   <PolicySetIdReference>PPS_isMeetingFlag_rc</PolicySetIdReference>
+   </PolicySet>
+
+</PolicySet>

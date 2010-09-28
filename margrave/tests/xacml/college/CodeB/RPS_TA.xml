@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet   xmlns="urn:oasis:names:tc:xacml:1.0:policy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xacml:1.0:policy /pro/xacml/summer2004/xacml/schema/cs-xacml-schema-policy-01.xsd" 
+  PolicySetId="RPS_TA"
+  PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides">
+    <Target>
+      <Subjects>
+	<Subject>
+	  <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+	    <AttributeValue
+	      DataType="http://www.w3.org/2001/XMLSchema#string">TA</AttributeValue>
+	    <SubjectAttributeDesignator
+	      AttributeId="role"
+	      DataType="http://www.w3.org/2001/XMLSchema#string"/>
+	  </SubjectMatch>
+	</Subject>
+      </Subjects>
+      <Resources>
+	<AnyResource/>
+      </Resources>
+      <Actions>
+	<AnyAction/>
+      </Actions>
+    </Target>
+   
+    <PolicySetIdReference>PPS_Faculty</PolicySetIdReference>
+   
+</PolicySet>
