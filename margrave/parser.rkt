@@ -369,7 +369,7 @@
     ; represents a top-level condition, the fully-developed formula in EXPLORE 
     ; Can be trivially true
     (condition [(condition-formula) (list 'CONDITION $1)]
-               [(TRUE) (list 'CONDITION (build-so (list 'TRUE) 1 1))])
+               [(TRUE) (build-so (list 'TRUE-CONDITION) 1 1)])
 
     ; *************************************************
     ; (x, y, z) IN DB   or x in DB    

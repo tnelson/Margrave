@@ -344,10 +344,7 @@
          ;(printf "Symbol varvec: ~a~n" first-intern)
          ; flatten, not append because some map results are lists, others not
          `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml (rest interns)))))]
-        
-        [(equal? first-datum 'TRUE)
-         '(TRUE)]
-        
+                
         [(equal? first-datum 'ATOMIC-FORMULA-N)
          `(xml-make-atomic-formula-n ',(syntax->datum (second interns)) 
                                      ,(helper-syn->xml (third interns)))]
@@ -374,6 +371,10 @@
         [(equal? first-datum 'CONDITION)
          (helper-syn->xml (second interns))]      
 
+        
+        [(equal? first-datum 'TRUE-CONDITION)
+         '(xml-make-true-condition)]
+        
         [(equal? first-datum 'TUPLING)
          `(xml-make-tupling)]
         [(equal? first-datum 'CEILING)

@@ -10,6 +10,10 @@
 // TODO
 // invoke Java tests (needs to be from Racket)
 
+// TODO: import the rest of the old SISC tests
+
+
+
 // ***************************************
 // Initial basic tests for syntax coverage
 // ***************************************
@@ -105,71 +109,63 @@ EXPLORE EmptyConference:Permit(s, a, r);
 IS POSSIBLE?;
 // expect: false
 
+// *******************************************************************
+// *******************************************************************
 
-// TODO: import the rest of the old SISC tests
-
-
-// ***************************************
-
-
-
-//create vocabulary myvoc;
-//add to myvoc sort xsort;
-//add to myvoc subsort xsort s1;
-//add to myvoc subsort xsort s2;
-//add to myvoc decision permit;
-//add to myvoc decision deny;
-//add to myvoc requestvar x xsort;
-//add to myvoc requestvar y xsort;
-
-//create policy leaf mypol myvoc;
-//add rule to mypol rule1 permit (s1 x) (s2 y);
-//add rule to mypol rule2 deny (s2 x) (s1 y);
-//prepare mypol;
-
-// test without tupling
-
-//explore xsort(x)
-//UNDER mypol
-//include mypol:rule1, mypol:rule2, mypol:rule1_applies, mypol:rule2_applies
-
-//show realized 0 mypol:rule1, mypol:rule2 for cases mypol:rule1_applies, mypol:rule2_applies;
-
-
-// test with tupling
-
-//explore xsort(x)
-//UNDER mypol
-//include mypol:rule1(x), mypol:rule2(x), mypol:rule1_applies(x), mypol:rule2_applies(x)
-//tupling;
-
-//show realized 0 mypol:rule1(x), mypol:rule2(x) for cases mypol:rule1_applies(x), mypol:rule2_applies(x);
-
-
-
-
-
-//  check >1 vector size
-
-
-//create vocabulary myvoc;
-//add to myvoc sort xsort;
-//add to myvoc subsort xsort s1;
-//add to myvoc subsort xsort s2;
-//add to myvoc decision permit;
-//add to myvoc decision deny;
-//add to myvoc requestvar x xsort;
-//add to myvoc requestvar y xsort;
-
-//create policy leaf mypol myvoc;
-//add rule to mypol rule1 permit (s1 x) (s2 y);
-//add rule to mypol rule2 deny (s2 x) (s1 y);
-//prepare mypol;
-
-
-// *****************************
-
+// Use the happy router "more" secure side policy for realized testing
 load policy "*MARGRAVE*/tests/happyroutermore.p";
+
+
+// Tests for REALIZED without tupling
+
+
+explore happyroutermore:accept(<happyroutermore:req>)
+UNDER happyroutermore
+include happyroutermore:rule1_matches,
+        happyroutermore:rule2_matches,
+        happyroutermore:rule3_matches,
+        happyroutermore:ruleX_matches,
+        happyroutermore:rule1_applies,
+        happyroutermore:rule2_applies,
+        happyroutermore:rule3_applies,
+        happyroutermore:ruleX_applies;
+
+SHOW ONE;        
+        
+SHOW REALIZED happyroutermore:rule1_matches,
+        happyroutermore:rule2_matches,
+        happyroutermore:rule3_matches,
+        happyroutermore:ruleX_matches;
+
+SHOW UNREALIZED happyroutermore:rule1_matches,
+        happyroutermore:rule2_matches,
+        happyroutermore:rule3_matches,
+        happyroutermore:ruleX_matches; 
+        
+SHOW REALIZED happyroutermore:rule1_matches,
+        happyroutermore:rule2_matches,
+        happyroutermore:rule3_matches,
+        happyroutermore:ruleX_matches
+FOR CASES happyroutermore:rule1_applies,
+        happyroutermore:rule2_applies,
+        happyroutermore:rule3_applies,
+        happyroutermore:ruleX_applies;
+       
+SHOW UNREALIZED happyroutermore:rule1_matches,
+        happyroutermore:rule2_matches,
+        happyroutermore:rule3_matches,
+        happyroutermore:ruleX_matches
+FOR CASES happyroutermore:rule1_applies,
+        happyroutermore:rule2_applies,
+        happyroutermore:rule3_applies,
+        happyroutermore:ruleX_applies;       
+
+
+
+// *******************************************************************
+
+// Tests for REALIZED with tupling
+
 
 // TUPLING, INCLUDE, SHOW REALIZED
 // Need a policy with q-free IDBs to TUPLE (so can't use the phone policy)
@@ -225,7 +221,8 @@ FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
         happyroutermore:rule3_applies(<happyroutermore:req>),
         happyroutermore:ruleX_applies(<happyroutermore:req>);       
 
-        
+
+// *** TUPLING ONLY
 // Test: EDB in tupled INCLUDE ---> forces the EDB to be included if it doesn't appear in the query
 EXPLORE happyroutermore:rulex_applies(<happyroutermore:req>) DEBUG 3
 INCLUDE happyroutermore:rulex_applies(<happyroutermore:req>), udp(pro)
@@ -233,7 +230,7 @@ TUPLING;
 SHOW ONE;
 
 
-
+// *** TUPLING ONLY
 // Test SHOW REALIZED with non-standard variable ordering:
 // matches reverse packet when normal pkt is accepted?
 // rules 1, 2, 3 apply: dest 10net --> src 10net. only X can match.
@@ -259,5 +256,4 @@ FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
         happyroutermore:rule3_applies(<happyroutermore:req>),
         happyroutermore:ruleX_applies(<happyroutermore:req>);   
         
-        
-// TODO: test show realized WITHOUT tupling        
+       

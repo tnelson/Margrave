@@ -43,6 +43,7 @@
  
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
+ xml-make-true-condition
  xml-make-decision
  xml-make-decision-type
  xml-make-rule-list
@@ -1160,7 +1161,7 @@
 (define (xml-make-atomic-formula-y collName relName xml-identifier-list)
   ;  (printf "~a ~a ~n" collName relName)
   (if (empty? xml-identifier-list)
-      `(ATOMIC-FORMULA-Y ((collection-name ,collName) (relation-name ,relName)))
+      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))))
       `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
 
 ;;EXPLORE
@@ -1183,6 +1184,9 @@
                          (first list-of-atomic-formulas)
                          (rest list-of-atomic-formulas))))
             ,@list-of-modifiers))
+
+(define (xml-make-true-condition)
+  '(TRUE))
 
 (define (xml-make-explore-command list-of-atomic-formulas list-of-modifiers)
   (xml-make-command "EXPLORE" (list (xml-make-explore list-of-atomic-formulas list-of-modifiers))))
