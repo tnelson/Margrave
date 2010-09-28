@@ -119,7 +119,7 @@ load policy "*MARGRAVE*/tests/happyroutermore.p";
 // Tests for REALIZED without tupling
 
 
-explore happyroutermore:accept(<happyroutermore:req>)
+explore happyroutermore:accept(<happyroutermorex:req>)
 UNDER happyroutermore
 include happyroutermore:rule1_matches,
         happyroutermore:rule2_matches,

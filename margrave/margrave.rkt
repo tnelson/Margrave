@@ -279,7 +279,7 @@ gmarceau
 
 ; Default handler for responses: throw user errors if needed
 ; xml doc ---> xml doc
-(define (default-response-handler xml-response)
+(define (default-response-handler src-loc-list xml-response)
   #| gmarceau
   (match xml-response
     [(? response-is-exception?)
@@ -288,14 +288,24 @@ gmarceau
      ...]
     [else ...]))
 |#
-  (cond [(response-is-exception? xml-response) 
-         (raise-user-error 'margrave-error "~a~n"
-                           (pretty-print-response-xml xml-response) )
-         xml-response]
-        
+  
+  (define (local-report-error)
+    (if (list? src-loc-list)
+        (raise-syntax-error 
+          '|Margrave Error:|
+          (pretty-print-response-xml xml-response)
+          (datum->syntax #f 'fake-datum src-loc-list))
+        (raise-user-error (pretty-print-response-xml xml-response))))
+  
+;  (match-define (list src line col pos span) (or src-loc-list
+;                                                 '(#f #f #f #f #f)))
+  
+  (cond [(response-is-exception? xml-response)         
+         (local-report-error)
+          xml-response]
+
         [(response-is-error? xml-response)
-         (raise-user-error 'margrave-error "~a~n"
-                           (pretty-print-response-xml xml-response))
+         (local-report-error)         
          xml-response]
         
         [else xml-response]))
@@ -320,7 +330,10 @@ gmarceau
 ; Sends the given XML to java. Returns #f if the engine has not been started.
 ; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 ; Optional response handler func may change the result XML, throw exceptions, etc.
-(define (send-and-receive-xml cmd-xexpr [response-handler-func default-response-handler])
+(define (send-and-receive-xml cmd-xexpr 
+                              #:handler [response-handler-func default-response-handler]
+                              #:syntax [src-syntax #f])
+  
   (define cmd (xexpr->string cmd-xexpr))
   
   ;; gmarceau: use cond perhaps? 
@@ -412,7 +425,7 @@ gmarceau
                     
                     ; Parse the reply and return the document struct
                     ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
-                    (response-handler-func (read-xml (open-input-string result))))
+                    (response-handler-func src-syntax (read-xml (open-input-string result))))
                   
                   (begin
                     ; Got eof, the port has been cloed.
