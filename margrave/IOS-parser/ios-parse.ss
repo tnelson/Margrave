@@ -83,18 +83,21 @@
   (let-values [([line column position] [port-next-location input])]
     (- line 1)))
 
-(define (raise-ios-error line token allowed-tokens)
-  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nExpected keywords among: ~a. Got ~a.~n" line allowed-tokens token))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Do not want to error out if we see an unsupported command. Instead, ignore the line and warn the user.
 
-(define (raise-ios-error/single-address line token)
-  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nExpected a single address. Got ~a.~n" line token))
+(define (warning-unsupported line token allowed-tokens)
+  (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected keywords among: ~a. Got ~a. Moving to next line...~n" line allowed-tokens token))
 
-(define (raise-ios-error/if-not no-condition line token allowed-tokens)
-  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nDid not have ~a, so expected keywords among: ~a. Got ~a.~n" line no-condition allowed-tokens token))
+(define (warning-unsupported/single-address line token)
+   (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected a single address. Got ~a. Moving to next line...~n" line token))
+
+(define (warning-unsupported/if-not no-condition line token allowed-tokens)
+   (printf "WARNING: Ignoring unexpected keyword on line ~a. Did not have ~a, so expected keywords among: ~a. Got ~a. Moving to next line...~n" line no-condition allowed-tokens token))
 
 (define (warning-unsupported/terminate-with-comment line token)
   (printf "WARNING: Ignoring unsupported keyword: ~a on line ~a. Moving to next line...~n" token line )
-  (printf "  (Note: We currently require multi-line constructs to be terminated with a ! on its own line.)~n"))
+  (printf "  (We currently require multi-line constructs to be terminated with a ! on its own line. That may be the problem.)~n"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Access Control Lists
@@ -115,7 +118,8 @@
                                                         (first line-tokens)
                                                         (rest line-tokens)
                                                         config)]
-    [else (raise-ios-error line (first line-tokens) '(dynamic permit deny))]))
+    [else (warning-unsupported line (first line-tokens) '(dynamic permit deny))
+          config]))
 
 ;; number symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-dynamic-access-list line name line-tokens config)
@@ -130,7 +134,8 @@
                                                         (second line-tokens)
                                                         (drop line-tokens 2)
                                                         config)]
-    [else (raise-ios-error line (first line-tokens) '(timeout permit deny))]))
+    [else (warning-unsupported line (first line-tokens) '(timeout permit deny))
+          config]))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-named-dispositive-access-list line name disposition line-tokens config)
@@ -148,7 +153,8 @@
                                                       (rest line-tokens)
                                                       config)]
                 [(ip) (parse-access-list-IP line name disposition (rest line-tokens) config)]
-                [else (raise-ios-error line (first line-tokens) '(any host icmp tcp udp ip))])]))
+                [else (warning-unsupported line (first line-tokens) '(any host icmp tcp udp ip))
+                      config])]))
 
 ;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-standard-access-list line name disposition src-addr line-tokens config)
@@ -321,7 +327,8 @@
                                              (make-object network-address% (first line-tokens) (second line-tokens) #t)
                                              (drop line-tokens 2)
                                              config)]
-                [else (raise-ios-error/single-address line (first line-tokens))])]))
+                [else (warning-unsupported/single-address line (first line-tokens))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-access-list-TCP/UDP3 line name disposition prot src-addr src-port line-tokens config)
@@ -354,7 +361,8 @@
                                              (make-object network-address% (first line-tokens) (second line-tokens) #t)
                                              (drop line-tokens 2)
                                              config)]
-                [(raise-ios-error/single-address line (first line-tokens))])]))
+                [(warning-unsupported/single-address line (first line-tokens))
+                 config])]))
 
 ;; number symbol symbol symbol address<%> port<%> address<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-access-list-TCP/UDP4 line name disposition prot src-addr src-port dest-addr line-tokens config)
@@ -370,7 +378,8 @@
                                           (make-object port% (second line-tokens))
                                           (drop line-tokens 2)
                                           config)]
-        [else (raise-ios-error/if-not "end of line" line (first line-tokens) '(eq))])
+        [else (warning-unsupported/if-not "end of line" line (first line-tokens) '(eq))
+              config])
       (parse-access-list-TCP/UDP5 line
                                   name
                                   disposition
@@ -462,7 +471,8 @@
 (define (parse-ip-access-list line-tokens input config)
   (case (first line-tokens)
     [(standard extended) (parse-ip-named-access-list (second line-tokens) input config)]
-    [else (raise-ios-error (line-number input) (first line-tokens) '(standard extended))]))
+    [else (warning-unsupported (line-number input) (first line-tokens) '(standard extended))
+          config]))
 
 ;; symbol port IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list name input config)
@@ -518,7 +528,8 @@
                                line
                                (eqv? disposition 'permit)
                                (make-object network-address% '0.0.0.0 '255.255.255.255 #t)))]
-                [else (raise-ios-error/if-not "single address" line (first line-tokens) '(ip tcp udp host any))])]))
+                [else (warning-unsupported/if-not "single address" line (first line-tokens) '(ip tcp udp host any))
+                      config])]))
 
 ;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list3 line name disposition protocol line-tokens config)
@@ -545,7 +556,8 @@
                                                     (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
                                                     (rest line-tokens)
                                                     config)]
-                [else (raise-ios-error/if-not "single address" line (first line-tokens) '(any host))])]))
+                [else (warning-unsupported/if-not "single address" line (first line-tokens) '(any host))
+                      config])]))
 
 ;; number symbl symbol symbol address<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list4 line name disposition protocol src-addr line-tokens config)
@@ -613,7 +625,8 @@
                                                         (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
                                                         (rest line-tokens)
                                                         config))]
-                [else (raise-ios-error/if-not "single address" line (first line-tokens) '(any host eq))])]))
+                [else (warning-unsupported/if-not "single address" line (first line-tokens) '(any host eq))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> (listof symbol) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list4A line name disposition protocol src-addr src-port line-tokens config)
@@ -646,7 +659,8 @@
                                                     (make-object network-address% '0.0.0.0 '255.255.255.255 #t)
                                                     (rest line-tokens)
                                                     config)]
-                [else (raise-ios-error/if-not "single address" line (first line-tokens) '(any host))])]))
+                [else (warning-unsupported/if-not "single address" line (first line-tokens) '(any host))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> address<%> (listof symbol) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list5 line name disposition protocol src-addr src-port dest-addr line-tokens config)
@@ -684,7 +698,8 @@
                                                         (second line-tokens)
                                                         (drop line-tokens 2)
                                                         config)]
-                [else (raise-ios-error line (first line-tokens) '(eq reflect))])]))
+                [else (warning-unsupported line (first line-tokens) '(eq reflect))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list6 line name disposition protocol src-addr src-port dest-addr dest-port line-tokens config)
@@ -734,7 +749,8 @@
                                                               (rest line-tokens)
                                                               config)
                                  config)]
-                [else (raise-ios-error line (first line-tokens) '(reflect match-any match-all))])]))
+                [else (warning-unsupported line (first line-tokens) '(reflect match-any match-all))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> address<%> port<%> symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list7 line name disposition protocol src-addr src-port dest-addr dest-port reflect-name line-tokens config)
@@ -823,7 +839,8 @@
     [(access-list) (parse-ip-access-list (rest line-tokens) input config)]
     [(nat) (parse-nat (rest line-tokens) input config)]
     [(route) (parse-route (rest line-tokens) input config)]
-    [else (raise-ios-error (line-number input) (first line-tokens) '(access-list nat route))]))
+    [else (warning-unsupported (line-number input) (first line-tokens) '(access-list nat route))
+                      config]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Network Address Translation
@@ -833,13 +850,15 @@
 (define (parse-nat line-tokens input config)
   (case (first line-tokens)
     [(inside outside) (parse-nat-translation (line-number input) (first line-tokens) (rest line-tokens) config)]
-    [else (raise-ios-error (line-number input) (first line-tokens) '(inside outside))]))
+    [else (warning-unsupported (line-number input) (first line-tokens) '(inside outside))
+                      config]))
 
 ;; number symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-nat-translation line side line-tokens config)
   (case (first line-tokens)
     [(source destination) (parse-nat-translation-side line side (first line-tokens) (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(source destination))]))
+    [else (warning-unsupported line (first line-tokens) '(source destination))
+                      config]))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-nat-translation-side line side direction line-tokens config)
@@ -847,7 +866,8 @@
     [(list) (parse-list-nat line side direction (second line-tokens) (drop line-tokens 2) config)]
     [(route-map) (parse-route-map-nat line side direction (second line-tokens) (drop line-tokens 2) config)]
     [(static) (parse-static-nat line side direction (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(list route-map static))]))
+    [else (warning-unsupported line (first line-tokens) '(list route-map static))
+                      config]))
 
 ;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-list-nat line side direction ACL-ID line-tokens config)
@@ -859,7 +879,8 @@
                                            (second line-tokens)
                                            (drop line-tokens 2)
                                            config)]
-    [else (raise-ios-error line (first line-tokens) '(interface))]))
+    [else (warning-unsupported line (first line-tokens) '(interface))
+                      config]))
 
 ;; number symbol symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-list-nat-interface line side direction ACL-ID interface-ID line-tokens config)
@@ -882,7 +903,8 @@
                              ACL-ID
                              interface-ID
                              overload))]
-    [else (raise-ios-error line direction '(source destination))])))
+    [else (warning-unsupported line direction '(source destination))
+                      config])))
 
 ;; number symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-nat line side direction route-map line-tokens config)
@@ -894,7 +916,8 @@
                                                 (second line-tokens)
                                                 (drop line-tokens 2)
                                                 config)]
-    [else (raise-ios-error line (first line-tokens) '(interface))]))
+    [else (warning-unsupported line (first line-tokens) '(interface))
+                      config]))
 
 ;; number symbol symbol symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-nat-interface line side direction route-map interface-ID line-tokens config)
@@ -917,7 +940,8 @@
                              route-map
                              interface-ID
                              overload))]
-    [else (raise-ios-error line direction '(source destination))])))
+    [else (warning-unsupported line direction '(source destination))
+                      config])))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-static-nat line side direction line-tokens config)
@@ -938,7 +962,8 @@
                                       (make-object host-address% (second line-tokens))
                                       (drop line-tokens 2)
                                       config)]
-                [else (raise-ios-error/if-not "tcp or udp" line (first line-tokens) '(<single-address>))])]))
+                [else (warning-unsupported/if-not "tcp or udp" line (first line-tokens) '(<single-address>))
+                      config])]))
 
 ;; number symbol symbol symbol address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-static-NAT-TCP/UDP line side direction prot from-address from-port line-tokens config)
@@ -986,7 +1011,8 @@
              from-port
              (string->symbol (string-append "prot-" (string-upcase (symbol->string prot))))
              interf))]
-    [else (raise-ios-error line direction '(source destination))]))
+    [else (warning-unsupported line direction '(source destination))
+                      config]))
 
 ;; number symbol symbol symbol address<%> port<%> address<%> port<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-static-NAT-TCP/UDP2 line side direction prot from-addr from-port to-addr to-port line-tokens config)
@@ -1013,7 +1039,8 @@
              (string->symbol (string-append "prot-" (string-upcase (symbol->string prot))))
              to-addr
              to-port))]
-    [else (raise-ios-error line direction '(source destination))]))
+    [else (warning-unsupported line direction '(source destination))
+                      config]))
 
 ;; number symbol symbol address<%> address<%> (listof any) IOS-config% -> IOS-config%
 (define (parse-static-NAT-IP line side direction from-addr to-addr line-tokens config)
@@ -1097,7 +1124,8 @@
     [(address) (parse-interface-address name (rest line-tokens) config)]
     [(nat) (parse-interface-NAT name (rest line-tokens) config)]
     [(policy) (parse-interface-policy line name (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(access-group address nat policy))]))
+    [else (warning-unsupported line (first line-tokens) '(access-group address nat policy))
+                      config]))
 
 ;; symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-interface-address name line-tokens config)
@@ -1135,7 +1163,8 @@
 (define (parse-interface-policy line name line-tokens config)
   (case (first line-tokens)
     [(route-map) (parse-interface-policy-route-map name (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(route-map))]))
+    [else (warning-unsupported line (first line-tokens) '(route-map))
+                      config]))
 
 ;; symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-interface-policy-route-map name line-tokens config)
@@ -1148,7 +1177,8 @@
 (define (parse-interface-crypto line name line-tokens config)
   (case (first line-tokens)
     [(map) (parse-interface-crypto-map name (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(map))]))
+    [else (warning-unsupported line (first line-tokens) '(map))
+                      config]))
 
 ;; symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-interface-crypto-map name line-tokens config)
@@ -1194,7 +1224,8 @@
   (case (first line-tokens)
     [(ip) (parse-route-map-match-IP line name sequence-num (rest line-tokens) config)]
     [(length) (parse-route-map-match-length name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(ip length))]))
+    [else (warning-unsupported line (first line-tokens) '(ip length))
+                      config]))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-match-IP line name sequence-num line-tokens config)
@@ -1205,7 +1236,8 @@
            name
            sequence-num
            (second line-tokens))]
-    [else (raise-ios-error line (first line-tokens) '(address))]))
+    [else (warning-unsupported line (first line-tokens) '(address))
+                      config]))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-match-length name sequence-num line-tokens config)
@@ -1221,13 +1253,15 @@
     [(default) (parse-route-map-set-default line name sequence-num (rest line-tokens) config)]
     [(ip) (parse-route-map-set-IP line name sequence-num (rest line-tokens) config)]
     [(interface) (parse-route-map-set-interface line name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(default ip interface))]))
+    [else (warning-unsupported line (first line-tokens) '(default ip interface))
+                      config]))
 
 ;; number symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-set-default line name sequence-num line-tokens config)
   (case (first line-tokens)
     [(interface) (parse-route-map-set-default-interface line name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(interface))]))
+    [else (warning-unsupported line (first line-tokens) '(interface))
+                      config]))
 
 ;; number symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-set-default-interface line name sequence-num line-tokens config)
@@ -1242,13 +1276,15 @@
   (case (first line-tokens)
     [(default) (parse-route-map-set-IP-default line name sequence-num (rest line-tokens) config)]
     [(next-hop) (parse-route-map-set-IP-next-hop line name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(default next-hop))]))
+    [else (warning-unsupported line (first line-tokens) '(default next-hop))
+                      config]))
 
 ;; number symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-set-IP-default line name sequence-num line-tokens config)
   (case (first line-tokens)
     [(next-hop) (parse-route-map-set-IP-default-next-hop line name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(next-hop))]))
+    [else (warning-unsupported line (first line-tokens) '(next-hop))
+                      config]))
 
 ;; number symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-set-IP-default-next-hop line name sequence-num line-tokens config)
@@ -1282,7 +1318,8 @@
 (define (parse-router line-tokens input config)
   (case (first line-tokens)
     [(bgp) (parse-BGP (second line-tokens) input config)]
-    [else (raise-ios-error (line-number input) (first line-tokens) '(bgp))]))
+    [else (warning-unsupported (line-number input) (first line-tokens) '(bgp))
+                      config]))
 
 ;; symbol port IOS-config% -> IOS-config%
 (define (parse-BGP as-num input config)
@@ -1313,7 +1350,8 @@
                  (make-object host-address% (first line-tokens))
                  (third line-tokens)))
          config)]
-    [else (raise-ios-error line (second line-tokens) '(remote-as))]))
+    [else (warning-unsupported line (second line-tokens) '(remote-as))
+                      config]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Virtual Private Networking
@@ -1324,13 +1362,15 @@
   (case (first line-tokens)
     [(isakmp) (parse-crypto-isakmp (line-number input) (rest line-tokens) config)]
     [(map) (parse-crypto-map (rest line-tokens) input config)]
-    [else (raise-ios-error (line-number input) (first line-tokens) '(default next-hop))]))
+    [else (warning-unsupported (line-number input) (first line-tokens) '(default next-hop))
+                      config]))
 
 ;; number (listof any) IOS-config% -> IOS-config%
 (define (parse-crypto-isakmp line line-tokens config)
   (case (first line-tokens)
     [(key) (parse-crypto-isakmp-key line (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(key))]))
+    [else (warning-unsupported line (first line-tokens) '(key))
+                      config]))
 
 ;; number (listof any) IOS-config% -> IOS-config%
 (define (parse-crypto-isakmp-key line line-tokens config)
@@ -1342,7 +1382,8 @@
              line
              (first line-tokens)
              (make-object host-address% (third line-tokens))))]
-    [else (raise-ios-error line (second line-tokens) '(address))]))
+    [else (warning-unsupported line (second line-tokens) '(address))
+                      config]))
 
 ;; (listof any) port IOS-config% -> IOS-config%
 (define (parse-crypto-map line-tokens input config)
@@ -1369,7 +1410,8 @@
 (define (parse-crypto-map-match line name sequence-num line-tokens config)
   (case (first line-tokens)
     [(address) (parse-crypto-map-match-address name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(address))]))
+    [else (warning-unsupported line (first line-tokens) '(address))
+                      config]))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-crypto-map-match-address name sequence-num line-tokens config)
@@ -1383,7 +1425,8 @@
 (define (parse-crypto-map-set line name sequence-num line-tokens config)
   (case (first line-tokens)
     [(peer) (parse-crypto-map-set-peer name sequence-num (rest line-tokens) config)]
-    [else (raise-ios-error line (first line-tokens) '(peer))]))
+    [else (warning-unsupported line (first line-tokens) '(peer))
+                      config]))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-crypto-map-set-peer name sequence-num line-tokens config)

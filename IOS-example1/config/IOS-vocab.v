@@ -2,10 +2,8 @@
  IOS-vocab
  (Types
   (Hostname : hostname-Router)
-  (Interface : interf-drop (interf-real Vlan1 FastEthernet0))
-  (IPAddress
-   (209.172.108.0/255.255.255.224 209.172.108.1 209.172.108.16)
-   (192.168.2.0/255.255.255.0 192.168.2.6))
+  (Interface : interf-drop (interf-real FastEthernet0 Vlan1))
+  (IPAddress (209.172.108.0/255.255.255.224 209.172.108.1 209.172.108.16) (192.168.2.0/255.255.255.0 192.168.2.6))
   (Protocol-any : prot-ICMP prot-TCP prot-UDP)
   (Port port-3389 port-23 port-20 port-21 port-80)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
