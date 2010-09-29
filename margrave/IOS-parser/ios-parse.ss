@@ -48,9 +48,14 @@
       [(ip) (parse-IOS-details input (parse-ip (rest line-tokens) input config))]
       [(route-map) (parse-IOS-details input (parse-route-map (rest line-tokens) input config))]
       [(router) (parse-IOS-details input (parse-router (rest line-tokens) input config))]
+      
+      ; Comments
       [(!) (parse-IOS-details input config)] ; comment, move on to the next line
       [(||) (parse-IOS-details input config)] ; blank line, move on
-      [else (raise-ios-error (line-number input) (first line-tokens) '(access-list crypto end hostname interface ip route-map router !))])))
+      
+      ; Warning only, not a fatal error
+      [else (printf "WARNING: Ignoring unsupported command: ~a. Moving on...~n" (first line-tokens))
+            (parse-IOS-details input config)])))
 
 ;; string -> (listof any)
 (define (tokenize-line line)
@@ -87,6 +92,9 @@
 (define (raise-ios-error/if-not no-condition line token allowed-tokens)
   (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nDid not have ~a, so expected keywords among: ~a. Got ~a.~n" line no-condition allowed-tokens token))
 
+(define (warning-unsupported/terminate-with-comment line token)
+  (printf "WARNING: Ignoring unsupported keyword: ~a on line ~a. Moving to next line...~n" token line )
+  (printf "  (Note: We currently require multi-line constructs to be terminated with a ! on its own line.)~n"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Access Control Lists
@@ -474,8 +482,10 @@
                                                                                    (second line-tokens)
                                                                                    (drop line-tokens 2)
                                                                                    config))]
-      [(!) config]
-      [else (parse-ip-named-access-list name input config)])))
+      ; for now, terminate all multi-line constructs with a !
+      [(!) config]      
+      [else (warning-unsupported/terminate-with-comment (line-number input) (first line-tokens))
+            (parse-ip-named-access-list name input config)])))
 
 ;; number symbol symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-ip-named-access-list2 line name disposition line-tokens config)
@@ -1075,8 +1085,10 @@
     (case (first line-tokens)
       [(ip) (parse-interface-details name input (parse-interface-IP (line-number input) name (rest line-tokens) config))]
       [(crypto) (parse-interface-details name input (parse-interface-crypto (line-number input) name (rest line-tokens) config))]
+      ; For now, terminate multi-line constructs with ! on its own line
       [(!) config]
-      [else (parse-interface-details name input config)])))
+      [else (warning-unsupported/terminate-with-comment (line-number input) (first line-tokens))
+            (parse-interface-details name input config)])))
 
 ;; symbol (listof any) IOS-config% -> IOS-config%
 (define (parse-interface-IP line name line-tokens config)
@@ -1172,8 +1184,10 @@
                                 sequence-num
                                 input
                                 (parse-route-map-set (line-number input) name sequence-num (rest line-tokens) config))]
+      ; For now, terminate multiline construct with !
       [(!) config]
-      [else (parse-route-map-details name sequence-num input config)])))
+      [else (warning-unsupported/terminate-with-comment (line-number input) (first line-tokens))
+            (parse-route-map-details name sequence-num input config)])))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-route-map-match line name sequence-num line-tokens config)
@@ -1276,8 +1290,10 @@
     (case (first line-tokens)
       [(network) (parse-BGP as-num input (parse-BGP-network (rest line-tokens) config))]
       [(neighbor) (parse-BGP as-num input (parse-BGP-neighbor (line-number input) (rest line-tokens) config))]
+      ; for now...
       [(!) config]
-      [else (parse-BGP as-num input config)])))
+      [else (warning-unsupported/terminate-with-comment (line-number input) (first line-tokens))
+            (parse-BGP as-num input config)])))
 
 ;; (listof any) IOS-config% -> IOS-config%
 (define (parse-BGP-network line-tokens config)
@@ -1344,8 +1360,10 @@
                                        sequence-num
                                        input
                                        (parse-crypto-map-set (line-number input) name sequence-num (rest line-tokens) config))]
+      ; for now...
       [(!) config]
-      [else (parse-crypto-map-details name sequence-num input config)])))
+      [else (warning-unsupported/terminate-with-comment (line-number input) (first line-tokens))
+            (parse-crypto-map-details name sequence-num input config)])))
 
 ;; symbol number (listof any) IOS-config% -> IOS-config%
 (define (parse-crypto-map-match line name sequence-num line-tokens config)
