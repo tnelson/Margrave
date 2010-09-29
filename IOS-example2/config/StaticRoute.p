@@ -4,6 +4,37 @@
  IOS-vocab
  (Target)
  (Rules
+  (tas-line22-route
+   =
+   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.100.0/255.255.252.0 dest-addr-in)
+   (10.254.1.130 next-hop))
+  (tas-line22-drop
+   =
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.100.0/255.255.252.0 dest-addr-in))
+  (tas-line23-route
+   =
+   (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.104.0/255.255.252.0 dest-addr-in)
+   (10.254.1.130 next-hop))
+  (tas-line23-drop
+   =
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname)
+   (10.232.104.0/255.255.252.0 dest-addr-in))
+  (tas-default-route
+   =
+   (Pass hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
+   :-
+   (hostname-tas hostname))
   (baz-line25-route
    =
    (Route hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)

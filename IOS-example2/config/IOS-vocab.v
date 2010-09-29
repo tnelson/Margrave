@@ -1,9 +1,16 @@
 (PolicyVocab
  IOS-vocab
  (Types
-  (Hostname : hostname-baz)
-  (Interface : interf-drop (interf-real GigabitEthernet0/0 Serial0/3/0:0))
-  (IPAddress 192.168.1.0/255.255.255.0 (10.254.1.128/255.255.255.252 10.254.1.129) 10.232.0.0/255.255.252.0 10.232.4.0/255.255.252.0 10.232.100.0/255.255.252.0 10.232.104.0/255.255.252.0)
+  (Hostname : hostname-tas hostname-baz)
+  (Interface : interf-drop (interf-real GigabitEthernet0/0 GigabitEthernet0/1 Serial0/3/0:0))
+  (IPAddress
+   (10.232.4.0/255.255.252.0 10.232.4.10)
+   (10.232.0.0/255.255.252.0 10.232.0.15)
+   192.168.1.0/255.255.255.0
+   (10.254.1.128/255.255.255.252 10.254.1.129 10.254.1.130)
+   10.232.8.0/255.255.252.0
+   10.232.100.0/255.255.252.0
+   10.232.104.0/255.255.252.0)
   (Protocol-any : prot-ICMP prot-TCP prot-UDP)
   (Port)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
@@ -46,8 +53,13 @@
   (disjoint-all Length)
   (atmostone-all interf-real)
   (atmostone interf-drop)
+  (atmostone 10.254.1.130)
   (atmostone 10.254.1.129)
   (disjoint-all 10.254.1.128/255.255.255.252)
+  (atmostone 10.232.0.15)
+  (disjoint-all 10.232.0.0/255.255.252.0)
+  (atmostone 10.232.4.10)
+  (disjoint-all 10.232.4.0/255.255.252.0)
   (disjoint-all IPAddress)
   (atmostone-all Protocol-any)
   (atmostone icmp-echo)

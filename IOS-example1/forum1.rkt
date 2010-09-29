@@ -17,12 +17,12 @@
 
 #lang racket
 
-(require (file "../margrave.rkt")
-         (file "../margrave-ios.rkt"))
+(require margrave/margrave
+         margrave/margrave-ios)
 
 ;; Full request vector plus the intermediate NAT vars 
 ;; that are bound by internal-result.
-(define vector "(ahostname, entry-interface, 
+(define reqvector "(ahostname, entry-interface, 
         src-addr-in, src-addr_, src-addr-out, 
         dest-addr-in, dest-addr_, dest-addr-out, 
         protocol, message, flags,
@@ -72,7 +72,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))  
+  (start-margrave-engine #:margrave-params '( "-log" ))  
   
   (define log-file (open-output-file "forum1-benchmarking.csv" #:exists 'append))
   (time-since-last) ; reset
@@ -112,7 +112,7 @@ FastEthernet0 = entry-interface AND
 prot-TCP = protocol AND
 port-80 = src-port-in AND
 passes-firewall1" policyvector " AND
-internal-result1" vector                  
+internal-result1" reqvector                  
 " TUPLING"))
   
   (mtext "IS POSSIBLE?")
@@ -136,7 +136,7 @@ FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
 passes-firewall1" policyvector " AND
-internal-result1" vector " AND
+internal-result1" reqvector " AND
  NOT port-80=dest-port-in AND
  NOT port-20=dest-port-in AND
  NOT port-21=dest-port-in AND
@@ -162,7 +162,7 @@ FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
 passes-firewall2" policyvector " AND
-internal-result2" vector " AND
+internal-result2" reqvector " AND
  NOT port-80=dest-port-in AND
  NOT port-20=dest-port-in AND
  NOT port-21=dest-port-in AND
@@ -189,7 +189,7 @@ FastEthernet0=entry-interface AND
 prot-TCP=protocol AND
 port-80=src-port-in AND
 passes-firewall3" policyvector " AND
-internal-result3" vector "AND
+internal-result3" reqvector "AND
 ( Connection-returntcp(src-addr-in, src-port-in, protocol, dest-addr-in, dest-port-in) 
   IMPLIES
   InboundACL3:Router-Vlan1-line29_applies" reversepolicyvector ") "

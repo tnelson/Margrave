@@ -17,8 +17,8 @@
 
 #lang racket
 
-(require (file "../margrave.rkt")
-         (file "../margrave-ios.rkt"))
+(require margrave/margrave
+         margrave/margrave-ios)
 
 ; Packet arriving at BAZ router and BAZ's action on it
 (define bazvectorfull-frombaz "(baz, baz-entry-interface, 
@@ -104,8 +104,7 @@
   
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
-  ;(start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
-  (start-margrave-engine (build-path (current-directory) 'up) '() '())
+  (start-margrave-engine #:margrave-params '( "-log" )) 
   
   (define log-file (open-output-file "forum2-benchmarking.csv" #:exists 'append))
   (time-since-last) ; reset
