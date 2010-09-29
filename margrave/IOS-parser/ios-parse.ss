@@ -48,7 +48,9 @@
       [(ip) (parse-IOS-details input (parse-ip (rest line-tokens) input config))]
       [(route-map) (parse-IOS-details input (parse-route-map (rest line-tokens) input config))]
       [(router) (parse-IOS-details input (parse-router (rest line-tokens) input config))]
-      [else (parse-IOS-details input config)])))
+      [(!) (parse-IOS-details input config)] ; comment, move on to the next line
+      [(||) (parse-IOS-details input config)] ; blank line, move on
+      [else (raise-ios-error (line-number input) (first line-tokens) '(access-list crypto end hostname interface ip route-map router !))])))
 
 ;; string -> (listof any)
 (define (tokenize-line line)
@@ -77,13 +79,13 @@
     (- line 1)))
 
 (define (raise-ios-error line token allowed-tokens)
-  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nExpected keywords: ~a. Got ~a.~n" line allowed-tokens token))
+  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nExpected keywords among: ~a. Got ~a.~n" line allowed-tokens token))
 
 (define (raise-ios-error/single-address line token)
   (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nExpected a single address. Got ~a.~n" line token))
 
 (define (raise-ios-error/if-not no-condition line token allowed-tokens)
-  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nDid not have ~a, so expected keywords: ~a. Got ~a.~n" line no-condition allowed-tokens token))
+  (raise-user-error 'error "Error parsing IOS configuration at line ~a.~nDid not have ~a, so expected keywords among: ~a. Got ~a.~n" line no-condition allowed-tokens token))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
