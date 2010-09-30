@@ -216,9 +216,15 @@ If the @tech{TUPLING} optimization is enabled, the following commands also becom
 @deftech{SHOW (UN)REALIZED <atom>, ...}: Given a list ("candidates") of 
 @tech{atomic IDB formula}s, @tech{atomic predicate formula}s, and
 @tech{atomic type formula}s, 
-returns the subset of the atomic formualas given that can be true (are never true) in a satisfying scenario.
+returns the subset of the atomic formualas given that can be true (are never true) in a satisfying scenario. 
+@bold{All candidates must be declared in the INCLUDE clause.}
 
-(The Margrave paper @cite{nbdfk10} contains more information on the subtleties of the SHOW (UN)REALIZED command.)
+For example:
+
+EXPLORE mypolicy:permit(s, a, r) @linebreak{}
+INCLUDE mypolicy:rule10_matches(s, a, r)@linebreak{} 
+TUPLING; @linebreak{}
+SHOW REALIZED mypolicy:rule10_matches(s, a, r);
 
 
 @deftech{SHOW (UN)REALIZED <atom>, ... FOR CASES <atom>, ...}: 
@@ -228,7 +234,8 @@ returns a map taking each case to a separate @tech{SHOW (UN)REALIZED} list
 where the case was included in the <condition>.
 
 
-The example files contain sample uses of each of these. SHOW REALIZED is especially useful when reasoning about interactions between rules.
+The Margrave paper @cite{nbdfk10} contains more information on the subtleties of the SHOW (UN)REALIZED command,
+and the example files contain sample uses. SHOW REALIZED is especially useful when reasoning about interactions between rules.
 
 
 @subsection{Loading Policies}
