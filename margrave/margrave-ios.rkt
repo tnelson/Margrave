@@ -21,18 +21,24 @@
 (require margrave/margrave
          margrave/IOS-parser/ios-compile)
 
-(provide load-ios-policies
-         parse-and-load-ios
-         parse-and-load-ios-by-filename)
+(provide load-ios-policies )
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
 ; updated tn july 2010
 ; updated for release aug-sept 2010
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(provide/contract (parse-and-load-ios-by-filename
+                   ([string?]
+                    [#:prefix string? #:suffix string?]
+                    . ->* . string?)))
+
 (define (parse-and-load-ios-by-filename raw-filename #:prefix [prefix ""] #:suffix [suffix ""])
 
-  ;; <MARGRAVE> --> margrave collection path
+  ;; *MARGRAVE* --> margrave collection path
   (define the-filename (resolve-margrave-filename-keyword raw-filename))
   (define-values (fn-path fn-filepath must-dir) (split-path the-filename))
   (define fn-file (path->string fn-filepath))
@@ -48,12 +54,19 @@
   
   (string-append "Success: loaded IOS configuration at: " 
                  the-filename))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-; ------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; parse-and-load-ios: First parses an IOS config file
 ;  and then calls load-ios-policies on the directory
 ;  containing the sub-policies.
+(provide/contract (parse-and-load-ios
+                   (string? (or/c path? string?) string? string?
+                    . -> . void?)))
+
 (define (parse-and-load-ios config-file-name dirpath prefix suffix)
   (printf "Parsing IOS configuration ~a in directory ~a ...~n" config-file-name dirpath) 
   
@@ -65,8 +78,43 @@
         [else (raise-user-error (format "Expected a directory path in the second argument of parse-and-load-ios; given: ~a." dirpath))])
       
   (load-ios-policies dirpath prefix suffix))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; parse-and-load-multi-ios: Same as parse-and-load-ios, but
+; allows multiple filenames per config
+
+(provide/contract (parse-and-load-multi-ios 
+                   ([(listof string?) (or/c path? string?)]
+                    [#:prefix string? #:suffix string?]
+                    . ->* . string?)))
+(define (parse-and-load-multi-ios config-file-name-list pre-dirpath #:prefix [prefix ""] #:suffix [suffix ""])
+
+  (define dirpath (resolve-margrave-filename-keyword pre-dirpath))
+  (printf "Parsing multiple IOS configurations in directory ~a ...~n" dirpath)
+  
+  
+  ; !!! todo factor out duplicate code -tn 
+  
+  ; May be a #path or a string. IOS parser expects a string.
+  (cond [(string? dirpath)
+         (compile-configurations dirpath config-file-name-list #f)]
+        [(path? dirpath)
+         (compile-configurations (path->string dirpath) config-file-name-list #f)]
+        [else (raise-user-error (format "Expected a directory path in the second argument of parse-and-load-multi-ios; given: ~a." dirpath))])
+      
+  (load-ios-policies dirpath prefix suffix)
+  
+  (string-append "Success: loaded IOS configurations in: " 
+                 dirpath))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (load-ios-helper filename dirpath prefix suffix) 
   (let ([ polname (load-policy (build-path dirpath (string-append filename ".p")))])
     
@@ -77,6 +125,7 @@
               (> (string-length suffix) 0))
       (mtext (string-append "RENAME " polname " " prefix polname suffix))))) 
   
+
 ; ------------------------------------------------
 ; load-ios-policies: Given a directory with post-parse sub-policies, load them all.
 ; Remember to start the engine before calling this.
@@ -119,140 +168,6 @@
 
  ; (printf "Time to load policy files + vocabularies: ~a milliseconds.~n" (time-since-last))
 
-  ; old routed-packets
-  #|
-    (mtext (string-append "EXPLORE "
-  (string-append prefix "InboundACL" suffix)
-  ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
-  dest-addr-in, dest-addr-in, protocol, message, src-port-in, src-port-in,
-  dest-port-in, dest-port-in, length, next-hop, exit-interface) 
-AND "
-  (string-append prefix "OutsideNAT" suffix)
-  ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
-  dest-addr-in, dest-addr_, protocol, message, src-port-in, src-port_,
-  dest-port-in, dest-port_, length, next-hop, exit-interface)
-AND
-
-( "
-  (string-append prefix "LocalSwitching" suffix)
-  ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-  dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
-  dest-port_, dest-port_, length, next-hop, exit-interface)
-  OR
-
-  ( "
-  (string-append prefix "LocalSwitching" suffix)
-    ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-    dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
-    dest-port_, dest-port_, length, next-hop, exit-interface)
-    AND
-    ( "
-      (string-append prefix "PolicyRoute" suffix)
-      ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-      dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
-      dest-port_, dest-port_, length, next-hop, exit-interface)
-      OR
-      ( "
-        (string-append prefix "PolicyRoute" suffix)
-        ":Route(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, src-port_, src-port_,
-        dest-port_, dest-port_, length, next-hop, exit-interface)
-        AND "
-          (string-append prefix "NetworkSwitching" suffix)
-        ":Forward(ahostname, entry-interface, src-addr_,
-        src-addr_, dest-addr_, dest-addr_, protocol, message,
-        src-port_, src-port_, dest-port_, dest-port_, length,
-        next-hop, exit-interface)
-      )
-      OR
-      ( "
-          (string-append prefix "PolicyRoute" suffix)
-        ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, src-port_,
-        src-port_, dest-port_, dest-port_, length, next-hop,
-        exit-interface)
-        AND
-        ( "
-          (string-append prefix "StaticRoute" suffix)
-          ":Forward(ahostname, entry-interface, src-addr_,
-          src-addr_, dest-addr_, dest-addr_, protocol, message,
-          src-port_, src-port_, dest-port_, dest-port_, length,
-          next-hop, exit-interface)
-          OR
-          ( "
-            (string-append prefix "StaticRoute" suffix)
-            ":Route(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message,
-            src-port_, src-port_, dest-port_, dest-port_, length,
-            next-hop, exit-interface)
-            AND "
-            (string-append prefix "NetworkSwitching" suffix)
-            ":Forward(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message,
-            src-port_, src-port_, dest-port_, dest-port_, length,
-            next-hop, exit-interface)
-          )
-          OR
-          ( "
-            (string-append prefix "StaticRoute" suffix)
-            ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-            dest-addr_, dest-addr_, protocol, message, src-port_,
-            src-port_, dest-port_, dest-port_, length, next-hop,
-            exit-interface)
-            AND
-            ( "
-              (string-append prefix "DefaultPolicyRoute" suffix)
-              ":Forward(ahostname, entry-interface,
-              src-addr_, src-addr_, dest-addr_, dest-addr_,
-              protocol, message, src-port_, src-port_, dest-port_,
-              dest-port_, length, next-hop, exit-interface)
-              OR
-              ( "
-              (string-append prefix "DefaultPolicyRoute" suffix)
-              ":Route(ahostname, entry-interface,
-                src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, src-port_, src-port_, dest-port_,
-                dest-port_, length, next-hop, exit-interface)
-                AND "
-              (string-append prefix "NetworkSwitching" suffix)
-              ":Forward(ahostname, entry-interface,
-                src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, src-port_, src-port_, dest-port_,
-                dest-port_, length, next-hop, exit-interface)
-              )
-            )
-          )
-        )
-      )
-    )
-  )
-)
-
-AND "
-              (string-append prefix "InsideNAT" suffix)
-              ":Translate(ahostname, entry-interface, src-addr_, src-addr-out,
-  dest-addr_, dest-addr-out, protocol, message, src-port_,
-  src-port-out, dest-port_, dest-port-out, length, next-hop,
-  exit-interface)
-AND "
-              (string-append prefix "OutboundACL" suffix)
-  ":Permit(ahostname, entry-interface, src-addr-out, src-addr-out,
-  dest-addr-out, dest-addr-out, protocol, message, src-port-out,
-  src-port-out, dest-port-out, dest-port-out, length, next-hop,
-  exit-interface)
-
-PUBLISH ahostname, entry-interface, 
-        src-addr-in, src-addr_, src-addr-out, 
-        dest-addr-in, dest-addr_, dest-addr-out, 
-        protocol, message,
-        src-port-in, src-port_, src-port-out, 
-        dest-port-in, dest-port_, dest-port-out, 
-        length, next-hop, exit-interface
-
-TUPLING
-") #t) ; silent
-  
-|#
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Internal-Result

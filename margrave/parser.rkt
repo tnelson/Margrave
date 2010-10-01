@@ -21,7 +21,8 @@
          parser-tools/lex
          syntax/stx
          syntax/readerr
-         
+         margrave/margrave-policy-vocab
+         margrave/margrave-xml
          margrave/lexer)
 
 
@@ -165,6 +166,10 @@
      [(<identifier>) $1]
      [(EMPTYID) ""])
     
+    (list-of-filenames 
+     [(<identifier>) (list (symbol->string/safe $1))]
+     [(list-of-filenames COMMA <identifier>) (append $1 (list (symbol->string/safe $3)))])
+    
     (margrave-command 
      [(explore-statement) $1]
      [(create-statement) $1]
@@ -186,6 +191,12 @@
        "LOAD what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)"
        1 1)]
      
+     [(LOAD IOS) (margrave-parse-error
+                  "LOAD IOS must be followed by a configuration file name." 1 2)]
+     
+     [(LOAD POLICY) (margrave-parse-error
+                  "LOAD POLICY must be followed by a .p file name." 1 2)]
+     
     ;**************************************************
     ;**************************************************    
     ;**************************************************
@@ -199,6 +210,12 @@
      [(LOAD IOS <identifier>) (build-so (list 'LOAD-IOS $3) 1 3)]     
      ; With prefix and suffix
      [(LOAD IOS <identifier> WITH poss-empty-id poss-empty-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
+     
+     ; Multiple configs at once:
+     [(LOAD IOS list-of-filenames IN <identifier>) 
+      (build-so (list 'LOAD-MULT-IOS $3 (symbol->string/safe $5)) 1 5)]
+     [(LOAD IOS list-of-filenames IN <identifier> WITH poss-empty-id poss-empty-id) 
+      (build-so (list 'LOAD-MULT-IOS-WITH $3 (symbol->string/safe $5) $7 $8) 1 8)]    
      
      ; XACML configuration
      [(LOAD XACML <identifier>) (build-so (list 'LOAD-XACML $3) 1 3)]

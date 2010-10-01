@@ -78,6 +78,17 @@
                                                      #:prefix ,(symbol->string/safe (syntax->datum (third interns)))
                                                      #:suffix ,(symbol->string/safe (syntax->datum (fourth interns)))))]
         
+        [(equal? first-datum 'LOAD-MULT-IOS)
+         `(lambda () (parse-and-load-multi-ios (list ,@(syntax->datum (second interns)))
+                                               ,(syntax->datum (third interns))))]
+        
+        [(equal? first-datum 'LOAD-MULT-IOS-WITH)
+         `(lambda () (parse-and-load-multi-ios (list ,@(syntax->datum (second interns)))
+                                               ,(syntax->datum (third interns))
+                                               #:prefix ,(symbol->string/safe (syntax->datum (fourth interns)))
+                                               #:suffix ,(symbol->string/safe (syntax->datum (fifth interns)))))]
+        
+        
         [(equal? first-datum 'LOAD-XACML)
          `(lambda () (load-xacml-policy ,(resolve-margrave-filename-keyword (syntax->datum (second interns)))))]
         
