@@ -143,7 +143,9 @@
           (left COMMA)
           (nonassoc IN)
           (nonassoc COLON))
-   (debug "parser-debug.txt")
+   
+   ; Uncomment this to help diagnose any reduce/reduce errors that come up after parser revisions.
+   ;(debug "parser-debug.txt")
    
    (grammar
     
