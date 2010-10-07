@@ -22,12 +22,14 @@ package edu.wpi.margrave;
 import kodkod.ast.*;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -67,7 +69,7 @@ public class MCommunicator
 	
 	static boolean xmlCommand;
 	
-	static String sLogFileName = "log.txt";
+	static String sLogFileName = "margrave-log.txt";
 	static BufferedWriter outLog = null; 
 	static FileWriter outLogStream = null;
 	
@@ -88,7 +90,7 @@ public class MCommunicator
 		}					
 	
 		initializeLog();
-		writeToLog("\n\n\n");
+		writeToLog("\n\n");
 		
 
 		//if(args.length > 1) {
@@ -168,11 +170,10 @@ public class MCommunicator
 
         //Takes a MARGRAVE-COMMAND node
         private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException
-        {
-        	writeToLog("In XMLHelper\n");
+        {        	
         	NodeList childNodes = node.getChildNodes();
         	String type = node.getAttributes().item(0).getNodeValue();
-        	writeToLog("type: " + type + "\n");
+        	writeToLog("  Type attribute was: " + type + "\n");
 
         	Node n;
         	MExploreCondition exploreCondition;
@@ -193,8 +194,9 @@ public class MCommunicator
         				        				
 	        				n = n.getFirstChild();
 	        				String name = n.getNodeName();
-	        				if (name.equalsIgnoreCase("EXPLORE")) {
-	        					writeToLog("IN EXPLORE" + "\n");
+	        				if (name.equalsIgnoreCase("EXPLORE"))
+	        				{
+	        					//writeToLog("IN EXPLORE" + "\n");
 	        					
 	        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
 	        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
@@ -654,15 +656,16 @@ public class MCommunicator
             					
             					relationName = getRelationName(relNode);
             					sign = getRelationSign(relNode);
-            					writeToLog("\n\n\n*******************************************\nSIGN IS: " + sign + "\n*****************");
+            					//writeToLog("\n\n\n*******************************************\nSIGN IS: " + sign + "\n*****************");
             					if (sign.equalsIgnoreCase("true")) {
-            						writeToLog("No exclamation point");
+            						//writeToLog("No exclamation point");
             						exclamationPoint = "";
             					}
             					else {
-            						writeToLog("Added exclamation point");
+            						//writeToLog("Added exclamation point");
             						exclamationPoint = "!";
             					}
+            					
             					variables = getIdentifierList(relNode);
             					variableListString = "";
             					for (String v : variables) {
@@ -1055,17 +1058,14 @@ public class MCommunicator
         {
         	NodeList childNodes = n.getChildNodes();
 
-        	String name;
-
-        	//Node n;
-        	//for (int i = 0; i < childNodes.getLength(); i++) {
-        	//    n = childNodes.item(i);
-        	name = n.getNodeName();
-        	writeToLog("\nIn exploreHelper. Node Name: " + name + "\n");
-        	if(childNodes.getLength() == 0)
-        		writeToLog("\nNo child nodes.\n");
-        	else
-        		writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
+        	String name = n.getNodeName();
+        	
+        	//writeToLog("\nIn exploreHelper. Node Name: " + name + "\n");
+        	
+        	//if(childNodes.getLength() == 0)
+        	//	writeToLog("\nNo child nodes.\n");
+        	//else
+        	//	writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
 
         	if (name.equalsIgnoreCase("AND")) {
         		return exploreHelper(childNodes.item(0)).and(exploreHelper(childNodes.item(1)));
@@ -1095,7 +1095,7 @@ public class MCommunicator
         		String idname1 = getNodeAttribute(n, "EQUALS", "v1");
         		String idname2 = getNodeAttribute(n, "EQUALS", "v2");
         		
-        		writeToLog("\nEQUALS: "+idname1+" = "+idname2+"\n");
+        		writeToLog("\nEQUALS: "+idname1+" = "+idname2+"\n\n");
         		        		
         		        		
         		Variable v1 = MFormulaManager.makeVariable(idname1);
@@ -1123,7 +1123,7 @@ public class MCommunicator
 
         		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
-        		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n");
+        		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n\n");
         		if (pol != null)
         		{
         			Formula idbf = MEnvironment.getOnlyIDB(relationName);
@@ -1175,15 +1175,16 @@ public class MCommunicator
         		// Perform variable substitution
         		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
         		        		        		
-        		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n");
+        		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + 
+        				relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n\n");
        			writeToLog("\nBefore substitution: "+idbf);
        			
        			idbf = performSubstitution(collectionName, pol, idbf, vl);
 
-       			writeToLog("\nAfter substitution: "+idbf);
+       			writeToLog("\nAfter substitution: "+idbf+"\n");
        			
         		// Assemble MExploreCondition object	
-        		writeToLog("Returning from atomic-formula-y");
+        		//writeToLog("Returning from atomic-formula-y");
         		return new MExploreCondition(idbf, pol, vl);
 
         	}
@@ -1213,11 +1214,22 @@ public class MCommunicator
     	 // Wipe the log clean every time the engine runs. 
     	 try
     	 {
-    		 MCommunicator.outLogStream = new FileWriter(sLogFileName);
+    		 // Put the logfile with the .class files for now (avoids having location change depending on where 
+    		 //   the current directory is.
+    		 
+    		 URL absoluteClassPathNameURL = MCommunicator.class.getClass().getResource("/edu/wpi/margrave/MCommunicator.class");
+    		 URL absoluteLogFileNameURL = new URL(absoluteClassPathNameURL, sLogFileName);
+    		 File logFILE = new File(absoluteLogFileNameURL.getFile());
+    		 
+    		 String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8"); 
+    		 
+    		 MCommunicator.outLogStream = new FileWriter(absoluteLogFileName);
     		 MCommunicator.outLog = new BufferedWriter(outLogStream);
-    		 MCommunicator.outLog.write("Margrave engine log; date= "+ new Date());	   
+    		 MCommunicator.outLog.write("Margrave engine log started at: "+ new Date()+"\n");	   
+    		 MCommunicator.outLog.write("======================================================================\n");
     		 MCommunicator.outLog.flush();   
-    		 //MCommunicator.outLog.close();
+    		 
+    		 // Log is initialized and open
     	 }
     	 catch (IOException e)
     	 {
@@ -1258,7 +1270,9 @@ public class MCommunicator
    				int theChar = in.read();
    				if(theChar == semicolon)
    				{
-   					writeToLog("Executing command: " + theCommand.toString() + "\n");
+   					writeToLog("========================================\n========================================\n");
+   					writeToLog((new Date()).toString());
+   					writeToLog("\nExecuting command: " + theCommand.toString() + "\n");
    					executeCommand(theCommand.toString());
 
    					theCommand = new StringBuffer();
