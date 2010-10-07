@@ -1,6 +1,19 @@
 #lang scribble/manual
 
+@(require racket/base
+          (for-label racket/base
+                     margrave/margrave))
+
 @title{Getting Started}
+
+@; tn: this needs to be a define syntax, since it expects #, before each?
+@(define (multiline-result-helper str)
+   (define (my-helper s-port)     
+     (if (and (char-ready? s-port)
+              (not (eof-object? (peek-char s-port))))
+         (cons (read-line s-port) (my-helper s-port))
+         '()))
+   (map (lambda (x) #,x) (my-helper (open-input-string str))))
 
 @;defmodule[margrave]
 
@@ -13,18 +26,18 @@ behavior of their policies, such as "Can a student ever access
 another student's grades?" or "Did my changes to this firewall allow
 any unexpected new traffic?" 
 
-The following examples demonstrate how to get started using Margrave.
-If you have not yet installed Margrave, see @secref{install}. 
-To analyze your own IOS firewall configuration,
-see @secref{gs-ios}. For non-IOS uses, see the overview in 
-@secref{gs-existing} and the instructions for @secref{gs-create}
-in Margrave's intermediate language.
-
-
+@;The following examples demonstrate how to get started using Margrave.
+@;If you have not yet installed Margrave, see @secref{install}. 
+@;To analyze your own IOS firewall configuration,
+@;see @secref{gs-ios}. For non-IOS uses, see the overview in 
+@;@secref{gs-existing} and the instructions for @secref{gs-create}
+@;in Margrave's intermediate language.
 
 Margrave is part of an ongoing research project. We appreciate your
-feedback and suggestions (including feature requests). Send these
-to tn@"@"cs.wpi.edu.
+feedback and suggestions (including feature requests). 
+
+@; already in the document at the top (author)
+@;Send these to tn@"@"cs.wpi.edu.
 
 @;--------------------------------------------------------------------
 @section[#:tag "install"]{Installing Margrave}
@@ -102,7 +115,7 @@ Starting Margrave's Java engine...
     Margrave path was: /export/users1/tn/Racket/5.0.1/collects/margrave
 }|
 
-would tell you that Margrave is installed in @italic{/export/users1/tn/Racket/5.0.1/collects/margrave}.
+would tell you that Margrave is installed in @tt{/export/users1/tn/Racket/5.0.1/collects/margrave}.
 
 Now that Margrave is installed, 
 @;see @secref["running-full"] for instructions on running it.
@@ -111,12 +124,13 @@ see @secref["running-margrave"] for instructions on running it.
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
 
-@;Both versions of Margrave 
 Margrave runs in the DrRacket programming environment. To begin, first open DrRacket.
 
 @bold{If this is your first time running DrRacket}, you will see a message about choosing a language.
-Go to the @italic{Language->Choose Language} menu and select "Use the language declared in the source", then click Ok.
-Margrave scripts all begin with @bold{#lang margrave}, which tells DrRacket to interpret them as Margrave scripts.
+Go to the @onscreen{Language|Choose Language} menu and select ``Use the language declared in the source'', then click @onscreen{Ok}.
+Margrave scripts all begin with @tt{#lang margrave}, which tells DrRacket to expect Margrave commands.
+
+
 
 
 @;Whichever version you use, y
@@ -165,16 +179,127 @@ Margrave scripts all begin with @bold{#lang margrave}, which tells DrRacket to i
 @;The full version of Margrave runs in DrRacket, the graphical development
 @;environment for Racket. 
 
-@subsection[#:tag "margrave-prompt"]{The Command Prompt}
+@subsection[#:tag "margrave-prompt"]{Tutorial: The Command Prompt}
 
 Open a new DrRacket editor and change the first line to
-@bold{#lang margrave}, then click Run. 
-@margin-note{When you click Run, Margrave will always print out its current install location.}
+@tt{#lang margrave}, then click @onscreen{Run}. 
+@margin-note{When you click @onscreen{Run}, Margrave will always print out its current install location.}
+
 Margrave will automatically detect where your Java installation is located, start its
 Java engine, and display a Margrave prompt on the bottom half of the screen.
+
+@racketinput[]
+
+Margrave runs queries over policies, so let's start by loading a policy. 
+Click on the bottom window and type:
+
+@racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";")]
+@racketblock[#,(racketresultfont (tt "ConferencePolicy1"))]
+
+When loading policies, if you start a file path with @tt{*MARGRAVE*}, the @tt{*MARGRAVE*}
+will be replaced with Margrave’s installation directory. Once the policy is loaded,
+Margrave prints the policy's name for use in queries. Here the policy's name is 
+@tt{ConferencePolicy1}.
+
+Ask questions using the @tt{EXPLORE} and @tt{SHOW} commands. For instance, to ask when the policy we just loaded yields a permit decision:
+
+@racketinput[#,(tt "EXPLORE conferencepolicy1:permit(s, a, r);")]
+@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+
+@racketinput[#,(tt "SHOW ONE;")]
+@racketblock[#, (racketresultfont (tt 
+"********* SOLUTION FOUND at size = 3 ******************
+s: author reviewer 
+a: readpaper 
+r: paper 
+conflicted = {} 
+assigned = {} 
+
+STATISTICS:  
+Computed max size: 3 
+Max size: 3 
+Result ID: 0 
+User max size: 6 
+********************************************************"))]
+
+@tt{SHOW ONE} tells Margrave to print a single scenario. To get additional scenarios, use @tt{SHOW NEXT}:
+
+@racketinput[#,(tt "SHOW NEXT;")]
+@racketblock[#,(multiline-result-helper
+"********* SOLUTION FOUND at size = 3 ******************
+s: author reviewer 
+a: readpaper 
+r: paper 
+conflicted = {[s, r]}
+assigned = {[s, r]}
+
+STATISTICS: 
+Computed max size: 3
+Max size: 3
+Result ID: 0
+User max size: 6
+********************************************************")]
+
+If Margrave finds no more solutions, it will say so. 
+@tt{SHOW} commands always display results for the most recent @tt{EXPLORE} command.
+
+You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIES}, and @tt{IFF}, as well as parentheses. This query asks for scenarios where a request is both permitted and denied:
+
+@racketinput[#,(tt "EXPLORE conferencepolicy1:permit(s, a, r) AND conferencepolicy1:deny(s, a, r);")]
+@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+
+@racketinput[#,(tt "SHOW ONE;")]
+@racketblock[#, (racketresultfont (tt 
+"---> No more solutions! <---
+
+STATISTICS: 
+Computed max size: 3
+Max size: 3
+Result ID: 0
+User max size: 6"))]
+
+Queries can involve multiple policies. Let's load a second policy and try asking how the two differ:
+
+@racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";")]
+@racketblock[#, (racketresultfont (tt "ConferencePolicy2"))]
+
+@racketinput[#,(tt "EXPLORE (ConferencePolicy1:permit(s,a,r) AND NOT ConferencePolicy2:permit(s,a,r)) OR
+          (ConferencePolicy2:permit(s,a,r) AND NOT ConferencePolicy1:permit(s,a,r));")]
+@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+
+@racketinput[#,(tt "SHOW ONE;")]
+@racketblock[#, (racketresultfont (tt 
+"********* SOLUTION FOUND at size = 3 ******************
+s: author reviewer 
+a: readpaper 
+r: paper 
+conflicted = {[s, r]}
+assigned = {[s, r]}
+
+STATISTICS: 
+Computed max size: 3
+Max size: 3
+Result ID: 0
+User max size: 6
+********************************************************"))]
+
+
+
+TODO: Queries over the policy, loading a 2nd policy and doing change-impact...
+
+
+TODO: unify this new tutorial with later prose (some will need removing/modifying)
+
+TODO: other feedback (typewriter font, quotes, etc.)
+
+
+
+----------------------------
+
+
 The command prompt accepts semicolon-terminated Margrave commands. For instance, entering:
 
-INFO;
+@tt{INFO;}
 
 will execute the @tech{INFO} Margrave command, returning information about the 
 state of Margrave, including memory usage and other statistics. 
