@@ -1,8 +1,11 @@
-#lang scribble/manual
+#lang scribble/doc
 
-@; [#:style '(toc)]
+@; Don't use #lang scribble/manual, or we get the current racket version in the upper-right of the document.
+@(require scribble/manual)
+
 @title{The @bold{Margrave} Tool for Policy Analysis}
 @author+email["Tim Nelson" "tn@cs.wpi.edu"]
+
 
 @; Don't need a ToC here since the sidebar on the left also gives it.
 @;table-of-contents[]
