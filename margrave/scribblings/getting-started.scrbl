@@ -120,9 +120,6 @@ Margrave runs in the DrRacket programming environment. To begin, first open DrRa
 
 @bold{If this is your first time running DrRacket}, you will see a message about choosing a language.
 Go to the @onscreen{Language|Choose Language} menu and select ``Use the language declared in the source'', then click @onscreen{Ok}.
-Margrave scripts all begin with @tt{#lang margrave}, which tells DrRacket to expect Margrave commands.
-
-
 
 
 @;Whichever version you use, y
@@ -288,33 +285,53 @@ TODO: other feedback (typewriter font, quotes, etc.)
 
 
 
-----------------------------
 
 
-The command prompt accepts semicolon-terminated Margrave commands. For instance, entering:
 
-@tt{INFO;}
-
-will execute the @tech{INFO} Margrave command, returning information about the 
-state of Margrave, including memory usage and other statistics. 
+@subsection[#:tag "margrave-scripts"]{Tutorial: Margrave Scripts}
 
 
-@;You can use Margrave in your racket programs by importing the Margrave modules.
-@;To do this, just
-@;@racket[(require "<margrave-home>/margrave.rkt")], where <margrave-home> is 
-@;the path containing margrave.rkt. If using IOS, import "margrave-ios.rkt" 
-@;in the same way.
 
-@subsection[#:tag "margrave-scripts"]{Margrave Scripts}
+Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. 
 
-Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. In 
-@secref["margrave-prompt"], you created and ran an empty script to get the prompt. If you had
-continued to enter Margrave commands, they would have been executed before the prompt appeared.
+Open a new DrRacket editor and change the first line to
+@tt{#lang margrave}. Instead of clicking @onscreen{Run} right away, add the following lines just under the @tt{#lang margrave} line:
 
-To run a saved Margrave script, open the file via DrRacket's File->Open menu and click the Run button.
-The script will execute, and its results will be shown in the bottom half of the window. 
+@multiline-racketinput[
+"LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";
+LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";
+EXPLORE conferencepolicy1:permit(s, a, r);
+SHOW ONE;"]
 
-A Margrave prompt will always appear when the script is complete.
+Then click @onscreen{Run}. 
+In the previous tutorial, you created and ran an empty script to get to
+the prompt immediately. Here, Margrave executes those four commands before giving you a prompt:
+
+@multiline-racketblock[
+"ConferencePolicy1
+ConferencePolicy2
+Query created successfully.
+********* SOLUTION FOUND at size = 3 ******************
+s: author reviewer 
+a: readpaper 
+r: paper 
+conflicted = {}
+assigned = {[s, r]}
+
+STATISTICS: 
+Computed max size: 3
+Max size: 3
+Result ID: 0
+User max size: 6
+********************************************************
+> "]
+
+You can create scripts in DrRacket and save them via the @onscreen{File|Save Definitions As} menu option.
+To open a saved Margrave script, use DrRacket's @onscreen{File|Open} menu option. 
+The script will execute when you click @onscreen{Run}, and its results will appear in the bottom
+half of the window, followed by a Margrave prompt.
+
+
 
 @subsection{Moving On}
 
@@ -322,16 +339,6 @@ To use Margrave on IOS configurations, go to @secref["gs-ios"].
 To use Margrave on other kinds of policies, go to @secref["gs-existing"].
 Examples of both can be found in the @italic{examples/scripts} sub-directory
 of your Margrave installation.
-
-
-@;@subsubsub*section{A Word of Caution}
-   
-@;Margrave's scenario-finding engine must be started by
-@;invoking @racket[(start-margrave-engine)] before
-@;any policies are loaded or Margrave commands are executed. 
-@;Running margrave-full-main.rkt will do this automatically. If you
-@;are writing your own script, make sure that it calls
-@;@racket[(start-margrave-engine)].
 
 
   
@@ -348,61 +355,74 @@ To parse and load an IOS policy into Margrave, use:
 
 @;@racket[(parse-and-load-ios config-file-name config-file-path)]
 
-LOAD IOS config-file-name
+@tt{LOAD IOS <config-file-name>}
 
-where @racket[config-file-name] is the file name of the configuration 
+where @tt{<config-file-name>} is the file name of the IOS configuration 
 saved as a text file.
 
 Margrave will produce several intermediate policy files (discussed in Section 4 of @cite{nbdfk10}) in
-the same path as @racket[config-file-name] and load them.
+the same path as @tt{<config-file-name>} and load them. 
+For instance, if you have a configuration saved to a file @tt{config.txt} in
+the directory @tt{/myfiles/Margrave/IOS}, you should invoke:
 
-For instance, if you have a configuration saved to a file config.txt in
-the directory "/myfiles/Margrave/IOS", you should invoke:
-
-LOAD IOS "/myfiles/Margrave/IOS/config.txt";
+@multiline-racketinput["LOAD IOS \"/myfiles/Margrave/IOS/config.txt\";"]
 
 For detailed examples of running queries in IOS, see the "ios-demo" example
-in the @italic{examples/scripts} sub-directory of your Margrave installation.
+in the @tt{examples/scripts} sub-directory of your Margrave installation.
 If you would like to experiment with a small IOS 
 configuration, we suggest using
-@italic{examples/policies/ios-demo/initial/demo.txt}.
+@tt{examples/policies/ios-demo/initial/demo.txt}.
 
 @;  This works if the user is using the docs in their installation:
 @; @url{../examples/policies/ios-demo/initial/demo.txt}
 
 @subsection{Understanding IOS Scenarios}
 
-The SHOW ALL, SHOW ONE, and SHOW NEXT commands format query results and display them 
-in a concise format. A SHOW ONE command for an IOS query will produce output in this style:
+The @tt{SHOW ALL}, @tt{SHOW ONE}, and @tt{SHOW NEXT} commands format query results and display them 
+in a concise format. A @tt{SHOW ONE} command for an IOS query will produce output in this style:
 
-@racketblock[
-*** SOLUTION: Size = 15.
-src-addr-in: IPAddress
-protocol: prot-tcp
-dest-addr-in: 192.168.5.10
-src-port-in: port
-exit-interface: interface
-entry-interface: fe0
-dest-port-in: port-80
-length: length
-ahostname: hostname-router
-src-addr-out: IPAddress
-dest-addr-out: 192.168.5.10
-message: icmpmessage]
+@multiline-racketblock[
+"********* SOLUTION FOUND at size = 16 ******************
+message: icmpmessage 
+protocol: prot-tcp 
+src-port-out: port 
+dest-port-out: port 
+next-hop: ipaddress 
+entry-interface: fe0 
+length: length 
+dest-addr-in: 192.168.5.11 
+src-addr-in: ipaddress 
+dest-addr-out: ipaddress 
+src-port-in: port 
+exit-interface: interface 
+hostname: hostname-router 
+flags: tcpflags 
+dest-port-in: port-25 
+src-addr-out: ipaddress 
 
-On the first line, the @racket[Size = 15] says that this scenario involves 15 atoms, where
+STATISTICS: 
+Computed max size: 1
+Max size: 1
+Result ID: 0
+User max size: 6
+********************************************************"
+]
+
+On the first line, the @(racketresultfont (tt "Size = 16")) says that this scenario involves 16 atoms, where
 each atom is an IP address, port, interface, etc.
 
 The scenario itself says that the query can be satisfied by when the packet 
-is a TCP request to the host 192.168.5.10 on port 80, entering the firewall at the fe0 interface.
+is a TCP request to the host @(racketresultfont (tt "192.168.5.11")) on port @(racketresultfont (tt "25")),
+entering the firewall at the @(racketresultfont (tt "fe0")) interface.
 There are no restrictions on the source fields of the packet header in this
-scenario: "IPAddress" represents some IP address not explicitly
-mentioned in the IOS configuration. Similarly for "Port" and "Interface".
+scenario: ``@(racketresultfont (tt "IPAddress"))'' represents some IP address not explicitly
+mentioned in the IOS configuration. Similarly for ``@(racketresultfont (tt "port"))'' and ``@(racketresultfont (tt "interface"))''.
 
-The @italic{message} binding is only applicable for ICMP packets,
-and can be ignored in this scenario. The @italic{length} binding is not yet used.
-The @italic{-out} bindings give information about NAT effects on the packet; there
-are none in this scenario.
+The @tt{message} binding is only applicable for ICMP packets,
+and can be ignored in this scenario. The @tt{length} binding is not yet used.
+The @tt{-out} bindings give information about NAT effects on the packet; there
+are none in this scenario. Similarly the @tt{flags} binding gives information
+about the packet's TCP flags, which are not important in this scenario.
 
 
 
