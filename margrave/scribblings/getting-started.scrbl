@@ -1,19 +1,11 @@
 #lang scribble/manual
 
 @(require racket/base
+          "helper.rkt"
           (for-label racket/base
                      margrave/margrave))
 
 @title{Getting Started}
-
-@; tn: this needs to be a define syntax, since it expects #, before each?
-@(define (multiline-result-helper str)
-   (define (my-helper s-port)     
-     (if (and (char-ready? s-port)
-              (not (eof-object? (peek-char s-port))))
-         (cons (read-line s-port) (my-helper s-port))
-         '()))
-   (map (lambda (x) #,x) (my-helper (open-input-string str))))
 
 @;defmodule[margrave]
 
@@ -207,7 +199,7 @@ Ask questions using the @tt{EXPLORE} and @tt{SHOW} commands. For instance, to as
 @racketblock[#, (racketresultfont (tt "Query created successfully."))]
 
 @racketinput[#,(tt "SHOW ONE;")]
-@racketblock[#, (racketresultfont (tt 
+@multiline-racketblock[
 "********* SOLUTION FOUND at size = 3 ******************
 s: author reviewer 
 a: readpaper 
@@ -220,12 +212,12 @@ Computed max size: 3
 Max size: 3 
 Result ID: 0 
 User max size: 6 
-********************************************************"))]
+********************************************************"]
 
 @tt{SHOW ONE} tells Margrave to print a single scenario. To get additional scenarios, use @tt{SHOW NEXT}:
 
 @racketinput[#,(tt "SHOW NEXT;")]
-@racketblock[#,(multiline-result-helper
+@multiline-racketblock[
 "********* SOLUTION FOUND at size = 3 ******************
 s: author reviewer 
 a: readpaper 
@@ -238,37 +230,42 @@ Computed max size: 3
 Max size: 3
 Result ID: 0
 User max size: 6
-********************************************************")]
+********************************************************"]
 
 If Margrave finds no more solutions, it will say so. 
 @tt{SHOW} commands always display results for the most recent @tt{EXPLORE} command.
 
 You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIES}, and @tt{IFF}, as well as parentheses. This query asks for scenarios where a request is both permitted and denied:
 
-@racketinput[#,(tt "EXPLORE conferencepolicy1:permit(s, a, r) AND conferencepolicy1:deny(s, a, r);")]
+@multiline-racketinput[
+"EXPLORE conferencepolicy1:permit(s, a, r) 
+      AND conferencepolicy1:deny(s, a, r);"]
 @racketblock[#, (racketresultfont (tt "Query created successfully."))]
 
 @racketinput[#,(tt "SHOW ONE;")]
-@racketblock[#, (racketresultfont (tt 
+@multiline-racketblock[
 "---> No more solutions! <---
 
 STATISTICS: 
 Computed max size: 3
 Max size: 3
 Result ID: 0
-User max size: 6"))]
+User max size: 6"]
 
 Queries can involve multiple policies. Let's load a second policy and try asking how the two differ:
 
 @racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";")]
 @racketblock[#, (racketresultfont (tt "ConferencePolicy2"))]
 
-@racketinput[#,(tt "EXPLORE (ConferencePolicy1:permit(s,a,r) AND NOT ConferencePolicy2:permit(s,a,r)) OR
-          (ConferencePolicy2:permit(s,a,r) AND NOT ConferencePolicy1:permit(s,a,r));")]
+@multiline-racketinput[
+"EXPLORE (ConferencePolicy1:permit(s,a,r) 
+  AND NOT ConferencePolicy2:permit(s,a,r))
+      OR  (ConferencePolicy2:permit(s,a,r)
+  AND NOT ConferencePolicy1:permit(s,a,r));"]
 @racketblock[#, (racketresultfont (tt "Query created successfully."))]
 
 @racketinput[#,(tt "SHOW ONE;")]
-@racketblock[#, (racketresultfont (tt 
+@multiline-racketblock[
 "********* SOLUTION FOUND at size = 3 ******************
 s: author reviewer 
 a: readpaper 
@@ -281,11 +278,8 @@ Computed max size: 3
 Max size: 3
 Result ID: 0
 User max size: 6
-********************************************************"))]
+********************************************************"]
 
-
-
-TODO: Queries over the policy, loading a 2nd policy and doing change-impact...
 
 
 TODO: unify this new tutorial with later prose (some will need removing/modifying)
