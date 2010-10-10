@@ -14,9 +14,9 @@ Welcome to Margrave!
 Margrave is a tool for analyzing access-control and configuration
 policies (such as firewall policies). 
 Margrave allows users to ask questions about the 
-behavior of their policies, such as "Can a student ever access
-another student's grades?" or "Did my changes to this firewall allow
-any unexpected new traffic?" 
+behavior of their policies, such as ``Can a student ever access
+another student's grades?'' or ``Did my changes to this firewall allow
+any unexpected new traffic?'' 
 
 @;The following examples demonstrate how to get started using Margrave.
 @;If you have not yet installed Margrave, see @secref{install}. 
@@ -279,12 +279,6 @@ User max size: 6
 
 
 
-TODO: unify this new tutorial with later prose (some will need removing/modifying)
-
-TODO: other feedback (typewriter font, quotes, etc.)
-
-
-
 
 
 
@@ -367,14 +361,11 @@ the directory @tt{/myfiles/Margrave/IOS}, you should invoke:
 
 @multiline-racketinput["LOAD IOS \"/myfiles/Margrave/IOS/config.txt\";"]
 
-For detailed examples of running queries in IOS, see the "ios-demo" example
+For detailed examples of running queries in IOS, see the "ios-demo" script
 in the @tt{examples/scripts} sub-directory of your Margrave installation.
 If you would like to experiment with a small IOS 
 configuration, we suggest using
 @tt{examples/policies/ios-demo/initial/demo.txt}.
-
-@;  This works if the user is using the docs in their installation:
-@; @url{../examples/policies/ios-demo/initial/demo.txt}
 
 @subsection{Understanding IOS Scenarios}
 
@@ -418,21 +409,22 @@ There are no restrictions on the source fields of the packet header in this
 scenario: ``@(racketresultfont (tt "IPAddress"))'' represents some IP address not explicitly
 mentioned in the IOS configuration. Similarly for ``@(racketresultfont (tt "port"))'' and ``@(racketresultfont (tt "interface"))''.
 
-The @tt{message} binding is only applicable for ICMP packets,
-and can be ignored in this scenario. The @tt{length} binding is not yet used.
-The @tt{-out} bindings give information about NAT effects on the packet; there
-are none in this scenario. Similarly the @tt{flags} binding gives information
+The @(racketresultfont @tt{message}) binding is only applicable for ICMP packets,
+and can be ignored in this scenario. The @(racketresultfont @tt{length}) binding is not yet used.
+The @(racketresultfont @tt{-out}) bindings give information about NAT effects on the packet; there
+are none in this scenario. Similarly the @(racketresultfont @tt{flags}) binding gives information
 about the packet's TCP flags, which are not important in this scenario.
 
 
-
 When printing, only the most specific applicable 
-information will be shown. E.g., you will never see
-@racketblock[src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100]
+information will be shown. You will never see:
 
-since the host 10.100.100.100 is always contained in the network 
-10.0.0.0/255.0.0.0. Instead, you would see
-@racketblock[src-addr-in: 10.100.100.100]
+@multiline-racketblock{src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100}
+
+since the host @(racketresultfont (tt "10.100.100.100")) is always contained in the network 
+@(racketresultfont (tt "10.0.0.0/255.0.0.0")). Instead, you would see
+
+@multiline-racketblock{src-addr-in: 10.100.100.100}
 
 @;--------------------------------------------------------------------
 @section[#:tag "gs-existing"]{General Policies in Margrave}
@@ -451,10 +443,10 @@ and so on.
 
 Let's look at one of Margrave's built-in example policies, 
 an access-control policy for a conference management system. Its vocabulary and policy files
-are respectively @italic{conference1.v} and @italic{conference1.p} in your installation's
-@italic{tests} directory.
+are respectively @tt{conference1.v} and @tt{conference1.p} in your installation's
+@tt{tests} directory.
 
-The vocabulary is:
+The vocabulary file contains:
 
 @racketblock[(PolicyVocab ConferencePolicy
              (Types
@@ -484,12 +476,12 @@ The vocabulary is:
              ]
 
 
-@secref["vocabularies"] contains details about this language. For now, note that this particular vocabulary gives the following:
+The section ``@secref["vocabularies"]'' contains details about this language. For now, note that this particular vocabulary gives the following:
 
 @itemlist[
-          @item{A notion of "subjects", "actions", and "resources" and some sub-types for each;}
-          @item{"permit" and "deny" as valid decisions; and}
-          @item{a "subject", an "action", and a "resource" as part of each request (given by the ReqVariables construct).}
+          @item{A notion of ``subjects'', ``actions'', and ``resources'' and some sub-types for each;}
+          @item{``permit'' and ``deny'' as valid decisions; and}
+          @item{a subject, an action, and a resource as part of each request (given by the @tt{ReqVariables} construct).}
           ]
 
 The policy for this example is:
@@ -517,28 +509,33 @@ paper. (For details, see @secref{policies}.)
 @subsection{Example Queries}
 
 
-Margrave loads policies using the LOAD POLICY command. 
-LOAD POLICY takes a single parameter: the filename of the policy file. 
-Since this policy is stored in the tests sub-folder of Margrave, we load it by 
-calling:
+Margrave loads policies using the @tt{LOAD POLICY} command. 
+@tt{LOAD POLICY} takes a single parameter: the filename of the policy file. 
+Since this policy is stored in the @tt{tests} sub-folder of Margrave, we load it 
+by entering:
 
-LOAD POLICY "*MARGRAVE*/tests/conference1.p";
+@racketinput{LOAD POLICY "*MARGRAVE*/tests/conference1.p";}
 
-@margin-note{@bold{Shortcut: } If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
+@margin-note{@bold{Reminder: } If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
 
 If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
 
-@racket["ConferencePolicy1"]
-
+@multiline-racketblock["ConferencePolicy1"]
 
 Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
 The following Margrave query captures this question. 
 
-@racketblock[
+@multiline-racketinput[
 EXPLORE ConferencePolicy1:Deny(s, a, r) AND 
         reviewer(s) AND paper(r) AND readpaper(a);
 ]        
 
+ 
+ ----------- !!!!!!!!!!!!!!!!!!!!!!!!!!!! this far
+ TODO note: much of this can be removed in light of the tutorial
+ also this example is bad. need to keep the bit on interpreting results!
+ 
+ 
 @italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]
 signify properties about the request: The subject is a reviewer,
 etc. The term 
@@ -586,10 +583,10 @@ The block above represents a scenario where the query could be
 satisfied. The SHOW ALL, SHOW ONE, and SHOW NEXT
 commands format query results and display them 
 in this concise format. The scenario above says:
-"The query can be satisfied when the Subject is
+``The query can be satisfied when the Subject is
 both a Reviewer and an Author, the Resource is a Paper, and 
 the action is reading the paper, provided that
-the subject is Conflicted on the Paper but not Assigned to it."
+the subject is Conflicted on the Paper but not Assigned to it.''
 
 Here, $s, $a, and $r correspond to the variables that appear in
 the query.

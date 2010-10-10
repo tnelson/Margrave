@@ -52,7 +52,7 @@
   ; The last line of a file may be a comment. Greedy matching will match the entire line up to the end.
   [lex:comment (:: #\/ #\/ (:* (char-complement (:or #\newline #\return))))])
 
-; still rquires whitespace between // and comment text. WHY?
+
 
 ; Lexer syntax-transformer that creates SRE syntax for case-insensitive string tokens
 ; Example (lex-ci "explore") becomes an SRE for the regexp [Ee][Xx] ...
