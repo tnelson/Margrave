@@ -75,7 +75,7 @@
 ; **********************************************************
 
 (define (read-syntax-m src in)
-  (error-print-source-location #t)   
+  (error-print-source-location #f) ; Don't say "unsaved-editor34228"   
   
   ; Parse one. Deal with it. Parse the next. Deal with it...  
   ; Built the list in reverse
@@ -96,7 +96,9 @@
            
            ;(provide margrave-results)  
            
-           (start-margrave-engine #:margrave-params '("-log")) 
+           ; Don't show a #t. Could be confusing in #lang margrave
+           (define start-result 
+             (start-margrave-engine #:margrave-params '("-log")))
            
            (define (handle-func a-func)          
              (define a-result (a-func))

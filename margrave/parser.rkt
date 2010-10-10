@@ -119,6 +119,7 @@
 ; We do this by changing the lexer function that the caller gives us before sending it on to the parser.
 (define token-history empty)
 
+
 ; Parse ONE COMMAND
 ;
 (define (parse source-name)
@@ -132,16 +133,86 @@
        (end EOF SEMICOLON)
        (tokens empty-terminals terminals)
        
+       ;**************************************************   
        (error (lambda (tok-ok? token-name token-value start-pos end-pos)                 
-                (printf "History: ~a~n" (reverse (map position-token-token token-history)))
+                (define rev-tokens (reverse (map position-token-token token-history)))
                 
+                ;(printf "History: ~a~n" rev-tokens)
+                
+                (define first-token (if (> (length rev-tokens) 0)
+                                        (first rev-tokens)
+                                        #f))
+                (define second-token (if (> (length rev-tokens) 1)
+                                         (second rev-tokens)
+                                         #f))                  
+                
+                ; Can we guess at the kind of command they were trying to use?
+                ; customize an error message depending on history:
+                (define error-message
+                  (cond [(empty? rev-tokens)
+                         "Please enter a Margrave command."]
+                        [(token? first-token) ; token? is not true of empty-tokens like all the correct command keywords.
+                         "Please enter a valid Margrave command."]
+                       
+                        [(equal? first-token 'RENAME)
+                         "Please use the following: RENAME <old name> <new name>"]                        
+                        
+                        [(equal? first-token 'SHOW)
+                         "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"]
+                        [(equal? first-token 'GET)
+                         "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"]
+                      
+                        [(and (> (length rev-tokens) 1)
+                              (equal? first-token 'LOAD)
+                              (equal? second-token 'IOS))
+                         "LOAD IOS must be followed by a configuration file name."]
+                        [(and (> (length rev-tokens) 1)
+                              (equal? first-token 'LOAD)
+                              (equal? second-token 'POLICY))
+                         "LOAD POLICY must be followed by a .p file name."]
+                        [(and (equal? first-token 'LOAD)
+                              (equal? second-token 'XACML))
+                         "LOAD IOS must be followed by an XACML policy file name."]
+                        [(and (equal? first-token 'LOAD)
+                              (equal? second-token 'SQS))
+                         "LOAD SQS must be followed by an Amazon SQS JSON file name."]
+                        [(equal? first-token 'LOAD)
+                         "LOAD what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)" ]
+                        
+                        [(equal? first-token 'COUNT)
+                         "COUNT is a stand-alone command."]
+                        
+                        [(and (equal? first-token 'SHOW)
+                              (equal? second-token 'REALIZED))
+                         "That was not a valid SHOW REALIZED command."]
+                        [(and (equal? first-token 'SHOW)
+                              (equal? second-token 'UNREALIZED))
+                         "That was not a valid SHOW UNREALIZED command."]
+                        
+                        [(and (equal? first-token 'IS)
+                              (equal? second-token 'POSSIBLEQMARK))
+                         "IS POSSIBLE? is a standalone command."]
+                        [(equal? first-token 'IS)
+                         "Did you mean IS POSSIBLE? ?"]
+                        
+                        [(equal? first-token 'EXPLORE)
+                         (format "EXPLORE must be followed by a boolean condition. Margrave did not understand the condition or options given around \"~a\"." (if token-value
+                                                                                                                                                                  token-value
+                                                                                                                                                                  token-name))]
+                        
+                        ; Last resort
+                        [else (format "Margrave did not understand that command.")]))
+                       
                 (set! token-history empty)
-                (raise-read-error (format "Error parsing token (of type = ~a): ~a." token-name token-value)
+                (raise-read-error error-message
                                   source-name
                                   (position-line start-pos)
                                   (position-col start-pos)
                                   (position-offset start-pos)      
                                   (- (position-offset end-pos) (position-offset start-pos)))))
+       
+       ;**************************************************   
+       ;**************************************************   
        
        ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
        ; Implication is not associative (and of course, neither is the unary operator NOT.)
@@ -190,38 +261,8 @@
          [(create-statement) $1]
          [(add-statement) $1]
          
-         ;**************************************************        
-         ; Special error messages (malformed SHOW, etc.)
-         
-         
-         [(SHOW)  
-          (margrave-parse-error 
-           "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"
-           1 1)]   
-         [(GET)  
-          (margrave-parse-error 
-           "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"
-           1 1)]   
-         [(LOAD)  
-          (margrave-parse-error 
-           "LOAD what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)"
-           1 1)]
-         
-         
-         ; How can I produce something like "invalid-load-argument"?
-         ; The above have the same problem, right? (SHOW <id>, SHOW SHOW...)    
-         ; Might be better to make the error know about token history (?)
-         
-         [(LOAD IOS) (margrave-parse-error
-                      "LOAD IOS must be followed by a configuration file name." 1 2)]
-         
-         [(LOAD POLICY) (margrave-parse-error
-                         "LOAD POLICY must be followed by a .p file name." 1 2)]
-         
          ;**************************************************
-         ;**************************************************    
-         ;**************************************************
-         ; Error message handling ends here
+
          
          
          ; .p/v policy
