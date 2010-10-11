@@ -1084,12 +1084,16 @@ public class MVocab {
 			uber.addPredicate(d, other.predtypes.get(d));
 
 		// Declared other vars (if same type, it's ok.)
-		for (String ov : otherVarDomains.keySet()) {
+		for (String ov : otherVarDomains.keySet())
+		{
 			if (other.otherVarDomains.containsKey(ov))
-				if (!other.otherVarDomains.get(ov).name().equals(
-						otherVarDomains.get(ov)))
-					throw new MGECombineVocabs(
-							"Declared rule-scope variable type mismatch.");
+			{
+				if (!other.otherVarDomains.get(ov).name().equals(otherVarDomains.get(ov).name()))
+					throw new MGECombineVocabs("Declared rule-scope variable type mismatch: "+
+							other.otherVarDomains.get(ov).name() +
+							" vs. "+
+							otherVarDomains.get(ov).name());
+			}
 			uber.addOtherVar(ov, otherVarDomains.get(ov).name());
 		}
 		for (String ov : other.otherVarDomains.keySet()) {
