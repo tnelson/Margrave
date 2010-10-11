@@ -124,32 +124,37 @@ load policy "*MARGRAVE*/tests/happyroutermore.p";
 // nonsensical. But without tupling, realized can be read as populated.
 // other packets exist populating rule1_matches...
 
+// DISABLED 10/11/10 by TN
+//  since we are changing the syntax of SHOW REALIZED w/o tupling
+//  to match the tupled case
+
 
 //explore happyroutermore:accept(<happyroutermorex:req>)
-explore happyroutermore:accept(<happyroutermore:req>) AND 
-  tcp=pro AND ipsrc=webserver and portdest=portsrc and portdest=http
-include happyroutermore:rule1_matches,
-        happyroutermore:ruleX_matches,
-        happyroutermore:rule1_applies,
-        happyroutermore:ruleX_applies;
 
-SHOW ONE;        
-        
-SHOW REALIZED happyroutermore:rule1_matches,        
-        happyroutermore:ruleX_matches;
+//explore happyroutermore:accept(<happyroutermore:req>) AND 
+//  tcp=pro AND ipsrc=webserver and portdest=portsrc and portdest=http
+//include happyroutermore:rule1_matches,
+//        happyroutermore:ruleX_matches,
+//        happyroutermore:rule1_applies,
+//        happyroutermore:ruleX_applies;
 
-SHOW UNREALIZED happyroutermore:rule1_matches,
-        happyroutermore:ruleX_matches; 
+//SHOW ONE;        
         
-SHOW REALIZED happyroutermore:rule1_matches,
-        happyroutermore:ruleX_matches
-FOR CASES happyroutermore:rule1_applies,
-        happyroutermore:ruleX_applies;                     
+//SHOW REALIZED happyroutermore:rule1_matches,        
+//        happyroutermore:ruleX_matches;
+
+//SHOW UNREALIZED happyroutermore:rule1_matches,
+//        happyroutermore:ruleX_matches; 
         
-SHOW UNREALIZED happyroutermore:rule1_matches,
-        happyroutermore:ruleX_matches
-FOR CASES happyroutermore:rule1_applies,
-        happyroutermore:ruleX_applies;       
+//SHOW REALIZED happyroutermore:rule1_matches,
+//        happyroutermore:ruleX_matches
+//FOR CASES happyroutermore:rule1_applies,
+//        happyroutermore:ruleX_applies;                     
+        
+//SHOW UNREALIZED happyroutermore:rule1_matches,
+//        happyroutermore:ruleX_matches
+//FOR CASES happyroutermore:rule1_applies,
+//        happyroutermore:ruleX_applies;       
 
 
 
@@ -247,4 +252,41 @@ FOR CASES happyroutermore:rule1_applies(<happyroutermore:req>),
         happyroutermore:rule3_applies(<happyroutermore:req>),
         happyroutermore:ruleX_applies(<happyroutermore:req>);   
         
-       
+// *******************************************************************
+// *******************************************************************
+
+// Test COMPARE keyword
+// and comparing >2-decision policies
+
+load policy "*MARGRAVE*/tests/phone2.p";
+
+COMPARE phone1 phone2;
+COMPARE phone1 phone2 CEILING 9;
+INFO LAST; // should be the compare
+IS POSSIBLE?;
+EXPLORE last(src, dest) and outofservice(dest) or number(extravar) 
+PUBLISH src, dest, extravar CEILING 9;
+INFO LAST;
+IS POSSIBLE?; // true. and should see ceiling 11, not ceiling 9 (extravar and its exchange)
+SHOW ONE;
+
+// duplicate what compare does
+EXPLORE 
+(Phone1:TollFree(ncaller, nreceive)
+ AND NOT Phone2:TollFree(ncaller, nreceive)) 
+OR
+(Phone2:TollFree(ncaller, nreceive)
+ AND NOT Phone1:TollFree(ncaller, nreceive)) 
+OR
+(Phone1:Toll(ncaller, nreceive)
+ AND NOT Phone2:Toll(ncaller, nreceive)) 
+OR
+(Phone2:Toll(ncaller, nreceive)
+ AND NOT Phone1:Toll(ncaller, nreceive)) 
+OR
+(Phone1:Refuse(ncaller, nreceive)
+ AND NOT Phone2:Refuse(ncaller, nreceive)) 
+OR
+(Phone2:Refuse(ncaller, nreceive)
+ AND NOT Phone1:Refuse(ncaller, nreceive)) CEILING 9;        
+IS POSSIBLE?;
