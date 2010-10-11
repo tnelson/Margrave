@@ -190,7 +190,8 @@ will be replaced with Margrave’s installation directory. Once the policy is lo
 Margrave prints the policy's name for use in queries. Here the policy's name is 
 @tt{ConferencePolicy1}.
 
-Ask questions using the @tt{EXPLORE} and @tt{SHOW} commands. For instance, to ask when the policy we just loaded yields a permit decision:
+Ask questions using the @tt{EXPLORE} command and get answers with the @tt{SHOW ONE/NEXT/ALL} commands.
+For instance, to ask when the policy we just loaded yields a permit decision:
 
 @racketinput[#,(tt "EXPLORE conferencepolicy1:permit(s, a, r);")]
 @racketblock[#, (racketresultfont (tt "Query created successfully."))]
@@ -211,7 +212,8 @@ Result ID: 0
 User max size: 6 
 ********************************************************"]
 
-@tt{SHOW ONE} tells Margrave to print a single scenario. To get additional scenarios, use @tt{SHOW NEXT}:
+@tt{SHOW ONE} tells Margrave to print a single scenario (in no particular order). 
+To get additional scenarios, use @tt{SHOW NEXT}:
 
 @racketinput[#,(tt "SHOW NEXT;")]
 @multiline-racketblock[
@@ -230,6 +232,13 @@ User max size: 6
 ********************************************************"]
 
 If Margrave finds no more solutions, it will say so. 
+
+You can display @italic{all} the scenarios in the result with the @tt{SHOW ALL} command:
+
+@racketinput[#, "SHOW ALL;"]
+
+(Results omitted.)
+
 @tt{SHOW} commands always display results for the most recent @tt{EXPLORE} command.
 
 You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIES}, and @tt{IFF}, as well as parentheses. This query asks for scenarios where a request is both permitted and denied:
@@ -277,15 +286,28 @@ Result ID: 0
 User max size: 6
 ********************************************************"]
 
+Since queries like this one can completely describe how new and old versions of a policy disagree, we call queries like this @deftech{change-impact} queries.
 
+It can be cumbersome to manually write change-impact queries for policies with many decisions, so we provide a shortcut with the @tt{COMPARE} command:
+
+@multiline-racketinput[
+"COMPARE ConferencePolicy1 ConferencePolicy2;"]
+@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+
+Margrave commands are case-insensitive. The following queries are equivalent:
+
+@multiline-racketinput[
+"EXPLORE conferencepolicy1:permit(s, a, r);"]
+
+@multiline-racketinput[
+"explore ConferencePolicy1:Permit(s, a, r);"]
 
 
 
 
 @subsection[#:tag "margrave-scripts"]{Tutorial: Margrave Scripts}
 
-
-
+Of course, re-entering commands at the prompt can be tedious. You can avoid re-entering commands by using a script instead.
 Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. 
 
 Open a new DrRacket editor and change the first line to
@@ -329,11 +351,13 @@ half of the window, followed by a Margrave prompt.
 
 @subsection{Moving On}
 
-To use Margrave on IOS configurations, go to @secref["gs-ios"].
-To use Margrave on other kinds of policies, go to @secref["gs-existing"].
-Examples of both can be found in the @italic{examples/scripts} sub-directory
-of your Margrave installation.
+For help understanding scenario output and a primer on Margrave's intermediate policy language, go to 
+@secref["gs-existing"].
 
+For help using Margrave on IOS configurations, go to @secref["gs-ios"].
+
+If you would rather jump right to more complex examples, see the scripts in the 
+@italic{examples/scripts} sub-directory of your Margrave installation.
 
   
 @;--------------------------------------------------------------------
@@ -433,16 +457,14 @@ Margrave's intermediate
 language can capture many different kinds of policies. In this section, 
 we discuss how to use the intermediate language to express policies for analysis.
 
-Before running an example, we'll quickly overview just what a Margrave policy looks like.
-
-@;@italic{What does a policy look like in Margrave?}
+First, we'll quickly overview just what a Margrave policy looks like.
 
 A policy's form depends on its @tech{vocabulary}. A vocabulary dictates what
 a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
 and so on.  
 
-Let's look at one of Margrave's built-in example policies, 
-an access-control policy for a conference management system. Its vocabulary and policy files
+Here is one of Margrave's built-in example policies, a fragment of an 
+access-control policy for a conference management system. Its vocabulary and policy files
 are respectively @tt{conference1.v} and @tt{conference1.p} in your installation's
 @tt{tests} directory.
 
@@ -479,9 +501,9 @@ The vocabulary file contains:
 The section ``@secref["vocabularies"]'' contains details about this language. For now, note that this particular vocabulary gives the following:
 
 @itemlist[
-          @item{A notion of ``subjects'', ``actions'', and ``resources'' and some sub-types for each;}
+          @item{the notion of ``subjects'', ``actions'', and ``resources'' and some sub-types for each;}
           @item{``permit'' and ``deny'' as valid decisions; and}
-          @item{a subject, an action, and a resource as part of each request (given by the @tt{ReqVariables} construct).}
+          @item{the fact that each request contains a subject, an action, and a resource (given by the @tt{ReqVariables} construct).}
           ]
 
 The policy for this example is:
@@ -490,128 +512,87 @@ The policy for this example is:
 (Policy ConferencePolicy1 uses conferencepolicy
         (Target )
         (Rules 
-          (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
-          (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
-          (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r)))
+          (PaperNoConflict = (Permit s a r) :- 
+                             (!Conflicted s r) (ReadPaper a) (Paper r))
+          (PaperAssigned = (Permit s a r) :- 
+                           (Assigned s r) (ReadPaper a) (Paper r))
+          (PaperConflict = (Deny s a r) :- 
+                           (Conflicted s r) (ReadPaper a) (Paper r)))
         (RComb FAC)
         (PComb FAC)
         (Children ))
 ]
 
-This @tech{policy} @tech{uses} the above vocabulary, and 
+This @tech{policy} uses the above vocabulary, and 
 contains three @tech{rules} that each map certain 
 @tech{request}s to @tech{decision}s. For instance, the first rule,
-named PaperNoConflict, causes the policy to permit requests to read 
+named @tt{PaperNoConflict}, causes the policy to permit requests to read 
 papers, provided the subject is not known to be conflicted on the
-paper. (For details, see @secref{policies}.)
+paper. (For details, see the section ``@secref{policies}''.)
 
 
-@subsection{Example Queries}
+@subsection{Understanding Scenarios}
 
+Paste the following script into DrRacket:
 
-Margrave loads policies using the @tt{LOAD POLICY} command. 
-@tt{LOAD POLICY} takes a single parameter: the filename of the policy file. 
-Since this policy is stored in the @tt{tests} sub-folder of Margrave, we load it 
-by entering:
-
-@racketinput{LOAD POLICY "*MARGRAVE*/tests/conference1.p";}
-
-@margin-note{@bold{Reminder: } If the filename path begins with @racket[*MARGRAVE*], the @racket[*MARGRAVE*] will be replaced with Margrave's installation directory.}
-
-If the policy loads successfully, LOAD POLICY prints the policy's identifier for use in queries. In this case, it returns:
-
-@multiline-racketblock["ConferencePolicy1"]
-
-Let's ask Margrave whether a reviewer can ever be denied access to read a paper.
-The following Margrave query captures this question. 
-
-@multiline-racketinput[
+@multiline-racketblock[                       
+"#lang margrave
+LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";
 EXPLORE ConferencePolicy1:Deny(s, a, r) AND 
-        reviewer(s) AND paper(r) AND readpaper(a);
+        reviewer(s) AND paper(r) AND readpaper(a);"
 ]        
-
  
- ----------- !!!!!!!!!!!!!!!!!!!!!!!!!!!! this far
- TODO note: much of this can be removed in light of the tutorial
- also this example is bad. need to keep the bit on interpreting results!
- 
- 
-@italic["reviewer(s)"], @italic["paper(r)"] and @italic["readpaper(a)"]
-signify properties about the request: The subject is a reviewer,
-etc. The term 
-@italic["ConferencePolicy:Deny(s, a, r)"] states that the policy
-renders the "Deny" decision for the request. @margin-note{Rendering deny is
-not the same as failing to render permit!}
-The @racket[EXPLORE] statement as a whole instructs Margrave to find 
-scenarios that meet all of those conditions.
+and click @onscreen{Run}. At the command prompt, enter:
 
-(For more information on Margrave's query language, see @secref["query-language"].) 
- 
-Once the query is created, 
-we can ask for @italic{all} scenarios that satisfy the query with:
+@multiline-racketinput["SHOW ALL;"]
 
-@racketblock[
-SHOW ALL;
-]
-            
-whereas 
+One of the two scenarios printed will be this one:
 
-@racketblock[
-SHOW ONE;
-]
-
-shows only the first scenario found. After using @racket[SHOW ONE], 
-
-@racketblock[
-SHOW NEXT;             
-]
-
-will cycle through the remaining scenarios.
-
-One of the solutions will be this one:
-
-@racketblock[
-*** SOLUTION: Size = 3.
-$s: reviewer author
-$r: paper
-$a: readpaper
-conflicted = {[$s, $r]}
+@multiline-racketblock[
+"********* SOLUTION FOUND at size = 3 ******************
+s: author reviewer 
+a: readpaper 
+r: paper 
+conflicted = {[s, r]}
 assigned = {}
-]
 
-The block above represents a scenario where the query could be 
-satisfied. The SHOW ALL, SHOW ONE, and SHOW NEXT
+STATISTICS: 
+Computed max size: 3
+Max size: 3
+Result ID: 0
+User max size: 6
+********************************************************"]
+
+This text represents a scenario where the query could be 
+satisfied. The @tt{SHOW ALL}, @tt{SHOW ONE}, and @tt{SHOW NEXT}
 commands format query results and display them 
 in this concise format. The scenario above says:
-``The query can be satisfied when the Subject is
-both a Reviewer and an Author, the Resource is a Paper, and 
-the action is reading the paper, provided that
-the subject is Conflicted on the Paper but not Assigned to it.''
+``The query can be satisfied when the subject is
+both a @tt{reviewer} and an @tt{author}, the resource is a @tt{paper}, and 
+the action is @tt{readpaper} (i.e. reading the paper), provided that
+the subject is @tt{conflicted} on the paper but not @tt{assigned} to it.''
 
-Here, $s, $a, and $r correspond to the variables that appear in
+Here, @tt{$s}, @tt{$a}, and @tt{$r} correspond to the variables that appear in
 the query.
-Size = 3 means that in this scenario, there were 3 objects. 
-In this case, one is BOTH a Reviewer and an
-Author, another is a Paper, and the third is the action ReadPaper.
+@tt{Size = 3} means that in this scenario, there were 3 objects. 
+In this case, one is @italic{both} a @tt{reviewer} and an
+@tt{author}, another is a @tt{paper}, and the third represents the action @tt{readpaper}.
 
-Conflicted and Assigned are
+@tt{Conflicted} and @tt{assigned} are
 binary @tech{predicates} mentioned in the policy. Any such facts 
 will be printed after information about individual variables.
 
 Note: When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-@italic{$s: reviewer subject}
-because a reviewer is always a subject.
+@tt{$s: reviewer subject}
+because a reviewer is always a subject in this policy.
 
 
 @;--------------------------------------------------------------------
 @section[#:tag "gs-create"]{Creating Your Own Policies}
 
-You can create your own policies in the same style as the examples above. @secref["policies"] and @secref["vocabularies"] contain more details on the policy language. Place the vocabulary in a text-file with the .v extension, and the policy in a text-file with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
+You can create your own policies in the same style as the examples above. The sections ``@secref["policies"]'' and ``@secref["vocabularies"]'' contain more details on the policy language. Place the vocabulary in a text-file with the .v extension, and the policy in a text-file with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file @tt{myvocab.v}, make sure that the vocabulary is named @tt{myvocab} and the policy @tt{uses myvocab}.
 
-@;To create your own policy, first decide on its vocabulary. What decisions should it render? What do its requests look like? What contraints always hold in the policy's domain? Then consult @secref["vocabularies"]. Create a text-file with the vocabulary expression and save it with the .v extension.
-
-@;Once your vocabulary is created, consult @secref["policies"], and create your policy expression in a text-file in the same directory with the .p extension. Make sure that you refer to the correct vocabulary name in the policy file. For instance, if your vocabulary is in the file myvocab.v, make sure that the vocabulary is named @italic{myvocab} and the policy @italic{uses myvocab}.
 
 
 

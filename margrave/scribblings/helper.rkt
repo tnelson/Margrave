@@ -15,28 +15,23 @@
 ; @racketblock["foo" "bar"] will NOT insert newlines. 
 ; @racketblock["foo"
 ; "bar"] will. So we need to add the linebreak and indentation explicitly.
+
 (define-syntax (multiline-racketblock syn)
   (syntax-case syn ()
     [(_ the-string)
-     (let ()
-       (define syntax-result 
-         #`(racketblock 
-            #,@(foldr append '()(map (lambda (x) (list `#, (racketresultfont (tt ,x))
-                                                       `#, (linebreak) 
-                                                       `#, (hspace 2))) 
-                                     (port->lines (open-input-string (syntax->datum #'the-string)))))))
-       ;(printf "~a~n" syntax-result)
-       syntax-result)]))
+     #`(racketblock 
+        #,@(foldr append '()(map (lambda (x) (list `#, (racketresultfont (tt ,x))
+                                                   `#, (linebreak) 
+                                                   `#, (hspace 2))) 
+                                 (port->lines (open-input-string (syntax->datum #'the-string))))))]))
 
 (define-syntax (multiline-racketinput syn)
   (syntax-case syn ()
     [(_ the-string)
-     (let ()
-       (define syntax-result 
-         #`(racketinput 
-            #,@(foldr append '()(map (lambda (x) (list `#, (tt ,x)
-                                                       `#, (linebreak) 
-                                                       `#, (hspace 2))) 
-                                     (port->lines (open-input-string (syntax->datum #'the-string)))))))
-       ;(printf "~a~n" syntax-result)
-       syntax-result)]))
+     #`(racketinput 
+        #,@(foldr append '()(map (lambda (x) (list `#, (tt ,x)
+                                                   `#, (linebreak) 
+                                                   `#, (hspace 2))) 
+                                 (port->lines (open-input-string (syntax->datum #'the-string))))))]))
+
+;(multiline-racketblock "foo\nbar\nbaz")
