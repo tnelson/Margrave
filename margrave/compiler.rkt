@@ -131,7 +131,17 @@
              (list ,@(if (empty? (rest (rest interns)))
                         empty
                         (map helper-syn->xml (syntax-e (third interns))))))  syn)] 
-        
+                
+        [(equal? first-datum 'COMPARE)
+         (make-single-wrapper 
+          `(xml-make-compare-command
+            ,(helper-syn->xml (second interns))
+            ,(helper-syn->xml (third interns))
+
+            ;List of modifiers could be empty, but use (list instead of '( since we may have funcs to evaluate inside
+            (list ,@(if (empty? (rest (rest (rest interns))))
+                        empty
+                        (map helper-syn->xml (syntax-e (fourth interns)))))) syn)]
         
         ; id, list, optional for-cases list
         [(equal? first-datum 'SHOWREALIZED)

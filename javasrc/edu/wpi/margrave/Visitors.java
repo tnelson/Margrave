@@ -47,6 +47,7 @@ import kodkod.ast.operator.Quantifier;
 import kodkod.ast.visitor.AbstractCollector;
 import kodkod.ast.visitor.AbstractDetector;
 import kodkod.ast.visitor.AbstractReplacer;
+import kodkod.ast.visitor.AbstractVoidVisitor;
 
 
 // Kodkod's AbstractReplacer doesn't cache ANYTHING by default, and we would rather it cached everything.
@@ -239,6 +240,7 @@ abstract class AbstractCacheAllCollector<T> extends AbstractCollector<T> {
 	}
 }
 
+
 class FormulaFullMeasurementV extends AbstractDetector {
 	// NO CACHING
 	// Use for debug purposes only: Will measure the entire tree, multi-counting
@@ -281,6 +283,81 @@ class FormulaFullMeasurementV extends AbstractDetector {
 		counter++;
 		return super.visit(nFormula);
 	}
+}
+
+class FormulaIndentPrintV extends AbstractVoidVisitor
+{
+	int depth = 0;
+	static int depthinc = 4;
+	
+	private void printDepth()
+	{
+		for(int ii=0;ii<depth;ii++)
+			System.err.print(" ");
+	}
+	
+	public void visit(ComparisonFormula comp)
+	{
+		printDepth();
+		System.err.println(comp.toString());		
+	}
+
+	public void visit(BinaryFormula binFormula) {
+		printDepth();
+		System.err.println("("+binFormula.op().toString()+" ");
+		
+		depth += depthinc;
+		binFormula.left().accept(this);
+		binFormula.right().accept(this);
+		depth -= depthinc;
+		
+		printDepth();
+		System.err.println(")");
+	}
+
+	public void visit(NotFormula not) {
+		printDepth();
+		System.err.println("(not ");
+		
+		depth += depthinc;
+		not.formula().accept(this);
+		depth -= depthinc;
+		
+		printDepth();
+		System.err.println(")");
+	}
+
+	public void visit(QuantifiedFormula quantFormula) {
+		printDepth();
+		System.err.println("("+quantFormula.quantifier().toString() +" "+quantFormula.decls().toString()+" ");
+		
+		depth += depthinc;
+		quantFormula.formula().accept(this);
+		depth -= depthinc;
+		
+		printDepth();
+		System.err.println(")");
+	}
+
+	public void visit(NaryFormula nFormula) {
+		
+		printDepth();
+		System.err.println("("+nFormula.op().toString()+" ");
+		depth += depthinc;
+		for(Formula child : nFormula)
+			child.accept(this);
+		depth -= depthinc;
+		
+		printDepth();
+		System.err.println(")");
+	}
+
+	@Override
+	protected boolean visited(Node n) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
 }
 
 class FormulaMeasurementV extends AbstractCacheAllDetector {
@@ -1155,6 +1232,8 @@ class RelationsUsedCollectionV extends AbstractCacheAllCollector<Relation> {
 	}
 
 }
+
+
 
 /*
 // Return a set of all expressions in the join.

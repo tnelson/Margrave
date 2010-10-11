@@ -1917,7 +1917,9 @@ public class MQuery extends MIDBCollection
 			// formulas are
 			// anywhere near a decent size
 
-			MEnvironment.writeOutLine("Query Formula: " + myQueryFormula);
+			//MEnvironment.writeOutLine("Query Formula: " + myQueryFormula);
+			MEnvironment.writeOutLine("Query Formula: ");
+			myQueryFormula.accept(new FormulaIndentPrintV());
 			MEnvironment.writeOutLine("Fixed Axioms Formula: " + myFixedAxioms);
 			MEnvironment.writeOutLine("Query Axioms Formula: " + queryAxiomsConjunction);
 			// MREPL.outStream.println("Complete Formula: "+queryWithAxioms);
@@ -3934,6 +3936,8 @@ public class MQuery extends MIDBCollection
 
 	}
 
+	
+	
 	// ************
 	// New parser will build up an MExploreCondition object.
 	// Create a query from it.
@@ -3942,7 +3946,7 @@ public class MQuery extends MIDBCollection
 			MExploreCondition mpc, List<String> publish,
 			Map<String, Set<List<String>>> includeMap,
 			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
-			throws  MUserException
+			throws MUserException
 			{
 
 		// TODO, repurpose these exceptions in context of new qry language
@@ -4120,6 +4124,9 @@ public class MQuery extends MIDBCollection
 
 		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);
 
+		//MEnvironment.outStream.println("Query created. Fmla = ");
+		//qryFormula.accept(new FormulaIndentPrintV());
+		
 		// **********************************
 		// Handle INCLUDE parameters
 		for(String dbname : includeMap.keySet())

@@ -324,7 +324,7 @@ public class SQSReader
 	}
 	
 	protected static MPolicy loadSQS(String sFileName) 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEUnsupportedSQS, MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString
+	throws MUserException
 	{		
 		// Convert filename
 		sFileName = MPolicy.convertSeparators(sFileName);

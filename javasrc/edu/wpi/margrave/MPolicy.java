@@ -133,6 +133,19 @@ abstract class MIDBCollection
 		
 		return new RelationAndVariableReplacementV(relpairs, varpairs);
 	}	
+	
+	void initIDBs()
+	throws MUserException
+	{
+		// Policies call super.initIDBs() to make sure they have proper varOrdering and varSorts
+		
+		varOrdering = vocab.requestVectorOrder;
+					
+		for(Variable v : vocab.requestVectorOrder)
+		{			
+			varSorts.put(v, vocab.requestVarDomains.get(v.name()));
+		}
+	}
 
 }
 
@@ -246,31 +259,99 @@ public abstract class MPolicy extends MIDBCollection
 		return result;
 	
 	}
-
 	
-	
-	/**
-	 * Returns a Margrave query representing the requests for which this policy and another 
-	 * will disagree on the decision to be made.	 
-	 * @param p2 The other policy to compare with this one
-	 * @return A Margrave Query object
-	 * @throws MGECannotDiff
-	 * @throws MGEUnknownIdentifier
-	 * @throws MGEArityMismatch
-	 * @throws MGEBadQueryString
-	 * @throws MGECombineVocabs
-	 * @throws MGEBadIdentifierName
-	 * @throws MGEUnsortedVariable 
-	 * @throws MGEManagerException 
-	 */
-	public MQuery compareWithPolicy(MPolicy p2) throws MGECombineVocabs, MGEUnknownIdentifier, MGEArityMismatch, 
-	MGEBadQueryString, MGEBadIdentifierName, MGEManagerException
+	public static MExploreCondition makeCompareCondition(MPolicy p1, MPolicy p2)
 	{
+		List<MExploreCondition> criteria = new ArrayList<MExploreCondition>();
+		
+		List<String> reqVector = new ArrayList<String>();
+		for(Variable v : p1.vocab.requestVectorOrder)
+			reqVector.add(v.name());
+
+		//System.out.println(p1);
+		//System.out.println(p2);
+		//System.out.println(p1.name);
+		//System.out.println(p2.name);
+		//System.out.println(p1.varOrdering);
+		//System.out.println(p2.varOrdering);
+		//System.out.println(p1.varSorts);
+		//System.out.println(p2.varSorts);
+		
+		// For each decision, generate a potential diff condition
+		// vocab combination will be done in the final check
+		for(String decision : p1.vocab.decisions)
+		{			
+			// Holds in p1, not in p2			
+			MExploreCondition cond_p1 = new MExploreCondition(p1.idbs.get(decision), p1, reqVector);
+			MExploreCondition cond_np2 = (new MExploreCondition(p2.idbs.get(decision), p2, reqVector)).not();			
+							
+			// or holds in p2 not in p1
+			MExploreCondition cond_p2 = new MExploreCondition(p2.idbs.get(decision), p2, reqVector);
+			MExploreCondition cond_np1 = (new MExploreCondition(p1.idbs.get(decision), p1, reqVector)).not();
+
+			// Checking in both directions means N/a is covered.
+
+			criteria.add(cond_p1.and(cond_np2).or(cond_p2.and(cond_np1)));					
+		}
+						
+		return mapOrOverCriteria(criteria);
+	}
+	
+	private static MExploreCondition mapOrOverCriteria(List<MExploreCondition> criteria)
+	{
+		if(criteria.size() == 1)
+			return criteria.get(0);
+		
+		boolean isFirst = true;
+		MExploreCondition result = null;
+		for(MExploreCondition criterion : criteria)
+		{
+			if(isFirst)
+			{
+				isFirst = false;
+				result = criterion;
+			}
+			else
+			{
+				result = result.or(criterion);
+			}
+		}
+		
+		return result;
+	}
+	
+	
+	public MQuery compareWithPolicy(MPolicy p2, boolean tupling, int debugLevel, int ceilingLevel)
+	throws MUserException
+	{
+		MExploreCondition exploreCondition = makeCompareCondition(this, p2);		
+		
+		// force the list to be IN ORDER (same ordering as vocab's)
+		List<String> publishList = new ArrayList<String>();
+		for(Variable v : vocab.requestVectorOrder)
+			publishList.add(v.name());
+		
+		return MQuery.createFromExplore(
+				exploreCondition, 
+				publishList, new HashMap<String, Set<List<String>>>(), tupling, debugLevel, ceilingLevel);
+	}
+	
+	public MQuery compareWithPolicy(MPolicy p2) 
+	throws MUserException
+	{
+		
+		return compareWithPolicy(p2, false, 0, 6);
+		
+				
+		
 		// All query creation must go through MGQuery.queryThesePolicies. So construct a query string.
-		String thequery = "";
+/*		String thequery = "";
 		String reqvars = "";
 		String suffix = "";
 	
+		
+		
+		
 		// A problem with incompatible vocabularies will be handled below, by the queryThesePolicies method.
 		
 		for(Variable v : vocab.requestVectorOrder)
@@ -307,7 +388,7 @@ public abstract class MPolicy extends MIDBCollection
 		pollist.add(p2);
 				
 		MQuery result = MQuery.queryThesePolicies(thequery, pollist);
-		return result;
+		return result;*/
 		
 	}
 	
@@ -393,7 +474,7 @@ public abstract class MPolicy extends MIDBCollection
 	public abstract List<String> ruleIDBsWithHigherPriorityThan(String rulename);
 	
 	public void addDisjointAssumption(String name1, String name2) 
-	throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadQueryString, MGEArityMismatch, MGEManagerException, MGEBadIdentifierName
+	throws MUserException
 	{
 		// Allow the Scheme UI to say things like "A subject will never have role=faculty and role=student at the same time."
 		// This is convenient, but hides potential policy flaws. Add such constraints at your own risk.
@@ -404,7 +485,7 @@ public abstract class MPolicy extends MIDBCollection
 	}
 	
 	public void addSingletonAssumption(String name)
-	throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadQueryString, MGEArityMismatch, MGEManagerException, MGEBadIdentifierName
+	throws MUserException
 	{
 		// "There is precisely one action." See above for warning.
 		assumptions.addConstraintSingleton(name);
@@ -412,7 +493,7 @@ public abstract class MPolicy extends MIDBCollection
 	}
 	
 	public void addDisjointPrefixAssumption(String prefix)
-	throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadQueryString, MGEArityMismatch, MGEManagerException, MGEBadIdentifierName
+	throws MUserException
 	{
 		// "All types with this name prefix are disjoint." This is used to say that certain XACML attributes cannot have >1 value...
 		
@@ -428,7 +509,7 @@ public abstract class MPolicy extends MIDBCollection
 	}
 
 	public void addSubsetAssumption(String child, String parent)
-	throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadQueryString, MGEArityMismatch, MGEManagerException, MGEBadIdentifierName
+	throws MUserException
 	{
 		// "Something in child is always in parent as well."
 		assumptions.addConstraintSubset(child, parent);
@@ -516,9 +597,11 @@ public abstract class MPolicy extends MIDBCollection
 		return result;
 	}
 	
-	public abstract void initIDBs()
-	throws MGEBadCombinator, MGEUnknownIdentifier, MGEArityMismatch, 
-	       MGEBadQueryString, MGEManagerException, MGEBadIdentifierName;
+	public void initIDBs()
+	throws MUserException
+	{
+		super.initIDBs();
+	}
 	  
 	public void setName(String n)
 	{
@@ -567,7 +650,7 @@ public abstract class MPolicy extends MIDBCollection
 	// Amazon SQS (JSON)
 	
 	public static MPolicy loadSQS(String sFileName) 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEUnsupportedSQS, MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString
+	throws MUserException
 	{
 		return SQSReader.loadSQS(sFileName);
 	}

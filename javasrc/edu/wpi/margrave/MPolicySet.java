@@ -49,8 +49,10 @@ public class MPolicySet extends MPolicy
 	}
 	
 	public void initIDBs() 
-	  throws MGEBadCombinator, MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
+	  throws MUserException
 	{
+		super.initIDBs();
+		
 		// Recalling this method should "reset" all IDBs. Start out with a clean slate:		
 		idbs.clear();
 				

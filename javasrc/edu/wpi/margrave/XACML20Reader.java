@@ -138,8 +138,7 @@ class XACML20Reader {
 	}
 	
 	static void doComplianceTests(String schemaFileName, String policyDir) 
-	throws MGEUnsupportedXACML, MGEBadIdentifierName, MGEUnknownIdentifier, 
-	MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString
+	throws MUserException
 	{		
 			// For each compliance test
 			
@@ -355,7 +354,7 @@ class XACML20Reader {
 	}
 	
 	public static MPolicy loadXACML20(String sFileName, String sSchemaFileName, String sPolicyDir) 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEUnsupportedXACML, MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString, SAXException
+	throws MUserException, SAXException
 	{
 		try
 		{
@@ -1072,7 +1071,7 @@ class XACML20Reader {
 	}
 	
 	static MPolicy findPolicyWithId(String polid, String schemaFileName, String policyDir, String fieldname) 
-	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEUnsupportedXACML, MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString, SAXException
+	throws MUserException, SAXException
 	{		
 		// Don't show errors for parser problems
 		MGErrorHandler eh = new MGErrorHandler(false, false);
@@ -1105,7 +1104,7 @@ class XACML20Reader {
 	}
 	
 	static MPolicy recXACMLPolicyTree(Node n, MVocab env, String schemaFileName, String policyDir)
-	throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException, MGEBadCombinator, MGEArityMismatch, MGEBadQueryString, DOMException, SAXException
+	throws MUserException, DOMException, SAXException
 	{
 		String nodename = n.getNodeName();		
 		

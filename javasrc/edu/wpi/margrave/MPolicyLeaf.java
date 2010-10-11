@@ -58,27 +58,6 @@ public class MPolicyLeaf extends MPolicy
 		disjunctionOfRules_cache = new HashMap<String, Formula>();
 	}
 			
-	/**
-	 * 
-	 * Tests whether a given policy can be compared realistically with this one.
-	 * In other words, whether they have the same vocabulary object. 
-	 * 
-	 * Note that this sameness is at the object level, so two policies loading the same vocabulary
-	 * need to use the same MGVocab object.
-	 * 
-	 * @param p A policy to attempt comparison with.
-	 * @return true if comparison with p is valid, otherwise false.
-	 * @see MPolicy
-	 * @see MVocab
-	 * 
-	 */
-	public boolean canDiffWith(MPolicyLeaf p)
-	{
-		// Does p have the same vocabulary?
-		if(p.vocab.equals(vocab))
-			return true;		
-		return false; 
-	}	
 
 	public void printPolicyInfo()
 	{
@@ -216,10 +195,11 @@ public class MPolicyLeaf extends MPolicy
 		throw new MGEUnknownIdentifier(rulename+" is not a rule name in policy "+name);
 	}
 	
-	public void initIDBs()
-	throws MGEBadCombinator, MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
+	public void initIDBs()	
+	throws MUserException
 	{				
-
+		super.initIDBs();
+		
 		idbs.clear();
 		disjunctionOfRules_cache.clear();
 		

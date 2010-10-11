@@ -67,8 +67,6 @@ public class MCommunicator
 	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
 	static final char cEOF = (char)0;
 	
-	static boolean xmlCommand;
-	
 	static String sLogFileName = "margrave-log.txt";
 	static BufferedWriter outLog = null; 
 	static FileWriter outLogStream = null;
@@ -93,12 +91,6 @@ public class MCommunicator
 		writeToLog("\n\n");
 		
 
-		//if(args.length > 1) {
-			xmlCommand = true;
-		//}
-		//else {
-		//	xmlCommand = false;;
-		//}
 		
 		readCommands();
 
@@ -185,13 +177,50 @@ public class MCommunicator
         		if (n.getNodeType() == Node.ELEMENT_NODE)
         		{
 
-        			if (type.equalsIgnoreCase("EXPLORE"))
+        			if (type.equalsIgnoreCase("COMPARE"))
+        			{
+        				n = n.getFirstChild();
+        				// n is now the COMPARE element
+        				    					
+    					Node tuplingNode = getTuplingNode(n);
+    					Node debugNode = getDebugNode(n);
+    					Node ceilingNode = getCeilingNode(n);
+    					
+    					Node pol1 =  getChildNode(n, "POLICY1");
+    					Node pol2 =  getChildNode(n, "POLICY2");
+    					    					
+    					String polname1 = getPolicyName(pol1);
+    					String polname2 = getPolicyName(pol2);
+
+    					List<String> publ = null;
+    					Boolean tupling = false;
+    					Integer debugLevel = 0;
+    					Integer ceilingLevel = 6; 
+
+    					// Publish, under make no sense
+    					
+    					if (tuplingNode != null) 
+    						tupling = true;    					
+    					if (debugNode != null) 
+    						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));    					
+    					if (ceilingNode != null) 
+    						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));    					
+    					    					
+    					writeToLog("\nCOMPARE policies: "+polname1+ ", "+polname2+"\n"); 
+    					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
+    			
+    					// Exception will be thrown and caught by caller to return an EXCEPTION element.
+    					theResponse = MEnvironment.returnCompareQuery(originalXMLText,
+    								polname1, polname2,    								    							
+    								tupling, debugLevel, ceilingLevel);    			      					    					
+        				
+        			}
+        			else if (type.equalsIgnoreCase("EXPLORE"))
         			{
         				// Catch and re-throw any exception, because if EXPLORE fails,
         				// need to reset lastResult to -1.
         				try
-        				{
-        				        				
+        				{        				        			
 	        				n = n.getFirstChild();
 	        				String name = n.getNodeName();
 	        				if (name.equalsIgnoreCase("EXPLORE"))
@@ -250,9 +279,9 @@ public class MCommunicator
 	        					
 	        			
 	        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
-	        						result = MQuery.createFromExplore(
-	        								exploreCondition.addSeenIDBCollections(under), 
-	        								publ, idbOut, tupling, debugLevel, ceilingLevel);
+	        					result = MQuery.createFromExplore(
+	        							exploreCondition.addSeenIDBCollections(under), 
+	        							publ, idbOut, tupling, debugLevel, ceilingLevel);
 	        			
 	      
 	        					writeToLog("AT END OF EXPLORE");
@@ -486,51 +515,7 @@ public class MCommunicator
         				else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
         					theResponse = MEnvironment.getRulesIn(pname, true, decname);
         				}
-        			}
-        			
-        			else if (type.equalsIgnoreCase("COMPARE"))
-        			{
-        				// TODO support compare
-        				
-        				String pol1 = "";//getCompareFirstPolicy(n);
-        				String pol2 = "";//getCompareSecondPolicy(n);
-        				
-                        HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
-                        Boolean tupling = false;
-    					Integer debugLevel = 0;
-    					Integer ceilingLevel = 6; 
-    					
-    					Node idbOutputNode = getIdbNode(n);
-    					Node tuplingNode = getTuplingNode(n);
-    					Node debugNode = getDebugNode(n);
-    					Node ceilingNode = getCeilingNode(n);
-    				
-    					if (idbOutputNode != null) {
-    						NodeList idbChildNodes = idbOutputNode.getChildNodes();
-    						
-    						idbOut = atomicFormulasToHashmap(idbChildNodes);
-    					}
-    					if (tuplingNode != null) { //For now if the node exists just set tupling to true
-    						tupling = true;
-    					}
-    					if (debugNode != null) {
-    						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
-    					}
-    					if (ceilingNode != null) {
-    						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
-    					}
-    					
-    					//theResponse = MEnvironment.doCompare(pol1, pol2, idbOut, tupling, debugLevel, ceilingLevel);
-    					
-    					/*
-        				// OUTMODIFIER:outmod 
-        				IDBCLAUSE:idbout 
-        				TUPLINGSWITCH:tupling DEBUGSWITCH:debuglevel CEILINGSWITCH:sizeceiling
-        				{: RESULT = MEnvironment.doCompare(pol1, pol2, 
-        						//outmod, 
-        						idbout, tupling, debuglevel, sizeceiling);  :}
-        				; */
-        			}
+        			}        			        		
         			
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
@@ -1014,6 +999,9 @@ public class MCommunicator
         //Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
         private static String getNodeAttribute(Node n, String nodeName, String attributeName)
         {
+        	if(n == null)
+        		return null;
+        	
         	Node node = null;
         	if (n.getNodeName().equalsIgnoreCase(nodeName))
         	{
@@ -1273,7 +1261,7 @@ public class MCommunicator
    					writeToLog("========================================\n========================================\n");
    					writeToLog((new Date()).toString());
    					writeToLog("\nExecuting command: " + theCommand.toString() + "\n");
-   					executeCommand(theCommand.toString());
+   					handleXMLCommand(theCommand.toString());
 
    					theCommand = new StringBuffer();
    				}
@@ -1295,31 +1283,7 @@ public class MCommunicator
    			System.err.flush();
    		}
      }
-     
-     protected static void executeCommand(String command) {
-    	 if(xmlCommand) {
-    		 handleXMLCommand(command);
-    	 }
-    	 else {
-    		 //handleTextCommand(command);
-    	 }
-     }
-
-
-    /* protected static void handleTextCommand(String command) {
-    	 // Command is complete. Deal with it.
-    	 Document theResponse = MEnvironment.commandSilent(command);
-
-    	 try {
-    		 out.write(transformXML(theResponse));
-    	 } catch (IOException e) {
-    		 // TODO Auto-generated catch block
-    		 e.printStackTrace();
-    	 }
-    	 out.flush(); // ALWAYS FLUSH!
-    	 System.err.flush(); // just in case
-
-     }*/
+          
      
      protected static String transformXMLString(Document theResponse) 
      {

@@ -67,7 +67,7 @@ class MVariableVectorAssertion
 	}
 	
 	public int hashCode()
-	{
+	{		
 		if(positive)
 			return sortExpression.hashCode();
 		return sortExpression.hashCode() * -1;
@@ -496,7 +496,7 @@ class MExploreCondition
 	
 	MExploreCondition and(MExploreCondition oth)	
 	{
-		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);
+		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
@@ -507,8 +507,8 @@ class MExploreCondition
 	}
 
 	MExploreCondition or(MExploreCondition oth)	
-	{
-		fmla = MFormulaManager.makeOr(fmla, oth.fmla);
+	{		
+		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
@@ -889,81 +889,6 @@ public class MEnvironment
 		}
 	}
 	
-
-/*	static public Document command(String cmd, boolean silent)
-	{
-		lastCommandReceived = cmd.trim();
-		Reader reader = new StringReader(cmd);
-		MCommandLexer theLexer = new MCommandLexer(reader);
-		MCommandParser theParser = new MCommandParser(theLexer);			
-		
-		try
-		{
-			Symbol result;
-			if(debugParser)
-				result = theParser.debug_parse();
-			else
-				result = theParser.parse();	
-			
-			// May not be a query. May be something else (RENAME or INFO command)							
-			
-			// EXPLORE
-			// or 
-			// COMPARE
-			if (result.value instanceof MQuery)
-			{			
-				MQuery qry = (MQuery) result.value;
-			
-				// May return null if an internal error.
-				if(qry == null)
-				{
-					errorStream.println("-> Command failed.");
-					return errorResponse(sFailure, sQuery, cmd);
-				}
-				
-				// Compile the query and get the result handle.
-				MQueryResult qryResult = qry.runQuery();
-				
-				// TODO Don't store more than one for now.
-				envQueryResults.put(0, qryResult);
-				return resultHandleResponse(0);
-												
-			}  // end: a query
-			
-			// Else, it's an INFO command etc.
-			else
-			{
-				Document resDoc;
-				if(result.value instanceof Document)
-					resDoc = (Document) result.value;
-				else
-					resDoc = errorResponse(sNotDocument, "", "");
-
-				
-				return resDoc;
-			}
-
-		}
-		catch(MParserException e)
-		{
-			return exceptionResponse(e);		
-		}
-		catch(MLexerException e)
-		{
-			return exceptionResponse(e);
-		}		
-		catch(MSemanticException e)
-		{
-			return exceptionResponse(e);
-		}
-		catch(Exception e)
-		{
-			// Unexpected! Bad exception			
-			return exceptionResponse(e);
-		}
-		
-	}
-	*/
 	
 	static public Document printInfo(String id)
 	{
@@ -1226,68 +1151,6 @@ public class MEnvironment
 		return boolResponse(overwrote);		
 	}
 	
-	/*static public Document doCompare(String pol1, String pol2, Map<String, Set<List<String>>> idbOutputMap,
-			Boolean tupling, Integer debuglevel, Integer sizeceiling)
-	{
-		// Pol1 and Pol2 are policies to compare.
-		// If their vocabs are incompatible the query will throw an exception.
-		
-		MIDBCollection thePol1 = getPolicyOrView(pol1);
-		MIDBCollection thePol2 = getPolicyOrView(pol2);
-		
-		// Construct the request vector
-		// Better be the same variable ordering!
-		String reqvars = "";
-		for(Variable v : thePol1.varOrdering)
-		{
-			if(reqvars.length() < 1)
-				reqvars = v.name();
-			else
-				reqvars = reqvars.concat(", "+v.name());			
-		}
-		
-		String theCmd = "";
-		
-		// If P1 ever decides this way, but P2 does not. (And vice versa.)
-		// Note that since we check in both directions, the N/a <-> non-N/a possibilities are covered. 
-		for(String d : thePol1.vocab.decisions)
-		{
-			if(theCmd.length() < 1)
-				theCmd = "EXPLORE ";
-			else
-				theCmd += " OR ";
-			
-			// Check forward
-			theCmd += "(" + 
-			pol1+":"+d+"("+reqvars+")"+
-			" AND NOT "+
-			pol2+":"+d+"("+reqvars+")"+			
-			") OR (" +
-			
-			// Check backward
-			pol2+":"+d+"("+reqvars+")"+
-			" AND NOT "+
-			pol1+":"+d+"("+reqvars+")"+	
-			")\n";
-		}
-		
-		// Add stock publish statement 
-		theCmd += " PUBLISH "+reqvars;							
-		
-		if(tupling)
-			theCmd += " TUPLING ";
-		
-		if(debuglevel > 0)
-			theCmd += " DEBUG "+debuglevel+" ";
-		
-		theCmd += " CEILING "+sizeceiling+" ";
-
-		//MEnvironment.errorStream.println("---- ");
-		//MEnvironment.errorStream.println(thePol1.varOrdering);
-		//MEnvironment.errorStream.println(theCmd);
-				
-		return command(theCmd);		
-	}*/
 	
 	
 	static protected void setLast(MQuery qry)
@@ -1312,59 +1175,7 @@ public class MEnvironment
 		return result.toString();		
 	}
 	
-
-	/*public static Document showNextModel(Integer id)
-	{
-		MQueryResult aResult = getResultObject(id);
-		MInstanceIterator anIterator = getIteratorFor(id);
-		if(aResult == null)
-			return errorResponse(sUnknown, sResultID, id);
-		if(anIterator == null)
-			return errorResponse(sNoIterator, "", id);
-		
-		try
-		{
-			MSolutionInstance sol = anIterator.next();
-			String str = aResult.getPrettySolution(sol, anIterator);
-			return stringResponse(str);
-		}
-		catch(MGENoMoreSolutions e)
-		{
-			return noSolutionResponse(id);
-		}
-
-	}*/
 	
-	/*public static Document showFirstModel(Integer id)
-	{
-		MQueryResult aResult = getResultObject(id);		
-		if(aResult == null)
-			return errorResponse(sUnknown, sResultID, id);
-		
-		try
-		{	
-			// create new iterator
-			MInstanceIterator anIterator = aResult.getTotalIterator();
-			
-			// store it 			
-			envIterators.put(Integer.valueOf(id), anIterator);
-			
-			// return the first model
-			MSolutionInstance sol = anIterator.next();
-			String str = aResult.getPrettySolution(sol, anIterator);			
-			return stringResponse(str);
-		}
-		catch(MGENoMoreSolutions e)
-		{
-			return noSolutionResponse(id);
-		}
-		catch(MGException e)
-		{
-			return exceptionResponse(e);
-		}
-		 
-	}*/
-
 	protected static MInstanceIterator getIteratorFor(Integer id)
 	{
 		return envIterators.get(id);
@@ -2457,5 +2268,42 @@ public class MEnvironment
 		return xmldoc;
 	}
 
-}
+	
+	
+	public static Document returnCompareQuery(String originalXMLText,
+			String polname1, String polname2,
+			Boolean tupling, Integer debugLevel,
+			Integer ceilingLevel)
+	throws MUserException
+	{
+		
+		// Get the policies
+		MIDBCollection coll1 = envIDBCollections.get(polname1);
+		MIDBCollection coll2 = envIDBCollections.get(polname2);		
+		if(coll1 == null)
+			return errorResponse(sUnknown, sPolicy, polname1);
+		if(coll2 == null)
+			return errorResponse(sUnknown, sPolicy, polname2);
 
+		// should be a different error message
+		if(!(coll1 instanceof MPolicy))
+			return errorResponse(sUnknown, sPolicy, polname1);
+		if(!(coll2 instanceof MPolicy))
+			return errorResponse(sUnknown, sPolicy, polname2);
+				
+		MPolicy pol1 = (MPolicy)coll1;
+		MPolicy pol2 = (MPolicy)coll2;
+		
+		// Create exploreCondition
+		MQuery theQuery = pol1.compareWithPolicy(pol2);
+							
+		theQuery.debug_verbosity = debugLevel;
+		theQuery.sizeCeiling = ceilingLevel;
+		theQuery.doTupling = tupling;
+		
+		return returnQueryResponse(theQuery, originalXMLText);
+	}
+
+	
+	
+}

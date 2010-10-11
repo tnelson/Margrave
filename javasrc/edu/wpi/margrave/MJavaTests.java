@@ -162,6 +162,7 @@ public class MJavaTests
 		ArrayList<MIDBCollection> pollist = new ArrayList<MIDBCollection>();
 
 		qry = pol.compareWithPolicy(pol2);
+		
 		//qry.debug_verbosity = 3;
 		countTest("Diff Policies (Basic)", qry, 3, 2, 3);
 		qry.addIDBOutputs(pol.getQualifiedIDBNameList());

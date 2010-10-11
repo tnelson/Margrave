@@ -59,6 +59,7 @@
  xml-make-atomic-formula-n
  xml-make-atomic-formula-y
  xml-make-explore-command
+ xml-make-compare-command
  xml-make-is-possible-command
  xml-make-debug
  xml-make-publish
@@ -1100,11 +1101,6 @@
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
-#;(define (xml-make-compare pol1 pol2)
-    `(COMPARE (,pol1 ,pol2)))
-#;(define (xml-make-compare-command pol1 pol2)
-    (xml-make-command "COMPARE" (list (xml-make-get type id))))
-
 (define (xml-make-under policy)
   `(UNDER ,policy))
 
@@ -1190,6 +1186,11 @@
 
 (define (xml-make-explore-command list-of-atomic-formulas list-of-modifiers)
   (xml-make-command "EXPLORE" (list (xml-make-explore list-of-atomic-formulas list-of-modifiers))))
+
+(define (xml-make-compare-command pol1 pol2 list-of-modifiers)
+  (xml-make-command "COMPARE" (list `(COMPARE (POLICY1 ,pol1) 
+                                              (POLICY2 ,pol2) 
+                                              ,@list-of-modifiers))))
 
 ;;LISTS
 (define (xml-make-generic-list list-name element-name attribute-name list-of-attribute-values)

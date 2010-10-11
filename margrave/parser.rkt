@@ -258,6 +258,7 @@
         
         (margrave-command 
          [(explore-statement) $1]
+         [(compare-statement) $1]
          [(create-statement) $1]
          [(add-statement) $1]
          
@@ -302,8 +303,7 @@
          [(COUNT numeric-id) (build-so (list 'COUNT $2) 1 2)]
          [(COUNT) (build-so (list 'COUNT) 1 1)]
          [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
-         [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3) 1 3)]
-         
+                  
          ; SHOW REALIZED and friends
          ; TN 8/26: replaced "populated" with "realized"
          [(SHOW REALIZED numeric-id atomic-formula-list) 
@@ -384,6 +384,11 @@
         (explore-statement
          [(EXPLORE condition) (build-so (list 'EXPLORE $2 empty) 1 2)]
          [(EXPLORE condition explore-modifiers-list) (build-so (list 'EXPLORE $2 $3) 1 3)])
+                
+        (compare-statement                  
+         [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]
+         [(COMPARE policy policy explore-modifiers-list) (build-so (list 'COMPARE $2 $3 $4) 1 4)]
+         )
         
         ;**************************************************
         ; parameters for GET (one/next, id of result object)
