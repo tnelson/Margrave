@@ -64,7 +64,8 @@
         ; third and fourth of the list are func syntax that create vocab, pol respectively
         ; So create an uber-func that does both
         [(equal? first-datum 'LOAD-POLICY)
-         (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns))))])
+         (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns)))
+                                                      #:syntax (second interns))])
            (make-simple-load-func (first policy-creation-list)
                                   (second policy-creation-list)
                                   (append (third policy-creation-list)

@@ -17,11 +17,14 @@
 
 #lang racket
 (require margrave/margrave-xml
-         srfi/13)
+         srfi/13
+         syntax/readerr)
 
 (provide evaluate-policy
          resolve-margrave-filename-keyword
-         safe-get-margrave-collection-path)
+         safe-get-margrave-collection-path
+         file-exists?/error
+         open-input-file/exists)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -60,6 +63,29 @@
   ; Avoid confusion: prevent mixed use of / and \ in the same path.
   (path->string (simplify-path result)))
 
+
+; file-exists?/error 
+; filename src-syntax -> boolean
+; If file does not exist, raises an error
+(define (file-exists?/error file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
+  (cond [(file-exists? file-name)
+         #t]
+        [(syntax? src-syntax)
+         (raise-read-error 
+          error-message
+          (syntax-source src-syntax)
+          (syntax-line src-syntax)
+          (syntax-column src-syntax)
+          (syntax-position src-syntax)
+          (syntax-span src-syntax))]
+        [else (raise-user-error error-message)]))
+
+; filename syntax -> port
+; If file does not exist, raises an exception. If syntax has been passed, will enable syntax highlighting.
+(define (open-input-file/exists file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
+  (and (file-exists?/error file-name src-syntax error-message)
+       (open-input-file file-name)))
+
 ;****************************************************************
 
 ; Initialize policy file name.
@@ -73,18 +99,18 @@
 
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
 
-(define (evaluate-policy raw-fn)
+(define (evaluate-policy raw-fn 
+                         #:syntax [src-syntax #f])
   
   ; If fn begins with <MARGRAVE>, replace with the path of the Margrave collections folder.
   (define fn (resolve-margrave-filename-keyword raw-fn))
       
   ;; Macro returns a func 
-  ;; Potential security issues here, calling eval on arbitrary code that we "promise" is an
-  ;; innocent policy definition. As soon as we have a language-level, stop using eval!
+  ;; TODO: would really like to stop using eval
   
   (parameterize ([read-case-sensitive #t])
-    (define file-port (open-input-file fn))
-    (define pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn))
+    (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
+    (define pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn src-syntax))
     
     ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
@@ -264,18 +290,24 @@
      
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
-     (lambda (local-policy-filename) 
-       (let* ((mychildren (list child ...))
-             
+     (lambda (local-policy-filename src-syntax) 
+       (define vocab-path (build-path (path-only local-policy-filename) 
+                                      (string-append (symbol->string 'vocabname) ".v")))
+       ; Produce a friendly error if the vocab doesn't exist
+       (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
+       
+       (let* ([mychildren (list child ...)]
+                           
              ; !!! TODO: Only using eval here because we had to in SISC;
               ; stop using it when switch to language-level
-             (vocab-macro-return                            
-              (call-with-input-file 
-                  (build-path (path-only local-policy-filename) 
-                              (string-append (symbol->string 'vocabname) ".v"))
-                (lambda (in-port) (eval (read in-port) margrave-policy-vocab-namespace))))
-             (vocab-name (first vocab-macro-return))
-             (vocab-commands (second vocab-macro-return)))
+             [vocab-macro-return                 
+              (call-with-input-file
+               vocab-path
+               (lambda (in-port) 
+                 (eval (read in-port) margrave-policy-vocab-namespace)))]
+             
+             [vocab-name (first vocab-macro-return)]
+             [vocab-commands (second vocab-macro-return)])
          
          ; In SISC, the above was: 
          ;                       (eval (read (open-input-file
