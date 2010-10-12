@@ -428,7 +428,8 @@
              [user-max-num (string->number user-max)])
         (write (string-append "Computed max size: " computed-max "\n"))
         (write (string-append "Max size: " (get-attribute-value stat-element 'max-size) "\n"))
-        (write (string-append "Result ID: " (get-attribute-value stat-element 'result-id) "\n"))
+        ; result-ID removed since it provides no useful information right now
+       ; (write (string-append "Result ID: " (get-attribute-value stat-element 'result-id) "\n"))
         (write (string-append "User max size: " user-max "\n"))
         (begin
           (when (< user-max-num computed-max-num)

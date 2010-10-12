@@ -7,6 +7,7 @@
                      scribble/manual
                      scribble/core))
 (provide multiline-racketblock
+         multiline-racketblock-noresult
          multiline-racketinput)
 
 
@@ -29,6 +30,15 @@
   (syntax-case syn ()
     [(_ the-string)
      #`(racketinput 
+        #,@(foldr append '()(map (lambda (x) (list `#, (tt ,x)
+                                                   `#, (linebreak) 
+                                                   `#, (hspace 2))) 
+                                 (port->lines (open-input-string (syntax->datum #'the-string))))))]))
+
+(define-syntax (multiline-racketblock-noresult syn)
+  (syntax-case syn ()
+    [(_ the-string)
+     #`(racketblock 
         #,@(foldr append '()(map (lambda (x) (list `#, (tt ,x)
                                                    `#, (linebreak) 
                                                    `#, (hspace 2))) 

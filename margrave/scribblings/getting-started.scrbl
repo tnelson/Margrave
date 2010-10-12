@@ -76,11 +76,11 @@ feedback and suggestions (including feature requests).
         
         @url{http://racket-lang.org/download/}}
   @item{Open DrRacket (the graphical development environment for Racket) and select the 
-        @onscreen{File|Install .plt file} menu option. Enter this URL in the @tt{Web} tab:
+        @onscreen{File|Install .plt file} menu option. Enter this URL in the @onscreen{Web} tab:
         
         @url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
         
-        Alternatively, download the .PLT file linked above and enter its location in the @tt{File} tab.}
+        Alternatively, download the .PLT file linked above and enter its location in the @onscreen{File} tab.}
   @;@item{Extract the distribution archive to the location of your choice.}
  @; @item{Set your MARGRAVE_HOME environment variable to the location of
  @;       margrave-full-main.rkt in the extracted distribution.}
@@ -177,9 +177,12 @@ Java engine, and display a Margrave prompt on the bottom half of the screen.
 @racketinput[]
 
 Margrave runs queries against policies, so let's start by loading a policy. 
-Click after the prompt in the bottom window and type:
+Click after the prompt in the bottom window, type:
 
 @racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";")]
+
+and press the enter key. Margrave will reply with:
+
 @racketblock[#,(racketresultfont (tt "ConferencePolicy1"))]
 
 When loading policies, if you start a file path with @tt{*MARGRAVE*}, the @tt{*MARGRAVE*}
@@ -530,7 +533,7 @@ paper. (For details, see the section ``@secref{policies}''.)
 
 Paste the following script into DrRacket:
 
-@multiline-racketblock[                       
+@multiline-racketblock-noresult[                       
 "#lang margrave
 LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";
 EXPLORE ConferencePolicy1:Deny(s, a, r) AND 
@@ -562,17 +565,17 @@ satisfied. The @tt{SHOW ALL}, @tt{SHOW ONE}, and @tt{SHOW NEXT}
 commands format query results and display them 
 in this concise format. The scenario above says:
 ``The query is satisfied when the subject is
-both a @tt{reviewer} and an @tt{author}, the resource is a @tt{paper}, and 
-the action is @tt{readpaper} (i.e. reading the paper), provided that
-the subject is @tt{conflicted} on the paper but not @tt{assigned} to it.''
+both a @(racketresultfont @tt{reviewer}) and an @(racketresultfont @tt{author}), the resource is a @(racketresultfont @tt{paper}), and 
+the action is @(racketresultfont @tt{readpaper}) (i.e. reading the paper), provided that
+the subject is @(racketresultfont @tt{conflicted}) on the paper but not @(racketresultfont @tt{assigned}) to it.''
 
-Here, @tt{s}, @tt{a}, and @tt{r} correspond to the variables that appear in
+Here, @(racketresultfont @tt{s}), @(racketresultfont @tt{a}), and @(racketresultfont @tt{r}) correspond to the variables that appear in
 the query.
-@tt{Size = 3} means that in this scenario, there were 3 objects. 
-In this case, one is @italic{both} an @tt{author} and a @tt{reviewer}.
-Another is a @tt{paper}. The third represents the action @tt{readpaper}.
+@(racketresultfont @tt{Size = 3}) means that in this scenario, there were 3 objects. 
+In this case, one is @(racketresultfont @italic{both}) an @(racketresultfont @tt{author}) and a @(racketresultfont @tt{reviewer}).
+Another is a @(racketresultfont @tt{paper}). The third represents the action @(racketresultfont @tt{readpaper}).
 
-@tt{Conflicted} and @tt{assigned} are
+@(racketresultfont @tt{Conflicted}) and @(racketresultfont @tt{assigned}) are
 binary @tech{predicates} mentioned in the policy. Any such facts 
 will be printed after information about individual variables.
 
@@ -580,7 +583,7 @@ The @(racketresultfont @tt{STATISTICS}) section gives technical information abou
 
 Note: When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-@tt{s: reviewer subject}
+@(racketresultfont @tt{s: reviewer subject})
 because a reviewer is always a subject in this policy.
 
 
