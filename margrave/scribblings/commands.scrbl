@@ -4,6 +4,8 @@
 
 @title{Margrave's Command Language}
 
+There are three kinds of Margrave commands: queries, presentation commands, and system commands.
+
 @section[#:tag "query-language"]{The Query Sub-Language}
 
 @subsection{@tt{EXPLORE}}
@@ -49,14 +51,14 @@ its arity is 1, and it is called a @deftech{unary} predicate.
 
 A @deftech{variable vector} is one of:
 
-@itemlist[ @item{@bold{x}, where x is a variable symbol;}
-          @item{@bold{<@italic{id}:req>}, where @italic{id} is the name of a policy or saved query;}
+@itemlist[ @item{@tt{x}, where @tt{x} is a variable symbol;}
+          @item{@tt{<id:req>}, where @tt{id} is the name of a policy or saved query;}
           @item{A comma-delimited sequence of @tech{variable vector}s.}
           ]
 
-The @tech{variable vector} of the form <id:req> is equivalent to explicitly stating the request vector of the vocabulary associated with @italic{id}.
+The @tech{variable vector} of the form @tt{<id:req>} is equivalent to explicitly stating the request vector of the vocabulary associated with @tt{id}.
 
-Each @tech{variable vector} has an associated @italic{arity}. A single variable @bold{x} has arity 1. An @bold{<@italic{id}:req>} reference has the same arity as @italic{id}'s @tech{request vector}. A comma-delimited sequence of vectors has arity equal to the sum of its sub-vectors' arities.
+Each @tech{variable vector} has an associated @italic{arity}. A single variable @tt{x} has arity 1. A @tt{<id:req>} reference has the same arity as @tt{id}'s @tech{request vector}. A comma-delimited sequence of vectors has arity equal to the sum of its sub-vectors' arities.
 
 @; --------------------------------------------------------------
 A <condition> is a boolean combination (via @tt{AND}, @tt{OR}, @tt{IFF}, @tt{IMPLIES}, @tt{NOT}, and parentheses) of @tech{atomic formula}s.
@@ -124,7 +126,7 @@ If the <condition> does not explicitly refer to a policy, the query must include
 The @deftech{@tt{PUBLISH}} clause dictates which variables in the query condition are published for use in later queries. 
 
 The @deftech{@tt{TUPLING}} clause activates the optional tupling optimization. In order to qualify for tupling, 
-all of the query's saved-query predicates (if any) must refer to saved queries that @tech{@tt{PUBLISH}}ed all of their variables. 
+all of the query's saved-query predicates (if any) must refer to saved queries that @tt{PUBLISH}ed all of their variables. 
 
 The syntax of the @deftech{@tt{INCLUDE}} clause differs depending on whether tupling has been enabled.
 
@@ -176,13 +178,13 @@ Running @tt{COMPARE} on a pair of policies is equivalent to writing an @tt{EXPLO
 
 The presentation sub-language is concerned with getting the results of the previous query.
                                                                                        
-If you just want to know if any scenarios exist to satisfy a query, follow it up with the @tt{IS POSSIBLE?} command.
+@deftech{@tt{IS POSSIBLE?}}: If you just want to know if any scenarios exist to satisfy a query, follow it up with the @tt{IS POSSIBLE?} command.
 
 To get concrete scenarios, use:
 
 @deftech{@tt{SHOW ALL}}: Returns a string containing @italic{all} satisfying scenarios, pretty-printed for human consumption. @margin-note{Beware casual use of the SHOW ALL and GET ALL commands, as some queries can have enormous numbers of satisfying scenarios.} 
 
-@deftech{@tt{SHOW ONE}}: Returns a string containing a single satisfying scenario that Margrave finds, pretty-printed for human consumption.
+@deftech{@tt{SHOW ONE}}: Returns a string containing a single satisfying scenario that Margrave finds (in no particular order), pretty-printed for human consumption.
 
 @deftech{@tt{SHOW NEXT}}: Returns a string containing a @italic{different} satisfying scenario, if one exists. Each successive use of @tt{SHOW NEXT} will produce a different scenario until all have been given. Using @tt{SHOW ONE} or defining a new query with @tt{EXPLORE} will cause Margrave to forget which scenarios it has already printed. @margin-note{Without a preceding @tt{SHOW ONE}, the first @tt{SHOW NEXT} will behave like @tt{SHOW ONE}.}
 
@@ -214,11 +216,6 @@ Given two lists (``candidates'' and ``cases'') of @tech{atomic IDB formula}s,
 returns a map taking each case to a separate @tt{SHOW (UN)REALIZED} list
 where the case was included in the <condition>.
 
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!! TODO: import actual semantics from latex? May be less confusing than that paragraph.
-!!! -- TN
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 The Margrave paper @cite{nbdfk10} contains more information on the subtleties of the @tt{SHOW REALIZED} command,
 and the example files contain sample uses. @tt{SHOW REALIZED} is especially useful when reasoning about interactions between rules.
@@ -287,7 +284,7 @@ Now you can write a single query that refers to both policies, such as this part
 
 @tt{EXPLORE policy_old:deny(x) AND policy_new:permit(x)}
 
-You can also use the RENAME command to save the "last" query created under a unique name:
+You can also use the @tt{RENAME} command to save the @tt{last} query created under a unique name:
 
 @tt{RENAME last otherquery}
 

@@ -11,12 +11,12 @@
 
 Welcome to Margrave!
 
-Margrave is a tool for analyzing access-control and configuration
-policies (such as firewall policies). 
-Margrave allows users to ask questions about the 
-behavior of their policies, such as ``Can a student ever access
-another student's grades?'' or ``Did my changes to this firewall allow
-any unexpected new traffic?'' 
+@;Margrave is a tool for analyzing access-control and configuration
+@;policies (such as firewall policies). 
+@;Margrave allows users to ask questions about the 
+@;behavior of their policies, such as ``Can a student ever access
+@;another student's grades?'' or ``Did my changes to this firewall allow
+@;any unexpected new traffic?'' 
 
 @;The following examples demonstrate how to get started using Margrave.
 @;If you have not yet installed Margrave, see @secref{install}. 
@@ -76,11 +76,11 @@ feedback and suggestions (including feature requests).
         
         @url{http://racket-lang.org/download/}}
   @item{Open DrRacket (the graphical development environment for Racket) and select the 
-        @italic{File -> Install .plt file} menu option. Enter this URL in the @italic{Web} tab:
+        @onscreen{File|Install .plt file} menu option. Enter this URL in the @tt{Web} tab:
         
         @url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
         
-        Alternatively, download the .PLT file linked above and enter its location in the @italic{File} tab.}
+        Alternatively, download the .PLT file linked above and enter its location in the @tt{File} tab.}
   @;@item{Extract the distribution archive to the location of your choice.}
  @; @item{Set your MARGRAVE_HOME environment variable to the location of
  @;       margrave-full-main.rkt in the extracted distribution.}
@@ -96,22 +96,19 @@ feedback and suggestions (including feature requests).
 
 @; ^^^^^ IF adding this back in, explain why they care (If you WANT to run DrRacket from outside your command prompt...)
 
-Your Margrave installation is in a location that depends on your username and the version of Racket you have installed. 
+Your Margrave install directory depends on your username and the version of Racket you have installed. 
 Every time you run Margrave, it will tell you where it is installed. For instance:
 
-@verbatim|{
-Searching for java executable ...
+@multiline-racketblock[
+"Searching for java executable ...
 Using the java executable in: /usr/bin/java
 --------------------------------------------------
 Starting Margrave's Java engine...
-    Margrave path was: /export/users1/tn/Racket/5.0.1/collects/margrave
-}|
+    Margrave path was: /users/tn/Racket/5.0.1/collects/margrave"]
 
-would tell you that Margrave is installed in @tt{/export/users1/tn/Racket/5.0.1/collects/margrave}.
+would tell you that Margrave is installed in @tt{/users/tn/Racket/5.0.1/collects/margrave}.
 
-Now that Margrave is installed, 
-@;see @secref["running-full"] for instructions on running it.
-see @secref["running-margrave"] for instructions on running it.
+@;Now that Margrave is installed, see @secref["running-margrave"] for instructions on running it.
 
 @;--------------------------------------------------------------------
 @section[#:tag "running-margrave"]{Running Margrave}
@@ -179,8 +176,8 @@ Java engine, and display a Margrave prompt on the bottom half of the screen.
 
 @racketinput[]
 
-Margrave runs queries over policies, so let's start by loading a policy. 
-Click on the bottom window and type:
+Margrave runs queries against policies, so let's start by loading a policy. 
+Click after the prompt in the bottom window and type:
 
 @racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";")]
 @racketblock[#,(racketresultfont (tt "ConferencePolicy1"))]
@@ -208,7 +205,6 @@ assigned = {}
 STATISTICS:  
 Computed max size: 3 
 Max size: 3 
-Result ID: 0 
 User max size: 6 
 ********************************************************"]
 
@@ -227,7 +223,6 @@ assigned = {[s, r]}
 STATISTICS: 
 Computed max size: 3
 Max size: 3
-Result ID: 0
 User max size: 6
 ********************************************************"]
 
@@ -235,7 +230,7 @@ If Margrave finds no more solutions, it will say so.
 
 You can display @italic{all} the scenarios in the result with the @tt{SHOW ALL} command:
 
-@racketinput[#, "SHOW ALL;"]
+@racketinput[#, (tt "SHOW ALL;")]
 
 (Results omitted.)
 
@@ -255,10 +250,9 @@ You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIE
 STATISTICS: 
 Computed max size: 3
 Max size: 3
-Result ID: 0
 User max size: 6"]
 
-Queries can involve multiple policies. Let's load a second policy and try asking how the two differ:
+Queries can involve multiple policies. Let's load a second policy and try asking how the permit different requests:
 
 @racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";")]
 @racketblock[#, (racketresultfont (tt "ConferencePolicy2"))]
@@ -282,11 +276,10 @@ assigned = {[s, r]}
 STATISTICS: 
 Computed max size: 3
 Max size: 3
-Result ID: 0
 User max size: 6
 ********************************************************"]
 
-Since queries like this one can completely describe how new and old versions of a policy disagree, we call queries like this @deftech{change-impact} queries.
+Since queries like this one completely describe how new and old versions of a policy disagree, we call them @deftech{change-impact} queries.
 
 It can be cumbersome to manually write change-impact queries for policies with many decisions, so we provide a shortcut with the @tt{COMPARE} command:
 
@@ -308,12 +301,12 @@ Margrave commands are case-insensitive. The following queries are equivalent:
 @subsection[#:tag "margrave-scripts"]{Tutorial: Margrave Scripts}
 
 Of course, re-entering commands at the prompt can be tedious. You can avoid re-entering commands by using a script instead.
-Margrave scripts are sequences of Margrave commands preceded by @bold{#lang margrave}. 
+A Margrave script is a sequence of semicolon-terminated Margrave commands preceded by @bold{#lang margrave}. 
 
 Open a new DrRacket editor and change the first line to
 @tt{#lang margrave}. Instead of clicking @onscreen{Run} right away, add the following lines just under the @tt{#lang margrave} line:
 
-@multiline-racketinput[
+@multiline-racketblock[
 "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\";
 LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";
 EXPLORE conferencepolicy1:permit(s, a, r);
@@ -321,7 +314,7 @@ SHOW ONE;"]
 
 Then click @onscreen{Run}. 
 In the previous tutorial, you created and ran an empty script to get to
-the prompt immediately. Here, Margrave executes those four commands before giving you a prompt:
+the prompt immediately. In this case, however, Margrave executes those four commands before giving you a prompt:
 
 @multiline-racketblock[
 "ConferencePolicy1
@@ -385,7 +378,9 @@ the directory @tt{/myfiles/Margrave/IOS}, you should invoke:
 
 @multiline-racketinput["LOAD IOS \"/myfiles/Margrave/IOS/config.txt\";"]
 
-For detailed examples of running queries in IOS, see the "ios-demo" script
+@margin-note{If the configuration contains unsupported IOS commands, Margrave prints a warning as it processes the file.}
+
+For detailed examples of running queries in IOS, see the @tt{ios-demo.rkt} script
 in the @tt{examples/scripts} sub-directory of your Margrave installation.
 If you would like to experiment with a small IOS 
 configuration, we suggest using
@@ -418,15 +413,14 @@ src-addr-out: ipaddress
 STATISTICS: 
 Computed max size: 1
 Max size: 1
-Result ID: 0
 User max size: 6
 ********************************************************"
 ]
 
-On the first line, the @(racketresultfont (tt "Size = 16")) says that this scenario involves 16 atoms, where
+On the first line, @(racketresultfont (tt "Size = 16")) says that this scenario involves 16 atoms, where
 each atom is an IP address, port, interface, etc.
 
-The scenario itself says that the query can be satisfied by when the packet 
+The scenario itself says that the query can be satisfied when the packet 
 is a TCP request to the host @(racketresultfont (tt "192.168.5.11")) on port @(racketresultfont (tt "25")),
 entering the firewall at the @(racketresultfont (tt "fe0")) interface.
 There are no restrictions on the source fields of the packet header in this
@@ -437,7 +431,8 @@ The @(racketresultfont @tt{message}) binding is only applicable for ICMP packets
 and can be ignored in this scenario. The @(racketresultfont @tt{length}) binding is not yet used.
 The @(racketresultfont @tt{-out}) bindings give information about NAT effects on the packet; there
 are none in this scenario. Similarly the @(racketresultfont @tt{flags}) binding gives information
-about the packet's TCP flags, which are not important in this scenario.
+about the packet's TCP flags, which are not important in this scenario. 
+The @(racketresultfont @tt{STATISTICS}) section gives technical information about Margrave's scenario-finding process.
 
 
 When printing, only the most specific applicable 
@@ -457,7 +452,7 @@ Margrave's intermediate
 language can capture many different kinds of policies. In this section, 
 we discuss how to use the intermediate language to express policies for analysis.
 
-First, we'll quickly overview just what a Margrave policy looks like.
+First, we'll quickly overview what a Margrave policy looks like.
 
 A policy's form depends on its @tech{vocabulary}. A vocabulary dictates what
 a @tech{policy} @tech{request} is, what @tech{decision}s a policy renders,
@@ -531,7 +526,7 @@ papers, provided the subject is not known to be conflicted on the
 paper. (For details, see the section ``@secref{policies}''.)
 
 
-@subsection{Understanding Scenarios}
+@subsection{Tutorial: Understanding Scenarios}
 
 Paste the following script into DrRacket:
 
@@ -559,32 +554,33 @@ assigned = {}
 STATISTICS: 
 Computed max size: 3
 Max size: 3
-Result ID: 0
 User max size: 6
 ********************************************************"]
 
-This text represents a scenario where the query could be 
+This text represents a scenario where the query is
 satisfied. The @tt{SHOW ALL}, @tt{SHOW ONE}, and @tt{SHOW NEXT}
 commands format query results and display them 
 in this concise format. The scenario above says:
-``The query can be satisfied when the subject is
+``The query is satisfied when the subject is
 both a @tt{reviewer} and an @tt{author}, the resource is a @tt{paper}, and 
 the action is @tt{readpaper} (i.e. reading the paper), provided that
 the subject is @tt{conflicted} on the paper but not @tt{assigned} to it.''
 
-Here, @tt{$s}, @tt{$a}, and @tt{$r} correspond to the variables that appear in
+Here, @tt{s}, @tt{a}, and @tt{r} correspond to the variables that appear in
 the query.
 @tt{Size = 3} means that in this scenario, there were 3 objects. 
-In this case, one is @italic{both} a @tt{reviewer} and an
-@tt{author}, another is a @tt{paper}, and the third represents the action @tt{readpaper}.
+In this case, one is @italic{both} an @tt{author} and a @tt{reviewer}.
+Another is a @tt{paper}. The third represents the action @tt{readpaper}.
 
 @tt{Conflicted} and @tt{assigned} are
 binary @tech{predicates} mentioned in the policy. Any such facts 
 will be printed after information about individual variables.
 
+The @(racketresultfont @tt{STATISTICS}) section gives technical information about Margrave's scenario-finding process.
+
 Note: When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-@tt{$s: reviewer subject}
+@tt{s: reviewer subject}
 because a reviewer is always a subject in this policy.
 
 

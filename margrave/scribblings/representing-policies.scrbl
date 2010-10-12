@@ -33,8 +33,8 @@ In this section, we demonstrate the elements of policies and vocabularies using 
                  Use the policy name to reference the policy in Margrave queries.}
            
            @item{@tt{conferencepolicy} is the policy's @deftech{vocabulary name}.
-                  Every policy has a single @tech{vocabulary} that dictates what a 
-                  @tech{request} is and which @tech{decisions} the policy renders. }
+                  Every policy has a single @tech{vocabulary} that dictates what kind of  
+                  @tech{request} it handles and which @tech{decision}s it renders. }
            
           @item{@tt{(Target )} is the policy's @deftech{target}. The @tech{target}
                  specifies a guard on the policy's applicability. In order for any rule
@@ -43,7 +43,7 @@ In this section, we demonstrate the elements of policies and vocabularies using 
                  policy applies only to subjects who are reviewers.
 
                  An empty @tech{target}, as shown above, means that
-                 the policy can always apply.}
+                 the policy always applies.}
           
           
           @item{The @tt{(Rules ...)} construct gives the policy's @deftech{rule} set.
@@ -62,8 +62,10 @@ In this section, we demonstrate the elements of policies and vocabularies using 
                     The variable names that appear after the decision name (e.g. @tt{Permit s a r}) must exactly match
                     the names of the request variables declared in the policy's @tech{vocabulary}. New variables can
                     be introduced on the right hand side of the rule, in which case they are interpreted
-                    existentially. E.g., this rule would apply for any subject who owns @italic{some} car,
-                    regardless of the action and resource involved:
+                    existentially. 
+                    
+                    For instance, in a policy for vehicle access, this rule would apply for any subject 
+                    who owns @italic{some} car, regardless of the action and resource involved:
                     
                     @tt{(PermitIfOwnsCar = (Permit s a r) :- (Owns s c) (Car c))}
                     }
@@ -156,24 +158,25 @@ A @deftech{vocabulary} in Margrave contains the following:
                     @deftech{type}s (also called @deftech{sort}s) that 
                     elements of a request may belong to. 
                     
-                    Top-level types (Subject, Action, and Resource in the above example)
+                    Top-level types (@tt{Subject}, @tt{Action}, and @tt{Resource} in the above example)
                     are always pairwise @tech{disjoint}.}
            
            @item{The @tt{(Predicates ...)} construct defines a set of
                      @deftech{predicate}s that may hold of request
-                     properties in a scenario. For instance, the binary @tech{predicate} Assigned 
+                     properties in a scenario. For instance, the binary @tech{predicate} @tt{Assigned} 
                      contains reviewer-to-paper assignments in a given scenario.}
            
            @item{The @tt{(Decisions ...)} construct gives a set of @deftech{Decisions}
-                     that policies using this vocabulary render. The standard examples are
-                     permit and deny, but others can appear in more detailed policies.}
+                     that policies using this vocabulary render. The usual decisions are
+                     @tt{permit} and @tt{deny}, but others can appear in more detailed policies.}
            
            @item{The @tt{(ReqVariables ...)} construct defines the shape of a request
                      in this vocabulary. The request variables are an ordered list of variable
                      names and a type assignment for each.                      
                      For instance, in the access-control domain, the request variables will 
-                     often be (subj, act, res). In the firewall domain, the request variables
-                     will involve IP addresses, ports, etc.}
+                     often be @tt{(s, a, r)}, representing a single subject, action, and resource. 
+                     In the firewall domain, the request variables will involve IP addresses, ports, etc.}
+           
            @item{The @tt{(Constraints ...)} construct gives domain-specific assertions
                      about how types and predicates can be populated. Margrave will not consider
                      scenarios that violate vocabulary constraints, ruling out non-sensical results. 
