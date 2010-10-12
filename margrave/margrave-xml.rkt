@@ -696,12 +696,12 @@
   (local ((define (write s)
             (write-string s string-buffer)))
     (begin
-      (write "Error:\n")
-      (write (string-append "Type: " (get-attribute-value error-element 'type) "\n"))
-      (write (string-append "Subtype: " (get-attribute-value error-element 'subtype) "\n"))
-      (write more-details)
-      ; debug
-      ;(display (get-output-string string-buffer))
+      (write "Margrave encountered an error: ")
+      (write (get-attribute-value error-element 'type))
+      (write " ")
+      (write (get-attribute-value error-element 'subtype))
+      (when (> (string-length more-details) 0)        
+        (write (string-append ": " more-details)))
       (get-output-string string-buffer))))
 
 
@@ -712,8 +712,7 @@
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
-        (write "Info:\n")
-        (write (string-append "Type: " (get-attribute-value info-element 'type) "\n"))
+        (write "System Information:\n")             
         (let* ((manager-element (get-child-element info-element 'manager))
                (heap-element (get-child-element manager-element 'heap-usage))
                (non-heap-element (get-child-element manager-element 'non-heap-usage))
@@ -858,7 +857,7 @@
     (local ((define (write s)
               (write-string s string-buffer)))
       (begin
-        (write "Vocabulary Info:\n")
+        (write "Vocabulary Information:\n")
         (let* ((vocab-element (get-child-element info-element 'vocabulary))
                (sorts-element (get-child-element vocab-element 'sorts))
                (req-vector-element (get-child-element vocab-element 'req-vector))
