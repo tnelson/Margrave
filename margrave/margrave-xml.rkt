@@ -69,7 +69,7 @@
  xml-make-identifiers-list
  xml-make-type
  xml-make-id
- xml-make-idbout
+ xml-make-include
  xml-make-under
  xml-make-create-policy-leaf-command
  xml-make-policy-identifier
@@ -1102,8 +1102,8 @@
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
-(define (xml-make-under policy)
-  `(UNDER ,policy))
+(define (xml-make-under list-of-policies)
+  `(UNDER ,@list-of-policies))
 
 (define (xml-make-create-policy-leaf policy vocab)
   `(CREATE-POLICY-LEAF ,policy ,vocab))
@@ -1126,7 +1126,7 @@
 (define (xml-make-publish list-of-identifiers)
   `(PUBLISH ,list-of-identifiers))
 
-(define (xml-make-idbout list-of-atomic-formulas)
+(define (xml-make-include list-of-atomic-formulas)
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
 ; TN: left populated as XML data rather than changing it, since "realized" isn't final either

@@ -412,7 +412,7 @@
         [(equal? first-datum 'DEBUG)
          `(xml-make-debug ,(syntax->string (second interns)))]
         [(equal? first-datum 'UNDER)
-         `(xml-make-under ,(helper-syn->xml (second interns)))]
+         `(xml-make-under (list ,@(map helper-syn->xml (syntax-e (second interns)))))]
         [(equal? first-datum 'POLICY)
          `(xml-make-policy-identifier ,(syntax->string (second interns)))]
         [(equal? first-datum 'PUBLISH)
@@ -434,9 +434,9 @@
          `(xml-make-type ,(syntax->string (second interns)))]
         [(equal? first-datum 'id)
          `(xml-make-id ,(syntax->string (second interns)))]
-        [(equal? first-datum 'IDBOUTPUT)
+        [(equal? first-datum 'INCLUDE)
          ; List instead of quote since there's evaluation to be done inside
-         `(xml-make-idbout (list ,@(map helper-syn->xml (rest interns))))]
+         `(xml-make-include (list ,@(map helper-syn->xml (rest interns))))]
         [else
          (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 

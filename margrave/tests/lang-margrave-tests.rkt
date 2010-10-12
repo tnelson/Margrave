@@ -24,12 +24,17 @@ info;
 
 // LOAD POLICY
 load policy "*MARGRAVE*/tests/conference1.p";
+LOAD POLICY "*MARGRAVE*/tests/conference2.p";
 
 // RENAME
 rename conferencepolicy1 conf1;
 
 // EXPLORE + UNDER + AND + NOT
 explore assigned(s, r) AND NOT assigned(s, r) UNDER conf1;
+
+// more than one UNDER
+explore assigned(s, r) AND NOT assigned(s, r) 
+UNDER conf1, conferencepolicy2;
 
 // IS POSSIBLE? + SHOW ONE + SHOW ALL
 // expect: unsat

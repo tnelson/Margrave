@@ -404,12 +404,12 @@
         ; Optional modifiers for the explore statement
         
         (explore-modifier
-         [(UNDER policy) (build-so (list 'UNDER $2) 1 2)]
+         [(UNDER list-of-policies) (build-so (list 'UNDER $2) 1 2)]
          [(PUBLISH variable-list) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $2)) 1 2)]
          
          ; Used to be IDBOUTPUT. Internal symbol still is!
          ; (INCLUDE fmla fmla...)
-         [(INCLUDE atomic-formula-list) (build-so (append (list 'IDBOUTPUT) $2) 1 2)]
+         [(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
          [(TUPLING) (build-so (list 'TUPLING) 1 1)]
          [(DEBUG <unsigned-integer>) (build-so (list 'DEBUG $2) 1 2)]
          [(CEILING <unsigned-integer>) (build-so (list 'CEILING $2) 1 2)])
@@ -421,7 +421,11 @@
         ;**************************************************
         ;; ???
         (policy
-         [(<identifier>) (build-so (list 'POLICY $1) 1 1)])    
+         [(<identifier>) (build-so (list 'POLICY $1) 1 1)])
+        (list-of-policies 
+         [(policy) (list $1)]
+         [(list-of-policies COMMA policy) (append $1 (list $3))])
+        
         (vocabulary
          [(<identifier>) (build-so (list 'VOCABULARY $1) 1 1)])  
         (sort
