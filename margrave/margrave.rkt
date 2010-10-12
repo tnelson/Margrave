@@ -55,7 +55,9 @@
          
          ; From policy-vocab
          resolve-margrave-filename-keyword
-         
+         safe-get-margrave-collection-path
+         file-exists?/error
+         open-input-file/exists
          )
 
 
@@ -481,13 +483,15 @@ gmarceau
 
 ; xacml-policy-filename -> MPolicy
 ; Loads an XACML policy 
-(define (load-xacml-policy fn)
+(define (load-xacml-policy fn #:syntax [src-syntax #f])
+  (file-exists?/error fn src-syntax (format "Could not find XACML file: ~a" fn))
   (send-and-receive-xml (xml-make-load-xacml fn 
                                              (path->string (build-path (safe-get-margrave-collection-path) "xacml20.xsd")))))
 
 ; sqs-policy-filename -> MPolicy
 ; Loads an XACML policy 
-(define (load-sqs-policy fn)
+(define (load-sqs-policy fn #:syntax [src-syntax #f])
+  (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
  (send-and-receive-xml (xml-make-load-sqs fn)))
 
 
@@ -683,8 +687,3 @@ gmarceau
   (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str) #:syntax vector-syntax))
   (xml-policy-info->req-vector info-result))
 
-
-; !!!!! TODO !!!!!!!!!!!!!
-; if pol doesn't exist, standard send-and-receive will throw an error. need to catch or define a new response handler
-
-; -------------------------     

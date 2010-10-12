@@ -33,13 +33,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide/contract (parse-and-load-ios-by-filename
                    ([string?]
-                    [#:prefix string? #:suffix string?]
+                    [#:prefix string? #:suffix string? #:syntax syntax?]
                     . ->* . string?)))
 
-(define (parse-and-load-ios-by-filename raw-filename #:prefix [prefix ""] #:suffix [suffix ""])
+(define (parse-and-load-ios-by-filename raw-filename #:prefix [prefix ""] #:suffix [suffix ""] #:syntax [src-syntax #f])
 
   ;; *MARGRAVE* --> margrave collection path
   (define the-filename (resolve-margrave-filename-keyword raw-filename))
+  
+  (file-exists?/error the-filename src-syntax (format "Could not find IOS configuration file: ~a" the-filename))       
+  
   (define-values (fn-path fn-filepath must-dir) (split-path the-filename))
   (define fn-file (path->string fn-filepath))
   (when must-dir
@@ -89,12 +92,17 @@
 
 (provide/contract (parse-and-load-multi-ios 
                    ([(listof string?) (or/c path? string?)]
-                    [#:prefix string? #:suffix string?]
+                    [#:prefix string? #:suffix string? #:syntax syntax?]
                     . ->* . string?)))
-(define (parse-and-load-multi-ios config-file-name-list pre-dirpath #:prefix [prefix ""] #:suffix [suffix ""])
+(define (parse-and-load-multi-ios config-file-name-list pre-dirpath #:prefix [prefix ""] #:suffix [suffix ""] #:syntax [src-syntax #f])
 
   (define dirpath (resolve-margrave-filename-keyword pre-dirpath))
+   
   (printf "Parsing multiple IOS configurations in directory ~a ...~n" dirpath)
+  
+  (for-each (lambda (fn)   
+              (file-exists?/error (build-path dirpath fn) src-syntax (format "Could not find IOS configuration file: ~a" (path->string (build-path dirpath fn)))))
+            config-file-name-list)
   
   
   ; !!! todo factor out duplicate code -tn 
