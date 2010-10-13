@@ -22,9 +22,11 @@ info;
 
 //info doesntexist;
 
-// LOAD POLICY
-load policy "*MARGRAVE*/tests/conference1.p";
+// LOAD POLICY (no-path, *MARGRAVE*, relative path. with and without quotes)
+load policy "conference1.p";
 LOAD POLICY "*MARGRAVE*/tests/conference2.p";
+load policy ./emptyconference.p;
+
 
 // RENAME
 rename conferencepolicy1 conf1;
@@ -96,7 +98,6 @@ GET QUALIFIED RULES IN conf1 WITH DECISION permit;
 // Tests from old SISC suite
 // ***************************************
 
-load policy "*MARGRAVE*/tests/emptyconference.p";
 load policy "*MARGRAVE*/tests/extconference.p";
 load policy "*MARGRAVE*/tests/conference1.p";
 load policy "*MARGRAVE*/tests/hospitaldenypayrollmedrecsfa.p";
@@ -295,3 +296,10 @@ OR
 (Phone2:Refuse(ncaller, nreceive)
  AND NOT Phone1:Refuse(ncaller, nreceive)) CEILING 9;        
 IS POSSIBLE?;
+
+// IOS loading
+
+LOAD IOS "../examples/policies/ios-demo/initial/demo.txt" WITH "" "1";
+LOAD IOS "*MARGRAVE*/examples/policies/ios-demo/change1/change1.txt" WITH "" "2";
+// identical to demo.txt above, but in the local directory to test lack of path in the filename
+LOAD IOS ios-local-file-load.txt WITH "" "3";

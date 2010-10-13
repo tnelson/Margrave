@@ -86,6 +86,12 @@
   (and (file-exists?/error file-name src-syntax error-message)
        (open-input-file file-name)))
 
+(define (path-only/same the-path)
+  (define p (path-only the-path))
+  (if p
+      p
+      'same))
+
 ;****************************************************************
 
 ; Initialize policy file name.
@@ -291,7 +297,7 @@
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
      (lambda (local-policy-filename src-syntax) 
-       (define vocab-path (build-path (path-only local-policy-filename) 
+       (define vocab-path (build-path (path-only/same local-policy-filename) 
                                       (string-append (symbol->string 'vocabname) ".v")))
        ; Produce a friendly error if the vocab doesn't exist
        (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
