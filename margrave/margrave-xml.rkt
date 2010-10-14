@@ -18,6 +18,7 @@
 #lang racket
 
 (require xml)
+(require margrave/helpers)
 
 (provide 
  pretty-print-model
@@ -103,54 +104,9 @@
  xml-make-implies
  xml-make-iff
  xml-make-not
- xml-policy-info->req-vector
- 
- fold-append-with-spaces
- fold-append-with-spaces-quotes
- fold-append-with-separator
- symbol->quoted-string
- symbol->string/safe)
+ xml-policy-info->req-vector)
+
 ; ********************************************************
-; Helpers
-(define (fold-append-with-spaces posslist)
-  (fold-append-with-separator posslist " "))
-
-; May be a list, may not be a list
-(define (fold-append-with-separator posslist separator)
-  (if (list? posslist)
-      (foldr (lambda (s t)
-               (let ([s-str (if (symbol? s)
-                                (symbol->string s)
-                                s)]
-                     [t-str (if (symbol? t)
-                                (symbol->string t)
-                                t)])                  
-                 (cond
-                   [(string=? s-str "") t-str]
-                   [(string=? t-str "") s-str]
-                   [else (string-append s-str separator t-str)])))
-             ""
-             posslist)
-      (if (symbol? posslist)
-          (symbol->string posslist)
-          posslist)))
-
-(define (fold-append-with-spaces-quotes posslist)
-  (fold-append-with-spaces (if (list? posslist)
-                               (map symbol->quoted-string posslist)
-                               posslist)))
-
-; symbol or string -> string
-; Returns the argument, quoted, as a string.
-(define (symbol->quoted-string arg)
-  (if (symbol? arg)
-      (string-append "\"" (symbol->string arg)"\"")
-      (string-append "\"" arg "\"")))
-
-(define (symbol->string/safe arg)
-  (if (symbol? arg)
-      (symbol->string arg)
-      arg))
 
 
 (define (xml-policy-info->req-vector response-doc)

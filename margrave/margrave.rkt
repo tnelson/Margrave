@@ -25,6 +25,7 @@
          margrave/margrave-xml
          margrave/compiler
          margrave/margrave-policy-vocab
+         margrave/helpers
          syntax/readerr
          racket/generator)
 
@@ -39,6 +40,7 @@
          load-sqs-policy
          
          (all-from-out margrave/margrave-xml)
+         (all-from-out margrave/helpers)
 
          display-response
          response->string
@@ -51,14 +53,7 @@
          the-margrave-namespace
          margrave-home-path         
          resolve-java-path!
-         resolve-custom-vector
-         
-         ; From policy-vocab
-         resolve-margrave-filename-keyword
-         safe-get-margrave-collection-path
-         file-exists?/error
-         open-input-file/exists
-         )
+         resolve-custom-vector)
 
 
 ;****************************************************************

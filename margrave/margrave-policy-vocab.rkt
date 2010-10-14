@@ -17,14 +17,12 @@
 
 #lang racket
 (require margrave/margrave-xml
-         srfi/13
-         syntax/readerr)
+         margrave/helpers
+         (for-syntax margrave/helpers
+                     racket/list
+                     racket/match))
 
-(provide evaluate-policy
-         resolve-margrave-filename-keyword
-         safe-get-margrave-collection-path
-         file-exists?/error
-         open-input-file/exists)
+(provide evaluate-policy)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -34,89 +32,36 @@
 
 ;****************************************************************
 
-; HELPERS
-
-(define (safe-get-margrave-collection-path)
-  (with-handlers ([(lambda (e) (exn:fail:filesystem? e))
-                   (lambda (e) #f)])
-    (collection-path "margrave")))
-
-(define (resolve-margrave-filename-keyword raw-filename)
-  
-  (define the-filename (cond [(path? raw-filename)
-                              (path->string raw-filename)]
-                             [(symbol? raw-filename)
-                              (symbol->string raw-filename)]
-                             [else 
-                              raw-filename]))
-  
-  (define loc (string-contains-ci the-filename "*MARGRAVE*"))
-  (define coll-path-string (path->string (safe-get-margrave-collection-path)))
-  
-  (define result (cond [(or (not loc) (> loc 1)) 
-                        the-filename]
-                      [(equal? loc 1)
-                       (string-replace the-filename coll-path-string 0 11)]
-                      [else 
-                       (string-replace the-filename coll-path-string 0 10)]))
-  
-  ; Avoid confusion: prevent mixed use of / and \ in the same path.
-  (path->string (simplify-path result)))
-
-
-; file-exists?/error 
-; filename src-syntax -> boolean
-; If file does not exist, raises an error
-(define (file-exists?/error file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
-  (cond [(file-exists? file-name)
-         #t]
-        [(syntax? src-syntax)
-         (raise-read-error 
-          error-message
-          (syntax-source src-syntax)
-          (syntax-line src-syntax)
-          (syntax-column src-syntax)
-          (syntax-position src-syntax)
-          (syntax-span src-syntax))]
-        [else (raise-user-error error-message)]))
-
-; filename syntax -> port
-; If file does not exist, raises an exception. If syntax has been passed, will enable syntax highlighting.
-(define (open-input-file/exists file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
-  (and (file-exists?/error file-name src-syntax error-message)
-       (open-input-file file-name)))
-
-(define (path-only/same the-path)
-  (define p (path-only the-path))
-  (if p
-      p
-      'same))
-
-;****************************************************************
-
 ; Initialize policy file name.
 ; This is used by load-policy to assure we don't need to change
 ; the working directory.
 ; see normalize-url
 (define local-policy-filename ".")
 
-; removeall is remove* in Racket, no need to define it here. Removed. -- TN
-
+;****************************************************************
 
 ; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy)
-
 (define (evaluate-policy raw-fn 
                          #:syntax [src-syntax #f])
   
   ; If fn begins with <MARGRAVE>, replace with the path of the Margrave collections folder.
   (define fn (resolve-margrave-filename-keyword raw-fn))
       
-  ;; Macro returns a func 
-  ;; TODO: would really like to stop using eval
+  ;; Macro returns a func of two arguments:
+  ; (1) the filename of the policy (for constructing the location of the vocab file)
+  ; (2) the command syntax that started evaluation (for nice error highlighting)
   
   (parameterize ([read-case-sensitive #t])
     (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
-    (define pol-result-list ((eval (read file-port) margrave-policy-vocab-namespace) fn src-syntax))
+    (port-count-lines! file-port)
+    
+    (define the-policy-syntax (read-syntax fn file-port))
+    (printf "Policy Syntax: ~n~a~n" the-policy-syntax)
+    
+   ; (define the-policy-func (eval-syntax the-policy-syntax margrave-policy-vocab-namespace))
+    (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))
+    
+    (define pol-result-list (the-policy-func fn src-syntax))
     
     ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
@@ -127,6 +72,182 @@
 
 
 ;****************************************************************
+
+; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
+(define-syntax (PolicyVocab stx)
+  (syntax-case stx [Types Decisions Constraints Predicates Variables : PolicyVocab]
+    ([_ myvocabname clauses ...]     
+     
+     ; TN: Removed explicit colon after root types. Changed add-subtypes-of to remove ': 
+     ; Makes the syntax cleaner not to require the colon.
+    
+     (let ()
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Decisions Predicates ReqVariables OthVariables Constraints]
+                                                        [(Types atype ...) 'types]                         ; (Types (t subt ...) ...)                                
+                                                        [(Decisions r ...) 'decisions]
+                                                        [(Predicates apreddec ...) 'predicates] ; (pname : prel ...)
+                                                        [(ReqVariables avardec ...) 'reqvariables]  ; (rvname : rvsort)
+                                                        [(OthVariables avardec ...) 'othvariables] ;(ovname : ovsort)
+                                                        [(Constraints acondec ...) 'constraints] ; (ctype crel ...)
+                                                        [_ #f]))                                        
+                                        (syntax->list #'(clauses ...))
+                                        #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
+       
+       (printf "Clause table: ~n~a~n" clause-table)
+       
+       ; from gmarceau
+       ;(define-syntax (syntax-case-match? stx)
+       ;  [(_ v lits pattern) #'(syntax-case v (Types Decisions Predicates ReqVariables OthVariables Constraints) [pattern #t] [_ #f])])       
+       ;(define the-types-clauses (filter (lambda (v) (syntax-case-match? v (Types (t subt ...) ...)) clauses)))
+       
+       (define the-types-clauses (hash-ref clause-table 'types))                                 
+       (define the-decisions-clauses (hash-ref clause-table 'decisions))
+       (define the-predicates-clauses (hash-ref clause-table 'predicates))
+       (define the-reqvariables-clauses (hash-ref clause-table 'reqvariables))
+       (define the-othvariables-clauses (hash-ref clause-table 'othvariables))
+       (define the-constraints-clauses (hash-ref clause-table 'constraints))
+       
+       (match the-types-clauses
+         [(list) (raise-syntax-error #f "Types clause is missing" stx)]
+         [(list x y z ...) (raise-syntax-error #f "More than one Types clause found" #f #f (list* x y z))]
+         [_ (void)])
+            
+       
+     #'()
+     
+     
+     ;Return a list containing the vocabname, and then a list of commands to be sent to java
+     #;(syntax/loc stx
+         `(
+           ; Return the object for use by the policy macro
+           ,(symbol->string 'myvocabname)
+           (
+        ; Here, we have no idea whether the vocabulary has been created yet or not. 
+        ; Java will handle creation of the object if the identifier hasn't been seen before.
+        
+        ; These sections must be in order.                     
+        ; Types
+        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort (symbol->string 't))))
+        ...
+        
+        ,@(add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
+        
+        ... ; for each type/subtype set
+        
+        ; Decisions               
+        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-decision (symbol->string 'r))))
+        ...
+        
+        ; Predicates
+        ,(add-predicate (symbol->string 'myvocabname) (symbol->string 'pname) (list (symbol->string 'prel) ...))
+        ... ; for each custom predicate
+        
+        ; Request Variables
+        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-request-var (symbol->string 'rvname) (symbol->string 'rvsort))))
+        ... ; for each req var
+        
+        ; Other Variables
+        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-other-var (symbol->string 'ovname) (symbol->string 'ovsort))))
+        ... ; for each oth var
+        
+        ; Constraints
+        ,(add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
+        ... ; for each constraint
+        )))))))
+
+
+
+; Policy: Parses a policy definition and creates an MPolicyLeaf OR MPolicySet object
+; Policies are permitted to have child policies, so this may be recursively called
+; (but is guaranteed to terminate.)
+(define-syntax (Policy stx)
+  (syntax-case stx [Target Rules = :- uses RComb PComb Children Policy]
+    ([_ policyname uses vocabname
+        (Target tconj ...) ; back end expects a list of conjuncts
+        (Rules (rulename = (dtype v ...) :- conj ...) ; for each variable in the IDB dec; for each conjunct in the rule itself                    
+               ...); for each rule
+        (RComb rcstr ...) ; rule combination alg?
+        (PComb pcstr ...) ; policy combination alg?
+        (Children child ...)] ; child policies? 
+     
+     ; Return a function of one argument that can be called in the context of some local directory.
+     ; This is so we know where to find the vocabulary file.
+     (syntax/loc stx
+       (lambda (local-policy-filename src-syntax) 
+         (define vocab-path (build-path (path-only/same local-policy-filename) 
+                                      (string-append (symbol->string 'vocabname) ".v")))
+       ; Produce a friendly error if the vocab doesn't exist
+       (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
+       
+       (let* ([mychildren (list child ...)]
+                           
+             ; !!! TODO: Only using eval here because we had to in SISC;
+              ; stop using it when switch to language-level
+             [vocab-macro-return                 
+              (call-with-input-file
+               vocab-path
+               (lambda (in-port) 
+                 (port-count-lines! in-port)
+                 (eval-syntax (read-syntax vocab-path in-port) margrave-policy-vocab-namespace)))]
+             
+             [vocab-name (first vocab-macro-return)]
+             [vocab-commands (second vocab-macro-return)])
+         
+         ; In SISC, the above was: 
+         ;                       (eval (read (open-input-file
+         ;                           (normalize-url 
+         ;                            ; Make sure we look in the correct directory!
+         ;                            local-policy-filename 
+         ;                            (string-append (symbol->string 'vocabname) ".v")))))))
+         
+         
+         ;Return (Policyname vocabName vocabcommands policycommands
+         `(,(symbol->string 'policyname)
+           ,vocab-name
+           ,vocab-commands
+           (
+            ,(if (< (length mychildren) 1)
+                 (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name)))
+                 (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name))))
+            
+            
+            ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
+            ; Either fix the language, or fix the hack.
+            ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
+            
+            
+            ; Set the policy target (if any)
+            ;Wrap the value in a list, and then unquote-splice, so that we can pass back the empty list if need be
+            ,@(let ((the-target (list (symbol->string 'tconj) ...)))
+              (if (> (length the-target) 0)
+                (list (set-target (symbol->string 'policyname) the-target))
+                (list)))
+            
+            ; Add the rules to the policy. 'true is dealt with in the back-end.         
+            ,(add-rule (symbol->string 'policyname)
+                      ;myvarorder 
+                      (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list 'conj ...))
+            ...
+            
+            ; Set the rule and policy combinator (depending on type)
+            ,(if (< (length mychildren) 1)
+                (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'rcstr ...))))
+                (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'pcstr ...)))))
+            
+            ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
+            
+            ; Each child is a Policy
+            ,(let ((cpol child))
+              (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-policy-identifier cpol)))
+              )
+            ...
+            
+            ; Trigger IDB calculation
+            ,(xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string 'policyname)))))
+           ; close paren for above GET REQUEST VECTOR commented out )
+           )))))))
+
+; ********************************************************************
 ; Helper functions 
 
 ; listsubs contains a list of the subsorts for this sort. 
@@ -200,171 +321,6 @@
   (xml-make-command "SET TARGET FOR POLICY" (list (xml-make-policy-identifier mypolicy) (xml-make-conjunct-chain conjlist))))
 
 
-(define (wrap-list-parens lst)
-  (fold-append-with-spaces (map (lambda (str) (string-append "(" str ")")) lst)))
-
-
-; !!! TODO This will be much nicer once we're sending XML         
-
 ; Add a rule of the form rulename = (dtype reqvars) :- conjlist
-(define (add-rule mypolicy 
-                  ;myvarorder 
-                  rulename dtype reqvars conjlist)
-  ;  (if (not (string=? myvarorder 
-  ;                     (apply string-append (map 
-  ;                                           (lambda (x) (string-append x " ")) ; leave trailing whitespace in java api too.
-  ;                                           reqvars)))) 
-  ;      (begin (display "Error: Unable to add rule. Variable ordering ")
-  ;             (display reqvars)
-  ;             (newline)
-  ;             (display "did not agree with vocabulary, which expected ")
-  ;             (display myvarorder) 
-  ;             (display ".")
-  ;             (newline))
-  
+(define (add-rule mypolicy rulename dtype reqvars conjlist)  
   (xml-make-command "ADD" (list (xml-make-policy-identifier mypolicy) (xml-make-rule rulename (xml-make-decision-type dtype) (xml-make-rule-list conjlist))))) 
-;(wrap-list-parens conjlist)
-
-; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
-(define-syntax PolicyVocab
-  (syntax-rules (Types Decisions Constraints Predicates Variables :)
-    ((PolicyVocab myvocabname 
-                  (Types (t subt ...) ...) 
-                  (Decisions r ...) 
-                  (Predicates (pname : prel ...) ...)
-                  (ReqVariables (rvname : rvsort) ...)
-                  (OthVariables (ovname : ovsort) ...)
-                  (Constraints (ctype crel ...) ...) )
-     ;(begin
-     
-     ; TN: Removed explicit colon after root types. Changed add-subtypes-of to remove ': 
-     ; Makes the syntax cleaner not to require the colon.
-    
-     
-     ;Return a list containing the vocabname, and then a list of commands to be sent to java
-     `(
-       ; Return the object for use by the policy macro
-       ,(symbol->string 'myvocabname)
-       (
-        ; Here, we have no idea whether the vocabulary has been created yet or not. 
-        ; Java will handle creation of the object if the identifier hasn't been seen before.
-        
-        ; These sections must be in order.                     
-        ; Types
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort (symbol->string 't))))
-        ...
-        
-        ,@(add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
-        
-        ... ; for each type/subtype set
-        
-        ; Decisions               
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-decision (symbol->string 'r))))
-        ...
-        
-        ; Predicates
-        ,(add-predicate (symbol->string 'myvocabname) (symbol->string 'pname) (list (symbol->string 'prel) ...))
-        ... ; for each custom predicate
-        
-        ; Request Variables
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-request-var (symbol->string 'rvname) (symbol->string 'rvsort))))
-        ... ; for each req var
-        
-        ; Other Variables
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-other-var (symbol->string 'ovname) (symbol->string 'ovsort))))
-        ... ; for each oth var
-        
-        ; Constraints
-        ,(add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
-        ... ; for each constraint
-        ))))) 
-
-
-
-; Policy: Parses a policy definition and creates an MPolicyLeaf OR MPolicySet object
-; Policies are permitted to have child policies, so this may be recursively called
-; (but is guaranteed to terminate.)
-(define-syntax Policy
-  (syntax-rules (Target Rules = :- uses RComb PComb Children)
-    ((Policy policyname uses vocabname
-             (Target tconj ...) ; back end expects a list of conjuncts
-             (Rules (rulename = (dtype v ...) :- conj ...) ; for each variable in the IDB dec; for each conjunct in the rule itself                    
-                    ...); for each rule
-             (RComb rcstr ...) ; rule combination alg?
-             (PComb pcstr ...) ; policy combination alg?
-             (Children child ...)) ; child policies? 
-     
-     ; Return a function of one argument that can be called in the context of some local directory.
-     ; This is so we know where to find the vocabulary file.
-     (lambda (local-policy-filename src-syntax) 
-       (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                      (string-append (symbol->string 'vocabname) ".v")))
-       ; Produce a friendly error if the vocab doesn't exist
-       (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
-       
-       (let* ([mychildren (list child ...)]
-                           
-             ; !!! TODO: Only using eval here because we had to in SISC;
-              ; stop using it when switch to language-level
-             [vocab-macro-return                 
-              (call-with-input-file
-               vocab-path
-               (lambda (in-port) 
-                 (eval (read in-port) margrave-policy-vocab-namespace)))]
-             
-             [vocab-name (first vocab-macro-return)]
-             [vocab-commands (second vocab-macro-return)])
-         
-         ; In SISC, the above was: 
-         ;                       (eval (read (open-input-file
-         ;                           (normalize-url 
-         ;                            ; Make sure we look in the correct directory!
-         ;                            local-policy-filename 
-         ;                            (string-append (symbol->string 'vocabname) ".v")))))))
-         
-         
-         ;Return (Policyname vocabName vocabcommands policycommands
-         `(,(symbol->string 'policyname)
-           ,vocab-name
-           ,vocab-commands
-           (
-            ,(if (< (length mychildren) 1)
-                 (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name)))
-                 (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name))))
-            
-            
-            ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
-            ; Either fix the language, or fix the hack.
-            ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
-            
-            
-            ; Set the policy target (if any)
-            ;Wrap the value in a list, and then unquote-splice, so that we can pass back the empty list if need be
-            ,@(let ((the-target (list (symbol->string 'tconj) ...)))
-              (if (> (length the-target) 0)
-                (list (set-target (symbol->string 'policyname) the-target))
-                (list)))
-            
-            ; Add the rules to the policy. 'true is dealt with in the back-end.         
-            ,(add-rule (symbol->string 'policyname)
-                      ;myvarorder 
-                      (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list 'conj ...))
-            ...
-            
-            ; Set the rule and policy combinator (depending on type)
-            ,(if (< (length mychildren) 1)
-                (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'rcstr ...))))
-                (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'pcstr ...)))))
-            
-            ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
-            
-            ; Each child is a Policy
-            ,(let ((cpol child))
-              (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-policy-identifier cpol)))
-              )
-            ...
-            
-            ; Trigger IDB calculation
-            ,(xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string 'policyname)))))
-           ; close paren for above GET REQUEST VECTOR commented out )
-           ))))))

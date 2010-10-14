@@ -19,7 +19,7 @@
 
 (require margrave/margrave-xml
          margrave/margrave-policy-vocab
-         
+         margrave/helpers
          margrave/lexer
          margrave/parser)
 

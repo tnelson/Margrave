@@ -21,8 +21,7 @@
          parser-tools/lex
          syntax/stx
          syntax/readerr
-         margrave/margrave-policy-vocab
-         margrave/margrave-xml
+         margrave/helpers
          margrave/lexer)
 
 
