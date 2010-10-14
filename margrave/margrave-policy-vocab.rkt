@@ -88,7 +88,7 @@
                                                         [(Predicates apreddec ...) 'predicates] ; (pname : prel ...)
                                                         [(ReqVariables avardec ...) 'reqvariables]  ; (rvname : rvsort)
                                                         [(OthVariables avardec ...) 'othvariables] ;(ovname : ovsort)
-                                                        [(Constraints acondec ...) 'constraints] ; (ctype crel ...)
+                                                        [(Constraints acondec ...) 'constraints] ; 
                                                         [_ #f]))                                        
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
@@ -107,13 +107,50 @@
        (define the-othvariables-clauses (hash-ref clause-table 'othvariables))
        (define the-constraints-clauses (hash-ref clause-table 'constraints))
        
-       (match the-types-clauses
-         [(list) (raise-syntax-error #f "Types clause is missing" stx)]
-         [(list x y z ...) (raise-syntax-error #f "More than one Types clause found" #f #f (list* x y z))]
-         [_ (void)])
-            
+       (define (assert-one-clause clause-list descriptor)
+         (match clause-list
+           [(list) (raise-syntax-error #f (format "~a clause is missing" descriptor) stx)]
+           [(list x y z ...) (raise-syntax-error #f (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+           [_ (void)]))         
+       (define (assert-lone-clause clause-list descriptor)
+         (match clause-list
+           [(list x y z ...) (raise-syntax-error #f (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+           [_ (void)]))         
        
-     #'()
+       (assert-one-clause the-types-clauses "Types")
+       (assert-one-clause the-decisions-clauses "Decisions")
+       (assert-lone-clause the-predicates-clauses "Predicates")
+       (assert-lone-clause the-reqvariables-clauses "ReqVariables")
+       (assert-lone-clause the-othvariables-clauses "OthVariables")
+       (assert-lone-clause the-constraints-clauses "Constraints")
+       
+       ; create XML or throw error
+       ; printfs should become xml to create the type (or subtype)
+       (define (handle-types types-list [parent #f])
+         (printf "HTs: ~a~n" types-list)
+         (syntax-case types-list [Types]
+           [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
+           [(Types x ...) (printf "ty~n") (map (lambda (t) (handle-type t parent)) #'(x ...))]
+           [(x ...)(printf "nty~n") (map (lambda (t) (handle-type t parent)) types-list)]
+           ))
+       
+       (define (handle-type a-type [parent #f])
+         (printf "HT: ~a~a~n" a-type parent)
+         (syntax-case a-type [:]
+           [(t subt ...) #`((printf "~a~a" #,(syntax->datum #'t) #,parent) #,(handle-types (syntax->list #'(subt ...)) a-type))] 
+          ; [(t : subt ...)]
+           [t #`( (printf "HT: ~a~a" #,(syntax->datum #'t) #,parent) )]
+           [_ (raise-syntax-error #f "Type declaration was not valid." #f #f #'(a-type))]))
+              
+       ; Is each type valid?  
+       (define types-result (handle-types the-types-clauses))
+        (printf "types-result: ~a~n" types-result) 
+         ;(xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
+                             
+       
+       ; problem: Types getting treated AS a type. 
+       
+     #'5
      
      
      ;Return a list containing the vocabname, and then a list of commands to be sent to java
