@@ -82,6 +82,9 @@
      ; Makes the syntax cleaner not to require the colon.
     
      (let ()
+       (unless (symbol? (syntax->datum #'myvocabname))
+         (raise-syntax-error 'PolicyVocab (format "Expected a name for the vocabulary, got: ~a" (syntax->datum #'myvocabname)) #f #f (list #'myvocabname)))
+       
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Decisions Predicates ReqVariables OthVariables Constraints]
                                                         [(Types atype ...) 'types]                         ; (Types (t subt ...) ...)                                
                                                         [(Decisions r ...) 'decisions]
@@ -93,7 +96,8 @@
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
        
-       (printf "Clause table: ~n~a~n" clause-table)
+      ; (printf "Clause list: ~a~n" (syntax->list #'(clauses ...)))
+      ; (printf "Clause table: ~n~a~n" clause-table)
        
        ; from gmarceau
        ;(define-syntax (syntax-case-match? stx)
@@ -110,11 +114,11 @@
        (define (assert-one-clause clause-list descriptor)
          (match clause-list
            [(list) (raise-syntax-error #f (format "~a clause is missing" descriptor) stx)]
-           [(list x y z ...) (raise-syntax-error #f (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+           [(list x y z ...) (raise-syntax-error 'PolicyVocab (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
            [_ (void)]))         
        (define (assert-lone-clause clause-list descriptor)
          (match clause-list
-           [(list x y z ...) (raise-syntax-error #f (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+           [(list x y z ...) (raise-syntax-error 'PolicyVocab (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
            [_ (void)]))         
        
        (assert-one-clause the-types-clauses "Types")
@@ -126,31 +130,35 @@
        
        ; create XML or throw error
        ; printfs should become xml to create the type (or subtype)
+       ; The colon before subtypes is optional
        (define (handle-types types-list [parent #f])
-         (printf "HTs: ~a~n" types-list)
-         (syntax-case types-list [Types]
+         (syntax-case types-list [Types : ]
            [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
-           [(Types x ...) (printf "ty~n") (map (lambda (t) (handle-type t parent)) #'(x ...))]
-           [(x ...)(printf "nty~n") (map (lambda (t) (handle-type t parent)) types-list)]
-           ))
+           [(Types : x ...) (map (lambda (t) (handle-type t parent)) (syntax->list #'(x ...)))]
+           [(Types x ...) (map (lambda (t) (handle-type t parent)) (syntax->list #'(x ...)))]          
+           [(x ...) (map (lambda (t) (handle-type t parent)) types-list)]))
        
        (define (handle-type a-type [parent #f])
-         (printf "HT: ~a~a~n" a-type parent)
          (syntax-case a-type [:]
-           [(t subt ...) #`((printf "~a~a" #,(syntax->datum #'t) #,parent) #,(handle-types (syntax->list #'(subt ...)) a-type))] 
-          ; [(t : subt ...)]
-           [t #`( (printf "HT: ~a~a" #,(syntax->datum #'t) #,parent) )]
-           [_ (raise-syntax-error #f "Type declaration was not valid." #f #f #'(a-type))]))
+           [(t subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent)
+                               (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
+           [(t : subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent) 
+                                 (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
+           ; Add check for lexically valid type names here
+           [t (make-type-command-syntax (syntax->datum #'t) parent)]
+           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f #'(a-type))]))
               
+       (define (make-type-command-syntax typename parent)
+         (if parent             
+             #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-subsort #,(symbol->string parent) #,(symbol->string typename))))
+             #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort #,(symbol->string typename))))))
+       
        ; Is each type valid?  
-       (define types-result (handle-types the-types-clauses))
-        (printf "types-result: ~a~n" types-result) 
-         ;(xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
-                             
+       (define types-result (flatten (handle-types (syntax-e (first the-types-clauses)))))
+       ;(printf "types-result: ~a~n" types-result)        
        
-       ; problem: Types getting treated AS a type. 
-       
-     #'5
+       (with-syntax ([xml-list `(list ,@types-result)])
+         (syntax/loc stx `( ,(symbol->string (syntax->datum #'myvocabname)) xml-list)))
      
      
      ;Return a list containing the vocabname, and then a list of commands to be sent to java
