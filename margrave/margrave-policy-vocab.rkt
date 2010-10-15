@@ -23,7 +23,11 @@
                      racket/list
                      racket/match))
 
-(provide evaluate-policy)
+(provide evaluate-policy
+         
+         ; for test cases
+         Policy
+         PolicyVocab)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -56,13 +60,10 @@
     (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
     (port-count-lines! file-port)
     
-    (define the-policy-syntax (read-syntax fn file-port))
-    
-    (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))
-    
+    (define the-policy-syntax (read-syntax fn file-port))    
+    (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))    
     (define pol-result-list (the-policy-func fn src-syntax))
         
-    ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
     
     ; Return the script needed to create this policy
@@ -71,6 +72,25 @@
 
 
 ;****************************************************************
+
+(define-for-syntax (assert-one-clause stx clause-list descriptor)
+  (match clause-list
+    [(list) (raise-syntax-error #f (format "~a clause is missing" descriptor) stx)]
+    [(list x y z ...) (raise-syntax-error 'Margrave (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+    [_ (void)]))         
+
+(define-for-syntax (assert-lone-clause stx clause-list descriptor)
+  (match clause-list
+    [(list x y z ...) (raise-syntax-error 'Margrave (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
+    [_ (void)]))  
+
+(define-for-syntax (none-colon-syn? syn-list)
+  (define lst (if (syntax? syn-list)
+                  (syntax->datum syn-list)
+                  syn-list))
+  (cond [(empty? lst) #t]
+        [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
+        [else (none-colon-syn? (rest lst))]))
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax (PolicyVocab stx)
@@ -107,35 +127,18 @@
        (define the-reqvariables-clauses (hash-ref clause-table 'reqvariables))
        (define the-othvariables-clauses (hash-ref clause-table 'othvariables))
        (define the-constraints-clauses (hash-ref clause-table 'constraints))
-       
-       (define (assert-one-clause clause-list descriptor)
-         (match clause-list
-           [(list) (raise-syntax-error #f (format "~a clause is missing" descriptor) stx)]
-           [(list x y z ...) (raise-syntax-error 'PolicyVocab (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
-           [_ (void)]))         
-       (define (assert-lone-clause clause-list descriptor)
-         (match clause-list
-           [(list x y z ...) (raise-syntax-error 'PolicyVocab (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
-           [_ (void)]))         
-       
-       (assert-one-clause the-types-clauses "Types")
-       (assert-one-clause the-decisions-clauses "Decisions")
-       (assert-lone-clause the-predicates-clauses "Predicates")
-       (assert-one-clause the-reqvariables-clauses "ReqVariables")
-       (assert-lone-clause the-othvariables-clauses "OthVariables")
-       (assert-lone-clause the-constraints-clauses "Constraints")
+                     
+       (assert-one-clause stx the-types-clauses "Types")
+       (assert-one-clause stx the-decisions-clauses "Decisions")
+       (assert-lone-clause stx the-predicates-clauses "Predicates")
+       (assert-one-clause stx the-reqvariables-clauses "ReqVariables")
+       (assert-lone-clause stx the-othvariables-clauses "OthVariables")
+       (assert-lone-clause stx the-constraints-clauses "Constraints")
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Types
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define (none-colon-syn? syn-list)
-         (define lst (if (syntax? syn-list)
-                         (syntax->datum syn-list)
-                         syn-list))
-         (cond [(empty? lst) #t]
-               [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
-               [else (none-colon-syn? (rest lst))]))
        
        (define (handle-top-types types-list)
          ; Optional :
@@ -392,33 +395,124 @@
          (syntax/loc stx `( ,(symbol->string (syntax->datum #'myvocabname)) xml-list)))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Policy: Parses a policy definition and creates an MPolicyLeaf OR MPolicySet object
 ; Policies are permitted to have child policies, so this may be recursively called
-; (but is guaranteed to terminate.)
+
 (define-syntax (Policy stx)
+  ;(syntax-case stx [Target Rules = :- uses RComb PComb Children Policy]
+  ;  ([_ policyname uses vocabname
+  ;      (Target tconj ...) ; back end expects a list of conjuncts
+  ;      (Rules (rulename = (dtype v ...) :- conj ...) ; for each variable in the IDB dec; for each conjunct in the rule itself                    
+  ;             ...); for each rule
+  ;      (RComb rcstr ...) ; rule combination alg?
+  ;      (PComb pcstr ...) ; policy combination alg?
+  ;      (Children child ...)] ; child policies? 
+  
   (syntax-case stx [Target Rules = :- uses RComb PComb Children Policy]
-    ([_ policyname uses vocabname
-        (Target tconj ...) ; back end expects a list of conjuncts
-        (Rules (rulename = (dtype v ...) :- conj ...) ; for each variable in the IDB dec; for each conjunct in the rule itself                    
-               ...); for each rule
-        (RComb rcstr ...) ; rule combination alg?
-        (PComb pcstr ...) ; policy combination alg?
-        (Children child ...)] ; child policies? 
-     
+    [(_ policyname uses vocabname clauses ... )
+
+     (let ()
+       (unless (symbol? (syntax->datum #'policyname))
+         (raise-syntax-error 'Policy (format "Expected a name for the policy, got: ~a" (syntax->datum #'policyname)) #f #f (list #'policyname)))
+       (unless (symbol? (syntax->datum #'vocabname))
+         (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a" (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
+              
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children]
+                                                        [(Target targ ...) 'target]                   
+                                                        [(Rules rule ...) 'rules]
+                                                        [(RComb comb ...) 'rcomb] 
+                                                        [(PComb comb ...) 'pcomb] 
+                                                        [(Children child ...) 'children] 
+                                                        [_ #f]))                                        
+                                        (syntax->list #'(clauses ...))
+                                        #:init-keys '(target rules rcomb pcomb children)))
+       
+       (printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
+       (printf "Policy Clause table: ~n~a~n" clause-table)
+              
+       (define the-target-clauses (hash-ref clause-table 'target))                                 
+       (define the-rules-clauses (hash-ref clause-table 'rules))
+       (define the-rcomb-clauses (hash-ref clause-table 'rcomb))
+       (define the-pcomb-clauses (hash-ref clause-table 'pcomb))
+       (define the-children-clauses (hash-ref clause-table 'children))
+                     
+       (assert-lone-clause stx the-target-clauses "Target")
+       (assert-lone-clause stx the-rules-clauses "Rules")
+       (assert-one-clause stx the-rcomb-clauses "RComb")
+       (assert-one-clause stx the-pcomb-clauses "PComb")
+       (assert-lone-clause stx the-children-clauses "Children")
+       
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Target
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define target-result
+         (if (empty? the-target-clauses)
+             empty
+             (let ()               
+               (define the-target-clause (first the-target-clauses))
+               (define the-targets (rest (syntax-e the-target-clause)))
+               
+               empty)))
+    
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Rules
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define rules-result
+         (if (empty? the-rules-clauses)
+             empty
+             (let ()    
+               (define the-rules-clause (first the-rules-clauses))
+               (define the-rules (rest (syntax-e the-rules-clause)))
+               
+               empty)))
+
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; RComb
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define the-rcomb-clause (first the-rcomb-clauses))
+
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; PComb
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define the-pcomb-clause (first the-pcomb-clauses))
+       
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Children
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define children-result
+         (if (empty? the-children-clauses)
+             empty
+             (let ()    
+               (define the-children-clause (first the-children-clauses))
+               (define the-children (rest (syntax-e the-children-clause)))
+               
+               empty)))
+       
+       
+       
+       #'2
+       
+       
+       
+       
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
-     (syntax/loc stx
+     #;(syntax/loc stx
        (lambda (local-policy-filename src-syntax) 
          (define vocab-path (build-path (path-only/same local-policy-filename) 
                                       (string-append (symbol->string 'vocabname) ".v")))
+         
        ; Produce a friendly error if the vocab doesn't exist
        (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
        
        (let* ([mychildren (list child ...)]
                            
-             ; !!! TODO: Only using eval here because we had to in SISC;
-              ; stop using it when switch to language-level
              [vocab-macro-return                 
               (call-with-input-file
                vocab-path
@@ -483,48 +577,21 @@
             ; Trigger IDB calculation
             ,(xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string 'policyname)))))
            ; close paren for above GET REQUEST VECTOR commented out )
-           )))))))
+           )))))]
+    
+    [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
+                            #f #f (list stx))]
+    [(_ x) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
+                               #f #f (list stx))]
+    [(_ x y) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
+                                 #f #f (list stx))]
+    [(_ x0 x1 x ...) (and (not (equal? (syntax->datum #'x0) 'uses))
+                          (not (equal? (syntax->datum #'x1) 'uses)))
+                     (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
+                                         #f #f (list stx))]))
 
 ; ********************************************************************
 ; Helper functions 
-
-; listsubs contains a list of the subsorts for this sort. 
-; However, it may be nested: subsorts may themselves have subsorts.
-; Returns a list of xml commands
-; TN: Changed to ignore ': in subsort lists. 
-; (Kludge to make ":" optional deprecated syntax)
-
-;(define (add-subtypes-of vocab parent listsubs-dirty)  
-;  (let ([listsubs-cleaned (filter (lambda (x) (not (equal? x ':))) listsubs-dirty)])
-;    ; listsubs may be empty -- if so, do nothing (we already added parent)
-;    (if (> (length listsubs-cleaned) 0)            
-;        (foldr (lambda (s rest) 
-;                 ; Is this a sort with subsorts itself?
-;                 (append 
-;                  (if (list? s)                       
-;                      (begin
-;                        ; (display parent) ; debug
-;                        ; Add subtype relationship between parent and s
-;                        (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
-;                              
-;                              ; Is this a nested subtype? If so, we must
-;                              ; deal with s's subtypes.
-;                              
-;                              ; Check for list size;
-;                              ; someone may have used parens without meaning to.
-;                              (if (> (length s) 1)
-;                                  (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
-;                                  empty)))
-;                      
-;                      ; Bottom of sort tree. 
-;                      (begin
-;                        ;(printf "~a ~a ~a ~n" s listsubs-cleaned parent)
-;                        (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
-;                  rest))
-;               empty
-;               listsubs-cleaned)
-;        empty)))
-
 ; Sets the target property of a policy object
 (define (set-target mypolicy conjlist)
   (xml-make-command "SET TARGET FOR POLICY" (list (xml-make-policy-identifier mypolicy) (xml-make-conjunct-chain conjlist))))

@@ -22,11 +22,143 @@
          margrave
          xml)
 
+(require margrave/margrave-policy-vocab)
 
 (define (string-contains? str phrase)
   (cond [(< (string-length str) (string-length phrase)) false]
         [else (or (equal? (substring str 0 (string-length phrase)) phrase)
                   (string-contains? (substring str 1) phrase))]))
+
+(define (exn-contains-message msg)
+  (lambda (e) (and (exn? e) 
+                   (string-contains? (exn-message e) msg))))
+
+(define-namespace-anchor anchor)  
+(define (do-expand form)
+  (parameterize ([current-namespace
+                  (namespace-anchor->namespace anchor)])
+    (expand-once form)))
+
+(define vocab-errors
+  (test-suite
+   "Vocabulary error messages"
+   (check-exn (exn-contains-message "")
+              (lambda () (do-expand '(PolicyVocab ))))
+   (check-exn (exn-contains-message "Expected a name for the vocabulary")
+              (lambda () (do-expand '(PolicyVocab (Types)))))
+   (check-exn (exn-contains-message "Decisions clause is missing")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types)))))
+   (check-exn (exn-contains-message "ReqVariables clause is missing")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions)))))
+   (check-exn (exn-contains-message "Top-level type declaration was not valid")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions) (ReqVariables)))))
+   (check-exn (exn-contains-message "Top-level type declaration was not valid")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types:) (Decisions) (ReqVariables)))))
+   (check-exn (exn-contains-message "Must have at least one decision")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions) (ReqVariables)))))
+   
+   (check-exn (exn-contains-message "There must be at least one request field")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables)))))
+   (check-exn (exn-contains-message "Invalid request field declaration")
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables s a r)))))
+   
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action Resource)
+                                               (Decisions Permit Deny) 
+                                               (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+   
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource Tool Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource : Tool Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                             (OthVariables )))))
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                             (OthVariables (e : Subject))))))
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                             (OthVariables (e : Subject))
+                                             (Constraints (disjoint-all Resource)
+                                                          (subset Potato PotatoBattery ))))))
+   
+   (check-exn (exn-contains-message "Invalid request field declaration")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                         (Decisions Permit Deny) 
+                                         (ReqVariables (s : Subject) (a : Action) blargh (r : Resource))
+                                         (OthVariables (e : Subject))
+                                         (Constraints (disjoint-all Resource)
+                                                      (subset Potato PotatoBattery ))))))
+   
+   (check-exn (exn-contains-message "Invalid request field declaration")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                         (Decisions Permit Deny) 
+                                         (ReqVariables (s : Subject) (a : Action) (blargh) (r : Resource))
+                                         (OthVariables (e : Subject))
+                                         (Constraints (disjoint-all Resource)
+                                                      (subset Potato PotatoBattery ))))))
+   
+   (check-exn (exn-contains-message "Invalid constraint declaration")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                         (Decisions Permit Deny) 
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (OthVariables (e : Subject))
+                                         (Constraints (disjoint-all Resource)
+                                                      (badconstraint Resource)
+                                                      (subset Potato PotatoBattery ))))))
+
+   (check-exn (exn-contains-message "More than one Decisions clause found")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Decisions More) 
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (OthVariables (e : Subject))
+                                         (Constraints (disjoint-all Resource)
+                                                      (badconstraint Resource)
+                                                      (subset Potato PotatoBattery ))))))   
+   
+   (check-exn (exn-contains-message "More than one ReqVariables clause found")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
+                                         (Decisions Permit Deny) 
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (ReqVariables (x : Subject))
+                                         (OthVariables (e : Subject))
+                                         (Constraints (disjoint-all Resource)
+                                                      (badconstraint Resource)
+                                                      (subset Potato PotatoBattery ))))))  
+   )) ; end of vocab error tests
+
+
+
+(define policy-errors
+  (test-suite
+   "Policy error messages"
+   (check-exn (exn-contains-message "")
+              (lambda () (do-expand '(Policy ))))
+   
+   
+   )) ; end of policy error tests
+
 
 ;To run this: (run-tests pretty-print-tests)
 (define pretty-print-tests
@@ -76,10 +208,13 @@
 
 ; *******************************************************************
 ; Testing helper functions
-(define (test-command command-string test-string (msg "(no test name)"))
+(define (test-command command-string test-string [msg "(no test name)"])
   (let ([response-string (response->string (mtext command-string))])
     (check-true (string-contains? response-string test-string) 
                 (string-append msg ": " test-string " expected; saw: " response-string))))
+(define (test-command-error command-string test-error [msg "(no test name)"])
+  (check-exn (exn-contains-message test-error)
+             (lambda () (mtext command-string))))
 
 ; Test conference1.p
 (define conf1-test
@@ -87,94 +222,80 @@
    "Conference1.p test"
    (start-margrave-engine)
    ;(load-policy (build-path (current-directory) "tests" "conference1.p"))      
-   (mtext "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\"")
-   (mtext "RENAME ConferencePolicy1 conf1")
-   (display (mtext "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"))
-   ;7 Solutions
-   (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)" "Result handle was: 0" "1")
-   (test-command "GET ONE 0" "SOLUTION FOUND at size = 3" "2")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "3")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "4")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "5")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "6")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "7")
-   (test-command "GET NEXT 0" "SOLUTION FOUND at size = 3" "8")
-   (test-command "GET NEXT 0" "No more solutions"  "9")
-   (test-command "COUNT 0" "7"  "10")
-   (test-command "IS POSSIBLE? 0" "true"  "11")
+   (test-command "LOAD POLICY \"*MARGRAVE*/tests/conference1.p\"" "ConferencePolicy1")
+   (test-command "RENAME ConferencePolicy1 conf1" "false")
+   
+   ;7 Solutions      
+      
+   (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r)"
+                 "Query created successfully." "1")
+   (test-command "GET ONE" "SOLUTION FOUND at size = 3" "2")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "3")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "4")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "5")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "6")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "7")
+   (test-command "GET NEXT" "SOLUTION FOUND at size = 3" "8")
+   (test-command "GET NEXT" "No more solutions"  "9")
+   (test-command "COUNT" "7"  "10")
+   (test-command "IS POSSIBLE?" "true"  "11")
    
    (test-command "EXPLORE readpaper(a) and paper(r) and conf1:permit(s,a,r) PUBLISH s, a,r" 
-                 "Result handle was: 0"  "12")
-   (test-command "IS POSSIBLE? 0" "true"  "13")
-   
-   ;;What should this return?? Right now, its:
-   ;<MARGRAVE-RESPONSE type="collection-info">
-   ;<SAVED-QUERY name="">
-   ;<IDBS>
-   ;<IDB base-name="saved">null:saved</IDB>
-   ;</IDBS>
-   ;<FREE-VARIABLES>
-   ;<VARIABLE>s</VARIABLE>
-   ;<VARIABLE>a</VARIABLE>
-   ;<VARIABLE>r</VARIABLE>
-   ;</FREE-VARIABLES>
-   ;</SAVED-QUERY>
-   ;</MARGRAVE-RESPONSE>
-   (mtext "INFO last")
-   
+                 "Query created successfully."  "12")
+   (test-command "IS POSSIBLE?" "true"  "13")
+      
    ;(mtext "RENAME conf1 conf1")
    (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r)" 
-                 "Result handle was: 0" "14")
+                 "Query created successfully." "14")
    (test-command "GET CEILING 0" "4" "15")
    
    (test-command "EXPLORE readpaper(a) and paper(r) and subject(s) and not conf1:permit(s, a, r)"
-                 ": 0"  "16")
+                 "Query created successfully."  "16")
    (test-command "GET CEILING 0" "3"  "17")
    
-   (load-policy (build-path (current-directory) "tests" "conference2.p"))
-   (mtext "RENAME ConferencePolicy2 conf2")
+   (test-command "LOAD policy *margrave*/tests/conference2.p" "ConferencePolicy2" "17a")
+   (test-command "RENAME ConferencePolicy2 conf2" "false")
    
    (test-command "EXPLORE (conf1:Permit(sub, act, res) AND NOT conf2:Permit(sub, act, res)) OR 
             (conf2:Permit(sub, act, res) AND NOT conf1:Permit(sub, act, res)) OR 
             (conf1:Deny(sub, act, res) AND NOT conf2:Deny(sub, act, res)) OR
             (conf2:Deny(sub, act, res) AND NOT conf1:Deny(sub, act, res))"
-                ": 0"  "18")
+                "Query created successfully."  "18")
   (test-command "COUNT 0" "2"  "19")
   (test-command "get one 0" "SOLUTION FOUND at size = 3"  "20")
   
   (test-command "EXPLORE readpaper(a) iff paper(r) and not conf1:permit(s, a, r)" 
-                 "0"  "21")
+                 "successfully"  "21")
   (test-command "EXPLORE readpaper(a) implies paper(r) and not conf1:permit(s, a, r)" 
-                 "0" "22")
+                 "successfully" "22")
   
   ;Test explore modifiers
-  (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r) CEILING 10 debug 3 publish s, a, r"
-                "0" "22")
+  (test-command "EXPLORE readpaper(a) and paper(r) and not conf1:permit(s, a, r) CEILING 10 publish s, a, r"
+                "successfully" "22")
   
   ;Test TUPLING, since fw1 only has unary relations
-  (load-policy (build-path (current-directory) "tests" "fwex1.p"))
+  (test-command "load policy *margrave*/tests/fwex1.p" "" "22a")
   (test-command "EXPLORE fwex1:Accept(ipsrc, ipdest, portsrc, portdest, pro) TUPLING"
-                "0" "23")
+                "successfully" "23")
   
   ;test INCLUDE
   (test-command "EXPLORE conf1:permit(s, a, r) INCLUDE conf1:permit"
-                ": 0" "24")
+                "successfully" "24")
   
   
               
-   (stop-margrave-engine)))
+  (stop-margrave-engine)))
 
 (define error-test
   (test-suite
    "Error tests"
    (start-margrave-engine)
    
-   (load-policy (build-path (current-directory) "tests" "conference1.p"))      
-   (mtext "RENAME ConferencePolicy1 conf1")
-   (test-command "EXPLORE readpaper(a) and junk(b) and conf1:permit(s, a, r)"
-                "Unknown relation error:")
-   (test-command "EXPLORE readpaper(a, b) and conf1:permit(s, a, r)"
-                "Arity Mismatch")
+   (test-command "load policy *margravE*/tests/conference1.p" "ConferencePolicy1" "load")      
+   (test-command-error "EXPLORE readpaper(a) and junk(b) and ConferencePolicy1:permit(s, a, r)"
+                       "Unknown EDB junk")
+   (test-command-error "EXPLORE readpaper(a, b) and ConferencePolicy1:permit(s, a, r)"
+                       "Arity Mismatch")
    (stop-margrave-engine)))
 
 (define engine-fail-test
@@ -182,13 +303,13 @@
    "Java Engine Fail test"
    (start-margrave-engine)
    
-   (load-policy (build-path (current-directory) "tests" "conference1.p"))      
+   (mtext "load policy *margravE*/tests/conference1.p")       
    (mtext "RENAME ConferencePolicy1 conf1")
    (mtext "EXPLORE readpaper(a) and conf1:permit(s, a, r)")
 
    (stop-margrave-engine)
    (start-margrave-engine) ;; restart after closed by func?
-   (mtext "INFO")
+   (test-command "info" "System Information:" "info test")
    (stop-margrave-engine)))
    
   
@@ -422,3 +543,12 @@
 </EXCEPTION>
 
 </MARGRAVE-RESPONSE>")))
+
+
+; ***********
+(run-tests pretty-print-tests)
+(run-tests conf1-test)
+(run-tests error-test)
+(run-tests engine-fail-test)
+
+(run-tests vocab-errors)

@@ -576,7 +576,7 @@
          (result-element (get-child-element element 'result-handle)))
     (begin 
       ; Omit result handle since only zero is ever returned (for the moment).
-      (write-string (string-append "Query created successfully.")) ;Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      (write-string (string-append "Query created successfully.") string-buffer) ;Result handle was: " (get-pc-data result-element) "\n") string-buffer)
       ; debug
       ;(display (get-output-string string-buffer))
       (get-output-string string-buffer))))
@@ -795,8 +795,8 @@
          (idbs (get-child-element the-element 'idbs))
          (free-variables (get-child-element the-element 'free-variables)))
     
-    (write-string (string-append "This is a policy named: " (get-attribute-value the-element 'name) "\n"))
-    (write-string "  This policy is a SET; it contains sub-policies and no rules.\n")
+    (write-string (string-append "This is a policy named: " (get-attribute-value the-element 'name) "\n") string-buffer)
+    (write-string "  This policy is a SET; it contains sub-policies and no rules.\n" string-buffer)
     
     (when (not (empty? idbs))
       (write-string (pretty-print-provided-idbs idbs)) string-buffer)
