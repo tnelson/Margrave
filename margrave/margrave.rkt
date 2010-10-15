@@ -243,31 +243,22 @@ gmarceau
 ; parses and compiles the string command into XML, executes it,
 ; and returns the result document.
 (define (mtext . cmd)
-  ; May be a semicolon-separated script of commands
-  (let* ([cmd-func-syntax (parse-and-compile (string-append* cmd))]
-         [cmd-closures (eval cmd-func-syntax the-margrave-namespace)]        
-         [response-docs (if (list? cmd-closures)
+    
+  (define cmd-func-syntax (parse-and-compile (string-append* cmd)))
+  (define cmd-closures (eval cmd-func-syntax the-margrave-namespace))
+  (define response-docs (if (list? cmd-closures)
                             (map (lambda (x) (x)) cmd-closures)
-                            (cmd-closures))])  
-         ;[response-docs (eval cmd-func-syntax the-margrave-namespace)])
+                            (cmd-closures)))
     
-    ; DEBUG
-    ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
-    ;(printf "RESPONSE-DOCS: ~a~n" response-docs)
-    
-    ; Return the XML document or list of replies
-    #| gmarceau
-    (match response-docs
-      [(list one) one]
-      [(list items ...) items]
-      [else response-docs])
-|#
-    (cond [(and (list? response-docs) (> (length response-docs) 1))
-           response-docs]
-          [(list? response-docs)
-           (first response-docs)]
-          [else ; not a list, single response
-           response-docs])))
+  ; DEBUG
+  ;(printf "CMD-FUNC-SYNTAX: ~a ~n" cmd-func-syntax)
+  ;(printf "RESPONSE-DOCS: ~a~n" response-docs)
+  
+  ; Return the XML document or list of replies
+  (match response-docs
+    [(list one) one]
+    [(list items ...) items]
+    [else response-docs]))
 
   
 

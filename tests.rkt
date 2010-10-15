@@ -41,19 +41,19 @@
    (check-true (string-contains? (pretty-print-response-xml test-coll-info) "This is a policy named: conf1") "6")
    (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Information:") "7")
    (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "Vocabulary Name: examplefw1") "8")
-   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "DISJOINT"))
+   (check-true (string-contains? (pretty-print-response-xml test-vocab-info) "DISJOINT") "8a")
    
-   ;(check-true (string-contains? (pretty-print-response-xml test-error-response) "Error:\nType: a type\nSubtype: a subtype\nThis is an error") "9")
+   (check-true (string-contains? (pretty-print-response-xml test-error-response) "Margrave encountered an error") "9")
    (check-true (string-contains? (pretty-print-response-xml test-exception) "Unknown IDB Collection: firewall1") "10")
    (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling") "11")
-   ;(check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size.") "12")
+   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size.") "12")
    
    ;Actual returned results
-   ;(start-margrave-engine)
-   ;(load-policy (build-path (current-directory) "sampleconfig.p"))
-   ;(mtext "info SampleConfig")
-   ;(test-command "info SampleConfig"
-   ;              "SUBSETS")
+   (start-margrave-engine #:margrave-params '("-log"))
+   (test-command "load policy *margrave*/tests/phone1.p"
+                 "Phone1")
+   (test-command "info phone1"
+                 "refusecall2_matches")
    (stop-margrave-engine)))
 
 ;Uncomment any of these out to see what the pretty printing result is

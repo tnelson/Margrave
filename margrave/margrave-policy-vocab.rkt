@@ -19,6 +19,7 @@
 (require margrave/margrave-xml
          margrave/helpers         
          (for-syntax margrave/helpers
+                     margrave/margrave-xml
                      racket/list
                      racket/match))
 
@@ -56,13 +57,11 @@
     (port-count-lines! file-port)
     
     (define the-policy-syntax (read-syntax fn file-port))
-    (printf "Policy Syntax: ~n~a~n" the-policy-syntax)
     
-   ; (define the-policy-func (eval-syntax the-policy-syntax margrave-policy-vocab-namespace))
     (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))
     
     (define pol-result-list (the-policy-func fn src-syntax))
-    
+        
     ; don't keep the handle open! call-with-input-file would be better here.  
     (close-input-port file-port)    
     
@@ -77,21 +76,19 @@
 (define-syntax (PolicyVocab stx)
   (syntax-case stx [Types Decisions Constraints Predicates Variables : PolicyVocab]
     ([_ myvocabname clauses ...]     
-     
-     ; TN: Removed explicit colon after root types. Changed add-subtypes-of to remove ': 
-     ; Makes the syntax cleaner not to require the colon.
-    
+         
      (let ()
        (unless (symbol? (syntax->datum #'myvocabname))
          (raise-syntax-error 'PolicyVocab (format "Expected a name for the vocabulary, got: ~a" (syntax->datum #'myvocabname)) #f #f (list #'myvocabname)))
        
-       (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Decisions Predicates ReqVariables OthVariables Constraints]
-                                                        [(Types atype ...) 'types]                         ; (Types (t subt ...) ...)                                
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Decisions Predicates ReqVariables OthVariables Constraints Types:]
+                                                        [(Types atype ...) 'types]                   
+                                                        [(Types: atype ...) 'types]                   
                                                         [(Decisions r ...) 'decisions]
-                                                        [(Predicates apreddec ...) 'predicates] ; (pname : prel ...)
-                                                        [(ReqVariables avardec ...) 'reqvariables]  ; (rvname : rvsort)
-                                                        [(OthVariables avardec ...) 'othvariables] ;(ovname : ovsort)
-                                                        [(Constraints acondec ...) 'constraints] ; 
+                                                        [(Predicates apreddec ...) 'predicates] 
+                                                        [(ReqVariables avardec ...) 'reqvariables] 
+                                                        [(OthVariables avardec ...) 'othvariables] 
+                                                        [(Constraints acondec ...) 'constraints] 
                                                         [_ #f]))                                        
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
@@ -132,54 +129,94 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Types
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define (none-colon-syn? syn-list)
+         (define lst (if (syntax? syn-list)
+                         (syntax->datum syn-list)
+                         syn-list))
+         (cond [(empty? lst) #t]
+               [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
+               [else (none-colon-syn? (rest lst))]))
        
-       ; create XML or throw error
-       ; The colon before subtypes is optional
-       (define (handle-types types-list [parent #f])
-         (syntax-case types-list [Types : ]
-           [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
-           [(Types : x0 x ...) (map (lambda (t) (handle-type t parent)) (append (list #'x0) (syntax->list #'(x ...))))]
-           ; Fender expression prevents x0 from accepting ':. Guard against (Types :)
-           [(Types x0 x ...) (not (equal? (syntax->datum #'x0) ':))
-                             (map (lambda (t) (handle-type t parent)) (append (list #'x0) (syntax->list #'(x ...))))]          
-           ; Fender expression forces this not to be (Types ~~~)
-           [(x0 x ...) (not (equal? (syntax->datum #'x0) 'Types)) 
-                       (map (lambda (t) (handle-type t parent)) types-list)]
-           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
+       (define (handle-top-types types-list)
+         ; Optional :
+         ; must have at least one type
+         ; (Types : atype0 atype ...)
+         ; (Types atype0 atype ...)         
+         (syntax-case types-list [Types : Types:]
+           [(Types : x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
+                                    (none-colon-syn? #'(x ...)))
+                               (map (lambda (t) (handle-type t #f)) 
+                                    (append (list #'x0) (syntax->list #'(x ...))))]
+                      
+           [(Types: x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
+                                   (none-colon-syn? #'(x ...)))
+                              (map (lambda (t) (handle-type t #f)) 
+                                   (append (list #'x0) (syntax->list #'(x ...))))]
+           
+           [(Types x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
+                                  (none-colon-syn? #'(x ...)))
+                             (map (lambda (t) (handle-type t #f)) (append (list #'x0) (syntax->list #'(x ...))))]   
+           
+           [_ (raise-syntax-error 'PolicyVocab "Top-level type declaration was not valid." #f #f types-list)]))
        
        (define (handle-type a-type [parent #f])
+         ; (id!=: : atype ...)
+         ; (id!=: atype ...)
+         ; id!=:
          (syntax-case a-type [:]     
-           [(t subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent)
-                               (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
-           [(t : subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent) 
-                                 (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
-           ; Add check for lexically valid type names here
-           [t (make-type-command-syntax (syntax->datum #'t) parent)]
-           [(t :) (make-type-command-syntax (syntax->datum #'t) parent)]
-           [(t) (make-type-command-syntax (syntax->datum #'t) parent)]
+           [(t subt ...) (and (not (equal? (syntax->datum #'t) ':))
+                              (none-colon-syn? #'(subt ...)))
+                         (list (make-type-command-syntax (syntax->datum #'t) parent)
+                               (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
+           [(t : subt ...) (and (not (equal? (syntax->datum #'t) ':))
+                                (none-colon-syn? #'(subt ...)))
+                           (list (make-type-command-syntax (syntax->datum #'t) parent) 
+                                 (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
+           
+           [t (not (equal? (syntax->datum #'t) ':))
+              (make-type-command-syntax (syntax->datum #'t) parent)]
+           
            [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f #'(a-type))]))
               
+       
+       (define (handle-sub-types types-list [parent #f])
+         (syntax-case types-list [:]
+           [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
+           
+           [(x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
+                            (none-colon-syn? #'(x ...)))
+                       (map (lambda (t) (handle-type t parent)) types-list)]
+           
+           [(x0 : x ...) (and (not (equal? (syntax->datum #'x0) ':))
+                              (none-colon-syn? #'(x ...)))
+                         (map (lambda (t) (handle-type t parent)) types-list)]
+           
+           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
+       
        (define (make-type-command-syntax typename parent)
          (if parent             
-             #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-subsort #,(symbol->string parent) #,(symbol->string typename))))
-             #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort #,(symbol->string typename))))))
+             #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                               (xml-make-subsort (symbol->string parent) (symbol->string typename))))
+             #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname)))
+                                               (xml-make-sort (symbol->string typename))))))
        
        ; Is each type valid?  
-       (define types-result (flatten (handle-types (syntax-e (first the-types-clauses)))))
+       (define types-result (flatten (handle-top-types (syntax-e (first the-types-clauses)))))
        ;(printf "types-result: ~a~n" types-result)        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Decisions
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define the-decisions-clause (first the-decisions-clauses))
-       (printf "~a~n" (syntax-e the-decisions-clause))
+       
        (define my-decisions (match (syntax-e the-decisions-clause)
                               [(list _) (raise-syntax-error 'PolicyVocab "Must have at least one decision." #f #f (list (first the-decisions-clauses)) )]
                               [(list _ dec ...) dec]
                               [_ (raise-syntax-error 'PolicyVocab "Invalid Decisions clause." #f #f (list (first the-decisions-clauses)) )])) 
+       
        (define decisions-result (map (lambda (dec-syn) 
-                                       #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) 
-                                                                       (xml-make-decision (symbol->string '#,dec-syn))))) 
+                                       #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                         (xml-make-decision (symbol->string (syntax->datum dec-syn)))))) 
                                      my-decisions))
        
         ; (printf "decisions-result: ~a~n" decisions-result)  
@@ -192,94 +229,167 @@
              (let ()
                (define the-predicates-clause (first the-predicates-clauses))
                (define the-predicates (rest (syntax-e the-predicates-clause)))
+               
+               (define (add-predicate vocab-syn predname-syn listrels-syn)
+                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
+                                               (xml-make-predicate (symbol->string (syntax->datum predname-syn))) 
+                                               (xml-make-relations-list (map symbol->string (syntax->datum listrels-syn))))))
+
+               
                (define (handle-predicate pred)
+                 ; Optional : again
                  (syntax-case pred [ : ]
-                   [(pname : prel0 prel ...)  #`(add-predicate (symbol->string 'myvocabname) 
-                                                        (symbol->string 'pname) 
-                                                        (list (symbol-string 'prel0) 
-                                                              (symbol->string 'prel) ...))]
-                   ; Fender expression prevents prel0 from accepting ': 
-                   [(pname prel0 prel ...) (not (equal? (syntax->datum #'prel0) ':))
-                                           #`(add-predicate (symbol->string 'myvocabname) 
-                                                      (symbol->string 'pname) 
-                                                      (list (symbol-string 'prel0)
-                                                            (symbol->string 'prel) ...))]
+                   [(pname : prel0 prel ...) (and (not (equal? (syntax->datum #'prel0) ':))
+                                                  (none-colon-syn? #'(prel ...)))                                             
+                                             #`#,(add-predicate  #'myvocabname #'pname #'(prel0 prel ...))]
+                   
+                   
+                   [(pname prel0 prel ...) (and (not (equal? (syntax->datum #'prel0) ':))
+                                                (none-colon-syn? #'(prel ...)))  
+                                           #`#,(add-predicate  #'myvocabname #'pname #'(prel0 prel ...))] 
+                   
                    [_ (raise-syntax-error 'PolicyVocab "Invalid predicate declaration." #f #f (list pred) )]))
+               
                (map handle-predicate the-predicates))))
          
-       (printf "predicates-result: ~a~n" predicates-result)  
-       
-       
-       
-       ; problem with the optional : --- : is being made a prel... have to add guards
-       ; but that is annoying. see syntax-parse: can define syntax class for, say, a type...
-       
+      ; (printf "predicates-result: ~a~n" predicates-result)  
+      
+              
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; ReqVariables
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define the-reqvariables-clause (first the-reqvariables-clauses))
+       (define the-reqvardecs (rest (syntax-e the-reqvariables-clause)))
+       
+       (when (empty? the-reqvardecs)
+         (raise-syntax-error 'PolicyVocab "There must be at least one request field." #f #f (list the-reqvariables-clause) ))
+       
+       (define (handle-reqvardec vardec)
+         ; Optional : again
+         ; only one sort per variable
+         (syntax-case vardec [ : ]
+           [(varname : varsort) (and (not (equal? (syntax->datum #'varname) ':))
+                                     (not (equal? (syntax->datum #'varsort) ':)))  
+                                #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                  (xml-make-request-var (symbol->string (syntax->datum #'varname)) 
+                                                                                        (symbol->string (syntax->datum #'varsort)))))]
+           
+           [(varname varsort) (and (not (equal? (syntax->datum #'varname) ':))
+                                   (not (equal? (syntax->datum #'varsort) ':)))  
+                              #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                (xml-make-request-var (symbol->string (syntax->datum #'varname)) 
+                                                                                      (symbol->string (syntax->datum #'varsort)))))]
+           
+           [_ (raise-syntax-error 'PolicyVocab "Invalid request field declaration." #f #f (list vardec) )]) )
+                           
+       (define reqvariables-result (map handle-reqvardec the-reqvardecs))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; OthVariables
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (unless (empty? the-othvariables-clauses)
-        ; (define the-othvariables-clause (first the-othvariables-clauses))
-         (void))
+       (define othvariables-result 
+         (if (empty? the-othvariables-clauses)
+             empty
+             (let ()
+               (define the-othvariables-clause (first the-othvariables-clauses))
+               (define the-othvardecs (rest (syntax-e the-othvariables-clause)))
+               
+               (define (handle-othvardec vardec)
+                 ; Optional : again
+                 ; only one sort per variable
+                 (syntax-case vardec [ : ]
+                   [(varname : varsort) (and (not (equal? (syntax->datum #'varname) ':))
+                                             (not (equal? (syntax->datum #'varsort) ':)))  
+                                        #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                          (xml-make-other-var (symbol->string (syntax->datum #'varname)) 
+                                                                                              (symbol->string (syntax->datum #'varsort)))))]
+                   
+                   [(varname varsort) (and (not (equal? (syntax->datum #'varname) ':))
+                                           (not (equal? (syntax->datum #'varsort) ':)))  
+                                      #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                        (xml-make-other-var (symbol->string (syntax->datum #'varname)) 
+                                                                                            (symbol->string (syntax->datum #'varsort)))))]
 
+                   [_ (raise-syntax-error 'PolicyVocab "Invalid rule-scope variable declaration." #f #f (list vardec) )]) )
+                           
+               (map handle-othvardec the-othvardecs))))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Constraints
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (unless (empty? the-constraints-clauses)
-         ;(define the-constraints-clause (first the-constraints-clauses))
-         (void))
+       (define constraints-result
+         
+         (if (empty? the-constraints-clauses)
+             empty
+             (let ()
+               (define the-constraints-clause (first the-constraints-clauses))
+               (define the-constraints (rest (syntax-e the-constraints-clause)))
+               
+               (define (make-constraint vocname-syn ctype-str list-of-args-syn)
+                 #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocname-syn))) 
+                                                   (xml-make-constraint ctype-str
+                                                                        (map syntax->datum list-of-args-syn)))))              
+               
+               (define (handle-constraint constraint)
+                 (syntax-case constraint [disjoint atmostone singleton abstract nonempty 
+                                                   disjoint-all atmostone-all singleton-all abstract-all nonempty-all
+                                                   total-function partial-function subset]
+                   
+                   [(disjoint s1 s2) (and (symbol? (syntax->datum #'s1))
+                                          (symbol? (syntax->datum #'s2))) 
+                                     (make-constraint #'myvocabname "DISJOINT" (list #'s1 #'s2))]
+                   [(atmostone s) (symbol? (syntax->datum #'s))
+                                  (make-constraint #'myvocabname "ATMOSTONE" (list #'s))]
+                   [(singleton s) (symbol? (syntax->datum #'s))
+                                  (make-constraint #'myvocabname "SINGLETON" (list #'s))]
+                   [(abstract s) (symbol? (syntax->datum #'s))
+                                 (make-constraint #'myvocabname "ABSTRACT" (list #'s))]
+                   [(nonempty s) (symbol? (syntax->datum #'s))
+                                 (make-constraint #'myvocabname "NONEMPTY" (list #'s))]
+                                                         
+                   [(disjoint-all s) (symbol? (syntax->datum #'s))
+                                     (make-constraint #'myvocabname "DISJOINT-ALL" (list #'s))]
+                   [(atmostone-all s) (symbol? (syntax->datum #'s))
+                                      (make-constraint #'myvocabname "ATMOSTONE-ALL" (list #'s))]
+                   [(singleton-all s) (symbol? (syntax->datum #'s))
+                                      (make-constraint #'myvocabname "SINGLETON-ALL" (list #'s))]
+                   [(abstract-all s) (symbol? (syntax->datum #'s))
+                                     (make-constraint #'myvocabname "ABSTRACT-ALL" (list #'s))]
+                   [(nonempty-all s) (symbol? (syntax->datum #'s))
+                                     (make-constraint #'myvocabname "NONEMPTY-ALL" (list #'s))]
+                   
+                   [(partial-function s) (symbol? (syntax->datum #'s))
+                                         (make-constraint #'myvocabname "PARTIAL-FUNCTION" (list #'s))]
+                   [(total-function s) (symbol? (syntax->datum #'s))
+                                       (make-constraint #'myvocabname "TOTAL-FUNCTION" (list #'s))]
+                   
+                   [(subset s1 s2) (symbol? (syntax->datum #'s))
+                                   #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 
+                                                                     (xml-make-subset (xml-make-parent-identifier (symbol->string (syntax->datum #'s1))) 
+                                                                                      (xml-make-child-identifier (symbol->string (syntax->datum #'s2))))))]                   
+                   
+                   [_ (raise-syntax-error 'PolicyVocab "Invalid constraint declaration." #f #f (list constraint) )]))
+               
+               (map handle-constraint the-constraints))))
 
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (with-syntax ([xml-list `(list ,@types-result)])
-         (syntax/loc stx `( ,(symbol->string (syntax->datum #'myvocabname)) xml-list)))
-     
-     
-     ;Return a list containing the vocabname, and then a list of commands to be sent to java
-     #;(syntax/loc stx
-         `(
-           ; Return the object for use by the policy macro
-           ,(symbol->string 'myvocabname)
-           (
-        ; Here, we have no idea whether the vocabulary has been created yet or not. 
-        ; Java will handle creation of the object if the identifier hasn't been seen before.
-        
-        ; These sections must be in order.                     
-        ; Types
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-sort (symbol->string 't))))
-        ...
-        
-        ,@(add-subtypes-of (symbol->string 'myvocabname) (symbol->string 't) (list 'subt ...))         
-        
-        ... ; for each type/subtype set
-        
-        ; Decisions               
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-decision (symbol->string 'r))))
-        ...
-        
-        ; Predicates
-        ,(add-predicate (symbol->string 'myvocabname) (symbol->string 'pname) (list (symbol->string 'prel) ...))
-        ... ; for each custom predicate
-        
-        ; Request Variables
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-request-var (symbol->string 'rvname) (symbol->string 'rvsort))))
-        ... ; for each req var
-        
-        ; Other Variables
-        ,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) (xml-make-other-var (symbol->string 'ovname) (symbol->string 'ovsort))))
-        ... ; for each oth var
-        
-        ; Constraints
-        ,(add-constraint (symbol->string 'myvocabname) 'ctype (list (symbol->string 'crel) ...))       
-        ... ; for each constraint
-        )))))))
+       ; TODO Add check for lexically valid type names 
+       ; TODO Check that each sort reference is to a declared sort
+
+       ; Return a list containing the vocabname, and then a list of commands to be sent to java
+       ; We have no idea whether the vocabulary has been created yet or not. 
+       ; Java will handle creation of the object if the identifier hasn't been seen before.
+       
+       (with-syntax ([xml-list (append types-result 
+                                       decisions-result
+                                       predicates-result
+                                       reqvariables-result
+                                       othvariables-result
+                                       constraints-result)])
+         (syntax/loc stx `( ,(symbol->string (syntax->datum #'myvocabname)) xml-list)))))))
 
 
 
@@ -314,7 +424,9 @@
                vocab-path
                (lambda (in-port) 
                  (port-count-lines! in-port)
-                 (eval-syntax (read-syntax vocab-path in-port) margrave-policy-vocab-namespace)))]
+                 (define the-vocab-syntax (read-syntax vocab-path in-port))
+                 
+                 (eval (syntax->datum the-vocab-syntax) margrave-policy-vocab-namespace)))]
              
              [vocab-name (first vocab-macro-return)]
              [vocab-commands (second vocab-macro-return)])
@@ -325,7 +437,7 @@
          ;                            ; Make sure we look in the correct directory!
          ;                            local-policy-filename 
          ;                            (string-append (symbol->string 'vocabname) ".v")))))))
-         
+                 
          
          ;Return (Policyname vocabName vocabcommands policycommands
          `(,(symbol->string 'policyname)
@@ -382,65 +494,36 @@
 ; TN: Changed to ignore ': in subsort lists. 
 ; (Kludge to make ":" optional deprecated syntax)
 
-(define (add-subtypes-of vocab parent listsubs-dirty)  
-  (let ([listsubs-cleaned (filter (lambda (x) (not (equal? x ':))) listsubs-dirty)])
-    ; listsubs may be empty -- if so, do nothing (we already added parent)
-    (if (> (length listsubs-cleaned) 0)            
-        (foldr (lambda (s rest) 
-                 ; Is this a sort with subsorts itself?
-                 (append 
-                  (if (list? s)                       
-                      (begin
-                        ; (display parent) ; debug
-                        ; Add subtype relationship between parent and s
-                        (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
-                              
-                              ; Is this a nested subtype? If so, we must
-                              ; deal with s's subtypes.
-                              
-                              ; Check for list size;
-                              ; someone may have used parens without meaning to.
-                              (if (> (length s) 1)
-                                  (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
-                                  empty)))
-                      
-                      ; Bottom of sort tree. 
-                      (begin
-                        ;(printf "~a ~a ~a ~n" s listsubs-cleaned parent)
-                        (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
-                  rest))
-               empty
-               listsubs-cleaned)
-        empty)))
-
-
-(define (add-constraint vocab typename listrels)
-  ; Switch by typename:
-  ; (Assume user is passing appropriate number of arguments)
-  
-  (cond 
-    ; typename is a symbol at this point, not a string    
-    ;TODO: make disjoint like subset. Can't rely on ordering
-    ((eqv? typename 'disjoint) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT" (list (car listrels) (car (cdr listrels)))))))
-    ((eqv? typename 'disjoint-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "DISJOINT-ALL" (list (car listrels) )))))
-    ((eqv? typename 'nonempty) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY" (list (car listrels) )))))
-    ((eqv? typename 'nonempty-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "NONEMPTY-ALL" (list (car listrels) )))))
-    ((eqv? typename 'singleton) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON" (list (car listrels) )))))
-    ((eqv? typename 'singleton-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "SINGLETON-ALL" (list (car listrels) )))))
-    ((eqv? typename 'atmostone) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE" (list (car listrels) )))))
-    ((eqv? typename 'atmostone-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ATMOSTONE-ALL" (list (car listrels) )))))
-    ((eqv? typename 'partial-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "PARTIAL-FUNCTION" (list (car listrels) )))))
-    ((eqv? typename 'total-function) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "TOTAL-FUNCTION" (list (car listrels) )))))
-    ((eqv? typename 'abstract) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT" (list (car listrels) )))))
-    ((eqv? typename 'abstract-all) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-constraint "ABSTRACT-ALL" (list (car listrels) )))))
-    ((eqv? typename 'subset) (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subset (xml-make-parent-identifier (car listrels)) 
-                                                                                                              (xml-make-child-identifier (car (cdr listrels)))))))
-    (else (printf " Error! Unsupported constraint type~n"))))
-
-; Add a custom relation of type (car listrels) X (car (cdr listrels)) X ...
-; Java expects an (unneeded!) arity value
-(define (add-predicate vocab predname listrels)
-  (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-predicate predname) (xml-make-relations-list listrels))))
+;(define (add-subtypes-of vocab parent listsubs-dirty)  
+;  (let ([listsubs-cleaned (filter (lambda (x) (not (equal? x ':))) listsubs-dirty)])
+;    ; listsubs may be empty -- if so, do nothing (we already added parent)
+;    (if (> (length listsubs-cleaned) 0)            
+;        (foldr (lambda (s rest) 
+;                 ; Is this a sort with subsorts itself?
+;                 (append 
+;                  (if (list? s)                       
+;                      (begin
+;                        ; (display parent) ; debug
+;                        ; Add subtype relationship between parent and s
+;                        (cons (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string (car s)))))
+;                              
+;                              ; Is this a nested subtype? If so, we must
+;                              ; deal with s's subtypes.
+;                              
+;                              ; Check for list size;
+;                              ; someone may have used parens without meaning to.
+;                              (if (> (length s) 1)
+;                                  (add-subtypes-of vocab (symbol->string (car s)) (cdr s))
+;                                  empty)))
+;                      
+;                      ; Bottom of sort tree. 
+;                      (begin
+;                        ;(printf "~a ~a ~a ~n" s listsubs-cleaned parent)
+;                        (list (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab) (xml-make-subsort parent (symbol->string s)))))))
+;                  rest))
+;               empty
+;               listsubs-cleaned)
+;        empty)))
 
 ; Sets the target property of a policy object
 (define (set-target mypolicy conjlist)
