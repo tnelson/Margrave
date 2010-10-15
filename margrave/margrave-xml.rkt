@@ -779,11 +779,11 @@
          (idbs (get-child-element the-element 'idbs))
          (free-variables (get-child-element the-element 'free-variables)))
     
-    (write-string (string-append "This is policy named: " (get-attribute-value the-element 'name) "\n"))
-    (write-string "  This policy is a LEAF; it contains rules and no sub-policies.\n")
+    (write-string (string-append "This is a policy named: " (get-attribute-value the-element 'name) "\n") string-buffer)
+    (write-string "  This policy is a LEAF; it contains rules and no sub-policies.\n" string-buffer)
     
     (when (not (empty? idbs))
-      (write-string (pretty-print-provided-idbs idbs)) string-buffer)
+      (write-string (pretty-print-provided-idbs idbs) string-buffer))
     
     (when (not (empty? free-variables))
       (write-string (pretty-print-free-variables free-variables) string-buffer))
@@ -795,7 +795,7 @@
          (idbs (get-child-element the-element 'idbs))
          (free-variables (get-child-element the-element 'free-variables)))
     
-    (write-string (string-append "This is policy named: " (get-attribute-value the-element 'name) "\n"))
+    (write-string (string-append "This is a policy named: " (get-attribute-value the-element 'name) "\n"))
     (write-string "  This policy is a SET; it contains sub-policies and no rules.\n")
     
     (when (not (empty? idbs))

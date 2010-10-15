@@ -17,7 +17,7 @@
 
 #lang racket
 (require margrave/margrave-xml
-         margrave/helpers
+         margrave/helpers         
          (for-syntax margrave/helpers
                      racket/list
                      racket/match))
@@ -124,28 +124,39 @@
        (assert-one-clause the-types-clauses "Types")
        (assert-one-clause the-decisions-clauses "Decisions")
        (assert-lone-clause the-predicates-clauses "Predicates")
-       (assert-lone-clause the-reqvariables-clauses "ReqVariables")
+       (assert-one-clause the-reqvariables-clauses "ReqVariables")
        (assert-lone-clause the-othvariables-clauses "OthVariables")
        (assert-lone-clause the-constraints-clauses "Constraints")
        
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Types
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
        ; create XML or throw error
-       ; printfs should become xml to create the type (or subtype)
        ; The colon before subtypes is optional
        (define (handle-types types-list [parent #f])
          (syntax-case types-list [Types : ]
            [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
-           [(Types : x ...) (map (lambda (t) (handle-type t parent)) (syntax->list #'(x ...)))]
-           [(Types x ...) (map (lambda (t) (handle-type t parent)) (syntax->list #'(x ...)))]          
-           [(x ...) (map (lambda (t) (handle-type t parent)) types-list)]))
+           [(Types : x0 x ...) (map (lambda (t) (handle-type t parent)) (append (list #'x0) (syntax->list #'(x ...))))]
+           ; Fender expression prevents x0 from accepting ':. Guard against (Types :)
+           [(Types x0 x ...) (not (equal? (syntax->datum #'x0) ':))
+                             (map (lambda (t) (handle-type t parent)) (append (list #'x0) (syntax->list #'(x ...))))]          
+           ; Fender expression forces this not to be (Types ~~~)
+           [(x0 x ...) (not (equal? (syntax->datum #'x0) 'Types)) 
+                       (map (lambda (t) (handle-type t parent)) types-list)]
+           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
        
        (define (handle-type a-type [parent #f])
-         (syntax-case a-type [:]
+         (syntax-case a-type [:]     
            [(t subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent)
                                (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
            [(t : subt ...) (list (make-type-command-syntax (syntax->datum #'t) parent) 
                                  (handle-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
            ; Add check for lexically valid type names here
            [t (make-type-command-syntax (syntax->datum #'t) parent)]
+           [(t :) (make-type-command-syntax (syntax->datum #'t) parent)]
+           [(t) (make-type-command-syntax (syntax->datum #'t) parent)]
            [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f #'(a-type))]))
               
        (define (make-type-command-syntax typename parent)
@@ -156,6 +167,76 @@
        ; Is each type valid?  
        (define types-result (flatten (handle-types (syntax-e (first the-types-clauses)))))
        ;(printf "types-result: ~a~n" types-result)        
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Decisions
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define the-decisions-clause (first the-decisions-clauses))
+       (printf "~a~n" (syntax-e the-decisions-clause))
+       (define my-decisions (match (syntax-e the-decisions-clause)
+                              [(list _) (raise-syntax-error 'PolicyVocab "Must have at least one decision." #f #f (list (first the-decisions-clauses)) )]
+                              [(list _ dec ...) dec]
+                              [_ (raise-syntax-error 'PolicyVocab "Invalid Decisions clause." #f #f (list (first the-decisions-clauses)) )])) 
+       (define decisions-result (map (lambda (dec-syn) 
+                                       #`(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string 'myvocabname)) 
+                                                                       (xml-make-decision (symbol->string '#,dec-syn))))) 
+                                     my-decisions))
+       
+        ; (printf "decisions-result: ~a~n" decisions-result)  
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Predicates
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define predicates-result
+         (if (empty? the-predicates-clauses)
+             empty
+             (let ()
+               (define the-predicates-clause (first the-predicates-clauses))
+               (define the-predicates (rest (syntax-e the-predicates-clause)))
+               (define (handle-predicate pred)
+                 (syntax-case pred [ : ]
+                   [(pname : prel0 prel ...)  #`(add-predicate (symbol->string 'myvocabname) 
+                                                        (symbol->string 'pname) 
+                                                        (list (symbol-string 'prel0) 
+                                                              (symbol->string 'prel) ...))]
+                   ; Fender expression prevents prel0 from accepting ': 
+                   [(pname prel0 prel ...) (not (equal? (syntax->datum #'prel0) ':))
+                                           #`(add-predicate (symbol->string 'myvocabname) 
+                                                      (symbol->string 'pname) 
+                                                      (list (symbol-string 'prel0)
+                                                            (symbol->string 'prel) ...))]
+                   [_ (raise-syntax-error 'PolicyVocab "Invalid predicate declaration." #f #f (list pred) )]))
+               (map handle-predicate the-predicates))))
+         
+       (printf "predicates-result: ~a~n" predicates-result)  
+       
+       
+       
+       ; problem with the optional : --- : is being made a prel... have to add guards
+       ; but that is annoying. see syntax-parse: can define syntax class for, say, a type...
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; ReqVariables
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define the-reqvariables-clause (first the-reqvariables-clauses))
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; OthVariables
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (unless (empty? the-othvariables-clauses)
+        ; (define the-othvariables-clause (first the-othvariables-clauses))
+         (void))
+
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Constraints
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (unless (empty? the-constraints-clauses)
+         ;(define the-constraints-clause (first the-constraints-clauses))
+         (void))
+
+       
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (with-syntax ([xml-list `(list ,@types-result)])
          (syntax/loc stx `( ,(symbol->string (syntax->datum #'myvocabname)) xml-list)))
