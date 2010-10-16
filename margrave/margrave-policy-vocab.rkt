@@ -453,8 +453,7 @@
        (assert-one-clause stx the-rcomb-clauses "RComb")
        (assert-one-clause stx the-pcomb-clauses "PComb")
        (assert-lone-clause stx the-children-clauses "Children")
-       
-       
+              
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -489,9 +488,18 @@
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
-                              
-               
-               empty)))
+                      
+               (define (handle-rule a-rule)
+                 (syntax-case a-rule [= :-]
+                   [(rulename = (decision rvar ...) :- conj0 conj ...) 
+                    ; 'true is dealt with in the back-end.              
+                    (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                  (xml-make-rule (syntax->datum #'rulename)
+                                                                 (xml-make-decision-type (syntax->datum #'decision))
+                                                                 (xml-make-rule-list (syntax->datum #'(conj0 conj ...))))))]
+                   [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
+                                             
+               (map handle-rule the-rules))))
 
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
@@ -527,18 +535,50 @@
                (define the-children-clause (first the-children-clauses))
                (define the-children (rest (syntax-e the-children-clause)))
                
+               
+               ; (1) What did we do originally in SISC?
+               ; (2) resolve (prevent?) overlapping policy names in children
+               
+                           ; Each child is a Policy
+           ; ,(let ((cpol child))
+            ;  (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-policy-identifier cpol)))
+            ;  )
+            ;...
+
+
+               
+                           ; !!! TODO
+               
+               
                empty)))
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Create
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       (define create-result        
+         (if (< (length children-result) 1)
+             (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                          (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
+             (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                                         (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))))
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Prepare
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
             (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))
        
        
        ; Macro returns a lambda that takes a filename and a syntax object.        
-       (with-syntax ([xml-list #`(list #,@(append target-result
-                                                 rules-result
-                                                 rcomb-result
-                                                 pcomb-result
-                                                 children-result))]
+       (with-syntax ([xml-list #`(list #,@(append create-result ; create must come first
+                                                  target-result
+                                                  rules-result
+                                                  rcomb-result
+                                                  pcomb-result
+                                                  children-result
+                                                  prepare-result))]
                      [vocabname #'vocabname]
                      [policyname #'policyname])         
          (syntax/loc stx 
@@ -564,40 +604,14 @@
              ( ,(symbol->string 'policyname)
                ,(symbol->string 'vocabname)
                vocab-commands
-               xml-list)))
+               xml-list)))))]
          
          
        
        
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
-     #;(syntax/loc stx
-       (lambda (local-policy-filename src-syntax) 
-         
-            ,(if (< (length mychildren) 1)
-                 (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name)))
-                 (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name))))
-            
-       
-            
-            ; Add the rules to the policy. 'true is dealt with in the back-end.         
-            ,(add-rule (symbol->string 'policyname)
-                      ;myvarorder 
-                      (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list 'conj ...))
-            ...
-            
-            
-            ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
-            
-            ; Each child is a Policy
-            ,(let ((cpol child))
-              (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-policy-identifier cpol)))
-              )
-            ...
-            
-        
-           ; close paren for above GET REQUEST VECTOR commented out )
-           ))))]
+ 
     
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
                             #f #f (list stx))]
@@ -610,10 +624,3 @@
                      (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
                                          #f #f (list stx))]))
 
-; ********************************************************************
-; Helper functions   
-
-
-; Add a rule of the form rulename = (dtype reqvars) :- conjlist
-(define (add-rule mypolicy rulename dtype reqvars conjlist)  
-  (xml-make-command "ADD" (list (xml-make-policy-identifier mypolicy) (xml-make-rule rulename (xml-make-decision-type dtype) (xml-make-rule-list conjlist))))) 
