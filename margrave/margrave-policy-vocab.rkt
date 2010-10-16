@@ -92,6 +92,14 @@
         [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
         [else (none-colon-syn? (rest lst))]))
 
+(define-for-syntax (all-id-syn? syn-list)
+  (define lst (if (syntax? syn-list)
+                  (syntax->datum syn-list)
+                  syn-list))
+  (cond [(empty? lst) #t]
+        [(not (symbol? (first lst))) #f] ; syntax->datum done above (recursively)
+        [else (all-id-syn? (rest lst))]))
+
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax (PolicyVocab stx)
   (syntax-case stx [Types Decisions Constraints Predicates Variables : PolicyVocab]
@@ -420,7 +428,7 @@
          (raise-syntax-error 'Policy (format "Expected a name for the policy, got: ~a" (syntax->datum #'policyname)) #f #f (list #'policyname)))
        (unless (symbol? (syntax->datum #'vocabname))
          (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a" (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
-              
+       
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children]
                                                         [(Target targ ...) 'target]                   
                                                         [(Rules rule ...) 'rules]
@@ -455,10 +463,23 @@
              empty
              (let ()               
                (define the-target-clause (first the-target-clauses))
-               (define the-targets (rest (syntax-e the-target-clause)))
+               (define the-target (rest (syntax-e the-target-clause)))
+                              
+               (define (validate-target a-conjunct)
+                 (syntax-case a-conjunct []
+                   ; ! is part of the pred name token if present
+                   [(predname x0 x ...) (all-id-syn? #'(predname x0 x ...)) 
+                                        (syntax->datum #'(predname x0 x ...))]
+                   [_ (raise-syntax-error 'Policy "Invalid target conjunct" #f #f (list a-conjunct))]))
                
-               empty)))
+               (if (> (length the-target) 0)
+                   (list (xml-make-command "SET TARGET FOR POLICY" 
+                                           (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                                 (xml-make-conjunct-chain (map validate-target the-target)))))
+                   empty))))
     
+       (printf "~a~n" target-result)
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Rules
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -468,6 +489,7 @@
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
+                              
                
                empty)))
 
@@ -475,12 +497,25 @@
        ; RComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define the-rcomb-clause (first the-rcomb-clauses))
-
+       (define rcomb-result 
+         (syntax-case the-rcomb-clause [RComb]
+           [(RComb x ...) (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                                           (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x ...))))))]
+           [_ (raise-syntax-error 'Policy "Invalid rule-combination algorithm" #f #f (list #'the-rcomb-clause))]))
+         
+       ;(printf "~a~n" rcomb-result)
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; PComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define the-pcomb-clause (first the-pcomb-clauses))
+       (define pcomb-result 
+         (syntax-case the-pcomb-clause [PComb]
+           [(PComb x ...) (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                                            (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x ...))))))]
+           [_ (raise-syntax-error 'Policy "Invalid policy-combination algorithm" #f #f (list #'the-pcomb-clause))]))
        
+       ;(printf "~a~n" pcomb-result)
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Children
@@ -494,66 +529,56 @@
                
                empty)))
        
+       (define prepare-result 
+            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))
        
        
-       #'2
-       
-       
+       ; Macro returns a lambda that takes a filename and a syntax object.        
+       (with-syntax ([xml-list #`(list #,@(append target-result
+                                                 rules-result
+                                                 rcomb-result
+                                                 pcomb-result
+                                                 children-result))]
+                     [vocabname #'vocabname]
+                     [policyname #'policyname])         
+         (syntax/loc stx 
+           `(lambda (local-policy-filename src-syntax) 
+             (define vocab-path (build-path (path-only/same local-policy-filename) 
+                                            (string-append (symbol->string vocabname) ".v")))
+             
+             ; Produce a friendly error if the vocab doesn't exist
+             (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
+                          
+             (define vocab-macro-return                 
+               (call-with-input-file
+                   vocab-path
+                 (lambda (in-port) 
+                   (port-count-lines! in-port)
+                   (define the-vocab-syntax (read-syntax vocab-path in-port))               
+                   (eval (syntax->datum the-vocab-syntax)   )))) ;  margrave-policy-vocab-namespace
+             
+             (define vocab-name (first vocab-macro-return))
+             (define vocab-commands (second vocab-macro-return))
+             
+             ; Return a 4-tuple: policy name, vocab name, command list for vocab, and command list for policy                          
+             ( ,(symbol->string 'policyname)
+               ,(symbol->string 'vocabname)
+               vocab-commands
+               xml-list)))
+         
+         
        
        
      ; Return a function of one argument that can be called in the context of some local directory.
      ; This is so we know where to find the vocabulary file.
      #;(syntax/loc stx
        (lambda (local-policy-filename src-syntax) 
-         (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                      (string-append (symbol->string 'vocabname) ".v")))
          
-       ; Produce a friendly error if the vocab doesn't exist
-       (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
-       
-       (let* ([mychildren (list child ...)]
-                           
-             [vocab-macro-return                 
-              (call-with-input-file
-               vocab-path
-               (lambda (in-port) 
-                 (port-count-lines! in-port)
-                 (define the-vocab-syntax (read-syntax vocab-path in-port))
-                 
-                 (eval (syntax->datum the-vocab-syntax) margrave-policy-vocab-namespace)))]
-             
-             [vocab-name (first vocab-macro-return)]
-             [vocab-commands (second vocab-macro-return)])
-         
-         ; In SISC, the above was: 
-         ;                       (eval (read (open-input-file
-         ;                           (normalize-url 
-         ;                            ; Make sure we look in the correct directory!
-         ;                            local-policy-filename 
-         ;                            (string-append (symbol->string 'vocabname) ".v")))))))
-                 
-         
-         ;Return (Policyname vocabName vocabcommands policycommands
-         `(,(symbol->string 'policyname)
-           ,vocab-name
-           ,vocab-commands
-           (
             ,(if (< (length mychildren) 1)
                  (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name)))
                  (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-vocab-identifier vocab-name))))
             
-            
-            ;; !!! TODO This was an ugly hack to get around a problem with the .p language.
-            ; Either fix the language, or fix the hack.
-            ;(let ((myvarorder (m (string-append "GET REQUEST VECTOR " myvocab))))
-            
-            
-            ; Set the policy target (if any)
-            ;Wrap the value in a list, and then unquote-splice, so that we can pass back the empty list if need be
-            ,@(let ((the-target (list (symbol->string 'tconj) ...)))
-              (if (> (length the-target) 0)
-                (list (set-target (symbol->string 'policyname) the-target))
-                (list)))
+       
             
             ; Add the rules to the policy. 'true is dealt with in the back-end.         
             ,(add-rule (symbol->string 'policyname)
@@ -561,10 +586,6 @@
                       (symbol->string 'rulename) (symbol->string 'dtype) (list (symbol->string 'v) ...) (list 'conj ...))
             ...
             
-            ; Set the rule and policy combinator (depending on type)
-            ,(if (< (length mychildren) 1)
-                (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'rcstr ...))))
-                (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string 'policyname)) (xml-make-identifiers-list (list 'pcstr ...)))))
             
             ;; !!! TODO: confirm this works. are we loading the sub-policy properly?
             
@@ -574,10 +595,9 @@
               )
             ...
             
-            ; Trigger IDB calculation
-            ,(xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string 'policyname)))))
+        
            ; close paren for above GET REQUEST VECTOR commented out )
-           )))))]
+           ))))]
     
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
                             #f #f (list stx))]
@@ -591,10 +611,7 @@
                                          #f #f (list stx))]))
 
 ; ********************************************************************
-; Helper functions 
-; Sets the target property of a policy object
-(define (set-target mypolicy conjlist)
-  (xml-make-command "SET TARGET FOR POLICY" (list (xml-make-policy-identifier mypolicy) (xml-make-conjunct-chain conjlist))))
+; Helper functions   
 
 
 ; Add a rule of the form rulename = (dtype reqvars) :- conjlist
