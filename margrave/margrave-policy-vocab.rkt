@@ -92,13 +92,16 @@
         [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
         [else (none-colon-syn? (rest lst))]))
 
+(define-for-syntax (id-syn? syn)
+  (define dat (if (syntax? syn)
+                  (syntax->datum syn)
+                  syn))  
+  (symbol? dat))
+
+
 (define-for-syntax (all-id-syn? syn-list)
-  (define lst (if (syntax? syn-list)
-                  (syntax->datum syn-list)
-                  syn-list))
-  (cond [(empty? lst) #t]
-        [(not (symbol? (first lst))) #f] ; syntax->datum done above (recursively)
-        [else (all-id-syn? (rest lst))]))
+  (andmap id-syn? syn-list))
+
 
 ;****************************************************************
 
@@ -125,7 +128,7 @@
        
       ; (printf "Vocab syntax: ~a~n" stx)
       ; (printf "Clause list: ~a~n" (syntax->list #'(clauses ...)))
-      ; (printf "Clause table: ~n~a~n" clause-table)
+      ;(printf "Clause table: ~n~a~n" clause-table)
        
        ; from gmarceau
        ;(define-syntax (syntax-case-match? stx)
@@ -178,32 +181,43 @@
          ; (id!=: atype ...)
          ; id!=:
          (syntax-case a-type [:]     
+           ; (Length : )   <--- old syntax for subtype with no children
+           [(t : ) (and (not (equal? (syntax->datum #'t) ':))
+                        (id-syn? #'t))
+                   (list (make-type-command-syntax (syntax->datum #'t) parent))]
+
+           [(t) (and (not (equal? (syntax->datum #'t) ':))
+                     (id-syn? #'t))
+                (list (make-type-command-syntax (syntax->datum #'t) parent))]  
+           
            [(t subt ...) (and (not (equal? (syntax->datum #'t) ':))
-                              (none-colon-syn? #'(subt ...)))
+                              (none-colon-syn? #'(subt ...))
+                              (id-syn? #'t))
                          (list (make-type-command-syntax (syntax->datum #'t) parent)
                                (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
+           
            [(t : subt ...) (and (not (equal? (syntax->datum #'t) ':))
+                                (id-syn? #'t)
                                 (none-colon-syn? #'(subt ...)))
                            (list (make-type-command-syntax (syntax->datum #'t) parent) 
                                  (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
            
-           [t (not (equal? (syntax->datum #'t) ':))
+           [t (and (not (equal? (syntax->datum #'t) ':))
+                   (id-syn? #'t))
               (make-type-command-syntax (syntax->datum #'t) parent)]
            
-           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f #'(a-type))]))
+           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f (list a-type))]))
               
        
        (define (handle-sub-types types-list [parent #f])
-         (syntax-case types-list [:]
-           [() (raise-syntax-error 'PolicyVocab "Type declaration was not valid. Expected nonempty set of types." #f #f types-list)]
-           
+         (syntax-case types-list [:]           
            [(x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
                             (none-colon-syn? #'(x ...)))
                        (map (lambda (t) (handle-type t parent)) types-list)]
            
-           [(x0 : x ...) (and (not (equal? (syntax->datum #'x0) ':))
-                              (none-colon-syn? #'(x ...)))
-                         (map (lambda (t) (handle-type t parent)) types-list)]
+           ;[(x0 : x ...) (and (not (equal? (syntax->datum #'x0) ':))
+           ;                   (none-colon-syn? #'(x ...)))
+           ;              (map (lambda (t) (handle-type t parent)) types-list)]
            
            [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
        
@@ -483,10 +497,20 @@
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
                       
+               (define (is-valid-conjunction conj)
+                 (syntax-case conj [true]
+                   [(pred v0 v ...) #t]
+                   [true #t]
+                   [(true) #t]
+                   [_ #f]))
+               
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- conj0 conj ...) 
-                    ; 'true is dealt with in the back-end.              
+                   [(rulename = (decision rvar ...) :- conj0 conj ...)                     
+                    ; 'true is dealt with in the back-end. 
+                    ; require each conj to be valid
+                    (andmap is-valid-conjunction (syntax->list #'(conj0 conj ...)))
+                    
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
                                                   (xml-make-rule (syntax->datum #'rulename)
                                                                  (xml-make-decision-type (syntax->datum #'decision))
@@ -501,9 +525,9 @@
        (define the-rcomb-clause (first the-rcomb-clauses))
        (define rcomb-result 
          (syntax-case the-rcomb-clause [RComb]
-           [(RComb x ...) (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                                           (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x ...))))))]
-           [_ (raise-syntax-error 'Policy "Invalid rule-combination algorithm" #f #f (list #'the-rcomb-clause))]))
+           [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                                           (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x0 x ...))))))]
+           [_ (raise-syntax-error 'Policy "Invalid rule-combination algorithm" #f #f (list the-rcomb-clause))]))
          
        ;(printf "rcomb res: ~a~n" rcomb-result)
        
@@ -513,9 +537,9 @@
        (define the-pcomb-clause (first the-pcomb-clauses))
        (define pcomb-result 
          (syntax-case the-pcomb-clause [PComb]
-           [(PComb x ...) (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                                            (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x ...))))))]
-           [_ (raise-syntax-error 'Policy "Invalid policy-combination algorithm" #f #f (list #'the-pcomb-clause))]))
+           [(PComb x0 x ...) (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                                            (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x0 x ...))))))]
+           [_ (raise-syntax-error 'Policy "Invalid policy-combination algorithm" #f #f (list the-pcomb-clause))]))
        
        ;(printf "~a~n" pcomb-result)
        
@@ -605,8 +629,9 @@
               ; Error out if there is a duplicate policy name (or the same name as this parent policy)
              ; Don't repeat vocabularies
              (define the-children (map (lambda (child)                                          
-                                         ((eval child) local-policy-filename
-                                                       src-syntax))
+                                         ((eval child margrave-policy-vocab-namespace) 
+                                          local-policy-filename
+                                          src-syntax))
                                        child-policy-macros))
              
              (define (make-placeholder-syntax placeholder)
@@ -681,7 +706,7 @@
                             #f #f (list stx))]
     [(_ x) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
                                #f #f (list stx))]
-    [(_ x y) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
+    [(_ x y) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (e.g. Policy mypolicy uses myvocabulary ...)" 
                                  #f #f (list stx))]
     [(_ x0 x1 x ...) (and (not (equal? (syntax->datum #'x0) 'uses))
                           (not (equal? (syntax->datum #'x1) 'uses)))

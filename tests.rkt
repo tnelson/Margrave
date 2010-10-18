@@ -34,10 +34,16 @@
                    (string-contains? (exn-message e) msg))))
 
 (define-namespace-anchor anchor)  
+
 (define (do-expand form)
   (parameterize ([current-namespace
                   (namespace-anchor->namespace anchor)])
     (expand-once form)))
+(define (do-eval form)
+  (parameterize ([current-namespace
+                  (namespace-anchor->namespace anchor)])
+    (eval form )))
+  
 
 (define vocab-errors
   (test-suite
@@ -153,8 +159,62 @@
 (define policy-errors
   (test-suite
    "Policy error messages"
-   (check-exn (exn-contains-message "")
+   (check-exn (exn-contains-message "Empty policy specification not allowed")
               (lambda () (do-expand '(Policy ))))
+   (check-exn (exn-contains-message "Policy must supply both its name and the name of the vocabulary it uses")
+              (lambda () (do-expand '(Policy polname ))))
+   (check-exn (exn-contains-message "Policy must supply both its name and the name of the vocabulary it uses. (e.g. Policy mypolicy uses myvocabulary ...)")
+              (lambda () (do-expand '(Policy polname vocname))))
+   (check-exn (exn-contains-message "RComb clause is missing")
+              (lambda () (do-expand '(Policy polname uses vocname))))
+   (check-exn (exn-contains-message "PComb clause is missing")
+              (lambda () (do-expand '(Policy polname uses vocname (RComb) ))))
+   
+   (check-exn (exn-contains-message "Invalid rule-combination")
+              (lambda () (do-expand '(Policy polname uses vocname (RComb ) (PComb )))))
+   (check-exn (exn-contains-message "Invalid policy-combination")
+              (lambda () (do-expand '(Policy polname uses vocname (RComb FAC) (PComb )))))
+   (check-exn (exn-contains-message "Invalid rule")
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- !(pred x y z)))))))
+   (check-exn (exn-contains-message "Invalid rule")
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))))
+   (check-exn (exn-contains-message "Invalid rule")
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))))
+  
+   ; true is a valid rule target
+   (check-not-exn (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- true))))))
+   
+   ;;;;;;;;;
+   ;; Need more than one expansion to test child behavior. Start using eval after this point
+   ;;;;;;;;;
+   
+   (check-exn (exn-contains-message "Empty policy specification not allowed")
+              (lambda () (do-eval '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) (Children (Policy ))))))
+
+   ; Need to call the func to test this. Should be a compile-time check, probably...   
+   (check-exn (exn-contains-message "All children must have the same vocabulary as the parent")
+              (lambda () 
+                (start-margrave-engine) ; for margrave-home-path
+                (define tests-path (build-path margrave-home-path "tests" "conferencepolicy.v"))  
+                ((do-eval '(Policy polname uses conferencepolicy
+                                           (RComb FAC) (PComb FAC) 
+                                           (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) 
+                                           (Children (Policy child1 uses phonepolicy (RComb FAC) (PComb FAC))))) tests-path #'foo)
+                (stop-margrave-engine)))
+     
+   (check-exn (exn-contains-message "All policies in a hierarchy must have distinct names")
+              (lambda () 
+                (start-margrave-engine) ; for margrave-home-path
+                (define tests-path (build-path margrave-home-path "tests" "conferencepolicy.v"))  
+                ((do-eval '(Policy polname uses conferencepolicy
+                                   (RComb FAC) (PComb FAC) 
+                                   (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) 
+                                   (Children (Policy polname uses conferencepolicy (RComb FAC) (PComb FAC))))) tests-path #'foo)
+                (stop-margrave-engine))) 
+   
+   
+   
+   
    
    
    )) ; end of policy error tests
@@ -552,3 +612,4 @@
 (run-tests engine-fail-test)
 
 (run-tests vocab-errors)
+(run-tests policy-errors)

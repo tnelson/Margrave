@@ -436,9 +436,9 @@ gmarceau
 ; policy-file-name -> policy-id
 
 (define (load-policy fn)
-  (response->string (mtext "LOAD POLICY " (if (path? fn)
+  (response->string (mtext "LOAD POLICY \"" (if (path? fn)
                                               (path->string fn)
-                                              fn))))
+                                              fn) "\"")))
 ; TN oct 17 2010 commented out. just use the LOAD POLICY command. the code below is no longer functional
 #|
 (define (load-policy fn)
