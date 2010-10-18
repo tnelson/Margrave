@@ -66,9 +66,15 @@
         [(equal? first-datum 'LOAD-POLICY)
          (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns)))
                                                       #:syntax (second interns))])
-           
-           ; TODO include child xml (if any) in fifth and sixth (lists)
+                      
+
+           (define child-xml-in-order (flatten (map second (fifth policy-creation-list))))
+
+           ; Ignore 6th list (child vocabs) since they must all have the same vocab as parent           
+           ; start by loading the vocab that they all need. finish by loading the parent.
+
            (define xml-cmds (append (third policy-creation-list)
+                                    child-xml-in-order
                                     (fourth policy-creation-list)))
            
            (make-simple-load-func (first policy-creation-list)

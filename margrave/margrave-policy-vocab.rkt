@@ -62,9 +62,8 @@
     (port-count-lines! file-port)
     
     (define the-policy-syntax (read-syntax fn file-port))    
-    (printf "Syn: ~a~n" the-policy-syntax)
-    (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))    
-    (printf "Expanded: ~a~n" the-policy-func)
+    ; Don't convert to datum before evaluating, or the Policy macro loses location info
+    (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))    
     (define pol-result-list (the-policy-func fn src-syntax))
         
     (close-input-port file-port)        
@@ -124,6 +123,7 @@
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
        
+      ; (printf "Vocab syntax: ~a~n" stx)
       ; (printf "Clause list: ~a~n" (syntax->list #'(clauses ...)))
       ; (printf "Clause table: ~n~a~n" clause-table)
        
@@ -396,7 +396,7 @@
        ; Return a list containing the vocabname, and then a list of commands to be sent to java
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.
-       
+                    
        (with-syntax ([xml-list (append types-result 
                                        decisions-result
                                        predicates-result
@@ -532,47 +532,56 @@
                ; Let the macro system expand these
                the-children))) 
        
-       
+       ;(printf "compile time children: ~a~n" the-child-policies)
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Create
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define create-result        
          (if (< (length the-child-policies) 1)
-             (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                          (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
-             (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-                                                         (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))))
+             (list
+              (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                           (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
+              rcomb-result)
+             (list
+              (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                                         (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
+              pcomb-result)))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
-            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))
-       
-      
-       
+            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))       
+                  
        
        ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
-       (with-syntax ([my-commands (append (list create-result) ; create must come first
+       (with-syntax ([my-commands (append create-result ; create must come first
                                           target-result
                                           rules-result
-                                          (list rcomb-result)
-                                          (list pcomb-result)
                                           (list prepare-result))]
                      [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
                      [policyname #'policyname]
-                     [orig-stx (syntax/loc stx 'orig)])         
+                     
+                     ; can't include Policy here or else it gets macro-expanded (inf. loop)
+                     ; smuggle in location info and re-form syntax if we need to throw an error
+                     [orig-stx-line #`#,(syntax-line stx)]
+                     [orig-stx-column #`#, (syntax-column stx)]
+                     [orig-stx-source #`#, (syntax-source stx)]
+                     [orig-stx-position #`#, (syntax-position stx)]
+                     [orig-stx-span #`#, (syntax-span stx)])     
+        ; (printf "before sloc:~a~n" #'orig-stx)
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
-           (lambda (local-policy-filename src-syntax) 
+           (lambda (local-policy-filename src-syntax)                                                                        
               (define vocab-path (build-path (path-only/same local-policy-filename) 
                                              (string-append (symbol->string 'vocabname) ".v")))
              
               ; Produce a friendly error if the vocab doesn't exist
+              ; src-syntax here is the *command* that spawned the loading, not the Policy form.
               (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
               
               (define vocab-macro-return                 
@@ -581,7 +590,9 @@
                   (lambda (in-port) 
                     (port-count-lines! in-port)
                     (define the-vocab-syntax (read-syntax vocab-path in-port))               
-                    (eval (syntax->datum the-vocab-syntax)   )))) ;  margrave-policy-vocab-namespace
+                    ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                    ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
               
               (define vocab-name (first vocab-macro-return))
               (define vocab-commands (second vocab-macro-return))
@@ -592,42 +603,74 @@
               
               ; Each child gives us its own list (pname, vname, vlist, plist, (child-pol-pairs), (child-voc-pairs)
               ; Error out if there is a duplicate policy name (or the same name as this parent policy)
-              ; Don't repeat vocabularies
-              (define the-children (map (lambda (child)                                          
-                                          ((eval child) local-policy-filename orig-stx)) child-policy-macros))
-              
+             ; Don't repeat vocabularies
+             (define the-children (map (lambda (child)                                          
+                                         ((eval child) local-policy-filename
+                                                       src-syntax))
+                                       child-policy-macros))
+             
+             (define (make-placeholder-syntax placeholder)
+               (datum->syntax #f placeholder (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
+             
+             ; take the child policy's 6-tuple from evaluation
+             ; get the list (poss. with duplicates) of vname, vcmds pairs
               (define (get-child-vocabs tuple)
                 (when (or (< (length tuple) 6)
                           (not (list? (sixth tuple))))
-                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) orig-stx))                
-                (append (list (second tuple) (third tuple)) ; <-- my (vname, vcmds)
-                        (sixth tuple)))                     ; <-- list of children's (vname, vcmds)
+                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
+                                      (make-placeholder-syntax 'placeholder)))                
+                (append (list (second tuple) (third tuple)) ; <-- child's (vname, vcmds)
+                        (sixth tuple)))                     ; <-- list of child's children's (vname, vcmds)
               
               (define (get-child-pols tuple)
                 (when (or (< (length tuple) 6)
                           (not (list? (fifth tuple))))
-                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) orig-stx))                
-                (append (list (first tuple) (fourth tuple)) ; <-- my (pname, pcmds)
-                        (fifth tuple)))                     ; <-- list of children's (pname, pcmds)
+                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
+                                      (make-placeholder-syntax 'placeholder)))
+                (append (list (first tuple) (fourth tuple)) ; <-- child's (pname, pcmds)
+                        (fifth tuple)))                     ; <-- list of child's children's (pname, pcmds)
               
-              ; TODO: xml cmd to add child
+             (define (get-child-xml tuple)
+               (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) `(CHILD ,(xml-make-policy-identifier (first tuple))))))
+             
+             (define my-commands-without-child 'my-commands)
+             
+             ; Forge the connection between parent and child policies
+             (define my-commands-with-add-child (append my-commands-without-child
+                                                        (map get-child-xml the-children)))
+             
+             
+             (define child-vpairs (map get-child-vocabs the-children))
+             (define child-ppairs (map get-child-pols the-children))
+             
+             ; Throw error if duplicate policy name
+             (define (dup-pname-helper todo sofar)
+               (cond [(empty? todo) #f]
+                     [(member (first (first todo)) sofar)                      
+                      (raise-syntax-error 'Policy "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names." 
+                                          (make-placeholder-syntax (first (first todo))))]
+                     [else (dup-pname-helper (rest todo) (cons (first (first todo)) sofar))]))
+             
+             (dup-pname-helper child-ppairs (list (symbol->string 'policyname)))
               
-              ; Throw error if duplicate policy name
-              ; TODO
-              
-              
-              ; Don't double-load vocabs
-              ; TODO
-              
-              
+             ; Don't double-load vocabs
+             ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
+             (for-each (lambda (child-vpair)
+                         (unless (equal? (first child-vpair) (symbol->string 'vocabname))
+                           (raise-syntax-error 'Policy 
+                                               (format "Child policy used a vocabulary other than \"~a\". All children must have the same vocabulary as the parent." 'vocabname)                
+                                               (make-placeholder-syntax (first child-vpair)))))
+                       child-vpairs)
+                       
+                          
               
               ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
               `( ,(symbol->string 'policyname)
                  ,(symbol->string 'vocabname)
                  ,vocab-commands
-                 'my-commands
-                 ,(map get-child-pols the-children)
-                 ,(map get-child-vocabs the-children))))))]
+                 ,my-commands-with-add-child
+                 ,child-ppairs
+                 ,child-vpairs)))))]
 
          
        

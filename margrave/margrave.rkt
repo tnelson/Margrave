@@ -34,7 +34,7 @@
          run-java-test-cases
          mtext
          pause-for-user
-         ;load-policy
+         load-policy
          send-and-receive-xml
          load-xacml-policy
          load-sqs-policy

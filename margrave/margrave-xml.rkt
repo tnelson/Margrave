@@ -940,16 +940,16 @@
   `(VOCAB-IDENTIFIER ((vname ,vocab-name))))
 
 (define (xml-make-parent-identifier parent-name)
-  `(PARENT-IDENTIFIER ((name ,parent-name))))
+  `(PARENT-IDENTIFIER ((name ,(symbol->string/safe parent-name)))))
 
 (define (xml-make-child-identifier child-name)
-  `(CHILD-IDENTIFIER ((name ,child-name))))
+  `(CHILD-IDENTIFIER ((name ,(symbol->string/safe child-name)))))
 
 (define (xml-make-predicate pred-name)
   `(PREDICATE ((name ,pred-name))))
 
 (define (xml-make-rule rule-name dtype rule-list)
-  `(RULE ((name ,rule-name)) ,dtype ,rule-list))
+  `(RULE ((name ,(symbol->string/safe rule-name))) ,dtype ,rule-list))
 
 ;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
 (define (xml-make-rule-list orig-rule-list)
@@ -962,7 +962,7 @@
     (if (empty? rule-list)
         `(RELATIONS) 
         `(RELATIONS ,@(map (lambda (relation)
-                             (let* ((relation-name (symbol->string (first relation)))
+                             (let* ((relation-name (symbol->string/safe (first relation)))
                                     (negation? (starts-with-exclamation relation-name)))
                                `(RELATION ((name ,(if negation? ;Take out the exclamation point
                                                       (substring relation-name 1)
@@ -980,10 +980,10 @@
       false))
 
 (define (xml-make-decision-type decision-type)
-  `(DECISION-TYPE ((type ,decision-type))))
+  `(DECISION-TYPE ((type ,(symbol->string/safe decision-type)))))
 
 (define (xml-make-decision decision)
-  `(DECISION ((name ,decision))))
+  `(DECISION ((name ,(symbol->string/safe decision)))))
 
 (define (xml-make-sort sort-name)
   `(SORT ((name ,sort-name))))
