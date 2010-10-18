@@ -34,7 +34,7 @@
          run-java-test-cases
          mtext
          pause-for-user
-         load-policy
+         ;load-policy
          send-and-receive-xml
          load-xacml-policy
          load-sqs-policy
@@ -434,8 +434,13 @@ gmarceau
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; policy-file-name -> policy-id
-; Note: rather than load with case-sensitivity turned on, all input strings need to be passed
-; to the backend in lower-case.
+
+(define (load-policy fn)
+  (response->string (mtext "LOAD POLICY " (if (path? fn)
+                                              (path->string fn)
+                                              fn))))
+; TN oct 17 2010 commented out. just use the LOAD POLICY command. the code below is no longer functional
+#|
 (define (load-policy fn)
   #| gmarceau
   (match-define 
@@ -462,7 +467,7 @@ gmarceau
          [policy-results ((eval policy-script the-margrave-namespace))])
         
     polname))
-
+|#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

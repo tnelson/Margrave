@@ -66,10 +66,14 @@
         [(equal? first-datum 'LOAD-POLICY)
          (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns)))
                                                       #:syntax (second interns))])
+           
+           ; TODO include child xml (if any) in fifth and sixth (lists)
+           (define xml-cmds (append (third policy-creation-list)
+                                    (fourth policy-creation-list)))
+           
            (make-simple-load-func (first policy-creation-list)
                                   (second policy-creation-list)
-                                  (append (third policy-creation-list)
-                                          (fourth policy-creation-list))))]
+                                  xml-cmds))]
         
         [(equal? first-datum 'LOAD-IOS)
          `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns))) 
@@ -327,6 +331,7 @@
   `(lambda () ,@(append (map (lambda (an-xexpr) 
                                `(send-and-receive-xml ',an-xexpr)) 
                              list-of-xexprs)
+                        ; resulting lambda will just return polname
                         (list polname))))
 
 (define (syntax->string s)
