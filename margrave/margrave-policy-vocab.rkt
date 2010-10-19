@@ -15,13 +15,17 @@
 ;    You should have received a copy of the GNU Lesser General Public License
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
-#lang racket
+#lang racket/base
+
 (require margrave/margrave-xml
          margrave/helpers         
+         racket/list
          (for-syntax margrave/helpers
                      margrave/margrave-xml
                      racket/list
-                     racket/match))
+                     racket/match
+                     racket/string
+                     racket/base))
 
 (provide evaluate-policy
          
@@ -45,7 +49,7 @@
 
 ;****************************************************************
 
-; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
+; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname))
 ; The order of the children in their lists respects dependency: children-of-children appear before children, etc.
 (define (evaluate-policy raw-fn 
                          #:syntax [src-syntax #f])
@@ -100,7 +104,9 @@
 
 
 (define-for-syntax (all-id-syn? syn-list)
-  (andmap id-syn? syn-list))
+  (define proper-list (or (syntax->list syn-list)
+                          (list (syntax->datum syn-list))))
+  (andmap id-syn? proper-list))
 
 
 ;****************************************************************
@@ -214,11 +220,7 @@
            [(x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
                             (none-colon-syn? #'(x ...)))
                        (map (lambda (t) (handle-type t parent)) types-list)]
-           
-           ;[(x0 : x ...) (and (not (equal? (syntax->datum #'x0) ':))
-           ;                   (none-colon-syn? #'(x ...)))
-           ;              (map (lambda (t) (handle-type t parent)) types-list)]
-           
+                      
            [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
        
        (define (make-type-command-syntax typename parent)
@@ -239,7 +241,13 @@
        
        (define my-decisions (match (syntax-e the-decisions-clause)
                               [(list _) (raise-syntax-error 'PolicyVocab "Must have at least one decision." #f #f (list (first the-decisions-clauses)) )]
-                              [(list _ dec ...) dec]
+                              [(list _ dec ...) (for-each (lambda (d) 
+                                                            (when (equal? (syntax->datum d) ':)                                                              
+                                                              (raise-syntax-error 'PolicyVocab "Invalid decisions clause. Colon is not a valid decision." #f #f (list (first the-decisions-clauses))))
+                                                            (unless (symbol? (syntax->datum d))
+                                                              (raise-syntax-error 'PolicyVocab "Invalid decisions clause." #f #f (list (first the-decisions-clauses)))))
+                                                          dec)
+                                                dec]
                               [_ (raise-syntax-error 'PolicyVocab "Invalid Decisions clause." #f #f (list (first the-decisions-clauses)) )])) 
        
        (define decisions-result (map (lambda (dec-syn) 
@@ -472,17 +480,17 @@
                (define the-target-clause (first the-target-clauses))
                (define the-target (rest (syntax-e the-target-clause)))
                               
-               (define (validate-target a-conjunct)
+               (define (validate-target-to-str a-conjunct)
                  (syntax-case a-conjunct []
                    ; ! is part of the pred name token if present
                    [(predname x0 x ...) (all-id-syn? #'(predname x0 x ...)) 
-                                        (syntax->datum #'(predname x0 x ...))]
+                                        (string-join (map symbol->string (syntax->datum #'(predname x0 x ...))) " ")]
                    [_ (raise-syntax-error 'Policy "Invalid target conjunct" #f #f (list a-conjunct))]))
                
                (if (> (length the-target) 0)
                    (list (xml-make-command "SET TARGET FOR POLICY" 
                                            (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-                                                 (xml-make-conjunct-chain (map validate-target the-target)))))
+                                                 (xml-make-conjunct-chain (map validate-target-to-str the-target)))))
                    empty))))
     
        ;(printf "~a~n" target-result)
@@ -584,8 +592,8 @@
        ; This is so we know where to find the vocabulary file. Only know that at runtime
        (with-syntax ([my-commands (append create-result ; create must come first
                                           target-result
-                                          rules-result
-                                          (list prepare-result))]
+                                          rules-result)]
+                     [my-prepare-command (list prepare-result)]
                      [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
                      [policyname #'policyname]
@@ -637,55 +645,50 @@
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
              
-             ; take the child policy's 6-tuple from evaluation
-             ; get the list (poss. with duplicates) of vname, vcmds pairs
-              (define (get-child-vocabs tuple)
-                (when (or (< (length tuple) 6)
-                          (not (list? (sixth tuple))))
-                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
-                                      (make-placeholder-syntax 'placeholder)))                
-                (append (list (second tuple) (third tuple)) ; <-- child's (vname, vcmds)
-                        (sixth tuple)))                     ; <-- list of child's children's (vname, vcmds)
-              
+             ; take the child policy's tuple from evaluation
+             ; get the list of pnames              
               (define (get-child-pols tuple)
-                (when (or (< (length tuple) 6)
+                (when (or (< (length tuple) 5)
                           (not (list? (fifth tuple))))
                   (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
                                       (make-placeholder-syntax 'placeholder)))
-                (append (list (first tuple) (fourth tuple)) ; <-- child's (pname, pcmds)
-                        (fifth tuple)))                     ; <-- list of child's children's (pname, pcmds)
+                (append (list (first tuple)) ; <-- child's pname
+                        (fifth tuple)))      ; <-- list of child's children's pnames
               
-             (define (get-child-xml tuple)
-               (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string 'policyname)) `(CHILD ,(xml-make-policy-identifier (first tuple))))))
+             (define (get-add-child-xml tuple)
+               (xml-make-command "ADD" (list `(PARENT ,(xml-make-parent-identifier (symbol->string 'policyname)) ,(xml-make-child-identifier (first tuple))))))
              
              (define my-commands-without-child 'my-commands)
              
              ; Forge the connection between parent and child policies
-             (define my-commands-with-add-child (append my-commands-without-child
-                                                        (map get-child-xml the-children)))
+             ; and *prefix* this policy's commands with the child commands
+             ; *FINALLY* prepare the policy.
+             (define child-commands (append* (map fourth the-children)))
+             (define my-commands-with-children (append child-commands
+                                                       my-commands-without-child
+                                                       (map get-add-child-xml the-children)
+                                                       'my-prepare-command))                          
              
-             
-             (define child-vpairs (map get-child-vocabs the-children))
-             (define child-ppairs (map get-child-pols the-children))
+             (define child-polnames (flatten (map get-child-pols the-children)))
              
              ; Throw error if duplicate policy name
              (define (dup-pname-helper todo sofar)
                (cond [(empty? todo) #f]
-                     [(member (first (first todo)) sofar)                      
+                     [(member (first todo) sofar)                      
                       (raise-syntax-error 'Policy "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names." 
-                                          (make-placeholder-syntax (first (first todo))))]
-                     [else (dup-pname-helper (rest todo) (cons (first (first todo)) sofar))]))
+                                          (make-placeholder-syntax (first todo)))]
+                     [else (dup-pname-helper (rest todo) (cons (first todo) sofar))]))
              
-             (dup-pname-helper child-ppairs (list (symbol->string 'policyname)))
+             (dup-pname-helper child-polnames (list (symbol->string 'policyname)))
               
              ; Don't double-load vocabs
              ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
-             (for-each (lambda (child-vpair)
-                         (unless (equal? (first child-vpair) (symbol->string 'vocabname))
+             (for-each (lambda (tuple)
+                         (unless (equal? (second tuple) (symbol->string 'vocabname))
                            (raise-syntax-error 'Policy 
                                                (format "Child policy used a vocabulary other than \"~a\". All children must have the same vocabulary as the parent." 'vocabname)                
-                                               (make-placeholder-syntax (first child-vpair)))))
-                       child-vpairs)
+                                               (make-placeholder-syntax (second tuple)))))
+                       the-children)
                        
                           
               
@@ -693,9 +696,8 @@
               `( ,(symbol->string 'policyname)
                  ,(symbol->string 'vocabname)
                  ,vocab-commands
-                 ,my-commands-with-add-child
-                 ,child-ppairs
-                 ,child-vpairs)))))]
+                 ,my-commands-with-children
+                 ,child-polnames)))))]
 
          
        

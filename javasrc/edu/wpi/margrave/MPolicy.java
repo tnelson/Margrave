@@ -232,6 +232,8 @@ public abstract class MPolicy extends MIDBCollection
 			}
 		}
 		
+		this.target = MFormulaManager.makeConjunction(targetSet);
+		
 	}
 
 	protected Expression getRelationExpr(String name) throws MGEUnknownIdentifier, MGEBadIdentifierName

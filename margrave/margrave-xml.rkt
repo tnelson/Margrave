@@ -1162,7 +1162,7 @@
   (xml-make-generic-list 'COMBINE-ALGS 'COMBINE-ALG 'desc algs-list))
 
 (define (xml-make-conjunct-chain conjs-list)
-  (xml-make-generic-list 'CONJUNCT-CHAIN 'CONJUNCT 'name conjs-list))
+  (xml-make-generic-list 'CONJUNCTCHAIN 'CONJUNCT 'name conjs-list))
 
 (define (xml-make-identifiers-list idents-list)
   (xml-make-generic-list 'IDENTIFIERS 'IDENTIFIER 'name idents-list))

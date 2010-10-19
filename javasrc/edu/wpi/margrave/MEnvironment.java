@@ -949,7 +949,7 @@ public class MEnvironment
 			MPolicySet pset = (MPolicySet) coll;
 			Element theElement = xmldoc.createElementNS(null, "POLICY-SET");
 			theElement.setAttribute("name", pset.name);
-			theElement.setAttribute("policy-combine", pset.pCombine);
+			theElement.setAttribute("policy-combine", pset.pCombine);					
 			
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
@@ -960,6 +960,15 @@ public class MEnvironment
 				idbsElement.appendChild(idbElement);
 			}
 			theElement.appendChild(idbsElement);
+			
+			Element childrenElement = xmldoc.createElementNS(null, "CHILDREN");
+			for(MPolicy child : ((MPolicySet) coll).children)
+			{
+				Element cElement = xmldoc.createElementNS(null, "POLICY-IDENTIFIER");
+				cElement.setAttribute("name", child.name);								
+				childrenElement.appendChild(cElement);
+			}
+			theElement.appendChild(childrenElement);
 			
 			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
 			for(Variable v : coll.varOrdering)

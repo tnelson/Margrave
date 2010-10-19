@@ -627,6 +627,9 @@ public class MCommunicator
         					String pname = getPolicyName(n);
         					String rname= getRuleName(n);
 
+        					// IMPORTANT
+        					// Assume ADD -> POLICY-IDENTIFIER is always adding a RULE.
+        					
         					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
         					String decName = getDecisionType(ruleNode); 
         					List<Node> relationNodes = getListOfRelationNodes(ruleNode);
@@ -669,8 +672,8 @@ public class MCommunicator
             				
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
-        					String parent = getParentName(n);
-        					String child = getChildName(n);
+        					String parent = getParentName(childNode);
+        					String child = getChildName(childNode);
         					theResponse = MEnvironment.addChild(parent, child);
         				}
         			}
@@ -960,8 +963,8 @@ public class MCommunicator
         	return getListElements(n, "RELATIONS", "name");
         }
         
-        private static List<String> getConjunctChainList(Node n) {
-			return getListElements(n, "CONJUCTCHAIN", "name");
+        private static List<String> getConjunctChainList(Node n) {        	
+			return getListElements(n, "CONJUNCTCHAIN", "name");
 		}
         
         private static List<String> getIdentifierList(Node n)
@@ -1027,8 +1030,11 @@ public class MCommunicator
         private static List<String> getListElements(Node n, String listName, String attributeName) {
         	Node listNode = getChildNode(n, listName);
         	
+        	writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");
+        	
         	//Return null if we can't find the node
         	if (listNode == null) {
+        		writeToLog("\nNo child node found with that name. Returning null.\n");
         		return null;
         	}
         	

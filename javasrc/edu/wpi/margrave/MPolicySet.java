@@ -105,6 +105,8 @@ public class MPolicySet extends MPolicy
 		}
 		else if(pCombine.toUpperCase().startsWith("FA"))
 		{
+			//MCommunicator.writeToLog("\nPolicySet.initIDBs(); FA* combinator. Children = "+children+"\n");
+			
 			// Total ordering of children. Applicability is given by the child policy's Target.
 			for(String dec : vocab.decisions)
 			{
@@ -133,10 +135,13 @@ public class MPolicySet extends MPolicy
 					
 					// Younger children must respect their elders.
 					negpriortargets.add(MFormulaManager.makeNegation(child.target));
+					
+					//MCommunicator.writeToLog("    PolicySet.initIDBs(); Decision = "+dec+". Handled "+child.name+". negprior= "+negpriortargets);
 				}
 					
 				idbs.put(dec, MFormulaManager.makeDisjunction(thisdec));					
 
+				//MCommunicator.writeToLog("  PolicySet.initIDBs(); Decision = "+dec+". idb = "+thisdec);
 			}
 							
 		}
