@@ -38,7 +38,7 @@
                         REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
                         XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
                         NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN IOS EMPTYID))
+                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN IOS EMPTYID DEFVEC))
 (define-tokens terminals (<identifier> <unsigned-integer> <comment>))
 
 
@@ -105,6 +105,7 @@
    [">" (token-GTHAN)]
    ["\"\"" (token-EMPTYID)]
    
+   [(lex-ci "defvec") (token-DEFVEC)]
    [(lex-ci "explore") (token-EXPLORE)]
    [(lex-ci "load") (token-LOAD)]
    [(lex-ci "policy") (token-POLICY)] 

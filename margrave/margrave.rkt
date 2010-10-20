@@ -53,7 +53,9 @@
          the-margrave-namespace
          margrave-home-path         
          resolve-java-path!
-         resolve-custom-vector)
+         resolve-custom-vector-y
+         resolve-custom-vector-n
+         define-custom-vector)
 
 
 ;****************************************************************
@@ -663,7 +665,7 @@ gmarceau
 
     
 ; -------------------------
-(define (resolve-custom-vector polid vecid vector-syntax)
+(define (resolve-custom-vector-y polid vecid vector-syntax)
   ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
   (define polid-str (symbol->string/safe polid))
   
@@ -678,3 +680,16 @@ gmarceau
   (define info-result (send-and-receive-xml (xml-make-info-id-command polid-str) #:syntax vector-syntax))
   (xml-policy-info->req-vector info-result))
 
+(define custom-vector-environment (make-hash))
+
+(define (resolve-custom-vector-n vecid vector-syntax)    
+  (unless (hash-has-key? custom-vector-environment vecid)
+    (raise-syntax-error 
+     '|Margrave Error:|
+     (format "~a was not declared via DEFVEC.~n" vecid)
+     vector-syntax))
+  (hash-ref custom-vector-environment vecid))
+
+(define (define-custom-vector vecid contents)
+  (printf "defvec: ~a ~a ~n" vecid contents)
+  (hash-set! custom-vector-environment vecid contents))

@@ -194,6 +194,9 @@
                         [(equal? first-token 'IS)
                          "Did you mean IS POSSIBLE? ?"]
                         
+                        [(equal? first-token 'DEFVEC)
+                         "A DEFVEC command is of the form DEFVEC <vecid> x, y, z..."]
+                        
                         [(equal? first-token 'EXPLORE)
                          (format "EXPLORE must be followed by a boolean condition. Margrave did not understand the condition or options given around \"~a\"." (if token-value
                                                                                                                                                                   token-value
@@ -263,7 +266,8 @@
          
          ;**************************************************
 
-         
+         [(DEFVEC LTHAN <identifier> GTHAN variable-list)
+          (build-so (list 'DEFVEC $3 $5) 1 5)]
          
          ; .p/v policy
          [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
@@ -537,9 +541,14 @@
                        
                        ; Allow <>, <> for later (via above production)
                        [(LTHAN <identifier> COLON <identifier> GTHAN) 
-                        (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5))]
+                        (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5))]
                        [(LTHAN <identifier> COLON <identifier> GTHAN COMMA variable-list)
-                        (append (list (build-so (list 'CUSTOM-VECTOR $2 $4) 1 5)) $7)])
+                        (append (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5)) $7)]
+
+                       [(LTHAN <identifier> GTHAN) 
+                        (list (build-so (list 'CUSTOM-VECTOR-N $2 ) 1 3))]
+                       [(LTHAN <identifier> GTHAN COMMA variable-list)
+                        (append (list (build-so (list 'CUSTOM-VECTOR-N $2) 1 3)) $5)])
         
         ;**************************************************    
         

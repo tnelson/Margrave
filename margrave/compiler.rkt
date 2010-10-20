@@ -110,6 +110,19 @@
         ; Commands are handled here. Inner syntax is handled by
         ; recursive calls to helper-syn->xml
         
+        
+        [(equal? first-datum 'DEFVEC)
+         (let ()
+           
+           (define (quote-variables-helper-syn syn)
+             (let ([result (helper-syn->xml syn)])
+               (if (symbol? result)
+                   `',result
+                   result)))
+           
+           `(lambda () (define-custom-vector ',(second interns) (list ,@(map quote-variables-helper-syn
+                                                                             (syntax-e (third interns)))))))]
+        
         [(equal? first-datum 'CREATE-VOCABULARY)
          (make-single-wrapper `(xml-make-command "CREATE VOCABULARY" ,(map helper-syn->xml (rest interns))) syn)]
         
@@ -366,17 +379,16 @@
         
         [(equal? first-datum 'VARIABLE) ;Will be returned to variable vector
          ;(printf "Symbol var: ~a~n" first-intern)
-         (symbol->string (syntax->datum (second interns)))]
+         (symbol->string (syntax->datum (second interns)))]        
+        
         
         ; <polname>:<vecname>
-        [(equal? first-datum 'CUSTOM-VECTOR)
-         ; Is there a better way to do this?                 
-         `(resolve-custom-vector ',(syntax->datum (second interns)) ',(syntax->datum (third interns)) #',syn)]        
+        [(equal? first-datum 'CUSTOM-VECTOR-Y)
+         `(resolve-custom-vector-y ',(syntax->datum (second interns)) ',(syntax->datum (third interns)) #',syn)]        
+        ; <vecname>
+        [(equal? first-datum 'CUSTOM-VECTOR-N)
+         `(resolve-custom-vector-n ',(syntax->datum (second interns)) #',syn)]        
         
-        ; If vecname is not "req", error.
-        ; If polname does not exist, error.                           
-        ; Otherwise ask for info on polname and produce a variable vector for its request vector
-         
 
         
         [(equal? first-datum 'VARIABLE-VECTOR)
