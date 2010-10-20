@@ -1,16 +1,13 @@
 (PolicyVocab
  IOS-vocab
  (Types
-  (Hostname : hostname-tas hostname-baz)
-  (Interface
-   :
-   interf-drop
-   (interf-real Serial0/3/0:0 GigabitEthernet0/1 GigabitEthernet0/0))
+  (Hostname : hostname-baz hostname-tas)
+  (Interface : interf-drop (interf-real GigabitEthernet0/0 Serial0/3/0:0 GigabitEthernet0/1))
   (IPAddress
    (10.232.4.0/255.255.252.0 10.232.4.10)
    (10.232.0.0/255.255.252.0 10.232.0.15)
+   (10.254.1.128/255.255.255.252 10.254.1.130 10.254.1.129)
    192.168.1.0/255.255.255.0
-   (10.254.1.128/255.255.255.252 10.254.1.129 10.254.1.130)
    10.232.8.0/255.255.252.0
    10.232.100.0/255.255.252.0
    10.232.104.0/255.255.252.0)
@@ -56,8 +53,8 @@
   (disjoint-all Length)
   (atmostone-all interf-real)
   (atmostone interf-drop)
-  (atmostone 10.254.1.130)
   (atmostone 10.254.1.129)
+  (atmostone 10.254.1.130)
   (disjoint-all 10.254.1.128/255.255.255.252)
   (atmostone 10.232.0.15)
   (disjoint-all 10.232.0.0/255.255.252.0)

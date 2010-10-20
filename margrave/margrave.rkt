@@ -691,5 +691,6 @@ gmarceau
   (hash-ref custom-vector-environment vecid))
 
 (define (define-custom-vector vecid contents)
-  (printf "defvec: ~a ~a ~n" vecid contents)
-  (hash-set! custom-vector-environment vecid contents))
+;  (printf "defvec: ~a ~a ~n" vecid contents)
+  (hash-set! custom-vector-environment vecid contents)
+  (format "Custom vector <~a> defined." vecid))

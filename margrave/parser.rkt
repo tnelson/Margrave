@@ -155,12 +155,7 @@
                        
                         [(equal? first-token 'RENAME)
                          "Please use the following: RENAME <old name> <new name>"]                        
-                        
-                        [(equal? first-token 'SHOW)
-                         "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"]
-                        [(equal? first-token 'GET)
-                         "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"]
-                      
+                                              
                         [(and (> (length rev-tokens) 1)
                               (equal? first-token 'LOAD)
                               (equal? second-token 'IOS))
@@ -187,6 +182,12 @@
                         [(and (equal? first-token 'SHOW)
                               (equal? second-token 'UNREALIZED))
                          "That was not a valid SHOW UNREALIZED command."]
+                        
+                        
+                        [(equal? first-token 'SHOW)
+                         "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"]
+                        [(equal? first-token 'GET)
+                         "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"]
                         
                         [(and (equal? first-token 'IS)
                               (equal? second-token 'POSSIBLEQMARK))

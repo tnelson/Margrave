@@ -6,46 +6,14 @@
  (Rules
   (Router-Vlan1-line0
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (IPAddress src-addr-in))
   (Router-FastEthernet0-line26
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
@@ -56,23 +24,7 @@
    (port-80 dest-port-in))
   (Router-FastEthernet0-line27
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
@@ -83,23 +35,7 @@
    (port-21 dest-port-in))
   (Router-FastEthernet0-line28
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
@@ -110,23 +46,7 @@
    (port-20 dest-port-in))
   (Router-FastEthernet0-line29
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
@@ -137,23 +57,7 @@
    (port-23 dest-port-in))
   (Router-FastEthernet0-line30
    =
-   (Permit
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Permit hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)
@@ -164,23 +68,7 @@
    (Port dest-port-in))
   (Router-FastEthernet0-line31
    =
-   (Deny
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Deny hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (FastEthernet0 entry-interface)

@@ -6,23 +6,7 @@
  (Rules
   (Router-line-22-trans
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -35,23 +19,7 @@
    (= dest-port-in dest-port-out))
   (Router-line-22-drop
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -59,23 +27,7 @@
    (port-80 src-port-in))
   (Router-line-23-trans
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -88,23 +40,7 @@
    (= dest-port-in dest-port-out))
   (Router-line-23-drop
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -112,23 +48,7 @@
    (port-21 src-port-in))
   (Router-line-24-trans
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -141,23 +61,7 @@
    (= dest-port-in dest-port-out))
   (Router-line-24-drop
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -165,23 +69,7 @@
    (port-3389 src-port-in))
   (Router-Vlan1-line26-trans
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
@@ -192,46 +80,14 @@
    (= dest-port-in dest-port-out))
   (Router-line-21-drop
    =
-   (Drop
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Drop hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (hostname-Router hostname)
    (Vlan1 entry-interface)
    (192.168.2.0/255.255.255.0 src-addr-in))
   (Router-default-NAT
    =
-   (Translate
-    hostname
-    entry-interface
-    src-addr-in
-    src-addr-out
-    dest-addr-in
-    dest-addr-out
-    protocol
-    message
-    flags
-    src-port-in
-    src-port-out
-    dest-port-in
-    dest-port-out
-    length
-    next-hop
-    exit-interface)
+   (Translate hostname entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out protocol message flags src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface)
    :-
    (= src-addr-in src-addr-out)
    (= dest-addr-in dest-addr-out)

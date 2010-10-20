@@ -3,17 +3,14 @@
  (Types
   (Hostname : hostname-Router)
   (Interface : interf-drop (interf-real Vlan1 FastEthernet0))
-  (IPAddress
-   (209.172.108.0/255.255.255.224 209.172.108.1 209.172.108.16)
-   (192.168.2.0/255.255.255.0 192.168.2.6))
+  (IPAddress (209.172.108.0/255.255.255.224 209.172.108.1 209.172.108.16) (192.168.2.0/255.255.255.0 192.168.2.6))
   (Protocol-any : prot-ICMP prot-TCP prot-UDP)
   (Port port-3389 port-23 port-20 port-21 port-80)
   (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
   (TCPFlags : SYN ACK FIN PSH URG RST)
   (Length :))
  (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
- (Predicates
-  (Connection-returntcp : IPAddress Port Protocol-any IPAddress Port))
+ (Predicates (Connection-returntcp : IPAddress Port Protocol-any IPAddress Port))
  (ReqVariables
   (hostname : Hostname)
   (entry-interface : interf-real)
