@@ -210,7 +210,15 @@
                                    (RComb FAC) (PComb FAC) 
                                    (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) 
                                    (Children (Policy polname uses conferencepolicy (RComb FAC) (PComb FAC))))) tests-path #'foo)
-                (stop-margrave-engine))) 
+                (stop-margrave-engine)))
+   
+   (check-exn (exn-contains-message "Error: Unable to get Relation for unknown sort name: getexchangexxx")
+              (lambda () 
+                (start-margrave-engine) ; for margrave-home-path
+                (mtext "LOAD POLICY *margrave*/tests/badphonepolicy.p")
+                (define tests-path (build-path margrave-home-path "tests" "badphonepolicy.p"))  
+                (stop-margrave-engine)))
+   
    
    
    

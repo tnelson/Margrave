@@ -280,7 +280,7 @@ gmarceau
 |#
   
   ; Syntax and Reader errors both highlight a location you give. We
-  ; need that to highlight the original Margrave command.
+  ; need that to highlight the original Margrave command.  
   (define (local-report-error)
     (if (syntax? src-syntax)
         (raise-read-error 
@@ -635,35 +635,6 @@ gmarceau
         (set! tick-tock (current-inexact-milliseconds))
         ms-to-return)))
 
-
-;(define (string-endswith str end)
-;  (if (> (string-length end) (string-length str))
-;      #f
-;      (string=? end
-;                (substring str
-;                           (- (string-length str) (string-length end))
-;                           (string-length str)))))
-
-; Strip everything up to and including the last :
-;(define (unqualified-part idbname)
-;  (last (regexp-split ":" idbname)))
-
-;(define (unqualified-non-applied-part idbname)
-;  (unqualified-part (if (string-endswith idbname "_applies")
-;                        (substring idbname 0 (- (string-length idbname) 8))
-;                        idbname)))
-
-; kludge: in general there may be brackets in the idb name. For our example, there aren't. (see todo above re: structured data)
-;(define (cleanup-idb-list thelist)
-;  (map (lambda (idbname) 
-;         (second (regexp-split ":" (first (regexp-split "\\[" idbname))))) 
-;       thelist))
-;(define (cleanup-idb-list-no-applies thelist)
-;  (map (lambda (idbname) 
-;         (second (regexp-split ":" (first (regexp-split "_applies\\[" idbname))))) 
-;       thelist))
-
-    
 ; -------------------------
 (define (resolve-custom-vector-y polid vecid vector-syntax)
   ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)

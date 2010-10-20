@@ -504,12 +504,22 @@
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
-                      
+               
+               ; Why is this failing on one of my test cases?
+               ; No time to look into it now, so re-implemented
+               ; -tn 
+               ;(define (is-valid-conjunction conj)
+               ;  (syntax-case conj [true]
+               ;    [(pred v0 v ...) #t]
+               ;    [true #t]
+               ;    [(true) #t]
+               ;    [_ #f]))
+               
                (define (is-valid-conjunction conj)
-                 (syntax-case conj [true]
+                 (syntax-case conj []
                    [(pred v0 v ...) #t]
-                   [true #t]
-                   [(true) #t]
+                   [x (equal? 'true (syntax->datum #'x))]
+                   [(x) (equal? 'true (syntax->datum #'x))]
                    [_ #f]))
                
                (define (handle-rule a-rule)
@@ -517,7 +527,7 @@
                    [(rulename = (decision rvar ...) :- conj0 conj ...)                     
                     ; 'true is dealt with in the back-end. 
                     ; require each conj to be valid
-                    (andmap is-valid-conjunction (syntax->list #'(conj0 conj ...)))
+                    (andmap is-valid-conjunction (syntax->list #'(conj0 conj ...)))               
                     
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
                                                   (xml-make-rule (syntax->datum #'rulename)

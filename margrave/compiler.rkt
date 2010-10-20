@@ -72,7 +72,8 @@
            
            (make-simple-load-func (first policy-creation-list)
                                   (second policy-creation-list)
-                                  xml-cmds))]
+                                  xml-cmds
+                                  (second interns)))]
         
         [(equal? first-datum 'LOAD-IOS)
          `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns))) 
@@ -334,14 +335,14 @@
   
   `(lambda () (send-and-receive-xml ,thexml-constructor #:syntax #',syn)))
 
-(define (make-simple-load-func polname vocname list-of-xexprs)
+(define (make-simple-load-func polname vocname list-of-xexprs src-syntax)
 #| gmarceau personal preference:
   `(lambda () ,@(for/list ([an-xml list-of-xml])
                           `(send-and-receive-xml ,an-xml))))
 |#
   ; Using implicit begin; the policy name will be the result of the func
   `(lambda () ,@(append (map (lambda (an-xexpr) 
-                               `(send-and-receive-xml ',an-xexpr)) 
+                               `(send-and-receive-xml ',an-xexpr #:syntax #',src-syntax)) 
                              list-of-xexprs)
                         ; resulting lambda will just return polname
                         (list polname))))
