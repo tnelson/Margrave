@@ -293,18 +293,18 @@ class FormulaIndentPrintV extends AbstractVoidVisitor
 	private void printDepth()
 	{
 		for(int ii=0;ii<depth;ii++)
-			System.err.print(" ");
+			MEnvironment.writeErr(" ");			
 	}
 	
 	public void visit(ComparisonFormula comp)
 	{
 		printDepth();
-		System.err.println(comp.toString());		
+		MEnvironment.writeErrLine(comp.toString());		
 	}
 
 	public void visit(BinaryFormula binFormula) {
 		printDepth();
-		System.err.println("("+binFormula.op().toString()+" ");
+		MEnvironment.writeErrLine("("+binFormula.op().toString()+" ");
 		
 		depth += depthinc;
 		binFormula.left().accept(this);
@@ -312,44 +312,44 @@ class FormulaIndentPrintV extends AbstractVoidVisitor
 		depth -= depthinc;
 		
 		printDepth();
-		System.err.println(")");
+		MEnvironment.writeErrLine(")");
 	}
 
 	public void visit(NotFormula not) {
 		printDepth();
-		System.err.println("(not ");
+		MEnvironment.writeErrLine("(not ");
 		
 		depth += depthinc;
 		not.formula().accept(this);
 		depth -= depthinc;
 		
 		printDepth();
-		System.err.println(")");
+		MEnvironment.writeErrLine(")");
 	}
 
 	public void visit(QuantifiedFormula quantFormula) {
 		printDepth();
-		System.err.println("("+quantFormula.quantifier().toString() +" "+quantFormula.decls().toString()+" ");
+		MEnvironment.writeErrLine("("+quantFormula.quantifier().toString() +" "+quantFormula.decls().toString()+" ");
 		
 		depth += depthinc;
 		quantFormula.formula().accept(this);
 		depth -= depthinc;
 		
 		printDepth();
-		System.err.println(")");
+		MEnvironment.writeErrLine(")");
 	}
 
 	public void visit(NaryFormula nFormula) {
 		
 		printDepth();
-		System.err.println("("+nFormula.op().toString()+" ");
+		MEnvironment.writeErrLine("("+nFormula.op().toString()+" ");
 		depth += depthinc;
 		for(Formula child : nFormula)
 			child.accept(this);
 		depth -= depthinc;
 		
 		printDepth();
-		System.err.println(")");
+		MEnvironment.writeErrLine(")");
 	}
 
 	@Override

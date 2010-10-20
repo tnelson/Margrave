@@ -979,36 +979,42 @@ public class MVocab {
 
 	protected MVocab combineWith(MVocab other) throws MGECombineVocabs,
 			MGEBadIdentifierName, MGEUnknownIdentifier {
+		
 		// Names (strings) used to detect equivalence (since object references
 		// are obviously untrustworthy.)
 
+		// TN 10/20/10 
+		// No reason to require vocabs to have the same decisions or request vectors
+		// not even any reason to require the same sort for variables named the same
+		// so long as we prefix the varnames
+		
 		// If request sets (and types!), ordering, or decisions are not the
 		// same, complain.
-		if (!other.decisions.containsAll(decisions)
+		/*if (!other.decisions.containsAll(decisions)
 				|| !decisions.containsAll(other.decisions))
 			throw new MGECombineVocabs(
 					"Decision sets were not the same between " + decisions
 							+ " and " + other.decisions);
+		*/
+		/*
 		if (other.requestVariables.size() != requestVariables.size())
 			throw new MGECombineVocabs("Different request vector.");
-		for (int ii = 0; ii < requestVectorOrder.size(); ii++) {
+		*/
+		
+		/*for (int ii = 0; ii < requestVectorOrder.size(); ii++) {
 			if (requestVectorOrder.get(ii).name().compareTo(
 					other.requestVectorOrder.get(ii).name()) != 0)
 				throw new MGECombineVocabs(
 						"Different request vector: Mismatched request variable name or ordering.");
 
-		}
+		}*/
 
-		// If (shared) custom predicates do not have the same signature,
-		// complain
+		// Shared predicates must have the same signature 
 		for (String pname : predicates.keySet())
 			if (other.predicates.keySet().contains(pname))
 				if (predtypes.get(pname).compareTo(other.predtypes.get(pname)) != 0)
 					throw new MGECombineVocabs(
 							"Different custom predicate signature: " + pname);
-
-		// (Note that base types can differ as much as allowed by the above --
-		// request vars must share SOME common type!)
 
 		// Generate a list of shared type names
 		Set<String> shared = new HashSet<String>();
@@ -1069,13 +1075,18 @@ public class MVocab {
 			uber.addSort(t.name, childnames);
 		}
 
-		// Decisions, Request vars IN ORDER
+		// Decisions
 		for (String d : decisions)
 			uber.addDecision(d);
+		for (String d : other.decisions)
+			uber.addDecision(d);
+		
+		// Request vars IN ORDER
 		for (Variable v : requestVectorOrder)
-			uber
-					.addRequestVar(v.name(), requestVarDomains.get(v.name())
-							.name());
+			uber.addRequestVar(v.name(), requestVarDomains.get(v.name()).name());
+		for (Variable v : other.requestVectorOrder)
+			if(!uber.requestVariables.containsKey(v.name()))
+				uber.addRequestVar(v.name(), other.requestVarDomains.get(v.name()).name());		
 
 		// Predicates and Predtypes
 		for (String d : predicates.keySet())
@@ -1106,14 +1117,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.setsSingleton.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Singleton constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintSingleton(con);
 		}
 		for (String con : other.axioms.setsSingleton) {
 			if (shared.contains(con))
 				if (!axioms.setsSingleton.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Singleton constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintSingleton(con);
 		}
 
@@ -1121,14 +1132,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.setsAtMostOne.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Atmostone constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintAtMostOne(con);
 		}
 		for (String con : other.axioms.setsAtMostOne) {
 			if (shared.contains(con))
 				if (!axioms.setsAtMostOne.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Atmostone constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintAtMostOne(con);
 		}
 
@@ -1136,14 +1147,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.setsNonempty.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Nonempty constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintNonempty(con);
 		}
 		for (String con : other.axioms.setsNonempty) {
 			if (shared.contains(con))
 				if (!axioms.setsNonempty.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Nonempty constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintNonempty(con);
 		}
 
@@ -1151,14 +1162,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.setsAbstract.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Abstract constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintAbstract(con);
 		}
 		for (String con : other.axioms.setsAbstract) {
 			if (shared.contains(con))
 				if (!axioms.setsAbstract.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Abstract constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintAbstract(con);
 		}
 		
@@ -1166,14 +1177,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.funcPartial.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Partial func constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintPartialFunction(con);
 		}
 		for (String con : other.axioms.funcPartial) {
 			if (shared.contains(con))
 				if (!axioms.funcPartial.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Partial func constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintPartialFunction(con);
 		}
 
@@ -1181,14 +1192,14 @@ public class MVocab {
 			if (shared.contains(con))
 				if (!other.axioms.funcTotal.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs ->.");
+							"Total func constraint missing between vocabs -> "+con);
 			uber.axioms.addConstraintTotalFunction(con);
 		}
 		for (String con : other.axioms.funcTotal) {
 			if (shared.contains(con))
 				if (!axioms.funcTotal.contains(con))
 					throw new MGECombineVocabs(
-							"Constraint missing between vocabs <-.");
+							"Total func constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintTotalFunction(con);
 		}
 
@@ -1200,7 +1211,7 @@ public class MVocab {
 							|| !other.axioms.setsSubset.get(child).contains(
 									parent))
 						throw new MGECombineVocabs(
-								"Constraint missing between vocabs ->.");
+								"Constraint missing between vocabs -> "+parent+">"+child);
 
 				// always add the constraint
 				uber.axioms.addConstraintSubset(child, parent);
@@ -1213,7 +1224,7 @@ public class MVocab {
 					if (!axioms.setsSubset.containsKey(child)
 							|| !axioms.setsSubset.get(child).contains(parent))
 						throw new MGECombineVocabs(
-								"Constraint missing between vocabs ->.");
+								"Constraint missing between vocabs <- "+parent+">"+child);
 
 				// always add the constraint
 				uber.axioms.addConstraintSubset(child, parent);
