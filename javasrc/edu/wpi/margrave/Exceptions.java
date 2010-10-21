@@ -19,12 +19,18 @@
 
 package edu.wpi.margrave;
 
+import kodkod.ast.Variable;
+
 
 //***********************************************
 //Margrave Exceptions
 //***********************************************
 
-abstract class MBaseException extends Exception
+
+// All MBaseExceptions MUST BE CAUGHT in the MCommunicator.
+// They inherit RuntimeException so they can be thrown by the 
+// many visitors (extending Kodkod visitors) Margrave uses.
+abstract class MBaseException extends RuntimeException
 {
 	private static final long serialVersionUID = 100; 
 	
@@ -160,6 +166,18 @@ class MGEBadIdentifierName extends MUserException
 	public MGEBadIdentifierName(String message)
 	{         
 		super(message);
+	}
+}
+
+class MGEVariableAlreadyBound extends MUserException
+{
+	private static final long serialVersionUID = 100;
+	Object varOrSetOfVars;	
+	
+	public MGEVariableAlreadyBound(Object varOrSetOfVars, String message)
+	{    
+		super(message);    
+		this.varOrSetOfVars = varOrSetOfVars;
 	}
 }
 

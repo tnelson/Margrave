@@ -660,7 +660,7 @@ public class MVocab {
 			f = MFormulaManager.makeAnd(pt1, pt2);
 			f = MFormulaManager.makeExists(f, dfc1);
 		}
-		else
+		else if("P".equals(type))
 		{
 			// FORALL fc1 FORALL fc2 ( (tuple1 in R) and (tuple2 in R) iff fc1=fc2)
 			
@@ -673,9 +673,20 @@ public class MVocab {
 			f = MFormulaManager.makeForAll(f, dfc2);
 			f = MFormulaManager.makeForAll(f, dfc1);
 		}
+		else if("R".equals(type))
+		{
+			// total relation: like T but without 2nd part for uniqueness
+			// EXISTS fc1 ((tuple1) in R) and <true> 
+			pt1 = MFormulaManager.makeAtom(tuple1, r);							
+			f = MFormulaManager.makeExists(pt1, dfc1);
+			
+		}
+		else
+		{
+			throw new MGEUnknownIdentifier("Unknown functional/relational constraint type: "+type);
+		}
 		 
-		// now close the foralls on the outside
-		
+		// now close the foralls on the outside		
 		for(Decl d : quants)
 		{
 			f = MFormulaManager.makeForAll(f, d);
@@ -684,41 +695,7 @@ public class MVocab {
 		//MEnvironment.errorStream.println(r + " "+ type);
 		//MEnvironment.errorStream.println(f);
 		
-		return f; 
-		
-		/*
-		// ---- saved old code. Was NOT using MGFormulaManager.
-		// For all of (Variable for each in LHS)
-		Expression lhsreduce = Expression.NONE;
-		Decls temp_quant = null;
-
-		int lhs_counter = r.arity() - 1; // all but last is the LHS
-
-		while (lhs_counter > 0) {
-			// Create a variable for this part of the LHS
-			Variable tempvar = MGFormulaManager.makeVariable(r.name() + "_"
-					+ type + "_" + lhs_counter);
-
-			if (temp_quant == null) {
-				temp_quant = tempvar.oneOf(getRelation(rels[lhs_counter - 1]));
-				lhsreduce = tempvar.join(r);
-			} else {
-				temp_quant = temp_quant.and(tempvar
-						.oneOf(getRelation(rels[lhs_counter - 1])));
-				lhsreduce = tempvar.join(lhsreduce);
-			}
-
-			lhs_counter--;
-		}
-
-
-		//MEnvironment.errorStream.println(lhsreduce); 
-		  		if (type.equals("P"))
-			return lhsreduce.lone().forAll(temp_quant);
-		else
-			return lhsreduce.one().forAll(temp_quant);
-		 
-		  */
+		return f; 		
 	}
 	
 	protected boolean isAllDecs(List<String> strs)
@@ -1008,7 +985,7 @@ public class MVocab {
 						"Different request vector: Mismatched request variable name or ordering.");
 
 		}*/
-
+		
 		// Shared predicates must have the same signature 
 		for (String pname : predicates.keySet())
 			if (other.predicates.keySet().contains(pname))
@@ -1112,6 +1089,18 @@ public class MVocab {
 				uber.addOtherVar(ov, other.otherVarDomains.get(ov).name());
 		}
 
+		// Other variables and request variables must be disjoint
+		Set<String> testSet = new HashSet<String>(uber.requestVariables.keySet());
+		testSet.retainAll(uber.otherVarDomains.keySet());
+		if(!testSet.isEmpty())
+		{			 
+			throw new MGEVariableAlreadyBound(testSet, 
+					"Request (free) variables and ``other'' (bound) variables in all a query's vocabularies must never overlap. "+ 
+					" The vocabularies "+this.vocab_name+" and "+other.vocab_name+" disagreed on whether the variables "+testSet+" were free or bound."+
+					" For more information, see the ``Substitution'' section of the documentation.");
+		}
+		
+		
 		// Constraints
 		for (String con : axioms.setsSingleton) {
 			if (shared.contains(con))
@@ -1201,6 +1190,21 @@ public class MVocab {
 					throw new MGECombineVocabs(
 							"Total func constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintTotalFunction(con);
+		}
+		
+		for (String con : axioms.relTotal) {
+			if (shared.contains(con))
+				if (!other.axioms.relTotal.contains(con))
+					throw new MGECombineVocabs(
+							"Total relation constraint missing between vocabs -> "+con);
+			uber.axioms.addConstraintTotalRelation(con);
+		}
+		for (String con : other.axioms.relTotal) {
+			if (shared.contains(con))
+				if (!axioms.relTotal.contains(con))
+					throw new MGECombineVocabs(
+							"Total relation constraint missing between vocabs <- "+con);
+			uber.axioms.addConstraintTotalRelation(con);
 		}
 
 		for (String child : axioms.setsSubset.keySet()) {

@@ -155,6 +155,49 @@
    )) ; end of vocab error tests
 
 
+(define query-errors
+  (test-suite
+   "Query error messages"
+   #:before (lambda () 
+              (start-margrave-engine)
+              (mtext "load policy *margrave*/tests/conference1.p;")
+              (mtext "load policy *margrave*/tests/s-as-oth-var.p;"))
+   #:after (lambda () (stop-margrave-engine))
+         
+   (check-exn (exn-contains-message "Request (free) variables and ``other'' (bound) variables in all a query's vocabularies must never overlap.")
+              (lambda () (mtext "explore conferencepolicy1:permit(s, a, r) and s-as-oth-varp:permit(s, a, r)")))
+   
+   (check-exn (exn-contains-message "The variable name s is already used by some part of this query, and could not be safely substituted.")
+              (lambda ()                
+                (mtext "explore conferencepolicy1:permit(s,a,r) publish r;")
+                (mtext "explore last(s);")))
+   
+   
+   ))
+
+(define query-results
+  (test-suite
+   "Query results"
+   
+   #:before (lambda () (start-margrave-engine))
+   #:after (lambda () (stop-margrave-engine))
+   
+   (test-case
+    "total-relation"
+    (mtext "load policy *margrave*/tests/totalrelation.p;")
+    (mtext "EXPLORE assigned(s, r) and reviewer(s) and paper(r) publish s under totalrelationp")
+    (mtext "rename last responsible")
+    (mtext "EXPLORE reviewer(x) and not responsible(x) under totalrelationp")
+    ; Test totality
+    (test-command "IS POSSIBLE?" "false" "total-relation1")
+    ; Test that it isn't functional
+    (mtext "EXPLORE assigned(s, r1) and assigned(s, r2) and not r1 = r2 and reviewer(s) and paper(r1) and paper(r2) under totalrelationp")
+    (test-command "IS POSSIBLE?" "true" "total-relation2"))
+   
+   
+   
+   ))
+
 
 (define policy-errors
   (test-suite
@@ -621,3 +664,5 @@
 
 (run-tests vocab-errors)
 (run-tests policy-errors)
+(run-tests query-errors)
+(run-tests query-results)

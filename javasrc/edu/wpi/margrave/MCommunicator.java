@@ -608,6 +608,9 @@ public class MCommunicator
         							else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
         								theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
         							}
+        							else if (constraintType.equalsIgnoreCase("TOTAL-RELATION")) {
+        								theResponse = MEnvironment.addConstraintTotalRelation(vname, firstRelation);
+        							}
         							else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
         								theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
         							}

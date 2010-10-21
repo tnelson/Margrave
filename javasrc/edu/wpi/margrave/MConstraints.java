@@ -53,6 +53,9 @@ public class MConstraints
 	// Relations constrained to be functions
 	HashSet<String> funcTotal;
 	HashSet<String> funcPartial;
+	
+	// Relations constrained to be total, but not functional
+	HashSet<String> relTotal;
 
 	Set<String> setsAbstract;
 
@@ -75,6 +78,7 @@ public class MConstraints
 
 		funcTotal = new HashSet<String>();
 		funcPartial = new HashSet<String>();
+		relTotal = new HashSet<String>();
 
 		axiomDisjoints = new HashMap<MSort, Set<MSort>>();
 
@@ -336,6 +340,13 @@ public class MConstraints
 		funcTotal.add(d);
 	}
 
+	public void addConstraintTotalRelation(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		// Relation d is a TOTAL relation. 
+		d = vocab.validateIdentifier(d, true);
+		relTotal.add(d);
+	}
+	
 	// "All" constraints can be applied to types, and influence the SUBtypes of that type
     // For instance, (singleton-all Action) means that each subtype of Action gets exactly one
 	// atom -- not that action itself does.
@@ -449,6 +460,11 @@ public class MConstraints
 		for(String r : funcTotal)
 		{
 			results.add(vocab.makeFunctionalFormula(vocab.getRelation(r), "T"));
+		}
+		
+		for(String r : relTotal)
+		{
+			results.add(vocab.makeFunctionalFormula(vocab.getRelation(r), "R"));
 		}
 
 		// Finally, other constraint strings. These need to be parsed.

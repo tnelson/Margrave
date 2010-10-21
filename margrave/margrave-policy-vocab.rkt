@@ -369,7 +369,7 @@
                (define (handle-constraint constraint)
                  (syntax-case constraint [disjoint atmostone singleton abstract nonempty 
                                                    disjoint-all atmostone-all singleton-all abstract-all nonempty-all
-                                                   total-function partial-function subset]
+                                                   total-function partial-function total-relation subset]
                    
                    [(disjoint s1 s2) (and (symbol? (syntax->datum #'s1))
                                           (symbol? (syntax->datum #'s2))) 
@@ -398,6 +398,8 @@
                                          (make-constraint #'myvocabname "PARTIAL-FUNCTION" (list #'s))]
                    [(total-function s) (symbol? (syntax->datum #'s))
                                        (make-constraint #'myvocabname "TOTAL-FUNCTION" (list #'s))]
+                   [(total-relation s) (symbol? (syntax->datum #'s))
+                                       (make-constraint #'myvocabname "TOTAL-RELATION" (list #'s))]
                    
                    [(subset s1 s2) (symbol? (syntax->datum #'s))
                                    #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum #'myvocabname))) 

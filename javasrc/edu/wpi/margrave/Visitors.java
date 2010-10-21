@@ -59,7 +59,8 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 		super(beginCached);
 	}
 
-	public Formula visit(ComparisonFormula comp) {
+	public Formula visit(ComparisonFormula comp) 
+	{
 		// Default: no change
 		// *************************
 		// NOTE! Beware extending this class to BinaryExpressions, etc.
@@ -419,7 +420,8 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
  * @author tn
  *
  */
-class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
+class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
+{
 	private HashMap<Relation, Relation> relpairs;
 	private HashMap<Variable, Variable> varpairs;
 
@@ -454,6 +456,26 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer {
 		// MEnvironment.writeErrLine(vps);
 	}
 
+	public QuantifiedFormula visit(QuantifiedFormula qf)	
+	{
+		// If qf binds one of the "to" variables in the substitution, 
+		// refuse the substitution and throw an error
+		
+		Set<Variable> toVars = new HashSet<Variable>(varpairs.values());
+		for(Decl d: qf.decls())
+		{
+			if(toVars.contains(d.variable()))
+				throw new MGEVariableAlreadyBound(d.variable(), "The variable name "+d.variable()+
+						" is already used by some part of this query, and could not be safely substituted. " +
+						"(See the ``Substitution'' section of the documentation for more information.)");
+		}
+		
+		if(qf.quantifier().equals(Quantifier.ALL))		
+			return (QuantifiedFormula) MFormulaManager.makeForAll(qf.formula().accept(this), qf.decls().accept(this));
+		else	
+			return (QuantifiedFormula) MFormulaManager.makeExists(qf.formula().accept(this), qf.decls().accept(this)); 
+	}
+	
 	public Expression visit(Relation therel) {
 		if (no_change)
 			return therel;

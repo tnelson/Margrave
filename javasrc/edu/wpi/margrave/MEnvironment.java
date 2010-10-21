@@ -1505,6 +1505,20 @@ public class MEnvironment
 		}
 	}
 
+	public static Document addConstraintTotalRelation(String vname, String s) 
+	{
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintTotalRelation(s);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addConstraintPartialFunction(String vname, String s) 
 	{
 

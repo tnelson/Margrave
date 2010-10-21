@@ -838,10 +838,16 @@ public class MFormulaManager
 		if(cachedValue != null)
 			return cachedValue;
 		
-		Decl d = v.oneOf(expr);
-		declNodes.put(key, d);
-		return d;	
-		
+		try
+		{
+			Decl d = v.oneOf(expr);
+			declNodes.put(key, d);
+			return d;	
+		}
+		catch(IllegalArgumentException e)
+		{
+			throw new MGEManagerException("Margrave encountered an error when trying to express that the variable "+v+" had the type " +expr+ ". ");
+		}	
 	}
 	
 	static Formula makeForAll(Formula f, Decls d)

@@ -621,6 +621,8 @@
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MUnsupportedFormulaException")
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MNotASortException")
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEArityMismatch")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEManagerException")
+               (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEVariableAlreadyBound")               
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEBadCombinator")
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEBadIdentifierName")
                (string-contains? (get-attribute-value exception-element 'class) "edu.wpi.margrave.MGEUnsupportedXACML"))
