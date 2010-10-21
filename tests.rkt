@@ -49,59 +49,59 @@
   (test-suite
    "Vocabulary error messages"
    (check-exn (exn-contains-message "")
-              (lambda () (do-expand '(PolicyVocab ))))
+              (lambda () (do-expand '(PolicyVocab ))) "empty vocab")
    (check-exn (exn-contains-message "Expected a name for the vocabulary")
-              (lambda () (do-expand '(PolicyVocab (Types)))))
+              (lambda () (do-expand '(PolicyVocab (Types)))) "vocab without name")
    (check-exn (exn-contains-message "Decisions clause is missing")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types)))) "vocab without decisions")
    (check-exn (exn-contains-message "ReqVariables clause is missing")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions)))) "vocab without reqvariables")
    (check-exn (exn-contains-message "Top-level type declaration was not valid")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions) (ReqVariables)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types) (Decisions) (ReqVariables)))) "vocab: bad top-level types (a)")
    (check-exn (exn-contains-message "Top-level type declaration was not valid")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types:) (Decisions) (ReqVariables)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types:) (Decisions) (ReqVariables)))) "vocab: bad top-level types (b)")
    (check-exn (exn-contains-message "Must have at least one decision")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions) (ReqVariables)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions) (ReqVariables)))) "vocab: no decisions")
    
    (check-exn (exn-contains-message "There must be at least one request field")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables)))) "vocab: no request variables")
    (check-exn (exn-contains-message "Invalid request field declaration")
-              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables s a r)))))
+              (lambda () (do-expand '(PolicyVocab myvocabname (Types : A) (Decisions Permit Deny) (ReqVariables s a r)))) "vocab: invalid request variables")
    
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action Resource)
                                                (Decisions Permit Deny) 
-                                               (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+                                               (ReqVariables (s : Subject) (a : Action) (r : Resource))))) "vocab: ok 1")
    
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource Tool Potato))
                                              (Decisions Permit Deny) 
-                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))) "vocab: ok 2")
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource : Tool Potato))
                                              (Decisions Permit Deny) 
-                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))) "vocab: ok 3")
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
                                              (Decisions Permit Deny) 
-                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))))
-   (check-not-exn (lambda () 
-                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
-                                             (Decisions Permit Deny) 
-                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))
-                                             (OthVariables )))))
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))))) "vocab: ok 4")
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
                                              (Decisions Permit Deny) 
                                              (ReqVariables (s : Subject) (a : Action) (r : Resource))
-                                             (OthVariables (e : Subject))))))
+                                             (OthVariables )))) "vocab: ok 5")
+   (check-not-exn (lambda () 
+                    (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                             (OthVariables (e : Subject))))) "vocab: ok 6")
    (check-not-exn (lambda () 
                     (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
                                              (Decisions Permit Deny) 
                                              (ReqVariables (s : Subject) (a : Action) (r : Resource))
                                              (OthVariables (e : Subject))
                                              (Constraints (disjoint-all Resource)
-                                                          (subset Potato PotatoBattery ))))))
+                                                          (subset Potato PotatoBattery ))))) "vocab: ok 7")
    
    (check-exn (exn-contains-message "Invalid request field declaration")
               (lambda () 
@@ -110,7 +110,7 @@
                                          (ReqVariables (s : Subject) (a : Action) blargh (r : Resource))
                                          (OthVariables (e : Subject))
                                          (Constraints (disjoint-all Resource)
-                                                      (subset Potato PotatoBattery ))))))
+                                                      (subset Potato PotatoBattery ))))) "vocab: bad request field only one bad: symbol")
    
    (check-exn (exn-contains-message "Invalid request field declaration")
               (lambda () 
@@ -119,7 +119,7 @@
                                          (ReqVariables (s : Subject) (a : Action) (blargh) (r : Resource))
                                          (OthVariables (e : Subject))
                                          (Constraints (disjoint-all Resource)
-                                                      (subset Potato PotatoBattery ))))))
+                                                      (subset Potato PotatoBattery ))))) "vocab: bad request field only one bad: symbol in parens")
    
    (check-exn (exn-contains-message "Invalid constraint declaration")
               (lambda () 
@@ -129,7 +129,7 @@
                                          (OthVariables (e : Subject))
                                          (Constraints (disjoint-all Resource)
                                                       (badconstraint Resource)
-                                                      (subset Potato PotatoBattery ))))))
+                                                      (subset Potato PotatoBattery ))))) "vocab: invalid constraint badconstraint")
 
    (check-exn (exn-contains-message "More than one Decisions clause found")
               (lambda () 
@@ -140,7 +140,7 @@
                                          (OthVariables (e : Subject))
                                          (Constraints (disjoint-all Resource)
                                                       (badconstraint Resource)
-                                                      (subset Potato PotatoBattery ))))))   
+                                                      (subset Potato PotatoBattery ))))) "vocab: 2 decisions clauses")   
    
    (check-exn (exn-contains-message "More than one ReqVariables clause found")
               (lambda () 
@@ -151,7 +151,7 @@
                                          (OthVariables (e : Subject))
                                          (Constraints (disjoint-all Resource)
                                                       (badconstraint Resource)
-                                                      (subset Potato PotatoBattery ))))))  
+                                                      (subset Potato PotatoBattery ))))) "vocab: 2 reqvariables clauses")  
    )) ; end of vocab error tests
 
 
@@ -203,36 +203,36 @@
   (test-suite
    "Policy error messages"
    (check-exn (exn-contains-message "Empty policy specification not allowed")
-              (lambda () (do-expand '(Policy ))))
+              (lambda () (do-expand '(Policy ))) "empty policy")
    (check-exn (exn-contains-message "Policy must supply both its name and the name of the vocabulary it uses")
-              (lambda () (do-expand '(Policy polname ))))
+              (lambda () (do-expand '(Policy polname ))) "policy incomplete 1")
    (check-exn (exn-contains-message "Policy must supply both its name and the name of the vocabulary it uses. (e.g. Policy mypolicy uses myvocabulary ...)")
-              (lambda () (do-expand '(Policy polname vocname))))
+              (lambda () (do-expand '(Policy polname vocname))) "policy incomplete 2")
    (check-exn (exn-contains-message "RComb clause is missing")
-              (lambda () (do-expand '(Policy polname uses vocname))))
+              (lambda () (do-expand '(Policy polname uses vocname))) "policy: no rcomb")
    (check-exn (exn-contains-message "PComb clause is missing")
-              (lambda () (do-expand '(Policy polname uses vocname (RComb) ))))
+              (lambda () (do-expand '(Policy polname uses vocname (RComb) ))) "policy: no pcomb")
    
    (check-exn (exn-contains-message "Invalid rule-combination")
-              (lambda () (do-expand '(Policy polname uses vocname (RComb ) (PComb )))))
+              (lambda () (do-expand '(Policy polname uses vocname (RComb ) (PComb )))) "policy: invalid rcomb")
    (check-exn (exn-contains-message "Invalid policy-combination")
-              (lambda () (do-expand '(Policy polname uses vocname (RComb FAC) (PComb )))))
+              (lambda () (do-expand '(Policy polname uses vocname (RComb FAC) (PComb )))) "policy: invalid pcomb")
    (check-exn (exn-contains-message "Invalid rule")
-              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- !(pred x y z)))))))
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- !(pred x y z)))))) "policy: invalid rule ! outside")
    (check-exn (exn-contains-message "Invalid rule")
-              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))))
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))) "policy: invalid rule no head of rule")
    (check-exn (exn-contains-message "Invalid rule")
-              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))))
+              (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (!pred x y z)))))) "policy: invalid rule no head of rule 2")
   
    ; true is a valid rule target
-   (check-not-exn (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- true))))))
+   (check-not-exn (lambda () (do-expand '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- true))))) "policy ok 1")
    
    ;;;;;;;;;
    ;; Need more than one expansion to test child behavior. Start using eval after this point
    ;;;;;;;;;
    
    (check-exn (exn-contains-message "Empty policy specification not allowed")
-              (lambda () (do-eval '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) (Children (Policy ))))))
+              (lambda () (do-eval '(Policy polname uses vocabname (RComb FAC) (PComb FAC) (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) (Children (Policy ))))) "empty child policy")
 
    ; Need to call the func to test this. Should be a compile-time check, probably...   
    (check-exn (exn-contains-message "All children must have the same vocabulary as the parent")
@@ -243,7 +243,7 @@
                                            (RComb FAC) (PComb FAC) 
                                            (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) 
                                            (Children (Policy child1 uses phonepolicy (RComb FAC) (PComb FAC))))) tests-path #'foo)
-                (stop-margrave-engine)))
+                (stop-margrave-engine)) "policy: child with different vocab")
      
    (check-exn (exn-contains-message "All policies in a hierarchy must have distinct names")
               (lambda () 
@@ -253,14 +253,14 @@
                                    (RComb FAC) (PComb FAC) 
                                    (Rules (Rule1 = (Permit x y z) :- (!pred x y z))) 
                                    (Children (Policy polname uses conferencepolicy (RComb FAC) (PComb FAC))))) tests-path #'foo)
-                (stop-margrave-engine)))
+                (stop-margrave-engine)) "policy: child name shared with parent")
    
    (check-exn (exn-contains-message "Error: Unable to get Relation for unknown sort name: getexchangexxx")
               (lambda () 
                 (start-margrave-engine) ; for margrave-home-path
                 (mtext "LOAD POLICY *margrave*/tests/badphonepolicy.p")
                 (define tests-path (build-path margrave-home-path "tests" "badphonepolicy.p"))  
-                (stop-margrave-engine)))
+                (stop-margrave-engine)) "policy: bad relation")
    
    
    
@@ -323,9 +323,10 @@
   (let ([response-string (response->string (mtext command-string))])
     (check-true (string-contains? response-string test-string) 
                 (string-append msg ": " test-string " expected; saw: " response-string))))
+
 (define (test-command-error command-string test-error [msg "(no test name)"])
   (check-exn (exn-contains-message test-error)
-             (lambda () (mtext command-string))))
+             (lambda () (mtext command-string)) msg))
 
 ; Test conference1.p
 (define conf1-test
@@ -400,13 +401,15 @@
 (define error-test
   (test-suite
    "Error tests"
-   (start-margrave-engine)
+   (start-margrave-engine #:margrave-params '("-log"))
    
-   (test-command "load policy *margravE*/tests/conference1.p" "ConferencePolicy1" "load")      
+   (test-command "load policy *margravE*/tests/conference1.p" "ConferencePolicy1" "load conference1.p")      
    (test-command-error "EXPLORE readpaper(a) and junk(b) and ConferencePolicy1:permit(s, a, r)"
-                       "Unknown EDB junk")
+                       "Unknown predicate junk of arity 1." "unknown edb: junk")
+   ; ReadPaper is a sort. 
    (test-command-error "EXPLORE readpaper(a, b) and ConferencePolicy1:permit(s, a, r)"
-                       "Arity Mismatch")
+                       "Unknown predicate readpaper of arity 2." "unknown edb: readpaper of arity 2 (even though readpaper is a sort name)")
+         
    (stop-margrave-engine)))
 
 (define engine-fail-test

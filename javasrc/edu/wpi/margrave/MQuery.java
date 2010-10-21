@@ -4010,13 +4010,24 @@ public class MQuery extends MIDBCollection
 		// **********************************************************
 		// (2) Check for invalid EDBs
 		// **********************************************************
-		for (Relation r : mpc.madeEDBs) {
+		for (Relation r : mpc.madeEDBs)
+		{
+			// If it's a known predicate, it's ok.
 			if (uber.predicates.values().contains(r))
 				continue;
-			try {
+			
+			try 
+			{
+				// Does it have a valid sort arity? 
+				// (May have 2 predicates with same name and different arity, so this is needed)
+				if(r.arity() > 1)
+					throw new MGEUnknownIdentifier("Unknown predicate " + r + " of arity "+r.arity()+". The given policies were unaware of this EDB name.");
+
+				// Finally check for the right name
 				uber.getSortForExpression(r);
+				
 			} catch (MGEUnknownIdentifier e) {
-				throw new MGEUnknownIdentifier("Unknown EDB " + r + ". The given policies were unaware of this EDB name.");
+				throw new MGEUnknownIdentifier("Unknown predicate " + r + " of arity "+r.arity()+". The given policies were unaware of this EDB name.");
 			}
 		}
 
@@ -4210,12 +4221,6 @@ public class MQuery extends MIDBCollection
 
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 
-		// TODO: Question of leaving existentials bound in the query. Not the
-		// same as RESTRICT TO
-		// it's a foundational semantics version...
-		// This should be provided by the PUBLISH keyword, need to test.
-
-		// TEST TEST TEST!
 
 		return result;
 	}
@@ -4274,9 +4279,19 @@ public class MQuery extends MIDBCollection
 				// Start off with our well-formed formula inferences:
 				for(MVariableVectorAssertion a : inferredforthis)
 				{
+					// If this isn't a sort, skip for now (test arity separately since
+					// getSortForExpression tests NAMES. May have a sort and a >1-ary pred.
+					if(a.sortExpression.arity() > 1)
+						continue;
+					
 					// a.positive
 					//a.sortExpression
 					MSort theSort = voc.getSortForExpression(a.sortExpression);
+					
+					// if this isn't a sort, skip for now
+					if(theSort == null)
+						continue;
+					
 					if(runningSort == null)
 					{					
 						runningSort = theSort;
@@ -4302,7 +4317,8 @@ public class MQuery extends MIDBCollection
 
 				for (MVariableVectorAssertion a : allNecessary)
 				{
-
+					
+					
 					//MEnvironment.writeErrLine("assertion: "+a);
 
 					if (!a.positive)
