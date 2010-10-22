@@ -114,6 +114,9 @@ class SigFunction
 		this.arity = new ArrayList<LeafExpression>();
 		this.sort = r;
 		this.noCondition = noCondition;
+		
+		MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);
+		
 	}
 	
 }
@@ -967,8 +970,7 @@ public class FormulaSigInfo
 		// coercions due to SAP functions (global and local)
 		for(SigFunction f : productiveSAPFunctions)	
 			for(LeafExpression arg : f.arity)
-				arcs.get(f.sort).add(arg);
-		
+				arcs.get(f.sort).add(arg);					
 		
 		while(todo.size() > 0)
 		{			
@@ -989,8 +991,26 @@ public class FormulaSigInfo
 			HashMap<LeafExpression, Set<LeafExpression>> takenArcs,
 			HashMap<LeafExpression, Set<LeafExpression>> canUseRealFunction, 
 			
-			LeafExpression curr, Set<LeafExpression> todo, Set<LeafExpression> finitary, Stack<LeafExpression> thispath)
+			LeafExpression curr, Set<LeafExpression> todo, 
+			Set<LeafExpression> finitary, 
+			Stack<LeafExpression> thispath)
 	{
+		// Corner cases that need to be handled. Guide path through properly or else!
+		// Sorts: A, B, C
+		// Coercions: A->B, B->A, B->C, C->B
+		// Func: C->A
+		// Path: B C B A B (stops here and edges we need to complete cycle are used already!)
+		// Fixed if we prioritize exploration (or real edges)
+		
+		
+		// Sorts: A, B, C, D
+		// Coercions: A->B, B->C, C->D, D->C, A->D
+		// Func: D->B
+		// Path: A D C (and now there is no choice but to use the C->D edge that the cycle needs)
+		// NOT fixed if we prioritize exploration (but real edges works)
+		
+		
+		
 		// Options to search through: all arcs not yet taken
 		// Always prioritize exploration (visiting sorts not on stack) or we lose correctness
 		
@@ -1004,34 +1024,49 @@ public class FormulaSigInfo
 		}
 		optionsExplore.removeAll(optionsDefer);
 		
-		
+		//MEnvironment.writeErrLine("in doSortDFS: ");
 		//MEnvironment.writeErrLine("curr = "+curr);
+		//MCommunicator.writeToLog("\nIn doSortDFS with current="+curr);
 		//MEnvironment.writeErrLine("optionsExplore = "+optionsExplore);
 		//MEnvironment.writeErrLine("optionsDefer = "+optionsDefer);
 		//MEnvironment.writeErrLine("thispath = "+thispath);
-		//MEnvironment.writeErrLine();
+		//MEnvironment.writeErrLine("");
+		
+		Set<LeafExpression> optionsTainted = new HashSet<LeafExpression>(optionsExplore);
+		optionsTainted.addAll(optionsDefer);
+		optionsTainted.retainAll(canUseRealFunction.get(curr));
+		optionsExplore.removeAll(optionsTainted);
+		optionsDefer.removeAll(optionsTainted);
 		
 		List<LeafExpression> optionsInOrder = new ArrayList<LeafExpression>(optionsExplore.size() + optionsDefer.size());
+		optionsInOrder.addAll(optionsTainted);		
 		optionsInOrder.addAll(optionsExplore);
 		optionsInOrder.addAll(optionsDefer);
-		
+						
 		for(LeafExpression next : optionsInOrder)
 		{
 			// check off this arc
 			takenArcs.get(curr).add(next);
 			
+			//MCommunicator.writeToLog("\n  taking arc to next="+next);
+			//MCommunicator.writeToLog("\n  next in todo?="+todo.contains(next));
+			//MCommunicator.writeToLog("\n  next in finitary?="+finitary.contains(next));
+			
+			// have we dealt with the destination already?
 			if(!todo.contains(next))
 			{
-				// next is known to be infinitary
+				// is the destination known to be infinitary?
 				if(!finitary.contains(next))
 				{
+					// We are searching through reverse-edges, so this sort is infinitary too.
+					
 					//System.err.println(curr + " was marked infinitary since "+next+" was.");
 					todo.remove(curr);
 					return false; 
 				}
 				// next has been fully checked and shown to be finitary. no new info that way.
 				else
-					continue; 
+			 		continue; // move on to next option  
 			}
 
 			boolean taintedCycle = false;
@@ -1039,11 +1074,16 @@ public class FormulaSigInfo
 			if(thispath.contains(next))
 			{
 				//MEnvironment.writeErrLine("Detected thispath contained next: "+next+" thispath: "+thispath);
-				
-				// TODO efficiency: don't need to check ENTIRE stack, right? Could also carry an array of booleans?
+				//MCommunicator.writeToLog("\nDetected thispath contained next: "+next+" thispath: "+thispath+" curr: "+curr);
+				//MCommunicator.writeToLog("\n  OptionsInOrder: "+optionsInOrder);
+				//MCommunicator.writeToLog("\nt: "+ optionsTainted);
+				//MCommunicator.writeToLog("\ne: "+optionsExplore);
+				//MCommunicator.writeToLog("\nd: "+optionsDefer);
+				//MCommunicator.writeToLog("\n");
 				
 				// Is the cycle tainted?
-				int idx = thispath.lastIndexOf(next);
+				// (meaning, is there an actual function taken on it, instead of just coercions)
+				int idx = thispath.lastIndexOf(next); // cycle doesn't have to cover the entire path so far.
 				int maxIdx = thispath.size() - 1;
 				for(int iCount = idx;iCount<=maxIdx;iCount++)
 				{
@@ -1054,21 +1094,37 @@ public class FormulaSigInfo
 					// Could this arc use a func?
 					if(canUseRealFunction.get(thispath.get(iCount)).contains(toRel))
 					{
+						//MCommunicator.writeToLog("\n  Tainted cycle. Could use a real func from "+thispath.get(iCount)+" to "+toRel);
 						taintedCycle = true;
 						break;
-					}
+					}					
 					
 				} // end for each part of potential cycle
 				
-				// is the next hop going to be the real function?
+				// can the next hop use a real function?
+				// (next hop isn't yet in the stack, so need a separate test)
 				if(canUseRealFunction.get(curr).contains(next))
+				{
 					taintedCycle = true;
+					//MCommunicator.writeToLog("\n  Tainted Cycle. Cycle induced by next hop via a real function.");
+				}
+				else
+				{
+					//MCommunicator.writeToLog("\n  Cycle was safe. Only coercions used.");
+				}
 			}
 			else if(next == curr)
 			{
 				// cycle of length 1 -- curr isnt on the stack yet!
 				if(canUseRealFunction.get(curr).contains(curr))
+				{
 					taintedCycle = true;
+					//MCommunicator.writeToLog("\n  Tainted Cycle. Length=1. curr was: "+curr);
+				}
+				else
+				{
+					//MCommunicator.writeToLog("\n  Cycle was safe. Length=1. curr was: "+curr);
+				}
 			}
 						
 			// if we used a real function, found a "tainted cycle". 
@@ -1720,10 +1776,11 @@ public class FormulaSigInfo
 		}
 		if(unpopulatedSorts.size() > 0)
 			result += "The following sorts were finitary but unpopulated by ground terms: "+unpopulatedSorts + ""+eol;
+		
 		if(getTermCount() > 0)
 			result += "Number of "+boldOn+"distinct"+boldOff+" terms across all finitary sorts: "+boldOn+getTermCount()+boldOff+eol;
 		else
-			result += "All sorts were either infinitary or unpopulated."+eol; 
+			result += "There were infinitary sorts, so could not establish a bound for the entire signature."+eol;
 		
 
 		if(htmlOutput)

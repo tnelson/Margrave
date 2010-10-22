@@ -31,6 +31,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -137,11 +138,16 @@ public class MCommunicator
             	
             	try
             	{
+            		// First log that we got an exception:
+            		writeToLog("\n~~~ Throwable caught: "+e.getLocalizedMessage());
+            		writeToLog("\n"+Arrays.toString(e.getStackTrace()));
+            		writeToLog("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
             		theResponse = MEnvironment.exceptionResponse(e);
             	}
             	catch(Throwable f)
             	{
             		// If we can't even warn the client, at least close down the engine. Client will detect EOF.
+            		
             		theResponse = null;
             		System.exit(101);
             	}
