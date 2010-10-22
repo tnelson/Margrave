@@ -112,6 +112,73 @@
                                          (Constraints (disjoint-all Resource)
                                                       (subset Potato PotatoBattery ))))) "vocab: bad request field only one bad: symbol")
    
+   
+   (check-exn (exn-contains-message "Invalid declaration. The type Toolx was not declared")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (Predicates (Foo Toolx Margrave))
+                                             (ReqVariables (s : Subject) (a : Action) (r : Resource)))))              
+              "vocab: bad sort name in predicate declaration")
+                
+   
+   
+   
+   (check-exn (exn-contains-message "Invalid declaration. The type oof was not declared")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Predicates (Foo Tool Margrave))
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (Constraints (disjoint-all oof)))))
+              "vocab: bad sort name in constraint definition")
+   
+   (check-exn (exn-contains-message "Invalid declaration. The type oogie was not declared")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                             (Decisions Permit Deny) 
+                                             (Predicates (Foo Tool Margrave))
+                                             (ReqVariables (s : Subject) (a : Action) (r : oogie)))))
+              "vocab: bad sort name in reqvar definition")
+  
+   (check-exn (exn-contains-message "Invalid declaration. The type oogie was not declared")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Predicates (Foo Tool Margrave))
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                            (OthVariables (e : oogie)))))
+              "vocab: bad sort name in othvar definition")
+   
+   (check-exn (exn-contains-message "Invalid declaration. The predicate Bar was not declared.")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Predicates (Foo Tool Margrave))
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (Constraints (total-function Bar)))))
+              "vocab: bad predicate name in total-function constraint")
+   
+   
+   (check-exn (exn-contains-message "The predicate Foo was declared, but did not have arity 2.")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Predicates (Foo Tool Margrave Margrave))
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (Constraints (total-function Foo)))))
+              "vocab: bad predicate arity (!=2) in total-function constraint")
+   
+      (check-exn (exn-contains-message "The type Foozle was not declared.")
+              (lambda () 
+                (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                                         (Decisions Permit Deny) 
+                                         (Predicates (Foo Tool Margrave Margrave))
+                                         (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                                         (Constraints (subset Subject Foozle)))))
+              "vocab: bad sort name in subset constraint")
+   
+   
    (check-exn (exn-contains-message "Invalid request field declaration")
               (lambda () 
                 (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer PotatoBattery) Potato))
