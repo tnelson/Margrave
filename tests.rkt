@@ -160,16 +160,26 @@
               "vocab: bad predicate name in total-function constraint")
    
    
-   (check-exn (exn-contains-message "The predicate Foo was declared, but did not have arity 2.")
+   (check-exn (exn-contains-message "The predicate Foo was declared, but had arity 1 which was lower than 2.")
               (lambda () 
                 (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
                                          (Decisions Permit Deny) 
-                                         (Predicates (Foo Tool Margrave Margrave))
+                                         (Predicates (Foo Tool))
                                          (ReqVariables (s : Subject) (a : Action) (r : Resource))
                                          (Constraints (total-function Foo)))))
               "vocab: bad predicate arity (!=2) in total-function constraint")
    
-      (check-exn (exn-contains-message "The type Foozle was not declared.")
+   
+   (check-not-exn 
+    (lambda () 
+      (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
+                               (Decisions Permit Deny) 
+                               (Predicates (Foo Subject Action Resource Potato))
+                               (ReqVariables (s : Subject) (a : Action) (r : Resource))
+                               (Constraints (total-function Foo)))))
+    "vocab: good in spite of >2 arity on functionally-constrained pred")
+   
+   (check-exn (exn-contains-message "The type Foozle was not declared.")
               (lambda () 
                 (do-expand '(PolicyVocab myvocabname (Types : Subject Action (Resource (Tool Margrave PotatoPeeler Hammer) Potato))
                                          (Decisions Permit Deny) 

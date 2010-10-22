@@ -339,17 +339,38 @@
       ; (printf "predicates-result: ~a~n" predicates-result)  
        ;(printf "~a ... ~a ~n" predicates-names predicates-cmds)   
               
-       (define (is-valid-pred? predname-syn desired-arity)
+       (define (is-valid-pred? predname-syn [desired-arity-lowest #f] [desired-arity-highest #f])
          (define pred-name-str (symbol->string/safe (syntax->datum predname-syn)))
-         (unless (member pred-name-str (map first predicates-names-and-arities))
+         
+         ;; there is a better func than filter, right? - todo
+         (define found-pred-pair (filter (lambda (pair) (equal? (first pair) pred-name-str)) predicates-names-and-arities))
+         
+         (when (empty? found-pred-pair)
            (raise-syntax-error 'PolicyVocab 
                                (format "Invalid declaration. The predicate ~a was not declared." pred-name-str)
-                               #f #f (list predname-syn) ))       
+                               #f #f (list predname-syn) ))    
+                  
+         ; Check arity bounded on both sides
+         (define the-arity (second (first found-pred-pair)))
          
-         (unless (member (list pred-name-str desired-arity) predicates-names-and-arities)
-           (raise-syntax-error 'PolicyVocab 
-                               (format "Invalid declaration. The predicate ~a was declared, but did not have arity ~a." pred-name-str desired-arity)
-                               #f #f (list predname-syn) ))
+         (cond [(and desired-arity-lowest 
+                     desired-arity-highest
+                     (or (> the-arity desired-arity-highest)
+                         (< the-arity desired-arity-lowest)))
+                (raise-syntax-error 'PolicyVocab 
+                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was not between ~a and ~a." 
+                                            pred-name-str the-arity desired-arity-lowest desired-arity-highest)
+                                    #f #f (list predname-syn) )]
+               [(and desired-arity-lowest
+                     (< the-arity desired-arity-lowest))
+                (raise-syntax-error 'PolicyVocab 
+                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was lower than ~a." pred-name-str the-arity desired-arity-lowest)
+                                    #f #f (list predname-syn) )]
+               [(and desired-arity-highest
+                     (> the-arity desired-arity-highest))
+                (raise-syntax-error 'PolicyVocab 
+                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was higher than ~a." pred-name-str the-arity desired-arity-highest)
+                                      #f #f (list predname-syn) )])  
          #t)
 
        
@@ -484,11 +505,11 @@
                                       
                    
                    ; These are over BINARY PREDICATES instead of types. 
-                   [(partial-function s) (is-valid-pred? #'s 2)
+                   [(partial-function s) (is-valid-pred? #'s 2 #f)
                                          (make-constraint #'myvocabname "PARTIAL-FUNCTION" (list #'s))]
-                   [(total-function s) (is-valid-pred? #'s 2)
+                   [(total-function s) (is-valid-pred? #'s 2 #f)
                                        (make-constraint #'myvocabname "TOTAL-FUNCTION" (list #'s))]
-                   [(total-relation s) (is-valid-pred? #'s 2)
+                   [(total-relation s) (is-valid-pred? #'s 2 #f)
                                        (make-constraint #'myvocabname "TOTAL-RELATION" (list #'s))]
                    
                    
