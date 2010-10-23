@@ -164,7 +164,8 @@ public class MJavaTests
 		qry = pol.compareWithPolicy(pol2);
 		
 		//qry.debug_verbosity = 3;
-		countTest("Diff Policies (Basic)", qry, 3, 2, 3);
+		countTest("Diff Policies (Basic)", qry, 3, 2, 3);		
+		
 		qry.addIDBOutputs(pol.getQualifiedIDBNameList());
 		qry.addIDBOutputs(pol2.getQualifiedIDBNameList());
 		MEnvironment.writeErrLine("Diff Policies (Basic) output [IDBs shown!]: ");
@@ -230,6 +231,12 @@ public class MJavaTests
 		System.exit(1);*/
 		
 		qry.prettyPrintSolutions();
+		
+		////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
 		
 		System.exit(1);
 		
@@ -593,7 +600,7 @@ public class MJavaTests
 
 
 		MQuery qry = pol.queryPolicy("(forSome s Subject (closuretest:Permit s))");
-		qry.sizeCeiling = 2;
+		qry.userSizeCeiling = 2;
 		//qry.debug_show_all_formula = true;
 
 		// far too many solutions even at low model sizes...
@@ -621,7 +628,7 @@ public class MJavaTests
 		// then 2 solns: One admin, one user (disjoint), where admin delegates to user, whether or not
 		// another 2 where $s: subject (non-user)
 		MQuery qry3 = pol.queryPolicy("(and (forAll potential Subject (not (Delegate potential potential))) (forSome s Subject (and (not (Admin s)) (closuretest:Permit s))))");
-		qry3.sizeCeiling = 2;
+		qry3.userSizeCeiling = 2;
 
 		//qry3.prettyPrintSolutions();
 		countTest("Basic Closure Test 3", qry3, 2, 4, -1);
@@ -648,7 +655,7 @@ public class MJavaTests
 		// Permit :- (some stuff) and forall s2, (!Deleg s2 s2)
 		// + another 2 (subject, not user)
 		qry = pol.queryPolicy("(forSome s Subject (closuretest:Permit s))");
-		qry.sizeCeiling = 2;
+		qry.userSizeCeiling = 2;
 		countTest("Refined Closure Test 1", qry, 2, 4, -1);
 
 
@@ -2821,7 +2828,7 @@ public class MJavaTests
 
 		qryString += fwpol.getRequestPrefixClosing();
 		qry = MQuery.queryThesePolicies(qryString, idbCollections);
-		qry.sizeCeiling = 14;
+		qry.userSizeCeiling = 14;
 
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)
@@ -2893,7 +2900,7 @@ public class MJavaTests
 
 		qryString += fwpol.getRequestPrefixClosing();
 		qry = MQuery.queryThesePolicies(qryString, idbCollections);
-		qry.sizeCeiling = 14;
+		qry.userSizeCeiling = 14;
 
 		tuptime = 0;
 		for(int iCount = 0; iCount < numTrials; iCount++)

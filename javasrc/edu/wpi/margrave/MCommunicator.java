@@ -201,7 +201,7 @@ public class MCommunicator
     					List<String> publ = null;
     					Boolean tupling = false;
     					Integer debugLevel = 0;
-    					Integer ceilingLevel = 6; 
+    					Integer ceilingLevel = -1; 
 
     					// Publish, under make no sense
     					
@@ -245,7 +245,7 @@ public class MCommunicator
 	                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
 	                            Boolean tupling = false;
 	        					Integer debugLevel = 0;
-	        					Integer ceilingLevel = 6; 
+	        					Integer ceilingLevel = -1; 
 	        					
 	        					Node underNode = getUnderNode(n);
 	        					Node publishNode = getPublishNode(n);

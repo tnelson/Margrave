@@ -379,20 +379,28 @@
               (write-string s string-buffer)))
       (write "\nSTATISTICS: \n")
       (let* ([computed-max (get-attribute-value stat-element 'computed-max-size)]
-             [user-max (get-attribute-value stat-element 'user-max-size)]
+             [user-provided-max (get-attribute-value stat-element 'user-max-size)]
+             [used-max (get-attribute-value stat-element 'max-size)]
              [computed-max-num (string->number computed-max)]
-             [user-max-num (string->number user-max)])
-        (write (string-append "Computed max size: " computed-max "\n"))
-        (write (string-append "Max size: " (get-attribute-value stat-element 'max-size) "\n"))
-        ; result-ID removed since it provides no useful information right now
-       ; (write (string-append "Result ID: " (get-attribute-value stat-element 'result-id) "\n"))
-        (write (string-append "User max size: " user-max "\n"))
-        (begin
-          (when (< user-max-num computed-max-num)
-            (write (string-append "Warning: User max ceiling (" user-max ") is less than the calculated ceiling (" computed-max ")\n")))
-          (when (< computed-max-num 0)
-            (write (string-append "Warning: Unable to calculate sufficient ceiling size. Only checked up to user-provided ceiling (" user-max ")\n")))))
-      (get-output-string string-buffer))))
+             [user-provided-max-num (string->number user-provided-max)]
+             [used-max-num (string->number used-max)])
+        
+        (if (<= computed-max-num 0)
+            (write "Margrave could not calculate a size ceiling for this query.\n")            
+            (write (format "Margrave computed that ~a would be a sufficient size ceiling.\n" computed-max)))
+
+        (if (< user-provided-max-num 0)
+            (write "No ceiling explicitly provided in the query's CEILING clause.\n")
+            (write (format "Size ceiling given in the query's CEILING clause: ~a.\n" user-provided-max)))
+        
+        (write (format "Used size ceiling: ~a\n" used-max))
+        
+        (cond [(< computed-max-num 0)
+               (write "WARNING:  Margrave could not calculate a sufficient ceiling size. Completeness is not guaranteed! You may need to check for larger scenarios.\n")]
+              [(< used-max-num computed-max-num)
+               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, use the CEILING clause of EXPLORE." used-max-num))])
+        
+        (get-output-string string-buffer)))))
 
 ;************ Pretty Print Info *******************
 

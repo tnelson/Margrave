@@ -1995,7 +1995,7 @@ public class MEnvironment
 		// Report the size ceiling (calculated and user-provided) so a warning
 		// can be given if need be.
 		statsElement.setAttribute("max-size", String.valueOf(theResult.maxSize));
-		statsElement.setAttribute("user-max-size", String.valueOf(theResult.forQuery.sizeCeiling));
+		statsElement.setAttribute("user-max-size", String.valueOf(theResult.forQuery.userSizeCeiling));
 		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.sufficientMaxSize));
 		statsElement.setAttribute("result-id", String.valueOf(id));
 		return statsElement;
@@ -2321,7 +2321,7 @@ public class MEnvironment
 		MQuery theQuery = pol1.compareWithPolicy(pol2);
 							
 		theQuery.debug_verbosity = debugLevel;
-		theQuery.sizeCeiling = ceilingLevel;
+		theQuery.userSizeCeiling = ceilingLevel;
 		theQuery.doTupling = tupling;
 		
 		return returnQueryResponse(theQuery, originalXMLText);

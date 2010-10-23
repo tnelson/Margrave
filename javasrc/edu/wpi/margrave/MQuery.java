@@ -89,7 +89,10 @@ public class MQuery extends MIDBCollection
 	 * SMALLEST OF THE TWO will be used. If the smallest is sizeCeiling, the
 	 * user will be warned.
 	 */
-	public int sizeCeiling;
+	public int userSizeCeiling = -1;
+	
+	// Use this if user and Margrave both fail to give a ceiling
+	public int ceilingOfLastResort = 6;
 
 	/**
 	 * 0: No debug output 1: Display statistics 2: Display statistics and query
@@ -140,7 +143,7 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeOutLine("SATFactory: SAT4j (Default)");
 
 		MEnvironment.writeOutLine("SB: " + mySB);
-		MEnvironment.writeOutLine("Size ceiling: " + sizeCeiling);
+		MEnvironment.writeOutLine("User-provided size ceiling: " + userSizeCeiling);
 	}
 
 	private void init(Formula nFormula) {
@@ -165,8 +168,9 @@ public class MQuery extends MIDBCollection
 		// Initial symmetry-breaking level is 20:
 		mySB = 20;
 
-		// Initial model size ceiling. User can modify this.
-		sizeCeiling = 6;
+		// Initial model size ceiling. 
+		userSizeCeiling = -1;
+		ceilingOfLastResort = 6;
 
 		debug_verbosity = 0;
 
@@ -1891,25 +1895,21 @@ public class MQuery extends MIDBCollection
 
 		int maxSizeToCheck;
 
-		// Case 1: Infinite Herbrand Universe
-		// Case 1a: Empty Herbrand Universe
-		// Case 1b: User-provided ceiling under H.U. size?
-		// Case 1c: *empty* H.U.: (forall x exists y (x != y) <--- this has
-		// empty HU but no model at size 1... models at 2+)
-		// We can't guarantee anything in this case, since KodKod doesn't allow
-		// empty models.
-		// (TODO: case 1c is a kludge.)
-		if (totalHerbrandMax < 0 || totalHerbrandMax > sizeCeiling
-				|| totalHerbrandMax == 0)
-			maxSizeToCheck = sizeCeiling;
-
-		// Case 2: Herbrand universe is finite and non-empty, and user's ceiling
-		// is higher.
+		// If the user has provided a ceiling (i.e., sizeCeiling != -1)
+		// use that ALWAYS.
+		if(userSizeCeiling != -1)
+			maxSizeToCheck = userSizeCeiling;
+		// If the user hasn't provided a ceiling and Margrave can't calculate one, use a magic number
+		// Also, don't go above 6 without user permission!
+		else if(totalHerbrandMax <= 0 || totalHerbrandMax > ceilingOfLastResort)
+			maxSizeToCheck = ceilingOfLastResort;
 		else
 			maxSizeToCheck = totalHerbrandMax;
 
-		if (debug_verbosity >= 2) {
-			MEnvironment.writeOutLine("DEBUG: Preparing Bounds and passing query to Kodkod.");
+		if (debug_verbosity >= 2)
+		{
+			MEnvironment.writeOutLine("User provided ceiling: "+userSizeCeiling+", Margrave calculated: "+totalHerbrandMax+", using: "+maxSizeToCheck);
+			MEnvironment.writeOutLine("DEBUG: Preparing Bounds and passing query to Kodkod.");			
 		}
 
 		if (debug_verbosity >= 3) {
@@ -4204,7 +4204,7 @@ public class MQuery extends MIDBCollection
 
 		result.debug_verbosity = iDebugLevel;
 		result.doTupling = bTupling;
-		result.sizeCeiling = iCeiling;
+		result.userSizeCeiling = iCeiling;
 
 		// Remember our varvector and the inferred sorts.
 		// Ordering is a bit arbitrary unless the user has provided a PUBLISH

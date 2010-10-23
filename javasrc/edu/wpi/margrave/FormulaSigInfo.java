@@ -37,6 +37,8 @@ import kodkod.ast.visitor.*;
 //import java.lang.management.ManagementFactory;
 //import java.lang.management.ThreadMXBean;
 import java.util.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.math.BigInteger;
 
 
@@ -115,8 +117,7 @@ class SigFunction
 		this.sort = r;
 		this.noCondition = noCondition;
 		
-		MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);
-		
+		//MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);		
 	}
 	
 }
@@ -609,7 +610,7 @@ public class FormulaSigInfo
 	
 	// ------------- Constructor and helpers ----------------
 		
-	//ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
+	ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 	long msCollect = 0;
 	long msProductive = 0;
 	long msFinitary = 0;
@@ -717,10 +718,10 @@ public class FormulaSigInfo
 		long startTime;
 		
 		// Parse fmla looking for Skolem functions.				
-//		startTime = mxBean.getCurrentThreadCpuTime();
+		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
 		collectSkolemFunctions();
-		//msCollect = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
+		msCollect = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycCollect = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 		
 		// Make sure the formula and functions given are well-formed w/r/t the sorts given
@@ -734,24 +735,26 @@ public class FormulaSigInfo
 			validateFunction(c, "in the original signature");		
 		
 		// Discover and cache the set of functions which are productive.
-	//	startTime = mxBean.getCurrentThreadCpuTime();
+		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
 		findProductiveFunctions();
-	//	msProductive = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
+		msProductive = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycProductive = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 		
 		// Do a cycle check to find finitary sorts
-		//startTime = mxBean.getCurrentThreadCpuTime();
+		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
-		findFinitarySorts();
-	//	msFinitary = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
+		
+		//findFinitarySorts();
+		findFinitarySortsNew();
+		msFinitary = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycFinitary = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 		
 		// Finally, calculate bounds for finitary sorts
-	//	startTime = mxBean.getCurrentThreadCpuTime();
+		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
 		calculateBounds();
-	//	msBounds = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;	
+		msBounds = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;	
 		//mCycBounds = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 	}
 	
@@ -929,6 +932,158 @@ public class FormulaSigInfo
 					
 	}
 	
+	class MLeafExpressionComparator implements Comparator<LeafExpression>
+	{
+		public int compare(LeafExpression leaf1, LeafExpression leaf2)
+		{
+			
+			return leaf1.toString().compareTo(leaf2.toString());
+					
+		}
+	}
+	
+	private void findFinitarySortsNew()
+	{
+		// Build the reachability matrix for the sort-graph via Warshall.
+		// Then we can just check for each red edge (x, y) whether (y,x) 
+		// is reachable. If so, there is a red cycle!
+		// Anything reachable from y (or x) is infinitary.
+		
+		int max = sorts.size();		
+		boolean[][] connM = new boolean[max][max];
+		
+		// init to all falses
+		for(int ii=0;ii<max;ii++)
+			for(int jj=0;jj<max;jj++)			
+				connM[ii][jj] = false;						
+		
+		// Fix an ordering of the sorts
+		// Make the ordering deterministic (by alphabetic order)
+		List<LeafExpression> sortedSorts = new ArrayList<LeafExpression>(sorts);
+		Collections.sort(sortedSorts, new MLeafExpressionComparator());
+		
+		Map<LeafExpression, Integer> sortToInt = new HashMap<LeafExpression, Integer>();
+		Map<Integer, LeafExpression> intToSort = new HashMap<Integer, LeafExpression>();		
+		int iIndex = 0;
+		for(LeafExpression s : sortedSorts)
+		//for(LeafExpression s : sorts)
+		{
+			sortToInt.put(s, iIndex);
+			intToSort.put(iIndex, s);
+			//MCommunicator.writeToLog("\nSORT: "+s+" idx: "+iIndex);			
+			
+			// everything finitary by default, remove below
+			finitarySorts.add(s);
+			
+			iIndex++;
+		}
+		
+		// f, g, etc.
+		for(SigFunction f : productiveFunctions)	
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				//MCommunicator.writeToLog("\nFUNC: "+f.sort+" -> "+arg);
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+				connM[src][dest] = true;
+			}
+		}
+		
+		// Subsorts
+		for(LeafExpression curr : sorts)
+		{
+			for(LeafExpression sub : subsorts.get(curr))
+			{
+				//MCommunicator.writeToLog("\nSUBSORT: "+curr+" > "+sub);
+				int src = sortToInt.get(curr);
+				int dest = sortToInt.get(sub);
+				connM[src][dest] = true;			
+			}			
+		}
+				
+		// coercions due to SAP functions (global and local)
+		for(SigFunction f : productiveSAPFunctions)
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				//MCommunicator.writeToLog("\nSAP: "+f.sort+" -> "+arg);
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+				connM[src][dest] = true;
+			}				
+		}					
+		
+		// Floyd-Warshall
+		// Extend from ii to jj via kk
+		for(int kk=0;kk<max;kk++)
+		{
+			for(int ii=0;ii<max;ii++)
+			{
+				for(int jj=0;jj<max;jj++)
+				{
+					connM[ii][jj] = connM[ii][jj] || (connM[ii][kk] && connM[kk][jj]);						
+				}				
+			}
+		}
+		// done with building connectivity matrix				
+		
+		// DEBUG only
+		// hash the matrix
+		/*long theHash = 0;
+		int theBit = 0;
+		for(int row=0;row<max;row++)
+		{
+			MEnvironment.writeErr(row+": ");
+			for(int col=0;col<max;col++)
+			{
+				if(connM[row][col])
+					theHash += Math.pow(2, theBit);
+				theBit++;
+				
+				if(col % 10 == 0)
+					MEnvironment.writeErr("/");
+				
+				if(connM[row][col])
+					MEnvironment.writeErr("1");
+				else
+					MEnvironment.writeErr("0");
+			}
+			MEnvironment.writeErrLine("");
+			
+		}	
+		MCommunicator.writeToLog("\n    MATRIX HASH: "+theHash);*/
+		
+		for(SigFunction f : productiveFunctions)	
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+				
+				// Does this shadow-function sit on a cycle? (path from dest to src)
+				if(connM[dest][src])
+				{
+					//MCommunicator.writeToLog("\nTAINTED CYCLE: Function "+f+"("+src+","+dest+").");
+					
+					// tainted cycle! Everything reachable from dest is infinitary.
+					for(int option=0;option<max;option++)
+					{
+						if(connM[option][dest])
+						{							
+							LeafExpression infSort = intToSort.get(option);							
+							finitarySorts.remove(infSort);
+						}
+					}
+				}
+				//else
+					//MCommunicator.writeToLog("\nFunction "+f+"("+src+","+dest+") did not have a path from dest to src.");
+				
+			}
+		}				
+	}
+	
+	/*
 	private void findFinitarySorts()
 	{
 		// Precondition: unproductive functions removed.
@@ -1164,6 +1319,7 @@ public class FormulaSigInfo
 		todo.remove(curr);
 		return true;
 	}
+	*/
 	
 	private void calculateBounds()
 	{
@@ -1489,7 +1645,12 @@ public class FormulaSigInfo
 		if(test9a.getTermCount() != 2 || test9a.finitarySorts.size() != 3)
 			System.err.println("FormulaSigInfo test case 9a failed.");
 
-		
+		// Nothing but a A->A func
+		// make sure self-reference is dealt with
+		Formula fmla9b =  Sort1.some().and(Formula.TRUE.forSome(x.oneOf(Sort1)).forAll(y.oneOf(Sort1)));
+		FormulaSigInfo test9b = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9b, EnumSAPHandling.sapKeep);
+		if(test9b.getTermCount() != -1 )
+			System.err.println("FormulaSigInfo test case 9b failed.");		
 		
 		LeafExpression Sort3 = Relation.unary("Sort3");
 		Formula fmla10 = Formula.TRUE.forSome(x.oneOf(Sort2)).forAll(y.oneOf(Sort1))
@@ -1548,7 +1709,7 @@ public class FormulaSigInfo
 		// The result of z[b] is always in A as well as B (by SAP coercion). So inf A too.
 		// Since C is a supersort of A, it must also be infinitary!
 		Formula fmla15 = z.in(A).forSome(z.oneOf(B)).forAll(x.oneOf(B)).forSome(y.oneOf(B)).and(C.some());;
-		FormulaSigInfo test15 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla15, EnumSAPHandling.sapKeep);		
+		FormulaSigInfo test15 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla15, EnumSAPHandling.sapKeep);
 		if(test15.getTermCount() != -1 || test15.getTermCount(B) != -1 || test15.getTermCount(C) != -1 || test15.getTermCount(A) != -1)
 			System.err.println("FormulaSigInfo test case 15 failed.");		
 		
@@ -1558,8 +1719,7 @@ public class FormulaSigInfo
 		FormulaSigInfo test16 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla16, EnumSAPHandling.sapKeep);
 		if(test16.getTermCount() != -1 || test16.getTermCount(B) != -1 || test16.getTermCount(C) != 1 || test16.getTermCount(A) != 0)
 			System.err.println("FormulaSigInfo test case 16 failed.");	
-		
-		
+				
 		// Test coercion function in presence of real function
 		
 		// First, no coercion. x:A (and hence in both B and C.) f:B->C. So 2 terms in C.

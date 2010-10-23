@@ -342,7 +342,7 @@ public abstract class MPolicy extends MIDBCollection
 	throws MUserException
 	{
 		
-		return compareWithPolicy(p2, false, 0, 6);
+		return compareWithPolicy(p2, false, 0, -1);
 		
 				
 		
