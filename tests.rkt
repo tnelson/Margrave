@@ -354,7 +354,7 @@
    "Pretty Printing tests"
    
    (check-true (string-contains? (pretty-print-response-xml test-model) "firewall1:accept is true for: [ipsrc, ipdest, portsrc, portdest, pro]") "1")
-   (check-true (string-contains? (pretty-print-response-xml test-model) "Computed max size: 1") "2")
+   (check-true (string-contains? (pretty-print-response-xml test-model) "Margrave computed that 1") "2")
    (check-true (string-contains? (pretty-print-response-xml test-sys-info) "System Information:") "3")
    (check-true (string-contains? (pretty-print-response-xml test-sys-info) "Init: 49729280") "4")
    (check-true (string-contains? (pretty-print-response-xml test-coll-info) "This policy is a LEAF;") "5")
@@ -365,8 +365,8 @@
    
    (check-true (string-contains? (pretty-print-response-xml test-error-response) "Margrave encountered an error") "9")
    (check-true (string-contains? (pretty-print-response-xml test-exception) "Unknown IDB Collection: firewall1") "10")
-   (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Warning: User max ceiling") "11")
-   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Warning: Unable to calculate sufficient ceiling size.") "12")
+   (check-true (string-contains? (pretty-print-response-xml low-user-ceiling) "Margrave will not check over ceiling size 2 without your permission") "11")
+   (check-true (string-contains? (pretty-print-response-xml negative-ceiling) "Margrave could not calculate") "12")
    
    ;Actual returned results
    (start-margrave-engine #:margrave-params '("-log"))
@@ -593,7 +593,7 @@
 </TUPLE>
 </RELATION>
 </MODEL>
-<STATISTICS computed-max-size=\"1\" max-size=\"1\" result-id=\"0\" user-max-size=\"0\"/>
+<STATISTICS computed-max-size=\"3\" max-size=\"2\" result-id=\"0\" user-max-size=\"2\"/>
 </MARGRAVE-RESPONSE>")))
 
 (define negative-ceiling (read-xml (open-input-string
