@@ -167,8 +167,8 @@ Go to the @onscreen{Language|Choose Language} menu and select ``Use the language
 
 @subsection[#:tag "margrave-prompt"]{Tutorial: The Command Prompt}
 
-Open a new DrRacket editor and change the first line to
-@tt{#lang margrave}, then click @onscreen{Run}. 
+Run DrRacket and open a new editor via the @onscreen{File|New} menu option.
+Change the first line in the file to @tt{#lang margrave}, then click @onscreen{Run}. 
 @margin-note{When you click @onscreen{Run}, Margrave will always print out its current install location.}
 
 Margrave will automatically detect where your Java installation is located, start its
@@ -183,7 +183,7 @@ Click after the prompt in the bottom window, type:
 
 and press the enter key. Margrave will reply with:
 
-@racketblock[#,(racketresultfont (tt "ConferencePolicy1"))]
+@racketblock[#, @inline-result{ConferencePolicy1}]
 
 When loading policies, if you start a file path with @tt{*MARGRAVE*}, the @tt{*MARGRAVE*}
 will be replaced with Margrave’s installation directory. Once the policy is loaded,
@@ -194,7 +194,7 @@ Ask questions using the @tt{EXPLORE} command and get answers with the @tt{SHOW O
 For instance, to ask when the policy we just loaded yields a permit decision:
 
 @racketinput[#,(tt "EXPLORE conferencepolicy1:permit(s, a, r);")]
-@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+@racketblock[#, @inline-result{Query created successfully.}]
 
 @racketinput[#,(tt "SHOW ONE;")]
 @multiline-racketblock[
@@ -212,6 +212,9 @@ User max size: 6
 ********************************************************"]
 
 @tt{SHOW ONE} tells Margrave to print a single scenario (in no particular order). 
+
+@margin-note{Commands in Margrave are case-insensitive. Entering @tt{Show One} will do the same thing as entering @tt{SHOW ONE}.}
+
 To get additional scenarios, use @tt{SHOW NEXT}:
 
 @racketinput[#,(tt "SHOW NEXT;")]
@@ -244,7 +247,7 @@ You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIE
 @multiline-racketinput[
 "EXPLORE conferencepolicy1:permit(s, a, r) 
       AND conferencepolicy1:deny(s, a, r);"]
-@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+@racketblock[#, @inline-result{Query created successfully.}]
 
 @racketinput[#,(tt "SHOW ONE;")]
 @multiline-racketblock[
@@ -258,14 +261,14 @@ User max size: 6"]
 Queries can involve multiple policies. Let's load a second policy and try asking how the permit different requests:
 
 @racketinput[#,(tt "LOAD POLICY \"*MARGRAVE*/tests/conference2.p\";")]
-@racketblock[#, (racketresultfont (tt "ConferencePolicy2"))]
+@racketblock[#, @inline-result{ConferencePolicy2}]
 
 @multiline-racketinput[
 "EXPLORE (ConferencePolicy1:permit(s,a,r) 
   AND NOT ConferencePolicy2:permit(s,a,r))
       OR  (ConferencePolicy2:permit(s,a,r)
   AND NOT ConferencePolicy1:permit(s,a,r));"]
-@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+@racketblock[#, @inline-result{Query created successfully.}]
 
 @racketinput[#,(tt "SHOW ONE;")]
 @multiline-racketblock[
@@ -288,7 +291,7 @@ It can be cumbersome to manually write change-impact queries for policies with m
 
 @multiline-racketinput[
 "COMPARE ConferencePolicy1 ConferencePolicy2;"]
-@racketblock[#, (racketresultfont (tt "Query created successfully."))]
+@racketblock[#, @inline-result{Query created successfully.}]
 
 Margrave commands are case-insensitive. The following queries are equivalent:
 
@@ -353,7 +356,7 @@ For help understanding scenario output and a primer on Margrave's intermediate p
 For help using Margrave on IOS configurations, go to @secref["gs-ios"].
 
 If you would rather jump right to more complex examples, see the scripts in the 
-@italic{examples/scripts} sub-directory of your Margrave installation.
+@tt{examples/scripts} sub-directory of your Margrave installation.
 
   
 @;--------------------------------------------------------------------
@@ -420,22 +423,22 @@ User max size: 6
 ********************************************************"
 ]
 
-On the first line, @(racketresultfont (tt "Size = 16")) says that this scenario involves 16 atoms, where
+On the first line, @inline-result{Size = 16} says that this scenario involves 16 atoms, where
 each atom is an IP address, port, interface, etc.
 
 The scenario itself says that the query can be satisfied when the packet 
-is a TCP request to the host @(racketresultfont (tt "192.168.5.11")) on port @(racketresultfont (tt "25")),
-entering the firewall at the @(racketresultfont (tt "fe0")) interface.
+is a TCP request to the host @inline-result{192.168.5.11} on port @inline-result{25},
+entering the firewall at the @inline-result{fe0} interface.
 There are no restrictions on the source fields of the packet header in this
-scenario: ``@(racketresultfont (tt "IPAddress"))'' represents some IP address not explicitly
-mentioned in the IOS configuration. Similarly for ``@(racketresultfont (tt "port"))'' and ``@(racketresultfont (tt "interface"))''.
+scenario: ``@inline-result{IPAddress}'' represents some IP address not explicitly
+mentioned in the IOS configuration. Similarly for ``@inline-result{port}'' and ``@inline-result{interface}''.
 
-The @(racketresultfont @tt{message}) binding is only applicable for ICMP packets,
-and can be ignored in this scenario. The @(racketresultfont @tt{length}) binding is not yet used.
-The @(racketresultfont @tt{-out}) bindings give information about NAT effects on the packet; there
-are none in this scenario. Similarly the @(racketresultfont @tt{flags}) binding gives information
+The @inline-result{message} binding is only applicable for ICMP packets,
+and can be ignored in this scenario. The @inline-result{length} binding is not yet used.
+The @inline-result{-out} bindings give information about NAT effects on the packet; there
+are none in this scenario. Similarly the @inline-result{flags} binding gives information
 about the packet's TCP flags, which are not important in this scenario. 
-The @(racketresultfont @tt{STATISTICS}) section gives technical information about Margrave's scenario-finding process.
+The @inline-result{STATISTICS} section gives technical information about Margrave's scenario-finding process.
 
 
 When printing, only the most specific applicable 
@@ -443,8 +446,8 @@ information will be shown. You will never see:
 
 @multiline-racketblock{src-addr-in: 10.0.0.0/255.0.0.0 10.100.100.100}
 
-since the host @(racketresultfont (tt "10.100.100.100")) is always contained in the network 
-@(racketresultfont (tt "10.0.0.0/255.0.0.0")). Instead, you would see
+since the host @inline-result{10.100.100.100} is always contained in the network 
+@inline-result{10.0.0.0/255.0.0.0}. Instead, you would see
 
 @multiline-racketblock{src-addr-in: 10.100.100.100}
 
@@ -565,25 +568,25 @@ satisfied. The @tt{SHOW ALL}, @tt{SHOW ONE}, and @tt{SHOW NEXT}
 commands format query results and display them 
 in this concise format. The scenario above says:
 ``The query is satisfied when the subject is
-both a @(racketresultfont @tt{reviewer}) and an @(racketresultfont @tt{author}), the resource is a @(racketresultfont @tt{paper}), and 
-the action is @(racketresultfont @tt{readpaper}) (i.e. reading the paper), provided that
-the subject is @(racketresultfont @tt{conflicted}) on the paper but not @(racketresultfont @tt{assigned}) to it.''
+both a @inline-result{reviewer} and an @inline-result{author}, the resource is a @inline-result{paper}, and 
+the action is @inline-result{readpaper} (i.e. reading the paper), provided that
+the subject is @inline-result{conflicted} on the paper but not @inline-result{assigned} to it.''
 
-Here, @(racketresultfont @tt{s}), @(racketresultfont @tt{a}), and @(racketresultfont @tt{r}) correspond to the variables that appear in
+Here, @inline-result{s}, @inline-result{a}, and @inline-result{r} correspond to the variables that appear in
 the query.
-@(racketresultfont @tt{Size = 3}) means that in this scenario, there were 3 objects. 
-In this case, one is @(racketresultfont @italic{both}) an @(racketresultfont @tt{author}) and a @(racketresultfont @tt{reviewer}).
-Another is a @(racketresultfont @tt{paper}). The third represents the action @(racketresultfont @tt{readpaper}).
+@inline-result{Size = 3} means that in this scenario, there were 3 objects. 
+In this case, one is @(racketresultfont @italic{both}) an @inline-result{author} and a @inline-result{reviewer}.
+Another is a @inline-result{paper}. The third represents the action @inline-result{readpaper}.
 
-@(racketresultfont @tt{Conflicted}) and @(racketresultfont @tt{assigned}) are
+@inline-result{Conflicted} and @inline-result{assigned} are
 binary @tech{predicates} mentioned in the policy. Any such facts 
 will be printed after information about individual variables.
 
-The @(racketresultfont @tt{STATISTICS}) section gives technical information about Margrave's scenario-finding process.
+The @inline-result{STATISTICS} section gives technical information about Margrave's scenario-finding process.
 
 Note: When printing, only the most specific applicable 
 information will be shown. E.g., you will never see
-@(racketresultfont @tt{s: reviewer subject})
+@inline-result{s: reviewer subject}
 because a reviewer is always a subject in this policy.
 
 

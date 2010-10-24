@@ -4,7 +4,10 @@
 @(require scribble/manual)
 
 @title{The @bold{Margrave} Tool for Policy Analysis}
-@author+email["Tim Nelson" "tn@cs.wpi.edu"]
+@author[@author+email["Tim Nelson" "tn@cs.wpi.edu"]
+         "Daniel J. Dougherty"
+         "Kathi Fisler"
+         "Shriram Krishnamurthi"]
 
 
 @; Don't need a ToC here since the sidebar on the left also gives it.
@@ -18,6 +21,7 @@
 
 @; Not including API yet, just basic user docs and examples
 @;include-section["api.scrbl"]
+
 
 @;index-section[]
 
