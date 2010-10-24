@@ -325,7 +325,8 @@ public class MQuery extends MIDBCollection
 	 * " was not multi-covered by "+coveredby); return false; }
 	 */
 
-	protected int getHerbrandUniverseCeilingFor(Formula queryAndQueryAxioms,
+	protected int getHerbrandUniverseCeilingFor(
+			Formula queryAndQueryAxioms,
 			boolean prenexExistential) throws MGEUnknownIdentifier,
 			MGEBadIdentifierName {
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
@@ -350,11 +351,14 @@ public class MQuery extends MIDBCollection
 		Set<LeafExpression> sorts = new HashSet<LeafExpression>();
 		Map<LeafExpression, Set<LeafExpression>> supersorts = new HashMap<LeafExpression, Set<LeafExpression>>();
 		Map<LeafExpression, List<LeafExpression>> predicates = new HashMap<LeafExpression, List<LeafExpression>>();
-
+		Map<LeafExpression, Set<LeafExpression>> disjointness = new HashMap<LeafExpression, Set<LeafExpression>>();
+		
 		for (MSort s : vocab.sorts.values()) {
 			// s.rel is a sort.
 			sorts.add(s.rel);
 
+			////////////////////////////
+			
 			// What are the supersorts of s.rel? (parents + supersort
 			// constraints)
 			Set<LeafExpression> supers = new HashSet<LeafExpression>();
@@ -364,8 +368,17 @@ public class MQuery extends MIDBCollection
 				supers.add(sup.rel);
 
 			supersorts.put(s.rel, supers);
+			
+			////////////////////////////
+									
+			// What is axiomatically disjoint from s.rel?
+			Set<LeafExpression> theseDisjoints = new HashSet<LeafExpression>();
+			if(vocab.axioms.axiomDisjoints.containsKey(s)) // may have no entry for this sort
+				for(MSort disj : vocab.axioms.axiomDisjoints.get(s))
+					theseDisjoints.add(disj.rel);
+			disjointness.put(s.rel, theseDisjoints);
 		}
-
+		
 		for (String pname : vocab.predicates.keySet()) {
 			// What sort is this predicate?
 			List<LeafExpression> predArity = new ArrayList<LeafExpression>();
@@ -399,7 +412,7 @@ public class MQuery extends MIDBCollection
 
 			FormulaSigInfo info = new FormulaSigInfo(sorts, supersorts,
 					predicates, new HashSet<SigFunction>(),
-					new HashSet<SigFunction>(), nnf_formula, sap);
+					new HashSet<SigFunction>(), nnf_formula, sap, disjointness);
 
 			if (debug_verbosity >= 2) {
 				MEnvironment.writeOutLine("DEBUG: Generating a ceiling on necessary model size.");

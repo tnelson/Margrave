@@ -572,9 +572,14 @@ public class FormulaSigInfo
 	
 	private Map<LeafExpression, Set<LeafExpression>> disjointConstraints;
 	
-	static public boolean debug = false; 
+	static public boolean enableDebug = false; 
+	static public boolean enableDisjointness = true;
 	
 	//  ------------- Calculated fields  ----------------
+	
+	// transitive closure of blue edges: calculated in cycle check
+	private Map<LeafExpression, Set<LeafExpression>> supersAndCoercionsFromTC =
+		new HashMap<LeafExpression, Set<LeafExpression>>();
 	
 	// Reverse of supersorts: calculated in constructor
 	private Map<LeafExpression, Set<LeafExpression>> subsorts =
@@ -722,6 +727,11 @@ public class FormulaSigInfo
 		for(LeafExpression r : supersorts.keySet())		
 			supersorts.get(r).remove(r);				
 		
+		// populate supersAndCoercionsFromTC
+		for(LeafExpression s : sorts)
+			supersAndCoercionsFromTC.put(s, new HashSet<LeafExpression>());
+		
+		
 		// Populate subsorts map 
 		// (This is used repeatedly by DFS in findProductiveFunctions; calculate ONCE.)
 		for(LeafExpression parent : sorts)
@@ -771,6 +781,12 @@ public class FormulaSigInfo
 		
 		//findFinitarySorts();
 		//findFinitarySortsNew();
+		
+		// !!!!!!!!!!! 
+		// IF CHANGING BACK
+		// IMPORTANT: need to make findFinitarySortsNew calculate blue TC and populate
+		// supersAndCoercionsFromTC. NewDisj already does it.
+		
 		findFinitarySortsNewDisj();
 		msFinitary = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycFinitary = (qs.getCpuTimeInMegaCycles() - startMegacycles);
@@ -1028,7 +1044,7 @@ public class FormulaSigInfo
 		{
 			sortToInt.put(s, iIndex);
 			intToSort.put(iIndex, s);
-			if(debug)
+			if(enableDebug)
 				MEnvironment.writeErrLine("SORT: "+s+" idx: "+iIndex);			
 			
 			// everything finitary by default, remove below
@@ -1042,7 +1058,7 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression arg : f.arity)
 			{
-				if(debug)
+				if(enableDebug)
 					MEnvironment.writeErrLine("FUNC: "+f.sort+" -> "+arg);
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
@@ -1055,7 +1071,7 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression sub : subsorts.get(curr))
 			{
-				if(debug)
+				if(enableDebug)
 					MEnvironment.writeErrLine("SUBSORT: "+curr+" > "+sub);
 				int src = sortToInt.get(curr);
 				int dest = sortToInt.get(sub);
@@ -1068,7 +1084,7 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression arg : f.arity)
 			{
-				if(debug)
+				if(enableDebug)
 					MEnvironment.writeErrLine("SAP: "+f.sort+" -> "+arg);
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
@@ -1076,7 +1092,7 @@ public class FormulaSigInfo
 			}				
 		}					
 		
-		if(debug)
+		if(enableDebug)
 			printBooleanMatrix(connM, max);
 		
 		// Floyd-Warshall
@@ -1093,7 +1109,7 @@ public class FormulaSigInfo
 		}
 		// done with building connectivity matrix				
 			
-		if(debug)
+		if(enableDebug)
 			printBooleanMatrix(connM, max);
 		
 		for(SigFunction f : productiveFunctions)	
@@ -1235,7 +1251,7 @@ public class FormulaSigInfo
 			{
 				for(int jj=0;jj<max;jj++)
 				{
-					if(debug)
+					if(enableDebug)
 						MEnvironment.writeErrLine("Trying to extend "+ii+" to "+jj+" via "+kk+"; was "+matrix[ii][jj]);											
 
 					// Do we have a blue edge from i->k and k->j, and i is not disjoint from j?
@@ -1247,7 +1263,7 @@ public class FormulaSigInfo
                        else if(filled != SortEdge.BLUE)
                     	   matrix[ii][jj] = filled;
 					}
-					else if(debug)						
+					else if(enableDebug)						
 						MEnvironment.writeErrLine("   NO CHANGE");
 						
 					
@@ -1385,11 +1401,32 @@ public class FormulaSigInfo
 		}	
 		
 
-		if(debug)
+		if(enableDebug)
 			printMatrix(blueM, max);
 		warshall(blueM, SortEdge.BLUE, max, intToSort);									
-		if(debug)
+		if(enableDebug)
 			printMatrix(blueM, max);
+		
+		// This blue-TC is exactly what should go in
+		// supersAndCoercionsFromTC for use in counter.
+		// They are the valid propagations.
+		for(int row=0;row<max;row++)
+		{
+			// Matrix is reversed since edges in search are reversed.
+			// To be useful for propagation, flip from/to
+			LeafExpression toSort = intToSort.get(row);
+			
+			for(int col=0;col<max;col++)
+			{
+				if(row==col) continue; // don't self-propagate				
+				LeafExpression fromSort = intToSort.get(col);
+				
+				if(blueM[row][col] == SortEdge.BLUE)
+					supersAndCoercionsFromTC.get(fromSort).add(toSort);
+			}
+		}
+		
+		
 		
 		//////////////////////////////////////////////////////////////
 		// Then build the set of valid red pairs. A valid red pair uses
@@ -1411,10 +1448,10 @@ public class FormulaSigInfo
 			}
 		}
 		
-		if(debug)
+		if(enableDebug)
 			printMatrix(redM, max);	
 		warshall(redM, SortEdge.RED, max, intToSort);											
-		if(debug)
+		if(enableDebug)
 			printMatrix(redM, max);
 		
 		/////////////////////////////////////////
@@ -1441,7 +1478,7 @@ public class FormulaSigInfo
 					validM[ii][jj].add(SortEdge.BLUE);
 			}
 		
-		if(debug)
+		if(enableDebug)
 			printSetMatrix(validM, max);
 		
 		// Modified Warshall
@@ -1455,14 +1492,14 @@ public class FormulaSigInfo
 					// M(i, j) = UNION {M(i, j) , M(i, k) ~+ M(k, j) } 					
 					Set<SortEdge> combined = combineColorSets(validM[ii][kk], validM[kk][jj]);
 					if(validM[ii][jj].addAll(combined))
-						if(debug)
+						if(enableDebug)
 							MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
 				}				
 			}
 		}
 				
 		// debug only
-		if(debug)
+		if(enableDebug)
 			printSetMatrix(validM, max);
 		
 		
@@ -1550,7 +1587,7 @@ public class FormulaSigInfo
 		for(SigFunction c : allConstants)
 		{			
 			// First, build a list of all native sorts for c. 
-			// (c.sort, but also coercions due to sort-as-predicate appearance)			
+			// (c.sort, but also coercions due to *local* sort-as-predicate appearance)			
 			Set<LeafExpression> toPopulate = new HashSet<LeafExpression>();
 			
 			// native w/o coercion
@@ -1569,9 +1606,11 @@ public class FormulaSigInfo
 					if(sf.arity.get(0).equals(c.sort) && finitarySorts.contains(sf.sort))
 						toPopulate.add(sf.sort);
 
-			// only one actual ELEMENT bound to this constant
+			// only one actual element bound to this constant
 			totalTerms = totalTerms.add(BigInteger.ONE);
 			
+			// Remember where we have incremented the counter for this constant.
+			// Don't double-count!
 			Set<LeafExpression> countedIn = new HashSet<LeafExpression>();
 			
 			for(LeafExpression pop : toPopulate)
@@ -1584,27 +1623,18 @@ public class FormulaSigInfo
 				totals[0][sortsInOrder.get(pop).intValue()] =
 					totals[0][sortsInOrder.get(pop).intValue()].add(BigInteger.ONE);
 				//MEnvironment.writeErrLine("Populated: "+pop);
-
-				
-				// Propagate (<=) -- don't duplicate!
-				
-				// !!!!!!!!!!!!!!
-				// TODO: need to propagate by SAP coercions too (and then by <= from those, and coercions... etc etc etc)
-				//       really want transitive closure of blue reachability. Oh hey, we computed that!
-				// (TODO: same for step 2, will need to change how propagation is done)
-				//     Note: really mean BLUE only reachability, since taking a red edge = next level of the table.
-				// If reverting to non-disj-using version of code, need to add 2nd table to Warshall
-				
-				for(LeafExpression r : supersorts.get(pop))
+							
+				for(LeafExpression r : supersAndCoercionsFromTC.get(pop))
 				{
-					if(r == pop) continue;
-					if(!finitarySorts.contains(r)) continue; // don't prop to inf sort
-					if(countedIn.contains(r)) // don't duplicate
-						continue;
+					if(r == pop) continue; // trivial case, ignore
+					if(!finitarySorts.contains(r)) continue; // don't try to prop to an infinitary sort
+					if(countedIn.contains(r)) continue; // don't double-count
+						
 					totals[0][sortsInOrder.get(r).intValue()] = 
 						totals[0][sortsInOrder.get(r).intValue()].add(BigInteger.ONE);
 					
 					//MEnvironment.writeErrLine("Propagated: "+pop);
+					
 					countedIn.add(r); 
 				} // end for each sort to propagate
 
@@ -1661,10 +1691,10 @@ public class FormulaSigInfo
 						if(!finitarySorts.contains(f.arity.get(icol)))
 						{
 							MEnvironment.writeErrLine("Error: "+f+"\n"+finitarySorts);
-							MEnvironment.writeErrLine(toPopulate.toString()); // 0 is in toPopulate. why? Because we have a coercion function... then why isn't 0 infinitary?
+							MEnvironment.writeErrLine(toPopulate.toString());
 							MEnvironment.writeErrLine(sapFunctions.toString());
 							MEnvironment.writeErrLine(productiveFunctions.toString());
-							System.exit(1);							
+							MEnvironment.quitMargrave();						
 						}
 						// icol is indexing by position in arity list. Sort ordering is different.
 						int actual_col = sortsInOrder.get(f.arity.get(icol)).intValue();
@@ -1702,7 +1732,7 @@ public class FormulaSigInfo
 						totals[height][sortsInOrder.get(pop).intValue()].add(num_this_height);						
 					
 					// Propagate
-					for(LeafExpression r : supersorts.get(pop))
+					for(LeafExpression r : supersAndCoercionsFromTC.get(pop))
 					{
 						// don't duplicate
 						if(countedIn.contains(r))
@@ -1969,6 +1999,7 @@ public class FormulaSigInfo
 		if(test22.getTermCount() != 1 || test22.getTermCount(B) != 1 || test22.getTermCount(C) != 1 || test22.getTermCount(A) != 1)
 			System.err.println("FormulaSigInfo test case 22 failed.");	
 		
+		// Test SAP propagation (through <=) for constants
 		// A, B, C... D, E
 		// A < B, A < C, D < E
 		// SAP coercion from C -> D
@@ -1986,19 +2017,58 @@ public class FormulaSigInfo
 		
 		FormulaSigInfo test23 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23, EnumSAPHandling.sapKeep);
 		if(test23.getTermCount() != 1 || test23.getTermCount(A) != 1 || test23.getTermCount(C) != 1
-				|| test22.getTermCount(D) != 1 ||  test22.getTermCount(E) != 1)
+				|| test23.getTermCount(D) != 1 ||  test23.getTermCount(E) != 1)
 		{
 			System.err.println("FormulaSigInfo test case 23 failed.");
 			test23.printInfo();
 		}
+			
+		// Test SAP propagation after function application
+		// (This is separate propagation code from constant propagation, hence separate tests)
+		// F < G
+		LeafExpression F = Relation.unary("F");
+		LeafExpression G = Relation.unary("G");
+		sorts2.add(F);
+		sorts2.add(G);
+		order2.put(F, new HashSet<LeafExpression>());
+		order2.get(F).add(G);
 		
+		Formula fmla23a = 
+			A.some() // a in A (and A < C)
+		.and(Formula.TRUE.forSome(y.oneOf(D)).forAll(x.oneOf(C))) // f: C -> D (and D < E)
+		.and(x.in(F).forAll(x.oneOf(E))) // SAP from E to F
+		.and(x.in(B).forAll(x.oneOf(F))); // sap from F to B (so B will have 2 in it)
 		
+		FormulaSigInfo test23a = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23a, EnumSAPHandling.sapKeep);
+		if(test23a.getTermCount() != 2 || test23a.getTermCount(A) != 1 || test23a.getTermCount(C) != 1 ||
+				test23a.getTermCount(B) != 2 || 
+				test23a.getTermCount(D) != 1 || test23a.getTermCount(E) != 1 || 
+				test23a.getTermCount(F) != 1 || test23a.getTermCount(G) != 1)
+		{
+			System.err.println("FormulaSigInfo test case 23a failed.");
+			test23a.printInfo();
+		}
+		
+		// A < B
+		// a in A
+		// _local_ SAP coercion for a into B.
+		// Make sure we do not double-count in A due to improper population phase for a.
+		Formula fmla24 = x.in(C).forSome(x.oneOf(A));
+		FormulaSigInfo test24 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla24, EnumSAPHandling.sapKeep);
+		if(test24.getTermCount() != 1 || test24.getTermCount(A) != 1 || test24.getTermCount(B) != 1)
+		{
+			System.err.println("FormulaSigInfo test case 24 failed.");
+			test24.printInfo();
+		}		
 		
 		/////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////
 		// ****** Disjointness tests
 		// do not enable these if reverting to prior version of Warshall
-				
+		if(!enableDisjointness)
+			return;
+		
+		
 		Set<LeafExpression> sortsd1 = new HashSet<LeafExpression>();
 		sortsd1.add(Sort1); sortsd1.add(Sort2); sortsd1.add(Sort3);
 		
@@ -2014,22 +2084,27 @@ public class FormulaSigInfo
 		
 		Map<LeafExpression, Set<LeafExpression>> disjs1 = new HashMap<LeafExpression, Set<LeafExpression>>();
 		disjs1.put(Sort2, new HashSet<LeafExpression>());
-		disjs1.get(Sort2).add(Sort3); // S2 disj S3
+		disjs1.get(Sort2).add(Sort3); // children disjoint (S2 disj S3)
 		
 		// Abstract S1, separate constants in S1 and S2, func from S2 to S3.
 		// Should not register as infinitary
 		Variable c1 = Variable.unary("c1");
 		Variable c2 = Variable.unary("c2");
-		// 2 constants
+		// 2 constants (one in parent, one in sort2 child)
 		Formula fmlad1 = Formula.TRUE.forSome(c1.oneOf(Sort1)).and(Sort2.some())
-		// abstract
+		// parent is abstract
 		  .and(x.in(Sort2).or(x.in(Sort3)).forAll(x.oneOf(Sort1)))
-		 // func
+		 // func from child to other child
 		  .and(Formula.TRUE.forSome(y.oneOf(Sort3)).forAll(z.oneOf(Sort2)));
 		
-		//debug = true;
+		
+		//enableDebug = true;
 		FormulaSigInfo testd1 = new FormulaSigInfo(sortsd1, orderd1, predicates, emptyFunctions, emptyConstants, fmlad1, EnumSAPHandling.sapKeep, disjs1);
-		testd1.printInfo();
+		if(testd1.getTermCount() != 4 || testd1.getTermCount(Sort1) != 4 || testd1.getTermCount(Sort2) != 2 || testd1.getTermCount(Sort3) != 3)
+		{
+			System.err.println("FormulaSigInfo test case DISJ-1 failed.");
+			testd1.printInfo();
+		}		
 		
 		
 		
