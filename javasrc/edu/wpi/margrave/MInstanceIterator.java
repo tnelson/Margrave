@@ -212,12 +212,12 @@ class MTotalInstanceIterator extends MInstanceIterator
 	
 }
 
-class MPopulatedRelationFinder extends MPartialInstanceIterator
+class MRealizedFormulaFinder extends MPartialInstanceIterator
 {
 	//  TODO Some duplicated code between this class and the partial iterator.
 	// For now, extend
 			
-	MPopulatedRelationFinder(MQueryResult qr)
+	MRealizedFormulaFinder(MQueryResult qr)
 			throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		super(qr);
@@ -304,7 +304,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 	
 	
 	
-	public Map<String, Set<String>> getPopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases)
+	public Map<String, Set<String>> getRealizedFormulas(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases)
 	throws MUserException
 	{
 								
@@ -326,11 +326,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		// But allow for indexed EDB names, too. Instead of checking idbOutputIndexing, check for whether 
 		// the indexed name is in the vocab.
 		for(String predname : indexedCandidates)
-		{
-			// used to be:
-			//if(!fromResult.forQuery.idbOutputIndexing.containsKey(predname))
-			//	throw new MSemanticException("Candidate in SHOW POPULATED: "+predname+" was not declared as an IDB to output in the query. Declared: "+fromResult.forQuery.idbOutputIndexing.keySet());
-			
+		{			
 			if(!fromResult.forQuery.vocab.isSort(predname) && 
 					!fromResult.forQuery.vocab.predicates.containsKey(predname) && 
 					!fromResult.forQuery.idbOutputIndexing.keySet().contains(predname))
@@ -355,7 +351,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		
 		
 		// *** (2) Invoke the sat solver
-		Map<String, Set<String>> results = getPopulatedRelations(indexedCandidates, indexedCases); 
+		Map<String, Set<String>> results = getRealizedFormulas(indexedCandidates, indexedCases); 
 				
 		// *** (3) Convert BACK to the original notation
 		Map<String, Set<String>> indexedResults = new HashMap<String, Set<String>>();
@@ -378,32 +374,32 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 			
 	}
 	
-	public Set<String> getPopulatedRelations(Map<String, Set<List<String>>> candidates) throws MUserException
+	public Set<String> getRealizedFormulas(Map<String, Set<List<String>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
-		return getPopulatedRelations(candidates, cases).get("");
+		return getRealizedFormulas(candidates, cases).get("");
 	}
 	
-	public Set<String> getPopulatedRelations(List<String> candidates)
+	public Set<String> getRealizedFormulas(List<String> candidates)
 	{
 		List<String> cases = new ArrayList<String>();
-		return getPopulatedRelations(candidates, cases).get("");		
+		return getRealizedFormulas(candidates, cases).get("");		
 	}
 
-	public Set<String> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates) throws MUserException
+	public Set<String> getUnrealizedFormulas(Map<String, Set<List<String>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getUnpopulatedRelations(candidates, cases).get("");
 	}
 	
-	public Set<String> getUnpopulatedRelations(List<String> candidates)
+	public Set<String> getUnrealizedFormulas(List<String> candidates)
 	{
 		List<String> cases = new ArrayList<String>();
-		return getUnpopulatedRelations(candidates, cases).get("");		
+		return getUnrealizedFormulas(candidates, cases).get("");		
 	}
 
 	
-	public Map<String, Set<String>> getPopulatedRelations(List<String> candidates, List<String> cases)
+	public Map<String, Set<String>> getRealizedFormulas(List<String> candidates, List<String> cases)
 	{
 		// No indexings in this verison. Names are raw; will not work with tupling unaided.
 		
@@ -442,11 +438,14 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		}
 	}
 	
-	public Map<String, Set<String>> getUnpopulatedRelations(List<String> candidates, List<String> cases)
+	public Map<String, Set<String>> getUnrealizedFormulas(List<String> candidates, List<String> cases)
 	{
 		// Return a list of relations in candidates that are NEVER populated
 		// in any satisfying model UP TO THE QUERY'S CEILING. No guarantees at
 		// higher model sizes.
+		
+		
+		
 		// No indexings in this verison. Names are raw; will not work with tupling unaided.		
 		
 		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
@@ -499,7 +498,7 @@ class MPopulatedRelationFinder extends MPartialInstanceIterator
 		
 		// *** (2) Invoke the sat solver
 		// UN-populated
-		Map<String, Set<String>> results = getUnpopulatedRelations(indexedCandidates, indexedCases); 
+		Map<String, Set<String>> results = getUnrealizedFormulas(indexedCandidates, indexedCases); 
 				
 		// *** (3) Convert BACK to the original notation		
 		Map<String, Set<String>> indexedResults = new HashMap<String, Set<String>>();
@@ -1768,10 +1767,10 @@ class MQueryResult
 		return new MPartialInstanceIterator(this);
 	}
 
-	public MPopulatedRelationFinder getPopulatedRelationFinder() 
+	public MRealizedFormulaFinder getPopulatedRelationFinder() 
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		return new MPopulatedRelationFinder(this);
+		return new MRealizedFormulaFinder(this);
 	}
 
 	public int countModels() 

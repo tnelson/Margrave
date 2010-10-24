@@ -1820,7 +1820,7 @@ public class MJavaTests
 		qry.debug_verbosity = 2;
 		MEnvironment.writeErrLine("Starting qry:");
 		MQueryResult qryResult = qry.runQuery();
-		MEnvironment.writeErrLine(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
+		MEnvironment.writeErrLine(qryResult.getPopulatedRelationFinder().getRealizedFormulas(candidates));
 
 		qry = MQuery.queryThesePolicies(
 				fwpol.getExistentialRequestPrefix() + "(" + "smallfwtestpol1:easyrule1 "+
@@ -1836,7 +1836,7 @@ public class MJavaTests
 			qry.addIDBOutputIndexing(cand, indexing);
 
 		qryResult = qry.runQuery();
-		MEnvironment.writeErrLine(qryResult.getPopulatedRelationFinder().getPopulatedRelations(candidates));
+		MEnvironment.writeErrLine(qryResult.getPopulatedRelationFinder().getRealizedFormulas(candidates));
 
 		qry = MQuery.queryThesePolicies("(forsome x IPAddress (forsome y IPAddress (and (IPRange0_9 x) (IPRange10_19 x))))", pollist);
 		qry.doTupling = true;
@@ -3315,7 +3315,7 @@ public class MJavaTests
 			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
 		
-		
+		System.exit(1);
 		
 		// Main test blocks		
 		runTests();		

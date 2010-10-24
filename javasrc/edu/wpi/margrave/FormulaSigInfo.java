@@ -41,6 +41,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.math.BigInteger;
 
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
+
 
 // -------- Helper class: SigFunction ----------
 // Represents a function: EITHER a Skolem function or an original function.
@@ -568,6 +570,9 @@ public class FormulaSigInfo
 	private Set<SigFunction> originalFunctions;
 	private Set<SigFunction> originalConstants;
 	
+	private Map<LeafExpression, Set<LeafExpression>> disjointConstraints;
+	
+	static public boolean debug = false; 
 	
 	//  ------------- Calculated fields  ----------------
 	
@@ -643,7 +648,8 @@ public class FormulaSigInfo
 			boolean htmlOutput)
 				throws MUnsupportedFormulaException, MNotASortException
 	{
-		init(sorts, supersorts, predicates, originalFunctions, originalConstants, fmla, sap, htmlOutput);
+		init(sorts, supersorts, predicates, originalFunctions, originalConstants,
+				fmla, sap, htmlOutput, new HashMap<LeafExpression, Set<LeafExpression>>());
 	}
 	
 	FormulaSigInfo(Set<LeafExpression> sorts, 
@@ -655,7 +661,22 @@ public class FormulaSigInfo
 			EnumSAPHandling sap)
 	throws MUnsupportedFormulaException, MNotASortException
 	{
-		init(sorts, supersorts, predicates, originalFunctions, originalConstants, fmla, sap, false);
+		init(sorts, supersorts, predicates, originalFunctions, originalConstants,
+				fmla, sap, false, new HashMap<LeafExpression, Set<LeafExpression>>());
+	}
+	
+	FormulaSigInfo(Set<LeafExpression> sorts, 
+			Map<LeafExpression, Set<LeafExpression>> supersorts,
+			Map<LeafExpression, List<LeafExpression>> predicates, 
+			Set<SigFunction> originalFunctions,
+			Set<SigFunction> originalConstants,
+			Formula fmla,
+			EnumSAPHandling sap,
+			Map<LeafExpression, Set<LeafExpression>> disjointConstraints)
+			throws MUserException
+	{
+		init(sorts, supersorts, predicates, originalFunctions, originalConstants, 
+				fmla, sap, false, disjointConstraints);
 	}
 	
 	private void handleUNIV()
@@ -675,7 +696,8 @@ public class FormulaSigInfo
 			Set<SigFunction> originalConstants,
 			Formula fmla,
 			EnumSAPHandling sap,
-			boolean htmlOutput)
+			boolean htmlOutput,
+			Map<LeafExpression, Set<LeafExpression>> disjointConstraints)
 	throws MUnsupportedFormulaException, MNotASortException
 	{
 		// Fix a set of Sorts, a partial order on them, and a Formula.
@@ -690,6 +712,8 @@ public class FormulaSigInfo
 		// pre-Skolem functions
 		this.originalConstants = originalConstants;
 		this.originalFunctions = originalFunctions;
+		
+		this.disjointConstraints = disjointConstraints;
 		
 		// Add Expression.UNIV as the ultimate supersort.
 		handleUNIV();
@@ -746,7 +770,8 @@ public class FormulaSigInfo
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
 		
 		//findFinitarySorts();
-		findFinitarySortsNew();
+		//findFinitarySortsNew();
+		findFinitarySortsNewDisj();
 		msFinitary = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycFinitary = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 		
@@ -942,6 +967,33 @@ public class FormulaSigInfo
 		}
 	}
 	
+	private void printBooleanMatrix(boolean[][] connM, int max)
+	{
+		long theHash = 0;
+		int theBit = 0;
+		for(int row=0;row<max;row++)
+		{
+			MEnvironment.writeErr(row+": ");
+			for(int col=0;col<max;col++)
+			{
+				if(connM[row][col])
+					theHash += Math.pow(2, theBit);
+				theBit++;
+				
+				if(col % 10 == 0)
+					MEnvironment.writeErr("/");
+				
+				if(connM[row][col])
+					MEnvironment.writeErr("1");
+				else
+					MEnvironment.writeErr("0");
+			}
+			MEnvironment.writeErrLine("");
+			
+		}	
+		MCommunicator.writeToLog("\n    MATRIX HASH: "+theHash);
+	}
+	
 	private void findFinitarySortsNew()
 	{
 		// Build the reachability matrix for the sort-graph via Warshall.
@@ -970,7 +1022,8 @@ public class FormulaSigInfo
 		{
 			sortToInt.put(s, iIndex);
 			intToSort.put(iIndex, s);
-			//MCommunicator.writeToLog("\nSORT: "+s+" idx: "+iIndex);			
+			if(debug)
+				MEnvironment.writeErrLine("SORT: "+s+" idx: "+iIndex);			
 			
 			// everything finitary by default, remove below
 			finitarySorts.add(s);
@@ -983,7 +1036,8 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression arg : f.arity)
 			{
-				//MCommunicator.writeToLog("\nFUNC: "+f.sort+" -> "+arg);
+				if(debug)
+					MEnvironment.writeErrLine("FUNC: "+f.sort+" -> "+arg);
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
 				connM[src][dest] = true;
@@ -995,7 +1049,8 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression sub : subsorts.get(curr))
 			{
-				//MCommunicator.writeToLog("\nSUBSORT: "+curr+" > "+sub);
+				if(debug)
+					MEnvironment.writeErrLine("SUBSORT: "+curr+" > "+sub);
 				int src = sortToInt.get(curr);
 				int dest = sortToInt.get(sub);
 				connM[src][dest] = true;			
@@ -1007,12 +1062,16 @@ public class FormulaSigInfo
 		{
 			for(LeafExpression arg : f.arity)
 			{
-				//MCommunicator.writeToLog("\nSAP: "+f.sort+" -> "+arg);
+				if(debug)
+					MEnvironment.writeErrLine("SAP: "+f.sort+" -> "+arg);
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
 				connM[src][dest] = true;
 			}				
 		}					
+		
+		if(debug)
+			printBooleanMatrix(connM, max);
 		
 		// Floyd-Warshall
 		// Extend from ii to jj via kk
@@ -1027,32 +1086,9 @@ public class FormulaSigInfo
 			}
 		}
 		// done with building connectivity matrix				
-		
-		// DEBUG only
-		// hash the matrix
-		/*long theHash = 0;
-		int theBit = 0;
-		for(int row=0;row<max;row++)
-		{
-			MEnvironment.writeErr(row+": ");
-			for(int col=0;col<max;col++)
-			{
-				if(connM[row][col])
-					theHash += Math.pow(2, theBit);
-				theBit++;
-				
-				if(col % 10 == 0)
-					MEnvironment.writeErr("/");
-				
-				if(connM[row][col])
-					MEnvironment.writeErr("1");
-				else
-					MEnvironment.writeErr("0");
-			}
-			MEnvironment.writeErrLine("");
 			
-		}	
-		MCommunicator.writeToLog("\n    MATRIX HASH: "+theHash);*/
+		if(debug)
+			printBooleanMatrix(connM, max);
 		
 		for(SigFunction f : productiveFunctions)	
 		{
@@ -1082,6 +1118,377 @@ public class FormulaSigInfo
 			}
 		}				
 	}
+	
+	enum SortEdge { NONE, BLUE, RED, REDBLUE, BLUERED};
+	
+	private boolean oneDirectionDisjCheck(Set<LeafExpression> superA, Set<LeafExpression> superB)
+	{					
+		for (LeafExpression s1 : superA)
+		{
+			Set<LeafExpression> disjWith1 = disjointConstraints.get(s1);	
+			
+			if(disjWith1 == null)
+				continue;
+			
+			for (LeafExpression s2 : superB)
+				if(disjWith1.contains(s2))
+					return true; // supersort of one disj from supersort of other
+		}
+		
+		return false;
+	}
+	
+	private boolean areDisj(LeafExpression a, LeafExpression b)
+	{
+		// We assume the supersort relation given is a partial order, 
+		// so transitivity is included.
+		Set<LeafExpression> superA = supersorts.get(a);
+		Set<LeafExpression> superB = supersorts.get(b);
+					
+		// Enforce reflexivity
+		superA.add(a);
+		superB.add(b);
+		
+		return oneDirectionDisjCheck(superA, superB) ||
+		       oneDirectionDisjCheck(superB, superA);
+		
+	}
+	
+	private void printSetMatrix(Set[][] validM, int max)
+	{
+		for(int row=0;row<max;row++)
+		{
+			MEnvironment.writeErr(row+": ");
+			for(int col=0;col<max;col++)
+			{				
+				if(col % 10 == 0)
+					MEnvironment.writeErr("/");
+				
+				if(validM[row][col].contains(SortEdge.BLUE))
+					MEnvironment.writeErr("|BB|");
+				if(validM[row][col].contains(SortEdge.RED))
+					MEnvironment.writeErr("|RR|");
+				if(validM[row][col].contains(SortEdge.REDBLUE))
+					MEnvironment.writeErr("|RB|");
+				if(validM[row][col].contains(SortEdge.BLUERED))
+					MEnvironment.writeErr("|BR|");
+				
+				MEnvironment.writeErr(".");
+			}
+			MEnvironment.writeErrLine("");
+		}
+	}
+	
+	private void printMatrix(SortEdge[][] connM, int max)
+	{
+		// hash the matrix
+		long theHash = 0;
+		int theBit = 0;		
+		for(int row=0;row<max;row++)
+		{
+			MEnvironment.writeErr(row+": ");
+			for(int col=0;col<max;col++)
+			{
+				if(connM[row][col] == SortEdge.REDBLUE)
+					theHash += 1 * Math.pow(5, theBit);			
+				else if(connM[row][col] == SortEdge.BLUE)
+					theHash += 2 * Math.pow(5, theBit);
+				else if(connM[row][col] == SortEdge.RED)
+					theHash += 3 * Math.pow(5, theBit);
+				else if(connM[row][col] == SortEdge.BLUERED)
+					theHash += 4 * Math.pow(5, theBit);
+				
+				theBit++;
+				
+				if(col % 10 == 0)
+					MEnvironment.writeErr("/");
+				
+				if(connM[row][col] == SortEdge.BLUE)
+					MEnvironment.writeErr("B");
+				else if(connM[row][col] == SortEdge.RED)
+					MEnvironment.writeErr("R");
+				else if(connM[row][col] == SortEdge.REDBLUE)
+					MEnvironment.writeErr(">");
+				else if(connM[row][col] == SortEdge.BLUERED)
+					MEnvironment.writeErr("<");
+				else
+					MEnvironment.writeErr("-");
+			}
+			MEnvironment.writeErrLine("");
+			
+		}	
+		MEnvironment.writeErrLine("    MATRIX HASH: "+theHash+"\n\n");
+
+	}
+	
+	private void warshall(SortEdge[][] matrix, SortEdge filled, int max, Map<Integer, LeafExpression> intToSort)
+	{
+		for(int kk=0;kk<max;kk++)
+		{
+			for(int ii=0;ii<max;ii++)
+			{
+				for(int jj=0;jj<max;jj++)
+				{
+					if(debug)
+						MEnvironment.writeErrLine("Trying to extend "+ii+" to "+jj+" via "+kk+"; was "+matrix[ii][jj]);											
+
+					// Do we have a blue edge from i->k and k->j, and i is not disjoint from j?
+					if(matrix[ii][kk] == filled && matrix[kk][jj] == filled)
+					{
+						// Blue requires not disj
+                       if(filled == SortEdge.BLUE && !areDisj(intToSort.get(ii), intToSort.get(jj)))                    	   
+                    	   matrix[ii][jj] = filled;
+                       else if(filled != SortEdge.BLUE)
+                    	   matrix[ii][jj] = filled;
+					}
+					else if(debug)						
+						MEnvironment.writeErrLine("   NO CHANGE");
+						
+					
+				} // jj loop		
+			} // ii loop
+		} // kk loop
+	}
+	
+	SortEdge combineColors(SortEdge e1, SortEdge e2)
+	{
+		// R + B = RB
+		// R + RB = invalid
+		// R + R = invalid
+		// R + BR = R
+		if(e1 == SortEdge.RED)
+		{
+			if(e2 == SortEdge.BLUE)
+				return SortEdge.REDBLUE;
+			if(e2 == SortEdge.BLUERED)
+				return SortEdge.RED;				
+		}
+		
+		// B + R = BR
+		// B + RB = B
+		// B + BR = invalid
+		// B + B = invalid
+		else if (e1 == SortEdge.BLUE)
+		{
+			if(e2 == SortEdge.RED)
+				return SortEdge.BLUERED;
+			if(e2 == SortEdge.REDBLUE)
+				return SortEdge.BLUE;
+		}
+		// BR + R = invalid
+		// BR + BR = BR
+		// BR + RB = invalid
+		// BR + B = B
+		else if (e1 == SortEdge.BLUERED)
+		{
+			if(e2 == SortEdge.BLUERED)
+				return SortEdge.BLUERED;
+			if(e2 == SortEdge.BLUE)
+				return SortEdge.BLUE;
+		}
+		// RB + RB = RB
+		// RB + R = R
+		// RB + B = invalid
+		// RB + BR = invalid
+		else if (e1 == SortEdge.REDBLUE)
+		{
+			if(e2 == SortEdge.REDBLUE)
+				return SortEdge.REDBLUE;
+			if(e2 == SortEdge.RED)
+				return SortEdge.RED;	
+		}
+		
+		return SortEdge.NONE;
+	}
+	
+	Set<SortEdge> combineColorSets(Set<SortEdge> first, Set<SortEdge> second)
+	{	
+		Set<SortEdge> result = new HashSet<SortEdge>();
+		for(SortEdge e1 : first)
+		{
+			for(SortEdge e2 : second)
+			{
+				SortEdge combination = combineColors(e1, e2);
+				if(combination != SortEdge.NONE)
+					result.add(combination);
+			}
+		}
+		return result;
+	}
+	
+	private void findFinitarySortsNewDisj()
+	{
+		int max = sorts.size();	
+		
+		// Fix an ordering of the sorts
+		// Make the ordering deterministic (by alphabetic order)
+		List<LeafExpression> sortedSorts = new ArrayList<LeafExpression>(sorts);
+		Collections.sort(sortedSorts, new MLeafExpressionComparator());
+		
+		Map<LeafExpression, Integer> sortToInt = new HashMap<LeafExpression, Integer>();
+		Map<Integer, LeafExpression> intToSort = new HashMap<Integer, LeafExpression>();		
+		int iIndex = 0;
+		for(LeafExpression s : sortedSorts)
+		{
+			sortToInt.put(s, iIndex);
+			intToSort.put(iIndex, s);
+			//MCommunicator.writeToLog("\nSORT: "+s+" idx: "+iIndex);			
+						
+			// everything finitary by default, remove below
+			finitarySorts.add(s);
+			
+			iIndex++;
+		}
+				
+		//////////////////////////////////////////////////////////////
+		// Build set of valid blue (src,dest) pairs first. A valid blue pair
+		// uses only coercions to travel from src to dest, without crossing
+		// any disjointness boundries.
+		
+		SortEdge[][] blueM = new SortEdge[max][max];				
+		for(int ii=0;ii<max;ii++)
+			for(int jj=0;jj<max;jj++)			
+				blueM[ii][jj] = SortEdge.NONE;	
+
+		
+		// Subsorts
+		for(LeafExpression curr : sortedSorts)
+		{
+			for(LeafExpression sub : subsorts.get(curr))
+			{
+				//MCommunicator.writeToLog("\nSUBSORT: "+curr+" > "+sub);
+				int src = sortToInt.get(curr);
+				int dest = sortToInt.get(sub);
+				
+				if(!areDisj(curr, sub)) 
+					blueM[src][dest] = SortEdge.BLUE;
+			}			
+		}
+		// coercions due to SAP functions (global and local)
+		for(SigFunction f : productiveSAPFunctions)
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				//MCommunicator.writeToLog("\nSAP: "+f.sort+" -> "+arg);
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+
+				if(!areDisj(f.sort, arg)) 
+					blueM[src][dest] = SortEdge.BLUE;
+			}				
+		}	
+		
+
+		if(debug)
+			printMatrix(blueM, max);
+		warshall(blueM, SortEdge.BLUE, max, intToSort);									
+		if(debug)
+			printMatrix(blueM, max);
+		
+		//////////////////////////////////////////////////////////////
+		// Then build the set of valid red pairs. A valid red pair uses
+		// only real functions, and can span disjointness boundries.
+		SortEdge[][] redM = new SortEdge[max][max];				
+		for(int ii=0;ii<max;ii++)
+			for(int jj=0;jj<max;jj++)			
+				redM[ii][jj] = SortEdge.NONE;	
+									
+		// f, g, etc.
+		for(SigFunction f : productiveFunctions)	
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				//MCommunicator.writeToLog("\nFUNC: "+f.sort+" -> "+arg);
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+				redM[src][dest] = SortEdge.RED;
+			}
+		}
+		
+		if(debug)
+			printMatrix(redM, max);	
+		warshall(redM, SortEdge.RED, max, intToSort);											
+		if(debug)
+			printMatrix(redM, max);
+		
+		/////////////////////////////////////////
+		
+		// Now, construct reachability matrix for paths made up of
+		// red->blue->... pairs. This matches terms created from 
+		// real functions and valid chains of coercions.
+
+		// B, R, BR, RB. 
+		// Need to collect SETS of those, and propagate with union as our "min"
+		// and path concatenation as our "+".
+		
+		// No generics with arrays
+		Set[][] validM = new Set[max][max];				
+		for(int ii=0;ii<max;ii++)
+			for(int jj=0;jj<max;jj++)
+			{
+				validM[ii][jj] = new HashSet<SortEdge>();
+							
+				if(redM[ii][jj] == SortEdge.RED)
+					validM[ii][jj].add(SortEdge.RED);
+				
+				if(blueM[ii][jj] == SortEdge.BLUE)
+					validM[ii][jj].add(SortEdge.BLUE);
+			}
+		
+		if(debug)
+			printSetMatrix(validM, max);
+		
+		// Modified Warshall
+		for(int kk=0;kk<max;kk++)
+		{
+			for(int ii=0;ii<max;ii++)
+			{
+				for(int jj=0;jj<max;jj++)
+				{
+					// Warshall with UNION for min and color concat. for +
+					// M(i, j) = UNION {M(i, j) , M(i, k) ~+ M(k, j) } 					
+					Set<SortEdge> combined = combineColorSets(validM[ii][kk], validM[kk][jj]);
+					if(validM[ii][jj].addAll(combined))
+						MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
+				}				
+			}
+		}
+				
+		// debug only
+		if(debug)
+			printSetMatrix(validM, max);
+		
+		
+		for(SigFunction f : productiveFunctions)	
+		{
+			for(LeafExpression arg : f.arity)
+			{
+				int src = sortToInt.get(f.sort);
+				int dest = sortToInt.get(arg);
+				
+				// Does this shadow-function sit on a cycle? (path from dest to src)
+				if(!validM[dest][src].isEmpty())
+				{
+					//MCommunicator.writeToLog("\nTAINTED CYCLE: Function "+f+"("+src+","+dest+").");
+					
+					// tainted cycle! Everything reachable from dest is infinitary.
+					for(int option=0;option<max;option++)
+					{
+						if(!validM[option][dest].isEmpty())
+						{							
+							LeafExpression infSort = intToSort.get(option);							
+							finitarySorts.remove(infSort);
+						}
+					}
+				}
+				//else
+					//MCommunicator.writeToLog("\nFunction "+f+"("+src+","+dest+") did not have a path from dest to src.");
+				
+			}
+		}			
+	}
+
+	
 	
 	/*
 	private void findFinitarySorts()
@@ -1547,7 +1954,7 @@ public class FormulaSigInfo
 	{
 		MEnvironment.writeErrLine("----- Begin FormulaSigInfo Tests (No messages is good.) -----");
 		LeafExpression Sort1 = Relation.unary("Sort1");
-		LeafExpression Sort2 = Relation.unary("Sort2");;
+		LeafExpression Sort2 = Relation.unary("Sort2");
 		
 		Set<LeafExpression> sorts1 = new HashSet<LeafExpression>();
 		sorts1.add(Sort1); sorts1.add(Sort2);
@@ -1770,6 +2177,46 @@ public class FormulaSigInfo
 		if(test22.getTermCount() != 1 || test22.getTermCount(B) != 1 || test22.getTermCount(C) != 1 || test22.getTermCount(A) != 1)
 			System.err.println("FormulaSigInfo test case 22 failed.");	
 		
+		
+		
+		
+		// ****** Disjointness
+				
+		Set<LeafExpression> sortsd1 = new HashSet<LeafExpression>();
+		sortsd1.add(Sort1); sortsd1.add(Sort2); sortsd1.add(Sort3);
+		
+		Map<LeafExpression, Set<LeafExpression>> orderd1 = new HashMap<LeafExpression, Set<LeafExpression>>();
+		// maps sorts to their SUPERSORTS
+		orderd1.put(Sort1, new HashSet<LeafExpression>());
+		orderd1.put(Sort2, new HashSet<LeafExpression>());
+		orderd1.put(Sort3, new HashSet<LeafExpression>());
+		
+		// 3-element balanced tree
+		orderd1.get(Sort2).add(Sort1);
+		orderd1.get(Sort3).add(Sort1);
+		
+		Map<LeafExpression, Set<LeafExpression>> disjs1 = new HashMap<LeafExpression, Set<LeafExpression>>();
+		disjs1.put(Sort2, new HashSet<LeafExpression>());
+		disjs1.get(Sort2).add(Sort3); // S2 disj S3
+		
+		// Abstract S1, separate constants in S1 and S2, func from S2 to S3.
+		// Should not register as infinitary
+		Variable c1 = Variable.unary("c1");
+		Variable c2 = Variable.unary("c2");
+		// 2 constants
+		Formula fmlad1 = Formula.TRUE.forSome(c1.oneOf(Sort1)).and(Sort2.some())
+		// abstract
+		  .and(x.in(Sort2).or(x.in(Sort3)).forAll(x.oneOf(Sort1)))
+		 // func
+		  .and(Formula.TRUE.forSome(y.oneOf(Sort3)).forAll(z.oneOf(Sort2)));
+		
+		debug = true;
+		FormulaSigInfo testd1 = new FormulaSigInfo(sortsd1, orderd1, predicates, emptyFunctions, emptyConstants, fmlad1, EnumSAPHandling.sapKeep, disjs1);
+		testd1.printInfo();
+		
+		
+		// should be producing CONSTANTS. why funcs?
+		//Formula fmlad1 = Formula.TRUE.forSome(c1.oneOf(Sort1)).and(Formula.TRUE.forSome(c2.oneOf(Sort2)))
 		
 		
 		

@@ -1208,7 +1208,7 @@ public class MEnvironment
 		Map<String, Set<String>> outsets;
 		try
 		{
-			outsets = aResult.getPopulatedRelationFinder().getPopulatedRelations(rlist, clist);
+			outsets = aResult.getPopulatedRelationFinder().getRealizedFormulas(rlist, clist);
 			
 			MCommunicator.writeToLog(rlist.toString());
 			MCommunicator.writeToLog(clist.toString());
