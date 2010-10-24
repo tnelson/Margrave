@@ -139,7 +139,8 @@ public class MCommunicator
             	try
             	{
             		// First log that we got an exception:
-            		writeToLog("\n~~~ Throwable caught: "+e.getLocalizedMessage());
+            		writeToLog("\n~~~ Throwable caught: "+e.getClass());
+            		writeToLog("\n    "+e.getLocalizedMessage());
             		writeToLog("\n"+Arrays.toString(e.getStackTrace()));
             		writeToLog("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
             		theResponse = MEnvironment.exceptionResponse(e);
