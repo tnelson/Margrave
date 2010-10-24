@@ -398,7 +398,7 @@
         (cond [(< computed-max-num 0)
                (write "WARNING:  Margrave could not calculate a sufficient ceiling size. Completeness is not guaranteed! You may need to check for larger scenarios.\n")]
               [(< used-max-num computed-max-num)
-               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, use the CEILING clause of EXPLORE." used-max-num))])
+               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, use the CEILING clause of EXPLORE.\n" used-max-num))])
         
         (get-output-string string-buffer)))))
 
