@@ -960,13 +960,19 @@ public class FormulaSigInfo
 	class MLeafExpressionComparator implements Comparator<LeafExpression>
 	{
 		public int compare(LeafExpression leaf1, LeafExpression leaf2)
-		{
-			
-			return leaf1.toString().compareTo(leaf2.toString());
-					
+		{			
+			return leaf1.toString().compareTo(leaf2.toString());				
 		}
 	}
 	
+	class MSigFunctionComparator implements Comparator<SigFunction>
+	{
+		public int compare(SigFunction f1, SigFunction f2)
+		{			
+			return f1.toPrettyString().compareTo(f2.toPrettyString());				
+		}
+	}
+			
 	private void printBooleanMatrix(boolean[][] connM, int max)
 	{
 		long theHash = 0;
@@ -1449,7 +1455,8 @@ public class FormulaSigInfo
 					// M(i, j) = UNION {M(i, j) , M(i, k) ~+ M(k, j) } 					
 					Set<SortEdge> combined = combineColorSets(validM[ii][kk], validM[kk][jj]);
 					if(validM[ii][jj].addAll(combined))
-						MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
+						if(debug)
+							MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
 				}				
 			}
 		}
@@ -1488,246 +1495,6 @@ public class FormulaSigInfo
 		}			
 	}
 
-	
-	
-	/*
-	private void findFinitarySorts()
-	{
-		// Precondition: unproductive functions removed.
-		
-		// DFS amongst sorts via these arcs: 
-		// (1) supersort LeafExpression 
-		// (2) inverted shadow-edges in dependency graph of _productive_ functions 
-		// (3) inverted shadow-edges in dependency graph of productive SAP functions
-		// (4) SAP coercions
-		// seek cycles. on stack when cycle with a non-SAP function found = infinitary.
-				
-		final Set<LeafExpression> todo = new HashSet<LeafExpression>(sorts);
-		final Set<LeafExpression> finitary = new HashSet<LeafExpression>();
-		final HashMap<LeafExpression, Set<LeafExpression>> arcs = new HashMap<LeafExpression, Set<LeafExpression>>();
-		final HashMap<LeafExpression, Set<LeafExpression>> canUseRealFunction = new HashMap<LeafExpression, Set<LeafExpression>>();
-		
-		final HashMap<LeafExpression, Set<LeafExpression>> takenArcs = new HashMap<LeafExpression, Set<LeafExpression>>();
-
-		// init
-		for(LeafExpression curr : todo)
-		{
-			arcs.put(curr, new HashSet<LeafExpression>());
-			canUseRealFunction.put(curr, new HashSet<LeafExpression>());
-			takenArcs.put(curr, new HashSet<LeafExpression>());
-		}
-
-		// real functions flowing in
-		for(SigFunction f : productiveFunctions)				
-			for(LeafExpression arg : f.arity)
-			{
-				arcs.get(f.sort).add(arg);	
-				canUseRealFunction.get(f.sort).add(arg);
-			}
-		
-		// Subsorts
-		for(LeafExpression curr : todo)
-			arcs.get(curr).addAll(subsorts.get(curr));
-				
-		// coercions due to SAP functions (global and local)
-		for(SigFunction f : productiveSAPFunctions)	
-			for(LeafExpression arg : f.arity)
-				arcs.get(f.sort).add(arg);					
-		
-		while(todo.size() > 0)
-		{			
-			// Get an arbitrary element of unknown:
-			LeafExpression curr = todo.iterator().next();
-			Stack<LeafExpression> thispath = new Stack<LeafExpression>();
-			
-			doSortDFS(arcs, takenArcs, canUseRealFunction, curr, todo, finitary, thispath);
-			//MEnvironment.writeErrLine("DFS complete. Unknown remaining: "+todo);
-		}			
-		
-		finitarySorts.clear();
-		finitarySorts.addAll(finitary);		
-	}
-	
-	private boolean doSortDFS(
-			HashMap<LeafExpression, Set<LeafExpression>> arcs, 
-			HashMap<LeafExpression, Set<LeafExpression>> takenArcs,
-			HashMap<LeafExpression, Set<LeafExpression>> canUseRealFunction, 
-			
-			LeafExpression curr, Set<LeafExpression> todo, 
-			Set<LeafExpression> finitary, 
-			Stack<LeafExpression> thispath)
-	{
-		// Corner cases that need to be handled. Guide path through properly or else!
-		// Sorts: A, B, C
-		// Coercions: A->B, B->A, B->C, C->B
-		// Func: C->A
-		// Path: B C B A B (stops here and edges we need to complete cycle are used already!)
-		// Fixed if we prioritize exploration (or real edges)
-		
-		
-		// Sorts: A, B, C, D
-		// Coercions: A->B, B->C, C->D, D->C, A->D
-		// Func: D->B
-		// Path: A D C (and now there is no choice but to use the C->D edge that the cycle needs)
-		// NOT fixed if we prioritize exploration (but real edges works)
-		
-		
-		
-		// Options to search through: all arcs not yet taken
-		// Always prioritize exploration (visiting sorts not on stack) or we lose correctness
-		
-		Set<LeafExpression> optionsExplore = new HashSet<LeafExpression>(arcs.get(curr));
-		optionsExplore.removeAll(takenArcs.get(curr));
-		Set<LeafExpression> optionsDefer = new HashSet<LeafExpression>();
-		for(LeafExpression opt : optionsExplore)
-		{
-			if(thispath.contains(opt))
-				optionsDefer.add(opt);
-		}
-		optionsExplore.removeAll(optionsDefer);
-		
-		//MEnvironment.writeErrLine("in doSortDFS: ");
-		//MEnvironment.writeErrLine("curr = "+curr);
-		//MCommunicator.writeToLog("\nIn doSortDFS with current="+curr);
-		//MEnvironment.writeErrLine("optionsExplore = "+optionsExplore);
-		//MEnvironment.writeErrLine("optionsDefer = "+optionsDefer);
-		//MEnvironment.writeErrLine("thispath = "+thispath);
-		//MEnvironment.writeErrLine("");
-		
-		Set<LeafExpression> optionsTainted = new HashSet<LeafExpression>(optionsExplore);
-		optionsTainted.addAll(optionsDefer);
-		optionsTainted.retainAll(canUseRealFunction.get(curr));
-		optionsExplore.removeAll(optionsTainted);
-		optionsDefer.removeAll(optionsTainted);
-		
-		List<LeafExpression> optionsInOrder = new ArrayList<LeafExpression>(optionsExplore.size() + optionsDefer.size());
-		optionsInOrder.addAll(optionsTainted);		
-		optionsInOrder.addAll(optionsExplore);
-		optionsInOrder.addAll(optionsDefer);
-						
-		for(LeafExpression next : optionsInOrder)
-		{
-			// check off this arc
-			takenArcs.get(curr).add(next);
-			
-			//MCommunicator.writeToLog("\n  taking arc to next="+next);
-			//MCommunicator.writeToLog("\n  next in todo?="+todo.contains(next));
-			//MCommunicator.writeToLog("\n  next in finitary?="+finitary.contains(next));
-			
-			// have we dealt with the destination already?
-			if(!todo.contains(next))
-			{
-				// is the destination known to be infinitary?
-				if(!finitary.contains(next))
-				{
-					// We are searching through reverse-edges, so this sort is infinitary too.
-					
-					//System.err.println(curr + " was marked infinitary since "+next+" was.");
-					todo.remove(curr);
-					return false; 
-				}
-				// next has been fully checked and shown to be finitary. no new info that way.
-				else
-			 		continue; // move on to next option  
-			}
-
-			boolean taintedCycle = false;
-			
-			if(thispath.contains(next))
-			{
-				//MEnvironment.writeErrLine("Detected thispath contained next: "+next+" thispath: "+thispath);
-				//MCommunicator.writeToLog("\nDetected thispath contained next: "+next+" thispath: "+thispath+" curr: "+curr);
-				//MCommunicator.writeToLog("\n  OptionsInOrder: "+optionsInOrder);
-				//MCommunicator.writeToLog("\nt: "+ optionsTainted);
-				//MCommunicator.writeToLog("\ne: "+optionsExplore);
-				//MCommunicator.writeToLog("\nd: "+optionsDefer);
-				//MCommunicator.writeToLog("\n");
-				
-				// Is the cycle tainted?
-				// (meaning, is there an actual function taken on it, instead of just coercions)
-				int idx = thispath.lastIndexOf(next); // cycle doesn't have to cover the entire path so far.
-				int maxIdx = thispath.size() - 1;
-				for(int iCount = idx;iCount<=maxIdx;iCount++)
-				{
-					LeafExpression toRel = curr;
-					if(iCount < maxIdx)
-						toRel = thispath.get(iCount + 1);
-					
-					// Could this arc use a func?
-					if(canUseRealFunction.get(thispath.get(iCount)).contains(toRel))
-					{
-						//MCommunicator.writeToLog("\n  Tainted cycle. Could use a real func from "+thispath.get(iCount)+" to "+toRel);
-						taintedCycle = true;
-						break;
-					}					
-					
-				} // end for each part of potential cycle
-				
-				// can the next hop use a real function?
-				// (next hop isn't yet in the stack, so need a separate test)
-				if(canUseRealFunction.get(curr).contains(next))
-				{
-					taintedCycle = true;
-					//MCommunicator.writeToLog("\n  Tainted Cycle. Cycle induced by next hop via a real function.");
-				}
-				else
-				{
-					//MCommunicator.writeToLog("\n  Cycle was safe. Only coercions used.");
-				}
-			}
-			else if(next == curr)
-			{
-				// cycle of length 1 -- curr isnt on the stack yet!
-				if(canUseRealFunction.get(curr).contains(curr))
-				{
-					taintedCycle = true;
-					//MCommunicator.writeToLog("\n  Tainted Cycle. Length=1. curr was: "+curr);
-				}
-				else
-				{
-					//MCommunicator.writeToLog("\n  Cycle was safe. Length=1. curr was: "+curr);
-				}
-			}
-						
-			// if we used a real function, found a "tainted cycle". 
-			// (if not, go ahead and follow)
-			if(taintedCycle)
-			{		
-				//MEnvironment.writeErrLine("Cycle w/ real function! "+thispath + " top: "+thispath.peek());
-				
-				todo.remove(curr);
-				return false;
-			}
-			else
-			{
-
-				//MEnvironment.writeErrLine("recursing from "+curr+" to "+next);				
-				
-				thispath.push(curr); // leave a trail of breadcrumbs
-				boolean safe = doSortDFS(arcs, takenArcs, canUseRealFunction, next, todo, finitary, thispath);
-				thispath.pop(); // eat the breadcrumbs on the way back
-				
-				//MEnvironment.writeErrLine("safe: "+safe+", next="+next);
-				
-				// Found an infinitary sort that flows into curr. curr is infinitary, too.
-				if(!safe)
-				{
-					todo.remove(curr);
-					return false;
-				}
-			}
-		}
-				
-		// Only reach this point if all reachable sorts have been shown finitary.
-		// (This is because we explore before deferring, above)
-		
-		//MEnvironment.writeErrLine("safe: "+curr+"; options were: "+optionsExplore +" and "+optionsDefer +" in order: "+optionsInOrder+", stack was: "+thispath);
-		finitary.add(curr);
-		todo.remove(curr);
-		return true;
-	}
-	*/
-	
 	private void calculateBounds()
 	{
 		// If all sorts are infinitary...
@@ -1743,24 +1510,37 @@ public class FormulaSigInfo
 			for(int iCol=0;iCol < finitarySorts.size();iCol++)
 				totals[iRow][iCol] = BigInteger.ZERO;
 		
-		
+		// ---------------------------------------------------------------
 		// Fix an ordering of the finitary sorts
+		// Make the ordering deterministic (by alphabetic order)
+		List<LeafExpression> sortedFinitarySorts = new ArrayList<LeafExpression>(finitarySorts);
+		Collections.sort(sortedFinitarySorts, new MLeafExpressionComparator());
+		
 		Map<LeafExpression, Integer> sortsInOrder = new HashMap<LeafExpression, Integer>();
 		int ii = 0;
-		for(LeafExpression s : finitarySorts)
+		for(LeafExpression s : sortedFinitarySorts)
 		{
 			sortsInOrder.put(s, Integer.valueOf(ii));
 			ii++;
 		}
 		
+		// ---------------------------------------------------------------
 		// And an ordering of the non-constant functions
 		Map<SigFunction, Integer> funcsInOrder = new HashMap<SigFunction, Integer>();
+		List<SigFunction> sortedProductiveFunctions = new ArrayList<SigFunction>(productiveFunctions);
+		Collections.sort(sortedProductiveFunctions, new MSigFunctionComparator());		
 		ii = 0;
 		for(SigFunction f : productiveFunctions)
 		{
 			funcsInOrder.put(f, Integer.valueOf(ii));
 			ii++;
 		}
+		
+		
+		// We increment the term count in 2 phases: populate and propagate.
+		// POPULATE phase: the native type of the term.
+		// PROPAGATE phase: propagate the term through subsortness and coercions
+		
 		
 		// ---------------------------------------------------------------
 		// Step 1: Populate the height=0 row with constant terms
@@ -1772,14 +1552,18 @@ public class FormulaSigInfo
 			// First, build a list of all native sorts for c. 
 			// (c.sort, but also coercions due to sort-as-predicate appearance)			
 			Set<LeafExpression> toPopulate = new HashSet<LeafExpression>();
+			
 			// native w/o coercion
 			if(finitarySorts.contains(c.sort))
 				toPopulate.add(c.sort);
-			// SAP coercions (from SAP constants)
+			
+			// LOCAL SAP coercions (from SAP constants)
+			// not true coercions, just statements that "c" may also be a B as well as an A.
 			for(SigFunction sc : sapConstants)
 				if(sc.funcCause.equals(c) && finitarySorts.contains(sc.sort))
 					toPopulate.add(sc.sort);
-			// SAP coercions (from SAP functions)
+			
+			// GLOBAL SAP coercions (from SAP functions)
 			for(SigFunction sf : sapFunctions)
 				if(sf.funcCause == null) // coercion not specific to a skolem function
 					if(sf.arity.get(0).equals(c.sort) && finitarySorts.contains(sf.sort))
@@ -1803,6 +1587,14 @@ public class FormulaSigInfo
 
 				
 				// Propagate (<=) -- don't duplicate!
+				
+				// !!!!!!!!!!!!!!
+				// TODO: need to propagate by SAP coercions too (and then by <= from those, and coercions... etc etc etc)
+				//       really want transitive closure of blue reachability. Oh hey, we computed that!
+				// (TODO: same for step 2, will need to change how propagation is done)
+				//     Note: really mean BLUE only reachability, since taking a red edge = next level of the table.
+				// If reverting to non-disj-using version of code, need to add 2nd table to Warshall
+				
 				for(LeafExpression r : supersorts.get(pop))
 				{
 					if(r == pop) continue;
@@ -2177,10 +1969,35 @@ public class FormulaSigInfo
 		if(test22.getTermCount() != 1 || test22.getTermCount(B) != 1 || test22.getTermCount(C) != 1 || test22.getTermCount(A) != 1)
 			System.err.println("FormulaSigInfo test case 22 failed.");	
 		
+		// A, B, C... D, E
+		// A < B, A < C, D < E
+		// SAP coercion from C -> D
+		// constant in A. Should propagate through SAP to both D and E.
+		LeafExpression D = Relation.unary("D");
+		LeafExpression E = Relation.unary("E");
+		sorts2.add(D);
+		sorts2.add(E);
+		order2.put(D, new HashSet<LeafExpression>());
+		order2.get(D).add(E);
+		
+		Formula fmla23 = 
+			A.some() // a in A
+		.and(x.in(D).forAll(x.oneOf(C))); // SAP from C to D
+		
+		FormulaSigInfo test23 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23, EnumSAPHandling.sapKeep);
+		if(test23.getTermCount() != 1 || test23.getTermCount(A) != 1 || test23.getTermCount(C) != 1
+				|| test22.getTermCount(D) != 1 ||  test22.getTermCount(E) != 1)
+		{
+			System.err.println("FormulaSigInfo test case 23 failed.");
+			test23.printInfo();
+		}
 		
 		
 		
-		// ****** Disjointness
+		/////////////////////////////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////////////////////////////
+		// ****** Disjointness tests
+		// do not enable these if reverting to prior version of Warshall
 				
 		Set<LeafExpression> sortsd1 = new HashSet<LeafExpression>();
 		sortsd1.add(Sort1); sortsd1.add(Sort2); sortsd1.add(Sort3);
@@ -2210,14 +2027,13 @@ public class FormulaSigInfo
 		 // func
 		  .and(Formula.TRUE.forSome(y.oneOf(Sort3)).forAll(z.oneOf(Sort2)));
 		
-		debug = true;
+		//debug = true;
 		FormulaSigInfo testd1 = new FormulaSigInfo(sortsd1, orderd1, predicates, emptyFunctions, emptyConstants, fmlad1, EnumSAPHandling.sapKeep, disjs1);
 		testd1.printInfo();
 		
 		
-		// should be producing CONSTANTS. why funcs?
-		//Formula fmlad1 = Formula.TRUE.forSome(c1.oneOf(Sort1)).and(Formula.TRUE.forSome(c2.oneOf(Sort2)))
 		
+
 		
 		
 		// need more devious test cases involving case 20's kind of SAP (not a coercion -- just another result sort)
