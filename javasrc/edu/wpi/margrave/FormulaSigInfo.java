@@ -152,6 +152,11 @@ public class FormulaSigInfo
 			needed.add(arity);
 			result = sort;			
 		}
+		
+		public String toString()
+		{
+			return "<<<Clause: Result="+result+"; needed="+needed+" for function:"+theFunction+">>>";
+		}
 	}
 	
 		
@@ -766,14 +771,14 @@ public class FormulaSigInfo
 		for(SigFunction f : originalFunctions)
 			validateFunction(f, "in the original signature");
 		for(SigFunction c : originalConstants)
-			validateFunction(c, "in the original signature");		
+			validateFunction(c, "in the original signature");							
 		
 		// Discover and cache the set of functions which are productive.
 		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
 		findProductiveFunctions();
 		msProductive = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
-		//mCycProductive = (qs.getCpuTimeInMegaCycles() - startMegacycles);
+		//mCycProductive = (qs.getCpuTimeInMegaCycles() - startMegacycles);		
 		
 		// Do a cycle check to find finitary sorts
 		startTime = mxBean.getCurrentThreadCpuTime();
@@ -904,13 +909,15 @@ public class FormulaSigInfo
 			funcList.add(new FuncClause(f));	
 		for(SigFunction f : sapFunctions)
 			funcList.add(new FuncClause(f));	
-		
 				
 		// For simplicity in this algorithm, treat the sort ordering as a set of inclusion functions.		
 		for(LeafExpression sub : supersorts.keySet())
 			for(LeafExpression sup : supersorts.get(sub))
 				funcList.add(new FuncClause(sub, sup));
 		
+		if(enableDebug)
+			MEnvironment.writeErrLine("Clause list: \n"+funcList);
+				
 		// and an ordering on the sorts of constant symbols (to start)
 		Queue<LeafExpression> units = new LinkedList<LeafExpression>();
 		for(SigFunction c : skolemConstants)
@@ -1371,7 +1378,6 @@ public class FormulaSigInfo
 		for(int ii=0;ii<max;ii++)
 			for(int jj=0;jj<max;jj++)			
 				blueM[ii][jj] = SortEdge.NONE;	
-
 		
 		// Subsorts
 		for(LeafExpression curr : sortedSorts)
@@ -1382,7 +1388,13 @@ public class FormulaSigInfo
 				int src = sortToInt.get(curr);
 				int dest = sortToInt.get(sub);
 				
-				if(!areDisj(curr, sub)) 
+				boolean areTheyDisj = areDisj(curr, sub);
+				
+				if(enableDebug)
+					MEnvironment.writeErrLine("Sort "+curr+" had subsort "+sub+". areTheyDisj="+areTheyDisj);
+				
+				
+				if(!areTheyDisj) 
 					blueM[src][dest] = SortEdge.BLUE;
 			}			
 		}
@@ -2106,9 +2118,43 @@ public class FormulaSigInfo
 			testd1.printInfo();
 		}		
 		
+		///////////////////////////////////////////////////////////
+		// DISJ-2
+		// Make sure *necessary* self-loops are covered in the R-B path computation
+		// TODO this test doesn't cover that case very well since Sort1 disj Sort2...
+		// Is there such a thing as a necessary self-loop? (Go back to the proof)
+		Map<LeafExpression, Set<LeafExpression>> orderd2 = new HashMap<LeafExpression, Set<LeafExpression>>();
+		orderd2.put(Sort1, new HashSet<LeafExpression>());
+		orderd2.put(Sort2, new HashSet<LeafExpression>());
+		orderd2.put(Sort3, new HashSet<LeafExpression>());
+		// Sort1 < Sort2 < Sort3
+		orderd2.get(Sort1).add(Sort2);
+		orderd2.get(Sort1).add(Sort3);
+		orderd2.get(Sort2).add(Sort3);
+		
+		Map<LeafExpression, Set<LeafExpression>> disjs2 = new HashMap<LeafExpression, Set<LeafExpression>>();
+		disjs2.put(Sort1, new HashSet<LeafExpression>());
+		disjs2.get(Sort1).add(Sort3); 
+		
+		// something is in Sort1.
+		// There is a function from Sort2 to Sort2.
+		Formula fmlad2 = Sort1.some()
+		.and(Formula.TRUE.forSome(y.oneOf(Sort2)).forAll(x.oneOf(Sort2)));
+		
+		//enableDebug = true;
+		
+		FormulaSigInfo testd2 = new FormulaSigInfo(sortsd1, orderd2, predicates, emptyFunctions, emptyConstants, fmlad2, EnumSAPHandling.sapKeep, disjs2);
+		
+		if(testd2.getTermCount() != -1 || testd2.getTermCount(Sort1) != 1 || testd2.getTermCount(Sort2) != -1 || testd2.getTermCount(Sort3) != -1)
+		{
+			System.err.println("FormulaSigInfo test case DISJ-2 failed.");
+			testd2.printInfo();
+		}	
 		
 		
-
+		
+		
+		
 		
 		
 		// need more devious test cases involving case 20's kind of SAP (not a coercion -- just another result sort)
