@@ -29,7 +29,10 @@ feedback and suggestions (including feature requests).
   @item{Open DrRacket (the graphical development environment for Racket) and select the 
         @onscreen{File|Install .plt file} menu option. Enter this URL in the @onscreen{Web} tab:
         
-        @url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
+        @; !!!!!!!!!
+        @; FOR DEVELOPMENT ONLY. When releasing, change to stable margrave-tool URL.
+        @;@url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
+        @url{http://www.cs.wpi.edu/~tn/temp/margrave-dev-1106.plt}
         
         Alternatively, download the .PLT file linked above and enter its location in the @onscreen{File} tab.}
 ]
