@@ -1,4 +1,4 @@
-#lang scheme/base
+#lang racket/base
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  Cisco IOS Configuration Modeling
@@ -139,12 +139,17 @@
     ;; symbol -> number
     ;;   Returns the numeric representation of an IP address in dotted-octet form
     (define/public (dotted-octet->number symbolic-address)
-      (let [(octets (rest (regexp-match (pregexp "(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)")
-                                        (symbol->string symbolic-address))))]
-        (bitwise-ior (arithmetic-shift (string->number (list-ref octets 0)) 24)
-                     (arithmetic-shift (string->number (list-ref octets 1)) 16)
-                     (arithmetic-shift (string->number (list-ref octets 2)) 8)
-                     (string->number (list-ref octets 3)))))
+      (define num-list (regexp-match (pregexp
+                                      "(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)")
+                                     (symbol->string symbolic-address)))      
+      (when (not num-list) ; error, not a good ip address
+        (raise-user-error (format "~a was not a valid IPv4 address. Unable to produce line number." symbolic-address)))       
+      (define octets (rest num-list))
+      (bitwise-ior (arithmetic-shift (string->number (list-ref octets 0)) 24)
+                   (arithmetic-shift (string->number (list-ref octets 1)) 16)
+                   (arithmetic-shift (string->number (list-ref octets 2)) 8)
+                   (string->number (list-ref octets 3))))
+    
     
     ;; number -> string
     ;;   Returns the dashed-octet representation of an IP address
