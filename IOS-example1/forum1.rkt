@@ -41,6 +41,7 @@ DEFVEC <reversepolicyvector> ahostname, exit-interface,
  
 // Load all the policies 
 // InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
+LOAD IOS "config-ack/config.txt" WITH "" "ack";
 LOAD IOS "config/config.txt" WITH "" "1";
 LOAD IOS "config-revised/config-revised.txt" WITH "" "2";
 LOAD IOS "config-reflexive/config.txt" WITH "" "3";

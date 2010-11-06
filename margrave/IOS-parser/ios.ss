@@ -1078,7 +1078,7 @@
     (inherit-field dest-port-in)
     
     (define flag-conditions (map (λ (flag)
-                                   `(,flag flag))
+                                   `(,flag flags))
                                  flags))
     
     ;; symbol symbol (listof (listof symbol)) -> rule%

@@ -99,6 +99,9 @@
   (printf "WARNING: Ignoring unsupported keyword: ~a on line ~a. Moving to next line...~n" token line )
   (printf "  (We currently require multi-line constructs to be terminated with a ! on its own line. That may be the problem.)~n"))
 
+(define (warning-unsupported/tcp line not-tcp-protocol)
+ (printf "WARNING: Line ~a used a command that expected protocol tcp. Got ~a.~n" line not-tcp-protocol))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Access Control Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -687,6 +690,28 @@
                                                    (make-object port% (second line-tokens))
                                                    (drop line-tokens 2)
                                                    config)]
+                [(match-any) (if (eqv? protocol 'tcp)
+                                 (parse-ip-named-access-list8 line
+                                                              name
+                                                              disposition
+                                                              src-addr
+                                                              src-port
+                                                              dest-addr
+                                                              (make-object port-range% 0 65535)
+                                                              (rest line-tokens)
+                                                              config)
+                                 (warning-unsupported/tcp line protocol))]
+                [(match-all) (if (eqv? protocol 'tcp)
+                                 (parse-ip-named-access-list9 line
+                                                              name
+                                                              disposition
+                                                              src-addr
+                                                              src-port
+                                                              dest-addr
+                                                              (make-object port-range% 0 65535)
+                                                              (rest line-tokens)
+                                                              config)
+                                 (warning-unsupported/tcp line protocol))]
                 [(reflect) (parse-ip-named-access-list7 line
                                                         name
                                                         disposition
@@ -737,7 +762,7 @@
                                                               dest-port
                                                               (rest line-tokens)
                                                               config)
-                                 config)]
+                                 (warning-unsupported/tcp line protocol))]
                 [(match-all) (if (eqv? protocol 'tcp)
                                  (parse-ip-named-access-list9 line
                                                               name
@@ -748,7 +773,7 @@
                                                               dest-port
                                                               (rest line-tokens)
                                                               config)
-                                 config)]
+                                 (warning-unsupported/tcp line protocol))]
                 [else (warning-unsupported line (first line-tokens) '(reflect match-any match-all))
                       config])]))
 
