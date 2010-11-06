@@ -32,7 +32,7 @@ feedback and suggestions (including feature requests).
         @; !!!!!!!!!
         @; FOR DEVELOPMENT ONLY. When releasing, change to stable margrave-tool URL.
         @;@url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
-        @url{http://www.cs.wpi.edu/~tn/temp/margrave-dev-1106.plt}
+        @url{http://www.cs.wpi.edu/~tn/temp/margrave-dev-1106a.plt}
         
         Alternatively, download the .plt file linked above and enter its location in the @onscreen{File} tab.}
 ]
