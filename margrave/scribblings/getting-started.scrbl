@@ -34,7 +34,7 @@ feedback and suggestions (including feature requests).
         @;@url{http://www.margrave-tool.org/v3/margrave-full-300-stable.plt}
         @url{http://www.cs.wpi.edu/~tn/temp/margrave-dev-1106.plt}
         
-        Alternatively, download the .PLT file linked above and enter its location in the @onscreen{File} tab.}
+        Alternatively, download the .plt file linked above and enter its location in the @onscreen{File} tab.}
 ]
 
 
@@ -101,9 +101,9 @@ conflicted = {}
 assigned = {} 
 
 STATISTICS:  
-Computed max size: 3 
-Max size: 3 
-User max size: 6 
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3
 ********************************************************"]
 
 @tt{SHOW ONE} tells Margrave to print a single scenario (in no particular order). 
@@ -122,9 +122,9 @@ conflicted = {[s, r]}
 assigned = {[s, r]}
 
 STATISTICS: 
-Computed max size: 3
-Max size: 3
-User max size: 6
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3
 ********************************************************"]
 
 If Margrave finds no more solutions, it will say so. 
@@ -149,9 +149,9 @@ You can write more refined queries using @tt{AND}, @tt{OR}, @tt{NOT}, @tt{IMPLIE
 "---> No more solutions! <---
 
 STATISTICS: 
-Computed max size: 3
-Max size: 3
-User max size: 6"]
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3"]
 
 Queries can involve multiple policies. Let's load a second policy and try asking how the permit different requests:
 
@@ -175,9 +175,9 @@ conflicted = {[s, r]}
 assigned = {[s, r]}
 
 STATISTICS: 
-Computed max size: 3
-Max size: 3
-User max size: 6
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3
 ********************************************************"]
 
 Since queries like this one completely describe how new and old versions of a policy disagree, we call them @deftech{change-impact} queries.
@@ -229,10 +229,9 @@ conflicted = {}
 assigned = {[s, r]}
 
 STATISTICS: 
-Computed max size: 3
-Max size: 3
-Result ID: 0
-User max size: 6
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3
 ********************************************************
 > "]
 
@@ -312,9 +311,9 @@ dest-port-in: port-25
 src-addr-out: ipaddress 
 
 STATISTICS: 
-Computed max size: 1
-Max size: 1
-User max size: 6
+Margrave computed that 1 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 1
 ********************************************************"
 ]
 
@@ -453,9 +452,9 @@ conflicted = {[s, r]}
 assigned = {}
 
 STATISTICS: 
-Computed max size: 3
-Max size: 3
-User max size: 6
+Margrave computed that 3 would be a sufficient size ceiling.
+No ceiling explicitly provided in the query's CEILING clause.
+Used size ceiling: 3
 ********************************************************"]
 
 This text represents a scenario where the query is
