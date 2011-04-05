@@ -17,9 +17,8 @@
 
 #lang racket
 
-(require (file "../margrave.rkt")
-         (file "../margrave-ios.rkt")
-         xml)
+(require margrave
+         margrave/margrave-ios)
 
 ; Vectors for the queries in this file
 
@@ -87,7 +86,7 @@
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
   ; no JVM options, but turn on Margrave's logging
-  (start-margrave-engine (build-path (current-directory) 'up) '() '( "-log" ))
+  (start-margrave-engine)
   
   ; Load all the policies 
   (load-ios-policies (build-path (current-directory) "network") "" "")  

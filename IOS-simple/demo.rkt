@@ -17,11 +17,11 @@
 
 #lang racket
 
-(require (file "../margrave.rkt")
-         (file "../margrave-ios.rkt"))
+(require margrave
+         margrave/margrave-ios)
 
 
-(define vector "(ahostname, entry-interface, 
+(define my-vector "(ahostname, entry-interface, 
         src-addr-in, src-addr-out, 
         dest-addr-in, dest-addr-out, 
         protocol, message, flags,
@@ -35,7 +35,7 @@
   ; Start Margrave's java engine
   ; Pass path of the engine files: 1 level up from here.
 ;  (start-margrave-engine (build-path (current-directory) 'up))
-  (start-margrave-engine (build-path (current-directory) 'up) '() '("-log"))
+  (start-margrave-engine)
   
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
@@ -97,16 +97,16 @@
   
   (printf "~n~nRule-blaming:~n")
   
-  (display-response (mtext (string-append "EXPLORE InboundACL1:Deny" vector
+  (display-response (mtext (string-append "EXPLORE InboundACL1:Deny" my-vector
                         
                         " AND 10.1.1.2 = src-addr-in"
                         " AND fe0 = entry-interface "
                         
-                        " INCLUDE InboundACL1:Router-fe0-line9_applies" vector ","
-                        "InboundACL1:Router-fe0-line12_applies" vector
+                        " INCLUDE InboundACL1:Router-fe0-line9_applies" my-vector ","
+                        "InboundACL1:Router-fe0-line12_applies" my-vector
                         " TUPLING")))
-  (display-response (mtext (string-append "SHOW REALIZED InboundACL1:Router-fe0-line9_applies" vector ","
-                        "InboundACL1:Router-fe0-line12_applies" vector)))
+  (display-response (mtext (string-append "SHOW REALIZED InboundACL1:Router-fe0-line9_applies" my-vector ","
+                        "InboundACL1:Router-fe0-line12_applies" my-vector)))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; change-impact
@@ -198,15 +198,15 @@
   ;; This involves rules in the first change (InboundACL2)
   ; line 12 wants to apply: what prevents it from doing so?
   
-  (display-response (mtext (string-append "EXPLORE InboundACL2:Router-fe0-line12_matches" vector
+  (display-response (mtext (string-append "EXPLORE InboundACL2:Router-fe0-line12_matches" my-vector
                         
-                        " INCLUDE InboundACL2:Router-fe0-line9_applies" vector ","
-                        "InboundACL2:Router-fe0-line10_applies" vector ","
-                        "InboundACL2:Router-fe0-line11_applies" vector
+                        " INCLUDE InboundACL2:Router-fe0-line9_applies" my-vector ","
+                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
+                        "InboundACL2:Router-fe0-line11_applies" my-vector
                         " TUPLING"))) 
-  (display-response (mtext (string-append "SHOW REALIZED InboundACL2:Router-fe0-line9_applies" vector ","
-                        "InboundACL2:Router-fe0-line10_applies" vector ","
-                        "InboundACL2:Router-fe0-line11_applies" vector)))
+  (display-response (mtext (string-append "SHOW REALIZED InboundACL2:Router-fe0-line9_applies" my-vector ","
+                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
+                        "InboundACL2:Router-fe0-line11_applies" my-vector)))
   
   
   
