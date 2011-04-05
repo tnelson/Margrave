@@ -5,9 +5,11 @@
 
 @title{The @bold{Margrave} Tool for Policy Analysis}
 @author[@author+email["Tim Nelson" "tn@cs.wpi.edu"]
+         "Christopher Barratt"
          "Daniel J. Dougherty"
          "Kathi Fisler"
-         "Shriram Krishnamurthi"]
+         "Shriram Krishnamurthi"
+         "Varun Singh"]
 
 
 @; Don't need a ToC here since the sidebar on the left also gives it.
@@ -30,4 +32,4 @@
                           #:author "Timothy Nelson and Christopher Barratt and Daniel J. Dougherty and Kathi Fisler and Shriram Krishnamurthi"
                           #:location "Proceedings of the 24th USENIX Large Installation System Administration Conference (LISA 2010)"
                           #:date "2010"	 	 	 	 
-                          #:url "http://web.cs.wpi.edu/~tn/Publications/lisa10-margrave-final.pdf")]
+                          #:url "http://web.cs.wpi.edu/~tn/publications/index.html#nbdfk10")]
