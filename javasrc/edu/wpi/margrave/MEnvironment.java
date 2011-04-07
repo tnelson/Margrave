@@ -643,13 +643,20 @@ public class MEnvironment
 	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
 	
 	static int lastResult = -1; // uninitialized
+		
+	// both streams will be packaged with the response XML
 	
-	// BOTH are System.err because out is reserved for XML communication.
-	// DO NOT set outStream to System.out
-	// DO NOT directly println to these streams without flushing.
-	// Use the MEnvironment.writeErrLine (etc.) functions.
-	protected static PrintStream errorStream = System.err;
-	protected static PrintStream outStream = System.err;
+	// System.err should never be written to, because Racket
+	// does not read from it, and it could cause a freeze.
+
+	// System.out should never be written to except by
+	// MCommunicator, since Racket expects well-formed XML.
+	
+	protected static StringWriter errorBuffer = new StringWriter();
+	protected static PrintWriter errorWriter = new PrintWriter(errorBuffer);
+	
+	protected static StringWriter outBuffer = new StringWriter();
+	protected static PrintWriter outWriter = new PrintWriter(outBuffer);
 	
 	public static String eol = System.getProperty("line.separator");
 	public static String sNoIterator = "no iterator";
@@ -691,26 +698,27 @@ public class MEnvironment
 	// Functions to send immediately: don't run out of space. 
 	// Writing too much without flushing seems to interfere 
 	// with the XML protocol.
+	// apr 2011: may no longer be needed
 	static public void writeOutLine(Object str)
 	{
-		outStream.println(str);
-		outStream.flush();
+		outWriter.println(str);
+		outWriter.flush();
 	}
 	static public void writeOut(Object str)
 	{
-		outStream.print(str);
-		outStream.flush();
+		outWriter.print(str);
+		outWriter.flush();
 	}
 	
 	static public void writeErrLine(Object obj)
 	{					
-		errorStream.println(obj);
-		errorStream.flush();
+		errorWriter.println(obj);
+		errorWriter.flush();
 	}
 	static public void writeErr(Object obj)
 	{
-		errorStream.print(obj);
-		errorStream.flush();
+		errorWriter.print(obj);
+		errorWriter.flush();
 	}
 	
 	
@@ -804,7 +812,7 @@ public class MEnvironment
 	static void printOut(Object out, boolean silent)
 	{
 		if(!silent)
-			outStream.println(out.toString());
+			outWriter.println(out.toString());
 	}
 	
 	static Document getNextModel(int numResult)
@@ -1024,7 +1032,7 @@ public class MEnvironment
    		    }catch (Exception e)
    		    {
    		      //Catch exception if any
-   		      System.err.println("Error: " + e.getMessage());
+   		    	MEnvironment.errorWriter.println("Error: " + e.getMessage());
    		    }
     }
 

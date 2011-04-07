@@ -1317,7 +1317,7 @@ public class MVocab {
 		// Make sure B -> A in shared
 		checkSharedDisjointness(B, A, shared);
 
-//		System.err.println("Time (ms) to checkSharedDisj both directions (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
+//		MEnvironment.errorStream.println("Time (ms) to checkSharedDisj both directions (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
 	//	start = mxBean.getCurrentThreadCpuTime();
 
 		
@@ -1329,8 +1329,8 @@ public class MVocab {
 		// construct a new disjoints set for uber.
 		HashMap<MSort, Set<MSort>> new_ax_disjoints = new HashMap<MSort, Set<MSort>>();
 			
-		//System.err.println(A.sorts);		
-		//System.err.println(A.axioms.axiom_disjoints.keySet());
+		//MEnvironment.errorStream.println(A.sorts);		
+		//MEnvironment.errorStream.println(A.axioms.axiom_disjoints.keySet());
 		// eh? _1 under one?
 		
 		
@@ -1339,7 +1339,7 @@ public class MVocab {
 		
 		uber.axioms.axiomDisjoints = new_ax_disjoints;
 		
-		//System.err.println("Time (ms) to adddisjsToSet (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
+		//MEnvironment.errorStream.println("Time (ms) to adddisjsToSet (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
 		//start = mxBean.getCurrentThreadCpuTime();
 		
 
@@ -1414,8 +1414,9 @@ public class MVocab {
 		}
 		catch(IOException e)
 		{
-			System.err.println(e);
-			e.printStackTrace();
+			MEnvironment.errorWriter.println(e);
+			// don't do this. would go through System.err
+			//e.printStackTrace();
 			return false;
 		}
 		
@@ -1485,7 +1486,7 @@ public class MVocab {
 		
 		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
 		{
-			MEnvironment.errorStream.println("MVocab test 1: FAILED!");
+			MEnvironment.errorWriter.println("MVocab test 1: FAILED!");
 		}
 		
 		voc.addSubSort("a", "c");
@@ -1496,7 +1497,7 @@ public class MVocab {
 		
 		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
 		{
-			MEnvironment.errorStream.println("MVocab test 2: FAILED!");
+			MEnvironment.errorWriter.println("MVocab test 2: FAILED!");
 		}
 		
 		

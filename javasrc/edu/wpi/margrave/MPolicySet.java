@@ -156,7 +156,7 @@ public class MPolicySet extends MPolicy
 		}
 		catch(MGEBadIdentifierName e)
 		{
-			System.err.println("Bad identifier name in initIDBs().");
+			MEnvironment.errorWriter.println("Bad identifier name in initIDBs().");
 			System.exit(1);
 		}
 		
@@ -172,10 +172,10 @@ public class MPolicySet extends MPolicy
 
 	public void printPolicyInfo()
 	{
-		MEnvironment.errorStream.println("###########################");
-		MEnvironment.errorStream.println("Policy Name: "+name);
-		MEnvironment.errorStream.println("This is a policy SET with policy combinator: "+pCombine);
-		MEnvironment.errorStream.println("Target Formula: "+target);		
+		MEnvironment.errorWriter.println("###########################");
+		MEnvironment.errorWriter.println("Policy Name: "+name);
+		MEnvironment.errorWriter.println("This is a policy SET with policy combinator: "+pCombine);
+		MEnvironment.errorWriter.println("Target Formula: "+target);		
 		
 		String cstr = "";
 		for(MPolicy child : children)
@@ -186,19 +186,19 @@ public class MPolicySet extends MPolicy
 				cstr = cstr + " " + child.name;
 		}
 		
-		MEnvironment.errorStream.println("Children: "+cstr);					
+		MEnvironment.errorWriter.println("Children: "+cstr);					
 		
-		MEnvironment.errorStream.println("\nIDB and EDB predicates available for use in queries:");
+		MEnvironment.errorWriter.println("\nIDB and EDB predicates available for use in queries:");
 		
-		MEnvironment.errorStream.println("IDBs:");		
+		MEnvironment.errorWriter.println("IDBs:");		
 		prettyPrintIDBs();		
 		prettyPrintEDBs();
-		MEnvironment.errorStream.print("\n\n");
+		MEnvironment.errorWriter.print("\n\n");
 		
-		MEnvironment.errorStream.println("Policy-level constraints: ");
+		MEnvironment.errorWriter.println("Policy-level constraints: ");
 		assumptions.printConstraints();
 		
-		MEnvironment.errorStream.println("###########################\n");
+		MEnvironment.errorWriter.println("###########################\n");
 	}
 	
 	public String getDecisionForRuleIDBName(String idbname)

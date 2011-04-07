@@ -218,16 +218,16 @@ public class MJavaTests
 		MSolutionInstance inst = sols.next();
 		MSolutionInstance preinst = result.forQuery.processTupledSolutionForThis(inst);
 		
-		System.err.println(inst.getFacts());
-		System.err.println(preinst.getFacts());
+		MEnvironment.errorStream.println(inst.getFacts());
+		MEnvironment.errorStream.println(preinst.getFacts());
 		
 		
 		System.exit(1);*/
 		
-		/*System.err.println(pol2.getRulesList("", true));
-		System.err.println(pol2.getRulesList("", false));
-		System.err.println(pol2.getRulesList("permit", true));
-		System.err.println(pol2.getRulesList("permit", false));		
+		/*MEnvironment.errorStream.println(pol2.getRulesList("", true));
+		MEnvironment.errorStream.println(pol2.getRulesList("", false));
+		MEnvironment.errorStream.println(pol2.getRulesList("permit", true));
+		MEnvironment.errorStream.println(pol2.getRulesList("permit", false));		
 		System.exit(1);*/
 		
 		qry.prettyPrintSolutions();
@@ -2701,10 +2701,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.writeErrLine("rules = 100; k = 3; sm = 3; NO; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2718,10 +2718,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 		}
 		msTotal = (mxBean.getCurrentThreadCpuTime()-start)/1000000;
 		MEnvironment.writeErrLine("rules = 100; k = 3; sm = 3; YES; mean tup="+tuptime/numTrials+" mean is-sat="+msTotal/numTrials);
@@ -2762,10 +2762,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2782,10 +2782,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2836,10 +2836,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 		//	if(iCount == numTrials-1)
 		//		sol.prettyPrintOneSolution();
@@ -2856,10 +2856,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2908,10 +2908,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -2928,10 +2928,10 @@ public class MJavaTests
 			substart = mxBean.getCurrentThreadCpuTime();
 			MInstanceIterator sol = qry.runQuery().getTotalIterator();
 			tuptime += sol.getQueryTuplingTime();
-			System.err.print(sol.getQueryTuplingTime());
-			System.err.print(", ");						
+			MEnvironment.errorWriter.print(sol.getQueryTuplingTime());
+			MEnvironment.errorWriter.print(", ");						
 			sol.hasNext(); // is sat?
-			System.err.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
+			MEnvironment.errorWriter.println((mxBean.getCurrentThreadCpuTime()-substart)/1000000);
 
 			//if(iCount == numTrials-1)
 			//	sol.prettyPrintOneSolution();
@@ -3173,7 +3173,7 @@ public class MJavaTests
 
 		if(!"rpslist".equals(pol.name) ||
 		   !"MGPolicySet".equals(pol.getClass().getName()))
-			System.err.println("Failed XACML 1.0 interface test!");
+			MEnvironment.errorWriter.println("Failed XACML 1.0 interface test!");
 		else
 			MEnvironment.writeErrLine("Passed XACML 1.0 interface test.");
 

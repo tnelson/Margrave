@@ -61,25 +61,25 @@ public class MPolicyLeaf extends MPolicy
 
 	public void printPolicyInfo()
 	{
-		MEnvironment.errorStream.println("###########################");
-		MEnvironment.errorStream.println("Policy Name: "+name);
-		MEnvironment.errorStream.println("This is a ground policy with rule combinator: "+rCombine);
-		MEnvironment.errorStream.println("Target Formula: "+target);		
+		MEnvironment.errorWriter.println("###########################");
+		MEnvironment.errorWriter.println("Policy Name: "+name);
+		MEnvironment.errorWriter.println("This is a ground policy with rule combinator: "+rCombine);
+		MEnvironment.errorWriter.println("Target Formula: "+target);		
 		
-		MEnvironment.errorStream.println("Rules:");
+		MEnvironment.errorWriter.println("Rules:");
 		prettyPrintRules();
 
-		MEnvironment.errorStream.println("\nIDB and EDB predicates available for use in queries:");
+		MEnvironment.errorWriter.println("\nIDB and EDB predicates available for use in queries:");
 		
-		MEnvironment.errorStream.println("IDBs:");
+		MEnvironment.errorWriter.println("IDBs:");
 		prettyPrintIDBs();		
 		prettyPrintEDBs();
-		MEnvironment.errorStream.print("\n\n");
+		MEnvironment.errorWriter.print("\n\n");
 		
-		MEnvironment.errorStream.println("Policy-level assumptions: ");
+		MEnvironment.errorWriter.println("Policy-level assumptions: ");
 		assumptions.printConstraints();
 		
-		MEnvironment.errorStream.println("###########################\n");
+		MEnvironment.errorWriter.println("###########################\n");
 	}
 
 	/**
@@ -87,14 +87,14 @@ public class MPolicyLeaf extends MPolicy
 	 */
 	public void prettyPrintRules()
 	{
-		MEnvironment.errorStream.println("Rules (Name ::= Decision :- Target, Condition):");
+		MEnvironment.errorWriter.println("Rules (Name ::= Decision :- Target, Condition):");
 		Iterator<MRule> blergh = rules.iterator();
 		while(blergh.hasNext())			
 		{
 			MRule blerghr = blergh.next();
-			MEnvironment.errorStream.println(blerghr.name + " ::= " + blerghr.decision() + " :- "+ blerghr.target + ", "+blerghr.condition);
+			MEnvironment.errorWriter.println(blerghr.name + " ::= " + blerghr.decision() + " :- "+ blerghr.target + ", "+blerghr.condition);
 		}
-		MEnvironment.errorStream.println("");
+		MEnvironment.errorWriter.println("");
 	}
 
 	public List<String> getRulesList(String decname, boolean qualified)
@@ -212,7 +212,7 @@ public class MPolicyLeaf extends MPolicy
 		}
 		catch(MGEBadIdentifierName e)
 		{
-			System.err.println("Bad identifier name in initIDBs().");
+			MEnvironment.errorWriter.println("Bad identifier name in initIDBs().");
 			System.exit(1);
 		}
 		

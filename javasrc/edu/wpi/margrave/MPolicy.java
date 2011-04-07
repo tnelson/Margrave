@@ -270,14 +270,14 @@ public abstract class MPolicy extends MIDBCollection
 		for(Variable v : p1.vocab.requestVectorOrder)
 			reqVector.add(v.name());
 
-		//System.out.println(p1);
-		//System.out.println(p2);
-		//System.out.println(p1.name);
-		//System.out.println(p2.name);
-		//System.out.println(p1.varOrdering);
-		//System.out.println(p2.varOrdering);
-		//System.out.println(p1.varSorts);
-		//System.out.println(p2.varSorts);
+		//MEnvironment.outWriter.println(p1);
+		//MEnvironment.outWriter.println(p2);
+		//MEnvironment.outWriter.println(p1.name);
+		//MEnvironment.outWriter.println(p2.name);
+		//MEnvironment.outWriter.println(p1.varOrdering);
+		//MEnvironment.outWriter.println(p2.varOrdering);
+		//MEnvironment.outWriter.println(p1.varSorts);
+		//MEnvironment.outWriter.println(p2.varSorts);
 		
 		// For each decision, generate a potential diff condition
 		// vocab combination will be done in the final check
@@ -427,25 +427,25 @@ public abstract class MPolicy extends MIDBCollection
 	 */
 	public void prettyPrintIDBs()
 	{
-		MEnvironment.errorStream.println("IDBs in policy "+name+":");
+		MEnvironment.errorWriter.println("IDBs in policy "+name+":");
 		for(String n : idbs.keySet())
 		{
-			MEnvironment.errorStream.println(n+": "+idbs.get(n));
+			MEnvironment.errorWriter.println(n+": "+idbs.get(n));
 		}
-		MEnvironment.errorStream.println("");
+		MEnvironment.errorWriter.println("");
 	}	
 	
 	public void prettyPrintEDBs()
 	{
-		MEnvironment.errorStream.println("Request Type EDBs: ");
+		MEnvironment.errorWriter.println("Request Type EDBs: ");
 		
 		//boolean commaneeded = false;
 		for(MSort t : vocab.sorts.values())
 		{
 			if(t.parent == null)
-				MEnvironment.errorStream.println(t.name+" <-- base type");
+				MEnvironment.errorWriter.println(t.name+" <-- base type");
 			else
-				MEnvironment.errorStream.println(t.name + "( "+ vocab.getUniverseSort(t).name +" )");
+				MEnvironment.errorWriter.println(t.name + "( "+ vocab.getUniverseSort(t).name +" )");
 			
 			/*if(commaneeded)
 				MEnvironment.errorStream.print(", ");
@@ -453,10 +453,10 @@ public abstract class MPolicy extends MIDBCollection
 			commaneeded = true;*/
 		}
 		
-		MEnvironment.errorStream.println("State EDBs: ");
+		MEnvironment.errorWriter.println("State EDBs: ");
 		for(String relname : vocab.predicates.keySet())
 		{
-			MEnvironment.errorStream.println(relname + "( "+ vocab.predtypes.get(relname) +" )");
+			MEnvironment.errorWriter.println(relname + "( "+ vocab.predtypes.get(relname) +" )");
 			/*if(commaneeded)
 				MEnvironment.errorStream.print(", ");
 			MEnvironment.errorStream.print(relname);

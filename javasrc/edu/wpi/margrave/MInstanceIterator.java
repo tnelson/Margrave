@@ -161,7 +161,7 @@ class MTotalInstanceIterator extends MInstanceIterator
 				
 				// Proof isn't supported in Kodkod for SAT4j 
 				// (SAT4j has been adding "explanations" that may provide what we need?)
-				//System.err.println(" PROOF: "+sol.proof());
+				//sol.proof();
 				
 				
 				iteratorlist.remove(0);
@@ -244,14 +244,14 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 			{
 				//MCommunicator.writeToLog("\n  applyIndexing loop for: "+predname);
 				
-				//System.err.println("predname: "+predname);
-				//System.err.println(candidates.get(predname));
+				//MEnvironment.errorStream.println("predname: "+predname);
+				//MEnvironment.errorStream.println(candidates.get(predname));
 				for(List<String> anIndexing : candidates.get(predname))
 				{
 					//MCommunicator.writeToLog("\n    applyIndexing inner loop for: "+predname);
 					String newName = predname;
 				
-//					System.err.println("indexing: "+anIndexing);
+//					MEnvironment.errorStream.println("indexing: "+anIndexing);
 					
 					// Query should have saved the visitor (and hence the ordering) in internalTuplingVisitor
 
@@ -270,7 +270,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 						
 					}					
 					
-					//System.err.println(newName);
+					//MEnvironment.errorStream.println(newName);
 					indexedCandidates.add(newName);
 					originalPreds.put(newName, predname);
 					originalIndexing.put(newName, anIndexing);
@@ -722,12 +722,12 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 			catch(TimeoutException e)
 			{
 				// ...
-				System.err.println(e.getMessage());
+				MEnvironment.errorWriter.println(e.getMessage());
 			}
 			catch(IllegalArgumentException e)
 			{
-				MEnvironment.errorStream.println("ILLEGAL ARG (inner)");
-				System.err.println(e.getMessage());
+				MEnvironment.errorWriter.println("ILLEGAL ARG (inner)");
+				MEnvironment.errorWriter.println(e.getMessage());
 				issat = false;
 			}
 			
@@ -755,7 +755,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 				
 			}
 			else if(fromResult.forQuery.debug_verbosity > 1)
-				MEnvironment.errorStream.println("Found "+theVar+" FALSE");
+				MEnvironment.errorWriter.println("Found "+theVar+" FALSE");
 			
 			
 		} // end loop while still vars to look for
@@ -1247,7 +1247,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 		MEnvironment.writeOutLine("@@@@@ Don't cares were: ");
 		for(int iVar=1;iVar<=numPrimaryVariables;iVar++)
 			if(dontCares[iVar])
-				MEnvironment.outStream.print(iVar + " ");
+				MEnvironment.outWriter.print(iVar + " ");
 		MEnvironment.writeOutLine("");
 		
 		// TODO to optimize speed, could store some of these values we are calculating (like vars -> clauses map) and expand each call
@@ -1629,7 +1629,7 @@ class CNFSpy implements SATSolver
 			//pw.flush();
    			
 			//if(x == null)
-   			//System.err.println("conv: "+x + " : "+aClause.toString());
+   			//MEnvironment.errorStream.println("conv: "+x + " : "+aClause.toString());
    			// sometimes null, but not always
    			// taut, cont, or... unit?
    		}
@@ -1658,7 +1658,7 @@ class CNFSpy implements SATSolver
     			for(int jj=ii+1;jj<wrapper.size();jj++)
     			{
     				if(Math.abs(wrapper.get(ii)) == Math.abs(wrapper.get(jj)))
-    					System.err.println("TAUT");
+    					MEnvironment.errorStream.println("TAUT");
     			}*/
     	}
     	
@@ -1969,7 +1969,7 @@ public abstract class MInstanceIterator
 			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
 			Set<Formula> impSet = new HashSet<Formula>();
 			
-			//System.err.println(fromResult.forQuery.idbNamesToOutput);
+			//MEnvironment.errorStream.println(fromResult.forQuery.idbNamesToOutput);
 			
 			// Decisions, Rule Applicability, etc. (IDBs at policy level)
 			for(MIDBCollection idbs : fromResult.forQuery.myIDBCollections.values())
@@ -1978,7 +1978,7 @@ public abstract class MInstanceIterator
 			 
 				for(String idbname : idbs.idbs.keySet())
 				{
-					//System.err.println(idbs.name+":"+idbname);							
+					//MEnvironment.errorStream.println(idbs.name+":"+idbname);							
 					
 					// Is this an idb to be published? If not, skip it.
 					if(!fromResult.forQuery.getIDBNamesToOutput().contains(idbs.name+":"+idbname))
@@ -1988,8 +1988,8 @@ public abstract class MInstanceIterator
 															
 					Formula idbFormula = idbs.idbs.get(idbname);
 					
-					//System.err.println("++ " +idbs.name+":"+idbname);
-					//System.err.println(idbFormula.hashCode());
+					//MEnvironment.errorStream.println("++ " +idbs.name+":"+idbname);
+					//MEnvironment.errorStream.println(idbFormula.hashCode());
 					
 					// At this point, idbFormula is using object references from the Policy instead
 					// of the proper vocabulary, which would lead to unbound relation exceptions if 
@@ -2126,7 +2126,7 @@ public abstract class MInstanceIterator
 					// Save in a set and make one Conjunction NaryFormula.
 					
 					impSet.add(imp);
-					//System.err.println(imp);
+					//MEnvironment.errorStream.println(imp);
 					
 					// ****
 					// We only quantify vars that actually matter, EVEN IF the idb definition itself
@@ -2218,7 +2218,7 @@ public abstract class MInstanceIterator
 		}
 		catch(NoSuchMethodException e)
 		{
-			System.err.println("Unable to register GC callback with JavaBDD.");
+			MEnvironment.errorStream.println("Unable to register GC callback with JavaBDD.");
 		}
 		
 		thebdd = factory.zero();		

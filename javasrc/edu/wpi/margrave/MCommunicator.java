@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -51,9 +52,11 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.commons.io.output.WriterOutputStream;
 import org.w3c.dom.Document;
 //import org.w3c.dom.Element;
 //import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -74,9 +77,14 @@ public class MCommunicator
 	
 	static boolean bDoLogging = false;
 	
-	static String makeLastResortError(Document theResponse)
+	static String makeLastResortError()
 	{
 		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document</ERROR></MARGRAVE-RESPONSE>";
+	}
+	
+	static String makeDetailedError(String str)
+	{
+		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>"+str+"</ERROR></MARGRAVE-RESPONSE>";		
 	}
 	
 	public static void main(String[] args) 
@@ -87,6 +95,12 @@ public class MCommunicator
 			//MEnvironment.debugParser = true;
 			bDoLogging = true;
 		}					
+	 
+		// also TODO: re-enable stack printing!
+
+		// Re-direct all System.err input to our custom buffer		
+		// Uses Apache Commons IO for WriterOutputStream.
+		System.setErr(new PrintStream(new WriterOutputStream(MEnvironment.errorWriter), true));
 	
 		initializeLog();
 		writeToLog("\n\n");
@@ -120,11 +134,15 @@ public class MCommunicator
             } catch (IOException ex) {
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            
             Document theResponse;
             try
             {
-            	theResponse = xmlHelper(doc.getFirstChild(), command);
+                // protect against getFirstChild() call            
+                if(doc != null)
+                	theResponse = xmlHelper(doc.getFirstChild(), command);
+                else
+                	theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, MEnvironment.sCommand, command);
             }
             catch(Exception e)
             {
@@ -157,16 +175,27 @@ public class MCommunicator
             
             try 
             {
+            	// add in any supplemental or error information         
+            	
+            	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
+            	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
+            	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
+            	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
+            	
+            	theResponse.getDocumentElement().appendChild(envOutChild);
+            	theResponse.getDocumentElement().appendChild(envErrChild);
+            	
         		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
         		out.write(transformXML(theResponse));
-        	} catch (IOException e) {
-        		// TODO Auto-generated catch block
-        		e.printStackTrace();
+        	} catch (IOException e)
+        	{
+        		// don't do this. would go through System.err
+        		//e.printStackTrace();
         	}
         	out.flush(); // ALWAYS FLUSH!
-        	System.err.flush(); // just in case
-        }
+        } // end handleXMLCommand
 
+        
         //Takes a MARGRAVE-COMMAND node
         private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException
         {        	
@@ -237,7 +266,7 @@ public class MCommunicator
 	        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
 	        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
 	        					if (exploreCondition == null)
-	        						MEnvironment.errorStream.println("explore condition is null!");
+	        						MEnvironment.errorWriter.println("explore condition is null!");
 	        					MQuery result = null;
 	        					
 	        					//Default Values                                     					
@@ -1193,7 +1222,7 @@ public class MCommunicator
 
         	}
         	
-        	MEnvironment.errorStream.println("exploreHelper returning null! error! name was: "+name);
+        	MEnvironment.errorWriter.println("exploreHelper returning null! error! name was: "+name);
         	
         return null;
     }
@@ -1237,8 +1266,9 @@ public class MCommunicator
     	 }
     	 catch (IOException e)
     	 {
-   	      System.err.println("\nError initializing log file: "+ e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")");
-   	      System.err.flush();
+    		 // Couldn't initialize log. try to report back to Racket.
+   	      out.println(makeDetailedError("\nError initializing log file: "+ e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")")+cEOF);
+   	      out.flush();
    	      System.exit(3);
     	 }
     	 
@@ -1259,7 +1289,8 @@ public class MCommunicator
     	 catch (Exception e)
     	 {
     	     //Catch exception if any
-    	     System.err.println("\nError writing log file: " + e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")");
+    		 out.println(makeDetailedError("\nError writing log file: " + e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")"));
+    		 out.flush();
     	     System.exit(3);
     	 }
      }
@@ -1277,13 +1308,16 @@ public class MCommunicator
    					writeToLog("========================================\n========================================\n");
    					writeToLog((new Date()).toString());
    					writeToLog("\nExecuting command: " + theCommand.toString() + "\n");
+   					
+   					
+   					// deal with the command (including returning the result)
    					handleXMLCommand(theCommand.toString());
 
    					theCommand = new StringBuffer();
    				}
    				else if(theChar == -1)
    				{
-   					// 	keep waiting for a semicolon.
+   					// 	keep waiting for a semicolon. the command is still coming.
    				}
    				else
    				{
@@ -1296,7 +1330,7 @@ public class MCommunicator
    		{
    			out.println(setupError+cEOF);
    			out.flush();
-   			System.err.flush();
+   			// don't need to flush System.err since we never use it anymore.
    		}
      }
           
@@ -1323,10 +1357,10 @@ public class MCommunicator
 		}
 		catch(Exception e)
 		{
-			// Will hit this if theResponse is null.		
-			System.err.println(e.getLocalizedMessage());
+			// Will hit this if theResponse is null.	
+			// don't do this. would go through System.err
 			//e.printStackTrace();
-			return (makeLastResortError(theResponse)+cEOF);
+			return (makeDetailedError(e.getLocalizedMessage())+cEOF);
 		}
 	}
      
@@ -1352,10 +1386,10 @@ public class MCommunicator
 		}
 		catch(Exception e)
 		{
-			// Will hit this if theResponse is null.		
-			System.err.println(e.getLocalizedMessage());
+			// Will hit this if theResponse is null.	
+			// don't do this. would go through System.err
 			//e.printStackTrace();
-			return (makeLastResortError(theResponse)+cEOF).getBytes();
+			return (makeDetailedError(e.getLocalizedMessage())+cEOF).getBytes();
 		}
 	}
 	

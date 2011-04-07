@@ -157,7 +157,7 @@ public class MQuery extends MIDBCollection
 		//myQueryFormula = nFormula.accept(new SimplifyFormulaV());
 		myQueryFormula = nFormula;
 
-		// System.err.println("Time (ms) to simplify formula in MGQuery.init(): "+
+		// MEnvironment.errorStream.println("Time (ms) to simplify formula in MGQuery.init(): "+
 		// (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
 		// MREPL.outStream.println("After: "+myQueryFormula);
 		// Initial solver is...
@@ -1060,12 +1060,12 @@ public class MQuery extends MIDBCollection
  							
  							
 
-							//System.err.println("Tupling IDB: "+new_internal_name);
-							//System.err.println(new_idbformula.hashCode());
+							//MEnvironment.errorStream.println("Tupling IDB: "+new_internal_name);
+							//MEnvironment.errorStream.println(new_idbformula.hashCode());
 
-							//System.err.println(tupledIDBCollections.keySet());
-							//System.err.println(tupledIDBCollections.get(polName).idbs);
-							//System.err.println(new_internal_name);
+							//MEnvironment.errorStream.println(tupledIDBCollections.keySet());
+							//MEnvironment.errorStream.println(tupledIDBCollections.get(polName).idbs);
+							//MEnvironment.errorStream.println(new_internal_name);
 
 
 						} // end for each indexing on this name
@@ -1740,7 +1740,7 @@ public class MQuery extends MIDBCollection
 					}
 					if (new_i_names.size() > 1)
 					{
-						//System.err.println(new_i_names);
+						//MEnvironment.errorStream.println(new_i_names);
 						mtup.newvocab.axioms.addConstraintDisjoint(new_i_names);
 					}
 
@@ -1772,11 +1772,11 @@ public class MQuery extends MIDBCollection
 								Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
 								eqTopLevelDisjAxioms.add(thisAxiom);
 
-								//System.err.println("Asserting "+thisAxiom);
+								//MEnvironment.errorStream.println("Asserting "+thisAxiom);
 
 							}
 
-						//System.err.println(ii+","+jj+"; "+oldAppearingAti + " : "+oldAppearingAtj);
+						//MEnvironment.errorStream.println(ii+","+jj+"; "+oldAppearingAti + " : "+oldAppearingAtj);
 
 
 
@@ -2820,7 +2820,7 @@ public class MQuery extends MIDBCollection
 					} catch (MGEUnknownIdentifier E) {
 						// Not a type predicate, so wait and display it below.
 					} catch (MGEBadIdentifierName e) {
-						System.err.println("Bad identifier while printing.");
+						MEnvironment.errorWriter.println("Bad identifier while printing.");
 						System.exit(1);
 					}
 
@@ -3013,9 +3013,9 @@ public class MQuery extends MIDBCollection
 				//prettyPrintSolution(it.forQuery.vocab, partialInstance);
 
 				// Output routines
-				System.err.println(internalTupledQuery);
-				System.err.println(doTupling);
-				System.err.println(tupled);
+				MEnvironment.errorWriter.println(internalTupledQuery);
+				MEnvironment.errorWriter.println(doTupling);
+				MEnvironment.errorWriter.println(tupled);
 
 				if(!tupled && internalTupledQuery != null)
 				{
@@ -3071,13 +3071,13 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeOutLine("(HU was infinite.)");
 
 		if (it.warn_user()) {
-			MEnvironment.outStream
+			MEnvironment.outWriter
 					.println("\n*** WARNING! ***\n* Did not test high enough model sizes for certainty.");
-			MEnvironment.outStream
+			MEnvironment.outWriter
 					.println("* (The H.U. was empty, infinite, or larger than the user provided model size maximum.)\n");
 		}
 		if (it.fromResult.msQueryCreationTime < 0)
-			MEnvironment.outStream
+			MEnvironment.outWriter
 					.println("\nThreadMXBean's isCurrentThreadCpuTimeSupported() returned false; unable to benchmark via CPU time.");
 		else {
 			// Convert from nanosecond to millisecond precision
@@ -3090,7 +3090,7 @@ public class MQuery extends MIDBCollection
 					+ it.msKodkodSolveTime + " ms.");
 			MEnvironment.writeOutLine("CPU Time to prepare Margrave Query: "
 					+ it.fromResult.msQueryCreationTime + " ms.");
-			MEnvironment.outStream
+			MEnvironment.outWriter
 					.println("CPU Time spent getting solutions from KodKod (not including I/O): "
 							+ (timeused - timeforoutput) + " ms.");
 		}
@@ -3100,7 +3100,7 @@ public class MQuery extends MIDBCollection
 
 		}
 		MEnvironment.writeOutLine("Used SAT Solver: " + mySATFactory);
-		MEnvironment.outStream
+		MEnvironment.outWriter
 				.println("============================================================");
 	}
 
@@ -3216,7 +3216,7 @@ public class MQuery extends MIDBCollection
 		Instance dontcare = new Instance(u);
 
 
-		//System.err.println(partialInstance.getFacts());
+		//MEnvironment.errorStream.println(partialInstance.getFacts());
 
 		// Now fill the relations in the new instance
 		for(Relation r : partialInstance.getFacts().relations())
@@ -3299,7 +3299,7 @@ public class MQuery extends MIDBCollection
 						// Add the tuple to the pre-tupling relation
 						newInstance.add(newr, theTuples);
 
-						//System.err.println(newr+": "+instance.relationTuples().get(newr));
+						//MEnvironment.errorStream.println(newr+": "+instance.relationTuples().get(newr));
 					}
 					catch(MGEBadIdentifierName e)
 					{
@@ -4385,10 +4385,10 @@ public class MQuery extends MIDBCollection
 
 	public void addIDBOutputs(String idbname)
 	{
-		//System.err.println("adding: "+idbname);
+		//MEnvironment.errorStream.println("adding: "+idbname);
 		if(!idbOutputIndexing.containsKey(idbname))
 			idbOutputIndexing.put(idbname, new HashSet<List<String>>());
-		//System.err.println(idbOutputIndexing);
+		//MEnvironment.errorStream.println(idbOutputIndexing);
 	}
 
 	public void addEDBIncludes(String edbname)

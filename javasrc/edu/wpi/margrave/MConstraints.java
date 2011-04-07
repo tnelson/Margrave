@@ -92,7 +92,7 @@ public class MConstraints
 
 	public void printConstraints()
 	{
-		MEnvironment.errorStream.println("<Placeholder>");
+		MEnvironment.errorWriter.println("<Placeholder>");
 	}
 
 	public void addConstraintAbstractAll(String d)
@@ -185,7 +185,7 @@ public class MConstraints
 					if(!child1.equals(t1) && vocab.axioms.axiom_disjoints.containsKey(child1))
 						if(vocab.axioms.axiom_disjoints.get(child1).contains(child2))
 						{
-							System.err.println("Removed");
+							
 							vocab.axioms.axiom_disjoints.get(child1).remove(child2);
 						}
 
@@ -193,7 +193,7 @@ public class MConstraints
 					if(!child2.equals(t2) && vocab.axioms.axiom_disjoints.containsKey(child2))
 						if(vocab.axioms.axiom_disjoints.get(child2).contains(child1))
 						{
-							System.err.println("Removed");
+						
 							vocab.axioms.axiom_disjoints.get(child2).remove(child1);
 						}
 				}		*/
