@@ -169,6 +169,11 @@
    (path->string
     (build-path home-path
                 "bin"
+                "commons-io-2.0.1.jar"))
+   java-class-separator
+   (path->string
+    (build-path home-path
+                "bin"
                 "json.jar"))))
 
 #|
@@ -179,7 +184,10 @@ gmarceau
 |#
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-(define (start-margrave-engine #:margrave-path [home-path default-margrave-home-path] #:jvm-params [user-jvm-params empty] #:margrave-params [user-margrave-params empty])
+(define (start-margrave-engine #:margrave-path [home-path default-margrave-home-path]
+                               #:jvm-params [user-jvm-params empty] 
+                               #:margrave-params [user-margrave-params empty])
+  
   ; If the engine isn't running (either uninitialized, or it died before we called this)
   (if (or (not java-process-list) 
           (not (eq? (ctrl-function 'status) 'running)))
@@ -192,7 +200,7 @@ gmarceau
              [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
         
         ;(printf "~a~n" margrave-params)        
-        ;(display (cons (string-append java-path java-exe-name)  margrave-params))
+        (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
         (printf "--------------------------------------------------~n")
         (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
                 home-path java-path user-jvm-params user-margrave-params)
@@ -305,21 +313,6 @@ gmarceau
         
         [else xml-response]))
 
-(define (flush-error error-buffer target-port)  ; read until nothing is left. This WILL block.
-  (let ([next-char (read-char target-port)])                                                
-    (when (not (equal? next-char eof))
-      (write-string (string next-char) error-buffer)
-      (flush-error error-buffer target-port))))
-
-
-(define (finish-error error-buffer target-port)
-  (when (char-ready? err-port)  ; If there is a character waiting, read it.
-    (let ([next-char (read-char target-port)])
-      (when (not (equal? next-char eof))
-        (write-string (string next-char) error-buffer)
-        (finish-error error-buffer target-port)))))
-
-
 ; m
 ; xexpr, func -> document or #f
 ; Sends the given XML to java. Returns #f if the engine has not been started.
@@ -331,107 +324,77 @@ gmarceau
   
   (define cmd (xexpr->string cmd-xexpr))
   
-  ;; gmarceau: use cond perhaps? 
-  (if (not java-process-list) 
-      (begin
-        (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
-        #f)
-      (begin 
-        ; DEBUG: Comment out to disable printing XML commands as they are sent
-        ;(printf "M SENDING XML: ~a;~n" cmd)
+
+  (cond [(not java-process-list)       
+         
+         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
+         #f]
         
-        ; Send the command XML (DO NOT COMMENT THIS OUT)
-        ; ******************************************
-        (display (string-append cmd ";") output-port)
-        (flush-output output-port)        
-        ; ******************************************
-        
-        ; Deal with the result
-        (let ([command-buffer (open-output-string)]
-              [error-buffer (open-output-string)]) 
-          (local (
+        [else
+         
+         ; DEBUG: Comment out to disable printing XML commands as they are sent
+         ;(printf "M SENDING XML: ~a;~n" cmd)
+         
+         ; Send the command XML (DO NOT COMMENT THIS OUT)
+         ; ******************************************
+         (display (string-append cmd ";") output-port)
+         (flush-output output-port)        
+         ; ******************************************
+         
+         ; Now deal with the result.
+         (define command-buffer (open-output-string))
+         
+         (define (fetch-result)
+           (let ([next-char (read-char input-port)])                      
+             (cond 
+               ; End of command's response.
+               [(equal? next-char #\nul) #t]
+               
+               ; port closed
+               [(equal? next-char eof) #f]
+               
+               ; In progress. Keep reading.  
+               [else                                   
+                (write-string (string next-char) command-buffer)                                                                  
+                (fetch-result)]))) 
+         
+         ; Populate the buffered ports                        
+         ; Handle the results
+         
+         (define port-status (fetch-result))
+         (cond [(equal? port-status #t)
+                
+                ; port is still open, but received the reply
+                (define result (get-output-string command-buffer))
+                (define result-xml (read-xml (open-input-string result)))
+                (define extra-err-data (get-response-extra-err result-xml))
+                (define extra-out-data (get-response-extra-out result-xml))
+                
+                (when (> (string-length extra-out-data) 0)
+                  (printf "~n~nAdditional output from Java engine:~n ~a~n" extra-out-data))
+                
+                (when (> (string-length extra-err-data) 0)
+                  (printf "~n~nErrors from Java engine:~n ~a~n" extra-err-data))
+                
+                (begin
+                  ; DEBUG: Comment out this line to stop printing the XML
+                  ;(printf "~a~n" result)                    
                   
-                  
-                  ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                  ; version before change to polling. this version will freeze up if
-                  ; too much err-port data is received while blocked waiting for input-port
-                  
-               #|   (define (fetch-result)
-                    ; Before checking for results on the input-port
-                    ; check for error bytes waiting.
-                    (finish-error)
-                                        
-                    ; Now read from the input port (This blocks)
-                    (let ([next-char (read-char input-port)])                      
-                      (cond [(equal? next-char #\nul)
-                             ; End of command's response. Finish any error data that may be waiting.
-                             (finish-error)
-                             #t]
-                            [(equal? next-char eof)
-                             ; Port closed. Read error until eof.
-                             (flush-error)
-                             #f]
-                            [else 
-                             ; In progress. Keep reading.                             
-                             (write-string (string next-char) command-buffer)
-                             
-                             ; DEBUG: Uncomment this to print each char as it is received.
-                             ;(display next-char)
-                             
-                             (fetch-result)]))) |#
-                  ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                  
-                  ; TEMPORARY: this fetch-result uses polling; won't block and possibly freeze
-                  ; if err port sends while it waits for input port.
-                  ; TODO: use threads or custom ports to do this without polling
-                  (define (fetch-result)
-                    (if (char-ready? input-port) 
-                        (let ([next-char (read-char input-port)])                      
-                          (cond [(equal? next-char #\nul)
-                                 ; End of command's response. Finish any error data that may be waiting.
-                                 (finish-error error-buffer err-port)
-                                 #t]
-                                [(equal? next-char eof)
-                                 ; Port closed. Read error until eof.
-                                 (flush-error error-buffer err-port)
-                                 #f]
-                                [else 
-                                  ; In progress. Keep reading.  
-                                 (write-string (string next-char) command-buffer)                                                                  
-                                 (fetch-result)]))
-                        (begin
-                          (finish-error error-buffer err-port)
-                          (fetch-result))))
-                  
-                  )
-            
-            ; Populate the buffered ports                        
-            ; Handle the results
-            (let* ([port-status (fetch-result)]
-                   [result (get-output-string command-buffer)]
-                   [error-str (get-output-string error-buffer)])
-              (when (> (string-length error-str) 0)
-                (printf "~n**************************************************~nAdditional information from Java engine:~n ~a~n**************************************************~n" error-str))
-              (if (equal? port-status #t)
-                  
-                  (begin
-                    ; DEBUG: Comment out this line to stop printing the XML
-                    ;(printf "~a~n" result)                    
-                    
-                    ; Parse the reply and return the document struct
-                    ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
-                    (response-handler-func src-syntax (read-xml (open-input-string result))))
-                  
-                  (begin
-                    ; Got eof, the port has been cloed.
-                    (printf "Margrave engine has closed. EOF reached. No document to return.")      
-                    
-                    ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
-                    ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
-                    ;           spamming with "The engine is not started..."
-                    ;(cleanup-margrave-engine)
-                    
-                    #f))))))))
+                  ; Parse the reply and return the document struct
+                  ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
+                  (response-handler-func src-syntax result-xml))]
+                
+               ; Got eof, the port has been closed.
+               [else
+                
+                (printf "Margrave engine has closed. EOF reached. No document to return.")      
+                 
+                 ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
+                 ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
+                 ;           spamming with "The engine is not started..."
+                 ;(cleanup-margrave-engine)
+                 
+                  #f])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -441,36 +404,6 @@ gmarceau
   (response->string (mtext "LOAD POLICY \"" (if (path? fn)
                                               (path->string fn)
                                               fn) "\"")))
-; TN oct 17 2010 commented out. just use the LOAD POLICY command. the code below is no longer functional
-#|
-(define (load-policy fn)
-  #| gmarceau
-  (match-define 
-   (list polname vocabname
-         (app make-simple-load-func vocab-script)
-         (app make-simple-load-func policy-script))
-   (evaluate-policy fn))
-  |#
-  (let* ([pol-result-list (evaluate-policy fn)]
-         [polname (first pol-result-list)]
-         [vocabname (second pol-result-list)]
-         [vocab-script (make-simple-load-func polname vocabname (third pol-result-list))]
-         [policy-script (make-simple-load-func polname vocabname (fourth pol-result-list))]
-        ; [dbg (printf "~a~n" vocab-script)]
-         
-         ; Java will handle creation of the vocab if it hasn't already been created.
-         
-         ; Use the namespace anchor or else caller's namespace may be insufficient.
-         
-         ; Eval and invoke the function to create the vocab
-         [vocab-results ((eval vocab-script the-margrave-namespace))]
-         
-         ; Eval and invoke the function to create the policy
-         [policy-results ((eval policy-script the-margrave-namespace))])
-        
-    polname))
-|#
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -574,6 +507,13 @@ gmarceau
 ;      (display (string-append desc ": FAILED!")))
 ;  (newline))
 
+; read from stderr until nothing is left. This WILL block.
+(define (flush-error error-buffer target-port) 
+  (let ([next-char (read-char target-port)])
+    (when (not (equal? next-char eof))
+      (write-string (string next-char) error-buffer)
+      (flush-error error-buffer target-port))))
+
 ; To run tests:
 (define (run-java-test-cases (home-path default-margrave-home-path) (user-jvm-params empty))
   (let* ([error-buffer (open-output-string)]
@@ -593,6 +533,7 @@ gmarceau
     (printf "--------------------------------------------------~n")
     
     (define test-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
+    
     ; Keep waiting until the JVM closes on its own (tests will print results via error port)
     
     (flush-error error-buffer (fourth test-process-list))

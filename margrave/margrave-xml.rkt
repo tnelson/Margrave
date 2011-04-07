@@ -42,6 +42,9 @@
  xml-make-load-xacml
  xml-make-load-sqs
  
+ get-response-extra-err
+ get-response-extra-out
+ 
  ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
  ; They are the correct way to construct XML
  xml-make-true-condition
@@ -498,6 +501,29 @@
     (map (lambda (item-element)             
            (pcdata-string (first (element-content item-element))))
          item-elements)))
+
+; XML --> string
+; Extracts the extra output info from the response. This element contains
+; anything added to System.out while the engine was running.
+(define (get-response-extra-out response-element-or-document)  
+  (let* ([response-element (maybe-document->element response-element-or-document)]
+         [extra-element (get-child-element response-element 'EXTRA-OUT)])   
+    ; may be no EXTRA-OUT element
+    ; also may be there but empty. account for both
+    (if (or (empty? extra-element) (empty? (element-content extra-element)))
+        ""
+        (pcdata-string (first (element-content extra-element))))))
+
+; XML --> string
+; Extracts the extra error info from the response. This element contains
+; anything added to System.err while the engine was running.
+(define (get-response-extra-err response-element-or-document)  
+  (let* ([response-element (maybe-document->element response-element-or-document)]
+         [extra-element (get-child-element response-element 'EXTRA-ERR)])    
+    (if (or (empty? extra-element) (empty? (element-content extra-element)))
+        ""
+        (pcdata-string (first (element-content extra-element))))))
+
 
 ; XML <MARGRAVE-RESPONSE type="list">  --> list
 ; Need to preserve ordering, even if XML has messed it up.
