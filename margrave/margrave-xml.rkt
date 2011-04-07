@@ -512,7 +512,7 @@
     ; also may be there but empty. account for both
     (if (or (empty? extra-element) (empty? (element-content extra-element)))
         ""
-        (pcdata-string (first (element-content extra-element))))))
+        (fold-append-with-spaces (map pcdata-string (filter pcdata? (element-content extra-element)))))))
 
 ; XML --> string
 ; Extracts the extra error info from the response. This element contains
@@ -522,7 +522,7 @@
          [extra-element (get-child-element response-element 'EXTRA-ERR)])    
     (if (or (empty? extra-element) (empty? (element-content extra-element)))
         ""
-        (pcdata-string (first (element-content extra-element))))))
+        (fold-append-with-spaces (map pcdata-string (filter pcdata? (element-content extra-element)))))))
 
 
 ; XML <MARGRAVE-RESPONSE type="list">  --> list
