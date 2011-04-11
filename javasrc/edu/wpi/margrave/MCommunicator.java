@@ -113,7 +113,7 @@ public class MCommunicator
 	}
 
         public static void handleXMLCommand(String command)
-        {
+        {        	
             DocumentBuilder docBuilder = null;
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             try {
@@ -181,6 +181,10 @@ public class MCommunicator
             	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
             	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
             	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
+            	
+            	// Clear out the "out" and "error" buffers.        	
+            	MEnvironment.errorBuffer.getBuffer().setLength(0);
+            	MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
             	
             	theResponse.getDocumentElement().appendChild(envOutChild);
             	theResponse.getDocumentElement().appendChild(envErrChild);
