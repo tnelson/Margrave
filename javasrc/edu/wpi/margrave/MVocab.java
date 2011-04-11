@@ -33,17 +33,15 @@ class MSort
 {
 	String name;
 	Relation rel;
-	MSort parent; // if any
-
-	// In parent/child tree -- other subset constraints go in MGConstraints
-	// object.
+	
+	Set<MSort> parents; 
 	Set<MSort> subsorts;
 
 	MSort(String n) {
 		name = n;
 		rel = MFormulaManager.makeRelation(n, 1);
 		subsorts = new HashSet<MSort>();
-		parent = null;
+		parents = new HashSet<MSort>();
 	}
 
 	public String toString() {
@@ -52,7 +50,7 @@ class MSort
 }
 
 /**
- * MGVocab class holds a lexicon of "placeholder" variables and relations. It
+ * MVocab
  * effectively describes the domain of discourse.
  */
 public class MVocab {
@@ -61,12 +59,6 @@ public class MVocab {
 	// Then caller passes it to new policies.
 
 	String vocab_name;
-
-	// Some types of input need special treatment.
-	// It is conceivable that both flags may be set (if people are comparing
-	// policies that use both)
-	public boolean bUsesXACML;
-	public boolean bUsesIOS;
 
 	// KodKod Relation objects used by the policy.
 	HashMap<String, MSort> sorts;
@@ -99,13 +91,10 @@ public class MVocab {
 	// For instance, an access control policy would have ["Permit", "Deny"]
 	// This list does not include N/a, as that response is implied for all
 	// policies.
-	// Q: Do we need to distinguish N/a and EC?
 	HashSet<String> decisions;
 
 	public MVocab(String voc_name) {
-		vocab_name = voc_name;
-		bUsesXACML = false;
-		bUsesIOS = false;
+		vocab_name = voc_name;		
 
 		sorts = new HashMap<String, MSort>();
 		predicates = new HashMap<String, Relation>();
@@ -122,15 +111,6 @@ public class MVocab {
 		decisions = new HashSet<String>();
 
 		axioms = new MConstraints(voc_name + "_axioms", this);
-	}
-
-	MSort getUniverseSort(MSort t) {
-		if (t.parent == null)
-			return t;
-		MSort temp = t;
-		while (temp.parent != null)
-			temp = temp.parent;
-		return temp;
 	}
 
 	String validateIdentifier(String n, boolean substitute)
@@ -190,8 +170,8 @@ public class MVocab {
 			throws MGEUnknownIdentifier, MGEBadIdentifierName
 			{
 
-		// We declare that there is a type "name" and types (each child name,
-		// separated by whitespace)
+		// We declare that there is a type "name" and types 
+		//(each child name, separated by whitespace)
 		// And that name is a parent of all such.
 		name = validateIdentifier(name, true);
 
@@ -205,22 +185,34 @@ public class MVocab {
 		MSort t = getSort(name);
 		String[] cnames = childnames.split("\\s");
 
-		for (String cname : cnames) {
-			
+		// for each child in this declaration
+		for (String cname : cnames)
+		{		
 			cname = validateIdentifier(cname, true); 
 			
 			if (!isSort(cname))
 				sorts.put(cname, new MSort(cname));
 
 			MSort c = getSort(cname);
-			if (!t.subsorts.contains(c))
+			boolean addedNewSubsort = false;
+			if (!t.subsorts.contains(c))	
+			{
 				t.subsorts.add(c);
-			MSort oldparent = c.parent;
-			c.parent = t;
+				addedNewSubsort = true;
+			}
+		
+	
+			// may be an update, adding a parent, rather than a new child
+			Set<MSort> oldparents = c.parents;
+			c.parents = new HashSet<MSort>(c.parents);
+			c.parents.add(t);
 
+			// Does this result in a cycle? Then revert and fail.
 			if (searchForSelfAncestor(c)) {
-				t.subsorts.remove(c);
-				c.parent = oldparent;
+				
+				if(addedNewSubsort)
+					t.subsorts.remove(c);				
+				c.parents = oldparents;				
 				throw new MGEBadIdentifierName(
 						"Cyclic type structure not allowed: " + cname);
 			}
@@ -229,18 +221,22 @@ public class MVocab {
 	}
 
 	protected void addSingleTopLevelSort(String name)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
+			throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
 		// Creates a new sort and makes it the parent of all parentless types
+		// used in tupling
 
 		name = validateIdentifier(name, true);
 		if (!isSort(name))
 			sorts.put(name, new MSort(name));
 		MSort t = getSort(name);
 
-		for (MSort candidate : sorts.values()) {
-			if (!isSubtype(candidate) && !(candidate.name.equals(name))) {
+		for (MSort candidate : sorts.values())
+		{
+			if (!isSubtype(candidate) && !(candidate.name.equals(name)))
+			{
 				t.subsorts.add(candidate);
-				candidate.parent = t;
+				candidate.parents.add(t);
 			}
 		}
 	}
@@ -344,14 +340,22 @@ public class MVocab {
 		MSort childtype = getSort(name);
 		MSort parenttype = getSort(parentName);
 
-		MSort oldparent = childtype.parent;
+		Set<MSort> oldparents = childtype.parents;
 
-		childtype.parent = parenttype; // save time later
-		parenttype.subsorts.add(childtype);
+		childtype.parents = new HashSet<MSort>(childtype.parents); 
+		childtype.parents.add(parenttype);				
+		
+		boolean addedChild = false;
+		if(!parenttype.subsorts.contains(childtype))
+		{
+			parenttype.subsorts.add(childtype);
+			addedChild = true;
+		}
 
 		if (searchForSelfAncestor(childtype)) {
-			parenttype.subsorts.remove(childtype);
-			childtype.parent = oldparent;
+			if(addedChild)
+				parenttype.subsorts.remove(childtype);
+			childtype.parents = oldparents;
 			throw new MGEBadIdentifierName(
 					"Cyclic type structure not allowed: " + name);
 		}
@@ -464,9 +468,10 @@ public class MVocab {
 		return f;
 	}
 
-	boolean isSubtype(MSort thetype) {
+	boolean isSubtype(MSort thetype) 
+	{
 		// If this type has a parent...
-		if (thetype.parent != null)
+		if (thetype.parents.size() != 0)
 			return true;
 		return false;
 	}
@@ -712,12 +717,6 @@ public class MVocab {
 		return isAllDecs(Arrays.asList(strs));
 	}
 
-	public MSort getMaximalSupersort(MSort t) {
-		while (t.parent != null)
-			t = t.parent;
-		return t;
-	}
-	
 	public boolean isSubOrSubOf(String sub, String sup) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		return isSubOrSubOf(getSort(sub), getSort(sup));
@@ -878,10 +877,12 @@ public class MVocab {
 
 			// expand next, queue supers/supertypes not already dealt with or
 			// already queued
-			if (next.parent != null && !result.contains(next.parent)
-					&& !todo.contains(next.parent))
-				todo.add(next.parent);
-
+			for(MSort aParent : next.parents)
+			{
+				if(!result.contains(aParent) && !todo.contains(aParent))
+				todo.add(aParent);
+			}
+			
 			// indexed by CHILD
 			if (axioms.setsSubset.containsKey(next.name))
 				for (String supname : axioms.setsSubset.get(next.name)) {
@@ -946,7 +947,7 @@ public class MVocab {
 
 				// Since we require universe types to be disjoint.
 				// If we stop requiring that, remove this!
-				if (s1.parent == null && s2.parent == null && s1 != s2)
+				if (s1.parents.size() == 0 && s2.parents.size() == 0 && s1 != s2)
 					return false;
 			}
 		}
@@ -995,13 +996,19 @@ public class MVocab {
 
 		// Generate a list of shared type names
 		Set<String> shared = new HashSet<String>();
-		for (MSort t : sorts.values()) {
-			try {
+		for (MSort t : sorts.values())
+		{
+			try
+			{
 				// Is this a type name that both vocabs use?
 				MSort t2 = other.getSort(t.name);
 
 				shared.add(t.name);
 
+				/*
+				 * No longer require this as of Apr 2011; multiple parents are possible
+				 * and will simply take union of the two posets - TN
+				 * 
 				// If they both have parents, Then their parents must have the
 				// same name.
 				if (t.parent != null && t2.parent != null
@@ -1016,19 +1023,14 @@ public class MVocab {
 							"Type "
 									+ t.name
 									+ " did not have the same relation name in the vocabs.");
+				*/
 			} catch (MGEUnknownIdentifier e) {
 			}
+			
 		}
 
 		// Combine everything and return the result.
 		MVocab uber = new MVocab(vocab_name + "+" + other.vocab_name);
-
-		// If either vocab uses XACML or IOS features, the combined one does as
-		// well.
-		if (bUsesXACML || other.bUsesXACML)
-			uber.bUsesXACML = true;
-		if (bUsesIOS || other.bUsesIOS)
-			uber.bUsesIOS = true;
 
 		// For each sort
 		for (MSort t : sorts.values()) {
@@ -1440,7 +1442,7 @@ public class MVocab {
 		
 		// Start with the top-level sorts.
 		for(MSort aSort : sorts.values())
-			if(aSort.parent == null)
+			if(aSort.parents.size() == 0)
 				todo.add(aSort);
 		
 		while(todo.size() > 0)

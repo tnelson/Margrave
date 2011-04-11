@@ -3300,7 +3300,7 @@ public class MJavaTests
 
 	//	benchmarkXACML();
 	//	System.exit(1);
-
+						
 
 		MEnvironment.writeOutLine("Starting java-based tests.");
 		
@@ -3315,6 +3315,9 @@ public class MJavaTests
 			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
 		
+		// ******
+		// Produce XML with results
+		MEnvironment.flushBuffers("Java Tests");		
 		System.exit(1);
 		
 		// Main test blocks		
@@ -3326,7 +3329,7 @@ public class MJavaTests
 		do_time_tupling();					
 				
 
-		
+
 		
 		
 		// Everything from tests should be out of scope now.

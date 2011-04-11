@@ -175,19 +175,7 @@ public class MCommunicator
             
             try 
             {
-            	// add in any supplemental or error information         
-            	
-            	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
-            	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
-            	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
-            	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
-            	
-            	// Clear out the "out" and "error" buffers.        	
-            	MEnvironment.errorBuffer.getBuffer().setLength(0);
-            	MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
-            	
-            	theResponse.getDocumentElement().appendChild(envOutChild);
-            	theResponse.getDocumentElement().appendChild(envErrChild);
+            	addBuffers(theResponse);
             	
         		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
         		out.write(transformXML(theResponse));
@@ -199,6 +187,22 @@ public class MCommunicator
         	out.flush(); // ALWAYS FLUSH!
         } // end handleXMLCommand
 
+        protected static void addBuffers(Document theResponse)
+        {
+        	// add in any supplemental or error information                     	
+        	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
+        	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
+        	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
+        	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
+        	
+        	// Clear out the "out" and "error" buffers.        	
+        	MEnvironment.errorBuffer.getBuffer().setLength(0);
+        	MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
+        	
+        	theResponse.getDocumentElement().appendChild(envOutChild);
+        	theResponse.getDocumentElement().appendChild(envErrChild);
+        }
+        
         
         //Takes a MARGRAVE-COMMAND node
         private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException

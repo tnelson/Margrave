@@ -442,10 +442,10 @@ public abstract class MPolicy extends MIDBCollection
 		//boolean commaneeded = false;
 		for(MSort t : vocab.sorts.values())
 		{
-			if(t.parent == null)
+			if(t.parents.size() == 0)
 				MEnvironment.errorWriter.println(t.name+" <-- base type");
 			else
-				MEnvironment.errorWriter.println(t.name + "( "+ vocab.getUniverseSort(t).name +" )");
+				MEnvironment.errorWriter.println(t.name + "( "+ t.parents +" )");
 			
 			/*if(commaneeded)
 				MEnvironment.errorStream.print(", ");

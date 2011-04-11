@@ -688,6 +688,7 @@ public class MEnvironment
 	public static String sTopQualifiedName = "MARGRAVE-RESPONSE";
 	public static String sSuccess = "success";
 	public static String sUnsat = "unsat";
+	public static String sDebug = "debug";
 	public static String sQuitMargrave = "quit";
 
 	public static String tempVarPrefix = "_";
@@ -2095,6 +2096,28 @@ public class MEnvironment
 		return xmldoc;
 	}
 
+	protected static void flushBuffers(String arg)
+	{
+		Document xmldoc = makeInitialResponse(arg);
+		if(xmldoc != null)
+		{
+			Text val = xmldoc.createTextNode(sDebug);
+			xmldoc.getDocumentElement().appendChild(val);
+			
+			// Explicitly add the buffers (since this func will be called from outside the main loop)
+			MCommunicator.addBuffers(xmldoc);
+			
+			byte[] theBytes = MCommunicator.transformXML(xmldoc);
+			try
+			{
+				MCommunicator.out.write(theBytes);
+			} catch (IOException e)
+			{										
+			}
+			MCommunicator.out.flush();
+		}
+	}
+	
 	public static Document quitMargrave()
 	{
 		Document xmldoc = makeInitialResponse("quit");

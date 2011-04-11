@@ -874,8 +874,8 @@ public class MQuery extends MIDBCollection
 					MEnvironment.writeOutLine("DEBUG: Tupled sorts that appeared in the query body: ");
 					for (MSort s : mtup.newvocab.sorts.values()) {
 						String childstr = "(TOP!)";
-						if (s.parent != null)
-							childstr = "(PARENT: " + s.parent.name + ")";
+						if (s.parents.size() > 0)
+							childstr = "(PARENT: " + s.parents + ")";
 						MEnvironment.writeOutLine("  " + s.name + " " + childstr);
 					}
 					

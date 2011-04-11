@@ -1129,14 +1129,17 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		// (IP Addr > Range > Single IP. -- play nice with tuple axioms)
 
 		MSort oldsort = oldvocab.getSort(oldpredname);
-		if (oldsort.parent != null)
+		if (oldsort.parents.size() > 0)
 		{
-			// Deal with parent's parent (if any)
-			addSortWithSupers(newvocab, oldvocab, oldsort.parent.name, suffix);
+			// Add parent's parents (if any) recursively
+			for(MSort aParent : oldsort.parents)
+			{
+				addSortWithSupers(newvocab, oldvocab, aParent.name, suffix);
 
-			newvocab.addSubSort(oldsort.parent.name + suffix, 
-					oldpredname + suffix);
-			addToCaches(oldpredname, suffix, oldpredname + suffix);
+				newvocab.addSubSort(aParent.name + suffix, 
+						oldpredname + suffix);
+				addToCaches(oldpredname, suffix, oldpredname + suffix);
+			}
 		} 
 		else 
 		{
