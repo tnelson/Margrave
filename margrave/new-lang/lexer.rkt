@@ -123,6 +123,7 @@
    
    ; Comment. Must appear before <identifier> rules or else something like
    ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
+   ; (Leaving the above comment in even though it doesn't apply w/o //abc being a viable identifier - TN 4/11)
    [lex:comment (return-without-pos (lex input-port))]
    
    [(eof) (token-EOF)]
@@ -266,3 +267,4 @@
 
   (inner-func))
 
+; (run-lexer-on "let myquery[x] be R(x) and Foo('CX); show all; 6")

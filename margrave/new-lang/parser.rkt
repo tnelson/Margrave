@@ -21,9 +21,9 @@
          parser-tools/lex
          syntax/stx
          syntax/readerr
+         
          margrave/helpers
          margrave/lexer)
-
 
 
 (provide parse)
@@ -215,7 +215,8 @@
                                   (- (position-offset end-pos) (position-offset start-pos)))))
        
        ;**************************************************   
-       ;**************************************************   
+       ;**************************************************  
+       ; end of error handling
        
        ; Order of precedence: negation > conjunction > disjunction > implication > bi-implication
        ; Implication is not associative (and of course, neither is the unary operator NOT.)
@@ -262,8 +263,6 @@
         (margrave-command 
          [(explore-statement) $1]
          [(compare-statement) $1]
-         [(create-statement) $1]
-         [(add-statement) $1]
          
          ;**************************************************
 
@@ -288,9 +287,7 @@
          [(LOAD XACML <identifier>) (build-so (list 'LOAD-XACML $3) 1 3)]
          
          ; Amazon SQS configuration
-         [(LOAD SQS <identifier>) (build-so (list 'LOAD-SQS $3) 1 3)]
-         
-         [(RENAME <identifier> <identifier>) (build-so (list 'RENAME $2 $3) 1 3)]
+         [(LOAD SQS <identifier>) (build-so (list 'LOAD-SQS $3) 1 3)]         
          
          ; ALL
          [(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
@@ -330,59 +327,21 @@
           (build-so (list 'LSHOWUNREALIZED $3 $6) 1 6)]     
          
          ;IS POSSIBLE?
-         [(IS POSSIBLEQMARK numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
-         [(IS POSSIBLEQMARK) (build-so (list 'IS-POSSIBLE?) 1 1)]
+         [(ISPOSSQ numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
+         [(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]
          
          ; Get information
          [(INFO) (build-so (list 'INFO) 1 1)]
          [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
-         [(GET RULES IN <identifier>) (build-so (list 'GETRULES $4) 1 4) ]
-         [(GET QUALIFIED RULES IN <identifier>) (build-so (list 'GETQRULES $5) 1 5)]
-         [(GET RULES IN <identifier> WITH DECISION <identifier>) (build-so (list 'GETRULESDEC $4 $7) 1 7)]
-         [(GET QUALIFIED RULES IN <identifier> WITH DECISION <identifier>) (build-so (list 'GETQRULESDEC $5 $8) 1 8)]
          
          ; Close out the engine
          [(QUIT) (build-so (list 'QUIT) 1 1)]
          
          ; Margrave command wrapped in parantheses
+         ; !!! todo: why is this here? - tn
          [(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
          )
-        ; end of margrave-commend
-        
-        ;**************************************************
-        ; CREATE statements
-        (create-statement
-         [(CREATE VOCABULARY vocabulary) (build-so (list 'CREATE-VOCABULARY $3) 1 3)]
-         [(CREATE POLICY LEAF policy vocabulary) (build-so (list 'CREATE-POLICY-LEAF $4 $5) 1 5)])
-        
-        ;**************************************************
-        ; ADD
-        (add-statement
-         [(ADD TO vocabulary add-content) (build-so (list 'ADD $3 $4) 1 4)]
-         
-         ;TODO!!: Have to finish this up
-         ;These are the functions to use:
-         ;(xml-make-decision-type dtype) 
-         ;(xml-make-rule-list rule-list) and then:
-         ;(define (xml-make-rule rule-name dtype rule-list)
-         [(ADD RULE TO policy rule) (build-so (list 'ADD $4 $5) 1 4)])
-        (rule
-         [(rule-name decision-type rule-list) (build-so (list 'RULE $1 $2 $3) 1 3)])
-        (rule-name
-         [(<identifier>) (build-so (list 'RULE-NAME $1) 1 1)])
-        (decision-type
-         [(<identifier>) (build-so (list 'DECISION-TYPE $1) 1 1)])
-        (rule-list
-         [(<identifier>) (build-so (list 'RULE-LIST $1) 1 1)])
-        
-        ;**************************************************
-        (add-content
-         [(SORT sort) $2]
-         [(SUBSORT subsort) $2]
-         [(DECISION decision) $2]
-         [(REQUESTVAR requestvar) $2])
-        
-        
+        ; end of margrave-commend        
         
         ;**************************************************
         (explore-statement
@@ -422,41 +381,26 @@
          [(explore-modifier) (list $1)]
          [(explore-modifier explore-modifiers-list) (append (list $1) $2)])
         
-        ;**************************************************
-        ;; ???
         (policy
          [(<identifier>) (build-so (list 'POLICY $1) 1 1)])
         (list-of-policies 
          [(policy) (list $1)]
          [(list-of-policies COMMA policy) (append $1 (list $3))])
         
-        (vocabulary
-         [(<identifier>) (build-so (list 'VOCABULARY $1) 1 1)])  
-        (sort
-         [(<identifier>) (build-so (list 'SORT $1) 1 1)])
-        (subsort
-         [(<identifier> <identifier>) (build-so (list 'SUBSORT $1 $2) 1 2)])  
-        (decision
-         [(<identifier>) (build-so (list 'DECISION $1) 1 1)])
-        (requestvar
-         [(<identifier> <identifier>) (build-so (list 'REQUESTVAR $1 $2) 1 1)])
         (size
          [(<unsigned-integer>) (build-so (list 'SIZE $1) 1 1)])
         
         
         ; *************************************************
         ; condition-formula: A sub-formula of the condition
-        (condition-formula 
-         
+        (condition-formula          
          [(LPAREN condition-formula RPAREN) (build-so $2 1 3)]
          [(NOT condition-formula) (build-so (list 'NOT $2) 1 2)]     
          [(condition-formula AND condition-formula) (build-so (list 'AND $1 $3) 1 3)]
          [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 3)]
          [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 3)]
          [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
-         [(equals-formula) (build-so $1 1 1)]
-         [(atomic-formula) (build-so $1 1 1)]
-         [(in-formula) (build-so $1 1 1)])
+         [(atomic-formula) (build-so $1 1 1)])
         
         ; *************************************************
         ; represents a top-level condition, the fully-developed formula in EXPLORE 
@@ -486,47 +430,27 @@
         ; context is discovered in Java engine
         (equals-formula ((<identifier> EQUALS <identifier>) (build-so (list 'EQUALS $1 $3) 1 3)))
         
+                
+        ; ***********************************************************        
+        ; As of 4/11, always a proper atomic fmla (never an empty vector w/o parens)                
         
-        ; *************************************************
-        ; An atomic formula can be either of the form
         ; R(x, y, ...)   or
         ; Policyname:R(x, y, ...)   
+        ; equality
+        ; in
         
         (atomic-formula [(<identifier> LPAREN variable-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA-N $1 (append (list 'VARIABLE-VECTOR) $3)) 1 4)]
                         [(<identifier> COLON <identifier> LPAREN variable-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA-Y $1 ":" $3 (append (list 'VARIABLE-VECTOR) $5)) 1 6)]
-                        )
+                        [(in-formula)
+                         $1]
+                        [(equals-formula) 
+                         $1])   
         
-        ; ***********************************************************
-        ; Used by IDBOUTPUT, SHOW REALIZED, SHOW UNREALIZED
-        ; May be a normal atomic formula. May also have an empty vector (no parens).
-        
-        (nullary-atomic-formula [(<identifier> COLON <identifier>)
-                                 (build-so (list 'EMPTY-ATOMIC-FORMULA-Y $1 ":" $3 empty) 1 3)]
-                                [(<identifier>)
-                                 (build-so (list 'EMPTY-ATOMIC-FORMULA-N $1 empty) 1 1)])
-        
-        (non-nullary-atomic-formula ((equals-formula) 
-                                     $1)
-                                    [(atomic-formula) 
-                                     $1]
-                                    [(in-formula)
-                                     $1])   
-        
-        (non-nullary-atomic-formula-list
-         [(non-nullary-atomic-formula) (list $1)]
-         [(non-nullary-atomic-formula-list COMMA non-nullary-atomic-formula) (append $1 (list $3))])
-        
-        (nullary-atomic-formula-list
-         [(nullary-atomic-formula) (list $1)]
-         [(nullary-atomic-formula-list COMMA nullary-atomic-formula) (append $1 (list $3))])    
-        
-        (atomic-formula-list 
-         ((nullary-atomic-formula-list) $1)
-         ((non-nullary-atomic-formula-list) $1))
-        
-        
+        (atomic-formula-list
+         [(atomic-formula) (list $1)]
+         [(atomic-formula-list COMMA atomic-formula) (append $1 (list $3))])  
         
         ; *************************************************
         ; a vector of variables. e.g.     x, y, z
