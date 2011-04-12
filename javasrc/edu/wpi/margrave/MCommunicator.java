@@ -193,7 +193,7 @@ public class MCommunicator
         	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
         	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
         	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
-        	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
+        	envErrChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
         	
         	// Clear out the "out" and "error" buffers.        	
         	MEnvironment.errorBuffer.getBuffer().setLength(0);

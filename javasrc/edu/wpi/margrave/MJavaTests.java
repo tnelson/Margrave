@@ -35,9 +35,10 @@ public class MJavaTests
 	{
 
 		if(qry.runTestCase(expected_size, expected_sols, expected_hbu))
-			//MEnvironment.writeErrLine("Test: "+testname+" passed.");
+			MEnvironment.writeErrLine("Test: "+testname+" passed.");
 			// too many cases, getting spammy
-			;
+		// decided to leave in after all -T
+			//;
 		else
 		{
 			MEnvironment.writeErrLine("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
@@ -189,7 +190,7 @@ public class MJavaTests
 		//
 		//qry.prettyPrintOneSolution();
 
-		//System.exit(2);
+
 
 
 		// CANNOT just tack on (Assigned s r) ... need the following:
@@ -221,14 +222,13 @@ public class MJavaTests
 		MEnvironment.errorStream.println(inst.getFacts());
 		MEnvironment.errorStream.println(preinst.getFacts());
 		
-		
-		System.exit(1);*/
+	*/
 		
 		/*MEnvironment.errorStream.println(pol2.getRulesList("", true));
 		MEnvironment.errorStream.println(pol2.getRulesList("", false));
 		MEnvironment.errorStream.println(pol2.getRulesList("permit", true));
 		MEnvironment.errorStream.println(pol2.getRulesList("permit", false));		
-		System.exit(1);*/
+		*/
 		
 		qry.prettyPrintSolutions();
 		
@@ -238,7 +238,6 @@ public class MJavaTests
 		////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
 		
-		System.exit(1);
 		
 		countTest("Solutions to above with (Assigned s r) only (tupled)", qry, 1, 1, 1);
 		
@@ -254,6 +253,8 @@ public class MJavaTests
 		qry = pol2.queryPolicy("(forSome s Subject (forSome a Action (forAll r Resource (TestPol2:Permit s a r))))");
 		countTest("Nonempty constraints functioning with for-all (2)", qry, 3, 4, 3);
 
+
+		
 		// Now test first-applicable. The below (same) rules will have different results
 
 		MPolicyLeaf polfax = new MPolicyLeaf("faxp", env);
@@ -757,7 +758,7 @@ public class MJavaTests
 		MEnvironment.writeErrLine(polparent.getRequestVarVector());
 		MEnvironment.writeErrLine(polparent.getIDBNameList());
 
-		System.exit(1);
+
 		*/
 
 
@@ -961,11 +962,17 @@ public class MJavaTests
 		MEnvironment.writeErrLine("");
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_1()");
 		do_test_1();
+		
+		exitJavaTests(1);
+		
 		//do_test_tupling_1();
+		
+		//exitJavaTests(1);
+		
 		/*System.gc();
 		MGFormulaManager.ping();
 		MGFormulaManager.printStatistics();
-		System.exit(1);*/
+*/
 
 
 
@@ -2364,7 +2371,7 @@ public class MJavaTests
 		testCommandPop("Query 20", query20, query20Result);
 
 		
-		System.exit(1);
+		
 		*/
 	}
 
@@ -3244,7 +3251,6 @@ public class MJavaTests
 		MEnvironment.writeErrLine(conj.right().hashCode());
 
 
-		//System.exit(1);
 
 
 		// cool idea: canonical weak ref in an object itself... but can't do that for Formula. (Without wrapper, anyway) Pity...
@@ -3263,7 +3269,7 @@ public class MJavaTests
 		hm2.put(f2, Integer.valueOf(2));
 		MEnvironment.writeErrLine(hm1.equals(hm2));
 
-		System.exit(1); */
+ */
 
 		/*MWeakArrayVector<Variable> arr1 = new MWeakArrayVector<Variable>(2);
 		MWeakArrayVector<Variable> arr2 = new MWeakArrayVector<Variable>(2);
@@ -3290,16 +3296,16 @@ public class MJavaTests
 		MEnvironment.writeErrLine(arr1.equals(arr2));
 		MEnvironment.writeErrLine(arr1.hashCode() + " " + arr2.hashCode());
 
-		System.exit(1);*/
+		*/
 
 		// do_time_tupling_new();
-		// System.exit(1);
+		// 		exitJavaTests(1);
 
 		// do_time_tupling();
-		// System.exit(1);
+		// 		exitJavaTests(1);
 
 	//	benchmarkXACML();
-	//	System.exit(1);
+	//			exitJavaTests(1);
 						
 
 		MEnvironment.writeOutLine("Starting java-based tests.");
@@ -3315,13 +3321,12 @@ public class MJavaTests
 			MEnvironment.writeOutLine(">>> FormulaSigInfo tests FAILED: exception thrown!\n"+e.getLocalizedMessage());
 		}
 		
-		// ******
-		// Produce XML with results
-		MEnvironment.flushBuffers("Java Tests");		
-		System.exit(1);
 		
 		// Main test blocks		
 		runTests();		
+		
+		// 		exitJavaTexts(1);
+
 		
 		// tupling benchmarks
 		MEnvironment.writeOutLine("\n\nTUPLING BENCHMARKS\n\n");
@@ -3329,7 +3334,7 @@ public class MJavaTests
 		do_time_tupling();					
 				
 
-
+	
 		
 		
 		// Everything from tests should be out of scope now.
@@ -3348,6 +3353,12 @@ public class MJavaTests
 		 */
 	}
 
+	public static void exitJavaTests(int arg)
+	{
+		MEnvironment.flushBuffers("Java Tests");
+		System.exit(arg);
+	}
+	
 	public static void benchmarkXACML(String continueFileName)
     throws MUserException
     {
