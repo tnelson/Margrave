@@ -965,6 +965,8 @@ public class MJavaTests
 		
 		exitJavaTests(1);
 		
+		// TODO fix remaining tests w/ new changes
+		
 		//do_test_tupling_1();
 		
 		//exitJavaTests(1);
