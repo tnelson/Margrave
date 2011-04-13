@@ -28,10 +28,11 @@
 
 (provide parse)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Taken from /collects/parser-tools/examples/read.ss
 (define stx-for-original-property (read-syntax #f (open-input-string "original")))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Special Margrave parser error
 ; Modified from build-so
 (define-syntax (margrave-parse-error stx)
@@ -73,7 +74,7 @@
                (- (position-offset end-pos)
                   (position-offset start-pos)))))))))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Macro that takes a value and the start and end positions of the total expression, and returns a syntax object
 (define-syntax (build-so stx)
   (syntax-case stx ()
@@ -112,13 +113,13 @@
                   (position-offset start-pos)))
          stx-for-original-property)))))) 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; In order to give better error messages, we remember each token in a command (or a malformed command)
 ;   and clear out the history when done (or when presenting an error)
 ; We do this by changing the lexer function that the caller gives us before sending it on to the parser.
 (define token-history empty)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Parse ONE COMMAND
 ;
 (define (parse source-name)
@@ -237,7 +238,10 @@
        (grammar
         
         ;**************************************************
-        ; Streams of tokens are either empty, an error, or a valid margrave-command.
+        ; Streams of tokens are either empty, an error, or 
+        ; (a) a fmla-binding statement;
+        ; (b) a scenario-finding command
+        ; (c) a directive
         
         (start 
          ;; If there is an error, ignore everything before the error
@@ -247,8 +251,12 @@
          ; Prevent trailing whitespace and comments from clogging the parser
          [() #'(IGNORE)]
          
-         ; No more script in parser. Single command. Semicolon is dealt with as a termination token above
-         [(margrave-command) (begin (set! token-history empty)
+         ; Single command. Semicolon is dealt with as a termination token above
+         [(m-bind-fmla) (begin (set! token-history empty)
+                                    $1)]
+         [(m-command) (begin (set! token-history empty)
+                                    $1)]
+         [(m-directive) (begin (set! token-history empty)
                                     $1)])
         
         ;**************************************************        
@@ -260,12 +268,22 @@
          [(<identifier>) (list (symbol->string/safe $1))]
          [(list-of-filenames COMMA <identifier>) (append $1 (list (symbol->string/safe $3)))])
         
-        (margrave-command 
-         [(explore-statement) $1]
-         [(compare-statement) $1]
+        ;**************************************************
+        (m-bind-fmla
+         [(let-statement) $1]
+         #;[(compare-statement) $1]
+         )
+        
+        ;**************************************************
+        (m-directive
+                   
+         ; Get information
+         [(INFO) (build-so (list 'INFO) 1 1)]
+         [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
          
-         ;**************************************************
-
+         ; Close out the engine
+         [(QUIT) (build-so (list 'QUIT) 1 1)]
+         
          [(DEFVEC LTHAN <identifier> GTHAN variable-list)
           (build-so (list 'DEFVEC $3 $5) 1 5)]
          
@@ -288,6 +306,11 @@
          
          ; Amazon SQS configuration
          [(LOAD SQS <identifier>) (build-so (list 'LOAD-SQS $3) 1 3)]         
+         
+         )
+        
+        ;**************************************************
+        (m-command
          
          ; ALL
          [(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
@@ -328,22 +351,17 @@
          
          ;IS POSSIBLE?
          [(ISPOSSQ numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
-         [(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]
-         
-         ; Get information
-         [(INFO) (build-so (list 'INFO) 1 1)]
-         [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
-         
-         ; Close out the engine
-         [(QUIT) (build-so (list 'QUIT) 1 1)]
+         [(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]        
          
          ; Margrave command wrapped in parantheses
-         ; !!! todo: why is this here? - tn
-         [(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
-         )
-        ; end of margrave-commend        
+         ; !!! todo: why is this here? - tn removed for now
+         ;[(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
+         )    
         
         ;**************************************************
+        ;**************************************************
+        ;**************************************************
+        
         (explore-statement
          [(EXPLORE condition) (build-so (list 'EXPLORE $2 empty) 1 2)]
          [(EXPLORE condition explore-modifiers-list) (build-so (list 'EXPLORE $2 $3) 1 3)])
