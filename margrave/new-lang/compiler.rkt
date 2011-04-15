@@ -20,8 +20,12 @@
 (require margrave/margrave-xml
          margrave/margrave-policy-vocab
          margrave/helpers
-         margrave/lexer
-         margrave/parser)
+         ; !!! todo update this
+         ;margrave/lexer
+         ;margrave/parser
+         (file "lexer.rkt")
+         (file "parser.rkt")
+         )
 
 (provide parse-and-compile
          evaluate-parse 
@@ -30,36 +34,46 @@
          parse-and-compile-port
          make-simple-load-func)
 
-; Take a syntax object for a Margrave command. Return a '(lambda ... OR a list of them
-; May be a single COMMAND, or a MARGRAVE-SCRIPT with a list of commands.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Take a syntax object for a Margrave command. 
+; Return a '(lambda ...)  
+
 (define (compile-margrave-syntax syn)
-  (let* ([interns (syntax-e syn)])
-   ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
-    (let* ([first-intern (first interns)] 
-           [first-datum (syntax->datum first-intern)])
-      (cond 
+  (define interns (syntax-e syn))
+  
+  ; (printf "CONVERTING: syn=~a interns=~a ~n" syn interns)
+  
+  (define first-intern (first interns))
+  (define first-datum (syntax->datum first-intern))
+
+  (cond 
         
         ; ************************************
-        ; No-op. (Used from null production in parser that prevents clogging due to trailing comments/whitespace)
+        ; No-op. (Used from null production in parser that prevents
+        ; clogging due to trailing comments/whitespace)
         [(equal? first-datum 'IGNORE)
          '(lambda () (void))]
         
         ; ************************************
         
+        ; !!! todo: I think these can be removed. Check. -TN
+        
         ; Single command: compile its contents
-        [(equal? first-datum 'COMMAND)
-         (let ()
-           ;(printf "COMMAND: ~a~n ~a~n~n" (syntax->datum (second interns)) (compile-margrave-syntax (second interns)))
-           (compile-margrave-syntax (second interns)))]
+       ; [(equal? first-datum 'COMMAND)
+       ;  (let ()
+       ;    ;(printf "COMMAND: ~a~n ~a~n~n" (syntax->datum (second interns)) (compile-margrave-syntax (second interns)))
+       ;    (compile-margrave-syntax (second interns)))]
         
         ; Multiple commands: compile each command separately and return a list.
-        [(equal? first-datum 'MARGRAVE-SCRIPT) (create-script-list (map compile-margrave-syntax (rest interns)))]
+       ; [(equal? first-datum 'MARGRAVE-SCRIPT) (create-script-list (map compile-margrave-syntax (rest interns)))]
         
         ; ************************************
         ; ************************************
         ; ************************************
-        [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
-         (compile-margrave-syntax (second interns))]
+        
+        ; !!! todo: remove ? -TN
+       ; [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
+       ;  (compile-margrave-syntax (second interns))]
         
         ; third and fourth of the list are func syntax that create vocab, pol respectively
         ; So create an uber-func that does both
@@ -280,7 +294,7 @@
             (exit))]
                 
         [else
-         (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
+         (printf "UNEXPECTED COMMAND SYMBOL: ~a ~a ~n" first-intern first-datum)])))
 
 
 (define (create-script-list list-of-func-syntax)
@@ -465,17 +479,7 @@
          (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))))
 
 ; ***************************************************************************************
-; !!! Don't need to string-downcase anymore. The lexer is case-insensitive now.
-; Access the parser through these functions ONLY!
-(define (evaluate-parse sn s)
-  (let ((in (open-input-string (string-downcase s))))
-    (port-count-lines! in)
-    ((parse sn) (lambda() (lex in)))))
-
-(define (parse-and-compile s)
-  (let ((in (open-input-string (string-downcase s))))
-    (port-count-lines! in)
-    (compile-margrave-syntax ((parse "source") (lambda () (lex in))))))
+; Access the compiler and parser through these functions ONLY!
 
 (define (parse-and-compile-port src in)
   (port-count-lines! in)  
@@ -483,10 +487,26 @@
 
 (define (parse-and-compile-read in)
   (port-count-lines! in)
-  (compile-margrave-syntax ((parse "source") (lambda () (lex in)))))
+  (compile-margrave-syntax ((parse "no src (read)") (lambda () (lex in)))))
 
 (define (parse-and-compile-read-syntax in src line col pos)
   (port-count-lines! in)
   (compile-margrave-syntax ((parse src) (lambda () (lex in)))))
 
 ; ***************************************************************************************
+
+
+; *************************************************
+; *************************************************
+; *************************************************
+; Tests
+
+(define (evaluate-parse src s)
+  (define in (open-input-string s))
+  (port-count-lines! in)
+  ((parse src) (lambda() (lex in))))
+
+(define (parse-and-compile s)
+  (define in (open-input-string s))
+  (port-count-lines! in)
+  (compile-margrave-syntax ((parse "test no src") (lambda () (lex in)))))
