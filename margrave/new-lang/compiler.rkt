@@ -75,23 +75,34 @@
     ; [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
     ;  (compile-margrave-syntax (second interns))]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     ; third and fourth of the list are func syntax that create vocab, pol respectively
     ; So create an uber-func that does both
     [(equal? first-datum 'LOAD-POLICY)
-     (let ([policy-creation-list (evaluate-policy (symbol->string (syntax->datum (second interns)))
-                                                  #:syntax (second interns))])
+     (define policy-id (syntax->datum (second interns)))
+     (define policy-file-name-syntax (third interns))
+     (define policy-creation-list (evaluate-policy (symbol->string (syntax->datum policy-file-name-syntax))
+                                                  #:syntax policy-file-name-syntax))
+     
+     (define vocab-name (second policy-creation-list))
+     (define policy-thinks-name-is (first policy-creation-list))
        
-       (define xml-cmds (append (third policy-creation-list)                                    
-                                (fourth policy-creation-list)))
+     (define xml-cmds (append (third policy-creation-list)                                    
+                              (fourth policy-creation-list)))
        
-       (make-simple-load-func (first policy-creation-list)
-                              (second policy-creation-list)
-                              xml-cmds
-                              (second interns)))]
+     ; Load the policy, but also bind the result in our environment
+     (make-simple-load-func policy-id                            
+                            vocab-name                            
+                            xml-cmds                            
+                            policy-file-name-syntax)]
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
+    ;; !!! STOPPED HERE
     [(equal? first-datum 'LOAD-IOS)
      `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns))) 
                                                  #:syntax #',(second interns)))]
+    
     
     [(equal? first-datum 'LOAD-IOS-WITH)
      `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))
@@ -337,17 +348,17 @@
   
   `(lambda () (send-and-receive-xml ,thexml-constructor #:syntax #',syn)))
 
-(define (make-simple-load-func polname vocname list-of-xexprs src-syntax)
-  #| gmarceau personal preference:
-  `(lambda () ,@(for/list ([an-xml list-of-xml])
-                          `(send-and-receive-xml ,an-xml))))
-|#
-  ; Using implicit begin; the policy name will be the result of the func
-  `(lambda () ,@(append (map (lambda (an-xexpr) 
-                               `(send-and-receive-xml ',an-xexpr #:syntax #',src-syntax)) 
-                             list-of-xexprs)
-                        ; resulting lambda will just return polname
-                        (list polname))))
+(define (make-simple-load-func polname vocname list-of-xexprs src-syntax)    
+  `(lambda () ,@(append                  
+                 ; (1) xml for each command
+                 (for/list ([an-xml list-of-xexprs])
+                   `(send-and-receive-xml ,an-xml #:syntax #',src-syntax))
+                 
+                 ; (2) note that we have loaded such a policy
+                 ; !!! todo environment change [currently handled in java]
+                 
+                 ; (3) resulting lambda will just return polname
+                 (list polname))))
 
 (define (syntax->string s)
   (symbol->string (syntax->datum s)))
