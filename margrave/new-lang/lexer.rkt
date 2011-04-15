@@ -43,13 +43,13 @@
        ;COMPARE
        
        ; command tokens
-       SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT
+       SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT AT
        
        ; optional parameters to some commands
        UNDER INCLUDE   
        
        ; directives and options
-       INFO SET GET 
+       INFO SET GET WITH IN
        LOAD POLICY XACML SQS IOS 
        TUPLING DEBUG CEILING 
        QUIT 
@@ -139,9 +139,7 @@
    [">" (token-GTHAN)]
    ["[" (token-LSQBRACK)] 
    ["]" (token-RSQBRACK)]
-   
-   ;["\"\"" (token-EMPTYID)]
-   
+      
    ; formulas
    
    [(lex-ci "let") (token-LET)]   

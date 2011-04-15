@@ -23,7 +23,9 @@
          syntax/readerr
          
          margrave/helpers
-         margrave/lexer)
+         ;margrave/lexer
+         (file "lexer.rkt")
+         )
 
 
 (provide parse)
@@ -229,8 +231,9 @@
               (nonassoc NOT)
               
               (left COMMA)
-              (nonassoc IN)
-              (nonassoc COLON))
+             ;(nonassoc IN)
+              (nonassoc COLON)
+              (nonassoc DOT))
        
        ; Uncomment this to help diagnose any reduce/reduce errors that come up after parser revisions.
        ;(debug "parser-debug.txt")
@@ -260,98 +263,118 @@
                                     $1)])
         
         ;**************************************************        
-        (poss-empty-id 
-         [(<identifier>) $1]
-         [(EMPTYID) ""])   
+        ; Helper productions
+                
+        (file-id
+         [(<lowercase-id>) $1]
+         [(<capitalized-id>) $1])
         
         (list-of-filenames 
-         [(<identifier>) (list (symbol->string/safe $1))]
-         [(list-of-filenames COMMA <identifier>) (append $1 (list (symbol->string/safe $3)))])
+         [(file-id) (list (symbol->string/safe $1))]
+         [(list-of-filenames COMMA file-id) (append $1 (list (symbol->string/safe $3)))])
         
+        (numeric-id
+         [(<natural>) (build-so (list 'id $1) 1 1)])
+        
+        ;(get-type
+        ; [(ONE) (build-so (list 'type 'ONE) 1 1)]
+        ; [(NEXT) (build-so (list 'type 'NEXT) 1 1)]
+        ; [(CEILING) (build-so (list 'type 'CEILING) 1 1)])
+       
+                        
         ;**************************************************
-        (m-bind-fmla
-         [(let-statement) $1]
-         #;[(compare-statement) $1]
-         )
+        ;(m-bind-fmla
+        ; [(let-statement) $1]
+         ;[(compare-statement) $1]
+         ;)
         
         ;**************************************************
         (m-directive
                    
          ; Get information
          [(INFO) (build-so (list 'INFO) 1 1)]
-         [(INFO <identifier>) (build-so (list 'INFO $2) 1 2)]
+         [(INFO <capitalized-id>) (build-so (list 'INFO $2) 1 2)]
          
          ; Close out the engine
          [(QUIT) (build-so (list 'QUIT) 1 1)]
          
-         [(DEFVEC LTHAN <identifier> GTHAN variable-list)
-          (build-so (list 'DEFVEC $3 $5) 1 5)]
+         ; !!! todo: re-enable
+         ;[(DEFVEC LTHAN <lowercase-id> GTHAN variable-list)
+         ; (build-so (list 'DEFVEC $3 $5) 1 5)]
          
          ; .p/v policy
-         [(LOAD POLICY <identifier>) (build-so (list 'LOAD-POLICY $3) 1 3)]
+         [(LOAD POLICY <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-POLICY $3 $5) 1 5)]
          
          ; Cisco IOS configuration
-         [(LOAD IOS <identifier>) (build-so (list 'LOAD-IOS $3) 1 3)]     
+         [(LOAD IOS file-id) (build-so (list 'LOAD-IOS $3) 1 3)]     
+         
          ; With prefix and suffix
-         [(LOAD IOS <identifier> WITH poss-empty-id poss-empty-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
+         [(LOAD IOS file-id WITH file-id file-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
          
          ; Multiple configs at once:
-         [(LOAD IOS list-of-filenames IN <identifier>) 
+         [(LOAD IOS list-of-filenames IN file-id) 
           (build-so (list 'LOAD-MULT-IOS $3 (symbol->string/safe $5)) 1 5)]
-         [(LOAD IOS list-of-filenames IN <identifier> WITH poss-empty-id poss-empty-id) 
+         [(LOAD IOS list-of-filenames IN file-id WITH file-id file-id) 
           (build-so (list 'LOAD-MULT-IOS-WITH $3 (symbol->string/safe $5) $7 $8) 1 8)]    
          
          ; XACML configuration
-         [(LOAD XACML <identifier>) (build-so (list 'LOAD-XACML $3) 1 3)]
+         [(LOAD XACML <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-XACML $3) 1 3)]
          
          ; Amazon SQS configuration
-         [(LOAD SQS <identifier>) (build-so (list 'LOAD-SQS $3) 1 3)]         
+         [(LOAD SQS <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-SQS $3) 1 3)]         
          
          )
+         
+        ; Note the new loading paradigm: user has to provide policy ID at the command line
+        ; prevents ambiguity resulting from just taking what's in the policy file
         
         ;**************************************************
         (m-command
          
+         ; !!! todo: re-enable implicit "last" without identifier given
+         
          ; ALL
-         [(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
-         [(GET ALL) (build-so (list 'GETALL) 1 2)]
-         [(SHOW ALL numeric-id) (build-so (list 'SHOWALL $3) 1 3)]
-         [(SHOW ALL) (build-so (list 'SHOWALL) 1 2)]
+         ;[(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
+         ;[(GET ALL) (build-so (list 'GETALL) 1 2)]
+         [(SHOW ALL <capitalized-id>) (build-so (list 'SHOWALL $3) 1 3)]
+         ;[(SHOW ALL) (build-so (list 'SHOWALL) 1 2)]
          
-         ; NEXT/ONE/CEILING
-         [(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
-         [(GET get-type) (build-so (list 'GET $2) 1 2)]
-         [(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
-         [(SHOW get-type) (build-so (list 'SHOW $2) 1 2)]
+         ; 
+         ;[(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
+         ;[(GET get-type) (build-so (list 'GET $2) 1 2)]
+         ;[(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
+         ;[(SHOW get-type) (build-so (list 'SHOW $2) 1 2)]
+         [(SHOW <capitalized-id>) (build-so (list 'SHOW $2) 1 2)]
+         ;[(SHOW ) (build-so (list 'SHOW $2) 1 1)]
          
-         [(COUNT numeric-id) (build-so (list 'COUNT $2) 1 2)]
-         [(COUNT) (build-so (list 'COUNT) 1 1)]
-         [(COUNT numeric-id AT SIZE size) (build-so (list 'COUNT-WITH-SIZE $2 $5) 1 5)]
+         [(COUNT <capitalized-id>) (build-so (list 'COUNT $2) 1 2)]
+         ;[(COUNT) (build-so (list 'COUNT) 1 1)]
+         [(COUNT <capitalized-id> AT size) (build-so (list 'COUNT-WITH-SIZE $2 $4) 1 4)]
                   
          ; SHOW REALIZED and friends
          ; TN 8/26: replaced "populated" with "realized"
-         [(SHOW REALIZED numeric-id atomic-formula-list) 
+         [(SHOW REALIZED <capitalized-id> atomic-formula-list) 
           (build-so (list 'SHOWREALIZED $3 $4 empty) 1 4)]
-         [(SHOW UNREALIZED numeric-id atomic-formula-list)
+         [(SHOW UNREALIZED <capitalized-id> atomic-formula-list)
           (build-so (list 'SHOWUNREALIZED $3 $4 empty) 1 4)]
-         [(SHOW REALIZED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
+         [(SHOW REALIZED <capitalized-id> atomic-formula-list FOR CASES atomic-formula-list)
           (build-so (list 'SHOWREALIZED $3 $4 $7) 1 7)]
-         [(SHOW UNREALIZED numeric-id atomic-formula-list FOR CASES atomic-formula-list)
+         [(SHOW UNREALIZED <capitalized-id> atomic-formula-list FOR CASES atomic-formula-list)
           (build-so (list 'SHOWUNREALIZED $3 $4 $7) 1 7)]     
          
          ; SHOW REALIZED without a numeric-id
-         [(SHOW REALIZED atomic-formula-list) 
-          (build-so (list 'LSHOWREALIZED $3 empty) 1 3)]
-         [(SHOW UNREALIZED atomic-formula-list)
-          (build-so (list 'LSHOWUNREALIZED $3 empty) 1 3)]
-         [(SHOW REALIZED atomic-formula-list FOR CASES atomic-formula-list)
-          (build-so (list 'LSHOWREALIZED $3 $6) 1 6)]
-         [(SHOW UNREALIZED atomic-formula-list FOR CASES atomic-formula-list)
-          (build-so (list 'LSHOWUNREALIZED $3 $6) 1 6)]     
+         ;[(SHOW REALIZED atomic-formula-list) 
+         ; (build-so (list 'LSHOWREALIZED $3 empty) 1 3)]
+         ;[(SHOW UNREALIZED atomic-formula-list)
+         ; (build-so (list 'LSHOWUNREALIZED $3 empty) 1 3)]
+         ;[(SHOW REALIZED atomic-formula-list FOR CASES atomic-formula-list)
+         ; (build-so (list 'LSHOWREALIZED $3 $6) 1 6)]
+         ;[(SHOW UNREALIZED atomic-formula-list FOR CASES atomic-formula-list)
+         ; (build-so (list 'LSHOWUNREALIZED $3 $6) 1 6)]     
          
          ;IS POSSIBLE?
-         [(ISPOSSQ numeric-id) (build-so (list 'IS-POSSIBLE? $3) 1 3)]
-         [(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]        
+         [(ISPOSSQ <capitalized-id>) (build-so (list 'IS-POSSIBLE? $2) 1 2)]
+         ;[(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]        
          
          ; Margrave command wrapped in parantheses
          ; !!! todo: why is this here? - tn removed for now
@@ -362,51 +385,45 @@
         ;**************************************************
         ;**************************************************
         
-        (explore-statement
-         [(EXPLORE condition) (build-so (list 'EXPLORE $2 empty) 1 2)]
-         [(EXPLORE condition explore-modifiers-list) (build-so (list 'EXPLORE $2 $3) 1 3)])
+        (variable-list
+         [(variable-term) (list $1)]
+         [(variable-list COMMA variable-term) (append $1 (list $3))])
+        
+        (m-bind-fmla
+         [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition) 
+          (build-so (list 'EXPLORE $2 $4 $7 empty) 1 7)]
+         [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition explore-modifiers-list) 
+          (build-so (list 'EXPLORE $2 $4 $7 $8) 1 8)])
                 
-        (compare-statement                  
-         [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]
-         [(COMPARE policy policy explore-modifiers-list) (build-so (list 'COMPARE $2 $3 $4) 1 4)]
-         )
-        
-        ;**************************************************
-        ; parameters for GET (one/next, id of result object)
-        
-        (numeric-id
-         [(<unsigned-integer>) (build-so (list 'id $1) 1 1)])
-        (get-type
-         [(ONE) (build-so (list 'type 'ONE) 1 1)]
-         [(NEXT) (build-so (list 'type 'NEXT) 1 1)]
-         [(CEILING) (build-so (list 'type 'CEILING) 1 1)])
-        
+        ;(compare-statement                  
+        ; [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]
+        ; [(COMPARE policy policy explore-modifiers-list) (build-so (list 'COMPARE $2 $3 $4) 1 4)]
+        ; )
+                        
         ;**************************************************
         ; Optional modifiers for the explore statement
         
         (explore-modifier
-         [(UNDER list-of-policies) (build-so (list 'UNDER $2) 1 2)]
-         [(PUBLISH variable-list) (build-so (list 'PUBLISH (append (list 'VARIABLE-VECTOR) $2)) 1 2)]
+         [(UNDER list-of-policies) (build-so (list 'UNDER $2) 1 2)]         
          
-         ; Used to be IDBOUTPUT. Internal symbol still is!
-         ; (INCLUDE fmla fmla...)
-         [(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
+         ;[(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
          [(TUPLING) (build-so (list 'TUPLING) 1 1)]
-         [(DEBUG <unsigned-integer>) (build-so (list 'DEBUG $2) 1 2)]
-         [(CEILING <unsigned-integer>) (build-so (list 'CEILING $2) 1 2)])
+         [(DEBUG <natural>) (build-so (list 'DEBUG $2) 1 2)]
+         [(CEILING <natural>) (build-so (list 'CEILING $2) 1 2)])
         
         (explore-modifiers-list
          [(explore-modifier) (list $1)]
          [(explore-modifier explore-modifiers-list) (append (list $1) $2)])
         
         (policy
-         [(<identifier>) (build-so (list 'POLICY $1) 1 1)])
+         [(<capitalized-id>) (build-so (list 'POLICY $1) 1 1)])
+        
         (list-of-policies 
          [(policy) (list $1)]
          [(list-of-policies COMMA policy) (append $1 (list $3))])
         
         (size
-         [(<unsigned-integer>) (build-so (list 'SIZE $1) 1 1)])
+         [(<natural>) (build-so (list 'SIZE $1) 1 1)])
         
         
         ; *************************************************
@@ -426,72 +443,89 @@
         (condition [(condition-formula) (list 'CONDITION $1)]
                    [(TRUE) (build-so (list 'TRUE-CONDITION) 1 1)])
         
+        ;**************************************************
+        ; terms
+        (variable-term [(<lowercase-id>) (build-so (list 'variable $1) 1 1)])
+        (constant-term [(<quoted-id>) (build-so (list 'constant $1) 1 1)])
+        (function-term [(<lowercase-id> LPAREN condition-term-list RPAREN) (build-so (list 'function $1 $3) 1 4)])
+        
+        (condition-term-list
+         [(condition-term) (list $1)]
+         [(condition-term-list COMMA condition-term) (append $1 (list $3))])
+        
+        ; a term is a variable, a constant, or a function called on multiple sub-terms
+        (condition-term 
+         [(variable-term) $1]
+         [(constant-term) $1]
+         [(function-term) $1])
+        
+        
         ; *************************************************
         ; (x, y, z) IN DB   or x in DB    
         ; syntactic sugar for predicate notation
         ; needs the parens to resolve shift/reduce (deal with this)
-        (in-formula ((LPAREN variable-list RPAREN IN <identifier> COLON <identifier>) 
-                     (build-so (list 'ATOMIC-FORMULA-Y $5 ":" $7 (append (list 'VARIABLE-VECTOR) $2)) 1 7))
-                    ((LPAREN variable-list RPAREN IN <identifier>)
-                     (build-so (list 'ATOMIC-FORMULA-N $5 (append (list 'VARIABLE-VECTOR) $2)) 1 5))
-                    ((<identifier> IN <identifier> COLON <identifier>)
-                     (build-so (list 'ATOMIC-FORMULA-Y $3 ":" $5 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 5))
-                    ((<identifier> IN <identifier>)
-                     (build-so (list 'ATOMIC-FORMULA-N $3 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 3))
-                    )
+      ;  (in-formula ((LPAREN variable-list RPAREN IN <identifier> COLON <identifier>) 
+      ;               (build-so (list 'ATOMIC-FORMULA-Y $5 ":" $7 (append (list 'VARIABLE-VECTOR) $2)) 1 7))
+      ;              ((LPAREN variable-list RPAREN IN <identifier>)
+      ;               (build-so (list 'ATOMIC-FORMULA-N $5 (append (list 'VARIABLE-VECTOR) $2)) 1 5))
+      ;              ((<identifier> IN <identifier> COLON <identifier>)
+      ;               (build-so (list 'ATOMIC-FORMULA-Y $3 ":" $5 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 5))
+      ;              ((<identifier> IN <identifier>)
+      ;               (build-so (list 'ATOMIC-FORMULA-N $3 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 3))
+       ;;             )
         
-        
+        ; !!! removed sugar for initial parser - TN
         
         ; *************************************************
         ; Variable equality         
-        ; OR constant = variable, variable = constant
-        ; context is discovered in Java engine
-        (equals-formula ((<identifier> EQUALS <identifier>) (build-so (list 'EQUALS $1 $3) 1 3)))
+        ; Since variables and constants/functions are lexically different, we can distinguish them here.
+        (equals-formula 
+         [(condition-term EQUALS condition-term) (build-so (list 'EQUALS $1 $3) 1 3)])
         
                 
         ; ***********************************************************        
-        ; As of 4/11, always a proper atomic fmla (never an empty vector w/o parens)                
+        ; atomic formulas        
         
-        ; R(x, y, ...)   or
-        ; Policyname:R(x, y, ...)   
-        ; equality
-        ; in
+        ; a predicate in the condition can be
+        ; R or pol.R or Pol.Child.R and so on
+        (condition-predicate 
+         [(<capitalized-id>) (list $1)]
+         [(condition-predicate DOT <capitalized-id>) (append $1 (list $3))])
         
-        (atomic-formula [(<identifier> LPAREN variable-list RPAREN) 
-                         (build-so (list 'ATOMIC-FORMULA-N $1 (append (list 'VARIABLE-VECTOR) $3)) 1 4)]
-                        [(<identifier> COLON <identifier> LPAREN variable-list RPAREN) 
-                         (build-so (list 'ATOMIC-FORMULA-Y $1 ":" $3 (append (list 'VARIABLE-VECTOR) $5)) 1 6)]
-                        [(in-formula)
-                         $1]
+        (atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN) 
+                         (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
+                       ; [(in-formula)
+                       ;  $1]
                         [(equals-formula) 
                          $1])   
         
         (atomic-formula-list
          [(atomic-formula) (list $1)]
          [(atomic-formula-list COMMA atomic-formula) (append $1 (list $3))])  
-        
+       
+        ; !!! todo re-enable vector support
         ; *************************************************
         ; a vector of variables. e.g.     x, y, z
         ; beware of cons -- it will end up giving us dotted pairs here. we want to build a flat list.
-        (variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
-                       ;[(<identifier> variable-list) (cons $1 $2)]
-                       [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )]
-                       
-                       ; For now, only support <polname:req>. 
-                       ; Problems with <req> only: We want to allow policies to have different req. vectors.
-                       ; So maybe we could detect which policy IDB <req> is appearing in.
-                       ;   but it doesn't always have one (saved query, for instance)
-                       
-                       ; Allow <>, <> for later (via above production)
-                       [(LTHAN <identifier> COLON <identifier> GTHAN) 
-                        (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5))]
-                       [(LTHAN <identifier> COLON <identifier> GTHAN COMMA variable-list)
-                        (append (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5)) $7)]
-
-                       [(LTHAN <identifier> GTHAN) 
-                        (list (build-so (list 'CUSTOM-VECTOR-N $2 ) 1 3))]
-                       [(LTHAN <identifier> GTHAN COMMA variable-list)
-                        (append (list (build-so (list 'CUSTOM-VECTOR-N $2) 1 3)) $5)])
+        ;(variable-list [(<identifier>) (list (build-so (list 'VARIABLE $1) 1 1))]
+        ;               ;[(<identifier> variable-list) (cons $1 $2)]
+        ;               [(<identifier> COMMA variable-list) (append (list (list 'VARIABLE $1)) $3 )]
+        ;               
+        ;               ; For now, only support <polname:req>. 
+        ;               ; Problems with <req> only: We want to allow policies to have different req. vectors.
+        ;               ; So maybe we could detect which policy IDB <req> is appearing in.
+        ;               ;   but it doesn't always have one (saved query, for instance)
+        ;               
+        ;               ; Allow <>, <> for later (via above production)
+        ;               [(LTHAN <identifier> COLON <identifier> GTHAN) 
+        ;                (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5))]
+        ;               [(LTHAN <identifier> COLON <identifier> GTHAN COMMA variable-list)
+        ;                (append (list (build-so (list 'CUSTOM-VECTOR-Y $2 $4) 1 5)) $7)]
+        ;
+        ;               [(LTHAN <identifier> GTHAN) 
+        ;                (list (build-so (list 'CUSTOM-VECTOR-N $2 ) 1 3))]
+        ;               [(LTHAN <identifier> GTHAN COMMA variable-list)
+        ;                (append (list (build-so (list 'CUSTOM-VECTOR-N $2) 1 3)) $5)])
         
         ;**************************************************    
         
@@ -504,7 +538,14 @@
         (set! token-history (cons token-result token-history)) ; backwards. reverse later
         token-result))
      (internal-parse new-gen))) 
-
-
-
 ; end of parser def
+
+; *************************************************
+; *************************************************
+; *************************************************
+; Tests
+
+(define (parse-s s)
+  (define in (open-input-string s))
+  (port-count-lines! in)
+  ((parse "test param to parse-s") (lambda () (lex in))))
