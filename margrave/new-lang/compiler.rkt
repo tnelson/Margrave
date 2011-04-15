@@ -96,25 +96,25 @@
                             xml-cmds                            
                             policy-file-name-syntax)]
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    ;; !!! STOPPED HERE
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     [(equal? first-datum 'LOAD-IOS)
      `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns))) 
                                                  #:syntax #',(second interns)))]
     
-    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     [(equal? first-datum 'LOAD-IOS-WITH)
      `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))
                                                  #:prefix ,(symbol->string/safe (syntax->datum (third interns)))
                                                  #:suffix ,(symbol->string/safe (syntax->datum (fourth interns)))
                                                  #:syntax #',(second interns)))]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     [(equal? first-datum 'LOAD-MULT-IOS)
      `(lambda () (parse-and-load-multi-ios (list ,@(syntax->datum (second interns)))
                                            ,(syntax->datum (third interns))
                                            #:syntax #',(second interns)))]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     [(equal? first-datum 'LOAD-MULT-IOS-WITH)
      `(lambda () (parse-and-load-multi-ios (list ,@(syntax->datum (second interns)))
                                            ,(syntax->datum (third interns))
@@ -122,14 +122,21 @@
                                            #:suffix ,(symbol->string/safe (syntax->datum (fifth interns)))
                                            #:syntax #',(second interns)))]
     
-    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     [(equal? first-datum 'LOAD-XACML)
-     `(lambda () (load-xacml-policy ,(resolve-margrave-filename-keyword (syntax->datum (second interns)))
-                                    #:syntax #',(second interns)))]
+     (define policy-id (syntax->datum (second interns)))
+     (define policy-file-name-syntax (third interns))
+     `(lambda () (load-xacml-policy ,(resolve-margrave-filename-keyword (syntax->datum policy-file-name-syntax))
+                                    #:syntax #',policy-file-name-syntax))]
+    ; !!! todo: assert proper id
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     [(equal? first-datum 'LOAD-SQS)
-     `(lambda () (load-sqs-policy ,(resolve-margrave-filename-keyword (syntax->datum (second interns)))
-                                  #:syntax #',(second interns)))]
+     (define policy-id (syntax->datum (second interns)))
+     (define policy-file-name-syntax (third interns))     
+     `(lambda () (load-sqs-policy ,(resolve-margrave-filename-keyword (syntax->datum policy-file-name-syntax))
+                                  #:syntax #',policy-file-name-syntax))]
+    ; !!! todo: assert proper id
     
     
     ; ************************************        
@@ -151,7 +158,7 @@
     
     [(equal? first-datum 'IS-POSSIBLE?)
      (make-single-wrapper `(xml-make-is-possible-command ,(if (< 1 (length interns))
-                                                              (helper-syn->xml (second interns))
+                                                              `(xml-make-id ,(second interns))
                                                               '(xml-make-id "-1")))  syn)]
     [(equal? first-datum 'COUNT)
      (make-single-wrapper `(xml-make-count-command 
@@ -512,3 +519,11 @@
   (define in (open-input-string s))
   (port-count-lines! in)
   (compile-margrave-syntax ((parse "test no src") (lambda () (lex in)))))
+
+; tests 
+
+; (parse-and-compile "#LoAd policy Mypolicy = \"*margrave*/tests/conference1.p\"")
+; (parse-and-compile "#LoAd ios foo")
+; (parse-and-compile "#load ios foo with x y")
+; (parse-and-compile "#LoAd ios file1,file2,file3 in directory")
+; (parse-and-compile "#LoAd ios file1,file2,file3 in directory with prefix suffix")

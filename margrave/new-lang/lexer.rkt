@@ -186,6 +186,9 @@
    [(lex-ci "ios") (token-IOS)]
    [(lex-ci "xacml") (token-XACML)]     
    
+   [(lex-ci "with") (token-WITH)]   
+   [(lex-ci "in") (token-IN)]   
+   
    [(lex-ci "tupling") (token-TUPLING)] 
    [(lex-ci "debug") (token-DEBUG)] 
    [(lex-ci "ceiling") (token-CEILING)] 

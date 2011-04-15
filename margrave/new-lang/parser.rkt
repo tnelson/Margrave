@@ -40,12 +40,12 @@
   (and (>= (length rev-tokens) (length token-list))
        (equal? token-list (take rev-tokens (length token-list)))))
 
-(define (started-with-identifier val)  
+(define (started-with-identifier/ci val)  
   (unless (empty? token-history)
     (define the-tok (position-token-token (last token-history)))  
     ;(printf "~a~n" the-tok)
     (and (token? the-tok)
-         (equal? (token-value the-tok) val ))))
+         (equal? (string-downcase (symbol->string (token-value the-tok))) (string-downcase (symbol->string val))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Taken from /collects/parser-tools/examples/read.ss
@@ -155,7 +155,7 @@
        ;**************************************************   
        (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
                 ; Token-history is reversed here.
-                ;(printf "History: ~a~n" token-history)
+                ;(printf "History: ~a~n" (map position-token-token token-history))
                 
                 ; Can we guess at the kind of command they were trying to use?
                 ; customize an error message depending on history:
@@ -168,7 +168,7 @@
                         [(started-with '(LOAD IOS))
                          "To load an IOS configuration, use #LOAD IOS <file name>. Other options are given in the documentation."]
                                                 
-                        [(started-with-identifier 'LOAD)
+                        [(started-with-identifier/ci 'LOAD)
                          "The #LOAD directive must be prefixed by a # symbol."]
                         
                         [(started-with '(LOAD POLICY))
