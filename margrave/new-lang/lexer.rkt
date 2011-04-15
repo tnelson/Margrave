@@ -73,20 +73,11 @@
    ; comment
    <comment>))
 
-
-; !!!
-; YARRZ
-; Need double-quoted ids NOW
-; because otherwise can't input filenames... DOT is a special symbol now
-
-
-
 (define-lex-abbrevs
   [lex:letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [lex:uppercase-letter (:/ #\A #\Z)]
   [lex:lowercase-letter (:/ #\a #\z)]
   [lex:digit (:/ #\0 #\9)]
-  [lex:permitted-id-symbols (:or #\* )]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
   
@@ -204,31 +195,35 @@
     (token-<natural> (string->symbol lexeme))]
    
    ; lowercase-ids
-   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit lex:permitted-id-symbols)))
+   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit)))
     (token-<lowercase-id> (string->symbol lexeme))]
    
    ; Capitalized ids
-   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit lex:permitted-id-symbols)))
+   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit)))
     (token-<capitalized-id> (string->symbol lexeme))]
    
    ; Quoted ids (trim off the quote)
-   [(:: "'" (:+ (:or lex:letter lex:digit lex:permitted-id-symbols)))
+   [(:: "'" (:+ (:or lex:letter lex:digit)))
     (token-<quoted-id> (string->symbol (substring lexeme 1)))]
    
+   ; Identifiers enclosed in double quotes
+   ; Can contain symbols. Used for filenames
+   ; allow escaping the double-quote via \"   
    
-   ; !!! disabling DOUBLE-quoted identifiers for development
-   ; - TN apr 2011
+   ; Quoted only lowercase letters and digits? produce a lowercase id:
+   [(:: #\" lex:lowercase-letter (:* (:or lex:letter lex:digit)) #\")
+    (token-<lowercase-id> (string->symbol 
+                             (substring lexeme 1 (- (string-length lexeme) 1))))]
    
-   ; Un-quoted Identifiers -- everything but whitespace and: ( ) < > \" , = :
-   ; Use ----> char-complement <----, not complement.
-   ;[(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "<" ">" "," "=" ":" ";"))))
-   ; (token-<identifier> (string->symbol lexeme))]
    
-   ; Quoted Identifiers -- anything but quote or non-space-whitespace wrapped in quotes
-   ; strip the quotes when returning the identifier value     
-   ;[(:: "\"" (:+ (char-complement (:or lex:nswhitespace "\""))) "\"") 
-   ; (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]  
-   
+   ; for now, produce a capitalized id. (will never allow functions or variables or constants in quotes!)
+   ; regexp is annoying. Racket requires an escape \, but so does regexp!
+   ; so a backslash REGEXP is \\\\ in first arg below
+   [(:: #\" (:+ (:or (:: #\\ #\") (char-complement (:or lex:nswhitespace #\")))) #\")
+    (token-<capitalized-id> (string->symbol (regexp-replace* "\\\\\"" 
+                                                             (substring lexeme 1 (- (string-length lexeme) 1))
+                                                             "\"")))]
+            
    ; Lexer error (parameter allows for syntax highlighting on the first character)
    [any-char
     (raise-read-error (format "Could not assign a lexical token starting at character: ~a.~n" lexeme)
@@ -273,3 +268,4 @@
   (inner-func))
 
 ; (run-lexer-on "let myquery[x] be R(x) and Foo('CX); show all; 6")
+; (run-lexer-on " \"*foo\\\" bar zot\" \"foo\"")
