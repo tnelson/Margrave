@@ -74,12 +74,19 @@
    <comment>))
 
 
+; !!!
+; YARRZ
+; Need double-quoted ids NOW
+; because otherwise can't input filenames... DOT is a special symbol now
+
+
 
 (define-lex-abbrevs
   [lex:letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [lex:uppercase-letter (:/ #\A #\Z)]
   [lex:lowercase-letter (:/ #\a #\z)]
   [lex:digit (:/ #\0 #\9)]
+  [lex:permitted-id-symbols (:or #\* )]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
   
@@ -197,19 +204,19 @@
     (token-<natural> (string->symbol lexeme))]
    
    ; lowercase-ids
-   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit)))
+   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit lex:permitted-id-symbols)))
     (token-<lowercase-id> (string->symbol lexeme))]
    
    ; Capitalized ids
-   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit)))
+   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit lex:permitted-id-symbols)))
     (token-<capitalized-id> (string->symbol lexeme))]
    
    ; Quoted ids (trim off the quote)
-   [(:: "'" (:+ (:or lex:letter lex:digit)))
+   [(:: "'" (:+ (:or lex:letter lex:digit lex:permitted-id-symbols)))
     (token-<quoted-id> (string->symbol (substring lexeme 1)))]
    
    
-   ; !!! disabling quoted identifiers for development
+   ; !!! disabling DOUBLE-quoted identifiers for development
    ; - TN apr 2011
    
    ; Un-quoted Identifiers -- everything but whitespace and: ( ) < > \" , = :
