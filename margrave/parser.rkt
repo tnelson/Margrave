@@ -404,9 +404,9 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (m-bind-fmla
          [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition) 
-          (build-so (list 'EXPLORE $2 (append (list 'VARIABLE-VECTOR) $4) $7 empty) 1 7)]
+          (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 empty) 1 7)]
          [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition explore-modifiers-list) 
-          (build-so (list 'EXPLORE $2 (append (list 'VARIABLE-VECTOR) $4) $7 $8) 1 8)])
+          (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 $8) 1 8)])
                 
         ;(compare-statement                  
         ; [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]

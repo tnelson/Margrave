@@ -1120,9 +1120,6 @@
 (define (xml-make-is-guaranteed-command id)
   (xml-make-command "IS-GUARANTEED" (list (xml-make-is-guaranteed id))))
 
-(define (xml-make-publish list-of-identifiers)
-  `(PUBLISH ,list-of-identifiers))
-
 (define (xml-make-include list-of-atomic-formulas)
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
@@ -1145,8 +1142,8 @@
   `(CEILING ((ceiling-level ,ceiling-level))))
 
 ;Atomic Formulas
-(define (xml-make-equals-formula v1-name v2-name)
-  `(EQUALS ((v1 ,v1-name) (v2 ,v2-name))))
+(define (xml-make-equals-formula t1 t2)
+  `(EQUALS ,t1 ,t2))
 
 (define (xml-make-variable-term id)
   `(VARIABLE-TERM ,id))
@@ -1196,6 +1193,9 @@
 
 (define (xml-make-true-condition)
   '(TRUE))
+
+(define (xml-make-publish list-of-identifiers)
+  `(PUBLISH ,@list-of-identifiers))
 
 (define (xml-make-explore-command query-id free-vars-list list-of-atomic-formulas list-of-modifiers)
   (xml-make-command "EXPLORE" (list (xml-make-explore query-id free-vars-list list-of-atomic-formulas list-of-modifiers))))

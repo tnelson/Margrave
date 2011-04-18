@@ -185,6 +185,8 @@
      (define query-condition (helper-syn->xml (fourth interns))) 
      (define query-options (map helper-syn->xml (syntax-e (fifth interns))))
      
+    ; (printf "Fmla binding:~a~n~n~a~n~a~n~a~n~a~n~n" interns query-id free-var-vector query-condition query-options)
+     
      (make-single-wrapper 
       `(xml-make-explore-command 
         ,query-id
@@ -373,8 +375,9 @@
                         (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))
                         (loop-func #f))
                       (begin
-                        ;; TODO reset !!!!
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))  
+                        (yield (begin
+                                 (send-and-receive-xml (xml-make-reset-command ,explore-id) #:syntax  #',syn)
+                                 (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn)))  
                         (loop-func #f)))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function
@@ -450,9 +453,10 @@
     
     
     [(equal? first-datum 'VARIABLE-VECTOR)
-     ;(printf "Symbol varvec: ~a~n" first-intern)
+    ; (printf "varvec: ~a~n" (rest interns))
      ; flatten, not append because some map results are lists, others not
-     `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml (rest interns)))))]
+     `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml
+                                                       (rest interns)))))]        
     
     [(equal? first-datum 'ATOMIC-FORMULA)
      (define compound-predicate-list (syntax->datum (second interns)))
@@ -499,7 +503,9 @@
      ;                            empty)]
     
     [(equal? first-datum 'EQUALS)
-     `(xml-make-equals-formula ,(symbol->string (syntax->datum (second interns))) ,(symbol->string (syntax->datum (third interns))))]
+     (define term1-xml (helper-syn->xml (second interns)))
+     (define term2-xml (helper-syn->xml (third interns)))     
+     `(xml-make-equals-formula ,term1-xml ,term2-xml)]
     
     [(equal? first-datum 'CONDITION)
      (helper-syn->xml (second interns))]      
@@ -590,10 +596,21 @@
 ; (parse-and-compile "is poss? Myquery")
 ; (parse-and-compile "count Myquery")
 ; (parse-and-compile "let F[x, y, z] be true")
+; ((eval (parse-and-compile "let F[z, y, x] be P.R(x, y, 'c, f('c)) or x = 'd")))
+
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z))")))
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))
 ; ((eval (parse-and-compile "show unrealized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))
 
+;(parse-and-compile "show MyQuery")
+;(parse-and-compile "show all MyQuery")
+;((eval (parse-and-compile "reset Myquery")))
 ; (parse-and-compile "#quit")
 ; (parse-and-compile "#info")
 ; (parse-and-compile "#info Thingy")    
+
+
+; TODO remaining:
+;(parse-and-compile "show Myquery1 and Myquery2")
+;(parse-and-compile "show Myquery1(x, y, z) and Myquery2")
+; etc
