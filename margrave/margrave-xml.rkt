@@ -1087,8 +1087,8 @@
 (define (xml-make-type type)
   `(type ,type))
 
-(define (xml-make-id id)
-  `(id ,id))
+(define (xml-make-id id)  
+  `(ID ,(symbol->string/safe id)))
 
 (define (xml-make-get type id)
   `(SHOW (,type ,id)))
@@ -1146,10 +1146,10 @@
   `(EQUALS ,t1 ,t2))
 
 (define (xml-make-variable-term id)
-  `(VARIABLE-TERM ,id))
+  `(VARIABLE-TERM ((id ,id))))
 
 (define (xml-make-constant-term id)
-  `(CONSTANT-TERM ,id))
+  `(CONSTANT-TERM ((id ,id))))
 
 (define (xml-make-function-term fid subterm-xml-list)
   `(FUNCTION-TERM ((func ,fid)) ,@subterm-xml-list))

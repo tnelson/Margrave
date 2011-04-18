@@ -184,7 +184,7 @@
                          "Load what? (#LOAD POLICY to load a .p file, #LOAD IOS to load a Cisco IOS configuration, etc.)" ]
                         
                         [(started-with '(LET))
-                         (format "To bind a formula context, use LET <name>[<variable-ordering>] BE <condition>. 
+                         (format "To bind a formula context, use LET <name>[<variable-declarations>] BE <condition>. 
 Margrave did not understand the condition or options given around \"~a\"." 
                                  (if token-value
                                      token-value
@@ -398,14 +398,17 @@ Margrave did not understand the condition or options given around \"~a\"."
         ;**************************************************
         ;**************************************************
         
-        (variable-list
-         [(variable-term) (list $1)]
-         [(variable-list COMMA variable-term) (append $1 (list $3))])
+        (typed-variable-list
+         [(typed-variable-term) (list $1)]
+         [(typed-variable-list COMMA typed-variable-term) (append $1 (list $3))])
+        
+        (typed-variable-term
+         [(variable-term COLON <capitalized-id>) (build-so (list 'VARIABLE-DECL $1 $3) 1 3)])
         
         (m-bind-fmla
-         [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition) 
+         [(LET <capitalized-id> LSQBRACK typed-variable-list RSQBRACK BE condition) 
           (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 empty) 1 7)]
-         [(LET <capitalized-id> LSQBRACK variable-list RSQBRACK BE condition explore-modifiers-list) 
+         [(LET <capitalized-id> LSQBRACK typed-variable-list RSQBRACK BE condition explore-modifiers-list) 
           (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 $8) 1 8)])
                 
         ;(compare-statement                  

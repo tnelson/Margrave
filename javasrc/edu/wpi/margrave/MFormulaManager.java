@@ -506,7 +506,7 @@ public class MFormulaManager
 	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Formula> atomFormulas;
 	
 	// Equality: x = y
-	private static MWeakValueHashMap< MWeakArrayVector<Variable>, Formula> equalityAtomFormulas; 
+	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Formula> equalityAtomFormulas; 
 	
 	// Multiplicity formulas -- singleton!
 	private static MWeakValueHashMap< MSetWrapper<Expression>, Formula > loneMultiplicities;
@@ -550,7 +550,7 @@ public class MFormulaManager
 		loneMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		noMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		someMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
-		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Variable>, Formula>();
+		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
 		
 		declNodes = new MWeakValueHashMap<MWeakArrayVector<Expression>, Decl>();
 		existsFormulas = new MWeakValueHashMap< MWeakArrayVector<Node>, Formula>();
@@ -932,7 +932,7 @@ public class MFormulaManager
 			
 	}
 	
-	static Formula makeEqAtom(Variable lhv, Variable rhv)
+	/*static Formula makeEqAtom(Variable lhv, Variable rhv)
 	throws MGEManagerException
 	{
 		if(!hasBeenInitialized)
@@ -950,7 +950,27 @@ public class MFormulaManager
 		equalityAtomFormulas.put(key, theFormula);
 		return theFormula;			
 			
-	}
+	}*/
+	
+	static Formula makeEqAtom(Expression t1, Expression t2)
+	throws MGEManagerException
+	{
+		if(!hasBeenInitialized)
+			initialize();		
+		
+		final MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(2);
+		key.set(0, t1);
+		key.set(1, t2);	
+		
+		Formula cachedValue = equalityAtomFormulas.get(key); 
+		if(cachedValue != null)
+			return cachedValue;
+		
+		Formula theFormula = t1.eq(t2);
+		equalityAtomFormulas.put(key, theFormula);
+		return theFormula;			
+			
+	}	
 	
 	static Formula makeNegation(Formula f)
 	{

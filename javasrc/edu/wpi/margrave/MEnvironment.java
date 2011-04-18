@@ -388,21 +388,21 @@ class MExploreCondition
 		// No assertions. No free variables. Just a constant formula
 	}
 	
-	MExploreCondition(Formula f, Variable x, Variable y, boolean isPlaceholder)
+	MExploreCondition(Formula f, MTerm t1, MTerm t2, boolean isPlaceholder)
 	{
-		fmla = f;		
+		fmla = f;				
 		// No assertions, but make an entry so we know there's a free variable.
 		
-		List<Variable> thisVarX = new ArrayList<Variable>();
-		thisVarX.add(x);	// lists with equal elements are equal.
-		List<Variable> thisVarY = new ArrayList<Variable>();
-		thisVarY.add(y);	// lists with equal elements are equal.
+		//List<Variable> thisVarX = new ArrayList<Variable>();
+		//thisVarX.add(x);	// lists with equal elements are equal.
+		//List<Variable> thisVarY = new ArrayList<Variable>();
+		//thisVarY.add(y);	// lists with equal elements are equal.
 		
-		initAssertionsForVectorIfNeeded(thisVarX);
-		initAssertionsForVectorIfNeeded(thisVarY);
+		//initAssertionsForVectorIfNeeded(thisVarX);
+		//initAssertionsForVectorIfNeeded(thisVarY);
 		
-		if(isPlaceholder)
-			eqPlaceholders.add(fmla);
+		//if(isPlaceholder)
+		//	eqPlaceholders.add(fmla);
 	}
 	
 	MExploreCondition(Formula f, Relation made, List<String> varnamevector)

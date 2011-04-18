@@ -49,6 +49,91 @@ class MSort
 	}
 }
 
+abstract class MTerm
+{	
+	Expression expr;
+	Set<Variable> seenVariables = new HashSet<Variable>();
+	Set<Relation> seenRelations = new HashSet<Relation>();
+	
+	abstract public String toString();
+}
+
+class MFunctionTerm extends MTerm
+{
+	String funcName;
+	List<MTerm> subTerms;
+	
+	MFunctionTerm(String funcName, List<MTerm> subTerms)
+	{
+		this.funcName = funcName;
+		this.subTerms = subTerms;
+		
+		Relation funcRel = MFormulaManager.makeRelation(funcName, subTerms.size());
+		
+		this.seenRelations.add(funcRel);
+		
+		this.expr = funcRel;
+		
+		for(MTerm child : subTerms)			
+		{
+			this.seenRelations.addAll(child.seenRelations);
+			this.seenVariables.addAll(child.seenVariables);
+			
+			// is this in the right order? TODO
+			this.expr = this.expr.join(child.expr);
+		}				
+	}
+	
+	public String toString()
+	{
+		String childStr = "";
+		boolean first = true;
+		for(MTerm child : subTerms)
+		{
+			if(first)
+				first = false;
+			else
+				childStr += ", ";
+			childStr += child.toString();
+		}
+		return funcName+"("+childStr+")";
+	}
+}
+
+class MConstantTerm extends MTerm
+{
+	String constName;
+	
+	MConstantTerm(String constName)
+	{
+		this.constName = constName;
+		expr = MFormulaManager.makeRelation(constName, 1);		
+		this.seenRelations.add((Relation)expr);
+	}
+	
+	public String toString()
+	{
+		return constName; 
+	}
+}
+
+class MVariableTerm extends MTerm
+{
+	String variableName;
+	
+	MVariableTerm(String variableName)
+	{
+		this.variableName = variableName;
+		expr = MFormulaManager.makeVariable(variableName);		
+		this.seenVariables.add((Variable)expr);
+	}
+	
+	public String toString()
+	{
+		return variableName; 
+	}	
+}
+
 /**
  * MVocab
  * effectively describes the domain of discourse.

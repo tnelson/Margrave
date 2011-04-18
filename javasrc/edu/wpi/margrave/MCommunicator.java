@@ -221,7 +221,7 @@ public class MCommunicator
         		if (n.getNodeType() == Node.ELEMENT_NODE)
         		{
 
-        			if (type.equalsIgnoreCase("COMPARE"))
+        			/*if (type.equalsIgnoreCase("COMPARE"))
         			{
         				n = n.getFirstChild();
         				// n is now the COMPARE element
@@ -258,8 +258,9 @@ public class MCommunicator
     								polname1, polname2,    								    							
     								tupling, debugLevel, ceilingLevel);    			      					    					
         				
-        			}
-        			else if (type.equalsIgnoreCase("EXPLORE"))
+        			}*/
+        			
+        			if (type.equalsIgnoreCase("EXPLORE"))
         			{
         				// Catch and re-throw any exception, because if EXPLORE fails,
         				// need to reset lastResult to -1.
@@ -1128,22 +1129,21 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
-        		// May be v1 = v2
-        		// May be c = v1 (or v1 = c)
-        		//   (shorthand for c(v1) provided c is a lone/one constrained sort)
-        		// But we don't know which until we resolve the query's vocabulary
-        		        		
-        		String idname1 = getNodeAttribute(n, "EQUALS", "v1");
-        		String idname2 = getNodeAttribute(n, "EQUALS", "v2");
+        		// Comes in with 2 TERMS now instead of 2 maybe-variables.    
+        		MTerm term1 = termHelper(childNodes.item(0));
+        		MTerm term2 = termHelper(childNodes.item(1));
+        			
+        		//String idname1 = getNodeAttribute(n, "EQUALS", "v1");
+        		//String idname2 = getNodeAttribute(n, "EQUALS", "v2");
         		
-        		writeToLog("\nEQUALS: "+idname1+" = "+idname2+"\n\n");
+        		writeToLog("\nEQUALS: "+term1+" = "+term2+"\n\n");
         		        		
         		        		
-        		Variable v1 = MFormulaManager.makeVariable(idname1);
-        		Variable v2 = MFormulaManager.makeVariable(idname2);
-        		Formula fmla = MFormulaManager.makeEqAtom(v1, v2);
+        		//Variable v1 = MFormulaManager.makeVariable(idname1);
+        		//Variable v2 = MFormulaManager.makeVariable(idname2);
+        		Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
         		        		        	
-        		return new MExploreCondition(fmla, v1, v2, true);  // needs late binding attention (true)      		
+        		return new MExploreCondition(fmla, term1, term2, true);        		
         	}
         	else if (name.equalsIgnoreCase("IFF")) {
         		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
@@ -1151,7 +1151,13 @@ public class MCommunicator
         	else if (name.equalsIgnoreCase("NOT")) {
         		return exploreHelper(n.getFirstChild()).not();
         	}
-        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-N")) {
+        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
+        	{
+        		Node relationName = getChildNode(n, "RELATION-NAME");
+        		NodeList relationComponents = relationName.getChildNodes();
+        		
+        		
+        		
         		String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
         		
         		List<String> vl = getIdentifierList(n);
@@ -1235,7 +1241,47 @@ public class MCommunicator
         return null;
     }
      
-     //Returns a list containing the value of the first attribute of every child node of n
+     private static MTerm termHelper(Node n) 
+     {
+    	 NodeList childNodes = n.getChildNodes();
+
+    	 String name = n.getNodeName();
+     	
+     	//writeToLog("\nIn exploreHelper. Node Name: " + name + "\n");
+     	
+     	//if(childNodes.getLength() == 0)
+     	//	writeToLog("\nNo child nodes.\n");
+     	//else
+     	//	writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
+
+     	if (name.equalsIgnoreCase("FUNCTION-TERM"))
+     	{
+     		String funcName = getNodeAttribute(n, "FUNCTION-TERM", "func");
+     		
+     		List<MTerm> subTerms = new ArrayList<MTerm>();
+     		for(int ii=0;ii<childNodes.getLength();ii++)
+     		{
+     			subTerms.add(termHelper(childNodes.item(ii)));
+     		}
+     		
+     		return new MFunctionTerm(funcName, subTerms);
+     		
+     		// remember what symbols we saw, so we can catch errors?
+     		
+     	}	
+     	else if (name.equalsIgnoreCase("CONSTANT-TERM"))
+     	{
+     		String constName = getNodeAttribute(n, "CONSTANT-TERM", "id");     		
+     		return new MConstantTerm(constName);
+     	}
+     	else
+     	{
+     		String varName = getNodeAttribute(n, "VARIABLE-TERM", "id");
+     		return new MVariableTerm(varName);
+     	}
+     }
+
+	//Returns a list containing the value of the first attribute of every child node of n
      protected static List<String> getListChildren(Node n) {
          NodeList childNodes = n.getChildNodes();
          List<String> list = new LinkedList<String>();

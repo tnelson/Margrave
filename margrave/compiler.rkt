@@ -587,6 +587,7 @@
 ; tests 
 
 (define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a ~a ~a ~n" foo bar (xexpr->string foo)))
+;(define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a~n" (xexpr->string foo)))
 
 ; (parse-and-compile "#LoAd policy Mypolicy = \"*margrave*/tests/conference1.p\"")
 ; (parse-and-compile "#LoAd ios foo")
@@ -596,7 +597,7 @@
 ; (parse-and-compile "is poss? Myquery")
 ; (parse-and-compile "count Myquery")
 ; (parse-and-compile "let F[x, y, z] be true")
-; ((eval (parse-and-compile "let F[z, y, x] be P.R(x, y, 'c, f('c)) or x = 'd")))
+; ((eval (parse-and-compile "let Myqry[z, y, x] be P.R(x, y, 'c, f('c)) or x = 'd")))
 
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z))")))
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))
