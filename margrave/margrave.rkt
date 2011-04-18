@@ -409,16 +409,17 @@ gmarceau
 
 ; xacml-policy-filename -> MPolicy
 ; Loads an XACML policy 
-(define (load-xacml-policy fn #:syntax [src-syntax #f])
+(define (load-xacml-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find XACML file: ~a" fn))
-  (send-and-receive-xml (xml-make-load-xacml fn 
+  (send-and-receive-xml (xml-make-load-xacml pol-id
+                                             fn 
                                              (path->string (build-path (safe-get-margrave-collection-path) "xacml20.xsd")))))
 
 ; sqs-policy-filename -> MPolicy
 ; Loads an XACML policy 
-(define (load-sqs-policy fn #:syntax [src-syntax #f])
+(define (load-sqs-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
- (send-and-receive-xml (xml-make-load-sqs fn)))
+ (send-and-receive-xml (xml-make-load-sqs pol-id fn)))
 
 
 

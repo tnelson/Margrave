@@ -1163,21 +1163,23 @@
              (rest list-of-atomic-formulas))))
 
 ;Atomic Formulas must already be xexprs
-(define (xml-make-explore list-of-atomic-formulas list-of-modifiers)
-  `(EXPLORE (CONDITION 
+(define (xml-make-explore query-id free-vars-list list-of-atomic-formulas list-of-modifiers)
+  `(EXPLORE ((id ,query-id))
+            (CONDITION 
              ,(if (equal? 1 (length list-of-atomic-formulas))
                   (first list-of-atomic-formulas)
                   (foldl (lambda (atomic-formula rest)
                            `(AND ,atomic-formula ,rest))
                          (first list-of-atomic-formulas)
                          (rest list-of-atomic-formulas))))
+            ,(xml-make-publish free-vars-list)
             ,@list-of-modifiers))
 
 (define (xml-make-true-condition)
   '(TRUE))
 
-(define (xml-make-explore-command list-of-atomic-formulas list-of-modifiers)
-  (xml-make-command "EXPLORE" (list (xml-make-explore list-of-atomic-formulas list-of-modifiers))))
+(define (xml-make-explore-command query-id free-vars-list list-of-atomic-formulas list-of-modifiers)
+  (xml-make-command "EXPLORE" (list (xml-make-explore query-id free-vars-list list-of-atomic-formulas list-of-modifiers))))
 
 (define (xml-make-compare-command pol1 pol2 list-of-modifiers)
   (xml-make-command "COMPARE" (list `(COMPARE (POLICY1 ,pol1) 

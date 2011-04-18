@@ -29,22 +29,54 @@
 ; define-empty-tokens defines the tokens that take no value
 ; define-tokens defines the tokens that can contain a value
 (define-empty-tokens empty-terminals
-  (             EXPLORE AND OR NOT COLON IMPLIES IFF LPAREN RPAREN EQUALS SHOW
-                        ALL ONE IS POSSIBLEQMARK PUBLISH COMMA UNDER TUPLING DEBUG
-                        CEILING RENAME INFO COLLAPSE COMPARE INCLUDE 
-                        FOR CASES ADD SUBSORT SORT CONSTRAINT DISJOINT
-                        NONEMPTY SINGLETON ATMOSTONE PARTIAL FUNCTION TOTAL ABSTRACT
-                        SUBSET SET TARGET PREDICATE RULE TO CREATE VOCABULARY DECISION
-                        REQUESTVAR OTHERVAR POLICY LEAF RCOMBINE PCOMBINE PREPARE LOAD
-                        XACML SQS GET COUNT SIZE RULES HIGHER PRIORITY THAN QUALIFIED
-                        NEXT GUARANTEEDQMARK IN	AT CHILD REQUEST VECTOR QUIT DELETE SEMICOLON
-                        EOF WITH TRUE REALIZED UNREALIZED GTHAN LTHAN IOS EMPTYID DEFVEC))
-(define-tokens terminals (<identifier> <unsigned-integer> <comment>))
+  (    
+   ; delimiters, constant signifier
+   DOT QUOTESYMBOL COLON                      
+       
+       ; logical connectives, parens, equality, etc. and fmla context control
+       LET BE LSQBRACK RSQBRACK
+       AND OR NOT IMPLIES IFF LPAREN RPAREN EQUALS COMMA TRUE
+       
+       ; vector sugar
+       GTHAN LTHAN DEFVEC
+       
+       ;COMPARE
+       
+       ; command tokens
+       SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT AT
+       
+       ; optional parameters to some commands
+       UNDER INCLUDE   
+       
+       ; directives and options
+       INFO SET GET WITH IN
+       LOAD POLICY XACML SQS IOS 
+       TUPLING DEBUG CEILING 
+       QUIT 
+       
+       ; end of command
+       SEMICOLON EOF ))
 
-
+; Margrave identifiers are case-sensitive. We distinguish between
+; e.g. sorts and predicates by capitalization (Sorts are capitalized, 
+; predicates are not).
+(define-tokens terminals 
+  (
+   ; all lowercase id
+   <lowercase-id>
+   ; capitalized id
+   <capitalized-id>
+   ; quoted-id
+   <quoted-id>
+   ; natural
+   <natural>
+   ; comment
+   <comment>))
 
 (define-lex-abbrevs
   [lex:letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
+  [lex:uppercase-letter (:/ #\A #\Z)]
+  [lex:lowercase-letter (:/ #\a #\z)]
   [lex:digit (:/ #\0 #\9)]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
@@ -53,9 +85,12 @@
   [lex:comment (:: #\/ #\/ (:* (char-complement (:or #\newline #\return))))])
 
 
+; *************************************************
+
 
 ; Lexer syntax-transformer that creates SRE syntax for case-insensitive string tokens
 ; Example (lex-ci "explore") becomes an SRE for the regexp [Ee][Xx] ...
+; Used to allow keywords to be case insensitive without making the entire syntax case-insensitive.
 (define-lex-trans 
   lex-ci 
   (lambda (s) 
@@ -77,11 +112,6 @@
     result))
 
 ; *************************************************
-; Lexer func only takes the input port, not the source
-; (as parser does). We want to syntax-highlight lexer-level errors.
-;(define current-lexer-source (make-parameter #f))
-
-; *************************************************
 ; Produce a lexer function
 ; Assume the caller has downcased the input
 (define lex  
@@ -91,11 +121,13 @@
    
    ; Comment. Must appear before <identifier> rules or else something like
    ; //abc will be mis-tokenized. (Remember, priority is length and then order in the rule list.)
+   ; (Leaving the above comment in even though it doesn't apply w/o //abc being a viable identifier - TN 4/11)
    [lex:comment (return-without-pos (lex input-port))]
    
    [(eof) (token-EOF)]
    
    [":" (token-COLON)] 
+   ["." (token-DOT)] 
    [";" (token-SEMICOLON)] 
    ["(" (token-LPAREN)] 
    [")" (token-RPAREN)] 
@@ -103,103 +135,98 @@
    ["," (token-COMMA)]
    ["<" (token-LTHAN)] 
    [">" (token-GTHAN)]
-   ["\"\"" (token-EMPTYID)]
+   ["[" (token-LSQBRACK)] 
+   ["]" (token-RSQBRACK)]
+      
+   ; formulas
    
-   [(lex-ci "defvec") (token-DEFVEC)]
-   [(lex-ci "explore") (token-EXPLORE)]
-   [(lex-ci "load") (token-LOAD)]
-   [(lex-ci "policy") (token-POLICY)] 
+   [(lex-ci "let") (token-LET)]   
+   [(lex-ci "be") (token-BE)]
+      
+   [(lex-ci "true") (token-TRUE)]
    [(lex-ci "and") (token-AND)] 
    [(lex-ci "or") (token-OR)] 
    [(lex-ci "not") (token-NOT)]  
    [(lex-ci "implies") (token-IMPLIES)] 
    [(lex-ci "iff") (token-IFF)] 
-   [(lex-ci "show") (token-SHOW)] 
-   [(lex-ci "all") (token-ALL)] 
-   [(lex-ci "one") (token-ONE)] 
-   [(lex-ci "is") (token-IS)]   
-   [(lex-ci "possible?") (token-POSSIBLEQMARK)] 
-   [(lex-ci "publish") (token-PUBLISH)] 
-   [(lex-ci "under") (token-UNDER)] 
-   [(lex-ci "tupling") (token-TUPLING)] 
-   [(lex-ci "debug") (token-DEBUG)] 
-   [(lex-ci "ceiling") (token-CEILING)] 
-   [(lex-ci "rename") (token-RENAME)] 
-   [(lex-ci "info") (token-INFO)] 
-   [(lex-ci "collapse") (token-COLLAPSE)] 
-   [(lex-ci "compare") (token-COMPARE)] 
-   [(lex-ci "include") (token-INCLUDE)] 
+
+   ; commands
+   
+;   [(lex-ci "compare") (token-COMPARE)] 
+
    [(lex-ci "realized") (token-REALIZED)] 
    [(lex-ci "unrealized") (token-UNREALIZED)] 
    [(lex-ci "for") (token-FOR)] 
    [(lex-ci "cases") (token-CASES)] 
-   [(lex-ci "add") (token-ADD)] 
-   [(lex-ci "subsort") (token-SUBSORT)] 
-   [(lex-ci "sort") (token-SORT)] 
-   [(lex-ci "constraint") (token-CONSTRAINT)] 
-   [(lex-ci "disjoint") (token-DISJOINT) ] 
-   [(lex-ci "nonempty") (token-NONEMPTY)] 
-   [(lex-ci "singleton") (token-SINGLETON)] 
-   [(lex-ci "atmostone") (token-ATMOSTONE)] 
-   [(lex-ci "partial") (token-PARTIAL)] 
-   [(lex-ci "function") (token-FUNCTION)] 
-   [(lex-ci "total") (token-TOTAL)] 
-   [(lex-ci "abstract") (token-ABSTRACT)] 
-   [(lex-ci "subset") (token-SUBSET)] 
-   [(lex-ci "set") (token-SET)] 
-   [(lex-ci "target") (token-TARGET)] 
-   [(lex-ci "predicate") (token-PREDICATE)] 
-   [(lex-ci "rule") (token-RULE)] 
-   [(lex-ci "to") (token-TO)] 
-   [(lex-ci "create") (token-CREATE)] 
-   [(lex-ci "vocabulary") (token-VOCABULARY)] 
-   [(lex-ci "decision") (token-DECISION)] 
-   [(lex-ci "requestvar") (token-REQUESTVAR)] 
-   [(lex-ci "othervar") (token-OTHERVAR)] 
-   [(lex-ci "leaf") (token-LEAF)] 
-   [(lex-ci "rcombine") (token-RCOMBINE)] 
-   [(lex-ci "pcombine") (token-PCOMBINE)] 
-   [(lex-ci "prepare") (token-PREPARE)] 
-   [(lex-ci "load") (token-LOAD)] 
+   [(lex-ci "count") (token-COUNT)] 
+
+   [(lex-ci "show") (token-SHOW)] 
+   [(lex-ci "all") (token-ALL)] 
+   [(lex-ci "is poss?") (token-ISPOSSQ)] 
+
+   ; command args
+   
+   [(lex-ci "include") (token-INCLUDE)]    
+   [(lex-ci "under") (token-UNDER)] 
+   
+   ; Directives
+   
+   [(lex-ci "#defvec") (token-DEFVEC)]      
+   [(lex-ci "#set") (token-SET)] 
+   [(lex-ci "#get") (token-GET)] 
+   [(lex-ci "#info") (token-INFO)] 
+   [(lex-ci "#quit") (token-QUIT)]    
+   [(lex-ci "#load") (token-LOAD)] 
+    
+   ; directive options
+
+   [(lex-ci "policy") (token-POLICY)]    
    [(lex-ci "xacml") (token-XACML)] 
    [(lex-ci "sqs") (token-SQS)] 
-   [(lex-ci "get") (token-GET)] 
-   [(lex-ci "count") (token-COUNT)] 
-   [(lex-ci "size") (token-SIZE)] 
-   [(lex-ci "rules") (token-RULES)] 
-   [(lex-ci "higher") (token-HIGHER)] 
-   [(lex-ci "priority") (token-PRIORITY)] 
-   [(lex-ci "than") (token-THAN)] 
-   [(lex-ci "qualified") (token-QUALIFIED)] 
-   [(lex-ci "next") (token-NEXT)] 
-   [(lex-ci "guaranteed?") (token-GUARANTEEDQMARK)] 
-   [(lex-ci "in") (token-IN)]	
-   [(lex-ci "at") (token-AT)] 
-   [(lex-ci "child") (token-CHILD)] 
-   [(lex-ci "request") (token-REQUEST)] 
-   [(lex-ci "vector") (token-VECTOR)] 
-   [(lex-ci "quit") (token-QUIT)] 
-   [(lex-ci "delete") (token-DELETE)]
-   [(lex-ci "with") (token-WITH)]
-   [(lex-ci "true") (token-TRUE)]
    [(lex-ci "ios") (token-IOS)]
-   [(lex-ci "sqs") (token-SQS)]
    [(lex-ci "xacml") (token-XACML)]     
+   
+   [(lex-ci "with") (token-WITH)]   
+   [(lex-ci "in") (token-IN)]   
+   
+   [(lex-ci "tupling") (token-TUPLING)] 
+   [(lex-ci "debug") (token-DEBUG)] 
+   [(lex-ci "ceiling") (token-CEILING)] 
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 
-    (token-<unsigned-integer> (string->symbol lexeme))]
+    (token-<natural> (string->symbol lexeme))]
    
-   ; Un-quoted Identifiers -- everything but whitespace and: ( ) < > \" , = :
-   ; Use ----> char-complement <----, not complement.
-   [(:: (:+ (char-complement (:or lex:whitespace "\"" "(" ")" "<" ">" "," "=" ":" ";"))))
-    (token-<identifier> (string->symbol lexeme))]
+   ; lowercase-ids
+   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit)))
+    (token-<lowercase-id> (string->symbol lexeme))]
    
-   ; Quoted Identifiers -- anything but quote or non-space-whitespace wrapped in quotes
-   ; strip the quotes when returning the identifier value     
-   [(:: "\"" (:+ (char-complement (:or lex:nswhitespace "\""))) "\"") 
-    (token-<identifier> (string->symbol (substring lexeme 1 (- (string-length lexeme) 1))))]  
+   ; Capitalized ids
+   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit)))
+    (token-<capitalized-id> (string->symbol lexeme))]
    
+   ; Quoted ids (trim off the quote)
+   [(:: "'" (:+ (:or lex:letter lex:digit)))
+    (token-<quoted-id> (string->symbol (substring lexeme 1)))]
+   
+   ; Identifiers enclosed in double quotes
+   ; Can contain symbols. Used for filenames
+   ; allow escaping the double-quote via \"   
+   
+   ; Quoted only lowercase letters and digits? produce a lowercase id:
+   [(:: #\" lex:lowercase-letter (:* (:or lex:letter lex:digit)) #\")
+    (token-<lowercase-id> (string->symbol 
+                             (substring lexeme 1 (- (string-length lexeme) 1))))]
+   
+   
+   ; for now, produce a capitalized id. (will never allow functions or variables or constants in quotes!)
+   ; regexp is annoying. Racket requires an escape \, but so does regexp!
+   ; so a backslash REGEXP is \\\\ in first arg below
+   [(:: #\" (:+ (:or (:: #\\ #\") (char-complement (:or lex:nswhitespace #\")))) #\")
+    (token-<capitalized-id> (string->symbol (regexp-replace* "\\\\\"" 
+                                                             (substring lexeme 1 (- (string-length lexeme) 1))
+                                                             "\"")))]
+            
    ; Lexer error (parameter allows for syntax highlighting on the first character)
    [any-char
     (raise-read-error (format "Could not assign a lexical token starting at character: ~a.~n" lexeme)
@@ -211,3 +238,37 @@
    ))
 
 ; *************************************************
+; *************************************************
+; *************************************************
+; Tests
+
+; Return a thunk that gives tokens from s
+(define (get-lexer-for s)
+  (define in (open-input-string s))
+  (port-count-lines! in)
+  (lambda () (lex in)))
+
+(define (pretty-position pos)
+  (list (position-offset pos)
+        (position-line pos)
+        (position-col pos)))
+
+; Prints out the tokens generated for a given input string
+(define (run-lexer-on s)
+  (printf "Running lexer on string: ~a~n" s)
+  
+  (define lex-func (get-lexer-for s))
+  
+  (define (inner-func)
+    (define my-token (lex-func))
+    (printf "~a @ start: ~a, end: ~a. ~n~n" 
+            (position-token-token my-token)
+            (pretty-position (position-token-start-pos my-token))
+            (pretty-position (position-token-end-pos my-token)))
+    (unless (equal? 'EOF (position-token-token my-token))
+      (inner-func)))
+
+  (inner-func))
+
+; (run-lexer-on "let myquery[x] be R(x) and Foo('CX); show all; 6")
+; (run-lexer-on " \"*foo\\\" bar zot\" \"foo\"")
