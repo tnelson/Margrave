@@ -43,7 +43,7 @@
        ;COMPARE
        
        ; command tokens
-       SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT AT
+       SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT AT RESET
        
        ; optional parameters to some commands
        UNDER INCLUDE   
@@ -163,6 +163,8 @@
    [(lex-ci "show") (token-SHOW)] 
    [(lex-ci "all") (token-ALL)] 
    [(lex-ci "is poss?") (token-ISPOSSQ)] 
+   
+   [(lex-ci "reset") (token-RESET)]  
 
    ; command args
    

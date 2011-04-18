@@ -358,6 +358,8 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(SHOW <capitalized-id>) (build-so (list 'SHOW $2) 1 2)]
          ;[(SHOW ) (build-so (list 'SHOW $2) 1 1)]
          
+         [(RESET <capitalized-id>) (build-so (list 'RESET $2) 1 2)]
+         
          [(COUNT <capitalized-id>) (build-so (list 'COUNT $2) 1 2)]
          ;[(COUNT) (build-so (list 'COUNT) 1 1)]
          [(COUNT <capitalized-id> AT size) (build-so (list 'COUNT-WITH-SIZE $2 $4) 1 4)]
@@ -456,9 +458,9 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         ;**************************************************
         ; terms
-        (variable-term [(<lowercase-id>) (build-so (list 'VARIABLE $1) 1 1)])
-        (constant-term [(<quoted-id>) (build-so (list 'CONSTANT $1) 1 1)])
-        (function-term [(<lowercase-id> LPAREN condition-term-list RPAREN) (build-so (list 'FUNCTION $1 $3) 1 4)])
+        (variable-term [(<lowercase-id>) (build-so (list 'VARIABLE-TERM $1) 1 1)])
+        (constant-term [(<quoted-id>) (build-so (list 'CONSTANT-TERM $1) 1 1)])
+        (function-term [(<lowercase-id> LPAREN condition-term-list RPAREN) (build-so (list 'FUNCTION-TERM $1 $3) 1 4)])
         
         (condition-term-list
          [(condition-term) (list $1)]
@@ -505,7 +507,8 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
-                       ; [(in-formula)
+                       ; !!! TODO re-add in 
+                        ; [(in-formula)
                        ;  $1]
                         [(equals-formula) 
                          $1])   

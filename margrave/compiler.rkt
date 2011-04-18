@@ -26,6 +26,8 @@
          (file "lexer.rkt")
          (file "parser.rkt")
          (file "margrave-xml.rkt")
+         
+         xml
          )
 
 (provide parse-and-compile
@@ -207,26 +209,32 @@
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     ; id, list, optional for-cases list
-    [(equal? first-datum 'SHOWREALIZED)
-     ;(printf "~a ~n" (syntax->datum (second interns)))
-     (if (empty? (syntax->datum (fourth interns)))
-         (make-single-wrapper 
-          
-          `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                           (list ,@(map helper-syn->xml (syntax-e (third interns)))))  syn)
-         (make-single-wrapper 
-          `(xml-make-show-realized-command ,(helper-syn->xml (second interns)) 
-                                           (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                           (list `(xml-make-forcases (list ,@(map helper-syn->xml (syntax-e (fourth interns)))))))))  syn))]
-    [(equal? first-datum 'SHOWUNREALIZED)
-     (if (empty? (syntax->datum (fourth interns)))
-         (make-single-wrapper
-          `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns)) 
-                                             (list ,@(map helper-syn->xml (syntax-e (third interns)))))  syn)
-         (make-single-wrapper
-          `(xml-make-show-unrealized-command ,(helper-syn->xml (second interns))
-                                             (list ,@(append (map helper-syn->xml (syntax-e (third interns))) 
-                                                             (list `(xml-make-forcases (list ,(map helper-syn->xml (syntax-e (fourth interns)))))))))  syn))]
+    [(equal? first-datum 'SHOWREALIZED)     
+     ;(printf "~a~n" interns)
+     (define query-id (symbol->string (syntax->datum (second interns))))     
+     ; candidates and cases come as LISTS of atomic-fmlas
+     (define candidates (map helper-syn->xml (syntax-e (third interns))))
+     (define cases (map helper-syn->xml (syntax-e (fourth interns))))         
+     (make-single-wrapper       
+      `(xml-make-show-realized-command (xml-make-id ,query-id)
+                                       ,(if (empty? cases)
+                                            `(list ,@candidates)
+                                            `(list ,@(append candidates 
+                                                             (list `(xml-make-forcases (list ,@cases)))))))  syn)]  
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+    [(equal? first-datum 'SHOWUNREALIZED)     
+     ;(printf "~a~n" interns)
+     (define query-id (symbol->string (syntax->datum (second interns))))     
+     ; candidates and cases come as LISTS of atomic-fmlas
+     (define candidates (map helper-syn->xml (syntax-e (third interns))))
+     (define cases (map helper-syn->xml (syntax-e (fourth interns))))         
+     (make-single-wrapper       
+      `(xml-make-show-unrealized-command (xml-make-id ,query-id)
+                                       ,(if (empty? cases)
+                                            `(list ,@candidates)
+                                            `(list ,@(append candidates 
+                                                             (list `(xml-make-forcases (list ,@cases)))))))  syn)]  
     
     ; same but without the result ID
     ;        [(equal? first-datum 'LSHOWREALIZED)
@@ -252,39 +260,47 @@
     ; pass (type ONE) to get first
     ;;     (type NEXT) to get next in Java's iterator
     
-    [(equal? first-datum 'GET)
-     (make-single-wrapper
-      `(xml-make-get-command ,(helper-syn->xml (second interns)) 
-                             ;Use -1 if nothing is supplied
-                             ,(if (< 2 (length interns))
-                                  (helper-syn->xml (third interns))
-                                  '(xml-make-id "-1")))  syn)]
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
+  ;  [(equal? first-datum 'GET)
+  ;   (make-single-wrapper
+  ;    `(xml-make-get-command ,(helper-syn->xml (second interns)) 
+  ;                           ;Use -1 if nothing is supplied
+  ;                           ,(if (< 2 (length interns))
+  ;                                (helper-syn->xml (third interns))
+  ;                                '(xml-make-id "-1")))  syn)]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     ; Like GET, only pretty-print the result
     [(equal? first-datum 'SHOW)
-     ;         (printf "~a ~a ~n" (second interns) (if (< 2 (length interns)) (third interns) "last" ))
+     (define query-id (if (equal? 1 (length interns))
+                          ""
+                          (symbol->string (syntax->datum (second interns)))))
+     
      `(lambda () (pretty-print-response-xml 
                   (send-and-receive-xml
-                   (xml-make-get-command ,(helper-syn->xml (second interns)) 
-                                         ;Use -1 if nothing is supplied
-                                         ,(if (< 2 (length interns))
-                                              (helper-syn->xml (third interns))
-                                              '(xml-make-id "-1"))) #:syntax  #',syn)))]
+                   (xml-make-get-command (xml-make-type "ONE") 
+                                         (xml-make-id ,query-id)) #:syntax  #',syn)))]
     
+    [(equal? first-datum 'RESET)
+     (define query-id (symbol->string (syntax->datum (second interns))))
+     (make-single-wrapper `(xml-make-reset-command ,query-id) syn)]
     
-    ; ALL gets its own command type:
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+    ; ALL is treated specially:
     [(equal? first-datum 'SHOWALL)
-     (make-show-all  
-      (if (< 2 (length interns))
-          (helper-syn->xml (second interns))
-          '(xml-make-id "-1")) syn)]
+     (define query-id (if (equal? 1 (length interns))
+                          ""
+                          (symbol->string (syntax->datum (second interns)))))
+     (make-show-all `(xml-make-id ,query-id) syn)]
     
-    [(equal? first-datum 'GETALL)
-     (make-get-all  
-      (if (< 2 (length interns))
-          (helper-syn->xml (second interns))
-          '(xml-make-id "-1"))  syn)]
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+    ;[(equal? first-datum 'GETALL)
+    ; (make-get-all  
+    ;  (if (< 2 (length interns))
+    ;      (helper-syn->xml (second interns))
+    ;      '(xml-make-id "-1"))  syn)]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     [(equal? first-datum 'INFO)
      (if (empty? (rest interns))
          (make-single-wrapper `(xml-make-info-command) syn)
@@ -309,6 +325,7 @@
     ;          `(xml-make-get-qrules-command ',(syntax->datum (second interns))
     ;                                        ,(symbol->string (syntax->datum (third interns))))  syn)]
     
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     [(equal? first-datum 'QUIT)
      '(lambda () 
         (stop-margrave-engine)
@@ -353,9 +370,10 @@
                 (let loop-func ([is-first #t])
                   (if (equal? is-first #f)
                       (begin
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn))
+                        (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))
                         (loop-func #f))
                       (begin
+                        ;; TODO reset !!!!
                         (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))  
                         (loop-func #f)))))))
 
@@ -436,25 +454,49 @@
      ; flatten, not append because some map results are lists, others not
      `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml (rest interns)))))]
     
-    [(equal? first-datum 'ATOMIC-FORMULA-N)
-     `(xml-make-atomic-formula-n ',(syntax->datum (second interns)) 
-                                 ,(helper-syn->xml (third interns)))]
+    [(equal? first-datum 'ATOMIC-FORMULA)
+     (define compound-predicate-list (syntax->datum (second interns)))
+     (define term-list (third interns))    
+     ;(printf "Atomic fmla: ~a ~a~n" compound-predicate-list term-list)
+     `(xml-make-atomic-formula ',compound-predicate-list
+                                 ,(helper-syn->xml term-list))]
     
-    [(equal? first-datum 'ATOMIC-FORMULA-Y)
+    [(equal? first-datum 'TERM-LIST)
+     (define term-xml (map helper-syn->xml (rest interns)))
+      ;(printf "Term list: ~a~n" term-xml)
+     `(list ,@term-xml)]
+    
+    [(equal? first-datum 'FUNCTION-TERM)
+     (define func-name (symbol->string (syntax->datum (second interns))))
+     (define sub-term-xml (map helper-syn->xml (syntax-e (third interns))))
+    ; (printf "Function term: ~a ~a~n" func-name sub-term-xml)
+
+     `(xml-make-function-term ,func-name (list ,@sub-term-xml))]
+    
+    [(equal? first-datum 'CONSTANT-TERM)
+     `(xml-make-constant-term ,(symbol->string (syntax->datum (second interns))))]
+    [(equal? first-datum 'VARIABLE-TERM)
+     `(xml-make-variable-term ,(symbol->string (syntax->datum (second interns))))]
+    
+    ;[(equal? first-datum 'ATOMIC-FORMULA-N)
+    ; `(xml-make-atomic-formula-n ',(syntax->datum (second interns)) 
+    ;                             ,(helper-syn->xml (third interns)))]
+    
+    ;[(equal? first-datum 'ATOMIC-FORMULA-Y)
      ;Third is the colon
-     `(xml-make-atomic-formula-y ',(syntax->datum (second interns))
-                                 ',(syntax->datum (fourth interns)) 
-                                 ,(helper-syn->xml (fifth interns)))]
+    ; `(xml-make-atomic-formula-y ',(syntax->datum (second interns))
+    ;                             ',(syntax->datum (fourth interns)) 
+    ;                             ,(helper-syn->xml (fifth interns)))]
     
-    [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-N)
-     `(xml-make-atomic-formula-n ',(syntax->datum (second interns))
-                                 empty)]
+    ;[(equal? first-datum 'EMPTY-ATOMIC-FORMULA-N)
+    ; `(xml-make-atomic-formula-n ',(syntax->datum (second interns))
+    ;                             empty)]
     
-    [(equal? first-datum 'EMPTY-ATOMIC-FORMULA-Y)        
+    ;[(equal? first-datum 'EMPTY-ATOMIC-FORMULA-Y)        
      ;Third is the colon
-     `(xml-make-atomic-formula-y ',(syntax->datum (second interns))
-                                 ',(syntax->datum (fourth interns))
-                                 empty)]
+    ; `(xml-make-atomic-formula-y ',(syntax->datum (second interns))
+    ;                             ',(syntax->datum (fourth interns))
+     ;                            empty)]
     
     [(equal? first-datum 'EQUALS)
      `(xml-make-equals-formula ,(symbol->string (syntax->datum (second interns))) ,(symbol->string (syntax->datum (third interns))))]
@@ -538,7 +580,7 @@
 
 ; tests 
 
-;(define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a ~a ~n" foo bar))
+(define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a ~a ~a ~n" foo bar (xexpr->string foo)))
 
 ; (parse-and-compile "#LoAd policy Mypolicy = \"*margrave*/tests/conference1.p\"")
 ; (parse-and-compile "#LoAd ios foo")
@@ -548,3 +590,10 @@
 ; (parse-and-compile "is poss? Myquery")
 ; (parse-and-compile "count Myquery")
 ; (parse-and-compile "let F[x, y, z] be true")
+; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z))")))
+; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))
+; ((eval (parse-and-compile "show unrealized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))
+
+; (parse-and-compile "#quit")
+; (parse-and-compile "#info")
+; (parse-and-compile "#info Thingy")    

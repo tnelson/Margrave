@@ -60,10 +60,13 @@
  xml-make-info-id-command
  xml-make-rename-command
  xml-make-get-command
- xml-make-atomic-formula-n
- xml-make-atomic-formula-y
+ xml-make-atomic-formula
+ xml-make-variable-term
+ xml-make-constant-term
+ xml-make-function-term
  xml-make-explore-command
  xml-make-compare-command
+ xml-make-reset-command
  xml-make-is-possible-command
  xml-make-debug
  xml-make-publish
@@ -1093,6 +1096,9 @@
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
+(define (xml-make-reset-command id)
+  (xml-make-command "RESET" (list (xml-make-id id))))
+
 (define (xml-make-under list-of-policies)
   `(UNDER ,@list-of-policies))
 
@@ -1120,12 +1126,11 @@
 (define (xml-make-include list-of-atomic-formulas)
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
-; TN: left populated as XML data rather than changing it, since "realized" isn't final either
 (define (xml-make-show-realized-command id childlist)
-  (xml-make-command "SHOW" (list `(SHOW ((type "POPULATED") ,id) ,@childlist))))
+  (xml-make-command "SHOW" (list `(SHOW ((type "REALIZED") ,id) ,@childlist))))
 
 (define (xml-make-show-unrealized-command id childlist)
-  (xml-make-command "SHOW" (list `(SHOW ((type "UNPOPULATED") ,id) ,@childlist))))
+  (xml-make-command "SHOW" (list `(SHOW ((type "UNREALIZED") ,id) ,@childlist))))
 
 (define (xml-make-forcases the-cases)
   `(FORCASES ,@the-cases))
@@ -1143,14 +1148,28 @@
 (define (xml-make-equals-formula v1-name v2-name)
   `(EQUALS ((v1 ,v1-name) (v2 ,v2-name))))
 
-(define (xml-make-atomic-formula-n relName xml-identifier-list)
-  `(ATOMIC-FORMULA-N ((relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))  
+(define (xml-make-variable-term id)
+  `(VARIABLE-TERM ,id))
 
-(define (xml-make-atomic-formula-y collName relName xml-identifier-list)
+(define (xml-make-constant-term id)
+  `(CONSTANT-TERM ,id))
+
+(define (xml-make-function-term fid subterm-xml-list)
+  `(FUNCTION-TERM ((func ,fid)) ,@subterm-xml-list))
+
+(define (xml-make-atomic-formula compound-id-list term-list)
+  `(ATOMIC-FORMULA (RELATION-NAME ,@(map xml-make-id compound-id-list))
+                   (TERMS ,@term-list)) ) 
+
+
+;(define (xml-make-atomic-formula-n relName xml-identifier-list)
+;  `(ATOMIC-FORMULA-N ((relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))  
+
+;(define (xml-make-atomic-formula-y collName relName xml-identifier-list)
   ;(printf "~n~nY: ~a ~a ~n" collName relName)
-  (if (empty? xml-identifier-list)
-      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))))
-      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
+;  (if (empty? xml-identifier-list)
+;      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))))
+;      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
 
 ;;EXPLORE
 ;Makes an xexpr for a list of atomic formulas (can be of size 1). symbol can be "and" or "or"
