@@ -458,6 +458,11 @@
      `(xml-make-identifiers-list (flatten (list ,@(map helper-syn->xml
                                                        (rest interns)))))]        
     
+    [(equal? first-datum 'VARIABLE-DECL)
+     (define the-var-xml (helper-syn->xml (second interns)))
+     (define the-sort (syntax->string (third interns)))
+     `(xml-make-variable-declaration ,the-var-xml ,the-sort)]
+    
     [(equal? first-datum 'ATOMIC-FORMULA)
      (define compound-predicate-list (syntax->datum (second interns)))
      (define term-list (third interns))    
@@ -507,6 +512,11 @@
      (define term2-xml (helper-syn->xml (third interns)))     
      `(xml-make-equals-formula ,term1-xml ,term2-xml)]
     
+    [(equal? first-datum 'ISA)
+     (define the-var (syntax->string (second interns)))
+     (define the-sort (syntax->string (third interns)))
+     `(xml-make-isa-formula ,the-var ,the-sort)]
+    
     [(equal? first-datum 'CONDITION)
      (helper-syn->xml (second interns))]      
     
@@ -539,7 +549,16 @@
     [(equal? first-datum 'NOT)
      `(xml-make-not ,(helper-syn->xml (second interns)))]
     
-    
+    [(equal? first-datum 'FORALL)
+     (define the-var (syntax->string (second interns)))
+     (define the-sort (syntax->string (third interns)))
+     (define the-fmla (helper-syn->xml (fourth interns)))
+     `(xml-make-forall ,the-var ,the-sort ,the-fmla)]
+    [(equal? first-datum 'EXISTS)
+     (define the-var (syntax->string (second interns)))
+     (define the-sort (syntax->string (third interns)))
+     (define the-fmla (helper-syn->xml (fourth interns)))
+     `(xml-make-exists ,the-var ,the-sort ,the-fmla)]
     
     [(equal? first-datum 'type)
      `(xml-make-type ,(syntax->string (second interns)))]
@@ -597,7 +616,9 @@
 ; (parse-and-compile "is poss? Myquery")
 ; (parse-and-compile "count Myquery")
 ; (parse-and-compile "let F[x, y, z] be true")
-; ((eval (parse-and-compile "let Myqry[z, y, x] be P.R(x, y, 'c, f('c)) or x = 'd")))
+
+; Test var decs (and ordering), function (unary), constants, isa
+; ((eval (parse-and-compile "let Myqry[z:A, y:B, x:C] be P.R(x, y, 'c, f('c)) or x = 'd and x : Sort1")))
 
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z))")))
 ; ((eval (parse-and-compile "show realized Myquery P.R(x, y, f('c, z)), P.R2(z, 'c) for cases IDB(x), P.R3(y)")))

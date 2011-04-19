@@ -36,6 +36,7 @@
        ; logical connectives, parens, equality, etc. and fmla context control
        LET BE LSQBRACK RSQBRACK
        AND OR NOT IMPLIES IFF LPAREN RPAREN EQUALS COMMA TRUE
+       FORALL EXISTS
        
        ; vector sugar
        GTHAN LTHAN DEFVEC
@@ -149,7 +150,9 @@
    [(lex-ci "not") (token-NOT)]  
    [(lex-ci "implies") (token-IMPLIES)] 
    [(lex-ci "iff") (token-IFF)] 
-
+   [(lex-ci "forall") (token-FORALL)] 
+   [(lex-ci "exists") (token-EXISTS)] 
+   
    ; commands
    
 ;   [(lex-ci "compare") (token-COMPARE)] 

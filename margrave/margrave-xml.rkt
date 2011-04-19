@@ -110,6 +110,10 @@
  xml-make-implies
  xml-make-iff
  xml-make-not
+ xml-make-forall
+ xml-make-exists
+ xml-make-variable-declaration
+ xml-make-isa-formula
  xml-policy-info->req-vector)
 
 ; ********************************************************
@@ -1145,6 +1149,12 @@
 (define (xml-make-equals-formula t1 t2)
   `(EQUALS ,t1 ,t2))
 
+(define (xml-make-isa-formula v s)
+  `(ISA ((var ,v) (sort ,s))))
+
+(define (xml-make-variable-declaration v s)
+  `(VARIABLE-DECLARATION ((sort ,s)) ,v))
+
 (define (xml-make-variable-term id)
   `(VARIABLE-TERM ((id ,id))))
 
@@ -1230,6 +1240,11 @@
 
 (define (xml-make-quit)
   (xml-make-command "QUIT" empty))
+
+(define (xml-make-forall x s f)
+  `(FORALL ((var ,x) (sort ,s)) ,f))
+(define (xml-make-exists x s f)
+  `(EXISTS ((var ,x) (sort ,s)) ,f))
 
 
 (define (xml-make-and p1 p2)

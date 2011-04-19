@@ -451,6 +451,14 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(condition-formula OR condition-formula) (build-so (list 'OR $1 $3) 1 3)]
          [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 3)]
          [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
+         
+         ; !!! todo, more than one per FORLALL, e.g.: FORALL x:A, y:B, ...
+         ; !!! also parens or not?
+         [(FORALL <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN)
+          (build-so (list 'FORALL $2 $4 $6) 1 6)]
+         [(EXISTS <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN) 
+          (build-so (list 'EXISTS $2 $4 $6) 1 6)]
+         
          [(atomic-formula) (build-so $1 1 1)])
         
         ; *************************************************
@@ -498,6 +506,9 @@ Margrave did not understand the condition or options given around \"~a\"."
         (equals-formula 
          [(condition-term EQUALS condition-term) (build-so (list 'EQUALS $1 $3) 1 3)])
         
+        ; Downcasting
+        (isa-formula
+         [(<lowercase-id> COLON <capitalized-id>) (build-so (list 'ISA $1 $3) 1 3)])
                 
         ; ***********************************************************        
         ; atomic formulas        
@@ -514,6 +525,8 @@ Margrave did not understand the condition or options given around \"~a\"."
                         ; [(in-formula)
                        ;  $1]
                         [(equals-formula) 
+                         $1]
+                        [(isa-formula)
                          $1])   
         
         (atomic-formula-list
