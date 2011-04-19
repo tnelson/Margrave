@@ -34,21 +34,12 @@ import kodkod.ast.operator.Multiplicity;
 
 public class MConstraints
 {
-	String id;
-
 	// So we can validate type names, etc.
 	MVocab vocab;
-
-	// Axiomatic disjointness
-	// Which disjointness assertions need to be made, because
-	// they are not covered by similar assertions higher in
-	// the sort tree?
-	HashMap<MSort, Set<MSort>> axiomDisjoints;
 
 	Set<String> setsSingleton;
 	Set<String> setsAtMostOne;
 	Set<String> setsNonempty;
-	HashMap<String, Set<String>> setsSubset;
 
 	// Relations constrained to be functions
 	HashSet<String> funcTotal;
@@ -65,22 +56,18 @@ public class MConstraints
 
 	Set<String> otherConstraintStrings;
 
-	public MConstraints(String desc, MVocab voc)
-	{
-		id = desc;
+	public MConstraints(MVocab voc)
+	{		
 		vocab = voc;
 
 		setsSingleton = new HashSet<String>();
 		setsNonempty = new HashSet<String>();
 		setsAtMostOne = new HashSet<String>();
-		setsSubset = new HashMap<String, Set<String>>();
 		setsAbstract = new HashSet<String>();
 
 		funcTotal = new HashSet<String>();
 		funcPartial = new HashSet<String>();
-		relTotal = new HashSet<String>();
-
-		axiomDisjoints = new HashMap<MSort, Set<MSort>>();
+		relTotal = new HashSet<String>();		
 
 		otherConstraintStrings = new HashSet<String>();
 	}
@@ -119,160 +106,6 @@ public class MConstraints
 		setsAbstract.add(d);
 	}
 
-
-	public void addConstraintDisjointAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		d = vocab.validateIdentifier(d, true);
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
-
-		MSort parent = vocab.getSort(d);
-
-		for(MSort t1 : parent.subsorts)
-			for(MSort t2: parent.subsorts)
-				if(t1 != t2)
-					addConstraintDisjoint(t1, t2);
-	}
-
-	protected boolean addConstraintDisjoint(MSort t1, MSort t2) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// t1, t2 are disjoint in this constraint set
-
-		//if(!axiom_disjoints.containsKey(t1))
-		//	axiom_disjoints.put(t1, new HashSet<MGSort>());
-		//if(!axiom_disjoints.containsKey(t2))
-		//	axiom_disjoints.put(t2, new HashSet<MGSort>());
-
-		//Set<MGSort> disjoints = axiom_disjoints.get(t1);
-		//disjoints.add(t2); // no put needed, same object
-
-		// TODO debug
-
-		// Is this assertion meaningful, or is it already a consequence of other disj axioms?
-		if(vocab.possibleOverlap(t1, t2))
-		{
-			// Prepare the data structures if needed
-			if(!axiomDisjoints.containsKey(t1))
-				axiomDisjoints.put(t1, new HashSet<MSort>());
-			if(!axiomDisjoints.containsKey(t2))
-				axiomDisjoints.put(t2, new HashSet<MSort>());
-
-			// ************
-			// Step 1: Add!
-			Set<MSort> disjoints = axiomDisjoints.get(t1);
-			disjoints.add(t2); // no put needed, same object
-
-			// Axioms are not symmetric: We don't add that t2 disj t1...
-			// Why make the query bigger than it has to be?
-
-			// ********************************
-			// Step 2: Does this disjointness "cover" pre-existing disjointnesses lower in the tree?
-			// Since we aren't being symmetric, need to check in _both_ directions.
-
-			// Any of t1's descendants have an ax_disj involving a descendant of t2?
-			// (Warning: subsortClosureOf doesn't include subSET constraints, just the sort tree.)
-
-			// TODO larger sorts generally have disjointness given before smaller ones,
-			// making this block apply only rarely. commented out for now
-
-			/*Set<MGSort> t1desc = vocab.subsortClosureOf(t1);
-			Set<MGSort> t2desc = vocab.subsortClosureOf(t2);
-
-			for(MGSort child1 : t1desc)
-				for(MGSort child2 : t2desc)
-				{
-					// Does this combination have a disj? If so remove.
-					if(!child1.equals(t1) && vocab.axioms.axiom_disjoints.containsKey(child1))
-						if(vocab.axioms.axiom_disjoints.get(child1).contains(child2))
-						{
-							
-							vocab.axioms.axiom_disjoints.get(child1).remove(child2);
-						}
-
-					// Same for t2, t1.
-					if(!child2.equals(t2) && vocab.axioms.axiom_disjoints.containsKey(child2))
-						if(vocab.axioms.axiom_disjoints.get(child2).contains(child1))
-						{
-						
-							vocab.axioms.axiom_disjoints.get(child2).remove(child1);
-						}
-				}		*/
-
-			return true;
-		}
-		else
-		{
-			// Do nothing: won't need to mention these because they are already
-			// disjoint given existing constraints.
-			
-			return false;
-		}
-
-
-		// We do NOT "promote" disjointness. Unsafe!
-	}
-
-	public void addConstraintDisjoint(String d, Set<String> others) throws MGEBadIdentifierName, MGEUnknownIdentifier
-	{
-		d = vocab.validateIdentifier(d, true);
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
-
-		for(String other_ : others)
-		{
-			String other = vocab.validateIdentifier(other_, true);
-			if(!vocab.isSort(other))
-				throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+other);
-
-			addConstraintDisjoint(vocab.getSort(d), vocab.getSort(other));
-		}
-	}
-
-	public void addConstraintDisjoint(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		d1 = vocab.validateIdentifier(d1, true);
-		d2 = vocab.validateIdentifier(d2, true);
-		if(!vocab.isSort(d1))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d1);
-		if(!vocab.isSort(d2))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d2);
-
-		addConstraintDisjoint(vocab.getSort(d1), vocab.getSort(d2));
-	}
-
-	public void addConstraintDisjoint(Set<String> rels) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// Don't require the user to enter pairwise disjointness by PAIR.
-		// (This method is a happy medium between disjoint(x, y) and disjoint_all(domain)
-
-		for(String d : rels)
-		{
-			d = vocab.validateIdentifier(d, true);
-			if(!vocab.isSort(d))
-				throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
-
-			MSort t1 = vocab.getSort(d);
-			for(String d2 : rels)
-			{
-				if(d.equals(d2))
-					continue;
-				MSort t2 = vocab.getSort(d2);
-				addConstraintDisjoint(t1, t2);
-			}
-		}
-	}
-
-	public void addConstraintDisjoint(MSort t, Set<MSort> disj) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		for(MSort td : disj)
-			addConstraintDisjoint(t, td);
-	}
-
-	public void addConstraintDisjoint(List<String> dlist) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		addConstraintDisjoint(new HashSet<String>(dlist));
-	}
-
 	public void addConstraintNonempty(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		d = vocab.validateIdentifier(d, true);
@@ -282,19 +115,6 @@ public class MConstraints
 		setsNonempty.add(d);
 	}
 
-	public void addConstraintSubset(String child, String parent) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// child is subset of parent
-		child = vocab.validateIdentifier(child, true);
-		parent = vocab.validateIdentifier(parent, true);
-		if(!vocab.isSort(child) || !vocab.isSort(parent))
-			throw new MGEUnknownIdentifier("Could not add constraint. One of the following was an unknown type: "+child+", "+parent);
-
-		if(!setsSubset.containsKey(child))
-			setsSubset.put(child, new HashSet<String>());
-
-		setsSubset.get(child).add(parent);
-	}
 
 	public void addConstraintSingleton(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -390,21 +210,12 @@ public class MConstraints
 		return getConstraintFormulas(null);
 	}
 
+	
+	
 	Set<Formula> getConstraintFormulas(MIDBCollection idbContext)
 	throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
 	{
 		Set<Formula> results = new HashSet<Formula>();
-
-		// Don't utter everything that must be disjoint from a type.
-		// Be smart: only make disjointness an axiom if it wouldn't already
-		// be true due to a disjointness higher in the sort order.
-
-
-		for(MSort basetype : axiomDisjoints.keySet())
-		{
-			Set<Formula> theseDisjs = getDisjointness(basetype, axiomDisjoints.get(basetype));
-			results.addAll(theseDisjs);
-		}
 
 		for(String r : setsAbstract)
 		{
@@ -484,25 +295,6 @@ public class MConstraints
 					//.accept(simplifierV));
 		}
 		
-		return results;
-	}
-
-	Set<Formula> getDisjointness(MSort t, Set<MSort> disjoints)
-	throws MGEUnknownIdentifier
-	{
-		// Strange behavior of this method is static. So not static.
-
-		if(disjoints == null || disjoints.size() < 1)
-			return new HashSet<Formula>();
-
-		Iterator<MSort> it = disjoints.iterator();
-		Expression unions = it.next().rel;
-
-		while(it.hasNext())
-			unions = unions.union(it.next().rel);
-
-		HashSet<Formula> results = new HashSet<Formula>();
-		results.add(t.rel.intersection(unions).no());
 		return results;
 	}
 

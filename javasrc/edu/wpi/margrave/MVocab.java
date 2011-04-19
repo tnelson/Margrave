@@ -134,68 +134,101 @@ class MVariableTerm extends MTerm
 	}	
 }
 
+class MConstant
+{
+	String name;
+	Relation rel;
+	MSort type;
+	
+	public String toString()
+	{
+		return name;
+	}
+	
+	MConstant(String name, Relation rel, MSort type)
+	{
+		this.name = name;
+		this.rel = rel;
+		this.type = type;
+	}
+}
+
+class MFunction
+{
+	String name;
+	Relation rel;
+	List<MSort> arity;
+	MSort type;
+	
+	public String toString()
+	{
+		return name;
+	}
+	
+	MFunction(String name, Relation rel, List<MSort> arity, MSort type)
+	{
+		this.name = name;
+		this.rel = rel;
+		this.type = type;
+		this.arity = arity;
+	}
+	
+}
+
+class MPredicate
+{
+	String name;
+	Relation rel;
+	List<MSort> type;
+	
+	public String toString()
+	{
+		return name;
+	}
+	
+	MPredicate(String name, Relation rel, List<MSort> type)
+	{
+		this.name = name;
+		this.rel = rel;
+		this.type = type;
+	}
+}
+
 /**
  * MVocab
  * effectively describes the domain of discourse.
  */
 public class MVocab {
 
-	// Caller creates this and fills it before creating the policy.
-	// Then caller passes it to new policies.
-
-	String vocab_name;
-
-	// KodKod Relation objects used by the policy.
+	// Sort symbols
 	HashMap<String, MSort> sorts;
 
-	HashMap<String, Relation> predicates;
-	HashMap<String, String> predtypes;
+	// Constant symbols
+	HashMap<String, MConstant> constants;
+	
+	// Function symbols
+	HashMap<String, MFunction> functions;
+	
+	// Non-sort predicate symbols
+	HashMap<String, MPredicate> predicates;	
 
-	// KodKod Variables used in the Formulas.
-	// requestVariables = s, a, r...
-	HashMap<String, Variable> requestVariables;
-
-	// Order of the variable place holders
-	ArrayList<Variable> requestVectorOrder;
-
-	// Constraints on the domain of discourse
+	// Subset of the predicate symbols that can be used as IDBs in a policy
+	HashSet<String> decisions;
+	
+	// More constraints on the domain of discourse
 	public MConstraints axioms;
 
-	// "other" variables are rule-scope existentials. For instance
-	// (Permit s) :- (Admin x) (Delegated* x s)
-	// Users never come into contact with them.
-	// So we store a mapping of the NAME to the sort they are in. But the rule
-	// itself
-	// handles creation of the variable object.
-	HashMap<String, Relation> otherVarDomains;
-
-	// Same for request vars
-	HashMap<String, Relation> requestVarDomains;
-
-	// List of possible decisions this policy can return.
-	// For instance, an access control policy would have ["Permit", "Deny"]
-	// This list does not include N/a, as that response is implied for all
-	// policies.
-	HashSet<String> decisions;
-
-	public MVocab(String voc_name) {
-		vocab_name = voc_name;		
+	public MVocab()
+	{
 
 		sorts = new HashMap<String, MSort>();
-		predicates = new HashMap<String, Relation>();
-		predtypes = new HashMap<String, String>();
-
-		requestVariables = new HashMap<String, Variable>();
-		requestVarDomains = new HashMap<String, Relation>();
-		requestVectorOrder = new ArrayList<Variable>();
-
-		// Allows the user to give a type for rule-scope variables -- this
-		// gives great benefit in H.U. calculation.
-		otherVarDomains = new HashMap<String, Relation>();
-
+		predicates = new HashMap<String, MPredicate>();
+		constants = new HashMap<String, MConstant>();
+		functions = new HashMap<String, MFunction>();
+		
 		decisions = new HashSet<String>();
 
-		axioms = new MConstraints(voc_name + "_axioms", this);
+		axioms = new MConstraints(this);
 	}
 
 	String validateIdentifier(String n, boolean substitute)
@@ -233,16 +266,6 @@ public class MVocab {
 		return n;
 	}
 
-	public String getExpectedRequestVarOrder()
-	{
-		// Return a string that gives the expected order for request vars.
-		String result = "";
-		for (Variable v : requestVectorOrder)
-			result += v.name() + " ";
-
-		// DO NOT trim trailing whitespace
-		return result;
-	}
 
 	public void addSort(String name) throws MGEBadIdentifierName
 	{	
@@ -450,48 +473,24 @@ public class MVocab {
 			throws MGEBadIdentifierName {
 		// construct contains a String with relation names in it.
 		// "A B C" means type of (A x B x C)
+		
 		name = validateIdentifier(name, true);
-		typeconstruct = typeconstruct.toLowerCase();
-
+		
 		if (predicates.keySet().contains(name))
 			return; // already have a pred named this
 
 		name = validateIdentifier(name, true);
 
-		predicates.put(name, MFormulaManager.makeRelation(name, typeconstruct
-				.split(" ").length));
-
-		// MEnvironment.errorStream.println(predicates.get(name) +
-		// ": "+predicates.get(name).arity());
-		predtypes.put(name, typeconstruct);
-	}
-
-	public void addRequestVar(String varname, String domain)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		varname = varname.toLowerCase();
-		domain = domain.toLowerCase();
-		varname = validateIdentifier(varname, false);
+		String[] arityArr = typeconstruct.split(" ");
+		List<MSort> arity = new ArrayList<MSort>();
+		for(String s : arityArr)
+			arity.add(getSort(s));
+	
+		Relation theRel = MFormulaManager.makeRelation(name, arity.size());
 		
-		// Do not add if it is already in the vector!
-		if(requestVariables.containsKey(varname))
-			return;
+		MPredicate thePred = new MPredicate(name, theRel, arity);
 		
-		Variable newvar = MFormulaManager.makeVariable(varname);			
-		requestVariables.put(varname, newvar);
-		requestVectorOrder.add(newvar);
-		requestVarDomains.put(varname, getRelation(domain));
-	}
-
-	public void addOtherVar(String varname, String domain)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
-		varname = varname.toLowerCase();
-		domain = domain.toLowerCase();
-
-		// No Variable added here: Will be added dynamically in rule parser
-
-		varname = validateIdentifier(varname, false);
-		otherVarDomains.put(varname, getRelation(domain));
+		predicates.put(name, thePred);
 	}
 
 	public void addDecision(String d) throws MGEBadIdentifierName
@@ -504,51 +503,47 @@ public class MVocab {
 		// The MGPolicy object is responsible for initializing the actual IDBs.
 	}
 
-	Relation getRelation(String rname) throws MGEUnknownIdentifier, MGEBadIdentifierName {
+	Relation getRelation(String rname) throws MGEUnknownIdentifier, MGEBadIdentifierName 
+	{
 		rname = validateIdentifier(rname, true);
-		try {
+		try
+		{
 			MSort t = getSort(rname);
 			return t.rel;
-		} catch (MBaseException E) {
+		}
+		catch (MBaseException E) 
+		{
 			if (predicates.containsKey(rname))
-				return predicates.get(rname);
+				return predicates.get(rname).rel;
 			throw new MGEUnknownIdentifier("Error: Unable to get Relation for unknown sort name: " + rname);
 		}
 	}
 
-	Variable getRequestVariable(String varname) throws MGEUnknownIdentifier {
-		varname = varname.toLowerCase();
-		if (requestVariables.containsKey(varname))
-			return requestVariables.get(varname);
-
-		throw new MGEUnknownIdentifier("Unknown variable name: " + varname);
-	}
-
 	private Formula getPredTypeFormula(String relname)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
+			throws MGEUnknownIdentifier, MGEBadIdentifierName 
+	{
 		// Accepts a relation name
 		// Returns a Formula expressing constraints on the parent relation
 		// This method works only for non-type EDB predicates, not types
 		// themselves
-		Relation r = predicates.get(relname);
-		String typeconstruct = predtypes.get(relname);
+		
+		MPredicate thePred = predicates.get(relname); 		
 
 		Expression rin = Expression.NONE; // will be overwritten below
 
-		String[] subrels = typeconstruct.split(" ");
 		boolean initialized = false;
-		for (String relSubName : subrels) {
-			if (!initialized && isSort(relSubName)) {
-				rin = getSort(relSubName).rel;
+		for (MSort relSub : thePred.type)
+		{
+			if (!initialized) 
+			{
+				rin = relSub.rel;
 				initialized = true;
-			} else if (isSort(relSubName))
-				rin = rin.product(getSort(relSubName).rel);
-			else
-				throw new MGEUnknownIdentifier("Could not find type named "
-						+ relSubName);
+			} 
+			else 
+				rin = rin.product(relSub.rel);			
 		}
 
-		Formula f = r.in(rin);
+		Formula f = thePred.rel.in(rin);
 
 		return f;
 	}
@@ -561,13 +556,29 @@ public class MVocab {
 		return false;
 	}
 
+	
+	Set<Formula> getDisjointness(MSort t)
+	throws MGEUnknownIdentifier
+	{		
+
+		// TODO
+		
+		if(disjoints == null || disjoints.size() < 1)
+			return new HashSet<Formula>();
+
+		Iterator<MSort> it = disjoints.iterator();
+		Expression unions = it.next().rel;
+
+		while(it.hasNext())
+			unions = unions.union(it.next().rel);
+
+		HashSet<Formula> results = new HashSet<Formula>();
+		results.add(t.rel.intersection(unions).no());
+		return results;
+	}
+	
 	Formula getFixedAxiomFormula() throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// No longer require subsorts to exhaust their parents. (This is equivalent
-		// to alloy's "abstract" keyword on the parent sorts.) It made the theory
-		// troublesome, and users can always manually force such a constraint. 
-		
-		
+	{		
 		// Returns a formula stating "This is a model of order-sorted FoL over
 		// these sorts and this ordering." 
 				
@@ -580,81 +591,38 @@ public class MVocab {
 
 		Set<Formula> axiomSet = new HashSet<Formula>();
 
-		// (1) Specific to Margrave (not order-sorted FOL)
-		//     Disjointness is safe: universals only
-		//     
-		// Top-level sorts partition the universe. They are always disjoint.
-		Expression univunion = Expression.NONE; // safe default
-		boolean firstuniv = true;
-		for (MSort t : sorts.values()) {
-			if (!isSubtype(t)) {
-				if (firstuniv) {
-					firstuniv = false;
-					univunion = t.rel;
-				} else
-					univunion = univunion.union(t.rel);
+		//////////////////////////////////////////////
+		// Every atom is contained in some type.		
+		Expression univunion = Expression.NONE;
+		for(MSort aSort : sorts.values())
+		{
+			if(!isSubtype(aSort))
+				univunion = univunion.union(aSort.rel);
+		}
+		axiomSet.add(Expression.UNIV.in(univunion));		
 
-				// fresh set for each...
-				HashSet<MSort> others = new HashSet<MSort>();
-
-				for (MSort t2 : sorts.values())
-					if (!isSubtype(t2) && t != t2)
-						others.add(t2);
-
-				// for universe types, so this is indeed axiomatic
-				axiomSet.addAll(axioms.getDisjointness(t, others));
-			} // end if !subtype
-		} // end for each type
-
-		// (2)
-		// Every atom is contained in some universe type.
-		axiomSet.add(Expression.UNIV.in(univunion));
-
-		// (3) All sorts contain their subsorts
+		//////////////////////////////////////////////		
+		// All sorts contain their subsorts
 		for (MSort basetype : sorts.values())
 		{
-			//Expression allsubs = Expression.NONE;
-			
-			// If there are subsorts...
-			if (basetype.subsorts.size() > 0)
+			for (MSort subtype : basetype.subsorts)
 			{
-
-				// All subsorts of this type are in it
-				for (MSort subtype : basetype.subsorts) {
-					Relation subd = subtype.rel;
-					axiomSet.add(subd.in(basetype.rel));
-					//allsubs = allsubs.union(subd);
-				}
-
-				//axiomSet.add(basetype.rel.in(allsubs));
+				Relation subd = subtype.rel;
+				axiomSet.add(subd.in(basetype.rel));
 			}
 
-			// disjointness CONSTRAINTS on this type are handled in the
-			// MGConstraints object
-		}
-
-		// 3(a): subSET constraints treated in the same way
-		for(String child : axioms.setsSubset.keySet())
-		{
-			// TODO this procedure isn't using MGFormulaManager, but
-			// these axioms should not be duplicated anyway.
+				//axiomSet.add(basetype.rel.in(allsubs));
 			
-			for(String parent : axioms.setsSubset.get(child))
-				axiomSet.add(getRelation(child).in(getRelation(parent))); // in, not eq 
+			//////////////////////////////////////////////
+			// and assert disjointness where appropriate
+			axiomSet.addAll(getDisjointness(basetype));
 		}
 		
-		
-
-		
-		
-		// (5)
-		// State predicates have a sig which must be respected
+		//////////////////////////////////////////////					
+		// Predicates have a sig which must be respected
 		// e.g.: EdgePredicate in (Nodes x Nodes)
-		for (Relation r : predicates.values()) {
-			// We should have a type construct stored for this predicate
-			// Break it down and express the constraints!
-			axiomSet.add(getPredTypeFormula(r.name()));
-		}
+		for (MPredicate aPred : predicates.values())
+			axiomSet.add(getPredTypeFormula(aPred.name));		
 
 		return MFormulaManager.makeConjunction(axiomSet); // .accept(new SimplifyFormulaV());
 	}
@@ -809,7 +777,7 @@ public class MVocab {
 	
 	public boolean isSubOrSubOf(MSort sub, MSort sup) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		Set<MSort> supers = buildSuperSetSet(sub);
+		Set<MSort> supers = buildSuperSortSet(sub);
 		if(supers.contains(sup))
 			return true;
 		return false;
@@ -944,41 +912,53 @@ public class MVocab {
 
 	}
 
-	protected Set<MSort> buildSuperSetSet(MSort t)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
-		// Build the list of types that MUST be supersets of type t.
-		// This is more or less the transitive closure of supertype and subset
-		// constraints on t.
-
+	protected Set<MSort> buildSubSortSet(MSort t)
+	{
 		List<MSort> todo = new LinkedList<MSort>();
 		Set<MSort> result = new HashSet<MSort>();
 		todo.add(t);
 
-		while (todo.size() > 0) {
-			// Pop todo, add to result
+		while (todo.size() > 0) 
+		{
 			MSort next = todo.get(0);
 			todo.remove(0);
 			result.add(next);
-
-			// expand next, queue supers/supertypes not already dealt with or
-			// already queued
-			for(MSort aParent : next.parents)
+		
+			for(MSort aChild : next.subsorts)
 			{
-				if(!result.contains(aParent) && !todo.contains(aParent))
-				todo.add(aParent);
-			}
-			
-			// indexed by CHILD
-			if (axioms.setsSubset.containsKey(next.name))
-				for (String supname : axioms.setsSubset.get(next.name)) {
-					MSort sup = getSort(supname);
-					if (!result.contains(sup) && !todo.contains(sup))
-						todo.add(sup);
-				}
-
+				if(!result.contains(aChild) && !todo.contains(aChild))
+				todo.add(aChild);
+			}			
 		}
 
 		return result;
+		
+	}
+		
+	protected Set<MSort> buildSuperSortSet(MSort t)
+			throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+				List<MSort> todo = new LinkedList<MSort>();
+				Set<MSort> result = new HashSet<MSort>();
+				todo.add(t);
+
+				while (todo.size() > 0) 
+				{
+					// Pop todo, add to result
+					MSort next = todo.get(0);
+					todo.remove(0);
+					result.add(next);
+
+					// expand next, queue supers/supertypes not already dealt with or
+					// already queued
+					for(MSort aParent : next.parents)
+					{
+						if(!result.contains(aParent) && !todo.contains(aParent))
+						todo.add(aParent);
+					}			
+				}
+
+				return result;
 	}
 
 	protected boolean possibleOverlap(String st1, String st2)
@@ -993,51 +973,26 @@ public class MVocab {
 	}
 
 	protected boolean possibleOverlap(MSort t1, MSort t2)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
-
-		// Default to the SAFE decision: That the types are related.
-
-		// Let sups1 be the set of necessary supersets of type 1, and sups2
-		// similarly for type 2.
-		// Then the types are only necessarily disjoint if:
-		// (1) t1 and t2 belong to different universe types (e.g., Subject vs.
-		// Action) or
-		// (2) there is some superset s1 in sups1 and some s2 in sups2 having a
-		// disjointness constraint.
-
-		// It doesn't matter if (say) t1 = t2 -- if x subset y and x subset z, y
-		// disjoint from z... x must be empty.
-
-		Set<MSort> sups1 = buildSuperSetSet(t1);
-		Set<MSort> sups2 = buildSuperSetSet(t2);
-
-		// now check for disjointness
-		// 11/16/09 TN changed to use ax_disj instead of disj. Now we must check in both directions.
-		for (MSort s1 : sups1)
-		{
-			for (MSort s2 : sups2)
-			{
-				// removed: only axiom_disjoints now.
-				//if (axioms.disjoints.containsKey(s1)
-				//		&& axioms.disjoints.get(s1).contains(s2))
-				
-				if (axioms.axiomDisjoints.containsKey(s1)
-								&& axioms.axiomDisjoints.get(s1).contains(s2))
-					return false;
-				
-				// test in both directions since axiom_disj isn't necessarily symmetric
-				if (axioms.axiomDisjoints.containsKey(s2)
-						&& axioms.axiomDisjoints.get(s2).contains(s1))
-					return false;
-
-				// Since we require universe types to be disjoint.
-				// If we stop requiring that, remove this!
-				if (s1.parents.size() == 0 && s2.parents.size() == 0 && s1 != s2)
-					return false;
-			}
-		}
-
-		return true; // safe default
+			throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		// Since we require top-level sorts to be disjoint 
+		if (t1.parents.size() == 0 && t2.parents.size() == 0 && t1 != t2)
+			return false;
+		
+		Set<MSort> subs1 = buildSubSortSet(t1);
+		Set<MSort> subs2 = buildSubSortSet(t2);
+		
+		// <-related?
+		if(subs1 == subs2 || subs1.contains(t2) || subs2.contains(t1))
+			return true;
+		
+		// common lower bound?
+		
+		if(!Collections.disjoint(subs1, subs2))
+			return true;
+		
+		// unrelated sorts, no common lower-bound
+		return false; 
 	}
 
 	protected MVocab combineWith(MVocab other) throws MGECombineVocabs,
@@ -1045,32 +1000,6 @@ public class MVocab {
 		
 		// Names (strings) used to detect equivalence (since object references
 		// are obviously untrustworthy.)
-
-		// TN 10/20/10 
-		// No reason to require vocabs to have the same decisions or request vectors
-		// not even any reason to require the same sort for variables named the same
-		// so long as we prefix the varnames
-		
-		// If request sets (and types!), ordering, or decisions are not the
-		// same, complain.
-		/*if (!other.decisions.containsAll(decisions)
-				|| !decisions.containsAll(other.decisions))
-			throw new MGECombineVocabs(
-					"Decision sets were not the same between " + decisions
-							+ " and " + other.decisions);
-		*/
-		/*
-		if (other.requestVariables.size() != requestVariables.size())
-			throw new MGECombineVocabs("Different request vector.");
-		*/
-		
-		/*for (int ii = 0; ii < requestVectorOrder.size(); ii++) {
-			if (requestVectorOrder.get(ii).name().compareTo(
-					other.requestVectorOrder.get(ii).name()) != 0)
-				throw new MGECombineVocabs(
-						"Different request vector: Mismatched request variable name or ordering.");
-
-		}*/
 		
 		// Shared predicates must have the same signature 
 		for (String pname : predicates.keySet())
@@ -1089,26 +1018,7 @@ public class MVocab {
 				MSort t2 = other.getSort(t.name);
 
 				shared.add(t.name);
-
-				/*
-				 * No longer require this as of Apr 2011; multiple parents are possible
-				 * and will simply take union of the two posets - TN
-				 * 
-				// If they both have parents, Then their parents must have the
-				// same name.
-				if (t.parent != null && t2.parent != null
-						&& t.parent.name.compareTo(t2.parent.name) != 0)
-					throw new MGECombineVocabs("Type " + t.name
-							+ " did not have the same parent in the vocabs.");
-
-				// Their relation must have the same name.
-				if (t.rel.name().compareTo(t2.rel.name()) != 0
-						|| t.rel.name().compareTo(t.name) != 0)
-					throw new MGECombineVocabs(
-							"Type "
-									+ t.name
-									+ " did not have the same relation name in the vocabs.");
-				*/
+				
 			} catch (MGEUnknownIdentifier e) {
 			}
 			
@@ -1292,34 +1202,6 @@ public class MVocab {
 					throw new MGECombineVocabs(
 							"Total relation constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintTotalRelation(con);
-		}
-
-		for (String child : axioms.setsSubset.keySet()) {
-			for (String parent : axioms.setsSubset.get(child)) {
-				// make sure they agree on constraints on types they share.
-				if (shared.contains(parent) && shared.contains(child))
-					if (!other.axioms.setsSubset.containsKey(child)
-							|| !other.axioms.setsSubset.get(child).contains(
-									parent))
-						throw new MGECombineVocabs(
-								"Constraint missing between vocabs -> "+parent+">"+child);
-
-				// always add the constraint
-				uber.axioms.addConstraintSubset(child, parent);
-			}
-		}
-		for (String child : other.axioms.setsSubset.keySet()) {
-			for (String parent : other.axioms.setsSubset.get(child)) {
-				// make sure they agree on constraints on types they share.
-				if (shared.contains(parent) && shared.contains(child))
-					if (!axioms.setsSubset.containsKey(child)
-							|| !axioms.setsSubset.get(child).contains(parent))
-						throw new MGECombineVocabs(
-								"Constraint missing between vocabs <- "+parent+">"+child);
-
-				// always add the constraint
-				uber.axioms.addConstraintSubset(child, parent);
-			}
 		}
 
 		// Disjointness

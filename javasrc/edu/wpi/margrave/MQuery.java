@@ -363,7 +363,7 @@ public class MQuery extends MIDBCollection
 			// constraints)
 			Set<LeafExpression> supers = new HashSet<LeafExpression>();
 
-			Set<MSort> mgsups = vocab.buildSuperSetSet(s); // this is transitive
+			Set<MSort> mgsups = vocab.buildSuperSortSet(s); // this is transitive
 			for (MSort sup : mgsups)
 				supers.add(sup.rel);
 

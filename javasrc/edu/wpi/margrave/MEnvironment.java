@@ -1371,7 +1371,7 @@ public class MEnvironment
 		if(envVocabularies.containsKey(vname))
 			return errorResponse(sUsed, sVocabulary, vname);
 		
-		MVocab voc = new MVocab(vname);
+		MVocab voc = new MVocab();
 		envVocabularies.put(vname, voc);
 		return successResponse();
 	}

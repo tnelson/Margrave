@@ -1151,12 +1151,26 @@ public class MCommunicator
         	else if (name.equalsIgnoreCase("NOT")) {
         		return exploreHelper(n.getFirstChild()).not();
         	}
+        	else if(name.equalsIgnoreCase("EXISTS"))
+        	{
+        		String theVarName = getNodeAttribute(n, "EXISTS", "var");
+        		String theSortName = getNodeAttribute(n, "EXISTS", "sort");
+        		
+        		Variable theVar = MFormulaManager.makeVariable(theVarName);
+        		Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
+        		
+        		return exploreHelper(n.getFirstChild()).exists(theVar, theSort);
+        	}
+        	else if(name.equalsIgnoreCase("FORALL"))
+        	{
+        		// TODO
+        	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
         		Node relationName = getChildNode(n, "RELATION-NAME");
         		NodeList relationComponents = relationName.getChildNodes();
         		
-        		
+        		// TODO
         		
         		String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
         		
