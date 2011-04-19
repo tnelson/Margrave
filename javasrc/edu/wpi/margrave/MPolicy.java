@@ -116,20 +116,13 @@ abstract class MIDBCollection
 		// Each predicate
 		for(String s : vocab.predicates.keySet())
 		{
-			Relation newrel = uber.predicates.get(s);
-			Relation oldrel = vocab.predicates.get(s);
+			Relation newrel = uber.predicates.get(s).rel;
+			Relation oldrel = vocab.predicates.get(s).rel;
 			if(oldrel != newrel)
 				relpairs.put(oldrel, newrel);
 		}
 		
-		// Each request var
-		for(String s : vocab.requestVariables.keySet())
-		{
-			Variable oldvar = vocab.requestVariables.get(s);
-			Variable newvar = uber.requestVariables.get(s);
-			if(oldvar != newvar)
-				varpairs.put(oldvar, newvar);
-		}
+		// NOTE APRIL 2011: no more request/other vars declared at the vocab level. so no need to replace vars here anymore
 		
 		return new RelationAndVariableReplacementV(relpairs, varpairs);
 	}	
@@ -194,7 +187,7 @@ public abstract class MPolicy extends MIDBCollection
 			if(!idbs.containsKey(d))
 				idbs.put(d, Formula.FALSE);
 
-		assumptions = new MConstraints(n+"_assumptions", voc);
+		assumptions = new MConstraints(voc);
 	}
 			
 	public void setTarget(List<String> conjuncts)
@@ -493,31 +486,7 @@ public abstract class MPolicy extends MIDBCollection
 		assumptions.addConstraintSingleton(name);
 		initIDBs();
 	}
-	
-	public void addDisjointPrefixAssumption(String prefix)
-	throws MUserException
-	{
-		// "All types with this name prefix are disjoint." This is used to say that certain XACML attributes cannot have >1 value...
-		
-		List<String> disj = new ArrayList<String>();
-		// list of pairwise disjoint sorts
-		
-		for(MSort t : vocab.sorts.values())
-			if(t.name.startsWith(prefix))
-				disj.add(t.name);
-		
-		assumptions.addConstraintDisjoint(disj);
-		initIDBs();
-	}
-
-	public void addSubsetAssumption(String child, String parent)
-	throws MUserException
-	{
-		// "Something in child is always in parent as well."
-		assumptions.addConstraintSubset(child, parent);
-		initIDBs();
-	}
-		
+			
 	public String getExistentialRequestPrefix()
 	{
 		// Return a query string prefix coorisponding to the request vector
@@ -533,44 +502,6 @@ public abstract class MPolicy extends MIDBCollection
 		return result;
 	}
 
-	public String getRequestPrefixClosing()
-	{
-		String result = "";
-		for(Variable v : vocab.requestVectorOrder)
-		{						
-			result = result.concat(")");
-		}
-
-		return result;
-	}
-
-	public String getRequestVarVector()
-	{
-		String result = "";
-		for(Variable v : vocab.requestVectorOrder)
-		{			
-			if(result.length() < 1)
-				result = result.concat(v.name());
-			else
-				result = result.concat(" "+v.name());
-		}
-
-		return result;
-	}
-	
-	public String getRequestVarVectorWithCommas()
-	{
-		String result = "";
-		for(Variable v : vocab.requestVectorOrder)
-		{			
-			if(result.length() < 1)
-				result = result.concat(v.name());
-			else
-				result = result.concat(", "+v.name());
-		}
-
-		return result;
-	}
 
 	
 	public List<String> getIDBNameList()
@@ -588,14 +519,6 @@ public abstract class MPolicy extends MIDBCollection
 		ArrayList<String> result = new ArrayList<String>(idbs.size());
 		for(String idbname : idbs.keySet())
 			result.add(name + ":" + idbname);			
-		return result;
-	}
-
-	public List<String> getRequestVarList()
-	{
-		ArrayList<String> result = new ArrayList<String>(vocab.requestVariables.size());
-		for(Variable var : vocab.requestVectorOrder)
-			result.add(var.name());			
 		return result;
 	}
 	
@@ -743,16 +666,16 @@ public abstract class MPolicy extends MIDBCollection
 	
 	public static MVocab makeXACMLVocab(String filename) throws MGEBadIdentifierName, MGEUnknownIdentifier
 	{
-		MVocab env = new MVocab("VocabFor_"+filename);
+		MVocab env = new MVocab();
 		env.addSort("subject"); 
 		env.addSort("action");
 		env.addSort("resource");
 		env.addSort("environment");
 		
-		env.addRequestVar("s", "subject");
-		env.addRequestVar("a", "action");
-		env.addRequestVar("r", "resource");
-		env.addRequestVar("e", "environment");
+		//env.addRequestVar("s", "subject");
+		//env.addRequestVar("a", "action");
+		//env.addRequestVar("r", "resource");
+		//env.addRequestVar("e", "environment");
 		
 		env.addDecision("permit");
 		env.addDecision("deny");

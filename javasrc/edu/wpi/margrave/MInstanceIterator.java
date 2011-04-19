@@ -1952,8 +1952,8 @@ public abstract class MInstanceIterator
 		}
 		
 		// State predicates (EDB)
-		for(Relation r : fromResult.forQuery.vocab.predicates.values())
-			qryBounds.bound(r, factory.allOf(r.arity()));				
+		for(MPredicate p : fromResult.forQuery.vocab.predicates.values())
+			qryBounds.bound(p.rel, factory.allOf(p.rel.arity()));				
 		
 		
 		// ****************************************

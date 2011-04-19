@@ -379,16 +379,16 @@ public class MQuery extends MIDBCollection
 			disjointness.put(s.rel, theseDisjoints);
 		}
 		
-		for (String pname : vocab.predicates.keySet()) {
+		for (String pname : vocab.predicates.keySet())
+		{
 			// What sort is this predicate?
-			List<LeafExpression> predArity = new ArrayList<LeafExpression>();
-			String sortconstruct = vocab.predtypes.get(pname);
+			List<LeafExpression> predArity = new ArrayList<LeafExpression>();			
 
-			String[] args = sortconstruct.split("\\s");
-			for (String arg : args)
-				predArity.add(vocab.getRelation(arg));
+			MPredicate thePred = vocab.predicates.get(pname);
+			for (MSort argSort : thePred.type)
+				predArity.add(argSort.rel);
 
-			predicates.put(vocab.predicates.get(pname), predArity);
+			predicates.put(thePred.rel, predArity);
 		}
 
 		if (debug_verbosity >= 2)
@@ -1405,7 +1405,7 @@ public class MQuery extends MIDBCollection
 							// else, we're fine
 							// ]]]
 
-							Relation eqrel = mtup.newvocab.predicates.get(eqpredname);
+							Relation eqrel = mtup.newvocab.predicates.get(eqpredname).rel;
 							Formula iseq = MFormulaManager.makeAtom(mtup.newvar, eqrel);
 							lone_formulas.add(MFormulaManager.makeImplication(disj_of_triggers, iseq));
 
@@ -1485,7 +1485,7 @@ public class MQuery extends MIDBCollection
 					String leftidx = needs.substring(2, needsLastComma);
 
 					Formula isoconj = makePredsIndistinguish(vocab, mtup, leftidx, rightidx);
-					Relation eqrel = mtup.newvocab.predicates.get(needs);
+					Relation eqrel = mtup.newvocab.predicates.get(needs).rel;
 					Formula eqFormula = MFormulaManager.makeAtom(mtup.newvar,
 							eqrel);
 
@@ -1518,10 +1518,8 @@ public class MQuery extends MIDBCollection
 
 							if (thirdpred.length() > 0)
 							{
-								Relation eqRel2 = mtup.newvocab.predicates
-										.get(other);
-								Relation eqRel3 = mtup.newvocab.predicates
-										.get(thirdpred);
+								Relation eqRel2 = mtup.newvocab.predicates.get(other).rel;
+								Relation eqRel3 = mtup.newvocab.predicates.get(thirdpred).rel;
 
 								// =ij and =jk ---> =ik
 								Formula eqFormula2 = MFormulaManager.makeAtom(
@@ -3343,7 +3341,7 @@ public class MQuery extends MIDBCollection
 		// Establish vocabularies. Test for HU ceiling correctness.
 
 		// Test to make sure cycles are detected.
-		MVocab env = new MVocab("Test Vocab");
+		MVocab env = new MVocab();
 		env.addSort("Sort1");
 
 		Expression sort1 = env.getRelation("Sort1");
@@ -3412,7 +3410,7 @@ public class MQuery extends MIDBCollection
 		// only one sort.
 		// 2nd vocab:
 
-		env = new MVocab("Test Vocab");
+		env = new MVocab();
 
 		// 2 top level types
 		env.addSort("Sort1");
@@ -3425,7 +3423,7 @@ public class MQuery extends MIDBCollection
 		env.addSubSort("Sort2", "Sort2B");
 
 		// Sort 1's children are disjoint constrained, sort 2's are not.
-		env.axioms.addConstraintDisjointAll("Sort1");
+		//env.axioms.addConstraintDisjointAll("Sort1");
 
 		sort1 = env.getRelation("Sort1");
 		Expression sort2 = env.getRelation("Sort2");
@@ -3586,7 +3584,7 @@ public class MQuery extends MIDBCollection
 		// Now need a vocab with multiple layers of subtypes to make sure the
 		// DFS extends properly.
 		// 3rd vocab:
-		env = new MVocab("Test Vocab");
+		env = new MVocab();
 
 		// 2 top level types
 		env.addSort("Sort1");
@@ -3598,7 +3596,7 @@ public class MQuery extends MIDBCollection
 		env.addSubSort("Sort2", "Sort2c");
 
 		// 2a and 2b may overlap. b and c are disjoint.
-		env.axioms.addConstraintDisjoint("Sort2b", "Sort2c");
+		//env.axioms.addConstraintDisjoint("Sort2b", "Sort2c");
 
 		// Each child sort has a child sort.
 		env.addSubSort("Sort2a", "Sort2ax");
@@ -3709,7 +3707,7 @@ public class MQuery extends MIDBCollection
 		// total function.
 		// We also extend the non-disjoint-constrained branch to test "deeper"
 		// related sort detection.
-		env = new MVocab("Test Vocab");
+		env = new MVocab();
 
 		// 2 top level types
 		env.addSort("Sort1");
@@ -3721,7 +3719,7 @@ public class MQuery extends MIDBCollection
 		env.addSubSort("Sort2", "Sort2c");
 
 		// 2a and 2b may overlap. b and c are disjoint.
-		env.axioms.addConstraintDisjoint("Sort2b", "Sort2c");
+		//env.axioms.addConstraintDisjoint("Sort2b", "Sort2c");
 
 		// Each child sort has a child sort.
 		env.addSubSort("Sort2a", "Sort2ax");
@@ -3851,7 +3849,7 @@ public class MQuery extends MIDBCollection
 		// THIS INDUCES A SORT-AS-PREDICATE in current query code.
 		// oh -- (R in P) rather than (X in P)
 		// need to change MFormulaManager TODO
-		env.axioms.addConstraintSubset("sort2axx", "sort2bxx");
+		//env.axioms.addConstraintSubset("sort2axx", "sort2bxx");
 
 		f = Formula.TRUE.forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2cx))
 				.and(sort2cx.some());
@@ -3867,11 +3865,11 @@ public class MQuery extends MIDBCollection
 		// *OR* add new type 2d, with 2axx < 2d < 2b, and they must be disjoint.
 		// (Test multi-subset)
 		// Hack to remove the constraint we just added
-		env.axioms.setsSubset.get("sort2axx").remove("sort2bxx");
+		//env.axioms.setsSubset.get("sort2axx").remove("sort2bxx");
 		// Changes
 		env.addSubSort("sort2", "sort2d");
-		env.axioms.addConstraintSubset("sort2axx", "sort2d");
-		env.axioms.addConstraintSubset("sort2d", "sort2bxx");
+		//env.axioms.addConstraintSubset("sort2axx", "sort2d");
+		//env.axioms.addConstraintSubset("sort2d", "sort2bxx");
 		f = Formula.TRUE.forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2cx))
 				.and(sort2cx.some());
 		test7 = new MQuery(f, env);
@@ -3883,7 +3881,7 @@ public class MQuery extends MIDBCollection
 		// soundness/completeness.
 		// Many more of these tests in FormulaSigInfo.
 
-		env = new MVocab("Test Vocab");
+		env = new MVocab();
 
 		// 3 top level types
 		env.addSort("Sort1");

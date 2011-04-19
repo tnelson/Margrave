@@ -2812,11 +2812,11 @@ public class MJavaTests
 		idbCollections.add(fwpol);
 		idbCollections.add(fwpol2);
 		String qryString = fwpol.getExistentialRequestPrefix();
-		qryString += "(and (or ";
-		qryString += "(and (fwtestpol1:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol2:accept "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol2:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol1:accept "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol1:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol2:drop "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol2:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol1:drop "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (or ";
+		//qryString += "(and (fwtestpol1:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol2:accept "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol2:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol1:accept "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol1:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol2:drop "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol2:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol1:drop "+fwpol.getRequestVarVector()+"))) ";
 
 		/*env.addRequestVar("entry-interface", "Interface");
 		env.addRequestVar("src-addr", "IPAddress");
@@ -2835,7 +2835,7 @@ public class MJavaTests
 
 		qryString += ") (not (= src-addr dest-addr)) (not (= src-port dest-port)) (not (= entry-interface exit-interface)) (not (= dest-addr next-hop)) (not (= src-addr next-hop)))";
 
-		qryString += fwpol.getRequestPrefixClosing();
+		//qryString += fwpol.getRequestPrefixClosing();
 		qry = MQuery.queryThesePolicies(qryString, idbCollections);
 		qry.userSizeCeiling = 14;
 
@@ -2884,11 +2884,14 @@ public class MJavaTests
 		// ************************************************************
 		start = mxBean.getCurrentThreadCpuTime();
 		qryString = fwpol.getExistentialRequestPrefix();
-		qryString += "(and (or ";
-		qryString += "(and (fwtestpol1:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol2:accept "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol2:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol1:accept "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol1:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol2:drop "+fwpol.getRequestVarVector()+"))) ";
-		qryString += "(and (fwtestpol2:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol1:drop "+fwpol.getRequestVarVector()+"))) ";
+		
+
+		
+//		qryString += "(and (or ";
+		//qryString += "(and (fwtestpol1:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol2:accept "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol2:accept " + fwpol.getRequestVarVector() +") (not (fwtestpol1:accept "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol1:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol2:drop "+fwpol.getRequestVarVector()+"))) ";
+		//qryString += "(and (fwtestpol2:drop " + fwpol.getRequestVarVector() +") (not (fwtestpol1:drop "+fwpol.getRequestVarVector()+"))) ";
 
 		/*env.addRequestVar("entry-interface", "Interface");
 		env.addRequestVar("src-addr", "IPAddress");
@@ -2907,7 +2910,7 @@ public class MJavaTests
 
 		qryString += ") (not (= src-addr_ dest-addr_)) (not (= src-addr src-addr_)) (not (= dest-addr dest-addr_)) (not (= dest-port dest-port_)) (not (= src-addr dest-addr)) (not (= src-port dest-port)) (not (= entry-interface exit-interface)) (not (= src-port_ dest-port_)) (not (= src-port dest-port_)) (not (= src-port src-port_)) (not (= dest-addr src-addr_)) (not (= dest-addr_ next-hop)) (not (= dest-addr next-hop)) (not (= src-addr next-hop)) (not (= src-addr_ next-hop)) (not (= src-addr dest-addr_)) (not (= src-port_ dest-port)))";
 
-		qryString += fwpol.getRequestPrefixClosing();
+		//qryString += fwpol.getRequestPrefixClosing();
 		qry = MQuery.queryThesePolicies(qryString, idbCollections);
 		qry.userSizeCeiling = 14;
 
