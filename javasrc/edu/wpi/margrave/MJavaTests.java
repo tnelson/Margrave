@@ -51,7 +51,7 @@ public class MJavaTests
 	static void do_test_1()
 	throws MBaseException
 	{
-		MVocab env = new MVocab("Test Vocab");
+		MVocab env = new MVocab();
 
 		MPolicyLeaf pol = new MPolicyLeaf("TestPol1", env);
 		MPolicyLeaf pol2 = new MPolicyLeaf("TestPol2", env);
@@ -63,9 +63,9 @@ public class MJavaTests
 		env.addSort("Action");
 		env.addSort("Resource");
 
-		env.addRequestVar("s", "Subject");
-		env.addRequestVar("a", "Action");
-		env.addRequestVar("r", "Resource");
+		//env.addRequestVar("s", "Subject");
+		//env.addRequestVar("a", "Action");
+		//env.addRequestVar("r", "Resource");
 
 		env.addSubSort("Subject", "Author");
 		env.addSubSort("Subject", "Reviewer");
@@ -95,9 +95,9 @@ public class MJavaTests
 
 		}
 
-		env.axioms.addConstraintDisjointAll("Resource");
-		env.axioms.addConstraintDisjointAll("Action");
-		env.axioms.addConstraintDisjointAll("Subject");
+		//env.axioms.addConstraintDisjointAll("Resource");
+		//env.axioms.addConstraintDisjointAll("Action");
+		//env.axioms.addConstraintDisjointAll("Subject");
 
 		// Look for interesting cases -- not the models with no subjects or resources!
 		// (Note this is Nonempty, NOT nonemptyall (which would mean resources and subjects of ALL types m/b present.)
@@ -453,7 +453,7 @@ public class MJavaTests
 	static void do_test_2()
 	throws MBaseException
 	{
-		MVocab env = new MVocab("Bigger Test Vocab");
+		MVocab env = new MVocab();
 		MPolicyLeaf pol = new MPolicyLeaf("ipeqtest", env);
 		boolean passed = false;
 
@@ -486,18 +486,18 @@ public class MJavaTests
 
 		env.axioms.addConstraintAbstract("Bit");
 
-		env.addRequestVar("ipin", "IpAddress");
-		env.addRequestVar("ipout", "IpAddress");
+		//env.addRequestVar("ipin", "IpAddress");
+		//env.addRequestVar("ipout", "IpAddress");
 
 		//env.addOtherVar("a", "IpAddress");
 		//env.addOtherVar("b", "IpAddress");
 
-		env.addOtherVar("b1", "Bit");
-		env.addOtherVar("b2", "Bit");
+		//env.addOtherVar("b1", "Bit");
+		//env.addOtherVar("b2", "Bit");
 
-		env.axioms.addConstraintDisjointAll("IpAddress");
+		//env.axioms.addConstraintDisjointAll("IpAddress");
 
-		env.axioms.addConstraintDisjointAll("Bit");
+		//env.axioms.addConstraintDisjointAll("Bit");
 		env.axioms.addConstraintAtMostOneAll("Bit"); // 0 and 1 are atomic
 
 		env.axioms.addConstraintNonempty("IpAddress"); // some IP Address **exists**
@@ -567,7 +567,7 @@ public class MJavaTests
 	static void do_test_3()
 	throws MBaseException
 	{
-		MVocab env = new MVocab("Vocab for closure tests");
+		MVocab env = new MVocab();
 		MPolicyLeaf pol = new MPolicyLeaf("closuretest", env);
 
 		env.addDecision("Permit");
@@ -580,11 +580,11 @@ public class MJavaTests
 		env.addSubSort("Subject", "Admin");
 		env.addSubSort("Subject", "User");
 
-		env.addRequestVar("s", "Subject");
+		//env.addRequestVar("s", "Subject");
 
-		env.addOtherVar("s1", "Subject");
+		//env.addOtherVar("s1", "Subject");
 
-		env.axioms.addConstraintDisjointAll("Subject");
+		//env.axioms.addConstraintDisjointAll("Subject");
 		env.axioms.addConstraintNonempty("Subject");
 
 		env.addPredicate("Delegate", "Subject Subject");
@@ -636,7 +636,7 @@ public class MJavaTests
 
 		// Test override
 
-		env.addOtherVar("s2", "Subject");
+		//env.addOtherVar("s2", "Subject");
 
 		templist.clear();
 		templist.add("Admin s");
@@ -682,7 +682,7 @@ public class MJavaTests
 
 
 		// test for first-applicable policy combination
-		MVocab env = new MVocab("Vocab for policy combo tests");
+		MVocab env = new MVocab();
 
 		env.addDecision("Permit");
 		env.addDecision("Deny");
@@ -695,13 +695,13 @@ public class MJavaTests
 
 		env.addSubSort("IPAddress", "rangexy");
 
-		env.axioms.addConstraintDisjoint("Local", "External");
+		//env.axioms.addConstraintDisjoint("Local", "External");
 		env.axioms.addConstraintNonempty("IPAddress");
 		env.axioms.addConstraintNonempty("Local");
 		env.axioms.addConstraintNonempty("External");
 
-		env.addRequestVar("ipfrom", "IPAddress");
-		env.addRequestVar("ipto", "IPAddress");
+		//env.addRequestVar("ipfrom", "IPAddress");
+		//env.addRequestVar("ipto", "IPAddress");
 
 		// note no solutions at size 2...
 
@@ -846,7 +846,7 @@ public class MJavaTests
 		// Tests to make sure predicates are being taken from BOTH vocabs when combining
 		// Create a 2nd vocabulary that is missing one of the above predicates, but has a third.
 		// Then run a change-impact on policies over both... should see all 3 predicates in new vocab.
-		MVocab env2 = new MVocab("Vocab with different preds");
+		MVocab env2 = new MVocab();
 
 		env2.addDecision("Permit");
 		env2.addDecision("Deny");
@@ -859,13 +859,13 @@ public class MJavaTests
 
 		env2.addSubSort("IPAddress", "rangexy");
 
-		env2.axioms.addConstraintDisjoint("Local", "External");
+		//env2.axioms.addConstraintDisjoint("Local", "External");
 		env2.axioms.addConstraintNonempty("IPAddress");
 		env2.axioms.addConstraintNonempty("Local");
 		env2.axioms.addConstraintNonempty("External");
 
-		env2.addRequestVar("ipfrom", "IPAddress");
-		env2.addRequestVar("ipto", "IPAddress");
+		//env2.addRequestVar("ipfrom", "IPAddress");
+	//	env2.addRequestVar("ipto", "IPAddress");
 
 		env2.addPredicate("WhiteList", "IPAddress");
 		env2.addPredicate("Conversation", "IPAddress IPAddress");
@@ -909,7 +909,7 @@ public class MJavaTests
 
 
 		// test for first-applicable policy combination
-		MVocab env = new MVocab("Vocab");
+		MVocab env = new MVocab();
 
 		env.addDecision("Accept");
 		env.addDecision("Drop");
@@ -921,12 +921,12 @@ public class MJavaTests
 
 		env.addSubSort("IPAddress", "rangexy");
 
-		env.axioms.addConstraintDisjoint("Local", "External");
-		env.axioms.addConstraintDisjoint("Local", "rangexy");
+		//env.axioms.addConstraintDisjoint("Local", "External");
+		//env.axioms.addConstraintDisjoint("Local", "rangexy");
 		env.axioms.addConstraintNonempty("IPAddress");
 
-		env.addRequestVar("ipfrom", "IPAddress");
-		env.addRequestVar("ipto", "IPAddress");
+		//env.addRequestVar("ipfrom", "IPAddress");
+		//env.addRequestVar("ipto", "IPAddress");
 
 		env.addPredicate("Connection", "IPAddress IPAddress");
 
@@ -1552,7 +1552,7 @@ public class MJavaTests
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEArityMismatch,
 	MGEBadQueryString, MGEBadCombinator, MGECombineVocabs
 	{
-		MVocab env = new MVocab(name);
+		MVocab env = new MVocab();
 
 		// No need to have IP Ranges or number of ports -- just a standard firewall vocab.
 		env.addDecision("Accept");
@@ -1575,7 +1575,7 @@ public class MJavaTests
 		env.addSort("Interface", "Vlan1 FastEthernet0");
 
 
-		env.addRequestVar("entry-interface", "Interface");
+		/*env.addRequestVar("entry-interface", "Interface");
 		env.addRequestVar("src-addr", "IPAddress");
 		env.addRequestVar("src-addr_", "IPAddress");
 		env.addRequestVar("dest-addr", "IPAddress");
@@ -1589,21 +1589,22 @@ public class MJavaTests
 		env.addRequestVar("length", "Length");
 		env.addRequestVar("next-hop", "IPAddress");
 		env.addRequestVar("exit-interface", "Interface");
+*/
 
-
-
+/*
 		env.axioms.addConstraintDisjointAll("Protocol");
 		env.axioms.addConstraintDisjointAll("ICMPMessage");
 		env.axioms.addConstraintDisjointAll("Length");
 		env.axioms.addConstraintDisjointAll("Interface");
-
+*/
+		
 		return env;
 	}
 
 	public static MVocab setupFirewallVocab(String name, int numIPs, int rangeSize, int numPorts)
 	throws MUserException
 	{
-		MVocab env = new MVocab(name);
+		MVocab env = new MVocab();
 
 		env.addDecision("Accept");
 		env.addDecision("Drop");
@@ -1647,7 +1648,7 @@ public class MJavaTests
 		env.addSort("Interface", "Vlan1 FastEthernet0");
 
 
-		env.addRequestVar("entry-interface", "Interface");
+		/*env.addRequestVar("entry-interface", "Interface");
 		env.addRequestVar("src-addr", "IPAddress");
 		env.addRequestVar("src-addr_", "IPAddress");
 		env.addRequestVar("dest-addr", "IPAddress");
@@ -1661,17 +1662,15 @@ public class MJavaTests
 		env.addRequestVar("length", "Length");
 		env.addRequestVar("next-hop", "IPAddress");
 		env.addRequestVar("exit-interface", "Interface");
+*/
 
 
-
-		env.axioms.addConstraintDisjointAll("IPAddress");
+/*		env.axioms.addConstraintDisjointAll("IPAddress");
 		env.axioms.addConstraintDisjointAll("Port");
 		env.axioms.addConstraintDisjointAll("Protocol");
 		env.axioms.addConstraintDisjointAll("ICMPMessage");
 		env.axioms.addConstraintDisjointAll("Length");
 		env.axioms.addConstraintDisjointAll("Interface");
-
-
 
 		for(String range : ipRangesArr)
 		{
@@ -1680,7 +1679,8 @@ public class MJavaTests
 			// would be BAD for tupling
 			//env.axioms.addConstraintAbstract(range); // assume the range is covered by individuals
 		}
-
+*/
+		
 		// IPAddress is not abstract! (allow the potential for some other IP to exist)
 
 		env.axioms.addConstraintAtMostOneAll("Port");
@@ -2013,7 +2013,7 @@ public class MJavaTests
 		// This example must be the last, since we are adding a strange constraint.
 
 		// Add a subset constraint other than subsorting, and make sure it translates over when tupling.
-		fw.axioms.addConstraintSubset("IP10", "IP11"); // the only addresses that the policies disagree on
+		//fw.axioms.addConstraintSubset("IP10", "IP11"); // the only addresses that the policies disagree on
 		fwpol.initIDBs();
 		fwpol2.initIDBs();
 		qry = fwpol.compareWithPolicy(fwpol2);
@@ -2481,7 +2481,7 @@ public class MJavaTests
 	public static MVocab setup3Vocab(String name, int numSubs, int numActs, int numRes)
 	throws MUserException
 	{
-		MVocab env = new MVocab(name);
+		MVocab env = new MVocab();
 
 		env.addDecision("Permit");
 		env.addDecision("Deny");
@@ -2501,13 +2501,13 @@ public class MJavaTests
 		env.addSort("Action", acts);
 		env.addSort("Resource", res);
 
-		env.addRequestVar("s", "Subject");
-		env.addRequestVar("a", "Action");
-		env.addRequestVar("r", "Resource");
+		//env.addRequestVar("s", "Subject");
+		//env.addRequestVar("a", "Action");
+		//env.addRequestVar("r", "Resource");
 
 
-		env.axioms.addConstraintDisjointAll("Action");
-		env.axioms.addConstraintDisjointAll("Resource");
+		//env.axioms.addConstraintDisjointAll("Action");
+		//env.axioms.addConstraintDisjointAll("Resource");
 
 		env.axioms.addConstraintAbstract("Subject");
 		env.axioms.addConstraintAbstract("Action");

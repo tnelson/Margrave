@@ -594,81 +594,55 @@ public class MCommunicator
         						writeToLog("Adding Predicate\n");
         						theResponse = MEnvironment.addPredicate(vname, sName, constr);
         					}
-        					else if (addType.equalsIgnoreCase("REQUESTVAR")) {
-        						String varName = getRequestVar(n);
-        						String domainSort = getRequestSort(n);
-        						theResponse = MEnvironment.addRequestVariable(vname, varName, domainSort);
-        					}
-        					else if (addType.equalsIgnoreCase("OTHERVAR")) {
-        						String varName = getOtherVarName(n);
-        						String domainSort = getOtherVarSort(n);
-        						theResponse = MEnvironment.addOtherVariable(vname, varName, domainSort);
-        					}
+        					
         					else if (addType.equalsIgnoreCase("CONSTRAINT")) {
         						Node constraintNode = secondChildNode; //Just for clarity
         						        						        						
         						String constraintType = getConstraintType(constraintNode);
         						
-        						//Special case for subset. Something similar has to be done for disjoint
-        						if (constraintType.equalsIgnoreCase("SUBSET")) {
-        							String parent = getParentName(constraintNode);
-        							String child = getChildName(constraintNode);
-        							theResponse = MEnvironment.addConstraintSubset(vname, child, parent);
-        						}
-        						else {
+        						
+        						List<String> relations = getRelationsList(constraintNode); 
+        						String firstRelation = relations.get(0);
 
-        							List<String> relations = getRelationsList(constraintNode); 
-        							String firstRelation = relations.get(0);
-
-        							if (constraintType.equalsIgnoreCase("DISJOINT")) {
-        								theResponse = MEnvironment.addConstraintDisjoint(vname, firstRelation, relations.get(1));
-        							}
-        							else if (constraintType.equalsIgnoreCase("DISJOINT-ALL")) {
-        								theResponse = MEnvironment.addConstraintDisjointAll(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("SINGLETON")) {
-        								theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("SINGLETON-ALL")) {
-        								theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
-        								theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
-        								theResponse = MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("NONEMPTY")) {
-        								theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("NONEMPTY-ALL")) {
-        								theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("ABSTRACT")) {
-        								theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("ABSTRACT-ALL")) {
-        								theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
-        								theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("TOTAL-RELATION")) {
-        								theResponse = MEnvironment.addConstraintTotalRelation(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
-        								theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
-        							}
-        							else if (constraintType.equalsIgnoreCase("SUBSET")) 
-        							{
-        								theResponse = MEnvironment.addConstraintSubset(vname, firstRelation, relations.get(1));	
-        							}
-        							else
-        							{
-        								// Unknown constraint type; throw an exception
-        								theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
-        							}
+        						
+        						if (constraintType.equalsIgnoreCase("SINGLETON")) {
+        							theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
         						}
+        						else if (constraintType.equalsIgnoreCase("SINGLETON-ALL")) {
+        							theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
+        							theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
+        							theResponse = MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("NONEMPTY")) {
+        							theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("NONEMPTY-ALL")) {
+        							theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("ABSTRACT")) {
+        							theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("ABSTRACT-ALL")) {
+        							theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
+        							theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("TOTAL-RELATION")) {
+        							theResponse = MEnvironment.addConstraintTotalRelation(vname, firstRelation);
+        						}
+        						else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
+        							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
+        						}
+        						else
+        						{
+        							// Unknown constraint type; throw an exception
+        							theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
+        						}        						
         					}
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {

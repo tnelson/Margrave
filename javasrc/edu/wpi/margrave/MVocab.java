@@ -47,6 +47,22 @@ class MSort
 	public String toString() {
 		return name + "~" + rel.hashCode();
 	}
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MSort))
+            return false;
+
+        MSort othSort = (MSort)other;
+        
+        // Equal if names are equal.
+        return othSort.name.equals(this.name);
+	}
+
+	
 }
 
 abstract class MTerm
@@ -151,6 +167,21 @@ class MConstant
 		this.rel = rel;
 		this.type = type;
 	}
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MConstant))
+        	return false;
+
+        MConstant othConst = (MConstant)other;
+        
+        return othConst.name.equals(this.name) && 
+               othConst.type.equals(this.type);
+	}
+
 }
 
 class MFunction
@@ -173,6 +204,23 @@ class MFunction
 		this.arity = arity;
 	}
 	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MFunction))
+            return false;
+
+        MFunction othFunc = (MFunction)other;
+        
+        return othFunc.name.equals(this.name) &&
+               othFunc.rel.equals(this.rel) &&
+               othFunc.type.equals(this.type) &&
+               othFunc.arity.equals(this.arity);
+	}
+
+	
 }
 
 class MPredicate
@@ -192,6 +240,22 @@ class MPredicate
 		this.rel = rel;
 		this.type = type;
 	}
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MPredicate))
+            return false;
+
+        MPredicate othPred = (MPredicate)other;
+        
+        return othPred.name.equals(this.name) &&
+               othPred.rel.equals(this.rel) &&
+               othPred.type.equals(this.type);
+	}
+	
 }
 
 /**
@@ -657,13 +721,13 @@ public class MVocab {
 		// Changed to forall x, y, z, exists r | (x y z r) in R and forall k ((x y z k) in R implies k=r)
 		// This is longer, but complies with current FormulaSigInfo
 
-		if (!predtypes.containsKey(r.name()))
+		if (!predicates.containsKey(r.name()))
 			throw new MGEUnknownIdentifier(
 					"Unable to find definition for predicate: " + r.name());
 
-		String[] rels = predtypes.get(r.name()).split(" ");
-
-		if (rels.length < r.arity())
+		MPredicate thePred = predicates.get(r.name());
+		
+		if (thePred.type.size() != r.arity())
 			throw new MGEArityMismatch(
 					"Arity mismatch between expected for relation " + r.name()
 							+ ".");
@@ -683,7 +747,7 @@ public class MVocab {
 					+ type + "_" + x_counter);
 			
 			// "forall xi^Ai"
-			quants.add( MFormulaManager.makeOneOfDecl(tempvar, getRelation(rels[x_counter - 1])));
+			quants.add( MFormulaManager.makeOneOfDecl(tempvar, thePred.type.get(x_counter-1).rel));
 			
 			tuple1vars.add(tempvar);
 			tuple2vars.add(tempvar);
@@ -700,8 +764,8 @@ public class MVocab {
 		
 		// Tuples and outside quantification now built.
 
-		Decl dfc1 = MFormulaManager.makeOneOfDecl(fc1, getRelation(rels[r.arity()-1]));
-		Decl dfc2 = MFormulaManager.makeOneOfDecl(fc2, getRelation(rels[r.arity()-1]));
+		Decl dfc1 = MFormulaManager.makeOneOfDecl(fc1, thePred.type.get(r.arity()-1).rel);
+		Decl dfc2 = MFormulaManager.makeOneOfDecl(fc2, thePred.type.get(r.arity()-1).rel);
 		
 		Formula f;
 		Formula pt1, pt2;
@@ -996,7 +1060,8 @@ public class MVocab {
 	}
 
 	protected MVocab combineWith(MVocab other) throws MGECombineVocabs,
-			MGEBadIdentifierName, MGEUnknownIdentifier {
+			MGEBadIdentifierName, MGEUnknownIdentifier 
+	{
 		
 		// Names (strings) used to detect equivalence (since object references
 		// are obviously untrustworthy.)
@@ -1004,9 +1069,14 @@ public class MVocab {
 		// Shared predicates must have the same signature 
 		for (String pname : predicates.keySet())
 			if (other.predicates.keySet().contains(pname))
-				if (predtypes.get(pname).compareTo(other.predtypes.get(pname)) != 0)
+			{
+				MPredicate predIn1 = predicates.get(pname);
+				MPredicate predIn2 = other.predicates.get(pname);
+				
+				if (!predIn1.type.equals(predIn2.type))
 					throw new MGECombineVocabs(
 							"Different custom predicate signature: " + pname);
+			}
 
 		// Generate a list of shared type names
 		Set<String> shared = new HashSet<String>();
@@ -1025,7 +1095,7 @@ public class MVocab {
 		}
 
 		// Combine everything and return the result.
-		MVocab uber = new MVocab(vocab_name + "+" + other.vocab_name);
+		MVocab uber = new MVocab();
 
 		// For each sort
 		for (MSort t : sorts.values()) {
@@ -1055,48 +1125,12 @@ public class MVocab {
 		for (String d : other.decisions)
 			uber.addDecision(d);
 		
-		// Request vars IN ORDER
-		for (Variable v : requestVectorOrder)
-			uber.addRequestVar(v.name(), requestVarDomains.get(v.name()).name());
-		for (Variable v : other.requestVectorOrder)
-			if(!uber.requestVariables.containsKey(v.name()))
-				uber.addRequestVar(v.name(), other.requestVarDomains.get(v.name()).name());		
-
-		// Predicates and Predtypes
-		for (String d : predicates.keySet())
-			uber.addPredicate(d, predtypes.get(d));
+		// Predicates (equal methods will prevent overlap)
+		for (String d : predicates.keySet())			
+			uber.predicates.put(d, predicates.get(d));
 		for (String d : other.predicates.keySet())
-			uber.addPredicate(d, other.predtypes.get(d));
+			uber.predicates.put(d, other.predicates.get(d));
 
-		// Declared other vars (if same type, it's ok.)
-		for (String ov : otherVarDomains.keySet())
-		{
-			if (other.otherVarDomains.containsKey(ov))
-			{
-				if (!other.otherVarDomains.get(ov).name().equals(otherVarDomains.get(ov).name()))
-					throw new MGECombineVocabs("Declared rule-scope variable type mismatch: "+
-							other.otherVarDomains.get(ov).name() +
-							" vs. "+
-							otherVarDomains.get(ov).name());
-			}
-			uber.addOtherVar(ov, otherVarDomains.get(ov).name());
-		}
-		for (String ov : other.otherVarDomains.keySet()) {
-			if (!otherVarDomains.containsKey(ov))
-				uber.addOtherVar(ov, other.otherVarDomains.get(ov).name());
-		}
-
-		// Other variables and request variables must be disjoint
-		Set<String> testSet = new HashSet<String>(uber.requestVariables.keySet());
-		testSet.retainAll(uber.otherVarDomains.keySet());
-		if(!testSet.isEmpty())
-		{			 
-			throw new MGEVariableAlreadyBound(testSet, 
-					"Request (free) variables and ``other'' (bound) variables in all a query's vocabularies must never overlap. "+ 
-					" The vocabularies "+this.vocab_name+" and "+other.vocab_name+" disagreed on whether the variables "+testSet+" were free or bound."+
-					" For more information, see the ``Substitution'' section of the documentation.");
-		}
-		
 		
 		// Constraints
 		for (String con : axioms.setsSingleton) {
@@ -1214,6 +1248,7 @@ public class MVocab {
 		return uber;
 	}
 
+	/*
 	private static void checkSharedDisjointness(MVocab A, MVocab B, Set<String> shared)
 	 throws MGECombineVocabs, MGEUnknownIdentifier, MGEBadIdentifierName
 	 {
@@ -1251,7 +1286,8 @@ public class MVocab {
 			}
 		}
 	 }
-	
+	*/
+	/*
 	private static void addDisjsToSet(MVocab uber, MVocab voc, HashMap<MSort, Set<MSort>> new_ax_disjoints) 
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -1313,7 +1349,8 @@ public class MVocab {
 		
 
 	}
-
+*/
+	
 	public boolean writeAsDOT(String filename)
 	{
 		// Write out the vocabulary as a DOT file for GraphViz.
@@ -1326,11 +1363,9 @@ public class MVocab {
 		{
 			BufferedWriter out = new BufferedWriter(new FileWriter(filename));
 			String eol = System.getProperty("line.separator");
+		
 			
-			String safeVocabName = vocab_name.replace(" ", "_");
-			
-			
-			out.write("digraph "+safeVocabName+" {"+eol);
+			out.write("digraph vocab {"+eol);
 			
 			String strSortNames = "";
 			String strNonAbstractArrows = "";
@@ -1442,7 +1477,7 @@ public class MVocab {
 		// assertSortOrdering
 		// Need to allow multiple valid results since the hierarchy is a poset
 		// some non-determinism for incomparable sorts due to internal Set representation.
-		MVocab voc = new MVocab("test");
+		MVocab voc = new MVocab();
 		
 		voc.addSort("a");
 		voc.addSort("b");

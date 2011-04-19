@@ -920,7 +920,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		super(new HashSet<Node>());
 
 		oldvocab = old;
-		newvocab = new MVocab("Tupled:" + old.vocab_name);
+		newvocab = new MVocab();
 		newvar = MFormulaManager.makeVariable("z");
 		equalAxiomsNeeded = new HashSet<String>();
 
@@ -1146,19 +1146,6 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 			newvocab.addSort(oldpredname + suffix);
 			addToCaches(oldpredname, suffix, oldpredname + suffix);
 		}
-
-		// Now, if this sort has any subSET constraints on it (distinct from our
-		// subSORTing partial order on the sorts)
-		// We must handle those as well. (Don't forget to propagate the
-		// constraint to the new vocab.)
-		if (oldvocab.axioms.setsSubset.containsKey(oldpredname))
-			for (String oldparent : oldvocab.axioms.setsSubset.get(oldsort.name))
-			{				
-				addSortWithSupers(newvocab, oldvocab, oldparent, suffix);
-				newvocab.axioms.addConstraintSubset(oldpredname + suffix,
-						oldparent + suffix);
-			}
-
 	}
 
 	public void forceIncludeEDB(String edbname, List<String> indexingVars)

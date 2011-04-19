@@ -37,17 +37,17 @@ public class SQSReader
 	protected static MVocab createSQSVocab(String polId)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier
 	{
-		MVocab env = new MVocab("Vocab_For_"+polId);
+		MVocab env = new MVocab();
 		
 		env.addSort("principal"); 
 		env.addSort("action");
 		env.addSort("resource");
 		env.addSort("condition");
 		
-		env.addRequestVar("p", "principal");
-		env.addRequestVar("a", "action");
-		env.addRequestVar("r", "resource");
-		env.addRequestVar("c", "condition");
+		//env.addRequestVar("p", "principal");
+		//env.addRequestVar("a", "action");
+		//env.addRequestVar("r", "resource");
+		//env.addRequestVar("c", "condition");
 				
 		env.addDecision("allow");
 		env.addDecision("deny");

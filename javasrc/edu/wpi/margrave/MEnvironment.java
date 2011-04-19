@@ -294,7 +294,7 @@ class MExploreCondition
 			if(uber.predicates.containsKey(key))
 			{
 				bIsIDB = false;
-				predrel = uber.predicates.get(key);
+				predrel = uber.predicates.get(key).rel;
 				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was a predicate: "+predrel);
 			}
 			else
@@ -1042,10 +1042,9 @@ public class MEnvironment
 		Document xmldoc = makeInitialResponse("vocabulary-info");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element theElement = xmldoc.createElementNS(null, "VOCABULARY");
-		theElement.setAttribute("name", voc.vocab_name);
+		theElement.setAttribute("name", "");
 		
 		Element sortsElement = xmldoc.createElementNS(null, "SORTS");
-		Element reqElement = xmldoc.createElementNS(null, "REQ-VECTOR");
 		Element axiomsElement = xmldoc.createElementNS(null, "AXIOMS");
 		
 		// List each sort with its subsorts
@@ -1064,64 +1063,13 @@ public class MEnvironment
 				}
 		}
 		
-		int iOrder = 1;
-		for(Variable var : voc.requestVectorOrder)
-		{
-			Element varElement = xmldoc.createElement("VARIABLE");
-			varElement.setAttribute("order", String.valueOf(iOrder));
-			varElement.appendChild(xmldoc.createTextNode(var.name()));
-			reqElement.appendChild(varElement);	
-			iOrder++;
-		}
-		
 		// AXIOMS
 		// TODO more axioms
 		
 		
 		
-		Element subsetElement = xmldoc.createElementNS(null, "SUBSETS");
-		
-		Iterator<String> subsetIterator = voc.axioms.setsSubset.keySet().iterator();
-		
-		while(subsetIterator.hasNext()) {
-			String parent = subsetIterator.next();
-			Set<String> children = voc.axioms.setsSubset.get(parent);
-			
-			Element firstElement = xmldoc.createElementNS(null, "SUBSET");
-			firstElement.setAttribute("parent", parent);
-			
-			for (String childName : children) {
-				Element secondElement = xmldoc.createElementNS(null, "CHILD");
-				secondElement.setAttribute("name", childName);
-				firstElement.appendChild(secondElement);
-			}
-			
-			subsetElement.appendChild(firstElement);
-		}
-		axiomsElement.appendChild(subsetElement);
-		
-		Element disjElement = xmldoc.createElementNS(null, "DISJOINT");
-		for(MSort s : voc.axioms.axiomDisjoints.keySet())
-		{
-			if(voc.axioms.axiomDisjoints.get(s).size() < 1)
-				continue;
-			
-			Element firstElement = xmldoc.createElementNS(null, "SORT");
-			firstElement.setAttribute("name", s.name);
-			
-			for(MSort t : voc.axioms.axiomDisjoints.get(s))
-			{
-				Element secondElement = xmldoc.createElementNS(null, "SORT");
-				secondElement.setAttribute("name", t.name);
-				firstElement.appendChild(secondElement);
-			}
-			
-			disjElement.appendChild(firstElement);
-		}		
-		axiomsElement.appendChild(disjElement);
 		
 		theElement.appendChild(sortsElement);
-		theElement.appendChild(reqElement);
 		theElement.appendChild(axiomsElement);
 		xmldoc.getDocumentElement().appendChild(theElement);		
 		return xmldoc;
@@ -1342,16 +1290,7 @@ public class MEnvironment
 		envIDBCollections.put(pname, pol);
 		return successResponse();
 	}
-
-	static Document getRequestVector(String vname)
-	{
-		if(!envVocabularies.containsKey(vname))
-			return errorResponse(sUnknown, sVocabulary, vname);
-		MVocab voc = envVocabularies.get(vname);
-		
-		return stringResponse(voc.getExpectedRequestVarOrder());
-	}
-
+	
 	
 	public static Document createPolicyLeaf(String pname, String vname)
 	{
@@ -1433,7 +1372,7 @@ public class MEnvironment
 	{
 		if(!envVocabularies.containsKey(vname))
 		{
-			MVocab voc = new MVocab(vname);
+			MVocab voc = new MVocab();
 			envVocabularies.put(vname, voc);
 			return voc;
 		}
@@ -1543,21 +1482,6 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addConstraintSubset(String vname, String parent, String child)
-	{
-
-		MVocab voc = makeNewVocabIfNeeded(vname);
-		try 
-		{
-			voc.axioms.addConstraintSubset(child, parent); // reverse of how it usually is?
-			return successResponse();
-		} 
-		catch (MBaseException e)
-		{
-			return exceptionResponse(e);
-		}
-	}
-
 	public static Document addConstraintNonemptyAll(String vname, String s)
 	{
 
@@ -1648,39 +1572,6 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addConstraintDisjointAll(String vname, String s)
-	{
-		//MCommunicator.writeToLog("In addConstraintDisjointAll (env): "+s);
-		
-		MVocab voc = makeNewVocabIfNeeded(vname);
-		try 
-		{
-			//MCommunicator.writeToLog("Calling voc.axioms.add...: "+s);
-			voc.axioms.addConstraintDisjointAll(s);
-			//MCommunicator.writeToLog("Called voc");
-			return successResponse();
-		} 
-		catch (MBaseException e)
-		{
-			return exceptionResponse(e);
-		}
-	}
-
-	public static Document addConstraintDisjoint(String vname, String s1, String s2)
-	{
-
-		MVocab voc = makeNewVocabIfNeeded(vname);
-		try 
-		{
-			voc.axioms.addConstraintDisjoint(s1, s2);
-			return successResponse();
-		} 
-		catch (MBaseException e)
-		{
-			return exceptionResponse(e);
-		}
-	}
-
 	public static Document addDecision(String vname, String decname)
 	{
 
@@ -1688,36 +1579,6 @@ public class MEnvironment
 		try 
 		{
 			voc.addDecision(decname);
-			return successResponse();
-		} 
-		catch (MBaseException e)
-		{
-			return exceptionResponse(e);
-		}
-	}
-
-	public static Document addOtherVariable(String vname, String varname, String domainsort)
-	{
-
-		MVocab voc = makeNewVocabIfNeeded(vname);
-		try 
-		{
-			voc.addOtherVar(varname, domainsort);
-			return successResponse();
-		} 
-		catch (MBaseException e)
-		{
-			return exceptionResponse(e);
-		}
-	}
-
-	public static Document addRequestVariable(String vname, String varname, String domainsort)
-	{
-
-		MVocab voc = makeNewVocabIfNeeded(vname);
-		try 
-		{
-			voc.addRequestVar(varname, domainsort);
 			return successResponse();
 		} 
 		catch (MBaseException e)
