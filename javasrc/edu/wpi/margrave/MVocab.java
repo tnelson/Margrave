@@ -263,19 +263,19 @@ class MPredicate
 public class MVocab {
 
 	// Sort symbols
-	HashMap<String, MSort> sorts;
+	Map<String, MSort> sorts;
 
 	// Constant symbols
-	HashMap<String, MConstant> constants;
+	Map<String, MConstant> constants;
 	
 	// Function symbols
-	HashMap<String, MFunction> functions;
+	Map<String, MFunction> functions;
 	
 	// Non-sort predicate symbols
-	HashMap<String, MPredicate> predicates;	
+	Map<String, MPredicate> predicates;	
 
 	// Subset of the predicate symbols that can be used as IDBs in a policy
-	HashSet<String> decisions;
+	Map<String, MPredicate> decisions;
 	
 	// More constraints on the domain of discourse
 	public MConstraints axioms;
@@ -308,7 +308,7 @@ public class MVocab {
 		constants = new HashMap<String, MConstant>();
 		functions = new HashMap<String, MFunction>();
 		
-		decisions = new HashSet<String>();
+		decisions = new HashMap<String, MPredicate>();
 
 		axioms = new MConstraints(this);
 	}
@@ -570,11 +570,8 @@ public class MVocab {
 			return; // already have a pred named this
 
 		name = validateIdentifier(name, true);
-
-		String[] arityArr = typeconstruct.split(" ");
-		List<MSort> arity = new ArrayList<MSort>();
-		for(String s : arityArr)
-			arity.add(getSort(s));
+		
+		List<MSort> arity = processTypeConstructStr(typeconstruct);
 	
 		Relation theRel = MFormulaManager.makeRelation(name, arity.size());
 		
@@ -583,13 +580,29 @@ public class MVocab {
 		predicates.put(name, thePred);
 	}
 
-	public void addDecision(String d) throws MGEBadIdentifierName
+	List<MSort> processTypeConstructStr(String typeconstruct)
+	{
+		List<MSort> arity = new ArrayList<MSort>();
+		String[] arityArr = typeconstruct.split(" ");
+		for(String s : arityArr)
+			arity.add(getSort(s));
+		return arity;
+	}
+	
+	public void addDecision(String d, String typeconstruct) throws MGEBadIdentifierName
 	{
 		d = validateIdentifier(d, false);
 		
 		d = d.toLowerCase(); // TODO validateIdentifier is being called too much, maybe really should be 2 diff funcs?
 		
-		decisions.add(d);
+		List<MSort> arity = processTypeConstructStr(typeconstruct);
+		
+		// Not all decisions have the same arity.
+		// need to know the typeconstruct for this decision, just like for a predicate
+		MPredicate newDec = new MPredicate(d, MFormulaManager.makeRelation(d, arity.size()), arity);
+		
+		decisions.put(d, newDec);
+		
 		// The MGPolicy object is responsible for initializing the actual IDBs.
 	}
 
@@ -932,7 +945,7 @@ public class MVocab {
 		for (String s : strs)
 			lcstrs.add(s.toLowerCase());
 		
-		return decisions.containsAll(lcstrs) && lcstrs.containsAll(decisions);
+		return decisions.keySet().containsAll(lcstrs) && lcstrs.containsAll(decisions.keySet());
 	}
 
 	protected boolean isAllDecs(String[] strs) {
@@ -1235,10 +1248,10 @@ public class MVocab {
 		}
 
 		// Decisions
-		for (String d : decisions)
-			uber.addDecision(d);
-		for (String d : other.decisions)
-			uber.addDecision(d);
+		for (MPredicate aDec: decisions.values())
+			uber.decisions.put(aDec.name, aDec);
+		for (MPredicate aDec : other.decisions.values())
+			uber.decisions.put(aDec.name, aDec);
 		
 		// Predicates (equal methods will prevent overlap)
 		for (String d : predicates.keySet())			

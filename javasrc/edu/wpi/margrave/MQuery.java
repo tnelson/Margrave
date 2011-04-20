@@ -2061,20 +2061,11 @@ public class MQuery extends MIDBCollection
 					+ " in collection: " + polName);
 
 		// CHECK: Arity matches between the indexing given and the idb.
-		if (coll instanceof MPolicy
-				&& coll.vocab.requestVectorOrder.size() != indexing.size())
+		if (coll.varOrdering.size() != indexing.size())
 			throw new MGEArityMismatch(
-					"Given indexing did not match IDB arity: " + idbname + ", "
-							+ indexing + "." + " Arity of IDB was: "
-							+ coll.vocab.requestVectorOrder.size());
-		if (coll instanceof MQuery) // used to be MCustomIDB
-		{
-			if (coll.varOrdering.size() != indexing.size())
-				throw new MGEArityMismatch(
-						"Given indexing did not match IDB arity: " + idbname
-								+ ", " + indexing + "." + " Arity of IDB was: "
-								+ coll.varOrdering.size());
-		}
+					"Given indexing did not match IDB arity: " + idbname
+					+ ", " + indexing + "." + " Arity of IDB was: "
+					+ coll.varOrdering.size());
 
 		// Add to indexing map
 		if(!idbOutputIndexing.containsKey(idbname))
@@ -2197,6 +2188,13 @@ public class MQuery extends MIDBCollection
 
 	}
 
+	////////////////////
+	// TN April 2011
+	// re: old parser
+	// 
+	// Commenting out for now. Used in OLD Java tests. Really want to remove forever.
+	//////////////////////////////////////
+	/*
 	protected static Formula constructFormulaFromString(
 			HashMap<String, MIDBCollection> myIDBCollections, MVocab myVocab,
 			Stack<Variable> ql, String qryString, String treatment)
@@ -2443,7 +2441,8 @@ public class MQuery extends MIDBCollection
 					+ myIDBCollections.keySet());
 		return f;
 	}
-
+*/
+	/*
 	private static Formula doVariableRenaming(MIDBCollection idbs,
 			String idbname, List<String> breakdownlist, String qryString,
 			Stack<Variable> ql, String treatment) throws MGEBadQueryString,
@@ -2542,7 +2541,9 @@ public class MQuery extends MIDBCollection
 				new HashMap<Relation, Relation>(), newvars);
 		return f.accept(renaming);
 	}
-
+*/
+	
+	
 	/**
 	 * If not allownew, makes certain the variable name is legal and that it is
 	 * currently bound by a quantifier. If allownew, will create a new Variable
@@ -2558,6 +2559,7 @@ public class MQuery extends MIDBCollection
 	 * @throws MGEUnknownIdentifier
 	 * @throws MGEBadIdentifierName
 	 */
+	/*
 	private static Variable validateQueryVariableName(MVocab myVocab,
 			String varname, String sortname, Stack<Variable> qstack,
 			boolean inquantifier, String treatment) throws MGEBadQueryString,
@@ -2629,8 +2631,8 @@ public class MQuery extends MIDBCollection
 			return newv;
 		}
 
-	}
-
+	}*/
+/*
 	public static MQuery queryThesePolicies(String qry,
 			List<MIDBCollection> idbCollections) throws MGEBadQueryString,
 			MGEUnknownIdentifier, MGEArityMismatch, MGECombineVocabs,
@@ -2712,7 +2714,7 @@ public class MQuery extends MIDBCollection
 			result.msPreprocessingTime = (mx.getCurrentThreadCpuTime() - starttime) / 1000000;
 
 		return result;
-	}
+	}*/
 
 	static boolean someChildContainsTuple(Instance sol, MSort thetype,
 			Tuple theTuple) {

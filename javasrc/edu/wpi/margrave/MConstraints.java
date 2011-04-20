@@ -282,18 +282,19 @@ public class MConstraints
 		// "Other constraints" are arbitrarily complex constraints that the user
 		// has provided in the Margrave query language.
 
-		HashMap<String, MIDBCollection> hmpol = new HashMap<String, MIDBCollection>();
-		if(idbContext != null)
-			hmpol.put(idbContext.name, idbContext);
+		//HashMap<String, MIDBCollection> hmpol = new HashMap<String, MIDBCollection>();
+		//if(idbContext != null)
+	//		hmpol.put(idbContext.name, idbContext);
 
 
 		
+		// 4/11 disabled for now
 		//SimplifyFormulaV simplifierV = new SimplifyFormulaV();
-		for(String s : otherConstraintStrings)
-		{
-			results.add(MQuery.constructFormulaFromString(hmpol, vocab, new Stack<Variable>(), s, "Q"));
-					//.accept(simplifierV));
-		}
+		//for(String s : otherConstraintStrings)
+		//{
+		//	results.add(MQuery.constructFormulaFromString(hmpol, vocab, new Stack<Variable>(), s, "Q"));
+		//			//.accept(simplifierV));
+		//}
 		
 		return results;
 	}

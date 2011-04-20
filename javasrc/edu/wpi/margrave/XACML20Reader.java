@@ -672,7 +672,7 @@ class XACML20Reader {
 	
 		Relation r = env.getRelation(newpredname);
 			
-		return MFormulaManager.makeAtom(env.requestVariables.get(varname), r);
+		return MFormulaManager.makeAtom(MFormulaManager.makeVariable(varname), r);
 	}
 
 	
@@ -1027,20 +1027,29 @@ class XACML20Reader {
 		// order matters!
 		List<String> involves_list = new ArrayList<String>(involves);
 			
+		if(involves.contains("s"))
+			involves_list.add("Subject");
+		if(involves.contains("a"))
+			involves_list.add("Action");
+		if(involves.contains("r"))
+			involves_list.add("Resource");
+		if(involves.contains("e"))
+			involves_list.add("Environment");
+
 		// We want to support "nullary" state predicates. The problem is that 
 		// Kodkod requires Relation arity to always be >= 1. 
 		// So we kludge it: If a Condition is truly nullary, we pretend it depends
 		// on the Environment.		
+
 		if(involves_list.size() < 1)
-		{
-			involves_list.add("e");
-		}
+			involves_list.add("Environment");
+
 				
 		try
 		{			
 			String construct = "";
 			for(String s : involves_list)	
-				construct = construct + env.requestVarDomains.get(s).name() + " ";
+				construct = construct + s + " ";
 			
 			// create the predicate
 			env.addPredicate(newname, construct);

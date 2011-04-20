@@ -1435,20 +1435,20 @@ public class MCommunicator
 		}
 	}
 	
-	private static Formula performSubstitution(Object collectionIdSymbol, MIDBCollection coll, Formula f, List<String> newvarnames)
+	private static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<String> newvarnames)
 	throws MUserException, MGEUnknownIdentifier
 	{		
 		if(f == null)
 			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
-		if(newvarnames.size() != coll.varOrdering.size())
+		if(newvarnames.size() != coll.varOrderings.get(collectionIdSymbol).size())
 			report_arity_error(collectionIdSymbol, newvarnames, coll);
 		
 		HashMap<Variable, Variable> toReplace = new HashMap<Variable, Variable>();
 			
 		// coll knows what its idbs free variable vector is.
 		int ii = 0;
-		writeToLog("\nsubs found coll.varOrdering = "+coll.varOrdering);
-		for(Variable oldv : coll.varOrdering)		
+		writeToLog("\nsubs found coll.varOrdering for IDB = "+coll.varOrderings.get(collectionIdSymbol));
+		for(Variable oldv : coll.varOrderings.get(collectionIdSymbol))		
 		{
 			Variable v = MFormulaManager.makeVariable(newvarnames.get(ii));
 			toReplace.put(oldv, v);
@@ -1478,9 +1478,10 @@ public class MCommunicator
 		 return idbf;
 	}
 	
-	private static void report_arity_error(Object idbSymbol, List<String> varlist, MIDBCollection coll) throws MUserException
+	private static void report_arity_error(String idbSymbol, List<String> varlist, MIDBCollection coll) throws MUserException
 	{
-		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+varlist+", but collection expects arity "+coll.varOrdering.size()+".");
+		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+varlist+
+				", but collection expects arity "+coll.varOrderings.get(idbSymbol).size()+".");
 	}
 
 	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MUserException

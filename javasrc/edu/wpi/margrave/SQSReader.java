@@ -152,6 +152,13 @@ public class SQSReader
 		//  Principal.AWS=555566667777 with and without dashes should not be
 		// More ugly code:
 		
+		/////////////////
+		// !!! TODO
+		// TN April 2011
+		// SQS, XACML, etc. unsafe due to change in how we handle disjointness.
+		/////////////////
+		
+		/*
 		// This should be a *specific* AWS. Disjoint from all other SPECIFIC ones.
 		if(sortname.startsWith("principal.aws=") && !sortname.contains("*"))
 		{
@@ -179,6 +186,7 @@ public class SQSReader
 			
 			vocab.axioms.addConstraintDisjoint(sortname, others);
 		}
+		*/
 		
 			
 		

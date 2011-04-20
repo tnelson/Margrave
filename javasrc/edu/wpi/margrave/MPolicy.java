@@ -50,6 +50,7 @@ class MRule
 	
 	String name;
 	private String myDecision;
+
 	Formula target;
 	Formula condition;
 	
@@ -93,10 +94,10 @@ abstract class MIDBCollection
 	// Formulas for Policy decisions, rule applicability, etc.
 	protected HashMap<String, Formula> idbs = new HashMap<String, Formula>();	
 	
-	// The entire collection also has a single distinct vector of free variables
-	// over which all its idbs range. Not all idbs use all these variables.
-	protected List<Variable> varOrdering = new ArrayList<Variable>();
+	// The entire collection can contain IDBs with different arities and 
+	// different vectors of free variables.
 	
+	protected Map<String, List<Variable>> varOrderings = new HashMap<String, List<Variable>>();	
 	protected HashMap<Variable, Expression> varSorts = new HashMap<Variable, Expression>();	
 	
 	protected static RelationAndVariableReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
@@ -130,7 +131,17 @@ abstract class MIDBCollection
 	void initIDBs()
 	throws MUserException
 	{
-		// Policies call super.initIDBs() to make sure they have proper varOrdering and varSorts
+		// Policies call super.initIDBs() to make sure they have proper varOrdering and varSorts		
+		
+		for(MPredicate aDec : vocab.decisions.values())
+		{
+			// More than typeconstruct?
+			// Permit: Subject, Action, Resource
+			// yes. but need ordering on the variables used in the idb fmla!
+			// so more needed than just EDB
+			
+			varOrderings.
+		}
 		
 		varOrdering = vocab.requestVectorOrder;
 					
@@ -140,7 +151,7 @@ abstract class MIDBCollection
 		}
 	}
 
-}
+} // end MIDBCollection
 
 
 
@@ -213,8 +224,8 @@ public abstract class MPolicy extends MIDBCollection
 			{
 				// EQ
 				// Bad variable name exception will propagate up.
-				Variable v1 = vocab.getRequestVariable(breakdown[1]);
-				Variable v2 = vocab.getRequestVariable(breakdown[2]);
+				Variable v1 = MFormulaManager.makeVariable(breakdown[1]);
+				Variable v2 = MFormulaManager.makeVariable((breakdown[2]);
 				targetSet.add(MFormulaManager.makeEqAtom(v1, v2));
 			}
 			else
@@ -255,7 +266,7 @@ public abstract class MPolicy extends MIDBCollection
 	
 	}
 	
-	public static MExploreCondition makeCompareCondition(MPolicy p1, MPolicy p2)
+/*	public static MExploreCondition makeCompareCondition(MPolicy p1, MPolicy p2)
 	{
 		List<MExploreCondition> criteria = new ArrayList<MExploreCondition>();
 		
@@ -290,9 +301,9 @@ public abstract class MPolicy extends MIDBCollection
 		}
 						
 		return mapOrOverCriteria(criteria);
-	}
+	}*/
 	
-	private static MExploreCondition mapOrOverCriteria(List<MExploreCondition> criteria)
+	/*private static MExploreCondition mapOrOverCriteria(List<MExploreCondition> criteria)
 	{
 		if(criteria.size() == 1)
 			return criteria.get(0);
@@ -313,9 +324,18 @@ public abstract class MPolicy extends MIDBCollection
 		}
 		
 		return result;
-	}
+	}*/
 	
-	
+	//////////////////////////
+	// TN April 2011
+	// re: comparison
+	// 
+	// Removed compareWith functions for now since we have more "decisions" than before.
+	// (We now refer to all IDBs as decisions. So the question is now, compare with
+	// respect to WHICH decisions?)
+	// re-implement when we enable the COMPARE command in Racket?
+	//////////////////////////
+	/*
 	public MQuery compareWithPolicy(MPolicy p2, boolean tupling, int debugLevel, int ceilingLevel)
 	throws MUserException
 	{
@@ -333,59 +353,9 @@ public abstract class MPolicy extends MIDBCollection
 	
 	public MQuery compareWithPolicy(MPolicy p2) 
 	throws MUserException
-	{
-		
-		return compareWithPolicy(p2, false, 0, -1);
-		
-				
-		
-		// All query creation must go through MGQuery.queryThesePolicies. So construct a query string.
-/*		String thequery = "";
-		String reqvars = "";
-		String suffix = "";
-	
-		
-		
-		
-		// A problem with incompatible vocabularies will be handled below, by the queryThesePolicies method.
-		
-		for(Variable v : vocab.requestVectorOrder)
-		{
-			if(reqvars.length() < 1)
-				reqvars = v.name();
-			else
-				reqvars = reqvars.concat(" "+v.name());
-			
-			Relation varsort = vocab.requestVarDomains.get(v.name());
-			thequery = thequery.concat("(forSome "+v.name()+" "+varsort.name()+" ");
-			suffix = suffix.concat(")");
-		}
-		
-		thequery = thequery.concat(" (or ");
-		suffix = suffix.concat(")");
-		
-		for(String decision : vocab.decisions)
-		{			
-			// If P1 ever decides this way, but P2 does not. (And vice versa.)
-			thequery = thequery + " (and ("+this.name+":"+decision+" "+reqvars+") (not ("
-			                              +p2.name+":"+decision+" "+reqvars+"))) "
-			                              
-			                     +"(and ("+p2.name+":"+decision+" "+reqvars+") (not ("
-			                              +this.name+":"+decision+" "+reqvars+")))";
-			
-			// Note that since we check in both directions, the N/a <-> non-N/a possibilities are covered. 
-		}
-
-		thequery = thequery.concat(suffix);
-		
-		ArrayList<MIDBCollection> pollist = new ArrayList<MIDBCollection>();
-		pollist.add(this);
-		pollist.add(p2);
-				
-		MQuery result = MQuery.queryThesePolicies(thequery, pollist);
-		return result;*/
-		
-	}
+	{		
+		return compareWithPolicy(p2, false, 0, -1);				
+	}*/
 	
 	
 	/**
@@ -430,7 +400,7 @@ public abstract class MPolicy extends MIDBCollection
 	
 	public void prettyPrintEDBs()
 	{
-		MEnvironment.errorWriter.println("Request Type EDBs: ");
+		MEnvironment.errorWriter.println("Type EDBs: ");
 		
 		//boolean commaneeded = false;
 		for(MSort t : vocab.sorts.values())
@@ -438,22 +408,13 @@ public abstract class MPolicy extends MIDBCollection
 			if(t.parents.size() == 0)
 				MEnvironment.errorWriter.println(t.name+" <-- base type");
 			else
-				MEnvironment.errorWriter.println(t.name + "( "+ t.parents +" )");
-			
-			/*if(commaneeded)
-				MEnvironment.errorStream.print(", ");
-			MEnvironment.errorStream.print(t.name);
-			commaneeded = true;*/
+				MEnvironment.errorWriter.println(t.name + " < "+ t.parents +" ");			
 		}
 		
-		MEnvironment.errorWriter.println("State EDBs: ");
-		for(String relname : vocab.predicates.keySet())
+		MEnvironment.errorWriter.println("Non-type Predicate EDBs: ");
+		for(MPredicate aPred : vocab.predicates.values())
 		{
-			MEnvironment.errorWriter.println(relname + "( "+ vocab.predtypes.get(relname) +" )");
-			/*if(commaneeded)
-				MEnvironment.errorStream.print(", ");
-			MEnvironment.errorStream.print(relname);
-			commaneeded = true;*/
+			MEnvironment.errorWriter.println(aPred.name + ": "+ aPred.type +" ");
 		}
 
 	}	
@@ -467,18 +428,7 @@ public abstract class MPolicy extends MIDBCollection
 	public abstract String getDecisionForRuleIDBName(String idbname);
 	
 	public abstract List<String> ruleIDBsWithHigherPriorityThan(String rulename);
-	
-	public void addDisjointAssumption(String name1, String name2) 
-	throws MUserException
-	{
-		// Allow the Scheme UI to say things like "A subject will never have role=faculty and role=student at the same time."
-		// This is convenient, but hides potential policy flaws. Add such constraints at your own risk.
-		// Now treated as a policy ASSUMPTION, not an axiom.
 		
-		assumptions.addConstraintDisjoint(name1, name2);	
-		initIDBs();
-	}
-	
 	public void addSingletonAssumption(String name)
 	throws MUserException
 	{
@@ -487,23 +437,6 @@ public abstract class MPolicy extends MIDBCollection
 		initIDBs();
 	}
 			
-	public String getExistentialRequestPrefix()
-	{
-		// Return a query string prefix coorisponding to the request vector
-		// used in automated query generation
-
-		String result = "";
-		for(Variable v : vocab.requestVectorOrder)
-		{			
-			Relation varsort = vocab.requestVarDomains.get(v.name());
-			result = result.concat("(forSome "+v.name()+" "+varsort.name()+" ");
-		}
-
-		return result;
-	}
-
-
-	
 	public List<String> getIDBNameList()
 	{
 		// Order independent list
@@ -533,7 +466,7 @@ public abstract class MPolicy extends MIDBCollection
 		name = n.toLowerCase();
 	}
 	
-	void handlePolicyAssumptions() throws MGEBadQueryString, MGEArityMismatch, MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
+	/*void handlePolicyAssumptions() throws MGEBadQueryString, MGEArityMismatch, MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
 	{
 		// Predicate for "my assumptions have been violated in this model."
 		Formula assumptionsok = MFormulaManager.makeConjunction(assumptions.getConstraintFormulas(this)); 
@@ -552,7 +485,7 @@ public abstract class MPolicy extends MIDBCollection
 			// Now the decision is split into EC and non-EC
 			idbs.put(dec, MFormulaManager.makeAnd(idbs.get(dec), assumptionsok));
 		}
-	}
+	}*/
 	
 	
 	public static String convertSeparators(String s)
@@ -725,7 +658,8 @@ public abstract class MPolicy extends MIDBCollection
 	
 		Relation r = env.getRelation(newpredname);
 			
-		return MFormulaManager.makeAtom(env.requestVariables.get(varname), r);
+		// Only ever one variable named "s" now. So manager will have it.
+		return MFormulaManager.makeAtom(MFormulaManager.makeVariable(varname), r);
 	}
 	
 	private static Formula handleXACMLTarget(Target targ, MVocab env) 
@@ -892,21 +826,31 @@ public abstract class MPolicy extends MIDBCollection
 
 		Set<String> involves = new HashSet<String>();		
 		String newname = buildConditionPredicate(cond, involves);
+						
+		// Which variables got used?
+		List<String> involves_list = new ArrayList<String>();
+		if(involves.contains("s"))
+			involves_list.add("Subject");
+		if(involves.contains("a"))
+			involves_list.add("Action");
+		if(involves.contains("r"))
+			involves_list.add("Resource");
+		if(involves.contains("e"))
+			involves_list.add("Environment");
+					
+		// We want to support "nullary" state predicates. The problem is that 
+		// Kodkod requires Relation arity to always be >= 1. 
+		// So we kludge it: If a Condition is truly nullary, we pretend it depends
+		// on the Environment.		
+
+		if(involves_list.size() < 1)
+			involves_list.add("Environment");
 		
-		// TODO nullary predicates: We fixed this in XACML 2.0 parser
-		// need to migrate fix over. (The problem is that KodKod doesn't allow nullary relations)
-		if(involves.size() < 1)
-			throw new MGEUnsupportedXACML("Condition involved no part of the request: "+newname);
-		
-		// assemble type construct string
-		// order matters!
-		List<String> involves_list = new ArrayList<String>(involves);
-			
 		try
 		{			
 			String construct = "";
 			for(String s : involves_list)	
-				construct = construct + env.requestVarDomains.get(s).name() + " ";
+				construct = construct + s + " ";
 			
 			// create the predicate
 			env.addPredicate(newname, construct);
