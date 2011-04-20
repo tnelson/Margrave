@@ -22,8 +22,6 @@
 package edu.wpi.margrave;
 
 import java.io.*;
-//import java.lang.management.ManagementFactory;
-//import java.lang.management.ThreadMXBean;
 import java.util.*;
 
 import kodkod.ast.*;
@@ -282,6 +280,26 @@ public class MVocab {
 	// More constraints on the domain of discourse
 	public MConstraints axioms;
 
+	///////////////////////////////////////////////////////////////////////
+	// CACHE
+	///////////////////////////////////////////////////////////////////////
+	Set<MSort> cacheTopLevelSorts = new HashSet<MSort>();
+	Map<MSort, Set<MSort>> cacheAncestors = new HashMap<MSort, Set<MSort>>();
+	Map<MSort, Set<MSort>> cacheDescend = new HashMap<MSort, Set<MSort>>();
+	Map<MSort, Set<MSort>> cacheConciseDisj = new HashMap<MSort, Set<MSort>>();
+	///////////////////////////////////////////////////////////////////////
+	
+	
+	void clearCache()
+	{
+		// Called when adding a new sort or subsort assertion.
+		
+		cacheTopLevelSorts.clear();
+		cacheAncestors.clear();
+		cacheDescend.clear();
+		cacheConciseDisj.clear();
+	}
+	
 	public MVocab()
 	{
 
@@ -333,6 +351,8 @@ public class MVocab {
 
 	public void addSort(String name) throws MGEBadIdentifierName
 	{	
+		clearCache();
+		
 		name = validateIdentifier(name, true);
 		if (!isSort(name)) // no dupes
 			sorts.put(name, new MSort(name));
@@ -340,8 +360,9 @@ public class MVocab {
 
 	public void addSort(String name, String childnames)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName
-			{
-
+	{
+		clearCache();
+		
 		// We declare that there is a type "name" and types 
 		//(each child name, separated by whitespace)
 		// And that name is a parent of all such.
@@ -398,6 +419,8 @@ public class MVocab {
 		// Creates a new sort and makes it the parent of all parentless types
 		// used in tupling
 
+		clearCache();
+		
 		name = validateIdentifier(name, true);
 		if (!isSort(name))
 			sorts.put(name, new MSort(name));
@@ -500,7 +523,10 @@ public class MVocab {
 	}
 
 	public void addSubSort(String parentName, String name)
-			throws MGEBadIdentifierName, MGEUnknownIdentifier {
+			throws MGEBadIdentifierName, MGEUnknownIdentifier
+	{
+		clearCache();
+		
 		parentName = parentName.toLowerCase();
 		name = name.toLowerCase();
 
@@ -620,22 +646,102 @@ public class MVocab {
 		return false;
 	}
 
-	
-	Set<Formula> getDisjointness(MSort t)
-	throws MGEUnknownIdentifier
-	{		
-
-		// TODO
+	Set<MSort> getTopLevelSorts()
+	{
+		if(cacheTopLevelSorts.size() > 0)
+		{
+			return cacheTopLevelSorts;
+		}
 		
-		if(disjoints == null || disjoints.size() < 1)
-			return new HashSet<Formula>();
+		Set<MSort> results = new HashSet<MSort>();
+		for(MSort s : sorts.values())
+		{
+			if(!isSubtype(s))
+				results.add(s);
+		}
+		
+		cacheTopLevelSorts = results;
+		return results;
+	}
+	
+	Set<MSort> getConciseDisjointSorts(MSort t)
+	{
+		// Which sorts are disjoint from t?
+		// ONLY includes largest disjoint sorts: if A has child B, and A disj C,
+		// this function returns only A, not {A, B}.
+		
+		// To avoid excess verbosity, do a DFS of the sort tree and, if 
+		// sort A is disjoint from t, don't bother checking its sub-sorts.
+		
+		if(cacheConciseDisj.containsKey(t))
+			return cacheConciseDisj.get(t);
+		
+		List<MSort> todo = new LinkedList<MSort>();
+		Set<MSort> alreadyChecked = new HashSet<MSort>();
+		
+		Set<MSort> tDescend = buildSubSortSet(t);
+		
+		// Add all top-level sorts
+		todo.addAll(getTopLevelSorts());
 
-		Iterator<MSort> it = disjoints.iterator();
-		Expression unions = it.next().rel;
-
-		while(it.hasNext())
-			unions = unions.union(it.next().rel);
-
+		Set<MSort> results = new HashSet<MSort>();	
+		
+		while (todo.size() > 0) 
+		{
+			MSort next = todo.get(0);
+			todo.remove(0);
+			alreadyChecked.add(next);
+		
+			if(next == t)
+				continue;
+			
+			Set<MSort> nextDescend = buildSubSortSet(next);
+			
+			if(!tDescend.contains(next) && !nextDescend.contains(t) && Collections.disjoint(nextDescend, tDescend))
+			{
+				// If next is neither comparable with nor shares a lower bound with t, 
+				// assert disjointness and leave its children alone.
+				results.add(next);
+			}
+			else
+			{			
+				// If next is comparable, continue the search.
+				// If next is not comparable and shares a lower bound, continue the search.
+				
+				for(MSort aChild : next.subsorts)
+				{
+					if(!alreadyChecked.contains(aChild) && !todo.contains(aChild))
+					todo.add(aChild);					
+				}	
+			}
+		} // end while todo
+			
+		cacheConciseDisj.put(t, results);
+		return results;
+	}
+	
+	Set<Formula> getDisjointness(MSort t) 
+	{		
+		// Returns a fmla asserting that t is disjoint from sorts that are 
+		// (a) non-comparable with tand
+		// (b) do not share a lower bound with t
+						
+		Expression unions = Expression.NONE;
+		boolean first = true;
+		
+		Set<MSort> conciseDisjs = getConciseDisjointSorts(t);
+		
+		for(MSort aSort : conciseDisjs)
+		{
+			if(first)
+				unions = aSort.rel;
+			else
+			{
+				unions = unions.union(aSort.rel);
+				first = false;
+			}
+		}
+												
 		HashSet<Formula> results = new HashSet<Formula>();
 		results.add(t.rel.intersection(unions).no());
 		return results;
@@ -847,7 +953,7 @@ public class MVocab {
 		return false;
 	}
 
-	public boolean isSubOf(String sub, String sup) throws MGEUnknownIdentifier, MGEBadIdentifierName {
+	/*public boolean isSubOf(String sub, String sup) throws MGEUnknownIdentifier, MGEBadIdentifierName {
 		MSort subt = getSort(sub);
 		MSort supt = getSort(sup); // trigger name check
 
@@ -875,7 +981,7 @@ public class MVocab {
 		}
 
 		return results;
-	}
+	}*/
 
 	public static String constructAdornment(BinaryExpression be,
 			HashMap<Variable, String> sortenv)
@@ -978,6 +1084,9 @@ public class MVocab {
 
 	protected Set<MSort> buildSubSortSet(MSort t)
 	{
+		if(cacheDescend.containsKey(t))
+			return cacheDescend.get(t);
+		
 		List<MSort> todo = new LinkedList<MSort>();
 		Set<MSort> result = new HashSet<MSort>();
 		todo.add(t);
@@ -995,6 +1104,7 @@ public class MVocab {
 			}			
 		}
 
+		cacheDescend.put(t, result);
 		return result;
 		
 	}
@@ -1002,27 +1112,30 @@ public class MVocab {
 	protected Set<MSort> buildSuperSortSet(MSort t)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-				List<MSort> todo = new LinkedList<MSort>();
-				Set<MSort> result = new HashSet<MSort>();
-				todo.add(t);
+		if(cacheAncestors.containsKey(t))
+			return cacheAncestors.get(t);
 
-				while (todo.size() > 0) 
-				{
-					// Pop todo, add to result
-					MSort next = todo.get(0);
-					todo.remove(0);
-					result.add(next);
+		List<MSort> todo = new LinkedList<MSort>();
+		Set<MSort> result = new HashSet<MSort>();
+		todo.add(t);
 
-					// expand next, queue supers/supertypes not already dealt with or
-					// already queued
-					for(MSort aParent : next.parents)
-					{
-						if(!result.contains(aParent) && !todo.contains(aParent))
-						todo.add(aParent);
-					}			
-				}
+		while (todo.size() > 0) 
+		{
+			// Pop todo, add to result
+			MSort next = todo.get(0);
+			todo.remove(0);
+			result.add(next);
 
-				return result;
+			// expand next, queue supers/supertypes not already dealt with or
+			// already queued
+			for(MSort aParent : next.parents)
+			{
+				if(!result.contains(aParent) && !todo.contains(aParent))
+				todo.add(aParent);
+			}			
+		}
+		cacheAncestors.put(t, result);
+		return result;
 	}
 
 	protected boolean possibleOverlap(String st1, String st2)
@@ -1039,6 +1152,8 @@ public class MVocab {
 	protected boolean possibleOverlap(MSort t1, MSort t2)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
+		// TODO use cache (and construct it!)
+		
 		// Since we require top-level sorts to be disjoint 
 		if (t1.parents.size() == 0 && t2.parents.size() == 0 && t1 != t2)
 			return false;
@@ -1237,119 +1352,9 @@ public class MVocab {
 							"Total relation constraint missing between vocabs <- "+con);
 			uber.axioms.addConstraintTotalRelation(con);
 		}
-
-		// Disjointness
-		//MEnvironment.errorStream.println("Beginning disj helper.");
-		combineDisjHelper(uber, this, other, shared);		
-		// used to need 2nd call, but no longer
-		//combineDisjHelper(uber, other, this, shared);
-		//MEnvironment.errorStream.println("Ending disj helper.");
 		
 		return uber;
 	}
-
-	/*
-	private static void checkSharedDisjointness(MVocab A, MVocab B, Set<String> shared)
-	 throws MGECombineVocabs, MGEUnknownIdentifier, MGEBadIdentifierName
-	 {
-		// Don't need to loop through ALL sorts, just the ones that have disj constraints.
-		
-		// Note: If A asserts a disj over shared sorts that B does not, BUT
-		// this assertion is due to non-shared sort interaction, 
-		// we don't complain.
-		
-		for(MSort key : A.axioms.axiomDisjoints.keySet())
-		{
-			// this sort isn't shared, never any possible disagreement!
-			if(!shared.contains(key.name)) 
-				continue;
-			
-			for(MSort val : A.axioms.axiomDisjoints.get(key))			
-			{
-				
-				// this sort isn't shared, never any possible disagreement!
-				if(!shared.contains(val.name))
-					continue;
-				
-				MSort b_key = B.getSort(key.name);
-				MSort b_val = B.getSort(val.name);
-				
-				// A asserts that val and key are disjoint.
-				// B needs to assert the same thing, or we have a problem.
-				// (but B may assert it indirectly!)
-				if(B.possibleOverlap(b_key, b_val))
-				{
-					throw new MGECombineVocabs(
-							"Disjointness constraint not agreed upon between vocabs: "
-							+ key.name + " and " + val.name);
-				}					
-			}
-		}
-	 }
-	*/
-	/*
-	private static void addDisjsToSet(MVocab uber, MVocab voc, HashMap<MSort, Set<MSort>> new_ax_disjoints) 
-	throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// Copy all of voc's axiom_disjoints.
-		// (Can't do a copy of the set contents, since one vocab's MGSort isn't valid in another vocab.)
-		
-	
-		for(MSort key : voc.axioms.axiomDisjoints.keySet())
-		{
-			MSort u_key = uber.getSort(key.name);
-			
-			if(!new_ax_disjoints.containsKey(u_key))
-				new_ax_disjoints.put(u_key, new HashSet<MSort>());
-			
-			for(MSort val : voc.axioms.axiomDisjoints.get(key))
-			{
-				MSort u_val = uber.getSort(val.name);
-				new_ax_disjoints.get(u_key).add(u_val);
-			}				
-		}		
-	}
-	
-	private static void combineDisjHelper(MVocab uber, MVocab A, MVocab B, Set<String> shared)
-	throws MGECombineVocabs, MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-	//	ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
-		//long start = mxBean.getCurrentThreadCpuTime();		
-		
-		//MEnvironment.errorStream.println("Checking shared disj.");
-		// Make sure A -> B in shared
-		checkSharedDisjointness(A, B, shared);
-		// Make sure B -> A in shared
-		checkSharedDisjointness(B, A, shared);
-
-//		MEnvironment.errorStream.println("Time (ms) to checkSharedDisj both directions (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
-	//	start = mxBean.getCurrentThreadCpuTime();
-
-		
-		// uber contains all the sorts that A and B do, regardless of whether both have them
-		// So uber needs to have all the disjoint constraints from both.
-
-		//MEnvironment.errorStream.println("Copying disj info.");
-		
-		// construct a new disjoints set for uber.
-		HashMap<MSort, Set<MSort>> new_ax_disjoints = new HashMap<MSort, Set<MSort>>();
-			
-		//MEnvironment.errorStream.println(A.sorts);		
-		//MEnvironment.errorStream.println(A.axioms.axiom_disjoints.keySet());
-		// eh? _1 under one?
-		
-		
-		addDisjsToSet(uber, A, new_ax_disjoints);
-		addDisjsToSet(uber, B, new_ax_disjoints);		
-		
-		uber.axioms.axiomDisjoints = new_ax_disjoints;
-		
-		//MEnvironment.errorStream.println("Time (ms) to adddisjsToSet (voc comb): "+ (mxBean.getCurrentThreadCpuTime() - start) / 1000000);
-		//start = mxBean.getCurrentThreadCpuTime();
-		
-
-	}
-*/
 	
 	public boolean writeAsDOT(String filename)
 	{

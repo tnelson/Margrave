@@ -1773,7 +1773,7 @@ public class MJavaTests
 	throws MBaseException
 
 	{
-		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_tupling_basic()");
+	/*	MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_tupling_basic()");
 		MVocab fw = setupFirewallVocab("small", 50, 10, 10);
 		MPolicyLeaf fwpol = new MPolicyLeaf("SmallFwTestPol1", fw);
 		MPolicyLeaf fwpol2 = new MPolicyLeaf("SmallFwTestPol2", fw);
@@ -1991,6 +1991,7 @@ public class MJavaTests
 
 		//qry.prettyPrintSolutions();
 
+*/
 		// *********************
 		// Test on >1-ary preds
 		// This feature has been disabled for now.
@@ -2014,7 +2015,7 @@ public class MJavaTests
 
 		// Add a subset constraint other than subsorting, and make sure it translates over when tupling.
 		//fw.axioms.addConstraintSubset("IP10", "IP11"); // the only addresses that the policies disagree on
-		fwpol.initIDBs();
+	/*	fwpol.initIDBs();
 		fwpol2.initIDBs();
 		qry = fwpol.compareWithPolicy(fwpol2);
 		countTest("Subset constraints in Tupling (Step 1)", qry, -1, 0, 14);
@@ -2333,7 +2334,7 @@ public class MJavaTests
 
 
 		// TODO ALL(v)
-
+*/
 		//myInterface.debugParser = true;
 /*
 		testCommandOutput("Query 1", query1, query1Result);
@@ -2957,7 +2958,7 @@ public class MJavaTests
 	public static void do_test_tupling_1()
 	throws MBaseException
 	{
-		//do_test_child_sort_exhaustive();
+	/*	//do_test_child_sort_exhaustive();
 		MEnvironment.writeErrLine("ENTERING TEST BLOCK: do_test_tupling_1()");
 		do_test_tupling_basic();
 
@@ -3140,7 +3141,7 @@ public class MJavaTests
 				+ fwpol.getRequestPrefixClosing()
 				, singlePol);
 		qry.doTupling = true;
-
+*/
 	/*	start = mxBean.getCurrentThreadCpuTime();
 		int numTries = 200;
 		for(int iCount=0;iCount<numTries;iCount++)

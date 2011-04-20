@@ -22,16 +22,10 @@
 package edu.wpi.margrave;
 
 import java.lang.management.*;
-
 import kodkod.ast.*;
 import kodkod.engine.Statistics;
-
 import kodkod.engine.satlab.SATFactory;
-
-
 import kodkod.instance.*;
-
-
 import java.util.*;
 
 /**
@@ -372,11 +366,10 @@ public class MQuery extends MIDBCollection
 			////////////////////////////
 									
 			// What is axiomatically disjoint from s.rel?
-			Set<LeafExpression> theseDisjoints = new HashSet<LeafExpression>();
-			if(vocab.axioms.axiomDisjoints.containsKey(s)) // may have no entry for this sort
-				for(MSort disj : vocab.axioms.axiomDisjoints.get(s))
-					theseDisjoints.add(disj.rel);
-			disjointness.put(s.rel, theseDisjoints);
+			Set<LeafExpression> theDisjs = new HashSet<LeafExpression>();
+			for(MSort aDisj : vocab.getConciseDisjointSorts(s))
+				theDisjs.add(aDisj.rel);
+			disjointness.put(s.rel, theDisjs);
 		}
 		
 		for (String pname : vocab.predicates.keySet())
