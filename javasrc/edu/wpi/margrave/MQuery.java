@@ -944,184 +944,43 @@ public class MQuery extends MIDBCollection
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
 						/ 1000000);
 			startTime = mxBean.getCurrentThreadCpuTime();
-
 			
 			// tupled sorts will be in mtup.newvocab
 
+			/////////////////////////////////////////////////////////
 			// Deal with the abstract constraint
 			// For everything abstract in the pre-tupling vocab
-			// [[[ 1/28/10 subsort exhaustiveness no longer *required*, but optional ]]] 
-			for (String relName : vocab.assertSortOrdering(vocab.axioms.setsAbstract))
-			{
-				MSort oldSort = vocab.getSort(relName);
-
-				// Get the list of tupled extensions of relName
-				Set<String> newPreds = mtup.getPredicateToIndexings(relName);
-									
-				if (debug_verbosity >= 3)
-					MEnvironment.writeOutLine("DEBUG: Examining abstract sort "+relName);
-				
-				if (newPreds == null)
-					continue;
-
-				for (String newName : newPreds)
-				{
-					// Carry over the abstract constraint.
-
-					String idxStr = newName.substring(newName.lastIndexOf("_") + 1);
-					
-					// Child sorts will *always* be added at indexing <i> if the 
-					// (abstract) parent appears at indexing <i>. We may need to 
-					// add children if any have not appeared already:
-					for (MSort oldChild : oldSort.subsorts)
-					{
-						// Add if missing
-						if (!mtup.newvocab.isSort(oldChild.name + "_" + idxStr))
-						{
-							String newchildname = oldChild.name + "_" + idxStr;
-							mtup.newvocab.addSubSort(newName, newchildname);
-							
-							// Not using mtup.addSortWithSupers since here we already have the parent
-							mtup.addToCaches(oldChild.name, "_"+idxStr, newchildname);
-							
-							if (debug_verbosity >= 3)
-								MEnvironment.writeOutLine("  DEBUG: Abstract sort "
-										+ relName + " at index " + idxStr
-										+ ": Forced addition of tupled child "
-										+ oldChild.name + "_" + idxStr);
-							
-						}
-						else
-						{
-							if (debug_verbosity >= 3)
-								MEnvironment.writeOutLine("  DEBUG: Abstract sort "
-										+ relName + " at index " + idxStr
-										+ ": child "
-										+ oldChild.name + "_" + idxStr +" already existed.");
-						}
-
-
-					}
-
-
-					
-					// Carry the constraint over to the new vocabulary:
-					mtup.newvocab.axioms.addConstraintAbstract(newName);
-				}
-			}
-
+			tuplingDoAbstract(mtup);
+			/////////////////////////////////////////////////////////
 
 
 
 			
 			
-			// ***************************
+			/////////////////////////////////////////////////////////
 			// Sort of original predicates is respected
 			// If P: AxB, P_1,3(z) ---> A_1(z) and B_3(z)
 			// This is NOT enforced by the sig of the new predicate in
 			// the new vocab. Need to assert these!
 			Set<Formula> respected_1 = new HashSet<Formula>();
-			for(String origpred : vocab.predicates.keySet())
-			{
-				Set<String> newindexings = mtup.getPredicateToIndexings(origpred);
-			
-				MPredicate theOrigPred = vocab.predicates.get(origpred);
-																		
-				List<MSort> origtypes = theOrigPred.type;
-				
-				for(String newindexing : newindexings)
-				{
-					String idxStr = newindexing.substring(newindexing.lastIndexOf("_") + 1);
-					String[] indices = idxStr.split(",");
-				
-					Set<Formula> forthisindexing = new HashSet<Formula>();
-					
-					for(int ii = 0; ii < indices.length ;ii++)
-					{
-						String newsortname = origtypes.get(ii).name + "_" + indices[ii];
-
-						// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
-						// (and its parents, if need be.)
-						if (!mtup.newvocab.isSort(newsortname))
-							mtup.addSortWithSupers(mtup.newvocab, vocab, origtypes.get(ii).name, "_"+indices[ii]);
-
-						// z in A_2
-						Relation r = mtup.newvocab.getRelation(newsortname);
-						forthisindexing.add(MFormulaManager.makeAtom(mtup.newvar, r));
-					}
-					
-					
-					
-					Relation newpred = mtup.newvocab.getRelation(newindexing);
-					Formula antecedent = MFormulaManager.makeAtom(mtup.newvar, newpred);
-					Formula consequent = MFormulaManager.makeConjunction(forthisindexing);
-					respected_1.add( MFormulaManager.makeImplication(antecedent, consequent));
-					
-					//if(timDebugMode)
-						MCommunicator.writeToLog("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");											
-					//MEnvironment.writeErrLine("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");
-				}
-				
-			}
-			
+			tuplingRespectPredSorts(mtup, respected_1);			
 			Formula respected_1_fmla = MFormulaManager.makeConjunction(respected_1);
 			tupledFormula = MFormulaManager.makeAnd(tupledFormula, respected_1_fmla);
 
 			if(timDebugMode)
 				MCommunicator.writeToLog("\n\nrespected_1_fmla:\n"+respected_1_fmla.toString()+"\n");
-			//MEnvironment.writeErrLine("\n\nrespected_1_fmla:\n"+respected_1_fmla.toString()+"\n");
 
 
 			
 			
-			
-			
-			// ***************************
+					
+			/////////////////////////////////////////////////////////
 			// Prefix's sort is respected
 			// This is "tupling axioms" or \beta in TN's thesis document
 			// If we translated forsome x:A | forsome y:B to forsome z:UNIV
 			// it must still hold that A_1(z) and B_2(z)
 			Set<Formula> respected_2 = new HashSet<Formula>();
-			int index = 0;
-			for (String sortname : pren.tupleTypeConstruct.split(" "))
-			{
-				// Always increment, even if a continue is reached.
-				// (Starts with 1, technically)
-				index++;
-				
-				try
-				{			
-					// Do nothing. No axiom needed, since no sort for this element.
-					if("univ".equals(sortname))
-						continue;
-
-					// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
-					String newsortname = sortname + "_" + index;
-					if (!mtup.newvocab.isSort(newsortname))
-					{
-						mtup.newvocab.addSort(newsortname);
-
-						// must also cache this sort in mtup's 2 caches
-
-						String iiStr = Integer.toString(index);
-
-						//mtup.addToCaches(sortname, "_"+index, newsortname);							
-						// May need to add parents too
-						mtup.addSortWithSupers(mtup.newvocab, vocab, sortname, "_"+index);
-					}
-
-					// Assert the axiom for this index
-					Relation r = mtup.newvocab.getRelation(newsortname);
-					respected_2.add(MFormulaManager.makeAtom(mtup.newvar, r));
-
-				} catch (MGEBadIdentifierName e) {
-					throw new MGEBadQueryString("Tupling error: Relation "
-							+ sortname + "_" + index
-							+ " was not created properly.");
-				}
-			
-			} // end of for each index's sort				
-			
+			tuplingRespectPrefixSorts(pren, mtup, respected_2);			
 			Formula respected_2_fmla = MFormulaManager
 					.makeConjunction(respected_2);
 			tupledFormula = MFormulaManager.makeAnd(tupledFormula,
@@ -1152,7 +1011,7 @@ public class MQuery extends MIDBCollection
 						
 		
 			
-			// ***************************************************************
+			//////////////////////////////////////////////////////////////
 			// LONE (applies to sorts only)
 			
 			// For each i and j (i != j), and each lone P
@@ -1162,136 +1021,19 @@ public class MQuery extends MIDBCollection
 			// (Even if =ij doesn't appear in the query proper!)
 			
 			// Since we now include all equality preds, no reason to
-			// worry about transitivity here. So this comment is out-dated:
-			// OLD COMMENT [[[
-			// Consider this situation:
-			//
-			// lone P, Q
-			// P_i and P_j; Q_j and Q_k
-			// =ij =jk do not appear
-			// =ik appears.
-			// We need to force =ik since equality is transitive.
-			// Also just using =ij means we don't have to separately enforce
-			// that i and j must be isomorphic w/r/t predicate membership
-			// ]]]
+			// worry about transitivity here. 
 			
-			HashSet<Formula> lone_formulas = new HashSet<Formula>();
-
 			Set<String> lones = new HashSet<String>();
 			lones.addAll(vocab.axioms.setsAtMostOne);
 			lones.addAll(vocab.axioms.setsSingleton);
 
-			int iLoneEqCounter = 0;
-			Set<Formula> ij_triggers = new HashSet<Formula>();
-
-			long triggerCount = 0;
-
-			// For each pair of distinct indices
-			for (int ii = 1; ii <= pren.qCount; ii++)
-			{				
-				for (int jj = ii + 1; jj <= pren.qCount; jj++)
-				{
-					// What LONE sorts were shared between ii and jj? 
-					// Much better than checking each lone predicate name.
-					// (caching is good. was: 984 ms now: 15ms)
-					// will still take a while if there are a lot of shared
-					// preds, of course.
-					
-					Set<String> sharedOldPredNames = new HashSet<String>(mtup.getIndexingToPredicates(String.valueOf(ii)));
-					sharedOldPredNames.retainAll(mtup.getIndexingToPredicates(String.valueOf(jj)));
-					sharedOldPredNames.retainAll(lones);
-
-					// Build a list of antecedents for consequent =i,j. Each shared sort has a chance to be 
-					// an antecedent. Trigger list holds all of them.
-					
-					// reset trigger list
-					ij_triggers.clear();
-
-					for (String lonesort : sharedOldPredNames)
-					{
-						try
-						{
-							Relation pi = mtup.newvocab
-									.getRelation(lonesort + "_" + ii);
-							Relation pj = mtup.newvocab
-									.getRelation(lonesort + "_" + jj);
-
-							// If so, assert P_i and P_j --> =ij
-
-							Formula trigger1 = MFormulaManager.makeAtom(
-									mtup.newvar, pi);
-							Formula trigger2 = MFormulaManager.makeAtom(
-									mtup.newvar, pj);
-							ij_triggers.add(MFormulaManager.makeAnd(
-									trigger1, trigger2));
-							triggerCount++;
-
-						} catch (MGEUnknownIdentifier e) {
-						} // fall through
-
-					} // each lone
-
-					// Did we get any triggers (antecedents)?
-					if (ij_triggers.size() > 0) 
-					{
-						Formula disj_of_triggers = MFormulaManager.makeDisjunction(ij_triggers);
-
-						// This block below is pointless now that we have all equality predicates by default:
-						// [[[
-						// Is this a new equality pred that hasn't appeared
-						// in the query itself?
-						String eqpredname = "=_" + ii + "," + jj;
-						//String reverseeqpredname = "=_" + jj + "," + ii;
-
-						/*
-						if (!mtup.newvocab.predicates
-								.containsKey(eqpredname)
-								&& !mtup.newvocab.predicates
-										.containsKey(reverseeqpredname))
-						{
-							iLoneEqCounter++;
-							mtup.equalAxiomsNeeded.add(eqpredname);
-							try {
-								mtup.newvocab.addPredicate(eqpredname,
-										pren.tupleTypeName); // add new
-																// predicate
-							} catch (MGEBadIdentifierName e) {
-								throw new MGEBadQueryString(
-										"Unable to create equality predicate: "
-												+ eqpredname);
-							}
-						} else */
-						//if (mtup.newvocab.predicates.containsKey(reverseeqpredname))
-						//	eqpredname = reverseeqpredname;
-						// else, we're fine
-						// ]]]
-
-						Relation eqrel = mtup.newvocab.predicates.get(eqpredname).rel;
-						Formula iseq = MFormulaManager.makeAtom(mtup.newvar, eqrel);
-						lone_formulas.add(MFormulaManager.makeImplication(disj_of_triggers, iseq));
-
-						if (debug_verbosity >= 2) {
-							MEnvironment.writeOutLine("DEBUG: LONE resulted in ---> ");
-							MEnvironment.writeOutLine(disj_of_triggers
-									+ "\n  THEN " + iseq);
-						}
-					}
-
-				} // jj
-			} // ii
-
-			Formula loneAxiomsFmla = MFormulaManager
-					.makeConjunction(lone_formulas);
+			Formula loneAxiomsFmla = tuplingDoLONE(pren, mtup, lones);
 			tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 					loneAxiomsFmla);
 
 			if(timDebugMode)
 				MCommunicator.writeToLog("\n\nloneaxiomsfmla:\n"+loneAxiomsFmla.toString()+"\n");
 
-			
-			//if (debug_verbosity >= 2)
-			//	MEnvironment.writeOutLine("DEBUG: Number of new equality predicates introduced by LONE: "
-			//					+ iLoneEqCounter);
 
 			if (debug_verbosity >= 2)
 				MEnvironment.writeOutLine("DEBUG: LONE handling. Time: "
@@ -1300,10 +1042,9 @@ public class MQuery extends MIDBCollection
 			startTime = mxBean.getCurrentThreadCpuTime();
 
 
-			// *******************************
+			/////////////////////////////////////////////////////////
 			// FINALIZE *single* top-level sort
 			// DO NOT ADD ANY SORTS AFTER THIS!
-			// *******************************
 			try
 			{
 				mtup.newvocab.addSingleTopLevelSort(pren.tupleTypeName);
@@ -1323,105 +1064,24 @@ public class MQuery extends MIDBCollection
 			
 			
 			
-			// ***************************
+			/////////////////////////////////////////////////////////
 			// EQUALITY AXIOMS
 			// If two components are "equal" (are in a =i,j predicate)
 			// then they are isomorphic w/r/t predicates and sorts
 			Set<Formula> equalityAxioms = new HashSet<Formula>();
 
 			// [[[ This used to add new equality predicates due to isomorphism. 
-			//     it doesn't do that any more. ]]]
+			//     It doesn't do that any more. ]]]
 			
-			// Set --> List so we can iterate in order (double-loop inside)
-			List<String> equalsNeeded = new ArrayList<String>(
-					mtup.equalAxiomsNeeded);
-			for(int iNeeds = 0; iNeeds < equalsNeeded.size();iNeeds++)
-			{
-				String needs = equalsNeeded.get(iNeeds);
-
-				// Needs: "=_"+leftidx+","+rightidx
-				// For a specific =_{i,j}
-				int needsLastComma = needs.lastIndexOf(",");
-				String rightidx = needs.substring(needsLastComma + 1);
-				String leftidx = needs.substring(2, needsLastComma);
-
-				Formula isoconj = makePredsIndistinguish(vocab, mtup, leftidx, rightidx);
-				Relation eqrel = mtup.newvocab.predicates.get(needs).rel;
-				Formula eqFormula = MFormulaManager.makeAtom(mtup.newvar,
-						eqrel);
-
-				// Simulated equality leads to isomorphism
-				if (!leftidx.equals(rightidx))
-				{
-					Formula isoimp = MFormulaManager.makeImplication(eqFormula, isoconj);
-					if(!Formula.TRUE.equals(isoimp))
-						equalityAxioms.add(isoimp);
-				}
-
-
-				// *******************************
-				// state transitivity: =1,2 and =3,2 imply =1,3
-				for(int iNeedOther = iNeeds+1; iNeedOther < equalsNeeded.size();iNeedOther++)
-				{
-					String other = equalsNeeded.get(iNeedOther);
-
-					int otherLastComma = other.lastIndexOf(",");
-					String rightidx2 = other.substring(otherLastComma + 1);
-					String leftidx2 = other.substring(2, otherLastComma);
-					
-					try
-					{
-						// Is there a consequent for this transitivity implication?
-						// (Always should be yes, now)
-						String thirdpred = getThirdEq(mtup.newvocab,
-								leftidx, rightidx, leftidx2, rightidx2,
-								pren);						
-
-						if (thirdpred.length() > 0)
-						{
-							Relation eqRel2 = mtup.newvocab.predicates.get(other).rel;
-							Relation eqRel3 = mtup.newvocab.predicates.get(thirdpred).rel;
-
-							// =ij and =jk ---> =ik
-							Formula eqFormula2 = MFormulaManager.makeAtom(
-									mtup.newvar, eqRel2);
-							Formula eqFormula3 = MFormulaManager.makeAtom(
-									mtup.newvar, eqRel3);
-							Formula eqTrans = MFormulaManager
-									.makeImplication(
-											MFormulaManager.makeAnd(
-													eqFormula, eqFormula2),
-											eqFormula3);
-							equalityAxioms.add(eqTrans);
-
-
-						} // end if appropriate third pred
-
-					} catch (MGEBadIdentifierName e) {
-						throw new MGEBadQueryString(
-								"Tupling error: unable to state transitivity of equality w/ indices: "
-										+ leftidx + "," + rightidx
-										+ " and " + leftidx2 + ","
-										+ rightidx2);
-					}
-
-				} // end for each =ij (other)
-
-			} // end for each =ij (needs)
-
-
-
-			Formula equalityAxiomsFmla = MFormulaManager
-					.makeConjunction(equalityAxioms);
+			Formula equalityAxiomsFmla = tuplingDoEqualityAxioms(pren, mtup,
+					equalityAxioms);
 			tupledFormula = MFormulaManager.makeAnd(tupledFormula,
 					equalityAxiomsFmla);
 
 			if(timDebugMode)
 				MCommunicator.writeToLog("\n\nequalityAxiomsFmla:\n"+equalityAxiomsFmla.toString()+"\n");
 
-			//MEnvironment.writeErrLine(equalityAxioms);
-			
-			
+						
 			if (debug_verbosity >= 2)
 				MEnvironment.writeOutLine("DEBUG: Size of tupling axioms to deal with express equality: "
 								+ measureFullFormulaSize(equalityAxiomsFmla)
@@ -1444,104 +1104,7 @@ public class MQuery extends MIDBCollection
 			
 			// ****************************
 			// Disjointness (sorts only)
-			// disjointness: same construction as sorts themselves
-			// Original form: A disj (B1, B2, B3...)
-
-			// for each index
-			// for each pred tupled into this index
-			// copy disjs of that pred originally (names)
-			// intersect w/ preds tupled into this index
-
-			// is it possible for an implied disjointness to be lost when
-			// tupling? no, because we carry over all parents 
-			// (and constrained supersorts).
-
-			// Avoid reachable check in addConstraintDisjoint by calculating
-			// and copying directly.
-			// mtup.newvocab.axioms.axiomDisjoints = disjoints we calculate
-			// in this loop
-
-			HashMap<MSort, Set<MSort>> newDisjoints = new HashMap<MSort, Set<MSort>>();
-			int iDisjCount = 0;
-
-			// IMPORTANT:
-			// This loop deals with NON TOP LEVEL SORTS.
-			// Pairs of top-level sorts are disjoint by definition, and are dealt with below.
-			// (next block)
-
-			// axioms for disjointness pt 1.
-			Set<Formula> eqDisjAxioms = new HashSet<Formula>();
-
-			for (int iIndex = 1; iIndex <= pren.qCount; iIndex++)
-			{
-				String strIndex = String.valueOf(iIndex);
-				String strIndexWithUnderscore = "_" + strIndex;
-
-				Set<String> oldPredsForThisIndex = mtup.getIndexingToPredicates(strIndex);
-
-				for (String oldPredName : oldPredsForThisIndex)
-				{
-
-					MSort oldSort = vocab.getSort(oldPredName);
-
-					// sorts disjoint from oldSort in old vocab
-					Set<MSort> oldDisjoints = vocab.axioms.axiomDisjoints.get(oldSort);
-
-					if (oldDisjoints == null)
-						continue;
-
-					MSort newSort = mtup.newvocab.getSort(oldPredName
-							+ strIndexWithUnderscore);
-					newDisjoints.put(newSort, new HashSet<MSort>());
-
-					for (MSort oldDisjoint : oldDisjoints)
-					{
-						// *******************************************
-						// DISJ AXIOM TYPE 1 (equality + disj)
-
-						for (int iIndex2 = iIndex + 1; iIndex2 <= pren.qCount; iIndex2++)
-						{
-							String new2 = oldDisjoint.name + "_" + iIndex2;
-
-							// second index -- is this sort tupled into it?
-							// don't validate
-							if (!mtup.newvocab.fastIsSort(new2))
-								continue;
-
-
-							MSort ns1 = newSort;
-							MSort ns2 = mtup.newvocab.getSort(new2);
-							Relation eqpred = mtup.newvocab.getRelation("=_" + iIndex + "," + iIndex2);
-
-							Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
-							eqDisjAxioms.add(thisAxiom);
-
-						}
-
-						// *******************************************
-						// DISJ AXIOM TYPE 2 (disjointness axioms in the new vocabulary)
-
-						// is the other sort tupled for this index?
-						if (oldPredsForThisIndex.contains(oldDisjoint.name))
-						{
-							MSort newDisjoint = mtup.newvocab
-									.getSort(oldDisjoint.name
-											+ strIndexWithUnderscore);
-							// boolean added =
-							// mtup.newvocab.axioms.addConstraintDisjoint(newSort,
-							// newDisjoint);
-							newDisjoints.get(newSort).add(newDisjoint);
-							// if(added)
-							iDisjCount++;
-						}
-					}
-
-				}
-			} // end for each index
-			mtup.newvocab.axioms.axiomDisjoints = newDisjoints;
-
-			// TODO is it safe to just call vocab.axioms.axiomsDisjoints.get
-			// if we store only one way?
+			Set<Formula> eqDisjAxioms = tuplingDoDisjointness(pren, mtup);
 
 			Formula eqDisjAxiomsFmla = MFormulaManager
 					.makeConjunction(eqDisjAxioms);
@@ -1551,12 +1114,9 @@ public class MQuery extends MIDBCollection
 			if(timDebugMode)
 				MCommunicator.writeToLog("\n\neqDisjAxiomsfmla:\n"+eqDisjAxiomsFmla.toString()+"\n");
 
-
-			int iTopLevelCount = 0;
-
 			
-			
-			
+			// !!! APRIL 2011 TN
+			// This entire block is un-needed now, but leaving commented out just in case.
 			
 			// *********************************
 			//     TOP LEVEL SORTS DISJOINTNESS
@@ -1567,6 +1127,9 @@ public class MQuery extends MIDBCollection
 			// However, we still want to require A & B to be disjoint in all
 			// components! (and we must issue other axioms)
 
+			/*
+			int iTopLevelCount = 0;
+			
 			// Get set of old top-level sorts
 			Set<String> oldtopnames = new HashSet<String>();
 			for (MSort top : vocab.sorts.values()) {
@@ -1652,6 +1215,8 @@ public class MQuery extends MIDBCollection
 				
 
 			}
+			*/ 
+			// end april 2011 commented out
 
 
 			
@@ -1660,10 +1225,10 @@ public class MQuery extends MIDBCollection
 				MEnvironment.writeOutLine("DEBUG: Disjointness. Time: "
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
 						/ 1000000);
-				MEnvironment.writeOutLine("    New disjoints: " + iDisjCount);
+				//MEnvironment.writeOutLine("    New disjoints: " + iDisjCount);
 				MEnvironment.writeOutLine("    Number of secondary eq/disj axioms added: "
 								+ eqDisjAxioms.size());
-				MEnvironment.writeOutLine("    Number of top-level secondary eq/disj axioms added: "+iTopLevelCount);
+				//MEnvironment.writeOutLine("    Number of top-level secondary eq/disj axioms added: "+iTopLevelCount);
 			}
 			startTime = mxBean.getCurrentThreadCpuTime();
 
@@ -1683,8 +1248,8 @@ public class MQuery extends MIDBCollection
 						/ 1000000);
 			startTime = mxBean.getCurrentThreadCpuTime();
 
-			// Build new MGQuery and return the results of that
-			// Simplifier will be called!
+			/////////////////////////////////////////////////////////////////////////
+			// Build new MGQuery and return the results
 			MQuery tupledQuery = new MQuery(mtup.newvocab, tupledFormula,
 					tupledIDBCollections);
 
@@ -1746,23 +1311,435 @@ public class MQuery extends MIDBCollection
 						.getCurrentThreadCpuTime() - start) / 1000000;
 			}
 
+			// Return the MQueryResult
 			return tupledQuery.runQuery();
 		}
-		else
+
+		// Failed to tuple! (why?)
+
+		if (!idbs_ok)
+			throw new MUnsupportedFormulaException("Could not tuple: IDBs were not quantifier-free.");
+		if(!prenexExistential)
+			throw new MGETuplingFailure("Could not tuple: Query was not prenex existential.");
+		if(vocab.axioms.funcPartial.size() > 0 || vocab.axioms.funcTotal.size() > 0)
+			throw new MGETuplingFailure("Could not tuple: The vocabulary contained functional constraints.");
+		if(vocab.axioms.otherConstraintStrings.size() > 0)
+			throw new MGETuplingFailure("Could not tuple: Custom constraints are not allowed when tupling.");		
+	}
+
+	private Set<Formula> tuplingDoDisjointness(PrenexCheckV pren,
+			MatrixTuplingV mtup) {
+		// disjointness: same construction as sorts themselves
+		// Original form: A disj (B1, B2, B3...)
+
+		// for each index
+		// for each pred tupled into this index
+		// copy disjs of that pred originally (names)
+		// intersect w/ preds tupled into this index
+
+		// is it possible for an implied disjointness to be lost when
+		// tupling? no, because we carry over all parents 
+		// (and constrained supersorts).
+
+		// Avoid reachable check in addConstraintDisjoint by calculating
+		// and copying directly.
+		// mtup.newvocab.axioms.axiomDisjoints = disjoints we calculate
+		// in this loop
+
+		HashMap<MSort, Set<MSort>> newDisjoints = new HashMap<MSort, Set<MSort>>();
+		int iDisjCount = 0;
+		Set<Formula> eqDisjAxioms = new HashSet<Formula>();
+
+		for (int iIndex = 1; iIndex <= pren.qCount; iIndex++)
 		{
-			// Failed to tuple! (why?)
+			String strIndex = String.valueOf(iIndex);
+			String strIndexWithUnderscore = "_" + strIndex;
 
-			if (!idbs_ok)
-				throw new MUnsupportedFormulaException("Could not tuple: IDBs were not quantifier-free.");
-			if(!prenexExistential)
-				throw new MGETuplingFailure("Could not tuple: Query was not prenex existential.");
-			if(vocab.axioms.funcPartial.size() > 0 || vocab.axioms.funcTotal.size() > 0)
-				throw new MGETuplingFailure("Could not tuple: The vocabulary contained functional constraints.");
-			if(vocab.axioms.otherConstraintStrings.size() > 0)
-				throw new MGETuplingFailure("Could not tuple: Custom constraints are not allowed when tupling.");
+			Set<String> oldPredsForThisIndex = mtup.getIndexingToPredicates(strIndex);
 
+			for (String oldPredName : oldPredsForThisIndex)
+			{
+
+				MSort oldSort = vocab.getSort(oldPredName);
+
+				// sorts disjoint from oldSort in old vocab
+				Set<MSort> oldDisjoints = vocab.axioms.axiomDisjoints.get(oldSort);
+
+				if (oldDisjoints == null)
+					continue;
+
+				MSort newSort = mtup.newvocab.getSort(oldPredName
+						+ strIndexWithUnderscore);
+				newDisjoints.put(newSort, new HashSet<MSort>());
+
+				for (MSort oldDisjoint : oldDisjoints)
+				{
+					// *******************************************
+					// DISJ AXIOM TYPE 1 (equality + disj)
+
+					for (int iIndex2 = iIndex + 1; iIndex2 <= pren.qCount; iIndex2++)
+					{
+						String new2 = oldDisjoint.name + "_" + iIndex2;
+
+						// second index -- is this sort tupled into it?
+						// don't validate
+						if (!mtup.newvocab.fastIsSort(new2))
+							continue;
+
+
+						MSort ns1 = newSort;
+						MSort ns2 = mtup.newvocab.getSort(new2);
+						Relation eqpred = mtup.newvocab.getRelation("=_" + iIndex + "," + iIndex2);
+
+						Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
+						eqDisjAxioms.add(thisAxiom);
+
+					}
+
+					// *******************************************
+					// DISJ AXIOM TYPE 2 (disjointness axioms in the new vocabulary)
+
+					// is the other sort tupled for this index?
+					if (oldPredsForThisIndex.contains(oldDisjoint.name))
+					{
+						MSort newDisjoint = mtup.newvocab
+								.getSort(oldDisjoint.name
+										+ strIndexWithUnderscore);
+						// boolean added =
+						// mtup.newvocab.axioms.addConstraintDisjoint(newSort,
+						// newDisjoint);
+						newDisjoints.get(newSort).add(newDisjoint);
+						// if(added)
+						iDisjCount++;
+					}
+				}
+
+			}
+		} // end for each index
+		mtup.newvocab.axioms.axiomDisjoints = newDisjoints;
+
+		// TODO is it safe to just call vocab.axioms.axiomsDisjoints.get
+		// if we store only one way?
+		return eqDisjAxioms;
+	}
+
+	private Formula tuplingDoEqualityAxioms(PrenexCheckV pren,
+			MatrixTuplingV mtup, Set<Formula> equalityAxioms) {
+		// Set --> List so we can iterate in order (double-loop inside)
+		List<String> equalsNeeded = new ArrayList<String>(
+				mtup.equalAxiomsNeeded);
+		for(int iNeeds = 0; iNeeds < equalsNeeded.size();iNeeds++)
+		{
+			String needs = equalsNeeded.get(iNeeds);
+
+			// Needs: "=_"+leftidx+","+rightidx
+			// For a specific =_{i,j}
+			int needsLastComma = needs.lastIndexOf(",");
+			String rightidx = needs.substring(needsLastComma + 1);
+			String leftidx = needs.substring(2, needsLastComma);
+
+			Formula isoconj = makePredsIndistinguish(vocab, mtup, leftidx, rightidx);
+			Relation eqrel = mtup.newvocab.predicates.get(needs).rel;
+			Formula eqFormula = MFormulaManager.makeAtom(mtup.newvar,
+					eqrel);
+
+			// Simulated equality leads to isomorphism
+			if (!leftidx.equals(rightidx))
+			{
+				Formula isoimp = MFormulaManager.makeImplication(eqFormula, isoconj);
+				if(!Formula.TRUE.equals(isoimp))
+					equalityAxioms.add(isoimp);
+			}
+
+
+			// *******************************
+			// state transitivity: =1,2 and =3,2 imply =1,3
+			for(int iNeedOther = iNeeds+1; iNeedOther < equalsNeeded.size();iNeedOther++)
+			{
+				String other = equalsNeeded.get(iNeedOther);
+
+				int otherLastComma = other.lastIndexOf(",");
+				String rightidx2 = other.substring(otherLastComma + 1);
+				String leftidx2 = other.substring(2, otherLastComma);
+				
+				try
+				{
+					// Is there a consequent for this transitivity implication?
+					// (Always should be yes, now)
+					String thirdpred = getThirdEq(mtup.newvocab,
+							leftidx, rightidx, leftidx2, rightidx2,
+							pren);						
+
+					if (thirdpred.length() > 0)
+					{
+						Relation eqRel2 = mtup.newvocab.predicates.get(other).rel;
+						Relation eqRel3 = mtup.newvocab.predicates.get(thirdpred).rel;
+
+						// =ij and =jk ---> =ik
+						Formula eqFormula2 = MFormulaManager.makeAtom(
+								mtup.newvar, eqRel2);
+						Formula eqFormula3 = MFormulaManager.makeAtom(
+								mtup.newvar, eqRel3);
+						Formula eqTrans = MFormulaManager
+								.makeImplication(
+										MFormulaManager.makeAnd(
+												eqFormula, eqFormula2),
+										eqFormula3);
+						equalityAxioms.add(eqTrans);
+
+
+					} // end if appropriate third pred
+
+				} catch (MGEBadIdentifierName e) {
+					throw new MGEBadQueryString(
+							"Tupling error: unable to state transitivity of equality w/ indices: "
+									+ leftidx + "," + rightidx
+									+ " and " + leftidx2 + ","
+									+ rightidx2);
+				}
+
+			} // end for each =ij (other)
+
+		} // end for each =ij (needs)
+
+
+
+		Formula equalityAxiomsFmla = MFormulaManager
+				.makeConjunction(equalityAxioms);
+		return equalityAxiomsFmla;
+	}
+
+	private Formula tuplingDoLONE(PrenexCheckV pren, MatrixTuplingV mtup, Set<String> lones)
+	{
+		
+		//int iLoneEqCounter = 0;
+		HashSet<Formula> lone_formulas = new HashSet<Formula>();
+		Set<Formula> ij_triggers = new HashSet<Formula>();
+		long triggerCount = 0;
+
+		// For each pair of distinct indices
+		for (int ii = 1; ii <= pren.qCount; ii++)
+		{				
+			for (int jj = ii + 1; jj <= pren.qCount; jj++)
+			{
+				// What LONE sorts were shared between ii and jj? 
+				// Much better than checking each lone predicate name.
+				// (caching is good. was: 984 ms now: 15ms)
+				// will still take a while if there are a lot of shared
+				// preds, of course.
+				
+				Set<String> sharedOldPredNames = new HashSet<String>(mtup.getIndexingToPredicates(String.valueOf(ii)));
+				sharedOldPredNames.retainAll(mtup.getIndexingToPredicates(String.valueOf(jj)));
+				sharedOldPredNames.retainAll(lones);
+
+				// Build a list of antecedents for consequent =i,j. Each shared sort has a chance to be 
+				// an antecedent. Trigger list holds all of them.
+				
+				// reset trigger list
+				ij_triggers.clear();
+
+				for (String lonesort : sharedOldPredNames)
+				{
+					try
+					{
+						Relation pi = mtup.newvocab
+								.getRelation(lonesort + "_" + ii);
+						Relation pj = mtup.newvocab
+								.getRelation(lonesort + "_" + jj);
+
+						// If so, assert P_i and P_j --> =ij
+
+						Formula trigger1 = MFormulaManager.makeAtom(
+								mtup.newvar, pi);
+						Formula trigger2 = MFormulaManager.makeAtom(
+								mtup.newvar, pj);
+						ij_triggers.add(MFormulaManager.makeAnd(
+								trigger1, trigger2));
+						triggerCount++;
+
+					} catch (MGEUnknownIdentifier e) {
+					} // fall through
+
+				} // each lone
+
+				// Did we get any triggers (antecedents)?
+				if (ij_triggers.size() > 0) 
+				{
+					Formula disj_of_triggers = MFormulaManager.makeDisjunction(ij_triggers);
+
+					// This block below is pointless now that we have all equality predicates by default:
+					// [[[
+					// Is this a new equality pred that hasn't appeared
+					// in the query itself?
+					String eqpredname = "=_" + ii + "," + jj;
+					
+					Relation eqrel = mtup.newvocab.predicates.get(eqpredname).rel;
+					Formula iseq = MFormulaManager.makeAtom(mtup.newvar, eqrel);
+					lone_formulas.add(MFormulaManager.makeImplication(disj_of_triggers, iseq));
+
+					if (debug_verbosity >= 2) {
+						MEnvironment.writeOutLine("DEBUG: LONE resulted in ---> ");
+						MEnvironment.writeOutLine(disj_of_triggers
+								+ "\n  THEN " + iseq);
+					}
+				}
+
+			} // jj
+		} // ii
+
+		Formula loneAxiomsFmla = MFormulaManager
+				.makeConjunction(lone_formulas);
+		return loneAxiomsFmla;
+	}
+
+	private void tuplingRespectPrefixSorts(PrenexCheckV pren,
+			MatrixTuplingV mtup, Set<Formula> respected_2) {
+		int index = 0;
+		for (String sortname : pren.tupleTypeConstruct.split(" "))
+		{
+			// Always increment, even if a continue is reached.
+			// (Starts with 1, technically)
+			index++;
+			
+			try
+			{			
+				// Do nothing. No axiom needed, since no sort for this element.
+				if("univ".equals(sortname))
+					continue;
+
+				// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
+				String newsortname = sortname + "_" + index;
+				if (!mtup.newvocab.isSort(newsortname))
+				{
+					mtup.newvocab.addSort(newsortname);
+
+					// must also cache this sort in mtup's 2 caches
+
+					String iiStr = Integer.toString(index);
+
+					//mtup.addToCaches(sortname, "_"+index, newsortname);							
+					// May need to add parents too
+					mtup.addSortWithSupers(mtup.newvocab, vocab, sortname, "_"+index);
+				}
+
+				// Assert the axiom for this index
+				Relation r = mtup.newvocab.getRelation(newsortname);
+				respected_2.add(MFormulaManager.makeAtom(mtup.newvar, r));
+
+			} catch (MGEBadIdentifierName e) {
+				throw new MGEBadQueryString("Tupling error: Relation "
+						+ sortname + "_" + index
+						+ " was not created properly.");
+			}
+		
+		} // end of for each index's sort				
+	}
+
+	private void tuplingRespectPredSorts(MatrixTuplingV mtup,
+			Set<Formula> respected_1) {
+		for(String origpred : vocab.predicates.keySet())
+		{
+			Set<String> newindexings = mtup.getPredicateToIndexings(origpred);
+		
+			MPredicate theOrigPred = vocab.predicates.get(origpred);
+																	
+			List<MSort> origtypes = theOrigPred.type;
+			
+			for(String newindexing : newindexings)
+			{
+				String idxStr = newindexing.substring(newindexing.lastIndexOf("_") + 1);
+				String[] indices = idxStr.split(",");
+			
+				Set<Formula> forthisindexing = new HashSet<Formula>();
+				
+				for(int ii = 0; ii < indices.length ;ii++)
+				{
+					String newsortname = origtypes.get(ii).name + "_" + indices[ii];
+
+					// Perhaps this indexed sort hasn't been mentioned in the formula matrix. Add it.
+					// (and its parents, if need be.)
+					if (!mtup.newvocab.isSort(newsortname))
+						mtup.addSortWithSupers(mtup.newvocab, vocab, origtypes.get(ii).name, "_"+indices[ii]);
+
+					// z in A_2
+					Relation r = mtup.newvocab.getRelation(newsortname);
+					forthisindexing.add(MFormulaManager.makeAtom(mtup.newvar, r));
+				}
+				
+				
+				
+				Relation newpred = mtup.newvocab.getRelation(newindexing);
+				Formula antecedent = MFormulaManager.makeAtom(mtup.newvar, newpred);
+				Formula consequent = MFormulaManager.makeConjunction(forthisindexing);
+				respected_1.add( MFormulaManager.makeImplication(antecedent, consequent));
+				
+				//if(timDebugMode)
+					MCommunicator.writeToLog("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");											
+				//MEnvironment.writeErrLine("\n\nrespect_1 for antecedent:\n"+antecedent+" was "+consequent+"\n");
+			}
+			
 		}
-		// PUT NOTHING HERE! Tupling stuff goes in the above if statement
+	}
+
+	private void tuplingDoAbstract(MatrixTuplingV mtup) {
+		for (String relName : vocab.assertSortOrdering(vocab.axioms.setsAbstract))
+		{
+			MSort oldSort = vocab.getSort(relName);
+
+			// Get the list of tupled extensions of relName
+			Set<String> newPreds = mtup.getPredicateToIndexings(relName);
+								
+			if (debug_verbosity >= 3)
+				MEnvironment.writeOutLine("DEBUG: Examining abstract sort "+relName);
+			
+			if (newPreds == null)
+				continue;
+
+			for (String newName : newPreds)
+			{
+				// Carry over the abstract constraint.
+
+				String idxStr = newName.substring(newName.lastIndexOf("_") + 1);
+				
+				// Child sorts will *always* be added at indexing <i> if the 
+				// (abstract) parent appears at indexing <i>. We may need to 
+				// add children if any have not appeared already:
+				for (MSort oldChild : oldSort.subsorts)
+				{
+					// Add if missing
+					if (!mtup.newvocab.isSort(oldChild.name + "_" + idxStr))
+					{
+						String newchildname = oldChild.name + "_" + idxStr;
+						mtup.newvocab.addSubSort(newName, newchildname);
+						
+						// Not using mtup.addSortWithSupers since here we already have the parent
+						mtup.addToCaches(oldChild.name, "_"+idxStr, newchildname);
+						
+						if (debug_verbosity >= 3)
+							MEnvironment.writeOutLine("  DEBUG: Abstract sort "
+									+ relName + " at index " + idxStr
+									+ ": Forced addition of tupled child "
+									+ oldChild.name + "_" + idxStr);
+						
+					}
+					else
+					{
+						if (debug_verbosity >= 3)
+							MEnvironment.writeOutLine("  DEBUG: Abstract sort "
+									+ relName + " at index " + idxStr
+									+ ": child "
+									+ oldChild.name + "_" + idxStr +" already existed.");
+					}
+
+
+				}
+
+
+				
+				// Carry the constraint over to the new vocabulary:
+				mtup.newvocab.axioms.addConstraintAbstract(newName);
+			}
+		} // end for everything abstract (in proper order)
 	}
 
 	private boolean tuplingCheckIDBsOK()

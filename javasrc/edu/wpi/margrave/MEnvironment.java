@@ -33,6 +33,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 
 import kodkod.ast.*;
+import kodkod.ast.operator.Multiplicity;
 import kodkod.instance.Instance;
 import kodkod.instance.Tuple;
 
@@ -506,6 +507,25 @@ class MExploreCondition
 		return this;
 	}
 
+	MExploreCondition exists(Variable theVar, Relation theSort)
+	{
+		Decl theDecls = MFormulaManager.makeOneOfDecl(theVar, theSort);		
+		fmla = MFormulaManager.makeExists(this.fmla, theDecls);
+		
+		// TODO what happens to assertions in exists and forall?
+		
+		return this;
+	}
+
+	MExploreCondition forall(Variable theVar, Relation theSort)
+	{
+		Decl theDecls = MFormulaManager.makeOneOfDecl(theVar, theSort);		
+		fmla = MFormulaManager.makeForAll(this.fmla, theDecls);
+		
+		return this;
+	}
+
+	
 	MExploreCondition or(MExploreCondition oth)	
 	{		
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			

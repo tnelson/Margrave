@@ -1137,7 +1137,13 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("FORALL"))
         	{
-        		// TODO
+        		String theVarName = getNodeAttribute(n, "FORALL", "var");
+        		String theSortName = getNodeAttribute(n, "FORALL", "sort");
+        		
+        		Variable theVar = MFormulaManager.makeVariable(theVarName);
+        		Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
+        		
+        		return exploreHelper(n.getFirstChild()).forall(theVar, theSort);
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
