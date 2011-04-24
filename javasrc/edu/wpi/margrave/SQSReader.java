@@ -49,8 +49,8 @@ public class SQSReader
 		//env.addRequestVar("r", "resource");
 		//env.addRequestVar("c", "condition");
 				
-		env.addDecision("allow");
-		env.addDecision("deny");
+		//env.addDecision("allow");
+		//env.addDecision("deny");
 		
 		return env;
 	}	

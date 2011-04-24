@@ -1995,6 +1995,8 @@ public abstract class MInstanceIterator
 					// of the proper vocabulary, which would lead to unbound relation exceptions if 
 					// we did not do this:
 					
+					/// !!! TODO is this even needed anymore?
+					
 					RelationAndVariableReplacementV vis;
 					if(initialVisitors.containsKey(idbs))
 						vis = initialVisitors.get(idbs);

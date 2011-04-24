@@ -273,9 +273,6 @@ public class MVocab {
 	
 	// Non-sort predicate symbols
 	Map<String, MPredicate> predicates;	
-
-	// Subset of the predicate symbols that can be used as IDBs in a policy
-	Map<String, MPredicate> decisions;
 	
 	// More constraints on the domain of discourse
 	public MConstraints axioms;
@@ -308,8 +305,6 @@ public class MVocab {
 		constants = new HashMap<String, MConstant>();
 		functions = new HashMap<String, MFunction>();
 		
-		decisions = new HashMap<String, MPredicate>();
-
 		axioms = new MConstraints(this);
 	}
 
@@ -589,23 +584,6 @@ public class MVocab {
 		return arity;
 	}
 	
-	public void addDecision(String d, String typeconstruct) throws MGEBadIdentifierName
-	{
-		d = validateIdentifier(d, false);
-		
-		d = d.toLowerCase(); // TODO validateIdentifier is being called too much, maybe really should be 2 diff funcs?
-		
-		List<MSort> arity = processTypeConstructStr(typeconstruct);
-		
-		// Not all decisions have the same arity.
-		// need to know the typeconstruct for this decision, just like for a predicate
-		MPredicate newDec = new MPredicate(d, MFormulaManager.makeRelation(d, arity.size()), arity);
-		
-		decisions.put(d, newDec);
-		
-		// The MGPolicy object is responsible for initializing the actual IDBs.
-	}
-
 	Relation getRelation(String rname) throws MGEUnknownIdentifier, MGEBadIdentifierName 
 	{
 		rname = validateIdentifier(rname, true);
@@ -939,19 +917,6 @@ public class MVocab {
 		return f; 		
 	}
 	
-	protected boolean isAllDecs(List<String> strs)
-	{
-		List<String> lcstrs = new ArrayList<String>();
-		for (String s : strs)
-			lcstrs.add(s.toLowerCase());
-		
-		return decisions.keySet().containsAll(lcstrs) && lcstrs.containsAll(decisions.keySet());
-	}
-
-	protected boolean isAllDecs(String[] strs) {
-		// Is the array given a list of all decisions?
-		return isAllDecs(Arrays.asList(strs));
-	}
 
 	public boolean isSubOrSubOf(String sub, String sup) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -965,36 +930,6 @@ public class MVocab {
 			return true;
 		return false;
 	}
-
-	/*public boolean isSubOf(String sub, String sup) throws MGEUnknownIdentifier, MGEBadIdentifierName {
-		MSort subt = getSort(sub);
-		MSort supt = getSort(sup); // trigger name check
-
-		// This is SYNTACTIC SUBSORTING:
-		// On the poset of sorts, is sup reachable from sub?
-		// subSET constraints are NOT INCLUDED.
-		if (subsortClosureOf(supt).contains(subt))
-			return true;
-		return false;
-	}
-
-	public Set<MSort> subsortClosureOf(MSort t) 
-	{
-		// Do not take subSET constraints into consideration: only use the sort tree.
-		
-		List<MSort> tocheck = new LinkedList<MSort>();
-		Set<MSort> results = new HashSet<MSort>();
-		tocheck.add(t);
-
-		while (tocheck.size() > 0) {
-			MSort current = tocheck.get(0);
-			tocheck.remove(0);
-			results.add(current);
-			tocheck.addAll(current.subsorts);
-		}
-
-		return results;
-	}*/
 
 	public static String constructAdornment(BinaryExpression be,
 			HashMap<Variable, String> sortenv)
@@ -1246,12 +1181,6 @@ public class MVocab {
 			}
 			uber.addSort(t.name, childnames);
 		}
-
-		// Decisions
-		for (MPredicate aDec: decisions.values())
-			uber.decisions.put(aDec.name, aDec);
-		for (MPredicate aDec : other.decisions.values())
-			uber.decisions.put(aDec.name, aDec);
 		
 		// Predicates (equal methods will prevent overlap)
 		for (String d : predicates.keySet())			

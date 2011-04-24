@@ -28,19 +28,17 @@ import kodkod.ast.Formula;
 
 public class MPolicySet extends MPolicy
 {
-	// Children are other policies (but they, and indeed self, may have empty child lists.)
 	// (List, rather than Set or HashMap, because we need ordering for first-applicable.)
-	List<MPolicy> children;
-	// TODO should be a hash map
-	
-	// How to combine the children?
-	public String pCombine;
+	List<MPolicy> children = new LinkedList<MPolicy>();
+
+	// See MPolicyLeaf for more information 
+	Set <String> pCombineFA = new HashSet<String>();
+	Map<String, Set<String>> pCombineWhatOverrides = new HashMap<String, Set<String>>();
+
 	
 	public MPolicySet(String n, MVocab env)
 	{
-		super(n, env);
-		children = new LinkedList<MPolicy>();		
-		pCombine = "FAX"; // default to XACML first applicable (applicability by target only)		
+		super(n, env);				
 	}
 	
 	public void addChild(MPolicy ch)
@@ -48,37 +46,25 @@ public class MPolicySet extends MPolicy
 		children.add(ch); // allow adding multiple times
 	}
 	
-	public void initIDBs() 
-	  throws MUserException
+	public void initIDBs() throws MUserException
 	{
 		super.initIDBs();
 		
 		// Recalling this method should "reset" all IDBs. Start out with a clean slate:		
-		idbs.clear();
-				
-		pCombine = pCombine.toLowerCase();	
+		idbs.clear();						
 				
 		// Prepare the IDBs of child policies
 		for(MPolicy dc : children)
-			if(dc instanceof MPolicyLeaf)
-				((MPolicyLeaf)dc).initIDBs();
-			else if (dc instanceof MPolicySet)
-				((MPolicySet)dc).initIDBs(); 
-			
-		// Perform combination!
+			dc.initIDBs();
+
+		// Perform combination
 			
 		if(pCombine.toUpperCase().startsWith("O "))
 		{
 			// Total ordering of decisions given by children.							
 				
 			String[] ordering = pCombine.substring(2).split(" ");
-							
-			if(!vocab.isAllDecs(ordering))
-			{				
-				throw new MGEBadCombinator("In order to use an override policy combinator, " +
-						"you must provide an ordered list of all priority decisions.");
-			}
-		
+									
 			Set<Formula> negprior = new HashSet<Formula>();
 			for(String dec : ordering)
 			{
@@ -134,47 +120,21 @@ public class MPolicySet extends MPolicy
 								                                    		 MFormulaManager.makeConjunction(negpriortargets))));
 					
 					// Younger children must respect their elders.
-					negpriortargets.add(MFormulaManager.makeNegation(child.target));
-					
-					//MCommunicator.writeToLog("    PolicySet.initIDBs(); Decision = "+dec+". Handled "+child.name+". negprior= "+negpriortargets);
+					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
 				}
 					
 				idbs.put(dec, MFormulaManager.makeDisjunction(thisdec));					
-
-				//MCommunicator.writeToLog("  PolicySet.initIDBs(); Decision = "+dec+". idb = "+thisdec);
 			}
 							
 		}
-
-		else
-			throw new MGEBadCombinator("Unknown policy combination type: "+pCombine);
 		
-		// Now deal with assumptions!
-		try
-		{
-			handlePolicyAssumptions();
-		}
-		catch(MGEBadIdentifierName e)
-		{
-			MEnvironment.errorWriter.println("Bad identifier name in initIDBs().");
-			System.exit(1);
-		}
-		
-		
-		// Simplify the IDBs. Use the same simplifier!
-		/*
-		SimplifyFormulaV simplifier = new SimplifyFormulaV();		
-		for(String idbname : idbs.keySet())
-		{
-			idbs.put(idbname, idbs.get(idbname).accept(simplifier));		
-		}*/
-	}
+	} // end initIDBs
 
 	public void printPolicyInfo()
 	{
 		MEnvironment.errorWriter.println("###########################");
 		MEnvironment.errorWriter.println("Policy Name: "+name);
-		MEnvironment.errorWriter.println("This is a policy SET with policy combinator: "+pCombine);
+		MEnvironment.errorWriter.println("This is a policy SET with policy combinator: "+printCombinators(pCombineFA, pCombineWhatOverrides));
 		MEnvironment.errorWriter.println("Target Formula: "+target);		
 		
 		String cstr = "";
@@ -196,7 +156,6 @@ public class MPolicySet extends MPolicy
 		MEnvironment.errorWriter.print("\n\n");
 		
 		MEnvironment.errorWriter.println("Policy-level constraints: ");
-		assumptions.printConstraints();
 		
 		MEnvironment.errorWriter.println("###########################\n");
 	}

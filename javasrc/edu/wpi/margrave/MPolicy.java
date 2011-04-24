@@ -100,6 +100,23 @@ abstract class MIDBCollection
 	protected Map<String, List<Variable>> varOrderings = new HashMap<String, List<Variable>>();	
 	protected HashMap<Variable, Expression> varSorts = new HashMap<Variable, Expression>();	
 	
+	protected boolean isAllDecs(List<String> strs)
+	{
+		List<String> lcstrs = new ArrayList<String>();
+		for (String s : strs)
+			lcstrs.add(s.toLowerCase());
+		
+		return idbs.keySet().containsAll(lcstrs) && lcstrs.containsAll(idbs.keySet());
+	}
+	protected boolean isAllDecs(String[] strs) {
+		// Is the array given a list of all decisions?
+		return isAllDecs(Arrays.asList(strs));
+	}
+
+	
+	// !!! TODO
+	// Tn april 2011, I don't think this method has been necessary since MFormulaManager
+	
 	protected static RelationAndVariableReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -170,8 +187,11 @@ public abstract class MPolicy extends MIDBCollection
 	// Formula which dictates when this policy can apply. (Used mostly for XACML.)
 	public Formula target;
 	
-	// Assumptions
-	public MConstraints assumptions;
+	Set<String> decisions;
+	
+	// Affects how first-applicable is handled.
+	public boolean isXACML = false;
+	
 	
 	
 	MPolicy(String n, MVocab voc)
@@ -197,10 +217,37 @@ public abstract class MPolicy extends MIDBCollection
 		for(String d : vocab.decisions)
 			if(!idbs.containsKey(d))
 				idbs.put(d, Formula.FALSE);
-
-		assumptions = new MConstraints(voc);
 	}
 			
+	public String printCombinators(Set<String> combineFA, Map<String, Set<String>> combineWhatOverrides)
+	{
+		if(combineFA.size() < 1 && combineWhatOverrides.size() < 1)
+			return "None";
+		
+		StringBuffer theBuffer = new StringBuffer();
+		
+		if(combineFA.size() > 1)
+		{
+			theBuffer.append("FA: ");
+			for(String dec : combineFA)
+				theBuffer.append(dec + " ");
+			theBuffer.append("\n");
+		}
+
+		if(combineWhatOverrides.size() > 1)
+		{			
+			for(String dec1 : combineWhatOverrides.keySet())
+			{
+				theBuffer.append(dec1+" overridden by: ");
+				for(String dec2 : combineWhatOverrides.get(dec1))
+					theBuffer.append(dec2 + " ");
+			theBuffer.append("\n");
+			}
+		}
+		
+		return theBuffer.toString();
+	}
+	
 	public void setTarget(List<String> conjuncts)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEManagerException
 	{
@@ -225,7 +272,7 @@ public abstract class MPolicy extends MIDBCollection
 				// EQ
 				// Bad variable name exception will propagate up.
 				Variable v1 = MFormulaManager.makeVariable(breakdown[1]);
-				Variable v2 = MFormulaManager.makeVariable((breakdown[2]);
+				Variable v2 = MFormulaManager.makeVariable(breakdown[2]);
 				targetSet.add(MFormulaManager.makeEqAtom(v1, v2));
 			}
 			else
@@ -428,15 +475,7 @@ public abstract class MPolicy extends MIDBCollection
 	public abstract String getDecisionForRuleIDBName(String idbname);
 	
 	public abstract List<String> ruleIDBsWithHigherPriorityThan(String rulename);
-		
-	public void addSingletonAssumption(String name)
-	throws MUserException
-	{
-		// "There is precisely one action." See above for warning.
-		assumptions.addConstraintSingleton(name);
-		initIDBs();
-	}
-			
+					
 	public List<String> getIDBNameList()
 	{
 		// Order independent list
@@ -466,28 +505,7 @@ public abstract class MPolicy extends MIDBCollection
 		name = n.toLowerCase();
 	}
 	
-	/*void handlePolicyAssumptions() throws MGEBadQueryString, MGEArityMismatch, MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
-	{
-		// Predicate for "my assumptions have been violated in this model."
-		Formula assumptionsok = MFormulaManager.makeConjunction(assumptions.getConstraintFormulas(this)); 
 		
-		// Don't bother if no assumptions
-		if(assumptionsok.equals(Formula.TRUE))
-			return;
-		
-		//MEnvironment.errorStream.println("Building assumption IDBs for policy: "+name);
-		
-		for(String dec : vocab.decisions)
-		{
-			// New decision to cover the policy saying "I'm gonna permit, but you told me this couldn't happen."
-			idbs.put(dec+"-ec", MFormulaManager.makeAnd(idbs.get(dec), MFormulaManager.makeNegation(assumptionsok)));
-			
-			// Now the decision is split into EC and non-EC
-			idbs.put(dec, MFormulaManager.makeAnd(idbs.get(dec), assumptionsok));
-		}
-	}*/
-	
-	
 	public static String convertSeparators(String s)
 	{
 		// Strip off leading "file:" if it is there.
@@ -877,12 +895,7 @@ public abstract class MPolicy extends MIDBCollection
 		catch(MGEUnknownIdentifier e)
 		{
 			throw new MGEUnsupportedXACML("Identifier problem with getVariable: "+e.getMessage());
-		}
-		
-
-		// TODO -- assumption propagation -- does it matter?
-		// (Do we want parent policies to *explicitly* carry over their children's assumptions?)
-		
+		}		
 		
 	}
 	

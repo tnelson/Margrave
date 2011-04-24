@@ -943,13 +943,19 @@ public class MEnvironment
 			theElement.appendChild(idbsElement);
 			
 			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
-			for(Variable v : coll.varOrdering)
+			for(String idbname : coll.varOrderings.keySet())
 			{
-				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
-				varElement.appendChild(xmldoc.createTextNode(v.name()));
-				varsElement.appendChild(varElement);
+				Element idbElement = xmldoc.createElementNS(null, "IDB");
+				for(Variable v : coll.varOrderings.get(idbname))
+				{
+					Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+					varElement.appendChild(xmldoc.createTextNode(v.name()));
+					varsElement.appendChild(varElement);
+					idbElement.appendChild(varElement);
+				}
+				theElement.appendChild(idbElement);
 			}
-			theElement.appendChild(varsElement);
+			
 						
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}
@@ -1572,7 +1578,7 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addDecision(String vname, String decname)
+	/*public static Document addDecision(String vname, String decname)
 	{
 
 		MVocab voc = makeNewVocabIfNeeded(vname);
@@ -1585,7 +1591,7 @@ public class MEnvironment
 		{
 			return exceptionResponse(e);
 		}
-	}
+	}*/
 
 	public static Document addPredicate(String vname, String sname, List<String> constr)
 	{

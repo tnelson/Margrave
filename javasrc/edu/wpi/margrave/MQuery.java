@@ -926,6 +926,7 @@ public class MQuery extends MIDBCollection
 						// ***
 						// Convert from the original policy/custom's vocab to
 						// the ubervocab being used for this query.
+						// !!! TODO is this even needed anymore?
 						RelationAndVariableReplacementV vis;
 						if (initialVisitors.containsKey(coll))
 							vis = initialVisitors.get(coll);
@@ -2060,12 +2061,14 @@ public class MQuery extends MIDBCollection
 			throw new MGEUnknownIdentifier("Unknown IDB: " + internal_idbname
 					+ " in collection: " + polName);
 
+		List<Variable> idbArity = coll.varOrderings.get(internal_idbname);
+		
 		// CHECK: Arity matches between the indexing given and the idb.
-		if (coll.varOrdering.size() != indexing.size())
+		if (idbArity.size() != indexing.size())
 			throw new MGEArityMismatch(
 					"Given indexing did not match IDB arity: " + idbname
 					+ ", " + indexing + "." + " Arity of IDB was: "
-					+ coll.varOrdering.size());
+					+ idbArity.size());
 
 		// Add to indexing map
 		if(!idbOutputIndexing.containsKey(idbname))

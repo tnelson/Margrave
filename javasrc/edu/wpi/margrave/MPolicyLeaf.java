@@ -44,26 +44,38 @@ public class MPolicyLeaf extends MPolicy
 	protected HashMap<String, MRule> rulemap;
 	protected HashMap<String, Formula> disjunctionOfRules_cache;
 	
-	public String rCombine;
-		
+	// New rule combination as of 3.1
+	// A overridden by B, C
+	// B overridden by C, D ...
+	// first-applicable { A, B, ... }
+	// [For NOW, only one first-applicable set. If needed later, s/b easy enough to add.]
+	// Semantics: first-applicable is applied first, then overrides (for any overlap)
+	Set <String> rCombineFA = new HashSet<String>();
+	// A -> { decisions that override A }
+	// Warning: this is **NOT** transitive!
+	Map<String, Set<String>> rCombineWhatOverrides = new HashMap<String, Set<String>>();
+					
 	private int dupeRuleSuffix = 2;
 	
 	public MPolicyLeaf(String n, MVocab voc)
 	{		
 		super(n, voc);
 		
-		rules = new LinkedList<MRule>();
-		rCombine = "FAC"; // default to intuitive (condition-included) first-applicable
+		// Default Rcombination is none (all IDBs get produced independently)
+		
+		rules = new LinkedList<MRule>();		
 		rulemap = new HashMap<String, MRule>();
 		disjunctionOfRules_cache = new HashMap<String, Formula>();
 	}
 			
 
+	
+	
 	public void printPolicyInfo()
 	{
 		MEnvironment.errorWriter.println("###########################");
 		MEnvironment.errorWriter.println("Policy Name: "+name);
-		MEnvironment.errorWriter.println("This is a ground policy with rule combinator: "+rCombine);
+		MEnvironment.errorWriter.println("This is a ground policy with rule combinator: "+printCombinators(rCombineFA, rCombineWhatOverrides));
 		MEnvironment.errorWriter.println("Target Formula: "+target);		
 		
 		MEnvironment.errorWriter.println("Rules:");
@@ -75,10 +87,7 @@ public class MPolicyLeaf extends MPolicy
 		prettyPrintIDBs();		
 		prettyPrintEDBs();
 		MEnvironment.errorWriter.print("\n\n");
-		
-		MEnvironment.errorWriter.println("Policy-level assumptions: ");
-		assumptions.printConstraints();
-		
+				
 		MEnvironment.errorWriter.println("###########################\n");
 	}
 
@@ -140,48 +149,26 @@ public class MPolicyLeaf extends MPolicy
 	}
 	
 	public List<String> ruleIDBsWithHigherPriorityThan(String rulename)
-	{
-		// stored lowercase
-		rulename = rulename.toLowerCase();
-		
+	{		
 		// may pass canonical idb name ("PolicyName:Rule12" instead of "Rule12")
-		if(rulename.startsWith(this.name+":")) // name is already lowercase
-		{
-			rulename = rulename.substring(this.name.length()+1);
-		}		
+		if(rulename.startsWith(this.name+":")) 
+			rulename = rulename.substring(this.name.length()+1);		
 		
 		List<String> result = new LinkedList<String>();
+		
+		// bad rule name, return empty
 		if(!rulemap.containsKey(rulename))
-			return result;		
+			return result;
+		
 		MRule theRule = rulemap.get(rulename);
 		
-		if(rCombine.toUpperCase().startsWith("FA"))
-		{
-			// Return the the sub-list before this rule.
-			List<MRule> ruleList = rules.subList(0, rules.indexOf(theRule));
-			for(MRule rule : ruleList)
-				result.add(this.name+":"+rule.name);						
-		}
-		else if(rCombine.toUpperCase().startsWith("O "))
-		{
-			// What rules have decisions that override theRule's?
-			String[] ordering = rCombine.substring(2).split(" ");
-			
-			Set<String> higherPriority = new HashSet<String>();
-			for(String dec : ordering)
-			{
-				if(dec.equals(theRule.decision()))
-					break;
-				higherPriority.add(dec);
-			}
-			
-			for(MRule rule : rules)
-			{
-				if(higherPriority.contains(rule.decision()))
-					result.add(this.name+":"+rule.name);
-			}
-			
-		}
+		Set<MRule> over1 = rulesThatApplyBefore(theRule);
+		Set<MRule> over2 = rulesThatCanOverride(theRule);
+		
+		for(MRule r1 : over1)
+			result.add(this.name+":"+r1.name);
+		for(MRule r2 : over2)
+			result.add(this.name+":"+r2.name);			
 		
 		return result;
 	}
@@ -205,26 +192,12 @@ public class MPolicyLeaf extends MPolicy
 		
 		// Combine rules
 		doCombineRules();
-		
-		try
-		{
-			handlePolicyAssumptions();
-		}
-		catch(MGEBadIdentifierName e)
-		{
-			MEnvironment.errorWriter.println("Bad identifier name in initIDBs().");
-			System.exit(1);
-		}
-		
-		/*
-		// Simplify
-		SimplifyFormulaV simplifier = new SimplifyFormulaV();
-		for(String idbname : idbs.keySet())
-			idbs.put(idbname, idbs.get(idbname).accept(simplifier));
-			*/	
 	}
 			
-	public void addRule(String rulename, String decision, List<String> conjuncts) 
+	/*
+	 * 
+	 */
+	public void addRule(String rulename, String decision, List<String> freeVarOrdering, List<String> conjuncts) 
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
 	{
 		// decision(requestVars) :- clauses[0] and clauses[1] and ...
@@ -233,7 +206,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		if(hasRule(rulename))
 		{
-		//	throw new MGEBadIdentifierName("Rule name "+rulename+" was already present in this policy.");
+			// Allow a policy to try to re-define the same rule, just know that they are separate. 
 			rulename = rulename + "-" + dupeRuleSuffix;
 			dupeRuleSuffix++;
 		}
@@ -246,11 +219,33 @@ public class MPolicyLeaf extends MPolicy
 		
 		// We rename, so need to connect old-name to new var.
 		HashMap<String, Variable> otherVarLocals = new HashMap<String, Variable>();
+
+		// Variable ordering on this rule 
+		List<Variable> ruleFreeVars = new ArrayList<Variable>();
+		for(String vname : freeVarOrdering)
+		{
+			ruleFreeVars.add(MFormulaManager.makeVariable(vname));
+		}
 		
-		if(!vocab.decisions.contains(decision))
-			throw new MGEUnknownIdentifier("Unknown decision type: "+decision);
+		if(!idbs.keySet().contains(decision))
+		{
+			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
+			// (Sorts of all these variables should be known already.)
+			
+			idbs.put(decision, Formula.FALSE);
+			this.varOrderings.put(decision, ruleFreeVars);
+			
+		}
 		
-		// For each clause in the list
+		List<Variable> idbFreeVars = varOrderings.get(decision);
+		if(!ruleFreeVars.equals(idbFreeVars))
+		{
+			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
+					"First was: "+idbFreeVars+"; second was: "+ruleFreeVars);
+		}
+		
+		
+		// For each literal fmla in the list
 		for(String conj : conjuncts)
 		{
 			conj = conj.toLowerCase();
@@ -287,7 +282,7 @@ public class MPolicyLeaf extends MPolicy
 					Variable v1; 
 					Variable v2;
 					
-					if(!vocab.requestVariables.containsKey(breakdown[1]))
+					if(!ruleFreeVars.contains(breakdown[1]))
 					{
 						otherVarLocals.put(breakdown[1], 
 								          MFormulaManager.makeVariable(rulename+"_"+breakdown[1]));
@@ -295,9 +290,9 @@ public class MPolicyLeaf extends MPolicy
 						pred_used_request_vars_only = false;							
 					}
 					else
-						v1 = vocab.getRequestVariable(breakdown[1]);
+						v1 = MFormulaManager.makeVariable(breakdown[1]);
 					
-					if(!vocab.requestVariables.containsKey(breakdown[2]))
+					if(!ruleFreeVars.contains(breakdown[2]))
 					{
 						otherVarLocals.put(breakdown[2], 
 								          MFormulaManager.makeVariable(rulename+"_"+breakdown[2]));
@@ -305,7 +300,7 @@ public class MPolicyLeaf extends MPolicy
 						pred_used_request_vars_only = false;							
 					}
 					else
-						v2 = vocab.getRequestVariable(breakdown[2]);
+						v2 = MFormulaManager.makeVariable(breakdown[2]);
 					
 					
 					// Any exceptions for bad variable name will propagate up.					
@@ -327,12 +322,13 @@ public class MPolicyLeaf extends MPolicy
 					{
 						// Handle rule-scope local variables and request variables differently.
 							
+						// to be removed: TN april 2011
 						// Caller must have explicitly added all variables (and say what type they are) already
-						if(!vocab.requestVariables.containsKey(breakdown[ii]) &&
-								!vocab.otherVarDomains.containsKey(breakdown[ii]))
-							throw new MGEUnknownIdentifier("Error: Unknown variable name: "+breakdown[ii]);
+						//if(!vocab.requestVariables.containsKey(breakdown[ii]) &&
+						//		!vocab.otherVarDomains.containsKey(breakdown[ii]))
+						//	throw new MGEUnknownIdentifier("Error: Unknown variable name: "+breakdown[ii]);
 							
-						if(!vocab.requestVariables.containsKey(breakdown[ii]))
+						if(!ruleFreeVars.contains(breakdown[ii]))
 						{
 							otherVarLocals.put(breakdown[ii], 
 									          MFormulaManager.makeVariable(rulename+"_"+breakdown[ii]));
@@ -400,7 +396,7 @@ public class MPolicyLeaf extends MPolicy
 				{
 					try
 					{
-						Decls d = MFormulaManager.makeOneOfDecl(v, vocab.otherVarDomains.get(vname));					
+						Decls d = MFormulaManager.makeOneOfDecl(v, varSorts.get(vname));					
 						newrule.condition = MFormulaManager.makeExists(newrule.condition, d);
 					}
 					catch(MGEManagerException e)
@@ -421,60 +417,7 @@ public class MPolicyLeaf extends MPolicy
 		//MCommunicator.writeToLog("\n In MPolicyLeaf.addRule\n newRule.target: " + newrule.target + "\nnewRule.condition: " + newrule.condition);
 		
 		// No IDB for the rule by itself! (Combination will add IDBS for rule *applicability* in this policy's context)
-	}
-	
-	private Formula disjunctionOfRules(String dec)
-	{
-		if(disjunctionOfRules_cache.containsKey(dec))
-			return disjunctionOfRules_cache.get(dec);
-		
-		Set<Formula> resultSet = new HashSet<Formula>();
-		
-		// Rules is a list, so...
-		for(MRule r : rules)
-		{
-			// Decision can occur if r's target and condition are BOTH true
-			if(r.decision().equals(dec))
-				resultSet.add(r.target_and_condition);						
-		}
-		
-		// will need to clear this out if initIDBs is recalled. 
-		disjunctionOfRules_cache.put(dec, MFormulaManager.makeDisjunction(resultSet));
-		
-		return disjunctionOfRules_cache.get(dec);
-	}
-	
-	protected void updateVocab(MVocab uber) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// Update the policy and policy formulas to use this new vocabulary.
-		// ASSUMED that the vocab matches everything required. This should therefore 
-		// not be called outside of MGQuery.queryThesePolicies.
-		
-		// First, replace instances of KodKod objects as needed:
-		
-		RelationAndVariableReplacementV vis = MIDBCollection.getReplacementVisitor(vocab, uber);
-		
-		// Target
-		
-		
-		target = target.accept(vis);
-		
-		// On all rules
-		for(MRule r : rules)
-		{
-			r.condition = r.condition.accept(vis);
-			r.target = r.target.accept(vis);
-			r.target_and_condition = r.target_and_condition.accept(vis); 
-		}
-		
-		// On all IDBs.
-		for(String dec : idbs.keySet())
-			idbs.put(dec, idbs.get(dec).accept(vis));
-			
-		
-		// Finally, set the reference.
-		vocab = uber;
-	}
+	}	
 	
 	public String getDecisionForRuleIDBName(String idbname)
 	{
@@ -496,207 +439,189 @@ public class MPolicyLeaf extends MPolicy
 		return "";
 	}
 	
-	void doCombineRules() throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadIdentifierName
+	
+	Set<MRule> rulesThatApplyBefore(MRule aRule)
 	{
-		// This method applies the given RULE combination algorithm to the rules and populates the decision idbs.
-		// If called multiple times, the idbs will be re-populated with new formulas for the most recently given combinator.
+		// If aRule has decision D, and decision P is in the first-applicable set with D,
+		// then all rules appearing BEFORE aRule with decision P are in the result.
 		
-		// Careful: Don't replace rCombine variable...
-		rCombine = rCombine.toLowerCase(); // except here
+		Set<MRule> results = new HashSet<MRule>();
 		
-		//ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
-		//long start = mxBean.getCurrentThreadCpuTime();	
+		String aDecision = aRule.decision();
 		
-		if("NONE".equals(rCombine.toUpperCase()))
+		// If this decision is not one of the FA decisions, 
+		// no rules apply before this one by virtue of the ordering
+		if(!rCombineFA.contains(aDecision))
+			return results;
+		
+		// TODO room for optimization here, if its a chokepoint
+		for(MRule r : rules)
 		{
-			// No rule combinator: Decision IDB formulas will be generated independently of each other.
-			// This changes the semantics of a "policy": a request is mapped to a SET of decisions!
-			
-			for(String dec : vocab.decisions)			
-				idbs.put(dec, disjunctionOfRules(dec));	
-			
-			// May have >1 rule apply!
-			for(MRule r : rules)
-			{
-				idbs.put(vocab.validateIdentifier(r.name+"_applies", true), r.target_and_condition);
-				idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
-			}
+			if(rCombineFA.contains(r.decision()))
+				results.add(r);
 		}
-								
-		else if(rCombine.toUpperCase().startsWith("O "))
-		{
-			// Some decision overrides. (e.g., "O Permit" for permit overrides.)			
-			
-			// Simple case when only 2 decisions. But our policy type may be more complex.
-			// Thus, the user gives us a total ordering on the decisions, here. 			
-			// eg, for {"Call Police", "Permit", "Deny"}, the combtype "O Call-police Deny Permit" says
-			// Call-Police overrides Deny and Permit, then Deny overrides Permit. 
-									
-			String[] ordering = rCombine.substring(2).split(" ");
-			if(!vocab.isAllDecs(ordering))
-				throw new MGEBadCombinator("In order to use an override rule combinator, " +
-						"you must provide an ordered list of all priority decisions.\n" +
-						"You provided: "+rCombine+".");
-			
-			Set<Formula> negprior = new HashSet<Formula>();
-			for(String dec : ordering)
-			{
-				// Make sure this is a valid decision.
-				if(!vocab.decisions.contains(dec))
-					throw new MGEUnknownIdentifier("Unknown decision: "+dec);
-
-				// For this decision, it applies if one of its rules applies AND
-				// none of the prior decisions in the list applied.
-				
-				Formula thisdec = disjunctionOfRules(dec);
-				// If there are no rules for this decision, the above will return Formula.FALSE and thus never happens
-				idbs.put(dec, MFormulaManager.makeAnd(thisdec, MFormulaManager.makeConjunction(negprior)));
+		
+		return results;
+	}
 	
-				// For each rule rendering this decision, make an IDB for when it applies
-				for(MRule r : rules)
-					if(r.decision().equals(dec.toLowerCase()))
-					{
-						idbs.put(vocab.validateIdentifier(r.name+"_applies", true),
-								MFormulaManager.makeAnd(r.target_and_condition, 
-								                         MFormulaManager.makeConjunction(negprior)));
-						idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
-					}
-				
-				negprior.add(MFormulaManager.makeNegation(thisdec));				
-			}
-			
-			
-			// TODO all these validateIdentifier calls -- are they really needed?
-			
+	Set<MRule> rulesThatCanOverride(MRule aRule)
+	{
+		// If aRule has decision D, and decision P overrides D, 
+		// then all rules for P are in the result.
+		
+		Set<MRule> results = new HashSet<MRule>();
+		
+		String aDecision = aRule.decision();
+		Set<String> overBy = rCombineWhatOverrides.get(aDecision);
+		
+		// TODO room for optimization here, if its a chokepoint
+		for(MRule r : rules)
+		{
+			if(overBy.contains(r.decision()))
+				results.add(r);
 		}
-		else if(rCombine.toUpperCase().equals("FAC") || rCombine.toUpperCase().equals("FAX"))
-		{
-			// first applicable (in order)
-			// include only TARGET of rule
-			// (This combinator added for XACML support, since XACML's First Applicable uses target only) 
-			
-			// TARGET ONLY for XACML 2.0 standard "FA" -- see docs.
-			boolean include_condition = false;
-			if(rCombine.toUpperCase().equals("FAC"))
-				// FAC: Full first applicable, includes conditions as well
-				include_condition = true;
-			
-			// Make sure all the decision IDBs are appropriately initialized, since we .or onto them below.
-			for(String d : vocab.decisions)
-				idbs.put(d, Formula.FALSE);
+				
+		return results;
+	}
 	
-			Set<Formula> negpriorrules = new HashSet<Formula>();
-			for(MRule r : rules)
-			{
-				Formula thisruleapplies;				
-				
-				// The rule itself *always* takes condition into account before actually taking effect.
-				thisruleapplies = MFormulaManager.makeAnd(r.target_and_condition, MFormulaManager.makeConjunction(negpriorrules));
-				
-				// Policy target is applied at end of this method, to ALL idbs.
-															
-				// add IDB for this rule's applicability.
-				idbs.put(r.name+"_applies", thisruleapplies);
-				idbs.put(r.name+"_matches", r.target_and_condition);
-				
-				// ***************
-				// Could do this, but it is very, very inefficient. 
-				// Continue to do this loop so that we have RuleX_applies IDBs, but 
-				// make a more efficient set of decision IDBs below.
-				// ***************
-				
-				// add this rule (w/ prior rule restriction) to its decision's IDB 
-				//idbs.put(r.decision, MGFormulaManager.makeOr(idbs.get(r.decision), thisruleapplies));									
-				
-				
-				// keep up
-				// Note: Do NOT use thisruleapplies here. Will cause rule-scope existentials, turned to 
-				// universals the first time, to become existentials again due to double-negation.
-				// (And besides, it's pointless and inefficient anyway.)
-				if(include_condition)
-					negpriorrules.add(MFormulaManager.makeNegation(r.target_and_condition));
-				else										
-					negpriorrules.add(MFormulaManager.makeNegation(r.target));
-				
-			} // end loop per rule
-			
-			List<MRule> backwards = new ArrayList<MRule>(rules);
-			Collections.reverse(backwards);
-			
-			for(MRule r : backwards)
-			{
-				// For this rule's decision, add (current_idb OR rule)
-				// For other decisions, add (current_idb AND not(rule)).
-				
-				for(String dec : vocab.decisions)
-				{
-					if(dec.toLowerCase().equals(r.decision()))
-					{
-						Formula newidb;
+	Map<String, Formula> buildConciseIDBFAs()
+	{
+		Map<String, Formula> result = new HashMap<String, Formula>();
 
-						// Always use conditions for rule actually firing
-						if(include_condition)
-							newidb = MFormulaManager.makeOr(idbs.get(dec), r.target_and_condition); // dec, not r.decision 
-						
-						// But XACML is complicated. Need to say "This rule applies fully, or its target was missed and a later rule applied."
-						else
-							newidb = MFormulaManager.makeOr(
-									      MFormulaManager.makeAnd(idbs.get(dec), MFormulaManager.makeNegation(r.target)), r.target_and_condition); // dec, not r.decision
-						idbs.put(dec, newidb); // dec
-					}
+		// Make sure all the formulas are appropriately initialized, since we or onto them below.
+		for(String d : decisions)
+			result.put(d, Formula.FALSE);
+				
+		List<MRule> backwards = new ArrayList<MRule>(rules);
+		Collections.reverse(backwards);
+			
+		for(MRule r : backwards)
+		{
+			// Process this rule:
+			// For this rule's decision, add (current_idb OR rule)
+			// For other decisions, add (current_idb AND not(rule)).
+
+			for(String dec : decisions)
+			{
+				if(dec.equals(r.decision()))
+				{					
+					// Always use conditions for rule actually firing
+					if(!isXACML)
+						result.put(dec, MFormulaManager.makeOr(result.get(dec), r.target_and_condition));
+					// If FA doesn't apply for this decision, even in an XACML policy [impossible situation?]
+					else if(!rCombineFA.contains(dec))
+						result.put(dec, MFormulaManager.makeOr(result.get(dec), r.target_and_condition));
 					else
-					{
-						// Don't add conjunction if nothing so far for this decision (NOT "rule's" decision)
-						if(idbs.get(dec).equals(Formula.FALSE))
-							continue;
-						
-						// But use of conditions for rule applying depends on FAX vs. FAC.
-												
-						// From the XACML 2.0 docs:
-						/* 
+						// But XACML is complicated. Need to say "This rule applies fully, or its target was missed and a later rule applied." 
+						// This is needed: consider situation where r's condition fails but its target matches. Since this is XACML, none of the
+						// later rules (which we processed first) can apply.
+						result.put(dec, MFormulaManager.makeOr(MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)), r.target_and_condition));  
+				} // end same decision				
+				
+				else
+				{
+					// Only add the restriction if this decision is FA along with r's
+					if(!rCombineFA.contains(dec) || !rCombineFA.contains(r.decision()))
+						continue;
+					
+					// Don't add conjunction if nothing so far for this decision (NOT "rule's" decision)
+					if(result.get(dec).equals(Formula.FALSE))
+						continue;					
+
+					// From the XACML 2.0 docs:
+					/* 
 						420 In the case of the "First-applicable" combining algorithm, the combined result is the same as the
 						421 result of evaluating the first <Rule>, <Policy> or <PolicySet> element in the list of rules
 						422 whose target is applicable to the decision request.  */
-						
-						// So we need to be sure to exclude higher-priority rules EVEN IF they have the same decision? ugh...
-						// (For FAC that is.)
-						
-						Formula newidb;
-						if(include_condition)
-							newidb = MFormulaManager.makeAnd(idbs.get(dec), // dec, not r.decision 
-									                          MFormulaManager.makeNegation(r.target_and_condition));
-						else
-							newidb = MFormulaManager.makeAnd(idbs.get(dec), // dec, not r.decision 
-			                          MFormulaManager.makeNegation(r.target));
-						
-						idbs.put(dec, newidb); // dec				
-					}
+
+					if(!isXACML)
+						result.put(dec, MFormulaManager.makeAnd(idbs.get(dec),  
+								MFormulaManager.makeNegation(r.target_and_condition)));
+					else
+						result.put(dec, MFormulaManager.makeAnd(idbs.get(dec),  
+								MFormulaManager.makeNegation(r.target))); 			
+				} // end other decision
+			}  // end for each decision
+		} // end for each rule in reverse
+
+		return result;	
+	} // end buildConciseIDBFA
+	
+	void doCombineRules() throws MGEUnknownIdentifier, MGEBadCombinator, MGEBadIdentifierName
+	{
+		// This method applies the given RULE combination algorithm to the rules and populates the decision idbs.
+		// If called multiple times, the idbs will be re-populated with new formulas for the most recently given combination options.
+		
+		// Want to (re)create IDBs for:
+		// (a) Each rule's matches
+		// (b) Each rule's applies
+		// (c) Each decision IDB
+
+		/////////////////////////////////////////////////////////////////
+		// (a) These are easy:
+		for(MRule r : rules)
+		{
+			idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
+		}
+		
+		/////////////////////////////////////////////////////////////////
+		// (b) A rule applies if it matches and no potentially overriding rule matches, either.
+		// TODO likely a lot of repeated work here, but not optimizing yet
+		for(MRule r : rules)
+		{
+			Set<Formula> rFmlas = new HashSet<Formula>();
+			rFmlas.add(r.target_and_condition);
+			for(MRule overR1 : rulesThatApplyBefore(r))
+			{
+				if(isXACML)
+					rFmlas.add(MFormulaManager.makeNegation(overR1.target));
+				else
+					rFmlas.add(MFormulaManager.makeNegation(overR1.target_and_condition));
+			}
+			for(MRule overR2 : rulesThatCanOverride(r))
+				rFmlas.add(MFormulaManager.makeNegation(overR2.target_and_condition));
+			idbs.put(vocab.validateIdentifier(r.name+"_applies", true), MFormulaManager.makeConjunction(rFmlas));
+		}
+
+		
+		/////////////////////////////////////////////////////////////////
+		// (c) The decision IDBs
+		// IDB_FA: Either the IDB (if not a FA decision) or the IDB taking FA into account
+		// After IDB_FA is computed, tack on negation of all overrides rules.
+		// FA is made more efficient by a single traversal:
+		Map<String, Formula> IDB_FAs = buildConciseIDBFAs();
+		
+		for(String decName : decisions)
+		{			
+			Formula IDB_FA = IDB_FAs.get(decName);
+			
+			// decFmla = IDB_FA and none of the overrides decision rules apply
+			Set<String> overrideDecs = rCombineWhatOverrides.get(decName);
+			Set<Formula> negPriors = new HashSet<Formula>();
+			for(MRule r : rules)
+			{
+				// TODO another caveat emptor re: optimization
+				if(overrideDecs.contains(r.decision()))
+				{
+					negPriors.add(MFormulaManager.makeNegation(r.target_and_condition));
 				}
+					
 			}
 			
-		} // end FA/FAC
-
-		else			
-			throw new MGEBadCombinator("Unknown rule combination algorithm: "+rCombine);
-	
-		//MEnvironment.errorStream.println("Building IDBs time : " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
+			negPriors.add(IDB_FA); // don't forget that the original rule applies!			
+			Formula decFmla = MFormulaManager.makeConjunction(negPriors);
+			idbs.put(vocab.validateIdentifier(decName, true), decFmla);
+		}
+					
 		
-		// *******************************************
-		// Finally, each of these IDBs only apply if the _policy's_ target is met. 
-		// Re-use work done in the simplifier!
+		/////////////////////////////////////////////////////////
+		// Finally, each of these IDBs only apply if the _policy's_ target is met. 		
 		
-		
-		//start = mxBean.getCurrentThreadCpuTime();	
-				
-		// vs 150ms to build the idbs in the first place.)
-		//SimplifyFormulaV simplifyVisitor = new SimplifyFormulaV();
 		for(String idbname : idbs.keySet())
 		{			
-			idbs.put(idbname, MFormulaManager.makeAnd(idbs.get(idbname), target)); //.accept(simplifyVisitor));		
+			idbs.put(idbname, MFormulaManager.makeAnd(idbs.get(idbname), target));		
 		}
-		//MEnvironment.errorStream.println("Simplify idbs time: " + (mxBean.getCurrentThreadCpuTime()-start) / 1000000);
-
 		
-	}
+	} // end doCombineRules
 
 }
