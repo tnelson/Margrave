@@ -2013,10 +2013,10 @@ public abstract class MInstanceIterator
 					// What temporary variables did the policy refer to?
 					// (Order doesn't really matter here, since it's all flat universal quantifiers)
 					// Some confusion in naming if someone sees the formula, but not really a difference.
-					Set<Variable> tempvars = idbFormula.accept(freeVarCollector);
+					Set<Variable> freeVars = idbFormula.accept(freeVarCollector);
 									
 					// What is the arity of the relation?
-					 int idbArity = tempvars.size();					
+					int idbArity = freeVars.size();					
 					
 					// Zero arity means either always true or always false... 
 					// Would be nice to support but KodKod doesn't allow nullary relations
@@ -2024,9 +2024,9 @@ public abstract class MInstanceIterator
 					{
 						// Get around it by using the full arity of the LHS relation:
 						idbArity = idbs.varOrderings.get(idbname).size();
-						tempvars = new HashSet<Variable>(); // adding is unsupported in prior instance
+						freeVars = new HashSet<Variable>(); // adding is unsupported in prior instance
 						for(Variable v : idbs.varOrderings.get(idbname))
-							tempvars.add(v);
+							freeVars.add(v);
 					}				
 					// Create a temporary relation 
 					// (If tupled, attach the indexing -- uglier but desirable for correctness checking.)
@@ -2047,15 +2047,22 @@ public abstract class MInstanceIterator
 					// And "bound" it.
 					qryBounds.bound(therel, factory.allOf(idbArity));			
 				
-					// Get proper ordering of tempvars
-												
-					// Kludge?
-					// IDB set is Policy: Just assume that this IDB has the same order of variable as a decision must.
-					// IDB set is CustomIDB set: we get an ordering from the custom idb set
+					///////////////////////////////////////////////////////
+					// Get proper ordering of freeVars
 					
-					// TODO This isn't needed anymore, is it? Can just use varOrdering? Double-check...
+					List<String> actualVarNameOrder = new ArrayList<String>(idbArity);												
+					List<Variable> expectedVars = idbs.varOrderings.get(idbname);
+					for(Variable v : expectedVars)
+					{
+						// Does this expected variable actually appear, free, in the IDB?
+						if(freeVars.contains(v))
+							actualVarNameOrder.add(v.name());
+					}
+					if(idbArity != actualVarNameOrder.size())
+						throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
+					Expression tup = MFormulaManager.makeVarTuple(actualVarNameOrder);
 					
-					Expression tup;
+					/*Expression tup;
 					if(idbs instanceof MPolicy)
 					{
 						// We assume the request vector ordering from the vocab, since this is a Policy, not a custom IDB.
@@ -2064,7 +2071,7 @@ public abstract class MInstanceIterator
 						// Convert from a list of vars to a list of strings; keep only vars that actually appear.
 						List<String> varnameorder = new ArrayList<String>(idbArity);
 						for(Variable v : idbs.vocab.requestVectorOrder)
-							if(tempvars.contains(v))
+							if(freeVars.contains(v))
 								varnameorder.add(v.name());
 						
 						if(idbArity != varnameorder.size())
@@ -2075,11 +2082,9 @@ public abstract class MInstanceIterator
 					}
 					else if(idbs instanceof MQuery) // used to be MCustomIDB
 					{
-						if(idbArity != idbs.varOrdering.size())
-							throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
-						
-						// Use internal ordering
-						tup = MFormulaManager.makeVarTupleV( idbs.varOrdering );
+						if(idbArity != idbs.varOrderings.get(idbname).size())
+							throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);												
+						tup = MFormulaManager.makeVarTupleV( idbs.varOrderings.get(idbname) );
 					}
 					else if(idbs instanceof MInternalIDBCollection)
 					{
@@ -2092,18 +2097,20 @@ public abstract class MInstanceIterator
 					else
 						throw new MGEUnknownIdentifier("Bad IDB collection type: "+idbs.getClass().getName());
 					
-					 
+					 */
 					
 					// Don't forget to add bi-implication (the relation holds iff the policy says it does.)									
 
-					// Restrict the IDB Formulas to use the proper types for their variables.
+					// Restrict the IDB Formulas to use the proper types for their free variables.
 					// (Note that rule-scope existentials are already typed in their quantifier.)
 					Set<Formula> properTypes = new HashSet<Formula>();					
-					for(Variable var : tempvars)
+					for(Variable var : freeVars)
 					{ 	
-						if(fromResult.forQuery.vocab.requestVarDomains.containsKey(var.name()))
+						// Do I know a sort for this variable?						
+						
+						if(idbs.varSorts.containsKey(var))
 						{
-							Formula atom = MFormulaManager.makeAtom(var, fromResult.forQuery.vocab.requestVarDomains.get(var.name()));
+							Formula atom = MFormulaManager.makeAtom(var, idbs.varSorts.get(var));
 							properTypes.add(atom);
 						}
 					}
@@ -2115,7 +2122,7 @@ public abstract class MInstanceIterator
 									
 					// Order doesn't matter
 					String prettyVarTuple = "";
-					for(Variable var : tempvars)
+					for(Variable var : freeVars)
 					{
 						if(prettyVarTuple.length() > 0 )
 							prettyVarTuple = var.name()+" "+prettyVarTuple;

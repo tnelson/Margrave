@@ -930,7 +930,7 @@ public class MEnvironment
 			MPolicyLeaf pleaf = (MPolicyLeaf) coll;
 			Element theElement = xmldoc.createElementNS(null, "POLICY-LEAF");
 			theElement.setAttribute("name", pleaf.name);
-			theElement.setAttribute("rule-combine", pleaf.rCombine);
+			theElement.setAttribute("rule-combine", pleaf.printCombinators(pleaf.rCombineFA, pleaf.rCombineWhatOverrides));
 			
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
@@ -964,7 +964,7 @@ public class MEnvironment
 			MPolicySet pset = (MPolicySet) coll;
 			Element theElement = xmldoc.createElementNS(null, "POLICY-SET");
 			theElement.setAttribute("name", pset.name);
-			theElement.setAttribute("policy-combine", pset.pCombine);					
+			theElement.setAttribute("policy-combine", pset.printCombinators(pset.pCombineFA, pset.pCombineWhatOverrides));					
 			
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
 			for(String key : coll.idbs.keySet())
