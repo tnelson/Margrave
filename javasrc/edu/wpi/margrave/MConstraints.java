@@ -21,12 +21,8 @@
 
 package edu.wpi.margrave;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 import kodkod.ast.*;
 import kodkod.ast.operator.Multiplicity;

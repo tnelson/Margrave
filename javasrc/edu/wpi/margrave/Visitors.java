@@ -652,13 +652,13 @@ class ReplaceComparisonFormulasV extends AbstractCacheAllReplacer
 class FindClosureUseV extends AbstractCacheAllDetector {
 	// static cache, will not interfere with garbage collection, but will try
 	// to prevent recomputation. (Booleans are safe, so...)
-	private static WeakHashMap<Formula, Boolean> closureUseCache = new WeakHashMap<Formula, Boolean>();
+	private static WeakHashMap<Node, Boolean> closureUseCache = new WeakHashMap<Node, Boolean>();
 
-	private Boolean lookup(Formula f) {
+	protected Boolean lookup(Node f) {
 		return closureUseCache.get(f);
 	}
 
-	private Boolean cache(Formula f, Boolean value) {
+	protected Boolean cache(Node f, Boolean value) {
 
 		closureUseCache.put(f, value);
 		return value;
@@ -668,7 +668,8 @@ class FindClosureUseV extends AbstractCacheAllDetector {
 		super(new HashSet<Node>());
 	}
 
-	public Boolean visit(UnaryExpression ue) {
+	public Boolean visit(UnaryExpression ue) 
+	{
 		Boolean cached = lookup(ue);
 		if (cached != null)
 			return cached;

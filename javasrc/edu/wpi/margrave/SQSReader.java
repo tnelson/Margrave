@@ -374,8 +374,12 @@ public class SQSReader
 			else
 				handleSQSStatement((JSONObject)statement_s, result, 0);
 			
-						
-			result.rCombine = "O Deny Allow";						
+			// "Allow overrides a `default deny' but never an explicit deny."
+			// Default deny is N/a.
+			Set<String> denySet = new HashSet<String>();
+			denySet.add("Deny");
+			result.rCombineWhatOverrides.put("Allow", denySet); // Allow < {Deny}
+			
 			result.initIDBs();
 			
 			//result.prettyPrintRules();

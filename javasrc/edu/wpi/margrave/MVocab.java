@@ -1148,11 +1148,10 @@ public class MVocab {
 			try
 			{
 				// Is this a type name that both vocabs use?
-				MSort t2 = other.getSort(t.name);
-
-				shared.add(t.name);
-				
-			} catch (MGEUnknownIdentifier e) {
+				other.getSort(t.name); // will throw an exception if no such sort
+				shared.add(t.name);				
+			} catch (MGEUnknownIdentifier e)
+			{
 			}
 			
 		}

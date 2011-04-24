@@ -1622,7 +1622,9 @@ class CNFSpy implements SATSolver
     	
    		for(MIntArrayWrapper aClause : clauses)
    		{
-   			IConstr x = result.addClause(new VecInt(aClause.getArray()));
+   			// swap if need the IConstr
+   			//IConstr x = result.addClause(new VecInt(aClause.getArray()));
+   			result.addClause(new VecInt(aClause.getArray()));
 			
    			//PrintWriter pw = new PrintWriter(MEnvironment.errorStream);
 			//result.printInfos(pw, ":::: ");
@@ -2021,9 +2023,9 @@ public abstract class MInstanceIterator
 					if(idbArity < 1)
 					{
 						// Get around it by using the full arity of the LHS relation:
-						idbArity = idbs.varOrdering.size();
+						idbArity = idbs.varOrderings.get(idbname).size();
 						tempvars = new HashSet<Variable>(); // adding is unsupported in prior instance
-						for(Variable v : idbs.varOrdering)
+						for(Variable v : idbs.varOrderings.get(idbname))
 							tempvars.add(v);
 					}				
 					// Create a temporary relation 

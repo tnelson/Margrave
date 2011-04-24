@@ -643,6 +643,8 @@ public class MFormulaManager
 		if(!hasBeenInitialized)
 			initialize();
 		
+		// Never used, but calling size() pings each of the caches.		
+		@SuppressWarnings("unused")
 		long total =  
 			someMultiplicities.size() +
 			noMultiplicities.size()+

@@ -23,6 +23,9 @@ package edu.wpi.margrave;
 
 import java.util.*;
 
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
 import com.sun.xacml.combine.CombiningAlgorithm;
 import com.sun.xacml.combine.DenyOverridesPolicyAlg;
 import com.sun.xacml.combine.DenyOverridesRuleAlg;
@@ -52,6 +55,59 @@ public class MPolicySet extends MPolicy
 	public void addChild(MPolicy ch)
 	{
 		children.add(ch); // allow adding multiple times
+	}	
+	
+	void handleXACML2Combine(Node combAlgNode)
+	throws MGEUnsupportedXACML
+	{
+		String result = "";
+
+		NodeList children = combAlgNode.getChildNodes();
+
+		if(children == null)
+			throw new MGEUnsupportedXACML("Combination algorithm not provided in expected way by XACML policy.");
+		if(children.getLength() != 1)
+			throw new MGEUnsupportedXACML("Combination algorithm not provided in expected way by XACML policy.");
+
+		result = children.item(0).getNodeValue();
+		
+		if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides".equals(result) ||
+				"urn:oasis:names:tc:xacml:1.1:policy-combining-algorithm:ordered-deny-overrides".equals(result))
+		{
+			Set<String> denySet = new HashSet<String>();
+			denySet.add("Deny");
+			pCombineWhatOverrides.put("Permit", denySet);
+		}
+
+		else if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides".equals(result) ||
+				"urn:oasis:names:tc:xacml:1.1:policy-combining-algorithm:ordered-permit-overrides".equals(result))
+		{
+			Set<String> permSet = new HashSet<String>();
+			permSet.add("Permit");
+			pCombineWhatOverrides.put("Deny", permSet);
+		}
+
+		else if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable".equals(result))
+		{
+			pCombineFA.add("Permit");
+			pCombineFA.add("Deny");	
+		}
+
+		/*
+		 * The "Only-one-applicable" policy-combining algorithm only applies to policies. The
+	414 result of this combining algorithm ensures that one and only one policy or policy set is applicable
+	415 by virtue of their targets. If no policy or policy set applies, then the result is "NotApplicable", but if
+	416 more than one policy or policy set is applicable, then the result is "Indeterminate". When exactly
+	417 one policy or policy set is applicable, the result of the combining algorithm is the result of
+	418 evaluating the single applicable policy or policy set.
+		 */
+		else if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:only-one-applicable".equals(result))
+			throw new MGEUnsupportedXACML("The only-one-applicable policy combination algorithm is not currently supported.");		
+	
+		else
+			throw new MGEBadCombinator("Unsupported rule combining algorithm: "+result);	
+
+
 	}
 	
 	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
@@ -93,26 +149,81 @@ public class MPolicySet extends MPolicy
 			decisions.addAll(dc.decisions);
 		}
 
+		if(pCombineFA.size() > 0 && pCombineWhatOverrides.size() > 0)
+		{
+			// For now, don't allow both kinds of *policy* combinators to be active at once.
+			// TODO temporary
+			throw new MGEBadCombinator("A policy set cannot have both first-applicable and overrides combinators.");
+		}
+				
 		// Unlike rule-combination, there are no _matches/_applies IDBs to create.
 		// Need to propagate up the decisions of the children. Decisions will not
 		// be set for this policy until this method is called.
+		
+		// (a) FA
+		// If XACML, FA means first applicable target.
+		// If not XACML, FA means first to give non-N/a
+		
+		// (b) Overrides
+		// Same in XACML and non-XACML. 
 		
 		for(String dec : decisions)
 		{
 			// Construct this decision IDB.
 			
-			Formula IDB_FA;
-			if(!pCombineFA.contains(dec))
-				IDB_FA = 
+			// FIRST-APPLICABLE
+			if(pCombineFA.contains(dec))
+			{
+				Set<Formula> thisdec = new HashSet<Formula>(); // disj
+				Set<Formula> negpriortargets = new HashSet<Formula>(); // conj
+													
+				// Order matters. Make sure to use the correct ordering.
+				for(MPolicy child : children)
+				{
+					// This decision applies (due to child) if
+					// (1) No older child's target applied
+					// (2) The child's IDB for this decision applies
+					// (3) The child's target applies.
+					thisdec.add(MFormulaManager.makeAnd(MFormulaManager.makeAnd(MFormulaManager.makeConjunction(negpriortargets), 
+							child.idbs.get(dec)), 
+							child.target));
+
+						
+					// !!! TN disabled for now. Not clear how to separate desired semantics (matches vs. applies) vis-a-vis policy targets.
+					
+					// Child exposes some IDBs. 
+					// We must expose them, after making sure CHILD'S target applies, and no older children grabbed the mic.
+					//for(String idbname : child.idbs.keySet())						
+					//	idbs.put(child.name+":"+idbname, MFormulaManager.makeAnd(child.idbs.get(idbname), 
+					//			                                     MFormulaManager.makeAnd(child.target,
+					//			                                    		 MFormulaManager.makeConjunction(negpriortargets))));
+					
+					// Younger children must respect their elders.
+					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
+				}
+					
+				idbs.put(dec, MFormulaManager.makeDisjunction(thisdec));				
+			}
+			
+			// OVERRIDES
+			else if(pCombineWhatOverrides.containsKey(dec))
+			{
+				// Topologically sort the decisions, and populate IDBs in that order.
+				// PolicyLeaf did not need to do that, since the formulas for rules were all available at the start.
+		
+				
+				dff;
+				
+				
+				
+			}
+				
 		}
+
+		
 		
 			
-		if(pCombine.toUpperCase().startsWith("O "))
-		{
-			// Total ordering of decisions given by children.							
-				
-			String[] ordering = pCombine.substring(2).split(" ");
-									
+		/*
 			Set<Formula> negprior = new HashSet<Formula>();
 			for(String dec : ordering)
 			{
@@ -133,48 +244,9 @@ public class MPolicySet extends MPolicy
 					
 				Formula decision_formula = MFormulaManager.makeDisjunction(decf);
 				idbs.put(dec, MFormulaManager.makeAnd(decision_formula,  MFormulaManager.makeConjunction(negprior)));
-				negprior.add(MFormulaManager.makeNegation(decision_formula));
-			}
+				negprior.add(MFormulaManager.makeNegation(decision_formula));		
 				
-		}
-		else if(pCombine.toUpperCase().startsWith("FA"))
-		{
-			//MCommunicator.writeToLog("\nPolicySet.initIDBs(); FA* combinator. Children = "+children+"\n");
-			
-			// Total ordering of children. Applicability is given by the child policy's Target.
-			for(String dec : vocab.decisions)
-			{
-				
-				Set<Formula> thisdec = new HashSet<Formula>(); // disj
-				Set<Formula> negpriortargets = new HashSet<Formula>(); // conj
-													
-				// Order matters. Make sure to use the correct ordering.
-				for(MPolicy child : children)
-				{
-					// This decision ALSO applies if
-					// (1) No older child said what to do (even N/a!)
-					// (2) The child's IDB for this decision applies
-					// (3) The child's target applies to the request.
-					thisdec.add(MFormulaManager.makeAnd(MFormulaManager.makeAnd(MFormulaManager.makeConjunction(negpriortargets),
-							                                                      child.idbs.get(dec)), 
-							                             child.target));
-
-										
-					// Child exposes some IDBs. 
-					// We must expose them, after making sure CHILD'S target applies, and no older children grabbed the mic.
-					for(String idbname : child.idbs.keySet())						
-						idbs.put(child.name+":"+idbname, MFormulaManager.makeAnd(child.idbs.get(idbname), 
-								                                     MFormulaManager.makeAnd(child.target,
-								                                    		 MFormulaManager.makeConjunction(negpriortargets))));
-					
-					// Younger children must respect their elders.
-					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
-				}
-					
-				idbs.put(dec, MFormulaManager.makeDisjunction(thisdec));					
-			}
-							
-		}
+			}*/			
 		
 	} // end initIDBs
 

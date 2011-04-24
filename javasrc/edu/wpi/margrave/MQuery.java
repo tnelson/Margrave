@@ -2138,7 +2138,7 @@ public class MQuery extends MIDBCollection
 	}
 */
 	
-	private static List<String> splitAndRespectParens(String str) {
+	/*private static List<String> splitAndRespectParens(String str) {
 		LinkedList<String> resultList = new LinkedList<String>();
 
 		// Treat newlines, carriage returns, and tabs as whitespace.
@@ -2179,8 +2179,9 @@ public class MQuery extends MIDBCollection
 		// debug
 		// MREPL.outStream.println(str + ": "+resultList);
 		return resultList;
-	}
+	}*/
 
+	/*
 	protected static void noRequantification(String vname, Stack<Variable> ql)
 			throws MGEBadQueryString {
 		// Don't allow re-quantification of the same variable name.
@@ -2189,7 +2190,7 @@ public class MQuery extends MIDBCollection
 				throw new MGEBadQueryString("Requantificiation of variable: "
 						+ vname);
 
-	}
+	}*/
 
 	////////////////////
 	// TN April 2011

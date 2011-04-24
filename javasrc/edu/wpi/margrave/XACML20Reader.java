@@ -424,104 +424,7 @@ class XACML20Reader {
 		throw new MGEUnsupportedXACML("Error loading: "+sFileName);
 	}
 	
-	static String handleXACMLCombine(Node combAlgNode, String type)
-	throws MGEUnsupportedXACML
-	{
-		String result = "";
-		
-		NodeList children = combAlgNode.getChildNodes();
-		
-		if(!type.equals(combAlgNode.getNodeName()))
-			throw new MGEUnsupportedXACML("Combining Algorithm not provided in expected way.");
-		if(children == null)
-			throw new MGEUnsupportedXACML("Combining Algorithm not provided in expected way.");
-		if(children.getLength() != 1)
-			throw new MGEUnsupportedXACML("Combining Algorithm not provided in expected way.");
-				
-		result = children.item(0).getNodeValue();
-		
-		if("RuleCombiningAlgId".equals(type))
-		{
-			// From XACML 2.0 spec
-			/*
-			 * In the entire set of rules in the policy, if any rule evaluates to "Deny", then the result of the
-	5136 rule combination SHALL be "Deny". If any rule evaluates to "Permit" and all other rules
-	5137 evaluate to "NotApplicable", then the result of the rule combination SHALL be "Permit". In
-	5138 other words, "Deny" takes precedence, regardless of the result of evaluating any of the
-	5139 other rules in the combination. If all rules are found to be "NotApplicable" to the decision
-	5140 request, then the rule combination SHALL evaluate to "NotApplicable".
-			 */
-			
-			if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides".equals(result))
-				return "O Deny Permit";
-			
-			if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides".equals(result))
-				return "O Permit Deny";
-			
-			// From XACML 2.0 spec
-			/*
-			 * Each rule SHALL be evaluated in the order in which it is listed in the policy. For a
-	5373 particular rule, if the target matches and the condition evaluates to "True", then the
-	5374 evaluation of the policy SHALL halt and the corresponding effect of the rule SHALL be the
-	5375 result of the evaluation of the policy (i.e. "Permit" or "Deny"). For a particular rule selected
-	5376 in the evaluation, if the target evaluates to "False" or the condition evaluates to "False",
-	5377 then the next rule in the order SHALL be evaluated. If no further rule in the order exists,
-	5378 then the policy SHALL evaluate to "NotApplicable".
-			 */
-			
-			if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:first-applicable".equals(result))
-				return "FAX";
-
-			/*
-			 * The behavior of this algorithm is identical to that of the Permit-overrides rule-combining
-	5363 algorithm with one exception. The order in which the collection of rules is evaluated SHALL
-	5364 match the order as listed in the policy.
-			 */
-
-			
-			if("urn:oasis:names:tc:xacml:1.1:rule-combining-algorithm:ordered-deny-overrides".equals(result))
-				return "O Deny Permit";
-
-			if("urn:oasis:names:tc:xacml:1.1:rule-combining-algorithm:ordered-permit-overrides".equals(result))
-				return "O Permit Deny";
-
-
-		}
-		else
-		{
-			if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides".equals(result))
-				return "O Deny Permit";
-			
-			if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides".equals(result))
-				return "O Permit Deny";
-
-			if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable".equals(result))
-				return "FAX";
-			
-			if("urn:oasis:names:tc:xacml:1.1:policy-combining-algorithm:ordered-permit-overrides".equals(result))
-				return "O Permit Deny";
-			if("urn:oasis:names:tc:xacml:1.1:policy-combining-algorithm:ordered-deny-overrides".equals(result))
-				return "O Deny Permit";
-			
-			/*
-			 * The "Only-one-applicable" policy-combining algorithm only applies to policies. The
-	414 result of this combining algorithm ensures that one and only one policy or policy set is applicable
-	415 by virtue of their targets. If no policy or policy set applies, then the result is "NotApplicable", but if
-	416 more than one policy or policy set is applicable, then the result is "Indeterminate". When exactly
-	417 one policy or policy set is applicable, the result of the combining algorithm is the result of
-	418 evaluating the single applicable policy or policy set.
-			 */
-			if("urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:only-one-applicable".equals(result))
-				throw new MGEUnsupportedXACML("The only-one-applicable policy combination algorithm is not currently supported.");		
-
-			
-		}
-		
-		// http://docs.oasis-open.org/xacml/2.0/access_control-xacml-2.0-core-spec-os.pdf
-
-		throw new MGEUnsupportedXACML("Unfamiliar combination algorithm: "+result);		
-					
-	}
+	
 	
 	private static boolean hasChildNamed(Node n, String name)
 	{
@@ -1133,7 +1036,8 @@ class XACML20Reader {
 			String policyID = policyIDNode.getNodeValue();			
 
 			MPolicySet polset = new MPolicySet(policyID, env);
-			polset.pCombine = handleXACMLCombine(polCombAlgNode, "PolicyCombiningAlgId");
+			polset.isXACML = true;
+			polset.handleXACML2Combine(polCombAlgNode); //  "PolicyCombiningAlgId"
 			
 			// We have a target and a description for the set
 			// we have any number of policy or policyset nodes
@@ -1265,8 +1169,9 @@ class XACML20Reader {
 			String policyID = policyIDNode.getNodeValue();			
 
 			MPolicyLeaf pol = new MPolicyLeaf(policyID, env);
+			pol.isXACML = true;
 
-			pol.rCombine = handleXACMLCombine(ruleCombAlgNode, "RuleCombiningAlgId");
+			pol.handleXACML2Combine(ruleCombAlgNode); // "RuleCombiningAlgId"
 			
 			// CASE SENSITIVE
 			

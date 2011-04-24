@@ -25,7 +25,6 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 
-import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import kodkod.ast.*;
@@ -36,7 +35,6 @@ import com.sun.xacml.finder.impl.*;
 import com.sun.xacml.finder.*;
 import com.sun.xacml.cond.*;
 import com.sun.xacml.attr.*;
-import com.sun.xacml.combine.*;
 
 
 //***********************************************

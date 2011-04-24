@@ -2190,7 +2190,7 @@ public class MEnvironment
 	}
 
 	
-	
+	/*
 	public static Document returnCompareQuery(String originalXMLText,
 			String polname1, String polname2,
 			Boolean tupling, Integer debugLevel,
@@ -2223,7 +2223,7 @@ public class MEnvironment
 		theQuery.doTupling = tupling;
 		
 		return returnQueryResponse(theQuery, originalXMLText);
-	}
+	}*/
 
 	
 	

@@ -21,11 +21,10 @@
 
 package edu.wpi.margrave;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
 import java.util.*;
+
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.sun.xacml.combine.CombiningAlgorithm;
 import com.sun.xacml.combine.DenyOverridesPolicyAlg;
@@ -76,6 +75,76 @@ public class MPolicyLeaf extends MPolicy
 		disjunctionOfRules_cache = new HashMap<String, Formula>();
 	}
 			
+	void handleXACML2Combine(Node combAlgNode)
+	{
+		NodeList children = combAlgNode.getChildNodes();
+
+		if(children == null)
+			throw new MGEUnsupportedXACML("Combination algorithm not provided in expected way by XACML policy.");
+		if(children.getLength() != 1)
+			throw new MGEUnsupportedXACML("Combination algorithm not provided in expected way by XACML policy.");
+
+		String result = children.item(0).getNodeValue();
+
+		// From XACML 2.0 spec
+		/*
+		 * In the entire set of rules in the policy, if any rule evaluates to "Deny", then the result of the
+	5136 rule combination SHALL be "Deny". If any rule evaluates to "Permit" and all other rules
+	5137 evaluate to "NotApplicable", then the result of the rule combination SHALL be "Permit". In
+	5138 other words, "Deny" takes precedence, regardless of the result of evaluating any of the
+	5139 other rules in the combination. If all rules are found to be "NotApplicable" to the decision
+	5140 request, then the rule combination SHALL evaluate to "NotApplicable".
+		 */
+
+		if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides".equals(result) || 
+				"urn:oasis:names:tc:xacml:1.1:rule-combining-algorithm:ordered-deny-overrides".equals(result))
+		{
+			Set<String> denySet = new HashSet<String>();
+			denySet.add("Deny");
+			rCombineWhatOverrides.put("Permit", denySet);
+		}			
+
+		else if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides".equals(result) ||
+				"urn:oasis:names:tc:xacml:1.1:rule-combining-algorithm:ordered-permit-overrides".equals(result))
+		{
+			Set<String> permSet = new HashSet<String>();
+			permSet.add("Permit");
+			rCombineWhatOverrides.put("Deny", permSet);
+		}
+
+		// From XACML 2.0 spec
+		/*
+		 * Each rule SHALL be evaluated in the order in which it is listed in the policy. For a
+	5373 particular rule, if the target matches and the condition evaluates to "True", then the
+	5374 evaluation of the policy SHALL halt and the corresponding effect of the rule SHALL be the
+	5375 result of the evaluation of the policy (i.e. "Permit" or "Deny"). For a particular rule selected
+	5376 in the evaluation, if the target evaluates to "False" or the condition evaluates to "False",
+	5377 then the next rule in the order SHALL be evaluated. If no further rule in the order exists,
+	5378 then the policy SHALL evaluate to "NotApplicable".
+		 */
+
+		else if("urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:first-applicable".equals(result))
+		{
+			rCombineFA.add("Permit");
+			rCombineFA.add("Deny");	
+		}
+
+		/* [re: ordered-deny/permit]
+		 * 
+		 * The behavior of this algorithm is identical to that of the Permit-overrides rule-combining
+	5363 algorithm with one exception. The order in which the collection of rules is evaluated SHALL
+	5364 match the order as listed in the policy.
+		 */
+
+		// http://docs.oasis-open.org/xacml/2.0/access_control-xacml-2.0-core-spec-os.pdf
+		else
+			throw new MGEBadCombinator("Unsupported rule combining algorithm: "+result);	
+	}
+
+
+
+
+	
 
 	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
 	{
