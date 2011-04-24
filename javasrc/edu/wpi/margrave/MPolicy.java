@@ -100,19 +100,6 @@ abstract class MIDBCollection
 	protected Map<String, List<Variable>> varOrderings = new HashMap<String, List<Variable>>();	
 	protected HashMap<Variable, Expression> varSorts = new HashMap<Variable, Expression>();	
 	
-	protected boolean isAllDecs(List<String> strs)
-	{
-		List<String> lcstrs = new ArrayList<String>();
-		for (String s : strs)
-			lcstrs.add(s.toLowerCase());
-		
-		return idbs.keySet().containsAll(lcstrs) && lcstrs.containsAll(idbs.keySet());
-	}
-	protected boolean isAllDecs(String[] strs) {
-		// Is the array given a list of all decisions?
-		return isAllDecs(Arrays.asList(strs));
-	}
-
 	
 	// !!! TODO
 	// Tn april 2011, I don't think this method has been necessary since MFormulaManager
@@ -148,24 +135,16 @@ abstract class MIDBCollection
 	void initIDBs()
 	throws MUserException
 	{
-		// Policies call super.initIDBs() to make sure they have proper varOrdering and varSorts		
-		
-		for(MPredicate aDec : vocab.decisions.values())
-		{
-			// More than typeconstruct?
-			// Permit: Subject, Action, Resource
-			// yes. but need ordering on the variables used in the idb fmla!
-			// so more needed than just EDB
-			
-			varOrderings.
-		}
-		
-		varOrdering = vocab.requestVectorOrder;
-					
-		for(Variable v : vocab.requestVectorOrder)
-		{			
-			varSorts.put(v, vocab.requestVarDomains.get(v.name()));
-		}
+		// If this is a Policy Leaf, the decisions are known, but not until the object is created and the rules are all passed.
+		// If this is a Policy Set, the decisions aren't known until initIDB is called.
+		// If this is a saved query, there is only one decision and it should be handled in the constructor.
+		if(this instanceof MPolicyLeaf)
+			((MPolicyLeaf)this).initIDBs();
+		else if(this instanceof MPolicySet)
+			((MPolicySet)this).initIDBs();
+		else if(this instanceof MQuery)
+			((MQuery)this).initIDBs();
+
 	}
 
 } // end MIDBCollection
@@ -201,22 +180,7 @@ public abstract class MPolicy extends MIDBCollection
 		vocab = voc;
 		name = n.toLowerCase();				
 		
-		
-		// This policy is an IDB collection; it must publish the vector that its IDBs take.
-		varOrdering = new ArrayList<Variable>(vocab.requestVectorOrder);		
-		for(String s : vocab.requestVariables.keySet())
-		{		
-			if(vocab.requestVarDomains.containsKey(s))
-				varSorts.put(vocab.requestVariables.get(s), vocab.requestVarDomains.get(s));
-		}
-		
-		
-		target = Formula.TRUE; // default to always-applies.
-		
-		// Presumably the vocab object has some decisions in it. Initialize our *decision* IDBs
-		for(String d : vocab.decisions)
-			if(!idbs.containsKey(d))
-				idbs.put(d, Formula.FALSE);
+		target = Formula.TRUE; // default to always-applies.	
 	}
 			
 	public String printCombinators(Set<String> combineFA, Map<String, Set<String>> combineWhatOverrides)
@@ -262,8 +226,6 @@ public abstract class MPolicy extends MIDBCollection
 			s = s.toLowerCase();
 			String breakdown[] = s.split(" ");
 			
-			if(!vocab.requestVariables.containsKey(breakdown[1]))
-				throw new MGEBadIdentifierName("Identifier "+breakdown[1]+" is not a request variable.");
 			if(!vocab.isSort(breakdown[0]))
 				throw new MGEBadIdentifierName("Relation "+breakdown[0]+" is not a type.");
 
@@ -279,7 +241,7 @@ public abstract class MPolicy extends MIDBCollection
 			{
 				// IN
 				Expression r = getRelationExpr(breakdown[0]);			
-				targetSet.add(MFormulaManager.makeAtom(vocab.requestVariables.get(breakdown[1]), r));
+				targetSet.add(MFormulaManager.makeAtom(MFormulaManager.makeVariable(breakdown[1]), r));
 			}
 		}
 		
@@ -402,33 +364,10 @@ public abstract class MPolicy extends MIDBCollection
 	throws MUserException
 	{		
 		return compareWithPolicy(p2, false, 0, -1);				
-	}*/
-	
-	
-	/**
-	 * Given a text query, create a query object that will run the requested query on this policy.
-	 * @param prop The string describing the query
-	 * @return MGQuery object
-	 * @throws MGEBadQueryString
-	 * @throws MGEUnknownIdentifier
-	 * @throws MGEArityMismatch
-	 * @throws MGECombineVocabs
-	 * @throws MGEBadIdentifierName
-	 * @throws MGEUnsortedVariable 
-	 * @throws MGEManagerException 
-	 */
-	public MQuery queryPolicy(String prop) 
-	throws MGEBadQueryString, MGEUnknownIdentifier, MGEArityMismatch, MGECombineVocabs, 
-	MGEBadIdentifierName,  MGEManagerException
-	{
-		// Convert the text query into a MGQuery object.
-		ArrayList<MIDBCollection> temp = new ArrayList<MIDBCollection>();
-		temp.add(this);
-		
-		return MQuery.queryThesePolicies(prop, temp);
 	}
-		
+	*/
 	
+		
 	
 	/**
 	 * Prints the IDBs of the policy in a (somewhat) readable manner.
@@ -493,13 +432,7 @@ public abstract class MPolicy extends MIDBCollection
 			result.add(name + ":" + idbname);			
 		return result;
 	}
-	
-	public void initIDBs()
-	throws MUserException
-	{
-		super.initIDBs();
-	}
-	  
+		  
 	public void setName(String n)
 	{
 		name = n.toLowerCase();
@@ -628,8 +561,8 @@ public abstract class MPolicy extends MIDBCollection
 		//env.addRequestVar("r", "resource");
 		//env.addRequestVar("e", "environment");
 		
-		env.addDecision("permit");
-		env.addDecision("deny");
+		//env.addDecision("permit");
+		//env.addDecision("deny");
 		
 		// Note that Margrave does not support any language features that could result in an
 		// Indeterminate decision. (In particular, MustBePresent, among others.)
@@ -746,19 +679,7 @@ public abstract class MPolicy extends MIDBCollection
 		allparts.add( MFormulaManager.makeDisjunction(resf));
 		return MFormulaManager.makeConjunction(allparts);
 	}
-	
-	private static String handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
-	{
-		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg)
-			return "O deny permit";
-		if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg)
-			return "O permit deny";
-		if(ca instanceof FirstApplicablePolicyAlg || ca instanceof FirstApplicableRuleAlg)
-			return "FAX"; // xacml FA, not intuitive FA
-				
-		throw new MGEBadCombinator("Unsupported combining algorithm: "+ca);		
-	}
-	
+		
 	private static String buildConditionPredicate(Apply func, Set<String> involves) throws MGEUnsupportedXACML
 	{
 		String result = func.getFunction().getIdentifier().getSchemeSpecificPart().toString() + "(";
@@ -957,10 +878,11 @@ public abstract class MPolicy extends MIDBCollection
 			
 			MPolicySet pol = new MPolicySet(p.getId().toString(), voc);
 			pol.target = handleXACMLTarget(targ, voc); // env may be updated with new sorts		
+			pol.isXACML = true;
 
 			// Combining Alg
 			
-			pol.pCombine = handleXACMLCombine(p.getCombiningAlg());	
+			pol.handleXACMLCombine(p.getCombiningAlg());	
 		
 			for(Object _cp : p.getChildren())
 			{
@@ -981,10 +903,11 @@ public abstract class MPolicy extends MIDBCollection
 		{
 			
 			MPolicyLeaf pol = new MPolicyLeaf(p.getId().toString(), voc);
-			pol.target = handleXACMLTarget(targ, voc); // env may be updated with new sorts		
+			pol.target = handleXACMLTarget(targ, voc); // env may be updated with new sorts	
+			pol.isXACML = true;
 
 			// Combining Alg
-			pol.rCombine = handleXACMLCombine(p.getCombiningAlg()); 
+			pol.handleXACMLCombine(p.getCombiningAlg()); 
 			
 			for(Object _r : p.getChildren())
 			{				

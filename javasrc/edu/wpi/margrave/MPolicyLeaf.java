@@ -27,6 +27,14 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 
+import com.sun.xacml.combine.CombiningAlgorithm;
+import com.sun.xacml.combine.DenyOverridesPolicyAlg;
+import com.sun.xacml.combine.DenyOverridesRuleAlg;
+import com.sun.xacml.combine.FirstApplicablePolicyAlg;
+import com.sun.xacml.combine.FirstApplicableRuleAlg;
+import com.sun.xacml.combine.PermitOverridesPolicyAlg;
+import com.sun.xacml.combine.PermitOverridesRuleAlg;
+
 import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
@@ -69,7 +77,30 @@ public class MPolicyLeaf extends MPolicy
 	}
 			
 
-	
+	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
+	{
+		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg)
+		{
+			Set<String> denySet = new HashSet<String>();
+			denySet.add("Deny");
+			rCombineWhatOverrides.put("Permit", denySet);
+		}
+		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg)
+		{
+			Set<String> permSet = new HashSet<String>();
+			permSet.add("Permit");
+			rCombineWhatOverrides.put("Deny", permSet);
+
+		}
+		else if(ca instanceof FirstApplicablePolicyAlg || ca instanceof FirstApplicableRuleAlg)
+		{
+			rCombineFA.add("Permit");
+			rCombineFA.add("Deny");			
+		}
+				
+		throw new MGEBadCombinator("Unsupported combining algorithm: "+ca);		
+	}
+
 	
 	public void printPolicyInfo()
 	{

@@ -23,6 +23,14 @@ package edu.wpi.margrave;
 
 import java.util.*;
 
+import com.sun.xacml.combine.CombiningAlgorithm;
+import com.sun.xacml.combine.DenyOverridesPolicyAlg;
+import com.sun.xacml.combine.DenyOverridesRuleAlg;
+import com.sun.xacml.combine.FirstApplicablePolicyAlg;
+import com.sun.xacml.combine.FirstApplicableRuleAlg;
+import com.sun.xacml.combine.PermitOverridesPolicyAlg;
+import com.sun.xacml.combine.PermitOverridesRuleAlg;
+
 import kodkod.ast.Formula;
 
 
@@ -46,18 +54,58 @@ public class MPolicySet extends MPolicy
 		children.add(ch); // allow adding multiple times
 	}
 	
+	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
+	{
+		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg)
+		{
+			Set<String> denySet = new HashSet<String>();
+			denySet.add("Deny");
+			pCombineWhatOverrides.put("Permit", denySet);
+		}
+		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg)
+		{
+			Set<String> permSet = new HashSet<String>();
+			permSet.add("Permit");
+			pCombineWhatOverrides.put("Deny", permSet);
+
+		}
+		else if(ca instanceof FirstApplicablePolicyAlg || ca instanceof FirstApplicableRuleAlg)
+		{
+			pCombineFA.add("Permit");
+			pCombineFA.add("Deny");			
+		}
+				
+		throw new MGEBadCombinator("Unsupported combining algorithm: "+ca);		
+	}
+	
 	public void initIDBs() throws MUserException
 	{
 		super.initIDBs();
 		
-		// Recalling this method should "reset" all IDBs. Start out with a clean slate:		
+		// Recalling this method should "reset" all IDBs. Start out with a clean slate:
+		decisions.clear();
 		idbs.clear();						
 				
 		// Prepare the IDBs of child policies
 		for(MPolicy dc : children)
-			dc.initIDBs();
+		{
+			dc.initIDBs();			
+			decisions.addAll(dc.decisions);
+		}
 
-		// Perform combination
+		// Unlike rule-combination, there are no _matches/_applies IDBs to create.
+		// Need to propagate up the decisions of the children. Decisions will not
+		// be set for this policy until this method is called.
+		
+		for(String dec : decisions)
+		{
+			// Construct this decision IDB.
+			
+			Formula IDB_FA;
+			if(!pCombineFA.contains(dec))
+				IDB_FA = 
+		}
+		
 			
 		if(pCombine.toUpperCase().startsWith("O "))
 		{
