@@ -986,7 +986,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 			}
 			catch(TimeoutException e)
 			{
-				// for now TODO
+				// for now 
 				throw new RuntimeException(e);
 			}
 			if(toRemove != null)
@@ -1250,7 +1250,7 @@ class MPartialInstanceIterator extends MInstanceIterator
 				MEnvironment.outWriter.print(iVar + " ");
 		MEnvironment.writeOutLine("");
 		
-		// TODO to optimize speed, could store some of these values we are calculating (like vars -> clauses map) and expand each call
+		// OPT to optimize speed, could store some of these values we are calculating (like vars -> clauses map) and expand each call
 		
         
 		
@@ -1852,9 +1852,7 @@ public abstract class MInstanceIterator
 
 	// Calculated internally!
 	public long msKodkodSolveTime = 0;
-	public long msKodkodTransTime = 0;
-	
-	// TODO check these calculations
+	public long msKodkodTransTime = 0;	
 	
 	// Used in output to help display the vectors for idbs
 	Map<String, String> idbToTup = new HashMap<String, String>();
@@ -2523,44 +2521,30 @@ class SkolemReporter implements Reporter
 	
 	@Override
 	public void detectedSymmetries(Set<IntSet> parts) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void detectingSymmetries(Bounds bounds) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void flattening(BooleanFormula circuit) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void generatingSBP() {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void optimizingBoundsAndFormula() {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void skolemizing(Decl decl, Relation skolem, List<Decl> context) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void solvingCNF(int primaryVars, int vars, int clauses) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -2570,9 +2554,7 @@ class SkolemReporter implements Reporter
 	}
 
 	@Override
-	public void translatingToCNF(BooleanFormula circuit) {
-		// TODO Auto-generated method stub
-		
+	public void translatingToCNF(BooleanFormula circuit) {				
 	}
 	
 }

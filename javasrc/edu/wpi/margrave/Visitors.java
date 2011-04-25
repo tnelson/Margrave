@@ -355,7 +355,7 @@ class FormulaIndentPrintV extends AbstractVoidVisitor
 
 	@Override
 	protected boolean visited(Node n) {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 		return false;
 	}
 	
@@ -926,7 +926,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		equalAxiomsNeeded = new HashSet<String>();
 
 		// FOR NOW, all equality predicates. 
-		// TODO: no need to model i=j if their sorts are always disjoint
+		// OPT: no need to model i=j if their sorts are always disjoint
 		for (int ileft = 1; ileft <= pren.qCount; ileft++)
 			for (int iright = ileft + 1; iright <= pren.qCount; iright++)
 			{

@@ -1263,8 +1263,7 @@ public class MFormulaManager
 		
 		return conjunction;		
 		
-		// TODO
-		// promotion of existentials when safe; substitution for it
+		// OPT promotion of existentials when safe; substitution for it
 	}
 
 	static Formula makeDisjunction(Set<Formula> disjuncts)

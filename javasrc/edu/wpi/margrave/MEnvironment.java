@@ -138,7 +138,7 @@ class MExploreCondition
 	// think they are real free variables.
 	Set<Variable> knownPlaceholders = new HashSet<Variable>();
 	
-	void resolvePlaceholders(MVocab vocab)
+	/*void resolvePlaceholders(MVocab vocab)
 	throws MUserException, MGEManagerException
 	{
 		// When the vocabulary is known, turn the placeholders into real Nodes.
@@ -209,9 +209,9 @@ class MExploreCondition
 		
 		ReplaceComparisonFormulasV theVisitor = new ReplaceComparisonFormulasV(replacementMap);		
 		fmla = fmla.accept(theVisitor);		
-	}	
+	}	*/
 	
-	public static void resolveMapPlaceholders(MVocab vocab,
+	/*public static void resolveMapPlaceholders(MVocab vocab,
 			Map<String, Set<List<String>>> themap) throws MUserException
 	{		
 		if(themap == null)
@@ -274,10 +274,11 @@ class MExploreCondition
 			// Remove the special entry
 			themap.remove("=");
 		
-	}
+	}*/
 	
 	// **************************************************************	
 	
+	/*
 	public void inferFromInclude(MVocab uber,
 			Map<String, Set<List<String>>> includeMap) throws MGEUnknownIdentifier
 	{
@@ -364,7 +365,7 @@ class MExploreCondition
 			}
 		}
 	}
-	
+	*/
 
 	
 	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
@@ -406,6 +407,7 @@ class MExploreCondition
 		//	eqPlaceholders.add(fmla);
 	}
 	
+	// Atomic EDB formulas: made(vec)
 	MExploreCondition(Formula f, Relation made, List<String> varnamevector)
 	{
 		fmla = f;
@@ -422,7 +424,8 @@ class MExploreCondition
 		assertAtomicNecessary.get(varvector).add(new MVariableVectorAssertion(true, made));				
 	}
 	
-	MExploreCondition(Formula f, MIDBCollection pol, List<String> varnamevector)
+	// Atomic IDB Formulas pol.idbname(vec)
+	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<String> varnamevector)
 	{
 		fmla = f;
 		seenIDBs.add(pol);
@@ -440,7 +443,7 @@ class MExploreCondition
 			
 			initAssertionsForVectorIfNeeded(thisVar);
 			
-			Variable oldVar = pol.varOrdering.get(iIndex);
+			Variable oldVar = pol.varOrderings.get(idbname).get(iIndex);
 			iIndex ++;
 			
 			//MEnvironment.errorStream.println(oldVar);
@@ -940,7 +943,6 @@ public class MEnvironment
 	private static Document getCollectionInfo(MIDBCollection coll)
 	{	
 		// TODO This should be broken out into methods of each subclass.
-		// TODO should also give more info
 			
 		Document xmldoc = makeInitialResponse("collection-info");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
@@ -992,6 +994,16 @@ public class MEnvironment
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				
+				Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
+				for(Variable v : coll.varOrderings.get(key))
+				{
+					Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+					varElement.appendChild(xmldoc.createTextNode(v.name()));
+					varsElement.appendChild(varElement);
+				}
+				idbElement.appendChild(varsElement);
+				
 				idbsElement.appendChild(idbElement);
 			}
 			theElement.appendChild(idbsElement);
@@ -1003,16 +1015,7 @@ public class MEnvironment
 				cElement.setAttribute("name", child.name);								
 				childrenElement.appendChild(cElement);
 			}
-			theElement.appendChild(childrenElement);
-			
-			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
-			for(Variable v : coll.varOrdering)
-			{
-				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
-				varElement.appendChild(xmldoc.createTextNode(v.name()));
-				varsElement.appendChild(varElement);
-			}
-			theElement.appendChild(varsElement);
+			theElement.appendChild(childrenElement);					
 			
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}
@@ -1028,18 +1031,20 @@ public class MEnvironment
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				
+				Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
+				for(Variable v : coll.varOrderings.get(key))
+				{
+					Element varElement = xmldoc.createElementNS(null, "VARIABLE");
+					varElement.appendChild(xmldoc.createTextNode(v.name()));
+					varsElement.appendChild(varElement);
+				}
+				idbElement.appendChild(varsElement);
+				
 				idbsElement.appendChild(idbElement);
 			}
 			theElement.appendChild(idbsElement);
 			
-			Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
-			for(Variable v : coll.varOrdering)
-			{
-				Element varElement = xmldoc.createElementNS(null, "VARIABLE");
-				varElement.appendChild(xmldoc.createTextNode(v.name()));
-				varsElement.appendChild(varElement);
-			}
-			theElement.appendChild(varsElement);
 			
 			xmldoc.getDocumentElement().appendChild(theElement);
 		}
@@ -1115,36 +1120,7 @@ public class MEnvironment
 				
 		return boolResponse(envIDBCollections.put(ident, pol) != null);			
 	}
-	
-	static public Document renameIDBCollection(String identold, String identnew)
-	{
-		identold = identold.toLowerCase();
-		identnew = identnew.toLowerCase();
 		
-		if("last".equals(identnew))
-		{						
-			return errorResponse(sReserved, sIDBCollection, identnew);
-		}
-		
-		if(!envIDBCollections.containsKey(identold))
-		{			
-			return errorResponse(sUnknown, sIDBCollection, identold);		
-		}
-		
-		MIDBCollection collToMove = envIDBCollections.get(identold);
-		
-		// Important: Change the "name" field of the IDB Collection, too.
-		// (Some internal code depends on this.)
-		// TODO -- remove the name field entirely and add a reverse-lookup in MEnvironment
-		collToMove.name = identnew;
-		
-		boolean overwrote = envIDBCollections.put(identnew, collToMove) != null;
-		envIDBCollections.remove(identold);
-		return boolResponse(overwrote);		
-	}
-	
-	
-	
 	static protected void setLast(MQuery qry)
 	{
 		envIDBCollections.put("last", qry);
@@ -1181,12 +1157,13 @@ public class MEnvironment
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
+		// XXX no more placeholders. to be removed. 
 		// If tupled, will have indexing. Translate (using the original vocab)
-		if(aResult.forQuery.tupled)
-		{
-			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
-			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
-		}
+		//if(aResult.forQuery.tupled)
+		//{
+		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
+		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
+		//}
 		
 		Map<String, Set<String>> outsets;
 		try
@@ -1227,12 +1204,13 @@ public class MEnvironment
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
+		// XXX no more placeholders. to be removed. 
 		// If tupled, will have indexing. Translate (using the original vocab)
-		if(aResult.forQuery.tupled)
-		{
-			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
-			MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
-		}
+		//if(aResult.forQuery.tupled)
+		//{
+		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
+		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
+		//}
 		
 		Map<String, Set<String>> outsets;
 		try
@@ -1629,7 +1607,7 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addRule(String pname, String rname, String decision, List<String> cc)
+	public static Document addRule(String pname, String rname, String decision, List<String> varOrdering, Formula target, Formula condition)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);			
@@ -1637,9 +1615,14 @@ public class MEnvironment
 		if(!(coll instanceof MPolicyLeaf))
 			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
+		
+		// No longer just a list of literal fmlas in a single conjunction.
+		// Now we have an actual formula, potentially with quantifiers!
+		// (But still need to separate target/condition for XACML.)
+		
 		try
 		{
-			pol.addRule(rname, decision, cc);
+			pol.addRule(rname, decision, varOrdering, target, condition);
 		}
 		catch(MBaseException e)
 		{
@@ -1667,7 +1650,7 @@ public class MEnvironment
 		return successResponse();
 	}
 
-	public static Document setRCombine(String pname, List<String> idl)
+	public static Document setRCombine(String pname, Set<String> facs, Map<String, Set<String>> overrides)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
@@ -1675,11 +1658,13 @@ public class MEnvironment
 		if(!(coll instanceof MPolicyLeaf))
 			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
-		pol.rCombine = foldConcatWithSpaces(idl);
+		pol.rCombineFA = new HashSet<String>(facs);
+		pol.rCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);
+		
 		return successResponse();
 	}
 
-	public static Document setPCombine(String pname, List<String> idl) 
+	public static Document setPCombine(String pname, Set<String> facs, Map<String, Set<String>> overrides) 
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
@@ -1687,7 +1672,9 @@ public class MEnvironment
 		if(!(coll instanceof MPolicySet))
 			return errorResponse(sNotExpected, sPolicySet, pname);
 		MPolicySet pol = (MPolicySet) coll;
-		pol.pCombine = foldConcatWithSpaces(idl);
+		pol.pCombineFA = new HashSet<String>(facs);
+		pol.pCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);
+		
 		return successResponse();
 	}
 
@@ -2149,7 +2136,7 @@ public class MEnvironment
 			objElement.setAttribute("type", obj.getClass().getCanonicalName());
 			objElement.setAttribute("order", String.valueOf(iOrder));
 			
-			// TODO potential info loss in the toString call here. 
+			// WORRY potential info loss in the toString call here. 
 			objElement.appendChild(xmldoc.createTextNode(obj.toString()));
 			listElement.appendChild(objElement);
 			iOrder++;
@@ -2171,7 +2158,7 @@ public class MEnvironment
 			Element objElement = xmldoc.createElementNS(null, "ITEM");
 			objElement.setAttribute("type", obj.getClass().getCanonicalName());
 			
-			// TODO potential info loss in the toString call here. 
+			// WORRY potential info loss in the toString call here. 
 			objElement.appendChild(xmldoc.createTextNode(obj.toString()));
 			setElement.appendChild(objElement);			
 		}
@@ -2192,7 +2179,7 @@ public class MEnvironment
 			entryElement.setAttribute("key-type", key.getClass().getCanonicalName());
 			entryElement.setAttribute("key", key.toString());
 			
-			// TODO some info lost in the toString calls here.
+			// WORRY some info lost in the toString calls here.
 			for(Object obj : outsets.get(key))
 			{
 				Element valueElement = xmldoc.createElementNS(null, "VALUE");	

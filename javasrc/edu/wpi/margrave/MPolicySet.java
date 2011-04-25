@@ -152,10 +152,25 @@ public class MPolicySet extends MPolicy
 		if(pCombineFA.size() > 0 && pCombineWhatOverrides.size() > 0)
 		{
 			// For now, don't allow both kinds of *policy* combinators to be active at once.
-			// TODO temporary
+			// TODO allow both FA&O in pcomb
 			throw new MGEBadCombinator("A policy set cannot have both first-applicable and overrides combinators.");
 		}
-				
+
+		// Decisions pre-combinators
+		Map<String, Formula> preComb = new HashMap<String, Formula>();
+		for(String dec : decisions)
+		{	
+			preComb.put(dec, Formula.FALSE);
+			for(MPolicy dc : children)
+			{
+				// Don't forget to include the child's target!
+				if(dc.idbs.containsKey(dec))
+					preComb.put(dec, MFormulaManager.makeOr(preComb.get(dec), 
+							MFormulaManager.makeAnd(dc.idbs.get(dec), dc.target)));
+			}
+		}
+		
+		
 		// Unlike rule-combination, there are no _matches/_applies IDBs to create.
 		// Need to propagate up the decisions of the children. Decisions will not
 		// be set for this policy until this method is called.
@@ -208,45 +223,23 @@ public class MPolicySet extends MPolicy
 			// OVERRIDES
 			else if(pCombineWhatOverrides.containsKey(dec))
 			{
-				// Topologically sort the decisions, and populate IDBs in that order.
-				// PolicyLeaf did not need to do that, since the formulas for rules were all available at the start.
-		
 				
-				dff;
+				// In PolicyLeaf the formulas for rules were all available at the start. 
+				// Here we have something similar: we can derive proto-decisions (just "matches")
+				// --- preComb
 				
-				
+				idbs.put(dec, preComb.get(dec));
+				for(String dOverrides : pCombineWhatOverrides.get(dec))
+				{
+					// If A > B, anytime A matches, B can't hold (even if A is itself overridden)
+					idbs.put(dec, MFormulaManager.makeAnd(idbs.get(dec), 
+							MFormulaManager.makeNegation(preComb.get(dOverrides))));
+				}										
 				
 			}
 				
 		}
-
-		
-		
 			
-		/*
-			Set<Formula> negprior = new HashSet<Formula>();
-			for(String dec : ordering)
-			{
-				Set<Formula> decf = new HashSet<Formula>();
-				for(MPolicy child : children)	
-				{
-					// Child exposes some IDBs.
-					// We must expose them, after making sure CHILD'S target applies, and no more important decisions given.
-					for(String idbname : child.idbs.keySet())					
-						idbs.put(child.name+":"+idbname, 
-								MFormulaManager.makeAnd(child.idbs.get(idbname), 
-										                 MFormulaManager.makeAnd(child.target, 
-										                		        MFormulaManager.makeConjunction(negprior))));
-					
-					
-					decf.add(MFormulaManager.makeAnd(child.target, child.idbs.get(dec)));
-				}
-					
-				Formula decision_formula = MFormulaManager.makeDisjunction(decf);
-				idbs.put(dec, MFormulaManager.makeAnd(decision_formula,  MFormulaManager.makeConjunction(negprior)));
-				negprior.add(MFormulaManager.makeNegation(decision_formula));		
-				
-			}*/			
 		
 	} // end initIDBs
 

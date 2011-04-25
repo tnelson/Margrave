@@ -63,6 +63,30 @@ class MSort
 	
 }
 
+class MSortPair
+{
+	MSort s1, s2;
+	
+	MSortPair(MSort s1, MSort s2)
+	{
+		this.s1 = s1;
+		this.s2 = s2;
+	}
+	
+	// Want set-semantics for equality
+	public boolean equals(Object other)
+	{
+		if(this == other)
+			return true;
+		if(! (other instanceof MSortPair))
+			return false;
+		
+		MSortPair mspOther = (MSortPair) other;
+		return ((s1.equals(mspOther.s1) && s2.equals(mspOther.s2)) ||
+				(s1.equals(mspOther.s2) && s2.equals(mspOther.s1)));
+	}
+}
+
 abstract class MTerm
 {	
 	Expression expr;
@@ -93,7 +117,7 @@ class MFunctionTerm extends MTerm
 			this.seenRelations.addAll(child.seenRelations);
 			this.seenVariables.addAll(child.seenVariables);
 			
-			// is this in the right order? TODO
+			// TODO is this in the right order? 
 			this.expr = this.expr.join(child.expr);
 		}				
 	}
@@ -583,7 +607,7 @@ public class MVocab {
 			arity.add(getSort(s));
 		return arity;
 	}
-	
+
 	Relation getRelation(String rname) throws MGEUnknownIdentifier, MGEBadIdentifierName 
 	{
 		rname = validateIdentifier(rname, true);
@@ -598,7 +622,7 @@ public class MVocab {
 				return predicates.get(rname).rel;
 			throw new MGEUnknownIdentifier("Error: Unable to get Relation for unknown sort name: " + rname);
 		}
-	}
+	}	
 
 	private Formula getPredTypeFormula(String relname)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName 
@@ -652,6 +676,30 @@ public class MVocab {
 		}
 		
 		cacheTopLevelSorts = results;
+		return results;
+	}
+	
+	Set<MSortPair> getConciseDisjointSortsAsymm()
+	{
+		// Gives the result of calling getConciseDisjointSorts on
+		// each sort, *but*, will only assert the disjointness between
+		// A and B in one direction. Saves work. 
+		
+		Set<MSortPair> results = new HashSet<MSortPair>();
+		
+		for(MSort aSort : sorts.values())
+		{
+			Set<MSort> theseDisjs = getConciseDisjointSorts(aSort);
+			
+			// Set will use equality and not double-populate.
+			for(MSort othSort : theseDisjs)
+			{
+				MSortPair aPair = new MSortPair(aSort, othSort);
+				results.add(aPair);
+			}
+			
+		}
+		
 		return results;
 	}
 	
@@ -1300,8 +1348,7 @@ public class MVocab {
 	public boolean writeAsDOT(String filename)
 	{
 		// Write out the vocabulary as a DOT file for GraphViz.
-		// Not quite done yet! (TODO?)
-		// In particular, only replacing "-" and "/", may be other forbidden characters...
+		// Potential issues in future: In particular, only replacing "-" and "/", may be other forbidden characters...
 
 		// There is also the problem of displaying LARGE vocabularies (image is too big for graphviz) 
 		

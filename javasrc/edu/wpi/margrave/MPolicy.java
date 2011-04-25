@@ -99,8 +99,8 @@ abstract class MIDBCollection
 	protected HashMap<Variable, Expression> varSorts = new HashMap<Variable, Expression>();	
 	
 	
-	// !!! TODO
-	// Tn april 2011, I don't think this method has been necessary since MFormulaManager
+
+	// TODO Tn april 2011, I don't think this method has been necessary since MFormulaManager
 	
 	protected static RelationAndVariableReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
@@ -461,18 +461,7 @@ public abstract class MPolicy extends MIDBCollection
 	{
 		return SQSReader.loadSQS(sFileName);
 	}
-		
-	
-	// JUNOS Input
-	public static void readJUNIS(String junosFileName)
-	{
-		// Invoke parser
-		
-		// TODO
-		
-		// void because --- what should it return? there are multiple "policies".
-	}
-	
+			
 	
 	// XACML Input	
 		

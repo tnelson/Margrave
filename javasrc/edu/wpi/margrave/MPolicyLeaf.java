@@ -297,29 +297,29 @@ public class MPolicyLeaf extends MPolicy
 	/*
 	 * 
 	 */
-	public void addRule(String rulename, String decision, List<String> freeVarOrdering, List<String> conjuncts) 
+//	public void addRule(String rulename, String decision, List<String> freeVarOrdering, List<String> conjuncts) 
+	public void addRule(String rulename, String decision, List<String> freeVarOrdering, Formula aTarget, Formula aCondition)
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
-	{
-		// decision(requestVars) :- clauses[0] and clauses[1] and ...
-		// where each clause is a String of the form: <pred-name> <arg 1> ... <arg k>
-		// and each arg is either a variable name or a function call.		
-		
+	{	
+		/////////////////////////////////////////////////////////////
+		// Allow a policy to try to re-define the same rule, just know that they are separate.
 		if(hasRule(rulename))
-		{
-			// Allow a policy to try to re-define the same rule, just know that they are separate. 
+		{			
 			rulename = rulename + "-" + dupeRuleSuffix;
 			dupeRuleSuffix++;
 		}
-		
+
+		/////////////////////////////////////////////////////////////
 		rulename = vocab.validateIdentifier(rulename, true);
 		decision = vocab.validateIdentifier(decision, true);
 		
-		Set<Formula> thisruletarget = new HashSet<Formula>(); 
-		Set<Formula> thisrulecondition = new HashSet<Formula>();
-		
-		// We rename, so need to connect old-name to new var.
+		// XXX to remove. renaming is done by caller now.
+		// We rename bound variables internally. e.g. if policy declares variable x : A,
+		// and two separate rules use x as a rule-scope existential, we create x_rule1 and x_rule2
+		// to standardize apart.
 		HashMap<String, Variable> otherVarLocals = new HashMap<String, Variable>();
 
+		/////////////////////////////////////////////////////////////
 		// Variable ordering on this rule 
 		List<Variable> ruleFreeVars = new ArrayList<Variable>();
 		for(String vname : freeVarOrdering)
@@ -327,26 +327,28 @@ public class MPolicyLeaf extends MPolicy
 			ruleFreeVars.add(MFormulaManager.makeVariable(vname));
 		}
 		
+		/////////////////////////////////////////////////////////////
 		if(!idbs.keySet().contains(decision))
 		{
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
-			// (Sorts of all these variables should be known already.)
-			
+			// (Sorts of all these variables should be known already.)			
 			idbs.put(decision, Formula.FALSE);
-			this.varOrderings.put(decision, ruleFreeVars);
-			
+			this.varOrderings.put(decision, ruleFreeVars);		
 		}
 		
-		List<Variable> idbFreeVars = varOrderings.get(decision);
-		if(!ruleFreeVars.equals(idbFreeVars))
+		/////////////////////////////////////////////////////////////
+		// Make sure The decision is not expecting a different arity.
+		List<Variable> expectedIDBFreeVars = varOrderings.get(decision);
+		if(!ruleFreeVars.equals(expectedIDBFreeVars))
 		{
 			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
-					"First was: "+idbFreeVars+"; second was: "+ruleFreeVars);
+					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars);
 		}
 		
 		
 		// For each literal fmla in the list
-		for(String conj : conjuncts)
+		// XXX to remove. string-handling for what used to be conjunction of literals
+	/*	for(String conj : conjuncts)
 		{
 			conj = conj.toLowerCase();
 			
@@ -473,21 +475,21 @@ public class MPolicyLeaf extends MPolicy
 		
 			
 		} // end for each conjunct
+		*/
 		
+		/////////////////////////////////////////////////////////////
 		// Add this rule to the rule set.
 		MRule newrule = new MRule();
 		newrule.setDecision(decision);
-		newrule.name = rulename;
-		
-		// If this rule has no target (or condition), the object's target (respectively condition)
-		// element will be trivially true. When evaluating the rule, they are connected via .and().		
-
-		newrule.target = MFormulaManager.makeConjunction(thisruletarget);
-		newrule.condition = MFormulaManager.makeConjunction(thisrulecondition);
+		newrule.name = rulename;	
+		newrule.target = aTarget;
+		newrule.condition = aCondition;
 				
+		// XXX to remove: quantification s/b done already in the construction of aTarget, aCondition
+		
 		// Any rule-scope variables here need explicit existential quantification.
 		// (added to the CONDITION -- since the target cannot involve non-request vars.)
-		
+		/*
 		for(Variable v : otherVarLocals.values())
 		{
 			// What was it originally?
@@ -506,17 +508,14 @@ public class MPolicyLeaf extends MPolicy
 					break;
 				}
 		}
+		*/
 		
-		
-		newrule.target_and_condition = MFormulaManager.makeAnd(newrule.target, newrule.condition);
-		
+		newrule.target_and_condition = MFormulaManager.makeAnd(newrule.target, newrule.condition);		
 		rules.add(newrule);
 		rulemap.put(newrule.name, newrule);
 		
 		//FOR DEBUGGING
-		//MCommunicator.writeToLog("\n In MPolicyLeaf.addRule\n newRule.target: " + newrule.target + "\nnewRule.condition: " + newrule.condition);
-		
-		// No IDB for the rule by itself! (Combination will add IDBS for rule *applicability* in this policy's context)
+		//MCommunicator.writeToLog("\n In MPolicyLeaf.addRule\n newRule.target: " + newrule.target + "\nnewRule.condition: " + newrule.condition);				
 	}	
 	
 	public String getDecisionForRuleIDBName(String idbname)
@@ -666,7 +665,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////////////
 		// (b) A rule applies if it matches and no potentially overriding rule matches, either.
-		// TODO likely a lot of repeated work here, but not optimizing yet
+		// OPT likely a lot of repeated work here, but not optimizing yet
 		for(MRule r : rules)
 		{
 			Set<Formula> rFmlas = new HashSet<Formula>();
@@ -700,7 +699,7 @@ public class MPolicyLeaf extends MPolicy
 			Set<Formula> negPriors = new HashSet<Formula>();
 			for(MRule r : rules)
 			{
-				// TODO another caveat emptor re: optimization
+				//  OPT likely a lot of repeated work here, but not optimizing yet
 				if(overrideDecs.contains(r.decision()))
 				{
 					negPriors.add(MFormulaManager.makeNegation(r.target_and_condition));

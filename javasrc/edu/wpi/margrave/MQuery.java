@@ -340,8 +340,7 @@ public class MQuery extends MIDBCollection
 		// if sort inference fails.
 
 		// Build a FormulaSigInfo object and get its totals.
-		// Now that FormulaSigInfo is separate, a better internal data structure
-		// would be nice. (TODO)
+		// TODO Now that FormulaSigInfo is separate, a better internal data structure would be nice.
 		Set<LeafExpression> sorts = new HashSet<LeafExpression>();
 		Map<LeafExpression, Set<LeafExpression>> supersorts = new HashMap<LeafExpression, Set<LeafExpression>>();
 		Map<LeafExpression, List<LeafExpression>> predicates = new HashMap<LeafExpression, List<LeafExpression>>();
@@ -846,7 +845,7 @@ public class MQuery extends MIDBCollection
 		// cannot be converted to the same in the new vocab (or we'd get
 		// additional existentials AFTER tupling the ones we have now.)
 		
-		// TODO
+		// TODO tupling: one, some
 
 		
 		
@@ -854,7 +853,8 @@ public class MQuery extends MIDBCollection
 		// ********************************************************************
 		// First check to see if the user query is prenex existential-only
 		// COULD lift existentials if not in the prefix, but we don't (for
-		// now) TODO ?
+		// now) 
+		// OPT lift existentials?
 		// Also need to meet other requirements (certain axioms excluded,
 		// for instance)
 
@@ -1324,11 +1324,44 @@ public class MQuery extends MIDBCollection
 		if(vocab.axioms.funcPartial.size() > 0 || vocab.axioms.funcTotal.size() > 0)
 			throw new MGETuplingFailure("Could not tuple: The vocabulary contained functional constraints.");
 		if(vocab.axioms.otherConstraintStrings.size() > 0)
-			throw new MGETuplingFailure("Could not tuple: Custom constraints are not allowed when tupling.");		
+			throw new MGETuplingFailure("Could not tuple: Custom constraints are not allowed when tupling.");	
+		
+		throw new MGETuplingFailure("Unexpected tupling failure. Please notify the Margrave maintainer.");
 	}
 
 	private Set<Formula> tuplingDoDisjointness(PrenexCheckV pren,
-			MatrixTuplingV mtup) {
+			MatrixTuplingV mtup)
+	{
+		Set<MSortPair> disjs = mtup.oldvocab.getConciseDisjointSortsAsymm();		
+		
+		
+		/////////////////////////////////////////////////////////////
+		// (1) If A and B are incomparable, but have a lower bound C, but C 
+		// does not appear at index i, need to add C_i.
+		// TODO [new tupling disj 1]
+		
+		/////////////////////////////////////////////////////////////
+		// (2) A_1 and A_2 are not necessarily disjoint (unless x_1 and x_2
+		// have disjoint types). Need to add a "sink" lower bound for all
+		// such situations.
+		// TODO [new tupling disj 2]
+		
+		/////////////////////////////////////////////////////////////
+		// (3) If A_i disj B_j [after the above lower-bounds have been
+		// added!], assert A_i and B_j --> not =_i,j
+		// TODO [new tupling disj 3]
+		
+		
+
+		
+		Set<Formula> eqDisjAxioms = new HashSet<Formula>();
+		
+		
+		/// !!! XXX OLD CODE TO BE REMOVED
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		
 		// disjointness: same construction as sorts themselves
 		// Original form: A disj (B1, B2, B3...)
 
@@ -1346,9 +1379,9 @@ public class MQuery extends MIDBCollection
 		// mtup.newvocab.axioms.axiomDisjoints = disjoints we calculate
 		// in this loop
 
-		HashMap<MSort, Set<MSort>> newDisjoints = new HashMap<MSort, Set<MSort>>();
+/*		HashMap<MSort, Set<MSort>> newDisjoints = new HashMap<MSort, Set<MSort>>();
 		int iDisjCount = 0;
-		Set<Formula> eqDisjAxioms = new HashSet<Formula>();
+		
 
 		for (int iIndex = 1; iIndex <= pren.qCount; iIndex++)
 		{
@@ -1417,7 +1450,7 @@ public class MQuery extends MIDBCollection
 			}
 		} // end for each index
 		mtup.newvocab.axioms.axiomDisjoints = newDisjoints;
-
+*/
 		// TODO is it safe to just call vocab.axioms.axiomsDisjoints.get
 		// if we store only one way?
 		return eqDisjAxioms;
@@ -3839,7 +3872,7 @@ public class MQuery extends MIDBCollection
 
 		// THIS INDUCES A SORT-AS-PREDICATE in current query code.
 		// oh -- (R in P) rather than (X in P)
-		// need to change MFormulaManager TODO
+		// TODO need to change MFormulaManager 
 		//env.axioms.addConstraintSubset("sort2axx", "sort2bxx");
 
 		f = Formula.TRUE.forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2cx))
@@ -3945,7 +3978,9 @@ public class MQuery extends MIDBCollection
 	// Create a query from it.
 
 	public static MQuery createFromExplore(
-			MExploreCondition mpc, List<String> publish,
+			MExploreCondition mpc,
+			List<String> publish,
+			Map<String, String> sortsForPublish,
 			Map<String, Set<List<String>>> includeMap,
 			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
 			throws MUserException
@@ -4006,7 +4041,7 @@ public class MQuery extends MIDBCollection
 		// No IDBS, no UNDER clause?
 		if (uber == null) {
 			// no vocab! Error out.
-			throw new MGEUnknownIdentifier("A query that mentions neither policies nor prior queries must use the UNDER clause.");
+			throw new MGEUnknownIdentifier("A query that mentions neither policies nor prior queries must use the UNDER clause to give some policy context to the query.");
 		}
 
 		// **********************************************************
@@ -4015,7 +4050,9 @@ public class MQuery extends MIDBCollection
 		for (Relation r : mpc.madeEDBs)
 		{
 			// If it's a known predicate, it's ok.
-			if (uber.predicates.values().contains(r))
+			// Vocab combination forces only one arity for each R, so should only appear once.
+			String relName = r.name();
+			if (uber.predicates.keySet().contains(relName))
 				continue;
 			
 			try 
@@ -4037,24 +4074,31 @@ public class MQuery extends MIDBCollection
 		// At this point, we have the query formula (w/ proper variables)
 		// but no prefix or sorts on the vars. 
 
+		// !!! XXX this should go
 		// first, bind placeholders properly
 		// E.g. (A=x) will be converted to A(x) if A is a lone/one sort
-		mpc.resolvePlaceholders(uber);
+		//mpc.resolvePlaceholders(uber);
 		
 		// Turn A=x into A(x) -- if able. The func changes the map given.
-		MExploreCondition.resolveMapPlaceholders(uber, includeMap);
+		//MExploreCondition.resolveMapPlaceholders(uber, includeMap);
 		
+		// !!! XXX this should go
 		// include formulas need to be well-formed, so they figure into sort inference
-		mpc.inferFromInclude(uber, includeMap);
+		//mpc.inferFromInclude(uber, includeMap);
+		
 		Formula qryFormula = mpc.fmla;
-	
+
+		// !!! XXX this should go, use given vector of vars instead?
 		// mpc has given us a bunch of assertions. Now we need to
 		// (a) unpack the ones that do not refer to sort EDBs, now that we have
 		// signatures of the predicates
 		// (b) resolve them.
-		Map<Variable, Expression> freeVars = new HashMap<Variable, Expression>();
-		handleSortAssertions(uber, mpc, freeVars);
-
+		//Map<Variable, Expression> freeVars = new HashMap<Variable, Expression>();
+		//handleSortAssertions(uber, mpc, freeVars);
+		
+		Set<Variable> freeVarsUnsorted = qryFormula.accept(new FreeVariableCollectionV());		
+		
+		
 		// (3) assemble prefix
 		// **********************************************************
 
@@ -4069,28 +4113,17 @@ public class MQuery extends MIDBCollection
 
 		// Need to make sure the ordering in publish is preserved, so can't just
 		// iterate freeVars.keySet().
-
-		// If the user doesn't provide a PUBLISH clause, construct one
-		// arbitrary ordering TODO later use lexicographic
-		if(publish == null)
-		{
-			publish = new ArrayList<String>(freeVars.size());
-			for(Variable v : freeVars.keySet())
-			{
-				// Don't publish "temp" vars!
-				// TODO this is a kludge; user could still naively make a var called TempVarFoozle
-				if(!v.name().startsWith(MEnvironment.tempVarPrefix))
-					publish.add(v.name());
-			}
-
-		}
+		
+		// publish will always be passed, however, even if it is empty, e.g.:
+		// let F[] be ...;
+		
 
 		List<String> prefixVarOrder = new ArrayList<String>();
 
 		MCommunicator.writeToLog("\n\n");
 		MCommunicator.writeToLog("creating query from explore: \n");
 		MCommunicator.writeToLog("publish = "+publish+"\n");
-		MCommunicator.writeToLog("freeVars = "+freeVars+"\n");
+		MCommunicator.writeToLog("freeVars = "+freeVarsUnsorted+"\n");
 		MCommunicator.writeToLog("\n\n");
 		
 		// FIRST: Published vars
@@ -4101,12 +4134,13 @@ public class MQuery extends MIDBCollection
 			
 			// Make sure that this variable actually appears in the query.
 			// Throw an exception if it is garbage.
-			if(!freeVars.containsKey(v))
+			if(!freeVarsUnsorted.contains(v))
 			{
-				throw new MGEUnknownIdentifier("Variable in publish clause: "+v+" did not appear in the query.");
+				throw new MGEUnknownIdentifier("The variable "+v+" appeared in the query's free variable list, did not appear in the condition.");
 			}
 			
-			Decl d = MFormulaManager.makeOneOfDecl(v, freeVars.get(v));
+			Expression theSort = uber.getSort(sortsForPublish.get(vname)).rel;
+			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
 			qryFormula = MFormulaManager.makeExists(qryFormula, d);
 			prefixVarOrder.add(v.name());
 		}
@@ -4114,12 +4148,13 @@ public class MQuery extends MIDBCollection
 
 
 		// NEXT: Unpublished vars
-		for (Variable v : freeVars.keySet())
+		for (Variable v : freeVarsUnsorted)
 		{
-			if (publish != null && publish.contains(v.name()))
+			if (publish.contains(v.name()))
 				continue;
 
-			Decl d = MFormulaManager.makeOneOfDecl(v, freeVars.get(v));
+			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
+			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
 
 			// If not published, bury the quantifier in the IDB formula
 			idbFormula = MFormulaManager.makeExists(idbFormula, d);
@@ -4133,6 +4168,7 @@ public class MQuery extends MIDBCollection
 		//MEnvironment.writeErrLine("Temp debug info: "+qryFormula);
 		//MEnvironment.writeErrLine(prefixVarOrder);
 
+		// Reverse because we are building the quantifiers from inside out
 		Collections.reverse(prefixVarOrder);
 
 		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);
@@ -4202,21 +4238,18 @@ public class MQuery extends MIDBCollection
 			
 		}
 
-		// TODO better errors for "no indexing" etc.
 
 		result.debug_verbosity = iDebugLevel;
 		result.doTupling = bTupling;
 		result.userSizeCeiling = iCeiling;
 
 		// Remember our varvector and the inferred sorts.
-		// Ordering is a bit arbitrary unless the user has provided a PUBLISH
-		// clause.
-
 		result.varOrderings.put("saved", varOrdering);
-		for (Variable v : varOrdering) {
-			result.varSorts.put(v, freeVars.get(v));
+		for (Variable v : varOrdering)
+		{
+			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
+			result.varSorts.put(v, theSort);
 		}
-
 		result.idbs.put("saved", idbFormula);
 
 		MEnvironment.setLast(result);
@@ -4227,6 +4260,7 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
+	/*
 	static void handleSortAssertions(MVocab voc, MExploreCondition mpc,
 			Map<Variable, Expression> freeVars) throws MGEBadIdentifierName,
 			MGEUnknownIdentifier {
@@ -4370,7 +4404,7 @@ public class MQuery extends MIDBCollection
 		}
 		
 		MCommunicator.writeToLog("\nDone. Assertions are: "+freeVars+")");
-	}
+	}*/
 
 	public void addIDBOutputs(String idbname)
 	{

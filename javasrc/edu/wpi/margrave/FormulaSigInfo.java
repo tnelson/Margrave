@@ -949,7 +949,7 @@ public class FormulaSigInfo
 				continue;			
 			alreadyPropagated.add(rel);
 			
-			// TODO: This LeafExpression (rel) is _populated_ (not term-free). useful info.
+			// OPT: This LeafExpression (rel) is _populated_ (not term-free). useful info.
 			
 			// what func clauses require rel to fire?
 			if(sortsToFuncs.containsKey(rel))
@@ -1710,7 +1710,7 @@ public class FormulaSigInfo
 						int actual_col = sortsInOrder.get(f.arity.get(icol)).intValue();
 											
 						
-						// TODO cache column totals up to h-2 in order to save totaling time	
+						// OPT cache column totals up to h-2 in order to save totaling time	
 						
 						if(icol < ileftmost)
 							for(int irow=0;irow<=height-2;irow++)
@@ -2267,7 +2267,7 @@ public class FormulaSigInfo
 				result += "  "+ sf.toPrettyString() + ""+eol;
 		}
 		
-		// TODO distinction between finitary and finitary+populated?
+		// OPT distinction between finitary and finitary+populated?
 		
 		
 		

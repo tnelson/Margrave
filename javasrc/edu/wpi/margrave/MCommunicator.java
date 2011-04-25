@@ -322,11 +322,15 @@ public class MCommunicator
 	        					
 	        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
 	        					
-	        			
+	        					Map<String, String> publSorts = new HashMap<String, String>();
+	        					// !!! TODO populate that map from XML
+	        					
 	        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
 	        					result = MQuery.createFromExplore(
 	        							exploreCondition.addSeenIDBCollections(under), 
-	        							publ, idbOut, tupling, debugLevel, ceilingLevel);
+	        							publ,
+	        							publSorts,
+	        							idbOut, tupling, debugLevel, ceilingLevel);
 	        			
 	      
 	        					writeToLog("AT END OF EXPLORE");
@@ -413,22 +417,31 @@ public class MCommunicator
         			}	
         			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> idl = getIdentifierList(n);
-        				theResponse = MEnvironment.setRCombine(pname, idl);
+        				//List<String> idl = getIdentifierList(n);
+        				
+        				Set<String> rFA = new HashSet<String>();
+        				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
+        				
+        				
+        				// TODO connect rcomb 
+        				
+        				theResponse = MEnvironment.setRCombine(pname, rFA, rO);
         			}	
         			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
         				String pname = getPolicyName(n);
-        				List<String> idl = getIdentifierList(n);
-        				theResponse = MEnvironment.setPCombine(pname, idl);
+        				//List<String> idl = getIdentifierList(n);
+        				
+
+        				Set<String> rFA = new HashSet<String>();
+        				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
+        				        				
+        				// TODO connect pcomb
+        				
+        				theResponse = MEnvironment.setPCombine(pname, rFA, rO);
         			}
         			else if (type.equalsIgnoreCase("QUIT"))
         			{
         				 MEnvironment.quitMargrave();
-        			}
-        			else if (type.equalsIgnoreCase("RENAME")) {
-        				String id1 = getRenameFirstId(n);
-        				String id2 = getRenameSecondId(n);
-        				theResponse = MEnvironment.renameIDBCollection(id1, id2);
         			}
         			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
         				Integer id = Integer.parseInt(getIsPossibleId(n));
@@ -567,7 +580,7 @@ public class MCommunicator
         				Node childNode = n.getFirstChild();
         				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER")) {
         					String vname = getVocabName(n);
-        					Node secondChildNode = childNode.getNextSibling(); //TODO:Shouldn't be hardcoded in!!
+        					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
         					String addType = secondChildNode.getNodeName();
         					writeToLog("addType: " + addType +"\n");
         					
@@ -580,13 +593,6 @@ public class MCommunicator
         						String sortName = getSortName(n);
         						theResponse = MEnvironment.addSort(vname, sortName);
         						writeToLog("Added Sort\n");
-        					}
-        					else if (addType.equalsIgnoreCase("DECISION")) {
-        						writeToLog("In Decision");
-        						String decName = getDecisionName(n);
-        						writeToLog("Adding Decision: " + decName + "\n");
-        						theResponse = MEnvironment.addDecision(vname, decName);
-        						writeToLog("Added Decision: " + decName + "\n");
         					}
         					else if (addType.equalsIgnoreCase("PREDICATE")) {
         						String sName = getPredicateName(n);
@@ -652,9 +658,25 @@ public class MCommunicator
         					// IMPORTANT
         					// Assume ADD -> POLICY-IDENTIFIER is always adding a RULE.
         					
-        					Node ruleNode = childNode.getNextSibling();//This should be changed to be made more generic, because it assumes too much
-        					String decName = getDecisionType(ruleNode); 
-        					List<Node> relationNodes = getListOfRelationNodes(ruleNode);
+        					// WORRY This should be changed to be made more generic, because it assumes too much
+        					Node ruleNode = childNode.getNextSibling();
+        					
+        					String decName = getDecisionType(ruleNode);
+        					
+        					List<String> varOrdering = new ArrayList<String>();
+        					// TODO: populate var ordering in rule addition
+        					
+        					Node targetNode = getChildNode(n, "TARGET");
+        					
+        					MExploreCondition targetCondition = exploreHelper(targetNode);
+        					Formula target = targetCondition.fmla;
+        					
+        					// condition is used exclusively for XACML, so it's ignored here.
+        					Formula condition = Formula.TRUE;
+        					
+        					// XXX to remove: old code for extracting conjunct strings.
+        					
+        					/*List<Node> relationNodes = getListOfRelationNodes(ruleNode);
         					List<String> relationsList = new LinkedList<String>();
         					String relationName;
         					String sign;
@@ -689,8 +711,9 @@ public class MCommunicator
             					}
             					relationsList.add(exclamationPoint + relationName + " " + variableListString);
             				}
-            				writeToLog("\nRELATIONSLIST: " + relationsList.toString() + "\n");
-            				theResponse = MEnvironment.addRule(pname, rname, decName, relationsList);
+            				writeToLog("\nRELATIONSLIST: " + relationsList.toString() + "\n");*/
+        					
+            				theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition);
             				
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
@@ -1147,60 +1170,90 @@ public class MCommunicator
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
-        		Node relationName = getChildNode(n, "RELATION-NAME");
-        		NodeList relationComponents = relationName.getChildNodes();
+        		Node relationNameNode = getChildNode(n, "RELATION-NAME");
+        		NodeList relationComponents = relationNameNode.getChildNodes();
         		
-        		// TODO
         		
-        		String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
+        		List<String> relationNameComponents = new ArrayList<String>();
+        		// TODO handle collection name XML
+        		
+        		//String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
         		
         		List<String> vl = getIdentifierList(n);
 
-        		// Could be a view or an EDB. If EDB, must
-        		// remember the Relation we created so that we can check
-        		// for validity later.
+        		// Could be:
+        		// (1) compound relation name, e.g. pol.idbname
+        		// (2) EDB name
+        		// (3) view name (really an idb!)
+        		
+        		writeToLog("\nAtomic-Formula: \nrelationNameComponents: " + relationNameComponents + "\nvl: " + vl.toString());
+        		
+        		if(relationNameComponents.size() < 1)
+        			throw new MUserException("Unable to obtain relation name in atomic formula.");
+        		
+        		String relationName = relationNameComponents.get(relationNameComponents.size() - 1);
+        		
+        		if(relationNameComponents.size() == 1)
+        		{        		
+        			MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
+        			
+        			writeToLog("\n		relationName: " + relationName + "\npol: " + pol + "\n\n");
 
-        		//validateDBIdentifier(relationName);
-
-        		MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
-
-        		writeToLog("\nAtomic-Formula-N: \nrelationName: " + relationName + "\nvl: " + vl.toString() + "\npol: " + pol + "\n\n");
-        		if (pol != null)
-        		{
-        			Formula idbf = MEnvironment.getOnlyIDB(relationName);
-        			if(idbf != null)
+        			/////////////////////////////////////////////////////
+        			// (3) view?
+        			if (pol != null)
         			{
-            			// Perform variable substitution
-           				idbf = performSubstitution(relationName, pol, idbf, vl);
-            			
-            			// Assemble MExploreCondition object
-            			return new MExploreCondition(idbf, pol, vl);        		
+        				Formula idbf = MEnvironment.getOnlyIDB(relationName);
+        				if(idbf != null)
+        				{
+        					// Perform variable substitution
+        					idbf = performSubstitution(relationName, pol, idbf, vl);
+
+        					// Assemble MExploreCondition object
+        					return new MExploreCondition(idbf, pol, "saved", vl);        		
+        				}
         			}
         			
-        			// Otherwise, must be an EDB named the same as a policy? 
-        			// (Or someone forgot their :idbname suffix.)
+        			/////////////////////////////////////////////////////
+        			// (2) EDB, then!
+
+        			// We don't have a vocabulary yet. So just make the relation.
+        			// The manager will prevent duplicates.
+        			Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
+
+        			Expression varvector;
+        			Formula f = null;
+
+        			varvector = MFormulaManager.makeVarTuple(vl);
+        			f = MFormulaManager.makeAtom(varvector, rel);
+
+        			// No variable substitution needed!
+        			return new MExploreCondition(f, rel, vl);
+
         		}
-
-        		// EDB, then!
-
-        		// We don't have a vocabulary yet. So just make the relation.
-        		// The manager will prevent duplicates.
-        		Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
-
-        		Expression varvector;
-        		Formula f = null;
         		
-        		varvector = MFormulaManager.makeVarTuple(vl);
-        		f = MFormulaManager.makeAtom(varvector, rel);
+        		/////////////////////////////////////////////////////
+        		// (1) compound relation name (reference to a policy, etc.)
+        		String collName = "";
+        		for(int ii=0; ii < relationNameComponents.size()-1;ii++)
+        		{
+        			collName += relationNameComponents.get(ii);
+        		}
         		
-        		// No variable substitution needed!
-        		return new MExploreCondition(f, rel, vl);
+        		MIDBCollection pol = MEnvironment.getPolicyOrView(collName);
+        		if(pol == null)
+        			throw new MUserException("Unknown policy: "+collName);
+        		
+        		// throws exception rather than returning null
+        		Formula idbf = validateDBIdentifier(collName, relationName);
+        		
+        		return new MExploreCondition(idbf, pol, relationName, vl);
         	}
         	else if(name.equalsIgnoreCase("TRUE"))
         	{
         		return new MExploreCondition(true);
         	}
-        	else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) 
+        	/*else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) 
         	{
         		String collectionName = getAtomicFormulaYCollection(n);
         		String relationName = getAtomicFormulaYRelation(n);
@@ -1228,7 +1281,7 @@ public class MCommunicator
         		//writeToLog("Returning from atomic-formula-y");
         		return new MExploreCondition(idbf, pol, vl);
 
-        	}
+        	}*/
         	
         	MEnvironment.errorWriter.println("exploreHelper returning null! error! name was: "+name);
         	

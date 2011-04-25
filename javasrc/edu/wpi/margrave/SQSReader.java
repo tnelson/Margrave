@@ -153,9 +153,8 @@ public class SQSReader
 		// More ugly code:
 		
 		/////////////////
-		// !!! TODO
 		// TN April 2011
-		// SQS, XACML, etc. unsafe due to change in how we handle disjointness.
+		// TODO SQS, XACML, etc. unsafe due to change in how we handle disjointness.
 		/////////////////
 		
 		/*
