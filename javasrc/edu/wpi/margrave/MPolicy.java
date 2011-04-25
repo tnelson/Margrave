@@ -164,7 +164,7 @@ public abstract class MPolicy extends MIDBCollection
 	// Formula which dictates when this policy can apply. (Used mostly for XACML.)
 	public Formula target;
 	
-	Set<String> decisions;
+	Set<String> decisions = new HashSet<String>();
 	
 	// Affects how first-applicable is handled.
 	public boolean isXACML = false;

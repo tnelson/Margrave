@@ -136,7 +136,8 @@ public class MPolicySet extends MPolicy
 	
 	public void initIDBs() throws MUserException
 	{
-		super.initIDBs();
+		// Do NOT call this!
+		//super.initIDBs();
 		
 		// Recalling this method should "reset" all IDBs. Start out with a clean slate:
 		decisions.clear();

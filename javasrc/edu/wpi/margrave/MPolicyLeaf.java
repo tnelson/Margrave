@@ -37,6 +37,7 @@ import com.sun.xacml.combine.PermitOverridesRuleAlg;
 import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
+import kodkod.ast.Relation;
 import kodkod.ast.Variable;
 
 /*
@@ -285,7 +286,8 @@ public class MPolicyLeaf extends MPolicy
 	public void initIDBs()	
 	throws MUserException
 	{				
-		super.initIDBs();
+		// Do NOT call this!
+		//super.initIDBs();
 		
 		idbs.clear();
 		disjunctionOfRules_cache.clear();
@@ -571,6 +573,11 @@ public class MPolicyLeaf extends MPolicy
 		Set<MRule> results = new HashSet<MRule>();
 		
 		String aDecision = aRule.decision();
+		
+		// Protect against null ptr
+		if(!rCombineWhatOverrides.containsKey(aDecision))
+			return results;
+		
 		Set<String> overBy = rCombineWhatOverrides.get(aDecision);
 		
 		// TODO room for optimization here, if its a chokepoint
@@ -723,4 +730,39 @@ public class MPolicyLeaf extends MPolicy
 		
 	} // end doCombineRules
 
+	public static void unitTests()
+	{
+		MEnvironment.writeErrLine("----- Begin MPolicyLeaf Tests (No messages is good.) -----");
+		
+		MVocab voc = new MVocab();
+		voc.addSort("Subject");
+		voc.addSort("Action");
+		voc.addSort("Resource");		
+		voc.addPredicate("ownerOf", "Subject Resource");
+		voc.addSubSort("Subject", "Admin");
+		voc.addSubSort("Subject", "Employee");
+		voc.axioms.addConstraintAbstract("Subject");
+		
+		MPolicyLeaf pol = new MPolicyLeaf("Test Policy 1", voc);
+		
+		/////////////////////////////////////////////////////////////
+		// Decisions are added implicitly by adding rules.
+		// Make sure adding a rule has the proper effects.
+		
+		List<String> vSAR = new ArrayList<String>();
+		vSAR.add("s"); vSAR.add("a"); vSAR.add("r");
+		Variable s = MFormulaManager.makeVariable("s");
+		Variable a = MFormulaManager.makeVariable("a");
+		Variable r = MFormulaManager.makeVariable("r");
+		Relation admin = voc.getSort("Admin").rel;
+		
+		Formula aTarget = MFormulaManager.makeAtom(s, admin);		
+		pol.addRule("Rule1", "permit", vSAR, aTarget, Formula.TRUE);
+		pol.initIDBs();
+		
+		pol.prettyPrintIDBs();
+		
+		MEnvironment.writeErrLine("----- End MPolicyLeaf Tests -----");	
+	}
+	
 }
