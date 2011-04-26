@@ -34,6 +34,7 @@ import com.sun.xacml.combine.FirstApplicableRuleAlg;
 import com.sun.xacml.combine.PermitOverridesPolicyAlg;
 import com.sun.xacml.combine.PermitOverridesRuleAlg;
 
+import kodkod.ast.Expression;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
@@ -344,7 +345,10 @@ public class MPolicySet extends MPolicy
 		voc.addSubSort("Action", "BadThing");
 		voc.addSubSort("Resource", "Computer");
 		voc.addSubSort("Resource", "Bandwidth");
-				
+		// Bandwidth and Computer can overlap.
+		voc.addSubSort("Computer", "BandCompLB");
+		voc.addSubSort("Bandwidth", "BandCompLB");		
+		
 		voc.axioms.addConstraintAbstract("Subject");
 
 		/////////////////////////////////////////////////////////////
@@ -359,6 +363,11 @@ public class MPolicySet extends MPolicy
 		Variable s = MFormulaManager.makeVariable("s");
 		Variable a = MFormulaManager.makeVariable("a");
 		Variable r = MFormulaManager.makeVariable("r");
+		Map<Variable, Expression> varSorts = new HashMap<Variable, Expression>();
+		varSorts.put(s, voc.getSort("Subject").rel);
+		varSorts.put(a, voc.getSort("Action").rel);
+		varSorts.put(r, voc.getSort("Resource").rel);
+		
 		Relation admin = voc.getSort("Admin").rel;		
 		Relation ownerOf = voc.predicates.get("ownerOf").rel;
 		Relation restricted = voc.predicates.get("restricted").rel;
@@ -407,8 +416,24 @@ public class MPolicySet extends MPolicy
 		/////////////////////////////////////////////////////////////
 		
 		// Test
-		polparent.prettyPrintIDBs();
-		// callpolice: (!(r in Computer) &amp;&amp; (r in Bandwidth) &amp;&amp; ((a in BadThing) || false))&#13;
+		//polparent.prettyPrintIDBs();
+		
+		/////////////////////////////////////////////////////////////
+		// (1) We're FA, so callpolice requires a non-Computer request (pol1 handles those).
+		Formula testFmla1 = polparent.idbs.get("callpolice");
+		testFmla1 = MFormulaManager.makeAnd(testFmla1, MFormulaManager.makeAtom(r, Computer));		
+		
+		if(MJavaTests.testIsSatisfiable(testFmla1, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicySet test 1: FAILED!");
+
+		/////////////////////////////////////////////////////////////
+		// (2) But can still satisfy callpolice 
+		Formula testFmla2 = polparent.idbs.get("callpolice");			
+		
+		if(!MJavaTests.testIsSatisfiable(testFmla2, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicySet test 2: FAILED!");
+		
+		
 		
 		/////////////////////////////////////////////////////////////
 		// overrides PComb now.
@@ -421,11 +446,18 @@ public class MPolicySet extends MPolicy
 		polparent.pCombineWhatOverrides.put("permit", sDCP);
 		polparent.initIDBs();
 		
-		polparent.prettyPrintIDBs();
+		//polparent.prettyPrintIDBs();
 		
 		
-		// TODO: make these actual test cases rather than strings to inspect.
+		/////////////////////////////////////////////////////////////
+		// (3) Now have CP > Deny > Permit. The callpolice decision now applies 
+		// even for a Computer (pol1's target) request.
+		Formula testFmla3 = polparent.idbs.get("callpolice");			
+		testFmla3 = MFormulaManager.makeAnd(testFmla3, MFormulaManager.makeAtom(r, Computer));	
 		
+		if(!MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicySet test 3: FAILED!");
+				
 		MEnvironment.writeErrLine("----- End MPolicySet Tests -----");	
 
 	}

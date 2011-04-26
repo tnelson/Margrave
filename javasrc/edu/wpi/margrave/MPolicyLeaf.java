@@ -763,6 +763,8 @@ public class MPolicyLeaf extends MPolicy
 		voc.addSubSort("Subject", "Employee");
 		voc.axioms.addConstraintAbstract("Subject");
 		
+		
+		
 		MPolicyLeaf pol = new MPolicyLeaf("Test Policy 1", voc);
 		
 		/////////////////////////////////////////////////////////////
@@ -779,6 +781,11 @@ public class MPolicyLeaf extends MPolicy
 		Variable s = MFormulaManager.makeVariable("s");
 		Variable a = MFormulaManager.makeVariable("a");
 		Variable r = MFormulaManager.makeVariable("r");
+		Map<Variable, Expression> varSorts = new HashMap<Variable, Expression>();
+		varSorts.put(s, voc.getSort("Subject").rel);
+		varSorts.put(a, voc.getSort("Action").rel);
+		varSorts.put(r, voc.getSort("Resource").rel);
+		
 		Relation admin = voc.getSort("Admin").rel;		
 		Relation ownerOf = voc.predicates.get("ownerOf").rel;
 		Relation restricted = voc.predicates.get("restricted").rel;
@@ -794,7 +801,7 @@ public class MPolicyLeaf extends MPolicy
 		// Now, test combinators.
 		
 		/////////////////////////////////////////////////////////////
-		pol.prettyPrintRules();
+		//pol.prettyPrintRules();
 		/////////////////////////////////////////////////////////////
 		
 		/////////////////////////////////////////////////////////////
@@ -802,7 +809,26 @@ public class MPolicyLeaf extends MPolicy
 		pol.rCombineFA.add("deny");
 		
 		pol.initIDBs();		
-		pol.prettyPrintIDBs();
+		
+		
+		
+		
+		/////////////////////////////////////////////////////////////
+		// (1) Rule 1 matches; this is FA so Rule 3 can never apply, so deny won't happen.
+		Formula testFmla1 = pol.idbs.get("deny");
+		testFmla1 = MFormulaManager.makeAnd(testFmla1, MFormulaManager.makeAtom(s, admin));		
+		
+		if(MJavaTests.testIsSatisfiable(testFmla1, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicyLeaf test 1: FAILED!");
+		/////////////////////////////////////////////////////////////
+		// (2) Restricted, we should see deny apply.
+		
+		Formula testFmla2 = pol.idbs.get("deny");
+		testFmla2 = MFormulaManager.makeAnd(testFmla2, MFormulaManager.makeAtom(r, restricted));
+		
+		if(!MJavaTests.testIsSatisfiable(testFmla2, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicyLeaf test 2: FAILED!");
+		//pol.prettyPrintIDBs();
 		/////////////////////////////////////////////////////////////
 		
 		/////////////////////////////////////////////////////////////
@@ -812,11 +838,19 @@ public class MPolicyLeaf extends MPolicy
 		pol.rCombineWhatOverrides.put("permit", sDeny);
 		
 		pol.initIDBs();		
-		pol.prettyPrintIDBs();
+		
+		
+		/////////////////////////////////////////////////////////////
+		// (3) This is now Deny overrides. Make sure that happens.
+		Formula testFmla3 = pol.idbs.get("permit");
+		testFmla3 = MFormulaManager.makeAnd(testFmla3, MFormulaManager.makeAtom(r, restricted));		
+		
+		if(MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))
+			MEnvironment.errorWriter.println("********** MPolicyLeaf test 3: FAILED!");
+		
+		//pol.prettyPrintIDBs();
 		/////////////////////////////////////////////////////////////
 		
-	
-		// TODO: make these actual test cases rather than strings to inspect.
 		
 		MEnvironment.writeErrLine("----- End MPolicyLeaf Tests -----");	
 	}

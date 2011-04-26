@@ -21,10 +21,76 @@
 
 package edu.wpi.margrave;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+import java.util.*;
+
+import kodkod.engine.*;
+import kodkod.instance.*;
+import kodkod.ast.*;
+import kodkod.engine.Solution.Outcome;
+import kodkod.engine.satlab.SATFactory;
+import kodkod.instance.Bounds;
+
 
 public class MJavaTests
 {
 
+	public static boolean testIsSatisfiable(Formula fmla, MVocab voc, int size, Map<Variable, Expression> varSorts)
+	{
+		// Used for internal test cases where there may not be an XML query or MQuery object.
+		// Runs Kodkod to see if fmla is satisfiable under voc.
+
+		
+		/////////////////////////////////////////////////////////////				
+		// First, close fmla existentially over its free variables.
+		Set<Variable> freeVars = fmla.accept(new FreeVariableCollectionV());
+		for(Variable v : freeVars)
+		{
+			Expression theRel;
+			if(!varSorts.containsKey(v))
+				theRel = Expression.UNIV;
+			else
+				theRel = varSorts.get(v);
+			Decl d = MFormulaManager.makeOneOfDecl(v, theRel);
+			fmla = MFormulaManager.makeExists(fmla, d);
+		}
+				
+		// And make sure the vocabulary's constraints are respected!
+		fmla = MFormulaManager.makeAnd(fmla, voc.getFixedAxiomFormula());
+		fmla = MFormulaManager.makeAnd(fmla, MFormulaManager.makeConjunction(voc.getUserAxiomFormulas()));	
+		
+		/////////////////////////////////////////////////////////////
+		// Now apply Kodkod
+		
+		Solver qrySolver = new Solver();			
+		//qrySolver.options().setFlatten(true);
+		qrySolver.options().setSolver(SATFactory.DefaultSAT4J);
+		//qrySolver.options().setSymmetryBreaking(fromResult.forQuery.mySB);
+	
+		Set<String> theUniv = new HashSet<String>();
+		for(int ii=0;ii<size;ii++)
+			theUniv.add("Atom"+ii);
+		Universe u = new Universe(theUniv);
+		
+		Bounds qryBounds = new Bounds(u);
+		TupleFactory factory = u.factory();			
+
+		for(MSort t : voc.sorts.values())
+		{
+			qryBounds.bound(t.rel, factory.allOf(t.rel.arity()));					
+		}
+		for(MPredicate p : voc.predicates.values())
+		{
+			qryBounds.bound(p.rel, factory.allOf(p.rel.arity()));	
+		}		
+		
+		Solution sol = qrySolver.solve(fmla, qryBounds);
+		
+		return (sol.outcome().equals(Outcome.SATISFIABLE) || 
+				sol.outcome().equals(Outcome.TRIVIALLY_SATISFIABLE));
+	}
+	
 	
 	public static void exitJavaTests(int arg)
 	{
