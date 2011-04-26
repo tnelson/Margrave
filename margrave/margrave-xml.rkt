@@ -75,7 +75,7 @@
  xml-make-is-guaranteed-command
  xml-make-identifiers-list
  xml-make-type
- xml-make-id
+ xml-make-id-element
  xml-make-include
  xml-make-under
  xml-make-create-policy-leaf-command
@@ -1053,9 +1053,8 @@
 (define (xml-make-rename-command id1 id2)
   (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
-;;Count isn't fully implemented/tested!
 (define (xml-make-count id)
-  `(COUNT (,id)))
+  `(COUNT ((id ,id))))
 
 (define (xml-make-count-command id)
   (xml-make-command "COUNT" (list (xml-make-count id))))
@@ -1091,17 +1090,20 @@
 (define (xml-make-type type)
   `(type ,type))
 
-(define (xml-make-id id)  
-  `(ID ,(symbol->string/safe id)))
+(define (xml-make-id-element id)  
+  `(ID ((id ,(symbol->string/safe id)))))
 
 (define (xml-make-get type id)
-  `(SHOW (,type ,id)))
+  `(SHOW (,type (id ,id))))
+
+(define (xml-make-reset id)
+  `(RESET ((id,id))))
 
 (define (xml-make-get-command type id)
   (xml-make-command "SHOW" (list (xml-make-get type id))))
 
 (define (xml-make-reset-command id)
-  (xml-make-command "RESET" (list (xml-make-id id))))
+  (xml-make-command "RESET" (list (xml-make-reset id))))
 
 (define (xml-make-under list-of-policies)
   `(UNDER ,@list-of-policies))
@@ -1113,7 +1115,7 @@
   (xml-make-command "CREATE POLICY LEAF" (list (xml-make-create-policy-leaf policy vocab))))
 
 (define (xml-make-is-possible xml-id)
-  `(IS-POSSIBLE (,xml-id)))
+  `(IS-POSSIBLE ((id ,xml-id))))
 
 (define (xml-make-is-possible-command xml-id)
   (xml-make-command "IS-POSSIBLE" (list (xml-make-is-possible xml-id))))
@@ -1128,10 +1130,10 @@
   `(IDBOUTPUT ,@list-of-atomic-formulas))
 
 (define (xml-make-show-realized-command id childlist)
-  (xml-make-command "SHOW" (list `(SHOW ((type "REALIZED") ,id) ,@childlist))))
+  (xml-make-command "SHOW" (list `(SHOW ((type "REALIZED") (id ,id)) ,@childlist))))
 
 (define (xml-make-show-unrealized-command id childlist)
-  (xml-make-command "SHOW" (list `(SHOW ((type "UNREALIZED") ,id) ,@childlist))))
+  (xml-make-command "SHOW" (list `(SHOW ((type "UNREALIZED") (id ,id)) ,@childlist))))
 
 (define (xml-make-forcases the-cases)
   `(FORCASES ,@the-cases))
@@ -1165,7 +1167,7 @@
   `(FUNCTION-TERM ((func ,fid)) ,@subterm-xml-list))
 
 (define (xml-make-atomic-formula compound-id-list term-list)
-  `(ATOMIC-FORMULA (RELATION-NAME ,@(map xml-make-id compound-id-list))
+  `(ATOMIC-FORMULA (RELATION-NAME ,@(map xml-make-id-element compound-id-list))
                    (TERMS ,@term-list)) ) 
 
 

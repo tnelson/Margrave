@@ -341,7 +341,7 @@ public class MCommunicator
         				} 
           				catch(MBaseException e)
         				{
-          					MEnvironment.lastResult = -1;
+          					MEnvironment.clearLastQuery();
           					throw e;
         				}
           				
@@ -444,19 +444,19 @@ public class MCommunicator
         				 MEnvironment.quitMargrave();
         			}
         			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
-        				Integer id = Integer.parseInt(getIsPossibleId(n));
+        				String id = getNodeAttribute(n, "IS-POSSIBLE", "id");
         				theResponse = MEnvironment.isPoss(id);
         				writeToLog("Returning from IS-POSSIBLE");
         			}
         			else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
-        				Integer id = Integer.parseInt(getIsGuaranteedId(n));
+        				String id = getNodeAttribute(n, "IS-GUARANTEED", "id");
         				theResponse = MEnvironment.isGuar(id);
         			}
         			else if (type.equalsIgnoreCase("SHOW")) {
         				writeToLog("In show");
         				String showType = getShowType(n);
         				writeToLog("In show");
-        				Integer id = Integer.parseInt(getShowId(n));
+        				String id = getNodeAttribute(n, "SHOW", "id");
         				
         				writeToLog("\nshowtype: " + showType + "\n");
         				if (showType.equalsIgnoreCase("ONE"))
@@ -481,23 +481,23 @@ public class MCommunicator
 							}
 							//MEnvironment.showNextModel(id);
         				}
-        				else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
-        					theResponse = MEnvironment.showNextCollapse(id);
-        				}
+        				//else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
+        				//	theResponse = MEnvironment.showNextCollapse(id);
+        				//}
         				else if (showType.equalsIgnoreCase("CEILING")) {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				else if (showType.equalsIgnoreCase("POPULATED") |
-        						showType.equalsIgnoreCase("UNPOPULATED")) 
+        				else if (showType.equalsIgnoreCase("REALIZED") |
+        						showType.equalsIgnoreCase("UNREALIZED")) 
         				{
-        					String popIdString;
-        					if (showType.equalsIgnoreCase("POPULATED")) {
-        						popIdString = getPopulatedId(n); // command
+        					String popId;
+        					if (showType.equalsIgnoreCase("REALIZED")) {
+        						popId = getPopulatedId(n); // command
         					}
         					else {
-        						popIdString = getUnpopulatedId(n); // command
+        						popId = getUnpopulatedId(n); // command
         					}
-        					Integer popId = Integer.parseInt(popIdString);        					
+        					
         					Node showNode = getChildNode(n, "SHOW");
         					Node forCasesNode = getForCasesNode(showNode);
         					NodeList atomicFormulaNodes = showNode.getChildNodes();
@@ -521,7 +521,7 @@ public class MCommunicator
         					//writeToLog(showType+" " + popIdString + " " + atomicFormulas + " --- " + forCasesAtomicFormulas);
         					
         					// Get the result and return it
-        					if (showType.equalsIgnoreCase("POPULATED")) {
+        					if (showType.equalsIgnoreCase("REALIZED")) {
     							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
     						}
     						else {
@@ -533,8 +533,7 @@ public class MCommunicator
 
         			} // end show
         			else if (type.equalsIgnoreCase("COUNT")) {
-        				String idString = getCountId(n);
-        				Integer id = Integer.parseInt(idString);
+        				String id = getCountId(n);
         				theResponse = MEnvironment.countModels(id);
         				
         				Node sizeNode = getSizeNode(n);
@@ -907,20 +906,10 @@ public class MCommunicator
         public static String getRenameSecondId(Node n) {
         	return getNodeAttribute(n, "RENAME", "id2");
         }
-        
-        public static String getIsPossibleId(Node n) {
-        	return getNodeAttribute(n, "IS-POSSIBLE", "id");
-        }
-        public static String getIsGuaranteedId(Node n) {
-        	return getNodeAttribute(n, "IS-GUARANTEED", "id");
-        }
-        
+                
         //SHOW
         public static String getShowType(Node n) {
         	return getNodeAttribute(n, "SHOW", "type");
-        }
-        public static String getShowId(Node n) {
-        	return getNodeAttribute(n, "SHOW", "id");
         }
         public static Node getForCasesNode(Node n) {
         	return getChildNode(n, "FORCASES");
@@ -1558,6 +1547,45 @@ public class MCommunicator
 		}
 		
 		return result;
+	}
+	
+	public static void unitTests()
+	{
+		MEnvironment.writeErrLine("----- Begin MCommunicator Tests (No messages is good.) -----");
+		
+		// Test XML handling.
+		// handleXMLCommand
+		
+		String testInfo = "<MARGRAVE-COMMAND type=\"INFO\"><INFO /></MARGRAVE-COMMAND> ";
+		String testInfoWithID = "<MARGRAVE-COMMAND type=\"INFO\"><INFO id=\"Something\" /></MARGRAVE-COMMAND>  ";
+		String reset = "<MARGRAVE-COMMAND type=\"RESET\"><ID>MyQuery</ID></MARGRAVE-COMMAND>";  // ***
+		String show = "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"ONE\" ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+		String count = "<MARGRAVE-COMMAND type=\"COUNT\"><COUNT ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+		String isposs = "<MARGRAVE-COMMAND type=\"IS-POSSIBLE\"><IS-POSSIBLE ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+		String showUnrealizedForCases = 
+"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"UNREALIZED\" ID=\"Myquery\">"+
+"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /><VARIABLE-TERM id=\"z\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>"+
+"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>" +
+"<FORCASES><ATOMIC-FORMULA><RELATION-NAME><ID id=\"IDB\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
+"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R3\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></FORCASES></SHOW></MARGRAVE-COMMAND> ";
+
+		String aQuery = 
+"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
+"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"R\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
+"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><CONSTANT-TERM id=\"d\" /></EQUALS>" +
+"<ISA var=\"x\" sort=\"Sort1\" /></AND></OR></CONDITION>" +
+"<PUBLISH><VARIABLE-DECLARATION sort=\"A\"><VARIABLE-TERM id=\"z\" /></VARIABLE-DECLARATION><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION><VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
+		
+		/*handleXMLCommand(testInfo);
+		handleXMLCommand(testInfoWithID);
+		handleXMLCommand(reset);
+		handleXMLCommand(show);
+		handleXMLCommand(count);
+		handleXMLCommand(isposs);
+		handleXMLCommand(aQuery);*/
+		handleXMLCommand(showUnrealizedForCases);
+		
+		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	
 	}
 	
 }

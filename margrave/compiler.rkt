@@ -164,14 +164,14 @@
      (define fmla-id (if (< 1 (length interns))
                          (symbol->string (syntax->datum (second interns)))
                          ""))
-     (make-single-wrapper `(xml-make-is-possible-command (xml-make-id ,fmla-id)) syn)]
+     (make-single-wrapper `(xml-make-is-possible-command  ,fmla-id) syn)]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     [(equal? first-datum 'COUNT)
      (define fmla-id (if (< 1 (length interns))
                          (symbol->string (syntax->datum (second interns)))
                          ""))
-     (make-single-wrapper `(xml-make-count-command (xml-make-id ,fmla-id)) syn)]
+     (make-single-wrapper `(xml-make-count-command ,fmla-id) syn)]
         
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
    ; [(equal? first-datum 'COUNT-WITH-SIZE)
@@ -218,7 +218,7 @@
      (define candidates (map helper-syn->xml (syntax-e (third interns))))
      (define cases (map helper-syn->xml (syntax-e (fourth interns))))         
      (make-single-wrapper       
-      `(xml-make-show-realized-command (xml-make-id ,query-id)
+      `(xml-make-show-realized-command ,query-id
                                        ,(if (empty? cases)
                                             `(list ,@candidates)
                                             `(list ,@(append candidates 
@@ -232,11 +232,11 @@
      (define candidates (map helper-syn->xml (syntax-e (third interns))))
      (define cases (map helper-syn->xml (syntax-e (fourth interns))))         
      (make-single-wrapper       
-      `(xml-make-show-unrealized-command (xml-make-id ,query-id)
-                                       ,(if (empty? cases)
-                                            `(list ,@candidates)
-                                            `(list ,@(append candidates 
-                                                             (list `(xml-make-forcases (list ,@cases)))))))  syn)]  
+      `(xml-make-show-unrealized-command ,query-id
+                                         ,(if (empty? cases)
+                                              `(list ,@candidates)
+                                              `(list ,@(append candidates 
+                                                               (list `(xml-make-forcases (list ,@cases)))))))  syn)]  
     
     ; same but without the result ID
     ;        [(equal? first-datum 'LSHOWREALIZED)
@@ -281,7 +281,7 @@
      `(lambda () (pretty-print-response-xml 
                   (send-and-receive-xml
                    (xml-make-get-command (xml-make-type "ONE") 
-                                         (xml-make-id ,query-id)) #:syntax  #',syn)))]
+                                         ,query-id) #:syntax  #',syn)))]
     
     [(equal? first-datum 'RESET)
      (define query-id (symbol->string (syntax->datum (second interns))))
@@ -293,7 +293,7 @@
      (define query-id (if (equal? 1 (length interns))
                           ""
                           (symbol->string (syntax->datum (second interns)))))
-     (make-show-all `(xml-make-id ,query-id) syn)]
+     (make-show-all query-id syn)]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     ;[(equal? first-datum 'GETALL)
@@ -529,7 +529,7 @@
     [(equal? first-datum 'CEILING)
      `(xml-make-ceiling ,(if (< 1 (length interns))
                              (syntax->string (second interns))
-                             (xml-make-id "-1")))]
+                             "-1"))]
     [(equal? first-datum 'DEBUG)
      `(xml-make-debug ,(syntax->string (second interns)))]
     [(equal? first-datum 'UNDER)

@@ -662,11 +662,9 @@ public class MEnvironment
 	private static Map<String, MIDBCollection> envIDBCollections = new HashMap<String, MIDBCollection>();
 	private static Map<String, MVocab> envVocabularies = new HashMap<String, MVocab>();
 	
-	private static Map<Integer, MQueryResult> envQueryResults = new HashMap<Integer, MQueryResult>();
-	private static Map<Integer, MInstanceIterator> envIterators = new HashMap<Integer, MInstanceIterator>();
-	
-	static int lastResult = -1; // uninitialized
-		
+	private static Map<String, MQueryResult> envQueryResults = new HashMap<String, MQueryResult>();
+	private static Map<String, MInstanceIterator> envIterators = new HashMap<String, MInstanceIterator>();
+			
 	// both streams will be packaged with the response XML
 	
 	// System.err should never be written to, because Racket
@@ -766,18 +764,16 @@ public class MEnvironment
 		return null;
 	}
 
-	static MQueryResult getQueryResult(int num) throws MUserException
-	{
-		num = convertQueryNumber(num); // special case
-		
-		if(envQueryResults.containsKey(num))
-			return envQueryResults.get(num);		
+	static MQueryResult getQueryResult(String id) throws MUserException
+	{		
+		if(envQueryResults.containsKey(id))
+			return envQueryResults.get(id);		
 		return null;
 	}
 		
 	//If num is !- -1, returns num.
 	//If num is == -1, return the last results id (lastresult)
-	static int convertQueryNumber(int num) throws MUserException
+/*	static int convertQueryNumber(int num) throws MUserException
 	{
 		if (num == -1) 
 		{
@@ -791,7 +787,7 @@ public class MEnvironment
 			return num;
 		}
 	}
-
+*/
 	
 	static Formula getIDB(String collname, String idbname)
 	{
@@ -839,54 +835,50 @@ public class MEnvironment
 			outWriter.println(out.toString());
 	}
 	
-	static Document getNextModel(int numResult)
+	static Document getNextModel(String id)
 	throws MBaseException
-	{
-		numResult = convertQueryNumber(numResult);
-		
+	{		
 		// Do we have a result for this num?
-		if(!envQueryResults.containsKey(numResult))
-			return errorResponse(sUnknown, sResultID, numResult);
+		if(!envQueryResults.containsKey(id))
+			return errorResponse(sUnknown, sResultID, id);
 		
-		if(!envIterators.containsKey(numResult))
-			return getFirstModel(numResult);
+		if(!envIterators.containsKey(id))
+			return getFirstModel(id);
 		else
 		{
 			// Return next model in the iterator.
-			MQueryResult result = getQueryResult(numResult);
+			MQueryResult result = getQueryResult(id);
 			try
 			{
-				return scenarioResponse(result, envIterators.get(numResult).next(), numResult);
+				return scenarioResponse(result, envIterators.get(id).next(), id);
 			}
 			catch(MGENoMoreSolutions e)
 			{
-				return noSolutionResponse(result, numResult);
+				return noSolutionResponse(result, id);
 			}
 		}		
 	}
 				
-	static Document getFirstModel(int numResult) 
+	static Document getFirstModel(String id) 
 	throws MBaseException
 	{
-		numResult = convertQueryNumber(numResult);
-		
 		// Do we have a result for this num?
-		if(!envQueryResults.containsKey(numResult))
-			return errorResponse(sUnknown, sResultID, numResult);
+		if(!envQueryResults.containsKey(id))
+			return errorResponse(sUnknown, sResultID, id);
 
-		MQueryResult result = getQueryResult(numResult);
+		MQueryResult result = getQueryResult(id);
 		
 		// Reset the iterator (or create it if new)
 		MInstanceIterator it = result.getTotalIterator();
-		envIterators.put(numResult, it);
+		envIterators.put(id, it);
 		
 		try
 		{
-			return scenarioResponse(result, it.next(), numResult);
+			return scenarioResponse(result, it.next(), id);
 		}
 		catch(MGENoMoreSolutions e)
 		{
-			return noSolutionResponse(result, numResult);
+			return noSolutionResponse(result, id);
 		}
 		
 	}
@@ -905,11 +897,9 @@ public class MEnvironment
 				// Compile the query and get the result handle.
 				MQueryResult qryResult = qry.runQuery();
 				
-				// TODO Don't store more than one for now.
-				int queryId = 0;
+				String queryId = qry.name;
 				
 				envQueryResults.put(queryId, qryResult);								
-				lastResult = queryId;
 				
 				return resultHandleResponse(0);
 												
@@ -1149,7 +1139,7 @@ public class MEnvironment
 		return envIterators.get(id);
 	}
 	
-	public static Document showPopulated(Integer id,
+	public static Document showPopulated(String id,
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist) throws MBaseException
 	{
@@ -1191,12 +1181,12 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document showPopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MBaseException
+	public static Document showPopulated(String id, Map<String, Set<List<String>>> rlist) throws MBaseException
 	{
 		return showPopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static Document showUnpopulated(Integer id,
+	public static Document showUnpopulated(String id,
 			Map<String, Set<List<String>>> rlist,
 			Map<String, Set<List<String>>> clist) throws MUserException
 	{
@@ -1228,12 +1218,12 @@ public class MEnvironment
 		}
 	}
 	
-	public static Document showUnpopulated(Integer id, Map<String, Set<List<String>>> rlist) throws MUserException 
+	public static Document showUnpopulated(String id, Map<String, Set<List<String>>> rlist) throws MUserException 
 	{
 		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
 	}
 	
-	public static Document countModels(Integer id, Integer n) throws MUserException
+	public static Document countModels(String id, Integer n) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1241,12 +1231,12 @@ public class MEnvironment
 		return intResponse(aResult.countModelsAtSize(n));				
 	}
 
-	public static Document countModels(Integer id) throws MUserException
+	public static Document countModels(String id) throws MUserException
 	{
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
-	public static Document isGuar(Integer id) throws MUserException
+	public static Document isGuar(String id) throws MUserException
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
 		MQueryResult aResult = getQueryResult(id);
@@ -1257,7 +1247,7 @@ public class MEnvironment
 		return boolResponse(true);
 	}
 
-	public static Document isPoss(Integer id) throws MUserException 
+	public static Document isPoss(String id) throws MUserException 
 	{	
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1272,7 +1262,7 @@ public class MEnvironment
 		}
 	}
 
-	public static Document showCeiling(Integer id) throws MUserException
+	public static Document showCeiling(String id) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1861,7 +1851,7 @@ public class MEnvironment
 	}
 	
 	
-	private static Document noSolutionResponse(MQueryResult theResult, Integer id)
+	private static Document noSolutionResponse(MQueryResult theResult, String id)
 	{
 		Document xmldoc = makeInitialResponse(sUnsat);
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
@@ -1871,7 +1861,7 @@ public class MEnvironment
 		return xmldoc;
 	}
 
-	private static Element makeStatisticsElement(Document xmldoc, MQueryResult theResult, Integer id)
+	private static Element makeStatisticsElement(Document xmldoc, MQueryResult theResult, String id)
 	{
 		Element statsElement = xmldoc.createElementNS(null, "STATISTICS");;		
 		
@@ -1926,7 +1916,7 @@ public class MEnvironment
 		return xmldoc;
 	}
 	
-	private static Document boolResponseWithStats(MQueryResult aResult, int id, boolean b)
+	private static Document boolResponseWithStats(MQueryResult aResult, String id, boolean b)
 	{
 		Document xmldoc = makeInitialResponse("boolean");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
@@ -2013,7 +2003,7 @@ public class MEnvironment
 	}
 
 	private static Document scenarioResponse(MQueryResult mQueryResult,
-			MSolutionInstance nextPreTup, int id)
+			MSolutionInstance nextPreTup, String id)
 	{
 		MSolutionInstance next;
 		MVocab theVocab;
@@ -2194,6 +2184,13 @@ public class MEnvironment
 		
 		xmldoc.getDocumentElement().appendChild(mapElement);		
 		return xmldoc;
+	}
+	
+	public static void clearLastQuery()
+	{
+		envIDBCollections.remove("last");
+		envQueryResults.remove("last");
+		envIterators.remove("last");		
 	}
 
 	
