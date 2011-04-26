@@ -1456,6 +1456,8 @@ public class MVocab {
 	{
 		MEnvironment.writeErrLine("----- Begin MVocab Tests (No messages is good.) -----");
 		
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
 		// assertSortOrdering
 		// Need to allow multiple valid results since the hierarchy is a poset
 		// some non-determinism for incomparable sorts due to internal Set representation.
@@ -1472,7 +1474,7 @@ public class MVocab {
 		
 		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
 		{
-			MEnvironment.errorWriter.println("MVocab test 1: FAILED!");
+			MEnvironment.errorWriter.println("********** MVocab test 1: FAILED!");
 		}
 		
 		voc.addSubSort("a", "c");
@@ -1483,12 +1485,55 @@ public class MVocab {
 		
 		if(!validResults.contains(voc.assertSortOrdering(testSet).toString()))
 		{
-			MEnvironment.errorWriter.println("MVocab test 2: FAILED!");
+			MEnvironment.errorWriter.println("********** MVocab test 2: FAILED!");
 		}
 		
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Disjointness:
+		// getConciseDisjointSorts
+		// getConciseDisjointSortsAsymm
 		
+		voc = new MVocab();
+		voc.addSort("User");
+		voc.addSubSort("User", "Faculty");
+		voc.addSubSort("User", "Student");
+		MSort Faculty = voc.getSort("Faculty");
+		MSort Student = voc.getSort("Student");
+		MSort User = voc.getSort("User");
 		
-		// TODO more tests for other funcs
+		// Since Faculty and Student do not contain a lower bound, 
+		// and they are incomparable, vocab should make them disjoint.
+		if(!voc.getConciseDisjointSorts(Faculty).contains(Student) ||
+				!voc.getConciseDisjointSorts(Student).contains(Faculty))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 3: FAILED!");
+		}
+		
+		// But neither of them is disjoint from their parent.
+		if(voc.getConciseDisjointSorts(Faculty).contains(User) ||
+				voc.getConciseDisjointSorts(User).contains(Faculty))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 4: FAILED!");
+		}
+		
+		// Now we add a lower bound. Making sure the LB is not immediate:
+		voc.addSubSort("Faculty", "DeptChairs");
+		voc.addSubSort("Student", "GradStudents");		
+		voc.addSubSort("DeptChairs", "LB");
+		voc.addSubSort("GradStudents", "LB");
+		
+		if(voc.getConciseDisjointSorts(Faculty).contains(Student) ||
+				voc.getConciseDisjointSorts(Student).contains(Faculty))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 4: FAILED!");
+		}
+						
+		//voc.writeAsDOT("C:\\foo.dot");
+		
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		
 		
 		MEnvironment.writeErrLine("----- End MVocab Tests -----");	
 	}
