@@ -46,6 +46,7 @@ public class MJavaTests
 		MVocab.unitTest();
 		
 		MPolicyLeaf.unitTests();
+		MPolicySet.unitTests();
 		
 /////////////////////////////////////////////////////////////
 		try {

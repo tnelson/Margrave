@@ -35,6 +35,8 @@ import com.sun.xacml.combine.PermitOverridesPolicyAlg;
 import com.sun.xacml.combine.PermitOverridesRuleAlg;
 
 import kodkod.ast.Formula;
+import kodkod.ast.Relation;
+import kodkod.ast.Variable;
 
 
 public class MPolicySet extends MPolicy
@@ -146,7 +148,9 @@ public class MPolicySet extends MPolicy
 		// Prepare the IDBs of child policies
 		for(MPolicy dc : children)
 		{
-			dc.initIDBs();			
+			dc.initIDBs();	
+			
+			// Add decisions AFTER initIDBs call, since a Set needs to init before discovering what decisions it has.
 			decisions.addAll(dc.decisions);
 		}
 
@@ -186,6 +190,7 @@ public class MPolicySet extends MPolicy
 		for(String dec : decisions)
 		{
 			// Construct this decision IDB.
+			//System.err.println("------\nConstructing decision: "+dec);
 			
 			// FIRST-APPLICABLE
 			if(pCombineFA.contains(dec))
@@ -196,13 +201,20 @@ public class MPolicySet extends MPolicy
 				// Order matters. Make sure to use the correct ordering.
 				for(MPolicy child : children)
 				{
+					//System.err.println("  Processing: "+child.name);
+					//System.err.println("    negpriortargets: "+negpriortargets);
+					//System.err.println("    idbs of this child: "+child.idbs);
+					
 					// This decision applies (due to child) if
 					// (1) No older child's target applied
 					// (2) The child's IDB for this decision applies
 					// (3) The child's target applies.
-					thisdec.add(MFormulaManager.makeAnd(MFormulaManager.makeAnd(MFormulaManager.makeConjunction(negpriortargets), 
-							child.idbs.get(dec)), 
-							child.target));
+					if(child.idbs.containsKey(dec))
+					{
+						thisdec.add(MFormulaManager.makeAnd(MFormulaManager.makeAnd(MFormulaManager.makeConjunction(negpriortargets), 
+								child.idbs.get(dec)), 
+								child.target));
+					}
 
 						
 					// !!! TN disabled for now. Not clear how to separate desired semantics (matches vs. applies) vis-a-vis policy targets.
@@ -215,6 +227,7 @@ public class MPolicySet extends MPolicy
 					//			                                    		 MFormulaManager.makeConjunction(negpriortargets))));
 					
 					// Younger children must respect their elders.
+					// (Even if this child has no concept of this decision, if it "applies" (i.e., target matches) it overrules.)
 					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
 				}
 					
@@ -237,6 +250,22 @@ public class MPolicySet extends MPolicy
 							MFormulaManager.makeNegation(preComb.get(dOverrides))));
 				}										
 				
+			}
+			
+			// NO OP
+			else
+			{
+				// no-op. disjunction of all child policies' idbs for this decision
+				
+				Set<Formula> childrenHave = new HashSet<Formula>();
+				
+				for(MPolicy ch : children)
+				{
+					if(ch.idbs.containsKey(dec))
+						childrenHave.add(ch.idbs.get(dec));
+				}
+				
+				idbs.put(dec, MFormulaManager.makeDisjunction(childrenHave));
 			}
 				
 		}
@@ -299,4 +328,106 @@ public class MPolicySet extends MPolicy
 	{	
 		return new LinkedList<String>(); // unsupported for now
 	}
+	
+	public static void unitTests()
+	{
+		MEnvironment.writeErrLine("----- Begin MPolicySet Tests (No messages is good.) -----");
+		
+		MVocab voc = new MVocab();
+		voc.addSort("Subject");
+		voc.addSort("Action");
+		voc.addSort("Resource");		
+		voc.addPredicate("ownerOf", "Subject Resource");
+		voc.addPredicate("restricted", "Resource");
+		voc.addSubSort("Subject", "Admin");
+		voc.addSubSort("Subject", "Employee");
+		voc.addSubSort("Action", "BadThing");
+		voc.addSubSort("Resource", "Computer");
+		voc.addSubSort("Resource", "Bandwidth");
+				
+		voc.axioms.addConstraintAbstract("Subject");
+
+		/////////////////////////////////////////////////////////////
+		MPolicyLeaf pol1 = new MPolicyLeaf("Test Policy 1", voc);
+				
+		List<String> vSAR = new ArrayList<String>();
+		vSAR.add("s"); vSAR.add("a"); vSAR.add("r");
+		
+		List<String> vSR = new ArrayList<String>();
+		vSR.add("s"); vSR.add("r");
+		
+		Variable s = MFormulaManager.makeVariable("s");
+		Variable a = MFormulaManager.makeVariable("a");
+		Variable r = MFormulaManager.makeVariable("r");
+		Relation admin = voc.getSort("Admin").rel;		
+		Relation ownerOf = voc.predicates.get("ownerOf").rel;
+		Relation restricted = voc.predicates.get("restricted").rel;
+		Formula aTarget;
+		
+		aTarget = MFormulaManager.makeAtom(s, admin);		
+		pol1.addRule("Rule1", "permit", vSAR, aTarget, Formula.TRUE);
+		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeVarTuple(vSR), ownerOf);
+		pol1.addRule("Rule2", "permit", vSAR, aTarget, Formula.TRUE);		
+		aTarget = MFormulaManager.makeAtom(r, restricted);
+		pol1.addRule("Rule3", "deny", vSAR, aTarget, Formula.TRUE);
+				
+		pol1.rCombineFA.clear();
+		Set<String> sDeny = new HashSet<String>();
+		sDeny.add("deny");
+		pol1.rCombineWhatOverrides.put("permit", sDeny);				
+		
+		/////////////////////////////////////////////////////////////
+
+		MPolicyLeaf pol2 = new MPolicyLeaf("Test Policy 2", voc);
+		Relation BadThing = voc.getSort("BadThing").rel;
+		aTarget = MFormulaManager.makeAtom(a, BadThing);		
+		pol2.addRule("p2Rule1", "callpolice", vSAR, aTarget, Formula.TRUE);
+		
+		
+		
+		
+		/////////////////////////////////////////////////////////////
+
+		MPolicySet polparent = new MPolicySet("Test Parent Policy", voc);
+		
+		// Target VERY important here, since it dictates applicability of each policy.
+		Relation Computer = voc.getSort("Computer").rel;
+		Relation Bandwidth = voc.getSort("Bandwidth").rel;
+		pol1.target = MFormulaManager.makeAtom(r, Computer);	 
+		pol2.target = MFormulaManager.makeAtom(r, Bandwidth);	
+		
+		polparent.addChild(pol1);
+		polparent.addChild(pol2);
+		/////////////////////////////////////////////////////////////
+		
+		// First-applic. combination of child policies
+		polparent.pCombineFA.add("permit"); polparent.pCombineFA.add("deny"); polparent.pCombineFA.add("callpolice");
+		polparent.initIDBs();
+		
+		/////////////////////////////////////////////////////////////
+		
+		// Test
+		polparent.prettyPrintIDBs();
+		// callpolice: (!(r in Computer) &amp;&amp; (r in Bandwidth) &amp;&amp; ((a in BadThing) || false))&#13;
+		
+		/////////////////////////////////////////////////////////////
+		// overrides PComb now.
+		polparent.pCombineFA.clear();
+		Set<String> sCallPolice = new HashSet<String>();
+		sCallPolice.add("callpolice");
+		Set<String> sDCP = new HashSet<String>();
+		sDCP.add("callpolice"); 		sDCP.add("deny");
+		polparent.pCombineWhatOverrides.put("deny", sCallPolice);
+		polparent.pCombineWhatOverrides.put("permit", sDCP);
+		polparent.initIDBs();
+		
+		polparent.prettyPrintIDBs();
+		
+		
+		// TODO: make these actual test cases rather than strings to inspect.
+		
+		MEnvironment.writeErrLine("----- End MPolicySet Tests -----");	
+
+	}
+	
 }

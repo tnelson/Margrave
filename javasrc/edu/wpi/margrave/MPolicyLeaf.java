@@ -793,17 +793,30 @@ public class MPolicyLeaf extends MPolicy
 		
 		// Now, test combinators.
 		
+		/////////////////////////////////////////////////////////////
+		pol.prettyPrintRules();
+		/////////////////////////////////////////////////////////////
+		
+		/////////////////////////////////////////////////////////////
 		pol.rCombineFA.add("permit");
 		pol.rCombineFA.add("deny");
 		
-		// Bug!
+		pol.initIDBs();		
+		pol.prettyPrintIDBs();
+		/////////////////////////////////////////////////////////////
 		
-		// Test overrides next.
-		// ...
+		/////////////////////////////////////////////////////////////
+		pol.rCombineFA.clear();
+		Set<String> sDeny = new HashSet<String>();
+		sDeny.add("deny");
+		pol.rCombineWhatOverrides.put("permit", sDeny);
 		
 		pol.initIDBs();		
 		pol.prettyPrintIDBs();
-		pol.prettyPrintRules();
+		/////////////////////////////////////////////////////////////
+		
+	
+		// TODO: make these actual test cases rather than strings to inspect.
 		
 		MEnvironment.writeErrLine("----- End MPolicyLeaf Tests -----");	
 	}
