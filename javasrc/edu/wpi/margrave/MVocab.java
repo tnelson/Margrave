@@ -332,7 +332,12 @@ public class MVocab {
 		axioms = new MConstraints(this);
 	}
 
-	String validateIdentifier(String n, boolean substitute)
+	/*
+	 * Used by XACML, SQS to fix their identifiers. 
+	 * Should NOT be used by MVocab directly. Caller is responsible.
+	 * 
+	 */
+	static String validateIdentifier(String n, boolean substitute)
 			throws MGEBadIdentifierName 
 	{
 		// Make sure n is an OK Predicate or Variable name
@@ -372,7 +377,6 @@ public class MVocab {
 	{	
 		clearCache();
 		
-		name = validateIdentifier(name, true);
 		if (!isSort(name)) // no dupes
 			sorts.put(name, new MSort(name));
 	}
@@ -385,7 +389,6 @@ public class MVocab {
 		// We declare that there is a type "name" and types 
 		//(each child name, separated by whitespace)
 		// And that name is a parent of all such.
-		name = validateIdentifier(name, true);
 
 		if (!isSort(name))
 			sorts.put(name, new MSort(name));
@@ -399,8 +402,7 @@ public class MVocab {
 
 		// for each child in this declaration
 		for (String cname : cnames)
-		{		
-			cname = validateIdentifier(cname, true); 
+		{		 
 			
 			if (!isSort(cname))
 				sorts.put(cname, new MSort(cname));
@@ -440,7 +442,6 @@ public class MVocab {
 
 		clearCache();
 		
-		name = validateIdentifier(name, true);
 		if (!isSort(name))
 			sorts.put(name, new MSort(name));
 		MSort t = getSort(name);
@@ -456,8 +457,7 @@ public class MVocab {
 	}
 
 	MSort getSort(String n) throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		n = validateIdentifier(n, true); 
+	{ 
 		if (sorts.containsKey(n))
 			return sorts.get(n);
 		throw new MGEUnknownIdentifier("No such type: " + n);
@@ -477,7 +477,6 @@ public class MVocab {
 	{
 		Set<String> result = new HashSet<String>();
 
-		prefix = validateIdentifier(prefix, true);
 		
 		// Must traverse entire list of sorts.
 		// Could probably use a snazzy data structure to avoid this.
@@ -546,11 +545,6 @@ public class MVocab {
 	{
 		clearCache();
 		
-		parentName = parentName.toLowerCase();
-		name = name.toLowerCase();
-
-		name = validateIdentifier(name, true);
-
 		addSort(name);
 		addSort(parentName);
 
@@ -582,13 +576,9 @@ public class MVocab {
 			throws MGEBadIdentifierName {
 		// construct contains a String with relation names in it.
 		// "A B C" means type of (A x B x C)
-		
-		name = validateIdentifier(name, true);
-		
+				
 		if (predicates.keySet().contains(name))
-			return; // already have a pred named this
-
-		name = validateIdentifier(name, true);
+			return; // already have a pred named this		
 		
 		List<MSort> arity = processTypeConstructStr(typeconstruct);
 	
@@ -609,8 +599,7 @@ public class MVocab {
 	}
 
 	Relation getRelation(String rname) throws MGEUnknownIdentifier, MGEBadIdentifierName 
-	{
-		rname = validateIdentifier(rname, true);
+	{	
 		try
 		{
 			MSort t = getSort(rname);

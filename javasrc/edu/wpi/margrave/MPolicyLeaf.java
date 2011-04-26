@@ -310,10 +310,6 @@ public class MPolicyLeaf extends MPolicy
 			rulename = rulename + "-" + dupeRuleSuffix;
 			dupeRuleSuffix++;
 		}
-
-		/////////////////////////////////////////////////////////////
-		rulename = vocab.validateIdentifier(rulename, true);
-		decision = vocab.validateIdentifier(decision, true);
 		
 		// XXX to remove. renaming is done by caller now.
 		// We rename bound variables internally. e.g. if policy declares variable x : A,
@@ -335,7 +331,10 @@ public class MPolicyLeaf extends MPolicy
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
 			// (Sorts of all these variables should be known already.)			
 			idbs.put(decision, Formula.FALSE);
-			this.varOrderings.put(decision, ruleFreeVars);		
+			this.varOrderings.put(decision, ruleFreeVars);	
+			
+			// Add the decision to the list as well
+			decisions.add(decision);
 		}
 		
 		/////////////////////////////////////////////////////////////
@@ -558,6 +557,10 @@ public class MPolicyLeaf extends MPolicy
 		// TODO room for optimization here, if its a chokepoint
 		for(MRule r : rules)
 		{
+			// Stop once we reach the appropriate rule.
+			if(r.equals(aRule))
+				break;
+			
 			if(rCombineFA.contains(r.decision()))
 				results.add(r);
 		}
@@ -603,6 +606,8 @@ public class MPolicyLeaf extends MPolicy
 			
 		for(MRule r : backwards)
 		{
+			//System.err.println("Processing rule: "+r.name);
+			
 			// Process this rule:
 			// For this rule's decision, add (current_idb OR rule)
 			// For other decisions, add (current_idb AND not(rule)).
@@ -610,22 +615,29 @@ public class MPolicyLeaf extends MPolicy
 			for(String dec : decisions)
 			{
 				if(dec.equals(r.decision()))
-				{					
+				{
+					Formula theFmla;
+
 					// Always use conditions for rule actually firing
 					if(!isXACML)
-						result.put(dec, MFormulaManager.makeOr(result.get(dec), r.target_and_condition));
+						theFmla = MFormulaManager.makeOr(result.get(dec), r.target_and_condition);
 					// If FA doesn't apply for this decision, even in an XACML policy [impossible situation?]
 					else if(!rCombineFA.contains(dec))
-						result.put(dec, MFormulaManager.makeOr(result.get(dec), r.target_and_condition));
+						theFmla = MFormulaManager.makeOr(result.get(dec), r.target_and_condition);
 					else
 						// But XACML is complicated. Need to say "This rule applies fully, or its target was missed and a later rule applied." 
 						// This is needed: consider situation where r's condition fails but its target matches. Since this is XACML, none of the
 						// later rules (which we processed first) can apply.
-						result.put(dec, MFormulaManager.makeOr(MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)), r.target_and_condition));  
+						theFmla = MFormulaManager.makeOr(MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)), r.target_and_condition);  
+							
+					//System.err.println("Put: "+dec+" -> "+theFmla);
+					result.put(dec, theFmla);
 				} // end same decision				
 				
 				else
 				{
+					Formula theFmla;
+					
 					// Only add the restriction if this decision is FA along with r's
 					if(!rCombineFA.contains(dec) || !rCombineFA.contains(r.decision()))
 						continue;
@@ -641,15 +653,16 @@ public class MPolicyLeaf extends MPolicy
 						422 whose target is applicable to the decision request.  */
 
 					if(!isXACML)
-						result.put(dec, MFormulaManager.makeAnd(idbs.get(dec),  
-								MFormulaManager.makeNegation(r.target_and_condition)));
+						theFmla = MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target_and_condition));
 					else
-						result.put(dec, MFormulaManager.makeAnd(idbs.get(dec),  
-								MFormulaManager.makeNegation(r.target))); 			
+						theFmla = MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)); 		
+					
+					//System.err.println("Put: "+dec+" -> "+theFmla);
+					result.put(dec, theFmla);
 				} // end other decision
 			}  // end for each decision
 		} // end for each rule in reverse
-
+		
 		return result;	
 	} // end buildConciseIDBFA
 	
@@ -667,7 +680,7 @@ public class MPolicyLeaf extends MPolicy
 		// (a) These are easy:
 		for(MRule r : rules)
 		{
-			idbs.put(vocab.validateIdentifier(r.name+"_matches", true), r.target_and_condition);
+			idbs.put(r.name+"_matches", r.target_and_condition);
 		}
 		
 		/////////////////////////////////////////////////////////////////
@@ -686,7 +699,7 @@ public class MPolicyLeaf extends MPolicy
 			}
 			for(MRule overR2 : rulesThatCanOverride(r))
 				rFmlas.add(MFormulaManager.makeNegation(overR2.target_and_condition));
-			idbs.put(vocab.validateIdentifier(r.name+"_applies", true), MFormulaManager.makeConjunction(rFmlas));
+			idbs.put(r.name+"_applies", MFormulaManager.makeConjunction(rFmlas));
 		}
 
 		
@@ -700,23 +713,29 @@ public class MPolicyLeaf extends MPolicy
 		for(String decName : decisions)
 		{			
 			Formula IDB_FA = IDB_FAs.get(decName);
-			
 			// decFmla = IDB_FA and none of the overrides decision rules apply
-			Set<String> overrideDecs = rCombineWhatOverrides.get(decName);
+									
 			Set<Formula> negPriors = new HashSet<Formula>();
-			for(MRule r : rules)
+			
+			// If anything overrides decName at all (avoid null ptr)
+			if(rCombineWhatOverrides.containsKey(decName))
 			{
-				//  OPT likely a lot of repeated work here, but not optimizing yet
-				if(overrideDecs.contains(r.decision()))
+				Set<String> overrideDecs = rCombineWhatOverrides.get(decName);
+				
+				for(MRule r : rules)
 				{
-					negPriors.add(MFormulaManager.makeNegation(r.target_and_condition));
-				}
+					//  OPT likely a lot of repeated work here, but not optimizing yet
+					if(overrideDecs.contains(r.decision()))
+					{
+						negPriors.add(MFormulaManager.makeNegation(r.target_and_condition));
+					}
 					
+				}
 			}
 			
 			negPriors.add(IDB_FA); // don't forget that the original rule applies!			
 			Formula decFmla = MFormulaManager.makeConjunction(negPriors);
-			idbs.put(vocab.validateIdentifier(decName, true), decFmla);
+			idbs.put(decName, decFmla);
 		}
 					
 		
@@ -739,6 +758,7 @@ public class MPolicyLeaf extends MPolicy
 		voc.addSort("Action");
 		voc.addSort("Resource");		
 		voc.addPredicate("ownerOf", "Subject Resource");
+		voc.addPredicate("restricted", "Resource");
 		voc.addSubSort("Subject", "Admin");
 		voc.addSubSort("Subject", "Employee");
 		voc.axioms.addConstraintAbstract("Subject");
@@ -751,16 +771,39 @@ public class MPolicyLeaf extends MPolicy
 		
 		List<String> vSAR = new ArrayList<String>();
 		vSAR.add("s"); vSAR.add("a"); vSAR.add("r");
+		
+		List<String> vSR = new ArrayList<String>();
+		vSR.add("s"); vSR.add("r");
+
+		
 		Variable s = MFormulaManager.makeVariable("s");
 		Variable a = MFormulaManager.makeVariable("a");
 		Variable r = MFormulaManager.makeVariable("r");
-		Relation admin = voc.getSort("Admin").rel;
+		Relation admin = voc.getSort("Admin").rel;		
+		Relation ownerOf = voc.predicates.get("ownerOf").rel;
+		Relation restricted = voc.predicates.get("restricted").rel;
+		Formula aTarget;
 		
-		Formula aTarget = MFormulaManager.makeAtom(s, admin);		
+		aTarget = MFormulaManager.makeAtom(s, admin);		
 		pol.addRule("Rule1", "permit", vSAR, aTarget, Formula.TRUE);
-		pol.initIDBs();
+		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeVarTuple(vSR), ownerOf);
+		pol.addRule("Rule2", "permit", vSAR, aTarget, Formula.TRUE);		
+		aTarget = MFormulaManager.makeAtom(r, restricted);
+		pol.addRule("Rule3", "deny", vSAR, aTarget, Formula.TRUE);
 		
+		// Now, test combinators.
+		
+		pol.rCombineFA.add("permit");
+		pol.rCombineFA.add("deny");
+		
+		// Bug!
+		
+		// Test overrides next.
+		// ...
+		
+		pol.initIDBs();		
 		pol.prettyPrintIDBs();
+		pol.prettyPrintRules();
 		
 		MEnvironment.writeErrLine("----- End MPolicyLeaf Tests -----");	
 	}

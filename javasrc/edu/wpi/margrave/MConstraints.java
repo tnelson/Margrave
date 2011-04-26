@@ -81,7 +81,7 @@ public class MConstraints
 	public void addConstraintAbstractAll(String d)
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
+
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -94,8 +94,6 @@ public class MConstraints
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// D equals the union of its subsorts
-
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -104,7 +102,6 @@ public class MConstraints
 
 	public void addConstraintNonempty(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -114,7 +111,6 @@ public class MConstraints
 
 	public void addConstraintSingleton(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -123,7 +119,6 @@ public class MConstraints
 
 	public void addConstraintAtMostOne(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -132,7 +127,6 @@ public class MConstraints
 
 	public void addConstraintAtMostOneAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 
@@ -145,21 +139,18 @@ public class MConstraints
 	public void addConstraintPartialFunction(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// Relation d is a partial function. The LHS of the function restriction is the first lhs_size subrelations.
-		d = vocab.validateIdentifier(d, true);
 		funcPartial.add(d);
 	}
 
 	public void addConstraintTotalFunction(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// Relation d is a TOTAL function. The LHS of the function restriction is the first lhs_size subrelations.
-		d = vocab.validateIdentifier(d, true);
 		funcTotal.add(d);
 	}
 
 	public void addConstraintTotalRelation(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		// Relation d is a TOTAL relation. 
-		d = vocab.validateIdentifier(d, true);
+		// Relation d is a TOTAL relation. 		
 		relTotal.add(d);
 	}
 	
@@ -169,7 +160,6 @@ public class MConstraints
 
 	public void addConstraintSingletonAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 	 	// Policy places a constraint on a domain with this name.
 		// We should know about a relation of this name.
 		if(!vocab.isSort(d))
@@ -186,7 +176,6 @@ public class MConstraints
 
 	public void addConstraintNonemptyAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		d = vocab.validateIdentifier(d, true);
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
 		// "All" implies that each subdomain of this domain has exactly one member.

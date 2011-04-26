@@ -126,8 +126,8 @@ public class SQSReader
 		
 		// Add the sort (if it doesn't already exist.)
 		
-		sortname = vocab.validateIdentifier(sortname, true);
-		parentsortname = vocab.validateIdentifier(parentsortname, true);
+		sortname = MVocab.validateIdentifier(sortname, true);
+		parentsortname = MVocab.validateIdentifier(parentsortname, true);
 		
 		// Kludge (for now) to make * contain subsorts:
 		
