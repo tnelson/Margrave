@@ -761,10 +761,8 @@ public class MCommunicator
 				
 				
 				// If this is not an atomic formula, pass over it
-				if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-Y") ||
-						childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA-N")) 
-				{
-				
+				if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
+				{				
 					collectionName = getAtomicFormulaYCollection(childNode); // may be null!
 					if(collectionName != null)				
 						relationName = getAtomicFormulaYRelation(childNode);
@@ -775,8 +773,7 @@ public class MCommunicator
 	
 					writeToLog("\natomicFormulasToHashmap (ATOMIC-FMLA): "+collectionName+", "+relationName+", "+identifiers+"\n");
 					
-					// TODO: Should make a class to help with this eventually; right now
-					// there is too much string processing going on in the engine.
+					
 					
 					String idbName;
 					if(collectionName != null && collectionName.length() > 0)
@@ -940,15 +937,6 @@ public class MCommunicator
         }
         
         //ATOMIC FORMULAS
-        public static String getAtomicFormulaYCollection(Node n) {
-        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "collection-name");
-        }
-        public static String getAtomicFormulaYRelation(Node n) {
-        	return getNodeAttribute(n, "ATOMIC-FORMULA-Y", "relation-name");
-        }
-        public static String getAtomicFormulaNRelation(Node n) {
-        	return getNodeAttribute(n, "ATOMIC-FORMULA-N", "relation-name");
-        }
         public static NodeList getAtomicFormulaNodesFromList(Node n) {
         	Node child = getChildNode(n, "ATOMIC-FORMULA-LIST");
         	if(child == null)
@@ -1159,16 +1147,28 @@ public class MCommunicator
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
+        		/////////////////////////////////////////////////////
+        		// Relation name
         		Node relationNameNode = getChildNode(n, "RELATION-NAME");
-        		NodeList relationComponents = relationNameNode.getChildNodes();
+        		NodeList relationComponents = relationNameNode.getChildNodes();        		        	
+        		List<String> relationNameComponents = new ArrayList<String>();        		
+        		for(int ii=0;ii<relationComponents.getLength();ii++)
+        		{
+        			// not Iterable...
+        			Node theNode = relationComponents.item(ii);        			
+        			// <ID id=\"P\"/>
+        			String nameStr = getNodeAttribute(theNode, "ID", "id");
+        			relationNameComponents.add(nameStr);
+        		}
+        		
+        		/////////////////////////////////////////////////////
+        		// Terms
+        		
+        		// TODO handle terms
+        		// NOT just variables anymore, so vl isn't quite right.
         		
         		
-        		List<String> relationNameComponents = new ArrayList<String>();
-        		// TODO handle collection name XML
-        		
-        		//String relationName = getAtomicFormulaNRelation(n);//n.getAttributes().item(0).getNodeValue();
-        		
-        		List<String> vl = getIdentifierList(n);
+        		//List<String> vl = getIdentifierList(n);
 
         		// Could be:
         		// (1) compound relation name, e.g. pol.idbname
@@ -1581,9 +1581,13 @@ public class MCommunicator
 		handleXMLCommand(reset);
 		handleXMLCommand(show);
 		handleXMLCommand(count);
-		handleXMLCommand(isposs);
-		handleXMLCommand(aQuery);*/
-		handleXMLCommand(showUnrealizedForCases);
+		handleXMLCommand(isposs);*/
+		handleXMLCommand(aQuery);
+		//handleXMLCommand(showUnrealizedForCases);
+		
+		// Next
+		// Start changing vocab+pol xml
+		
 		
 		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	
 	}

@@ -390,6 +390,7 @@ class MExploreCondition
 		// No assertions. No free variables. Just a constant formula
 	}
 	
+	// Equality
 	MExploreCondition(Formula f, MTerm t1, MTerm t2, boolean isPlaceholder)
 	{
 		fmla = f;				

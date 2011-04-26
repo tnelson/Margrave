@@ -206,23 +206,22 @@ class MConstant
 
 }
 
-class MFunction
+class MFunction extends MPredicate
 {
 	String name;
 	Relation rel;
 	List<MSort> arity;
-	MSort type;
+	MSort result;
 	
 	public String toString()
 	{
 		return name;
 	}
 	
-	MFunction(String name, Relation rel, List<MSort> arity, MSort type)
+	MFunction(String name, Relation rel, List<MSort> arity, MSort result)
 	{
-		this.name = name;
-		this.rel = rel;
-		this.type = type;
+		super(name, rel, arity, result);
+		this.result = result;
 		this.arity = arity;
 	}
 	
@@ -238,7 +237,7 @@ class MFunction
         
         return othFunc.name.equals(this.name) &&
                othFunc.rel.equals(this.rel) &&
-               othFunc.type.equals(this.type) &&
+               othFunc.result.equals(this.result) &&
                othFunc.arity.equals(this.arity);
 	}
 
@@ -262,6 +261,15 @@ class MPredicate
 		this.rel = rel;
 		this.type = type;
 	}
+	
+	// Used for functions
+	MPredicate(String name, Relation rel, List<MSort> arity, MSort result)
+	{
+		this.name = name;
+		this.rel = rel;
+		this.type = new ArrayList<MSort>(arity);
+		this.type.add(result);
+	}	
 	
 	public boolean equals(Object other)
 	{

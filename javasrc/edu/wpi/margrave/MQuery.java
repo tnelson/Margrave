@@ -4005,26 +4005,9 @@ public class MQuery extends MIDBCollection
 		MCommunicator.writeToLog("Idb out map: "+includeMap.toString());
 		MCommunicator.writeToLog("tup: "+bTupling);
 
-
-		// Tupling <----> for cases and idboutputmap and populated all indexed
-		if(bTupling)
-		{
-			for(String predname : includeMap.keySet())
-			{
-				if(includeMap.get(predname).size() < 1)
-					throw new MGETuplingFailure("TUPLING was enabled but INCLUDE for pred: "+predname+" was not indexed.");
-			}
-		}
-		else
-		{
-			for(String predname : includeMap.keySet())
-			{
-				if(includeMap.get(predname).size() > 0)
-					throw new MGETuplingFailure("TUPLING was not enabled but INCLUDE for pred: "+predname+" was indexed.");
-			}
-		}
-		// TODO to give row/col for the above, need to keep their location in the outmod until we know whether or not we're tupled
-
+		// includeMap is always indexed now. INCLUDE no longer takes relation names, but requires
+		// atomic fmlas, same as SHOW REALIZED.
+		// TODO: include should be part of SHOW, not EXPLORE.
 
 		// **********************************************************
 		// (1) Assemble a combined vocabulary
