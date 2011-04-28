@@ -98,13 +98,13 @@
     [(list x y z ...) (raise-syntax-error 'Margrave (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
     [_ (void)]))  
 
-(define-for-syntax (none-colon-syn? syn-list)
-  (define lst (if (syntax? syn-list)
-                  (syntax->datum syn-list)
-                  syn-list))
-  (cond [(empty? lst) #t]
-        [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
-        [else (none-colon-syn? (rest lst))]))
+;(define-for-syntax (none-colon-syn? syn-list)
+;  (define lst (if (syntax? syn-list)
+;                  (syntax->datum syn-list)
+;                  syn-list))
+;  (cond [(empty? lst) #t]
+;        [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
+;        [else (none-colon-syn? (rest lst))]))
 
 (define-for-syntax (id-syn? syn)
   (define dat (if (syntax? syn)
@@ -113,26 +113,45 @@
   (symbol? dat))
 
 
-(define-for-syntax (all-id-syn? syn-list)
+; Is this a capitalized id?
+; (Sorts)
+(define-for-syntax (capitalized-id-syn? syn)
+  (define dat (if (syntax? syn)
+                  (syntax->datum syn)
+                  syn))  
+  (and (symbol? dat)
+       (char-upper-case? (string-ref (symbol->string dat) 0))))
+
+; Is the first character lowercase? 
+; (Variables, functions, predicates...)
+(define-for-syntax (lower-id-syn? syn)
+  (define dat (if (syntax? syn)
+                  (syntax->datum syn)
+                  syn))  
+  (and (symbol? dat)
+       (char-lower-case? (string-ref (symbol->string dat) 0))))
+
+; Apply given pred to each
+; (to be used on lists of identifiers)
+(define-for-syntax (all-are-syn? syn-list fpred)
   (define proper-list (or (syntax->list syn-list)
                           (list (syntax->datum syn-list))))
-  (andmap id-syn? proper-list))
+  (andmap fpred proper-list))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (PolicySet stx)
-  (syntax-case stx [Children PComb]
-    ([_ clauses ...]
-     (let ()
-       
-       
-       ))))
+;(define-syntax (PolicySet stx)
+;  (syntax-case stx [Children PComb]
+;    ([_ clauses ...]
+;     (let ()
+;       
+;       
+;       ))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
 (define-syntax (Vocab stx)
   (syntax-case stx [Types Predicates Constants Functions Vocab]
     ([_ myvocabname clauses ...]     
@@ -162,7 +181,7 @@
        ;  [(_ v lits pattern) #'(syntax-case v (Types Decisions Predicates ReqVariables OthVariables Constraints) [pattern #t] [_ #f])])       
        ;(define the-types-clauses (filter (lambda (v) (syntax-case-match? v (Types (t subt ...) ...)) clauses)))
        
-       (define the-types-clauses (hash-ref clause-table 'types))                                 
+       (define the-types-clauses (hash-ref clause-table 'types)) 
        (define the-predicates-clauses (hash-ref clause-table 'predicates))
        (define the-constants-clauses (hash-ref clause-table 'constants))
        (define the-functions-clauses (hash-ref clause-table 'functions))
@@ -171,134 +190,75 @@
        (assert-lone-clause stx the-predicates-clauses "Predicates")
        (assert-lone-clause stx the-constants-clauses "Constants")
        (assert-lone-clause stx the-functions-clauses "Functions")     
-       
-       
-       ; !!! TN
+             
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Types
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define (handle-top-types types-list)
-         ; Optional :
-         ; must have at least one type
-         ; (Types : atype0 atype ...)
-         ; (Types atype0 atype ...)         
-         (syntax-case types-list [Types : Types:]
-           [(Types : x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
-                                    (none-colon-syn? #'(x ...)))
-                               (map (lambda (t) (handle-type t #f)) 
-                                    (append (list #'x0) (syntax->list #'(x ...))))]
-                      
-           [(Types: x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
-                                   (none-colon-syn? #'(x ...)))
-                              (map (lambda (t) (handle-type t #f)) 
-                                   (append (list #'x0) (syntax->list #'(x ...))))]
-           
-           [(Types x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
-                                  (none-colon-syn? #'(x ...)))
-                             (map (lambda (t) (handle-type t #f)) (append (list #'x0) (syntax->list #'(x ...))))]   
-           
-           [_ (raise-syntax-error 'PolicyVocab "Top-level type declaration was not valid." #f #f types-list)]))
+       (define the-types-clause (first the-types-clauses))
+       (define the-types (rest (syntax-e the-types-clause)))
        
-       (define (handle-type a-type [parent #f])
-         ; (id!=: : atype ...)
-         ; (id!=: atype ...)
-         ; id!=:
-         (syntax-case a-type [:]     
-           ; (Length : )   <--- old syntax for subtype with no children
-           [(t : ) (and (not (equal? (syntax->datum #'t) ':))
-                        (id-syn? #'t))
-                   (list (make-type-command-syntax (syntax->datum #'t) parent))]
-
-           [(t) (and (not (equal? (syntax->datum #'t) ':))
-                     (id-syn? #'t))
-                (list (make-type-command-syntax (syntax->datum #'t) parent))]  
+       ; Returns a pair (name cmd)
+       (define (handle-type a-type)         
+         (syntax-case a-type [>]     
            
-           [(t subt ...) (and (not (equal? (syntax->datum #'t) ':))
-                              (none-colon-syn? #'(subt ...))
-                              (id-syn? #'t))
-                         (list (make-type-command-syntax (syntax->datum #'t) parent)
-                               (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))] 
+           ; (Type T)
+           [(t) (capitalized-id-syn? #'t)
+                (list #'t (make-type-command-syntax (syntax->datum #'t)))]  
            
-           [(t : subt ...) (and (not (equal? (syntax->datum #'t) ':))
-                                (id-syn? #'t)
-                                (none-colon-syn? #'(subt ...)))
-                           (list (make-type-command-syntax (syntax->datum #'t) parent) 
-                                 (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
+           ; (Type T > A B C)
+           [(t > subt ...) (and (capitalized-id-syn? #'t)
+                                (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
+                           (list #'t (make-type-command-syntax (syntax->datum #'t)
+                                                               (map syntax->datum #'(subt ...))))] 
            
-           [t (and (not (equal? (syntax->datum #'t) ':))
-                   (id-syn? #'t))
-              (make-type-command-syntax (syntax->datum #'t) parent)]
+           ;[(t : subt ...) (and (not (equal? (syntax->datum #'t) ':))
+           ;                     (id-syn? #'t)
+           ;                     (none-colon-syn? #'(subt ...)))
+           ;                (list (make-type-command-syntax (syntax->datum #'t) parent) 
+           ;                      (handle-sub-types (syntax->list #'(subt ...)) (syntax->datum #'t)))]
            
-           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f (list a-type))]))
-              
-       
-       (define (handle-sub-types types-list [parent #f])
-         (syntax-case types-list [:]           
-           [(x0 x ...) (and (not (equal? (syntax->datum #'x0) ':))
-                            (none-colon-syn? #'(x ...)))
-                       (map (lambda (t) (handle-type t parent)) types-list)]
-                      
-           [_ (raise-syntax-error 'PolicyVocab "Type declaration was not valid." #f #f types-list)]))
-       
-       (define (make-type-command-syntax typename parent)
-         (if parent             
-             #`(#,(symbol->string typename)
-                #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                (xml-make-subsort (symbol->string parent) (symbol->string typename)))))
+           ;[t (and (not (equal? (syntax->datum #'t) ':))
+           ;        (id-syn? #'t))
+           ;   (make-type-command-syntax (syntax->datum #'t) parent)]
+           
+           [_ (raise-syntax-error 'Vocab "Type declaration was not valid." #f #f (list a-type))]))
+                     
+       (define (make-type-command-syntax typename [child-list empty])
+         (if (empty? child-list)            
              #`(#,(symbol->string typename)
                 #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name))
-                                                (xml-make-sort (symbol->string typename)))))))
-       
-       ; Is each type valid?  
-       (define types-result (flatten (handle-top-types (syntax-e (first the-types-clauses)))))       
+                                                (xml-make-sort (symbol->string typename)))))
+             #`(#,(symbol->string typename)
+                #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
+                                                (xml-make-type-with-subs (symbol->string typename) (map symbol->string child-list)))))))
+              
+       (define types-result (map handle-type the-types)) 
        (define types-cmds (map (compose second syntax->datum) types-result))
        (define types-names (map (compose first syntax->datum) types-result))
        
+       ; Used later to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
          (define type-name-str (symbol->string/safe (syntax->datum typename-syn)))
          (unless (member type-name-str types-names)
-           (raise-syntax-error 'PolicyVocab 
+           (raise-syntax-error 'Vocab 
                                (format "Invalid declaration. The type ~a was not declared." type-name-str)
                                #f #f (list typename-syn) ))
          #t)
        
        
-       (define (each-type-in-list-is-valid typelist-syntax)
+       (define (each-type-in-list-is-valid? typelist-syntax)
          (define type-syn-list (syntax->list typelist-syntax))
          (andmap is-valid-type? type-syn-list))
        
 ;       (printf "typen: ~a~n" types-names)
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Decisions
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define the-decisions-clause (first the-decisions-clauses))
-       
-       (define my-decisions (match (syntax-e the-decisions-clause)
-                              [(list _) (raise-syntax-error 'PolicyVocab "Must have at least one decision." #f #f (list (first the-decisions-clauses)) )]
-                              [(list _ dec ...) (for-each (lambda (d) 
-                                                            (when (equal? (syntax->datum d) ':)                                                              
-                                                              (raise-syntax-error 'PolicyVocab "Invalid decisions clause. Colon is not a valid decision." #f #f (list (first the-decisions-clauses))))
-                                                            (unless (symbol? (syntax->datum d))
-                                                              (raise-syntax-error 'PolicyVocab "Invalid decisions clause." #f #f (list (first the-decisions-clauses)))))
-                                                          dec)
-                                                dec]
-                              [_ (raise-syntax-error 'PolicyVocab "Invalid Decisions clause." #f #f (list (first the-decisions-clauses)) )])) 
-       
-       (define decisions-cmds (map (lambda (dec-syn) 
-                                     #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                       (xml-make-decision (symbol->string (syntax->datum dec-syn)))))) 
-                                   my-decisions))
-
-       (define decisions-names (map (compose symbol->string syntax->datum) my-decisions))
-       
-      ; (printf "dn: ~a~n" decisions-names)
-        ; (printf "decisions-result: ~a~n" decisions-result)  
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Predicates
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       ; Optional clause; allow to be empty.
        (define predicates-result
          (if (empty? the-predicates-clauses)
              empty
@@ -313,24 +273,15 @@
                  
                
                (define (handle-predicate pred)
-                 ; Optional : again
-                 (syntax-case pred [ : ]
-                   [(pname : prel0 prel ...) (and (not (equal? (syntax->datum #'prel0) ':))
-                                                  (none-colon-syn? #'(prel ...))
-                                                  (each-type-in-list-is-valid #'(prel0 prel ...)))                                             
-                                             #`( (pname 
-                                                  #,(length (syntax->list #'(prel0 prel ...))))
-                                                 #,(add-predicate  #'myvocabname #'pname #'(prel0 prel ...))) ]
-                   
-                   
-                   [(pname prel0 prel ...) (and (not (equal? (syntax->datum #'prel0) ':))
-                                                (none-colon-syn? #'(prel ...))
-                                                (each-type-in-list-is-valid #'(prel0 prel ...)))  
+                 ; No colon. Just (Predname A B C)
+                 (syntax-case pred []                   
+                   [(pname prel0 prel ...) (and (lower-id-syn? #'pname)
+                                                (each-type-in-list-is-valid? #'(prel0 prel ...)))  
                                            #`( (pname
                                                 #,(length (syntax->list #'(prel0 prel ...))))
                                                #,(add-predicate  #'myvocabname #'pname #'(prel0 prel ...)))] 
                    
-                   [_ (raise-syntax-error 'PolicyVocab "Invalid predicate declaration." #f #f (list pred) )]))
+                   [_ (raise-syntax-error 'Vocab "Invalid predicate declaration." #f #f (list pred) )]))
                
                (map handle-predicate the-predicates))))
 
@@ -339,7 +290,8 @@
                                             empty
                                             (map (compose (lambda (ppair) (list (symbol->string/safe (first ppair)) (second ppair)))
                                                           first 
-                                                          syntax->datum) predicates-result)))         
+                                                          syntax->datum) predicates-result)))
+       
        (define predicates-cmds (if (empty? predicates-result)
                                            empty
                                            (map (compose second syntax->datum) predicates-result)))
@@ -347,185 +299,156 @@
       ; (printf "predicates-result: ~a~n" predicates-result)  
        ;(printf "~a ... ~a ~n" predicates-names predicates-cmds)   
               
-       (define (is-valid-pred? predname-syn [desired-arity-lowest #f] [desired-arity-highest #f])
-         (define pred-name-str (symbol->string/safe (syntax->datum predname-syn)))
-         
-         ;; there is a better func than filter, right? - todo
+       ; Used later to discover whether a pred is being used properly
+       (define (is-valid-pred? predname-syn [desired-arity #f])
+         (define pred-name-str (symbol->string/safe (syntax->datum predname-syn)))   
+         ; todo: There's a better func than filter for this. what was it called? -TN
          (define found-pred-pair (filter (lambda (pair) (equal? (first pair) pred-name-str)) predicates-names-and-arities))
          
          (when (empty? found-pred-pair)
-           (raise-syntax-error 'PolicyVocab 
+           (raise-syntax-error 'Vocab 
                                (format "Invalid declaration. The predicate ~a was not declared." pred-name-str)
                                #f #f (list predname-syn) ))    
-                  
-         ; Check arity bounded on both sides
-         (define the-arity (second (first found-pred-pair)))
-         
-         (cond [(and desired-arity-lowest 
-                     desired-arity-highest
-                     (or (> the-arity desired-arity-highest)
-                         (< the-arity desired-arity-lowest)))
-                (raise-syntax-error 'PolicyVocab 
-                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was not between ~a and ~a." 
-                                            pred-name-str the-arity desired-arity-lowest desired-arity-highest)
-                                    #f #f (list predname-syn) )]
-               [(and desired-arity-lowest
-                     (< the-arity desired-arity-lowest))
-                (raise-syntax-error 'PolicyVocab 
-                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was lower than ~a." pred-name-str the-arity desired-arity-lowest)
-                                    #f #f (list predname-syn) )]
-               [(and desired-arity-highest
-                     (> the-arity desired-arity-highest))
-                (raise-syntax-error 'PolicyVocab 
-                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was higher than ~a." pred-name-str the-arity desired-arity-highest)
-                                      #f #f (list predname-syn) )])  
+                           
+         (define the-arity (second (first found-pred-pair)))         
+         (unless (or (not desired-arity) 
+                     (equal? desired-arity the-arity))
+                (raise-syntax-error 'Vocab 
+                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was not ~a." 
+                                            pred-name-str the-arity desired-arity)
+                                    #f #f (list predname-syn) ))               
+         #t)
+
+
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Constants
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+               ; !!!!!!! temp
+       (define (xml-make-type-with-subs tname clist)
+         #t)
+       (define (xml-make-constant cname ctype)
+         #t)
+       (define (xml-make-function fname ftlist)
          #t)
 
        
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; ReqVariables
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define the-reqvariables-clause (first the-reqvariables-clauses))
-       (define the-reqvardecs (rest (syntax-e the-reqvariables-clause)))
-       
-       (when (empty? the-reqvardecs)
-         (raise-syntax-error 'PolicyVocab "There must be at least one request field." #f #f (list the-reqvariables-clause) ))
-       
-       (define (handle-reqvardec vardec)
-         ; Optional : again
-         ; only one sort per variable
-         (syntax-case vardec [ : ]
-           [(varname : varsort) (and (not (equal? (syntax->datum #'varname) ':))
-                                     (not (equal? (syntax->datum #'varsort) ':))
-                                     (is-valid-type? #'varsort))  
-                                #`(varname
-                                   #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                   (xml-make-request-var (symbol->string (syntax->datum #'varname)) 
-                                                                                         (symbol->string (syntax->datum #'varsort))))))]
-           
-           [(varname varsort) (and (not (equal? (syntax->datum #'varname) ':))
-                                   (not (equal? (syntax->datum #'varsort) ':))
-                                   (is-valid-type? #'varsort))  
-                              #`(varname 
-                                 #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                (xml-make-request-var (symbol->string (syntax->datum #'varname)) 
-                                                                                      (symbol->string (syntax->datum #'varsort))))))]
-           
-           [_ (raise-syntax-error 'PolicyVocab "Invalid request field declaration." #f #f (list vardec) )]) )
-                           
-       (define reqvariables-result (map handle-reqvardec the-reqvardecs))
-       (define reqvariables-cmds (map (compose second syntax->datum) reqvariables-result))
-       (define reqvariables-names (map (compose first syntax->datum) reqvariables-result))
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; OthVariables
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define othvariables-result 
-         (if (empty? the-othvariables-clauses)
+       ; Optional clause; allow to be empty.
+       (define constants-result
+         (if (empty? the-constants-clauses)
              empty
              (let ()
-               (define the-othvariables-clause (first the-othvariables-clauses))
-               (define the-othvardecs (rest (syntax-e the-othvariables-clause)))
+               (define the-constants-clause (first the-constants-clauses))
+               (define the-constants (rest (syntax-e the-constants-clause)))
                
-               (define (handle-othvardec vardec)
-                 ; Optional : again
-                 ; only one sort per variable
-                 (syntax-case vardec [ : ]
-                   [(varname : varsort) (and (not (equal? (syntax->datum #'varname) ':))
-                                             (not (equal? (syntax->datum #'varsort) ':))
-                                             (is-valid-type? #'varsort))  
-                                        #`(varname
-                                           #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                          (xml-make-other-var (symbol->string (syntax->datum #'varname)) 
-                                                                                              (symbol->string (syntax->datum #'varsort))))))]
+               (define (add-constant vocab-syn constname-syn type-syn)
+                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
+                                               (xml-make-constant (symbol->string (syntax->datum constname-syn))) 
+                                               (xml-make-type (symbol->string (syntax->datum type-syn))))))
+                 
+               
+               (define (handle-constant const)
+                 ; No colon. Just (Constant a A)
+                 (syntax-case const []                   
+                   [(cname crel) (and (lower-id-syn? #'cname)
+                                      (is-valid-type? #'crel))  
+                                           #`( cname
+                                               #,(add-constant #'myvocabname #'cname #'crel))] 
                    
-                   [(varname varsort) (and (not (equal? (syntax->datum #'varname) ':))
-                                           (not (equal? (syntax->datum #'varsort) ':))
-                                           (is-valid-type? #'varsort))  
-                                      #`(varname
-                                         #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                        (xml-make-other-var (symbol->string (syntax->datum #'varname)) 
-                                                                                            (symbol->string (syntax->datum #'varsort))))))]
+                   [_ (raise-syntax-error 'Vocab "Invalid constant declaration." #f #f (list const) )]))
+               
+               (map handle-constant the-constants))))
 
-                   [_ (raise-syntax-error 'PolicyVocab "Invalid rule-scope variable declaration." #f #f (list vardec) )]) )
-                           
-               (map handle-othvardec the-othvardecs))))
+       ; may be empty
+       (define constants-names (if (empty? constants-result)
+                                   empty
+                                   (map (compose first syntax->datum) constants-result)))      
        
-       (define othvariables-names (if (empty? othvariables-result)
-                                      empty
-                                      (map (compose first syntax->datum) othvariables-result)))         
-       (define othvariables-cmds (if (empty? othvariables-result)
-                                     empty
-                                     (map (compose second syntax->datum) othvariables-result)))
+       (define constants-cmds (if (empty? constants-result)
+                                           empty
+                                           (map (compose second syntax->datum) constants-result)))
        
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Constraints
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define constraints-result
+      ; (printf "constants-result: ~a~n" constants-result)  
+       ;(printf "~a ... ~a ~n" constants-names constants-cmds)   
+              
+       ; Used later to discover whether a constant is being used properly
+       (define (is-valid-const? constname-syn)
+         (define const-name-str (symbol->string/safe (syntax->datum constname-syn)))   
+         ; todo: There's a better func than filter for this. what was it called? -TN
+         (define found-const (filter (lambda (c) (equal? c const-name-str)) constants-names))
          
-         (if (empty? the-constraints-clauses)
+         (when (empty? found-const)
+           (raise-syntax-error 'Vocab 
+                               (format "Invalid declaration. The constant ~a was not declared." const-name-str)
+                               #f #f (list constname-syn) ))                                        
+         #t)
+
+
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Functions
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       ; Optional clause; allow to be empty.
+       (define functions-result
+         (if (empty? the-functions-clauses)
              empty
              (let ()
-               (define the-constraints-clause (first the-constraints-clauses))
-               (define the-constraints (rest (syntax-e the-constraints-clause)))
+               (define the-functions-clause (first the-functions-clauses))
+               (define the-functions (rest (syntax-e the-functions-clause)))
                
-               (define (make-constraint vocname-syn ctype-str list-of-args-syn)
-                 #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocname-syn))) 
-                                                   (xml-make-constraint ctype-str
-                                                                        (map syntax->datum list-of-args-syn)))))              
+               (define (add-function vocab-syn funcname-syn type-syn)
+                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
+                                               (xml-make-function (symbol->string (syntax->datum funcname-syn))) 
+                                               (xml-make-type (symbol->string (syntax->datum type-syn))))))
+                 
                
+               (define (handle-function func)
+                 ; No colon. Just (function a A B)
+                 (syntax-case func [Function]                   
+                   [(Function fname frel0 frel ...) (and (lower-id-syn? #'fname)
+                                                         (each-type-in-list-is-valid? #'(frel0 frel ...)))  
+                                                    #`( (fname
+                                                         #,(length (syntax->list #'(frel0 frel ...))))
+                                                        #,(add-function  #'myvocabname #'fname #'(frel0 frel ...)))] 
+                   
+                   [_ (raise-syntax-error 'Vocab "Invalid function declaration." #f #f (list func) )]))
                
-               (define (handle-constraint constraint)
-                 (syntax-case constraint [disjoint atmostone singleton abstract nonempty 
-                                                   disjoint-all atmostone-all singleton-all abstract-all nonempty-all
-                                                   total-function partial-function total-relation subset]
-                   
-                   [(disjoint s1 s2) (and (is-valid-type? #'s1)
-                                          (is-valid-type? #'s2)) 
-                                     (make-constraint #'myvocabname "DISJOINT" (list #'s1 #'s2))]
-                   [(atmostone s) (is-valid-type? #'s)
-                                  (make-constraint #'myvocabname "ATMOSTONE" (list #'s))]
-                   [(singleton s) (is-valid-type? #'s)
-                                  (make-constraint #'myvocabname "SINGLETON" (list #'s))]
-                   [(abstract s) (is-valid-type? #'s)
-                                 (make-constraint #'myvocabname "ABSTRACT" (list #'s))]
-                   [(nonempty s) (is-valid-type? #'s)
-                                 (make-constraint #'myvocabname "NONEMPTY" (list #'s))]
-                                                         
-                   [(disjoint-all s) (is-valid-type? #'s)
-                                     (make-constraint #'myvocabname "DISJOINT-ALL" (list #'s))]
-                   [(atmostone-all s) (is-valid-type? #'s)
-                                      (make-constraint #'myvocabname "ATMOSTONE-ALL" (list #'s))]
-                   [(singleton-all s) (is-valid-type? #'s)
-                                      (make-constraint #'myvocabname "SINGLETON-ALL" (list #'s))]
-                   [(abstract-all s) (is-valid-type? #'s)
-                                     (make-constraint #'myvocabname "ABSTRACT-ALL" (list #'s))]
-                   [(nonempty-all s) (is-valid-type? #'s)
-                                     (make-constraint #'myvocabname "NONEMPTY-ALL" (list #'s))]
-                   
-                   [(subset s1 s2) (and (is-valid-type? #'s2)
-                                        (is-valid-type? #'s1))
-                                   #`#,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                                     (xml-make-subset (xml-make-parent-identifier (symbol->string (syntax->datum #'s1))) 
-                                                                                      (xml-make-child-identifier (symbol->string (syntax->datum #'s2))))))] 
-                                      
-                   
-                   ; These are over BINARY PREDICATES instead of types. 
-                   [(partial-function s) (is-valid-pred? #'s 2 #f)
-                                         (make-constraint #'myvocabname "PARTIAL-FUNCTION" (list #'s))]
-                   [(total-function s) (is-valid-pred? #'s 2 #f)
-                                       (make-constraint #'myvocabname "TOTAL-FUNCTION" (list #'s))]
-                   [(total-relation s) (is-valid-pred? #'s 2 #f)
-                                       (make-constraint #'myvocabname "TOTAL-RELATION" (list #'s))]
-                   
-                   
-                   [_ (raise-syntax-error 'PolicyVocab "Invalid constraint declaration." #f #f (list constraint) )]))
-               
-               (map handle-constraint the-constraints))))
+               (map handle-function the-functions))))
 
+       ; may be empty
+       (define functions-names-and-arities (if (empty? functions-result)
+                                               empty
+                                               (map (compose (lambda (ppair) (list (symbol->string/safe (first ppair)) (second ppair)))
+                                                             first 
+                                                             syntax->datum) functions-result)))  
        
+       (define functions-cmds (if (empty? functions-result)
+                                           empty
+                                           (map (compose second syntax->datum) functions-result)))
+       
+      ; (printf "functions-result: ~a~n" functions-result)  
+       ;(printf "~a ... ~a ~n" functions-names functions-cmds)   
+              
+       ; Used later to discover whether a function is being used properly
+       (define (is-valid-func? funcname-syn [desired-arity #f])
+         (define func-name-str (symbol->string/safe (syntax->datum funcname-syn)))   
+         ; todo: There's a better func than filter for this. what was it called? -TN
+         (define found-func-pair (filter (lambda (pair) (equal? (first pair) func-name-str)) functions-names-and-arities))         
+
+         (when (empty? found-func-pair)
+           (raise-syntax-error 'Vocab 
+                               (format "Invalid declaration. The function ~a was not declared." func-name-str)
+                               #f #f (list funcname-syn) ))   
+         
+         (define the-arity (second (first found-func-pair)))         
+         (unless (or (not desired-arity) 
+                     (equal? desired-arity the-arity))
+                (raise-syntax-error 'Vocab 
+                                    (format "Invalid declaration. The function ~a was declared, but had arity ~a which was not ~a." 
+                                            func-name-str the-arity desired-arity)
+                                    #f #f (list funcname-syn) ))       
+         #t)
+
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; Return a list containing the vocabname, and then a list of commands to be sent to java
@@ -533,19 +456,16 @@
        ; Java will handle creation of the object if the identifier hasn't been seen before.
        ; Also include info on what types are valid, etc. for error generation in the policy macro
                     
-       (with-syntax ([xml-list (append types-cmds 
-                                       decisions-cmds
+       (with-syntax ([xml-list (append types-cmds                                        
                                        predicates-cmds
-                                       reqvariables-cmds
-                                       othvariables-cmds
-                                       constraints-result)]
+                                       constants-cmds
+                                       functions-cmds)]
                      [vocab-name (symbol->string vocab-name)]                     
                      [types-names types-names]
-                     [decisions-names decisions-names]
                      [predicates-names-and-arities predicates-names-and-arities]
-                     [reqvariables-names reqvariables-names]
-                     [othvariables-names othvariables-names])         
-         (syntax/loc stx '(vocab-name xml-list types-names decisions-names predicates-names-and-arities reqvariables-names othvariables-names)))))))
+                     [constants-names constants-names]
+                     [functions-names-and-arities functions-names-and-arities])         
+         (syntax/loc stx '(vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
