@@ -110,13 +110,55 @@
  xml-make-implies
  xml-make-iff
  xml-make-not
- xml-make-forall
- xml-make-exists
+ ;xml-make-forall
+ ;xml-make-exists
  xml-make-variable-declaration
  xml-make-isa-formula
+ 
+xml-make-type-with-subs
+
+xml-make-constant
+xml-make-function
+xml-make-true
+;xml-make-atomic-formula
+;xml-make-equals
+xml-make-exists
+xml-make-forall
+xml-make-vardec
+xml-make-fa
+xml-make-over
+xml-make-comb-list
+ 
  xml-policy-info->req-vector)
 
 ; ********************************************************
+
+(define (xml-make-type-with-subs tname clist)
+  #t)
+(define (xml-make-constant cname ctype)
+  #t)
+(define (xml-make-function fname ftlist)
+  #t)
+(define (xml-make-true)
+  #t)
+;(define (xml-make-atomic-formula thepred arglist)
+;  #t)
+;; i thought this one existed already
+;(define (xml-make-equals-formula t1 t2)
+;  #t)
+;(define (xml-make-exists fmla var type)
+;  #t)
+;(define (xml-make-forall fmla var type)
+;  #t)
+(define (xml-make-vardec varname type)
+  #t)
+(define (xml-make-fa typelist)
+  #t)
+(define (xml-make-over under-type over-list)
+  #t)
+(define (xml-make-comb-list comb-list)
+  #t)
+
 
 
 (define (xml-policy-info->req-vector response-doc)
