@@ -146,6 +146,19 @@
 ;    ([_ clauses ...]
 ;     (let ()
 ;       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Children
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ;(define the-child-policies
+       ;  (if (empty? the-children-clauses)
+       ;      empty
+       ;      (let ()    
+       ;        (define the-children-clause (first the-children-clauses))
+       ;        (define the-children (rest (syntax-e the-children-clause)))               
+       ;        
+       ;        ; Let the macro system expand these
+       ;        the-children))) 
+
 ;       
 ;       ))))
 
@@ -324,7 +337,7 @@
        ; Constants
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-               ; !!!!!!! temp
+        ; !!!!!!! temp
        (define (xml-make-type-with-subs tname clist)
          #t)
        (define (xml-make-constant cname ctype)
@@ -481,35 +494,57 @@
 
      (let ()
        (unless (symbol? (syntax->datum #'policyname))
-         (raise-syntax-error 'Policy (format "Expected a name for the policy, got: ~a" (syntax->datum #'policyname)) #f #f (list #'policyname)))
+         (raise-syntax-error 'Policy (format "Expected a name for the policy, got: ~a" 
+                                             (syntax->datum #'policyname)) #f #f (list #'policyname)))
        (unless (symbol? (syntax->datum #'vocabname))
-         (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a" (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
+         (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
+                                             (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
        
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children]
+                                                        [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
                                                         [(Rules rule ...) 'rules]
                                                         [(RComb comb ...) 'rcomb] 
-                                                        [(PComb comb ...) 'pcomb] 
-                                                        [(Children child ...) 'children] 
                                                         [_ #f]))                                        
                                         (syntax->list #'(clauses ...))
-                                        #:init-keys '(target rules rcomb pcomb children)))
+                                        #:init-keys '(variables target rules rcomb)))
        
        ;(printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
        ;(printf "Policy Clause table: ~n~a~n" clause-table)
-              
+
+       (define the-variables-clauses (hash-ref clause-table 'variables))                            
        (define the-target-clauses (hash-ref clause-table 'target))                                 
        (define the-rules-clauses (hash-ref clause-table 'rules))
        (define the-rcomb-clauses (hash-ref clause-table 'rcomb))
-       (define the-pcomb-clauses (hash-ref clause-table 'pcomb))
-       (define the-children-clauses (hash-ref clause-table 'children))
-                     
+
+       (assert-one-clause stx the-variables-clauses "Variables")
        (assert-lone-clause stx the-target-clauses "Target")
-       (assert-lone-clause stx the-rules-clauses "Rules")
-       (assert-one-clause stx the-rcomb-clauses "RComb")
-       (assert-one-clause stx the-pcomb-clauses "PComb")
-       (assert-lone-clause stx the-children-clauses "Children")
+       (assert-one-clause stx the-rules-clauses "Rules")
+       (assert-lone-clause stx the-rcomb-clauses "RComb")       
+
               
+       ; target is no longer just conj of literal fmlas
+       ; is an actual fmla
+       
+       ; Takes formula syntax and returns XML for the formula.
+       ; todo: detect valid vars, sorts, etc.
+       (define (handle-formula fmla)
+        (syntax-case fmla [and or not implies iff exists forall =] 
+          [(dottedpred t0 t ...) (xml-make-atomic-formula #'dottedpred #'(t0 t ...)) ]
+          [(= v1 v2) (xml-make-equals #'v1 #'v2)]
+          [(and f0 f ...) (xml-make-and (list (handle-formula #'f0)
+                                              (handle-formula #'f)
+                                              ...))]
+          [(or f0 f ...) (xml-make-or (list (handle-formula #'f0)
+                                            (handle-formula #'f)
+                                            ...)) ]
+          [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
+          [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
+          [(not f) (xml-make-not (handle-formula #'f))]
+          [(exists f var type) (xml-make-exists (handle-formula #'f) #'var #'type)]
+          [(forall f var type) (xml-make-forall (handle-formula #'f) #'var #'type)]
+          [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -520,17 +555,17 @@
                (define the-target-clause (first the-target-clauses))
                (define the-target (rest (syntax-e the-target-clause)))
                               
-               (define (validate-target-to-str a-conjunct)
-                 (syntax-case a-conjunct []
-                   ; ! is part of the pred name token if present
-                   [(predname x0 x ...) (all-id-syn? #'(predname x0 x ...)) 
-                                        (string-join (map symbol->string (syntax->datum #'(predname x0 x ...))) " ")]
-                   [_ (raise-syntax-error 'Policy "Invalid target conjunct" #f #f (list a-conjunct))]))
+               ;(define (validate-target-to-str a-conjunct)
+               ;  (syntax-case a-conjunct []
+               ;    ; ! is part of the pred name token if present
+               ;    [(predname x0 x ...) (all-id-syn? #'(predname x0 x ...)) 
+               ;                         (string-join (map symbol->string (syntax->datum #'(predname x0 x ...))) " ")]
+               ;    [_ (raise-syntax-error 'Policy "Invalid target conjunct" #f #f (list a-conjunct))]))
                
                (if (> (length the-target) 0)
                    (list (xml-make-command "SET TARGET FOR POLICY" 
                                            (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-                                                 (xml-make-conjunct-chain (map validate-target-to-str the-target)))))
+                                                 (handle-formula the-target))))
                    empty))))
     
        ;(printf "~a~n" target-result)
@@ -545,24 +580,23 @@
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
                               
-               (define (is-valid-conjunction conj)
-                 (syntax-case conj []
-                   [(pred v0 v ...) #t]
-                   [x (equal? 'true (syntax->datum #'x))]
-                   [(x) (equal? 'true (syntax->datum #'x))]
-                   [_ #f]))
+               ;(define (is-valid-conjunction conj)
+               ;  (syntax-case conj []
+               ;    [(pred v0 v ...) #t]
+               ;    [x (equal? 'true (syntax->datum #'x))]
+               ;    [(x) (equal? 'true (syntax->datum #'x))]
+               ;    [_ #f]))
                
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- conj0 conj ...)                     
-                    ; 'true is dealt with in the back-end. 
-                    ; require each conj to be valid
-                    (andmap is-valid-conjunction (syntax->list #'(conj0 conj ...)))               
+                   [(rulename = (decision rvar ...) :- fmla)                     
+                    ; 'true is dealt with in the back-end.                     
                     
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
                                                   (xml-make-rule (syntax->datum #'rulename)
-                                                                 (xml-make-decision-type (syntax->datum #'decision))
-                                                                 (xml-make-rule-list (syntax->datum #'(conj0 conj ...))))))]
+                                                                 (xml-make-decision-type (syntax->datum #'decision)
+                                                                                         #'(rvar ...))                                                                 
+                                                                 (handle-formula #'fmla))))]
                    [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
                                              
                (map handle-rule the-rules))))
@@ -570,56 +604,44 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       (define (handle-combine comb)
+         (syntax-case comb [fa over]         
+          [(fa dec0 dec ...) (xml-make-fa #'dec0 #'(dec ...))]
+          [(over dec odec0 odec ...) (xml-make-over #'dec #'(odec0 odec ...))]
+          [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list fmla))]))
+       
        (define the-rcomb-clause (first the-rcomb-clauses))
        (define rcomb-result 
          (syntax-case the-rcomb-clause [RComb]
-           [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                                           (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x0 x ...))))))]
-           [_ (raise-syntax-error 'Policy "Invalid rule-combination algorithm" #f #f (list the-rcomb-clause))]))
+           [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" 
+                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                     (xml-make-comb-list (map handle-combine #'(x0 x ...)))))]
+           [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))
          
-       ;(printf "rcomb res: ~a~n" rcomb-result)
+       ;(printf "rcomb res: ~a~n" rcomb-result)             
        
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; PComb
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define the-pcomb-clause (first the-pcomb-clauses))
-       (define pcomb-result 
-         (syntax-case the-pcomb-clause [PComb]
-           [(PComb x0 x ...) (xml-make-command "SET PCOMBINE FOR POLICY" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                                            (xml-make-identifiers-list (map symbol->string (syntax->datum #'(x0 x ...))))))]
-           [_ (raise-syntax-error 'Policy "Invalid policy-combination algorithm" #f #f (list the-pcomb-clause))]))
-       
-       ;(printf "~a~n" pcomb-result)
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Children
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define the-child-policies
-         (if (empty? the-children-clauses)
-             empty
-             (let ()    
-               (define the-children-clause (first the-children-clauses))
-               (define the-children (rest (syntax-e the-children-clause)))               
-               
-               ; Let the macro system expand these
-               the-children))) 
+
        
        ;(printf "compile time children: ~a~n" the-child-policies)
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Create
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define create-result        
-         (if (< (length the-child-policies) 1)
-             (list
-              (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                           (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
-              rcomb-result)
-             (list
-              (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-                                                         (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
-              pcomb-result)))
-       
+     ;  (define create-result        
+     ;    (if (< (length the-child-policies) 1)
+     ;        (list
+     ;         (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+     ;                                                      (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
+     ;         rcomb-result)
+     ;        (list
+     ;         (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+     ;                                                    (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
+     ;         pcomb-result)))
+      
+       (define create-result (xml-make-command "CREATE POLICY LEAF" 
+                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))))) 
+     
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -627,6 +649,8 @@
        (define prepare-result 
             (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))       
                   
+       
+       ;; !!! TN
        
        ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
@@ -646,6 +670,7 @@
                      [orig-stx-position #`#, (syntax-position stx)]
                      [orig-stx-span #`#, (syntax-span stx)])     
         ; (printf "before sloc:~a~n" #'orig-stx)
+         
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename src-syntax)                                                                        
@@ -654,7 +679,8 @@
              
               ; Produce a friendly error if the vocab doesn't exist
               ; src-syntax here is the *command* that spawned the loading, not the Policy form.
-              (file-exists?/error vocab-path src-syntax (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))       
+              (file-exists?/error vocab-path src-syntax 
+                                  (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
               
               (define vocab-macro-return                 
                 (call-with-input-file
