@@ -33,7 +33,8 @@
          
          ; for test cases
          Policy
-         PolicyVocab)
+         PolicySet
+         Vocab)
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -63,7 +64,7 @@
 (define (evaluate-policy raw-fn 
                          #:syntax [src-syntax #f])
   
-  ; If fn begins with <MARGRAVE>, replace with the path of the Margrave collections folder.
+  ; If fn begins with *MARGRAVE*, replace with the path of the Margrave collections folder.
   (define fn (resolve-margrave-filename-keyword raw-fn))
       
   ;; Macro returns a func of two arguments:
@@ -118,11 +119,22 @@
   (andmap id-syn? proper-list))
 
 
-;****************************************************************
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-syntax (PolicySet stx)
+  (syntax-case stx [Children PComb]
+    ([_ clauses ...]
+     (let ()
+       
+       
+       ))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; PolicyVocab: Parses a vocabulary definition and creates an MVocab object
-(define-syntax (PolicyVocab stx)
-  (syntax-case stx [Types Decisions Constraints Predicates Variables : PolicyVocab]
+(define-syntax (Vocab stx)
+  (syntax-case stx [Types Predicates Constants Functions Vocab]
     ([_ myvocabname clauses ...]     
                    
      (let ()
@@ -132,17 +144,14 @@
        (unless (symbol? vocab-name)
          (raise-syntax-error 'PolicyVocab (format "Expected a name for the vocabulary, got: ~a" vocab-name) #f #f (list vocab-name-syntax)))
        
-       (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Decisions Predicates ReqVariables OthVariables Constraints Types:]
-                                                        [(Types atype ...) 'types]                   
-                                                        [(Types: atype ...) 'types]                   
-                                                        [(Decisions r ...) 'decisions]
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Types Predicates Constants Functions]
+                                                        [(Types atypedec ...) 'types]                                   
                                                         [(Predicates apreddec ...) 'predicates] 
-                                                        [(ReqVariables avardec ...) 'reqvariables] 
-                                                        [(OthVariables avardec ...) 'othvariables] 
-                                                        [(Constraints acondec ...) 'constraints] 
+                                                        [(Constants aconstdec ...) 'constants] 
+                                                        [(Functions afuncdec ...) 'functions] 
                                                         [_ #f]))                                        
                                         (syntax->list #'(clauses ...))
-                                        #:init-keys '(types decisions predicates reqvariables othvariables constraints)))
+                                        #:init-keys '(types predicates constants functions)))
        
       ; (printf "Vocab syntax: ~a~n" stx)
       ; (printf "Clause list: ~a~n" (syntax->list #'(clauses ...)))
@@ -154,18 +163,17 @@
        ;(define the-types-clauses (filter (lambda (v) (syntax-case-match? v (Types (t subt ...) ...)) clauses)))
        
        (define the-types-clauses (hash-ref clause-table 'types))                                 
-       (define the-decisions-clauses (hash-ref clause-table 'decisions))
        (define the-predicates-clauses (hash-ref clause-table 'predicates))
-       (define the-reqvariables-clauses (hash-ref clause-table 'reqvariables))
-       (define the-othvariables-clauses (hash-ref clause-table 'othvariables))
-       (define the-constraints-clauses (hash-ref clause-table 'constraints))
+       (define the-constants-clauses (hash-ref clause-table 'constants))
+       (define the-functions-clauses (hash-ref clause-table 'functions))
                      
        (assert-one-clause stx the-types-clauses "Types")
-       (assert-one-clause stx the-decisions-clauses "Decisions")
        (assert-lone-clause stx the-predicates-clauses "Predicates")
-       (assert-one-clause stx the-reqvariables-clauses "ReqVariables")
-       (assert-lone-clause stx the-othvariables-clauses "OthVariables")
-       (assert-lone-clause stx the-constraints-clauses "Constraints")     
+       (assert-lone-clause stx the-constants-clauses "Constants")
+       (assert-lone-clause stx the-functions-clauses "Functions")     
+       
+       
+       ; !!! TN
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Types
@@ -548,7 +556,7 @@
 ; Policies are permitted to have child policies, so this may be recursively called
   
 (define-syntax (Policy stx)
-  (syntax-case stx [Target Rules = :- uses RComb PComb Children Policy]
+  (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
     [(_ policyname uses vocabname clauses ... )
 
      (let ()
