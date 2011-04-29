@@ -44,6 +44,9 @@
 (define-namespace-anchor margrave-policy-vocab-namespace-anchor)
 (define margrave-policy-vocab-namespace (namespace-anchor->namespace margrave-policy-vocab-namespace-anchor))
 
+(define-for-syntax local-policy-id "missing-policy-id")
+
+(define local-policy-id "IHAVEAPOLICYID")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Error messages
@@ -83,9 +86,11 @@
 
 ;****************************************************************
 
-; policy-file-name -> list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname))
+
+; policy-file-name policy-id [optional syntax] -> list
 ; The order of the children in their lists respects dependency: children-of-children appear before children, etc.
 (define (evaluate-policy raw-fn 
+                         policy-id
                          #:syntax [src-syntax #f])
   
   ; If fn begins with *MARGRAVE*, replace with the path of the Margrave collections folder.
@@ -94,16 +99,20 @@
   ;; Macro returns a func of two arguments:
   ; (1) the filename of the policy (for constructing the location of the vocab file)
   ; (2) the command syntax that started evaluation (for nice error highlighting)
-  
-  (parameterize ([read-case-sensitive #t])
-    (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
-    (port-count-lines! file-port)
+
+  ; Policy ID needs to be known at compile time, not runtime, since it's used by the command XML
+  (parameterize ([read-case-sensitive #t]
+                 ;[local-policy-id policy-id]
+                 )
     
-    (define the-policy-syntax (read-syntax fn file-port))    
+    (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
+    (port-count-lines! file-port)    
+    (define the-policy-syntax (read-syntax fn file-port))   
+    
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
     (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))    
-    (define pol-result-list (the-policy-func fn src-syntax))
-        
+    
+    (define pol-result-list (the-policy-func fn src-syntax))        
     (close-input-port file-port)        
     pol-result-list))
 
@@ -232,7 +241,7 @@
 
        (assert-one-clause stx the-children-clauses "Children")
        (assert-lone-clause stx the-target-clauses "Target")
-       (assert-one-clause stx the-pcomb-clauses "PComb")       
+       (assert-lone-clause stx the-pcomb-clauses "PComb")       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Children
@@ -261,22 +270,25 @@
                             
                (define the-target (first the-targets))                                             
                (list (xml-make-command "SET TARGET FOR POLICY" 
-                                       (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                       (list (xml-make-policy-identifier (local-policy-id))
                                              (handle-formula the-target)))))))    
 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; PComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              
-       (define the-pcomb-clause (first the-pcomb-clauses))
+                     
        (define pcomb-result 
-         (syntax-case the-pcomb-clause [PComb]
-           [(RComb x0 x ...) (xml-make-command "SET PCOMBINE FOR POLICY" 
-                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                     (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
-           [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))
-
+         (if (empty? the-pcomb-clauses)
+             empty
+             (let ()
+               (define the-pcomb-clause (first the-pcomb-clauses)) 
+               (syntax-case the-pcomb-clause [PComb]
+                 [(RComb x0 x ...) (xml-make-command "SET PCOMBINE FOR POLICY" 
+                                                     (list (xml-make-policy-identifier (local-policy-id)) 
+                                                           (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
+                 [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
+             
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Create
@@ -284,7 +296,7 @@
        
        (define create-result           
          (list
-          (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+          (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (local-policy-id))
                                                       (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -292,7 +304,7 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
-            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))   
+            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (local-policy-id)))))   
        
         ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
@@ -302,7 +314,7 @@
                      [my-prepare-command (list prepare-result)]
                      [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
-                     [policyname #'policyname]
+                     [policyname (local-policy-id)]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -781,7 +793,7 @@
                    [(Variable lowid capid)                                         
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
-                    (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                    (xml-make-command "ADD" (list (xml-make-policy-identifier (local-policy-id)) 
                                                   (xml-make-variable-declaration (syntax->datum #'lowid)
                                                                                  (syntax->datum #'capid))))]
                    [(Variable lowid capid)                                         
@@ -813,7 +825,7 @@
                             
                (define the-target (first the-targets))                                             
                (list (xml-make-command "SET TARGET FOR POLICY" 
-                                       (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                       (list (xml-make-policy-identifier (local-policy-id))
                                              (handle-formula the-target)))))))    
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -830,7 +842,7 @@
                  (syntax-case a-rule [= :-]
                    [(rulename = (decision rvar ...) :- fmla)                     
                     
-                    (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                    (xml-make-command "ADD" (list (xml-make-policy-identifier (local-policy-id)) 
                                                   (xml-make-rule (syntax->datum #'rulename)
                                                                  (xml-make-decision-type (syntax->datum #'decision)
                                                                                          (syntax->datum #'(rvar ...)))
@@ -843,20 +855,23 @@
        ; RComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define (handle-combine comb)
+       (define (handle-combine comb)         
          (syntax-case comb [fa over]         
           [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
           [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
                                                     (map symbol->string (syntax->datum #'(odec0 odec ...))))]
           [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
-       
-       (define the-rcomb-clause (first the-rcomb-clauses))
+              
        (define rcomb-result 
-         (syntax-case the-rcomb-clause [RComb]
-           [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" 
-                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                     (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
-           [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))
+         (if (empty? the-rcomb-clauses)
+             empty
+             (let ()
+               (define the-rcomb-clause (first the-rcomb-clauses))
+               (syntax-case the-rcomb-clause [RComb]
+                 [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" 
+                                                     (list (xml-make-policy-identifier (local-policy-id)) 
+                                                           (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
+                 [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))))
          
        ;(printf "rcomb res: ~a~n" rcomb-result)             
        
@@ -870,14 +885,14 @@
        ;(printf "compile time children: ~a~n" the-child-policies)
       
        (define create-result (xml-make-command "CREATE POLICY LEAF" 
-                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))))) 
+                                               (list (xml-make-policy-identifier (local-policy-id))))) 
      
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
-            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))       
+            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (local-policy-id)))))
                         
        
        ; Macro returns a lambda that takes a filename and a syntax object.   
@@ -890,7 +905,7 @@
                      [my-prepare-command (list prepare-result)]
                     ; [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
-                     [policyname #'policyname]
+                     [policyname (local-policy-id)]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
