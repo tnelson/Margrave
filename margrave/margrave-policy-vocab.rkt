@@ -44,11 +44,33 @@
 (define-namespace-anchor margrave-policy-vocab-namespace-anchor)
 (define margrave-policy-vocab-namespace (namespace-anchor->namespace margrave-policy-vocab-namespace-anchor))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Error messages
+
+(define-for-syntax err-invalid-constant-case "Invalid constant name. Constant names must begin with a lowercase letter.")
+(define-for-syntax err-invalid-variable-case "Invalid variable name. Variable names must begin with a lowercase letter.")
+(define-for-syntax err-invalid-function-case "Invalid function name. Function names must begin with a lowercase letter.")
+(define-for-syntax err-invalid-constant "Invalid constant name.")
+(define-for-syntax err-invalid-variable "Invalid variable name.")
+(define-for-syntax err-invalid-function "Invalid function name.")
+
+(define-for-syntax err-invalid-type-decl-case "Type declaration was not valid: Types must have capitalized names.")
+(define-for-syntax err-invalid-type-decl "Type declaration was not valid.")
+
+
 ;****************************************************************
 ; Structs used to pass back info about a vocabulary in a structured fashion
 
-(define-struct/contract m-vocabulary 
-  ([name string?] [cmds list?] [types (listof string?)] [predicates (listof string?)]  [decisions (listof string?)]  [reqvars (listof string?)] [othvars (listof string?)]))
+; TODO for later. 
+;(define-struct/contract m-vocabulary 
+;  ([name string?] 
+;   [cmds list?] 
+;   [types (listof string?)] 
+;   [predicates (listof string?)] 
+;   [decisions (listof string?)] 
+;   [constants (listof string?)] 
+;   [functions (listof string?)]))
   
 
 ;****************************************************************
@@ -105,14 +127,6 @@
     [(list x y z ...) (raise-syntax-error 'Margrave (format "More than one ~a clause found" descriptor) #f #f (list* x y z))]
     [_ (void)]))  
 
-;(define-for-syntax (none-colon-syn? syn-list)
-;  (define lst (if (syntax? syn-list)
-;                  (syntax->datum syn-list)
-;                  syn-list))
-;  (cond [(empty? lst) #t]
-;        [(equal? (first lst) ':) #f] ; syntax->datum done above (recursively)
-;        [else (none-colon-syn? (rest lst))]))
-
 (define-for-syntax (id-syn? syn)
   (define dat (if (syntax? syn)
                   (syntax->datum syn)
@@ -145,29 +159,260 @@
                           (list (syntax->datum syn-list))))
   (andmap fpred proper-list))
 
+;; todo detect valid vars, sorts. etc. plus valid casing
+(define-for-syntax (handle-term term)
+  (syntax-case term []
+    ['c (lower-id-syn? (syntax c))
+        (xml-make-constant-term (symbol->string (syntax->datum #'c)))]
+    ['c (raise-syntax-error `Policy err-invalid-constant-case #f #f (list term))]
+    
+    [(func t0 t ...) (lower-id-syn? #'func)
+                     (xml-make-function-term (symbol->string (syntax->datum #'func)) 
+                                             (map handle-term (syntax->list #'(t0 t ...))))]
+    [(func t0 t ...) (raise-syntax-error 'Policy err-invalid-function-case #f #f (list term))]
+    
+    [v (lower-id-syn? #'v)
+       (xml-make-variable-term (symbol->string (syntax->datum #'v)))]
+    [v (raise-syntax-error 'Policy err-invalid-variable-case #f #f (list term))]
+    
+    [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
+
+
+; Takes formula syntax and returns XML for the formula.
+; todo: detect valid vars, sorts, etc.
+(define-for-syntax (handle-formula fmla)         
+  (syntax-case fmla [and or not implies iff exists forall = true isa] 
+    [true (xml-make-true-condition)]
+    [(= v1 v2) (xml-make-equals-formula (handle-term #'v1) (handle-term #'v2))]
+    [(and f0 f ...) (xml-make-and (map handle-formula #'(f0 f ...)))]
+    [(or f0 f ...) (xml-make-or (map handle-formula #'(f0 f ...)))]
+    [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
+    [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
+    [(not f) (xml-make-not (handle-formula #'f))]
+    [(exists f var type) (xml-make-exists (handle-formula #'f) 
+                                          (symbol->string (syntax->datum #'var))
+                                          (symbol->string (syntax->datum #'type)))]
+    [(forall f var type) (xml-make-forall (handle-formula #'f)
+                                          (symbol->string (syntax->datum #'var))
+                                          (symbol->string (syntax->datum #'type)))]
+    [(isa var type) (xml-make-isa-formula #'var #'type)]
+    ; last, so it doesn't supercede keywords
+    [(dottedpred t0 t ...) (xml-make-atomic-formula (symbol->string (syntax->datum #'dottedpred)) 
+                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
+    
+    [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
+
+(define-for-syntax (handle-combine comb)
+  (syntax-case comb [fa over]         
+    [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
+    [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
+                                              (map symbol->string (syntax->datum #'(odec0 odec ...))))]
+    [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(define-syntax (PolicySet stx)
-;  (syntax-case stx [Children PComb]
-;    ([_ clauses ...]
-;     (let ()
-;       
+(define-syntax (PolicySet stx)
+  (syntax-case stx [Children Target PComb uses]
+    ([_ uses vocabname clauses ...]
+     (let ()
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Target PComb Children]
+                                                        [(Target targ ...) 'target]                   
+                                                        [(PComb comb ...) 'pcomb] 
+                                                        [(Children pol ...) 'children] 
+                                                        [_ #f]))                                        
+                                        (syntax->list #'(clauses ...))
+                                        #:init-keys '(target children pcomb)))
+       
+       ;(printf "PolicySet Clause list: ~a~n" (syntax->list #'(clauses ...)))
+       ;(printf "PolicySet Clause table: ~n~a~n" clause-table)
+
+       (define the-target-clauses (hash-ref clause-table 'target))                                 
+       (define the-children-clauses (hash-ref clause-table 'children))
+       (define the-pcomb-clauses (hash-ref clause-table 'pcomb))
+
+       (assert-one-clause stx the-children-clauses "Children")
+       (assert-lone-clause stx the-target-clauses "Target")
+       (assert-one-clause stx the-pcomb-clauses "PComb")       
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Children
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ;(define the-child-policies
-       ;  (if (empty? the-children-clauses)
-       ;      empty
-       ;      (let ()    
-       ;        (define the-children-clause (first the-children-clauses))
-       ;        (define the-children (rest (syntax-e the-children-clause)))               
-       ;        
-       ;        ; Let the macro system expand these
-       ;        the-children))) 
+       (define the-child-policies
+             (let ()    
+               (define the-children-clause (first the-children-clauses))
+               (define the-children (rest (syntax-e the-children-clause)))               
+               
+               ; Let the macro system expand these
+               the-children)) 
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Target
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       (define target-result
+         (if (empty? the-target-clauses)
+             empty
+             (let ()               
+               (define the-target-clause (first the-target-clauses))
+               (define the-targets (rest (syntax-e the-target-clause)))
+               (when (> (length the-targets) 1)
+                 (raise-syntax-error 'PolicySet "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
+               (when (< (length the-targets) 1)
+                 (raise-syntax-error 'PolicySet "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
+                            
+               (define the-target (first the-targets))                                             
+               (list (xml-make-command "SET TARGET FOR POLICY" 
+                                       (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                             (handle-formula the-target)))))))    
 
-;       
-;       ))))
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; PComb
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+              
+       (define the-pcomb-clause (first the-pcomb-clauses))
+       (define pcomb-result 
+         (syntax-case the-pcomb-clause [PComb]
+           [(RComb x0 x ...) (xml-make-command "SET PCOMBINE FOR POLICY" 
+                                               (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
+                                                     (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
+           [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))
+
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Create
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       (define create-result           
+         (list
+          (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                                      (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))))
+       
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Prepare
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
+       (define prepare-result 
+            (xml-make-command "PREPARE" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))))))   
+       
+        ; Macro returns a lambda that takes a filename and a syntax object.   
+       ; This is so we know where to find the vocabulary file. Only know that at runtime
+       (with-syntax ([my-commands (append create-result ; create must come first                                                                                   
+                                          target-result
+                                          pcomb-result)]
+                     [my-prepare-command (list prepare-result)]
+                     [the-child-policies #`(list #,@the-child-policies)]
+                     [vocabname #'vocabname]
+                     [policyname #'policyname]
+                     
+                     ; can't include Policy here or else it gets macro-expanded (inf. loop)
+                     ; smuggle in location info and re-form syntax if we need to throw an error
+                     [orig-stx-line #`#,(syntax-line stx)]
+                     [orig-stx-column #`#, (syntax-column stx)]
+                     [orig-stx-source #`#, (syntax-source stx)]
+                     [orig-stx-position #`#, (syntax-position stx)]
+                     [orig-stx-span #`#, (syntax-span stx)])     
+         
+         (syntax/loc stx 
+           ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
+           (lambda (local-policy-filename src-syntax)                                                                        
+              (define vocab-path (build-path (path-only/same local-policy-filename) 
+                                             (string-append (symbol->string 'vocabname) ".v")))
+             
+              ; Produce a friendly error if the vocab doesn't exist
+              ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+              (file-exists?/error vocab-path src-syntax 
+                                  (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
+              
+              (define vocab-macro-return                 
+                (call-with-input-file
+                    vocab-path
+                  (lambda (in-port) 
+                    (port-count-lines! in-port)
+                    (define the-vocab-syntax (read-syntax vocab-path in-port))               
+                    ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                    ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
+              
+             ; (vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)
+             (define vocab-name (first vocab-macro-return))
+             (define vocab-commands (second vocab-macro-return))
+              
+              ; Get the 6-tuples for each child
+              (define child-policy-macros the-child-policies) ; no '
+             
+              
+              ; Each child gives us its own list (pname, vname, vlist, plist, (child-pol-pairs), (child-voc-pairs)
+              ; Error out if there is a duplicate policy name (or the same name as this parent policy)
+             ; Don't repeat vocabularies
+             (define the-children (map (lambda (child)                                          
+                                         ((eval child margrave-policy-vocab-namespace) 
+                                          local-policy-filename
+                                          src-syntax))
+                                       child-policy-macros))
+             
+             (define (make-placeholder-syntax placeholder)
+               (datum->syntax #f placeholder
+                              (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
+             
+             ; take the child policy's tuple from evaluation
+             ; get the list of pnames              
+              (define (get-child-pols tuple)
+                (when (or (< (length tuple) 5)
+                          (not (list? (fifth tuple))))
+                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
+                                      (make-placeholder-syntax 'placeholder)))
+                (append (list (first tuple)) ; <-- child's pname
+                        (fifth tuple)))      ; <-- list of child's children's pnames
+              
+             (define (get-add-child-xml tuple)
+               (xml-make-command "ADD" (list `(PARENT ,(xml-make-parent-identifier (symbol->string 'policyname))
+                                                      ,(xml-make-child-identifier (first tuple))))))
+             
+             (define my-commands-without-child 'my-commands)
+             
+             ; Forge the connection between parent and child policies
+             ; and *prefix* this policy's commands with the child commands
+             ; *FINALLY* prepare the policy.
+             (define child-commands (append* (map fourth the-children)))
+             (define my-commands-with-children (append child-commands
+                                                       my-commands-without-child
+                                                       (map get-add-child-xml the-children)
+                                                       'my-prepare-command))                          
+             
+         ;    (define child-polnames (flatten (map get-child-pols the-children)))
+             
+             ; Throw error if duplicate policy name
+         ;    (define (dup-pname-helper todo sofar)
+         ;      (cond [(empty? todo) #f]
+         ;            [(member (first todo) sofar)                      
+         ;             (raise-syntax-error 'Policy 
+         ;                                 "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names."; 
+       ;                                   (make-placeholder-syntax (first todo)))]
+       ;              [else (dup-pname-helper (rest todo) (cons (first todo) sofar))]))
+             
+        ;     (dup-pname-helper child-polnames (list (symbol->string 'policyname)))
+              
+             ; Don't double-load vocabs
+             ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
+             (for-each (lambda (tuple)
+                         (unless (equal? (second tuple) (symbol->string 'vocabname))
+                           (raise-syntax-error 
+                            'Policy 
+                            (format "Child policy used a vocabulary other than \"~a\". Child vocabulary must match parent vocabulary." 'vocabname)                
+                            (make-placeholder-syntax (second tuple)))))
+                       the-children)
+                       
+                          
+              
+              ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
+              `( ,(symbol->string 'policyname)
+                 ,(symbol->string 'vocabname)
+                 ,vocab-commands
+                 ,my-commands-with-children
+                 ,my-commands
+                 ,child-polnames
+                 ))))))))
+                           
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -228,7 +473,7 @@
                      (make-type-command-syntax (syntax->datum #'t))]  
            
            [(Type t) (not (capitalized-id-syn? #'t))
-                     (raise-syntax-error 'Vocab "Type declaration was not valid: Types must have capitalized names." #f #f (list a-type))] 
+                     (raise-syntax-error 'Vocab err-invalid-type-decl-case #f #f (list a-type))] 
            ; (Type T > A B C)
            [(Type t > subt ...) (and (capitalized-id-syn? #'t)
                                 (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
@@ -238,9 +483,9 @@
                                  (and (capitalized-id-syn? #'t)
                                       (all-are-syn? #'(subt ...) capitalized-id-syn?)))
                                 (raise-syntax-error
-                                 'Vocab "Type declaration was not valid: Types must have capitalized names." #f #f (list a-type)) ] 
+                                 'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
-           [_ (raise-syntax-error 'Vocab "Type declaration was not valid." #f #f (list a-type))]))
+           [_ (raise-syntax-error 'Vocab err-invalid-type-decl #f #f (list a-type))]))
                      
        (define (make-type-command-syntax typename [child-list empty])
          (define typenamestr (syntax->string/safe typename))
@@ -355,8 +600,8 @@
                
                (define (add-constant vocab-syn constname-syn type-syn)
                  (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-constant (symbol->string (syntax->datum constname-syn)) 
-                                                                  (symbol->string (syntax->datum type-syn))))))
+                                               (xml-make-constant-decl (symbol->string (syntax->datum constname-syn)) 
+                                                                       (symbol->string (syntax->datum type-syn))))))
                  
                
                (define (handle-constant const)
@@ -367,9 +612,9 @@
                                            #`( cname
                                                #,(add-constant #'myvocabname #'cname #'crel))] 
                    [(Constant cname crel) (not (lower-id-syn? #'cname))
-                                 (raise-syntax-error 'Vocab "Invalid constant declaration. Constant identifiers must begin with a lowercase letter." #f #f (list const) )]     
+                                 (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]     
                    
-                   [_ (raise-syntax-error 'Vocab "Invalid constant declaration." #f #f (list const) )]))
+                   [_ (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]))
                
                (map handle-constant the-constants))))
 
@@ -382,8 +627,6 @@
                                            empty
                                            (map (compose second syntax->datum) constants-result)))
        
-      ; (printf "constants-result: ~a~n" constants-result)  
-       ;(printf "~a ... ~a ~n" constants-names constants-cmds)   
               
        ; Used later to discover whether a constant is being used properly
        (define (is-valid-const? constname-syn)
@@ -412,8 +655,8 @@
                
                (define (add-function vocab-syn funcname-syn type-syn)
                  (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-function (symbol->string (syntax->datum funcname-syn)) 
-                                                                  (map symbol->string (syntax->datum type-syn))))))
+                                               (xml-make-function-decl (symbol->string (syntax->datum funcname-syn)) 
+                                                                       (map symbol->string (syntax->datum type-syn))))))
                  
                
                (define (handle-function func)
@@ -425,7 +668,7 @@
                                                          #,(length (syntax->list #'(frel0 frel ...))))
                                                         #,(add-function  #'myvocabname #'fname #'(frel0 frel ...)))] 
                    
-                   [_ (raise-syntax-error 'Vocab "Invalid function declaration." #f #f (list func) )]))
+                   [_ (raise-syntax-error 'Vocab err-invalid-function #f #f (list func) )]))
                
                (map handle-function the-functions))))
 
@@ -493,12 +736,9 @@
   
 (define-syntax (Policy stx)
   (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
-    [(_ policyname uses vocabname clauses ... )
+    [(_ uses vocabname clauses ... )
 
      (let ()
-       (unless (symbol? (syntax->datum #'policyname))
-         (raise-syntax-error 'Policy (format "Expected a name for the policy, got: ~a" 
-                                             (syntax->datum #'policyname)) #f #f (list #'policyname)))
        (unless (symbol? (syntax->datum #'vocabname))
          (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
@@ -512,8 +752,8 @@
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(variables target rules rcomb)))
        
-       (printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
-       (printf "Policy Clause table: ~n~a~n" clause-table)
+       ;(printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
+       ;(printf "Policy Clause table: ~n~a~n" clause-table)
 
        (define the-variables-clauses (hash-ref clause-table 'variables))                            
        (define the-target-clauses (hash-ref clause-table 'target))                                 
@@ -525,27 +765,6 @@
        (assert-one-clause stx the-rules-clauses "Rules")
        (assert-lone-clause stx the-rcomb-clauses "RComb")       
        
-       ; target is no longer just conj of literal fmlas
-       ; is an actual fmla
-       
-       ; Takes formula syntax and returns XML for the formula.
-       ; todo: detect valid vars, sorts, etc.
-       (define (handle-formula fmla)         
-        (syntax-case fmla [and or not implies iff exists forall = true] 
-          [true (xml-make-true-condition)]
-          [(= v1 v2) (xml-make-equals-formula #'v1 #'v2)]
-          [(and f0 f ...) (xml-make-and (map handle-formula #'(f0 f ...)))]
-          [(or f0 f ...) (xml-make-or (map handle-formula #'(f0 f ...)))]
-          [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
-          [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
-          [(not f) (xml-make-not (handle-formula #'f))]
-          [(exists f var type) (xml-make-exists (handle-formula #'f) #'var #'type)]
-          [(forall f var type) (xml-make-forall (handle-formula #'f) #'var #'type)]
-          
-          ; last, so it doesn't supercede keywords
-          [(dottedpred t0 t ...) (xml-make-atomic-formula #'dottedpred #'(t0 t ...)) ]
-
-          [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Variables
@@ -563,9 +782,17 @@
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                  (xml-make-vardec (syntax->datum #'lowid)
-                                                                   (syntax->datum #'capid))))]
-                   [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-var-dec))]))
+                                                  (xml-make-variable-declaration (syntax->datum #'lowid)
+                                                                                 (syntax->datum #'capid))))]
+                   [(Variable lowid capid)                                         
+                    (not (capitalized-id-syn? #'capid))
+                    (raise-syntax-error 'Policy "Invalid variable declaration; the variable's type must be capitalized." #f #f (list a-var-dec))]
+
+                   [(Variable lowid capid)                                         
+                    (not (lower-id-syn? #'lowid))
+                    (raise-syntax-error 'Policy "Invalid variable declaration; the variable's name must begin with a lowercase letter." #f #f (list a-var-dec))]
+                                                          
+                   [_ (raise-syntax-error 'Policy "Invalid variable declaration. Expected (Variable varname Typename)" #f #f (list a-var-dec))]))
                                              
                (map handle-variable the-variables))))
        
@@ -598,18 +825,10 @@
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
-                              
-               ;(define (is-valid-conjunction conj)
-               ;  (syntax-case conj []
-               ;    [(pred v0 v ...) #t]
-               ;    [x (equal? 'true (syntax->datum #'x))]
-               ;    [(x) (equal? 'true (syntax->datum #'x))]
-               ;    [_ #f]))
-               
+                                             
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
                    [(rulename = (decision rvar ...) :- fmla)                     
-                    ; 'true is dealt with in the back-end.                     
                     
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
                                                   (xml-make-rule (syntax->datum #'rulename)
@@ -626,8 +845,9 @@
        
        (define (handle-combine comb)
          (syntax-case comb [fa over]         
-          [(fa dec0 dec ...) (xml-make-fa #'(dec0 dec ...))]
-          [(over dec odec0 odec ...) (xml-make-over #'dec #'(odec0 odec ...))]
+          [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
+          [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
+                                                    (map symbol->string (syntax->datum #'(odec0 odec ...))))]
           [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
        
        (define the-rcomb-clause (first the-rcomb-clauses))
@@ -648,20 +868,6 @@
        
        
        ;(printf "compile time children: ~a~n" the-child-policies)
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Create
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       
-     ;  (define create-result        
-     ;    (if (< (length the-child-policies) 1)
-     ;        (list
-     ;         (xml-make-command "CREATE POLICY LEAF" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-     ;                                                      (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
-     ;         rcomb-result)
-     ;        (list
-     ;         (xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-     ;                                                    (xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))
-     ;         pcomb-result)))
       
        (define create-result (xml-make-command "CREATE POLICY LEAF" 
                                                (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))))) 
@@ -812,6 +1018,8 @@
                                          #f #f (list stx))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(expand (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
+;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
 ;(expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
 ; Why not case-insensitive in match?
+; (expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
+;(expand-once '(Policy polname uses vocabname (Variables (Variable x A) (Variable y B) (Variable z C)) (RComb (fa Permit Deny) (over Permit CallPolice) (over Deny CallPolice)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))

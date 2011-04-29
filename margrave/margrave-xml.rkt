@@ -110,20 +110,15 @@
  xml-make-implies
  xml-make-iff
  xml-make-not
- ;xml-make-forall
- ;xml-make-exists
  xml-make-variable-declaration
  xml-make-isa-formula
  
 xml-make-type-with-subs
 
-xml-make-constant
-xml-make-function
-;xml-make-atomic-formula
-;xml-make-equals
+xml-make-constant-decl
+xml-make-function-decl
 xml-make-exists
 xml-make-forall
-xml-make-vardec
 xml-make-fa
 xml-make-over
 xml-make-comb-list
@@ -132,29 +127,6 @@ xml-make-comb-list
 
 ; ********************************************************
 
-(define (xml-make-type-with-subs tname clist)
-  #t)
-(define (xml-make-constant cname ctype)
-  #t)
-(define (xml-make-function fname ftlist)
-  #t)
-;(define (xml-make-atomic-formula thepred arglist)
-;  #t)
-;; i thought this one existed already
-;(define (xml-make-equals-formula t1 t2)
-;  #t)
-;(define (xml-make-exists fmla var type)
-;  #t)
-;(define (xml-make-forall fmla var type)
-;  #t)
-(define (xml-make-vardec varname type)
-  #t)
-(define (xml-make-fa typelist)
-  #t)
-(define (xml-make-over under-type over-list)
-  #t)
-(define (xml-make-comb-list comb-list)
-  #t)
 
 
 
@@ -1074,6 +1046,10 @@ xml-make-comb-list
 (define (xml-make-subsort parent child)
   `(SUBSORT ((parent ,parent) (child ,child))))
 
+(define (xml-make-type-with-subs tname clist)
+  `(SORT-WITH-CHILDREN ((name ,tname)) ,(map xml-make-sort clist)))
+
+
 
 (define (xml-make-request-var rvname rvsort)
   `(REQUESTVAR ((name ,rvname) (sort ,rvsort))))
@@ -1204,11 +1180,30 @@ xml-make-comb-list
   `(CONSTANT-TERM ((id ,id))))
 
 (define (xml-make-function-term fid subterm-xml-list)
+  ;(printf "Function term: ~a ~a ~n" fid subterm-xml-list)
   `(FUNCTION-TERM ((func ,fid)) ,@subterm-xml-list))
 
-(define (xml-make-atomic-formula compound-id-list term-list)
+(define (xml-make-atomic-formula compound-id-list-maybe term-list)
+  (define compound-id-list
+    (if (list? compound-id-list-maybe)
+        compound-id-list-maybe
+        (list compound-id-list-maybe)))
   `(ATOMIC-FORMULA (RELATION-NAME ,@(map xml-make-id-element compound-id-list))
                    (TERMS ,@term-list)) ) 
+
+
+(define (xml-make-constant-decl cname ctype)
+  `(CONSTANT ((name ,cname) (type ,ctype))))
+(define (xml-make-function-decl fname ftlist)
+  `(FUNCTION ((name ,fname)) ,@ftlist))
+
+(define (xml-make-fa typelist)
+  `(FA ,@(map xml-make-id-element typelist)))
+(define (xml-make-over under-type over-list)
+  `(OVERRIDES ((decision ,under-type)) ,@(map xml-make-id-element over-list)))
+
+(define (xml-make-comb-list comb-list)
+  `(COMB-LIST ,comb-list))
 
 
 ;(define (xml-make-atomic-formula-n relName xml-identifier-list)
