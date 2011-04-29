@@ -376,7 +376,7 @@
        ; may be empty
        (define constants-names (if (empty? constants-result)
                                    empty
-                                   (map (compose first syntax->datum) constants-result)))      
+                                   (map (compose symbol->string/safe first syntax->datum) constants-result)))      
        
        (define constants-cmds (if (empty? constants-result)
                                            empty
@@ -503,7 +503,7 @@
          (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
        
-       (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children]
+       (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
                                                         [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
                                                         [(Rules rule ...) 'rules]
@@ -512,8 +512,8 @@
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(variables target rules rcomb)))
        
-       ;(printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
-       ;(printf "Policy Clause table: ~n~a~n" clause-table)
+       (printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
+       (printf "Policy Clause table: ~n~a~n" clause-table)
 
        (define the-variables-clauses (hash-ref clause-table 'variables))                            
        (define the-target-clauses (hash-ref clause-table 'target))                                 
@@ -530,10 +530,9 @@
        
        ; Takes formula syntax and returns XML for the formula.
        ; todo: detect valid vars, sorts, etc.
-       (define (handle-formula fmla)
+       (define (handle-formula fmla)         
         (syntax-case fmla [and or not implies iff exists forall = true] 
-          [(true) (xml-make-true)]
-          [(dottedpred t0 t ...) (xml-make-atomic-formula #'dottedpred #'(t0 t ...)) ]
+          [true (xml-make-true-condition)]
           [(= v1 v2) (xml-make-equals-formula #'v1 #'v2)]
           [(and f0 f ...) (xml-make-and (map handle-formula #'(f0 f ...)))]
           [(or f0 f ...) (xml-make-or (map handle-formula #'(f0 f ...)))]
@@ -542,6 +541,10 @@
           [(not f) (xml-make-not (handle-formula #'f))]
           [(exists f var type) (xml-make-exists (handle-formula #'f) #'var #'type)]
           [(forall f var type) (xml-make-forall (handle-formula #'f) #'var #'type)]
+          
+          ; last, so it doesn't supercede keywords
+          [(dottedpred t0 t ...) (xml-make-atomic-formula #'dottedpred #'(t0 t ...)) ]
+
           [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -575,22 +578,16 @@
              empty
              (let ()               
                (define the-target-clause (first the-target-clauses))
-               (define the-target (rest (syntax-e the-target-clause)))
-                              
-               ;(define (validate-target-to-str a-conjunct)
-               ;  (syntax-case a-conjunct []
-               ;    ; ! is part of the pred name token if present
-               ;    [(predname x0 x ...) (all-id-syn? #'(predname x0 x ...)) 
-               ;                         (string-join (map symbol->string (syntax->datum #'(predname x0 x ...))) " ")]
-               ;    [_ (raise-syntax-error 'Policy "Invalid target conjunct" #f #f (list a-conjunct))]))
-               
-               (if (> (length the-target) 0)
-                   (list (xml-make-command "SET TARGET FOR POLICY" 
-                                           (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
-                                                 (handle-formula the-target))))
-                   empty))))
-    
-       ;(printf "~a~n" target-result)
+               (define the-targets (rest (syntax-e the-target-clause)))
+               (when (> (length the-targets) 1)
+                 (raise-syntax-error 'Policy "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
+               (when (< (length the-targets) 1)
+                 (raise-syntax-error 'Policy "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
+                            
+               (define the-target (first the-targets))                                             
+               (list (xml-make-command "SET TARGET FOR POLICY" 
+                                       (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname)))
+                                             (handle-formula the-target)))))))    
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Rules
@@ -617,7 +614,7 @@
                     (xml-make-command "ADD" (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
                                                   (xml-make-rule (syntax->datum #'rulename)
                                                                  (xml-make-decision-type (syntax->datum #'decision)
-                                                                                         #'(rvar ...))                                                                 
+                                                                                         (syntax->datum #'(rvar ...)))
                                                                  (handle-formula #'fmla))))]
                    [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
                                              
@@ -629,7 +626,7 @@
        
        (define (handle-combine comb)
          (syntax-case comb [fa over]         
-          [(fa dec0 dec ...) (xml-make-fa #'dec0 #'(dec ...))]
+          [(fa dec0 dec ...) (xml-make-fa #'(dec0 dec ...))]
           [(over dec odec0 odec ...) (xml-make-over #'dec #'(odec0 odec ...))]
           [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
        
@@ -638,12 +635,17 @@
          (syntax-case the-rcomb-clause [RComb]
            [(RComb x0 x ...) (xml-make-command "SET RCOMBINE FOR POLICY" 
                                                (list (xml-make-policy-identifier (symbol->string (syntax->datum #'policyname))) 
-                                                     (xml-make-comb-list (map handle-combine #'(x0 x ...)))))]
+                                                     (xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
            [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))
          
        ;(printf "rcomb res: ~a~n" rcomb-result)             
        
-
+; !!! How to make fa, over case insensitive?
+       
+       
+       
+       
+       
        
        ;(printf "compile time children: ~a~n" the-child-policies)
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -675,7 +677,9 @@
        ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
        (with-syntax ([my-commands (append create-result ; create must come first
+                                          variables-result
                                           target-result
+                                          rcomb-result
                                           rules-result)]
                      [my-prepare-command (list prepare-result)]
                     ; [the-child-policies #`(list #,@the-child-policies)]
@@ -809,3 +813,5 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;(expand (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
+;(expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
+; Why not case-insensitive in match?

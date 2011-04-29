@@ -119,7 +119,6 @@ xml-make-type-with-subs
 
 xml-make-constant
 xml-make-function
-xml-make-true
 ;xml-make-atomic-formula
 ;xml-make-equals
 xml-make-exists
@@ -138,8 +137,6 @@ xml-make-comb-list
 (define (xml-make-constant cname ctype)
   #t)
 (define (xml-make-function fname ftlist)
-  #t)
-(define (xml-make-true)
   #t)
 ;(define (xml-make-atomic-formula thepred arglist)
 ;  #t)
@@ -1064,8 +1061,9 @@ xml-make-comb-list
       true
       false))
 
-(define (xml-make-decision-type decision-type)
-  `(DECISION-TYPE ((type ,(symbol->string/safe decision-type)))))
+(define (xml-make-decision-type idb-name var-order-list)
+  `(DECISION-TYPE ((type ,(symbol->string/safe idb-name)))
+                  ,@(map xml-make-id-element var-order-list)))
 
 (define (xml-make-decision decision)
   `(DECISION ((name ,(symbol->string/safe decision)))))
