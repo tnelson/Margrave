@@ -249,13 +249,15 @@
                    #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name))
                                                 (xml-make-sort (symbol->string typename)))))]
                [else                 
-                #`(#,typenamestr
+                (define childstrlist (map syntax->string/safe child-list))
+                (define alltypeslist (append (list typenamestr) childstrlist))
+                #`(#,alltypeslist
                    #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                   (xml-make-type-with-subs (symbol->string typename) (map syntax->string/safe child-list)))))]))
+                                                   (xml-make-type-with-subs (symbol->string typename) childstrlist))))]))
               
        (define types-result (map handle-type the-types)) 
        (define types-cmds (map (compose second syntax->datum) types-result))
-       (define types-names (map (compose first syntax->datum) types-result))
+       (define types-names (flatten (map (compose first syntax->datum) types-result)))
        
        ; Used later to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
@@ -291,9 +293,9 @@
                  
                
                (define (handle-predicate pred)
-                 ; No colon. Just (Predname A B C)
+                 ; No colon. Just (Predicate predname A B C)
                  (syntax-case pred []                   
-                   [(pname prel0 prel ...) (and (lower-id-syn? #'pname)
+                   [(Predicate pname prel0 prel ...) (and (lower-id-syn? #'pname)
                                                 (each-type-in-list-is-valid? #'(prel0 prel ...)))  
                                            #`( (pname
                                                 #,(length (syntax->list #'(prel0 prel ...))))
@@ -353,17 +355,19 @@
                
                (define (add-constant vocab-syn constname-syn type-syn)
                  (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-constant (symbol->string (syntax->datum constname-syn))) 
-                                               (xml-make-type (symbol->string (syntax->datum type-syn))))))
+                                               (xml-make-constant (symbol->string (syntax->datum constname-syn)) 
+                                                                  (symbol->string (syntax->datum type-syn))))))
                  
                
                (define (handle-constant const)
                  ; No colon. Just (Constant a A)
-                 (syntax-case const []                   
-                   [(cname crel) (and (lower-id-syn? #'cname)
+                 (syntax-case const [Constant]                    
+                   [(Constant cname crel) (and (lower-id-syn? #'cname)
                                       (is-valid-type? #'crel))  
                                            #`( cname
                                                #,(add-constant #'myvocabname #'cname #'crel))] 
+                   [(Constant cname crel) (not (lower-id-syn? #'cname))
+                                 (raise-syntax-error 'Vocab "Invalid constant declaration. Constant identifiers must begin with a lowercase letter." #f #f (list const) )]     
                    
                    [_ (raise-syntax-error 'Vocab "Invalid constant declaration." #f #f (list const) )]))
                
@@ -408,8 +412,8 @@
                
                (define (add-function vocab-syn funcname-syn type-syn)
                  (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-function (symbol->string (syntax->datum funcname-syn))) 
-                                               (xml-make-type (symbol->string (syntax->datum type-syn))))))
+                                               (xml-make-function (symbol->string (syntax->datum funcname-syn)) 
+                                                                  (map symbol->string (syntax->datum type-syn))))))
                  
                
                (define (handle-function func)
@@ -476,10 +480,8 @@
                      [constants-names constants-names]
                      [functions-names-and-arities functions-names-and-arities])                  
          
-         ; () --> error
-         (printf "after ws: ~a~n" #'constants-names)  
-         (printf "after ws xml: ~a~n" #'constants-names)
-         (syntax/loc stx '(vocab-name xml-list types-names #;predicates-names-and-arities #;constants-names #;functions-names-and-arities)))))))
+         ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
+         (syntax/loc stx '(vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -805,3 +807,5 @@
                      (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
                                          #f #f (list stx))]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;(expand (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
