@@ -1049,7 +1049,7 @@
   `(SUBSORT ((parent ,parent) (child ,child))))
 
 (define (xml-make-type-with-subs tname clist)
-  `(SORT-WITH-CHILDREN ((name ,tname)) ,(map xml-make-sort clist)))
+  `(SORT-WITH-CHILDREN ((name ,tname)) ,@(map xml-make-sort clist)))
 
 
 
@@ -1173,7 +1173,7 @@
   `(ISA ((var ,v) (sort ,s))))
 
 (define (xml-make-variable-declaration v s)
-  `(VARIABLE-DECLARATION ((sort ,s)) ,v))
+  `(VARIABLE-DECLARATION ((sort ,s) (varname ,v))))
 
 (define (xml-make-variable-term id)
   `(VARIABLE-TERM ((id ,id))))
@@ -1205,7 +1205,7 @@
   `(OVERRIDES ((decision ,under-type)) ,@(map xml-make-id-element over-list)))
 
 (define (xml-make-comb-list comb-list)
-  `(COMB-LIST ,comb-list))
+  `(COMB-LIST ,@comb-list))
 
 
 ;(define (xml-make-atomic-formula-n relName xml-identifier-list)

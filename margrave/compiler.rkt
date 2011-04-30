@@ -83,10 +83,10 @@
     ; third and fourth of the list are func syntax that create vocab, pol respectively
     ; So create an uber-func that does both
     [(equal? first-datum 'LOAD-POLICY)
-     (define policy-id (syntax->datum (second interns)))
+     (define policy-id (symbol->string (syntax->datum (second interns))))
      (define policy-file-name-syntax (third interns))
      (define policy-creation-list (evaluate-policy (symbol->string (syntax->datum policy-file-name-syntax))
-                                                   (symbol->string policy-id)
+                                                   policy-id
                                                    #:syntax policy-file-name-syntax))
      
      (define vocab-name (second policy-creation-list))
@@ -398,7 +398,7 @@
   `(lambda () ,@(append                  
                  ; (1) xml for each command
                  (for/list ([an-xml list-of-xexprs])
-                   `(send-and-receive-xml ,an-xml #:syntax #',src-syntax))
+                   `(send-and-receive-xml ',an-xml #:syntax #',src-syntax))
                  
                  ; (2) note that we have loaded such a policy
                  ; !!! todo environment change [currently handled in java]
@@ -610,7 +610,7 @@
 (define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a ~a ~a ~n" foo bar (xexpr->string foo)))
 ;(define (send-and-receive-xml foo #:syntax [bar ""]) (printf "~a~n" (xexpr->string foo)))
 
-; (parse-and-compile "#LoAd policy Mypolicy = \"*margrave*/tests/conference1.p\"")
+;((eval (parse-and-compile "#LoAd policy Mypolicy = \"F:/msysgit/git/margrave/margrave/examples/conference1.p\"")))
 ; (parse-and-compile "#LoAd ios foo")
 ; (parse-and-compile "#load ios foo with x y")
 ; (parse-and-compile "#LoAd ios file1,file2,file3 in directory")

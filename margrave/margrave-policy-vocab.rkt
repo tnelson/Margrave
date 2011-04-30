@@ -799,8 +799,8 @@
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
-                                                   ',(xml-make-variable-declaration (syntax->datum #'lowid)
-                                                                                   (syntax->datum #'capid))))]
+                                                   ',(xml-make-variable-declaration (symbol->string (syntax->datum #'lowid))
+                                                                                   (symbol->string (syntax->datum #'capid)))))]
                    [(Variable lowid capid)                                         
                     (not (capitalized-id-syn? #'capid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's type must be capitalized." #f #f (list a-var-dec))]
@@ -962,10 +962,7 @@
                  )))))]
 
          
-       
-      
- 
-    
+            
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
                             #f #f (list stx))]
     [(_ x) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
