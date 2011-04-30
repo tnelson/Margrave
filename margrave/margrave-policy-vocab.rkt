@@ -105,7 +105,7 @@
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
     (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))    
     
-    (define pol-result-list (the-policy-func fn src-syntax))        
+    (define pol-result-list (the-policy-func fn policy-id src-syntax))        
     (close-input-port file-port)        
     pol-result-list))
 

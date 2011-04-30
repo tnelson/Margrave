@@ -7,5 +7,5 @@
   	  (PaperNoConflict = (permit s a r) :- (and (not (conflicted s r)) (ReadPaper a) (Paper r)))
 	  (PaperAssigned = (permit s a r) :- (and (assigned s r) (ReadPaper a) (Paper r)))
 	  (PaperConflict = (deny s a r) :- (and (conflicted s r) (ReadPaper a) (Paper r))))
-        (RComb FAC))
+        (RComb (fa permit deny)))
 

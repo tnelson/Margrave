@@ -18,7 +18,8 @@
 #lang racket
 
 (require ;margrave/margrave-xml
-         margrave/margrave-policy-vocab
+        ; margrave/margrave-policy-vocab
+ (file "margrave-policy-vocab.rkt")
          margrave/helpers
          ; !!! todo update this
          ;margrave/lexer
@@ -85,7 +86,8 @@
      (define policy-id (syntax->datum (second interns)))
      (define policy-file-name-syntax (third interns))
      (define policy-creation-list (evaluate-policy (symbol->string (syntax->datum policy-file-name-syntax))
-                                                  #:syntax policy-file-name-syntax))
+                                                   (symbol->string policy-id)
+                                                   #:syntax policy-file-name-syntax))
      
      (define vocab-name (second policy-creation-list))
      (define policy-thinks-name-is (first policy-creation-list))
