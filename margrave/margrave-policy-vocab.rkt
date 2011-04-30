@@ -672,8 +672,8 @@
                
                (define (add-function vocab-syn funcname-syn type-syn)
                  (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-function-decl (symbol->string (syntax->datum funcname-syn)) 
-                                                                       (map symbol->string (syntax->datum type-syn))))))
+                                               (xml-make-function-decl (symbol->string (syntax->datum funcname-syn))                                                                        
+                                                                       (xml-make-relations-list (map symbol->string (syntax->datum type-syn)))))))
                  
                
                (define (handle-function func)
@@ -890,7 +890,8 @@
        ;(printf "compile time children: ~a~n" the-child-policies)
       
        (define create-result (list `(xml-make-command "CREATE POLICY LEAF" 
-                                               (list (xml-make-policy-identifier local-policy-id)))))
+                                               (list (xml-make-policy-identifier local-policy-id)
+                                                     (xml-make-vocab-identifier vocab-name)))))
      
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -898,7 +899,7 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
-            `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))
+            (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
                                
        ; Only know filename and policy id at *runtime*
        
@@ -906,13 +907,13 @@
        ; need ,(list (xml-make-command ...
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
-       ; (create must come first)
+       ; (create must come first; prepare last)
        (with-syntax ([my-commands `(list ,@(append create-result 
                                                    variables-result
                                                    target-result
                                                    rcomb-result
-                                                   rules-result))]
-                     [my-prepare-command (list prepare-result)]
+                                                   rules-result
+                                                   prepare-result))]
                     ; [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
                      
@@ -952,8 +953,8 @@
                   
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
-                              (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
-              
+                              (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                                            
+             
               ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy
               `( ,local-policy-id
                  ,vocab-name

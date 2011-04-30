@@ -10,7 +10,9 @@
               (Type Resource > Paper Review))
              (Predicates
               (Predicate conflicted Reviewer Paper)
-              (Predicate assigned Reviewer Paper)))
+              (Predicate assigned Reviewer Paper))
+             (Constants (Constant c Resource))
+             (Functions (Function f Resource Resource)))
 
 	      
 

@@ -1197,7 +1197,7 @@
 (define (xml-make-constant-decl cname ctype)
   `(CONSTANT ((name ,cname) (type ,ctype))))
 (define (xml-make-function-decl fname ftlist)
-  `(FUNCTION ((name ,fname)) ,@ftlist))
+  `(FUNCTION ((name ,fname)) ,ftlist))
 
 (define (xml-make-fa typelist)
   `(FA ,@(map xml-make-id-element typelist)))
@@ -1273,8 +1273,13 @@
 (define (xml-make-identifiers-list idents-list)
   (xml-make-generic-list 'IDENTIFIERS 'IDENTIFIER 'name idents-list))
 
+;(define (xml-make-relations-list relations-list)
+;  (xml-make-generic-list 'RELATIONS 'RELATION 'name relations-list))
+
+(define (xml-make-relation relname)
+  `(RELATION ((name ,relname))))
 (define (xml-make-relations-list relations-list)
-  (xml-make-generic-list 'RELATIONS 'RELATION 'name relations-list))
+  `(RELATIONS ,@(map xml-make-relation relations-list)))
 
 
 (define (xml-make-quit)
