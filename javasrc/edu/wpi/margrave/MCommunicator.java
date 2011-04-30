@@ -593,6 +593,13 @@ public class MCommunicator
         						theResponse = MEnvironment.addSort(vname, sortName);
         						writeToLog("Added Sort\n");
         					}
+        					else if (addType.equalsIgnoreCase("SORT-WITH-CHILDREN")) {
+        						String sortName = getSortName(n);
+        						        						
+        						List<String> childnames = getListElements(n, "SORT-WITH-CHILDREN", "name");        						        						
+        						theResponse = MEnvironment.addSortWithSubs(vname, sortName, childnames);
+        						writeToLog("Added Sort\n");
+        					}        					
         					else if (addType.equalsIgnoreCase("PREDICATE")) {
         						String sName = getPredicateName(n);
         						List<String> constr = getRelationsList(n);
@@ -1058,7 +1065,8 @@ public class MCommunicator
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
-        private static List<String> getListElements(Node n, String listName, String attributeName) {
+        private static List<String> getListElements(Node n, String listName, String attributeName)
+        {
         	Node listNode = getChildNode(n, listName);
         	
         	writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");
@@ -1587,18 +1595,18 @@ public class MCommunicator
 		List<String> creationCommands = new ArrayList<String>();
 		
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"C\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"C\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
 		
 		// TODO test rule parsing
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST><FA><ID id=\"permit\" /><ID id=\"deny\" /></FA></COMB-LIST></MARGRAVE-COMMAND>"); 
-		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST><FA><ID id=\"permit\" /><ID id=\"deny\" /></FA></COMB-LIST></MARGRAVE-COMMAND>"); 
+		//creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
 		
 		//creationCommands.add("");
 		

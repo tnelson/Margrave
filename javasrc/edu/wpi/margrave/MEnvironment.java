@@ -1409,6 +1409,23 @@ public class MEnvironment
 		}
 	}
 
+	public static Document addSortWithSubs(String vname, String sname, List<String> subs)
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			for(String childname : subs)
+				voc.addSubSort(sname, childname);
+			
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addConstraintAbstract(String vname, String s)
 	{
 		MVocab voc = makeNewVocabIfNeeded(vname);
