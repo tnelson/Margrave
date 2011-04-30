@@ -186,8 +186,8 @@
   (syntax-case fmla [and or not implies iff exists forall = true isa] 
     [true (xml-make-true-condition)]
     [(= v1 v2) (xml-make-equals-formula (handle-term #'v1) (handle-term #'v2))]
-    [(and f0 f ...) (xml-make-and (map handle-formula #'(f0 f ...)))]
-    [(or f0 f ...) (xml-make-or (map handle-formula #'(f0 f ...)))]
+    [(and f0 f ...) (xml-make-and* (map handle-formula (syntax->list #'(f0 f ...))))]
+    [(or f0 f ...) (xml-make-or* (map handle-formula (syntax->list #'(f0 f ...))))]
     [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
     [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
     [(not f) (xml-make-not (handle-formula #'f))]
@@ -203,6 +203,17 @@
                                                     (map handle-term (syntax->list #'(t0 t ...)))) ]
     
     [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
+
+; Used so that rules can be written nicely, e.g.
+; ... :- (p x) (r y)
+; instead of
+; ... :- (and (p x) (r y))
+(define-for-syntax (handle-formula-list syn)
+  (define fmla-list (syntax->list syn))
+  (cond
+    [(> (length fmla-list) 1)
+     (xml-make-and* (map handle-formula fmla-list))]
+    [else (handle-formula (first fmla-list))]))
 
 (define-for-syntax (handle-combine comb)
   (syntax-case comb [fa over]         
@@ -506,6 +517,8 @@
               
        (define types-result (map handle-type the-types)) 
        (define types-cmds (map (compose second syntax->datum) types-result))
+       
+       ; potential duplicates here (and in above xml); s/b a set maintained throughout the process?
        (define types-names (flatten (map (compose first syntax->datum) types-result)))
        
        ; Used later to recognize a type name that wasn't declared.
@@ -832,13 +845,13 @@
                                              
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- fmla)                     
+                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                     
                     
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
                                                    ,(xml-make-rule (syntax->datum #'rulename)
                                                                    (xml-make-decision-type (syntax->datum #'decision)
                                                                                            (syntax->datum #'(rvar ...)))
-                                                                   (handle-formula #'fmla))))]
+                                                                   (handle-formula-list #'(fmla0 fmla ...)))))]
                    [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
                                              
                (map handle-rule the-rules))))

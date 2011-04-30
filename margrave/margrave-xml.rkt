@@ -107,21 +107,23 @@
  xml-make-equals-formula
  xml-make-and
  xml-make-or
+ xml-make-and*
+ xml-make-or*
  xml-make-implies
  xml-make-iff
  xml-make-not
  xml-make-variable-declaration
  xml-make-isa-formula
  
-xml-make-type-with-subs
-
-xml-make-constant-decl
-xml-make-function-decl
-xml-make-exists
-xml-make-forall
-xml-make-fa
-xml-make-over
-xml-make-comb-list
+ xml-make-type-with-subs
+ 
+ xml-make-constant-decl
+ xml-make-function-decl
+ xml-make-exists
+ xml-make-forall
+ xml-make-fa
+ xml-make-over
+ xml-make-comb-list
  
  xml-policy-info->req-vector)
 
@@ -1286,8 +1288,24 @@ xml-make-comb-list
 
 (define (xml-make-and p1 p2)
   `(AND ,p1 ,p2))
+(define (xml-make-and* conjuncts)
+  (cond 
+    [(= (length conjuncts) 1)
+     (first conjuncts)]
+    [(= (length conjuncts) 2)
+     (xml-make-and (first conjuncts) (second conjuncts))]
+    [else (xml-make-and (first conjuncts) (xml-make-and* (rest conjuncts)))]))
+  
 (define (xml-make-or p1 p2)
   `(OR ,p1 ,p2))
+(define (xml-make-or* disjuncts)
+  (cond 
+    [(= (length disjuncts) 1)
+     (first disjuncts)]
+    [(= (length disjuncts) 2)
+     (xml-make-or (first disjuncts) (second disjuncts))]
+    [else (xml-make-or (first disjuncts) (xml-make-or* (rest disjuncts)))]))
+
 (define (xml-make-implies p1 p2)
   `(IMPLIES (ANTE ,p1) (CONS ,p2)))
 (define (xml-make-iff p1 p2)
