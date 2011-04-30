@@ -288,9 +288,9 @@
              (let ()
                (define the-pcomb-clause (first the-pcomb-clauses)) 
                (syntax-case the-pcomb-clause [PComb]
-                 [(RComb x0 x ...) `(xml-make-command "SET PCOMBINE FOR POLICY" 
-                                                     (list (xml-make-policy-identifier local-policy-id) 
-                                                           ,(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
+                 [(PComb x0 x ...) (list `(xml-make-command "SET PCOMBINE FOR POLICY" 
+                                                            (list (xml-make-policy-identifier local-policy-id) 
+                                                                  ,(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
                  [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
              
        
@@ -759,7 +759,7 @@
        (unless (symbol? (syntax->datum #'vocabname))
          (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
-       
+              
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
                                                         [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
@@ -799,7 +799,7 @@
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
-                                                   ,(xml-make-variable-declaration (syntax->datum #'lowid)
+                                                   ',(xml-make-variable-declaration (syntax->datum #'lowid)
                                                                                    (syntax->datum #'capid))))]
                    [(Variable lowid capid)                                         
                     (not (capitalized-id-syn? #'capid))
@@ -831,7 +831,7 @@
                (define the-target (first the-targets))                                             
                (list `(xml-make-command "SET TARGET FOR POLICY" 
                                        (list (xml-make-policy-identifier local-policy-id)
-                                             ,(handle-formula the-target)))))))    
+                                             ',(handle-formula the-target)))))))    
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Rules
@@ -848,7 +848,7 @@
                    [(rulename = (decision rvar ...) :- fmla0 fmla ...)                     
                     
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
-                                                   ,(xml-make-rule (syntax->datum #'rulename)
+                                                   ',(xml-make-rule (syntax->datum #'rulename)
                                                                    (xml-make-decision-type (syntax->datum #'decision)
                                                                                            (syntax->datum #'(rvar ...)))
                                                                    (handle-formula-list #'(fmla0 fmla ...)))))]
@@ -873,9 +873,9 @@
              (let ()
                (define the-rcomb-clause (first the-rcomb-clauses))
                (syntax-case the-rcomb-clause [RComb]
-                 [(RComb x0 x ...) `(xml-make-command "SET RCOMBINE FOR POLICY" 
-                                                     (list (xml-make-policy-identifier local-policy-id) 
-                                                           ,(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...))))))]
+                 [(RComb x0 x ...) (list `(xml-make-command "SET RCOMBINE FOR POLICY" 
+                                                            (list (xml-make-policy-identifier local-policy-id) 
+                                                                  ',(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
                  [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))))
          
        ;(printf "rcomb res: ~a~n" rcomb-result)             
@@ -889,24 +889,29 @@
        
        ;(printf "compile time children: ~a~n" the-child-policies)
       
-       (define create-result `(xml-make-command "CREATE POLICY LEAF" 
-                                               (list (xml-make-policy-identifier local-policy-id)))) 
+       (define create-result (list `(xml-make-command "CREATE POLICY LEAF" 
+                                               (list (xml-make-policy-identifier local-policy-id)))))
      
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
             `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))
-                        
+                               
+       ; Only know filename and policy id at *runtime*
        
-       ; Macro returns a lambda that takes a filename and a syntax object.   
-       ; This is so we know where to find the vocabulary file. Only know that at runtime
-       (with-syntax ([my-commands (append create-result ; create must come first
-                                          variables-result
-                                          target-result
-                                          rcomb-result
-                                          rules-result)]
+       ; can't `', or we get ,'((xml-make-command ...
+       ; need ,(list (xml-make-command ...
+       ; so do `(list ,@( ...))
+       ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
+       ; (create must come first)
+       (with-syntax ([my-commands `(list ,@(append create-result 
+                                                   variables-result
+                                                   target-result
+                                                   rcomb-result
+                                                   rules-result))]
                      [my-prepare-command (list prepare-result)]
                     ; [the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
@@ -922,7 +927,7 @@
          
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
-           (lambda (local-policy-filename src-syntax)                                                                        
+           (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
               (define vocab-path (build-path (path-only/same local-policy-filename) 
                                              (string-append (symbol->string 'vocabname) ".v")))
              
@@ -951,9 +956,9 @@
               
               ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy
               `( ,local-policy-id
-                 ,(symbol->string 'vocabname)
-                 ,vocab-commands                
-                 ,my-commands                
+                 ,vocab-name
+                 ,vocab-commands  
+                 ,my-commands
                  )))))]
 
          
@@ -978,3 +983,15 @@
 ; Why not case-insensitive in match?
 ; (expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
 ;(expand-once '(Policy polname uses vocabname (Variables (Variable x A) (Variable y B) (Variable z C)) (RComb (fa Permit Deny) (over Permit CallPolice) (over Deny CallPolice)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
+
+
+; ((eval '(Policy uses Conference
+;        (Variables 
+;         (Variable s Subject)
+;         (Variable a Action)
+;         (Variable r Resource))
+;        (Rules 
+;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (ReadPaper a) (Paper r)))
+;	  (PaperAssigned = (Permit s a r) :- (and (Assigned s r) (ReadPaper a) (Paper r)));
+;	  (PaperConflict = (Deny s a r) :- (and (Conflicted s r) (ReadPaper a) (Paper r))))
+;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)
