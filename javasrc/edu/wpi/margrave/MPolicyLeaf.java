@@ -793,7 +793,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		aTarget = MFormulaManager.makeAtom(s, admin);		
 		pol.addRule("Rule1", "permit", vSAR, aTarget, Formula.TRUE);
-		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeVarTuple(vSR), ownerOf);
+		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeExprTuple(vSR), ownerOf);
 		pol.addRule("Rule2", "permit", vSAR, aTarget, Formula.TRUE);		
 		aTarget = MFormulaManager.makeAtom(r, restricted);
 		pol.addRule("Rule3", "deny", vSAR, aTarget, Formula.TRUE);

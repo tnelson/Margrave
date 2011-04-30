@@ -375,7 +375,7 @@ public class MPolicySet extends MPolicy
 		
 		aTarget = MFormulaManager.makeAtom(s, admin);		
 		pol1.addRule("Rule1", "permit", vSAR, aTarget, Formula.TRUE);
-		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeVarTuple(vSR), ownerOf);
+		aTarget = MFormulaManager.makeAtom(MFormulaManager.makeExprTuple(vSR), ownerOf);
 		pol1.addRule("Rule2", "permit", vSAR, aTarget, Formula.TRUE);		
 		aTarget = MFormulaManager.makeAtom(r, restricted);
 		pol1.addRule("Rule3", "deny", vSAR, aTarget, Formula.TRUE);

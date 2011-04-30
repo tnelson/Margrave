@@ -742,8 +742,17 @@ public class MCommunicator
         	return theResponse;
         }
         
-        private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes) {
+        private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes)
+        {
         	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
+        
+        	// R(x, y), P(y, z), R(z, z) --->
+        	// [ R->[["x","y"], ["z","z"]] P->[["y","z"]]
+        	
+        	// TODO no longer so straightforward; need MTerms instead of strings (used to always be vars!)
+        	/*
+        	
+        	
         	// default of empty map is set above. Just populate it.
 			        	        
         	
@@ -806,7 +815,7 @@ public class MCommunicator
 	        		hashMap.get("=").add(params);	        			        		
 				}
 				
-			}
+			}*/
         	return hashMap;
         }
         
@@ -1045,7 +1054,7 @@ public class MCommunicator
         	if (attribute == null) {
         		return null;
         	}
-        	return node.getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase();
+        	return node.getAttributes().getNamedItem(attributeName).getNodeValue();
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
@@ -1064,7 +1073,7 @@ public class MCommunicator
         	
         	NodeList childNodes = listNode.getChildNodes();
         	for (int i = 0; i < childNodes.getLength(); i++) {
-        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue().toLowerCase());
+        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue());
         	}
         	return attributeValues;
         }
@@ -1147,6 +1156,8 @@ public class MCommunicator
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
+        		// "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>"
+
         		/////////////////////////////////////////////////////
         		// Relation name
         		Node relationNameNode = getChildNode(n, "RELATION-NAME");
@@ -1164,18 +1175,27 @@ public class MCommunicator
         		/////////////////////////////////////////////////////
         		// Terms
         		
-        		// TODO handle terms
-        		// NOT just variables anymore, so vl isn't quite right.
+        		Node termsNode = getChildNode(n, "TERMS");
+        		NodeList termsNodeComponents = termsNode.getChildNodes();   
+        		List<MTerm> terms = new ArrayList<MTerm>();
+        		for(int ii=0;ii<termsNodeComponents.getLength();ii++)
+        		{
+        			// not Iterable...
+        			Node theNode = termsNodeComponents.item(ii);
+        			MTerm theTerm = termHelper(theNode); 
+        			
+        			//String nameStr = getNodeAttribute(theNode, "ID", "id");
+        			terms.add(theTerm);
+        		}
         		
+        		/////////////////////////////////////////////////////
         		
-        		//List<String> vl = getIdentifierList(n);
-
         		// Could be:
         		// (1) compound relation name, e.g. pol.idbname
         		// (2) EDB name
         		// (3) view name (really an idb!)
         		
-        		writeToLog("\nAtomic-Formula: \nrelationNameComponents: " + relationNameComponents + "\nvl: " + vl.toString());
+        		writeToLog("\nAtomic-Formula: \nrelationNameComponents: " + relationNameComponents + "\nterms: " + terms.toString());
         		
         		if(relationNameComponents.size() < 1)
         			throw new MUserException("Unable to obtain relation name in atomic formula.");
@@ -1196,10 +1216,10 @@ public class MCommunicator
         				if(idbf != null)
         				{
         					// Perform variable substitution
-        					idbf = performSubstitution(relationName, pol, idbf, vl);
+        					idbf = performSubstitution(relationName, pol, idbf, terms);
 
         					// Assemble MExploreCondition object
-        					return new MExploreCondition(idbf, pol, "saved", vl);        		
+        					return new MExploreCondition(idbf, pol, "saved", terms);        		
         				}
         			}
         			
@@ -1208,16 +1228,16 @@ public class MCommunicator
 
         			// We don't have a vocabulary yet. So just make the relation.
         			// The manager will prevent duplicates.
-        			Relation rel = MFormulaManager.makeRelation(relationName, vl.size());
+        			Relation rel = MFormulaManager.makeRelation(relationName, terms.size());
 
-        			Expression varvector;
+        			Expression termvector;
         			Formula f = null;
 
-        			varvector = MFormulaManager.makeVarTuple(vl);
-        			f = MFormulaManager.makeAtom(varvector, rel);
+        			termvector = MFormulaManager.makeTermTuple(terms);
+        			f = MFormulaManager.makeAtom(termvector, rel);
 
         			// No variable substitution needed!
-        			return new MExploreCondition(f, rel, vl);
+        			return new MExploreCondition(f, rel, terms);
 
         		}
         		
@@ -1236,48 +1256,21 @@ public class MCommunicator
         		// throws exception rather than returning null
         		Formula idbf = validateDBIdentifier(collName, relationName);
         		
-        		return new MExploreCondition(idbf, pol, relationName, vl);
+        		return new MExploreCondition(idbf, pol, relationName, terms);
         	}
         	else if(name.equalsIgnoreCase("TRUE"))
         	{
         		return new MExploreCondition(true);
         	}
-        	/*else if (name.equalsIgnoreCase("ATOMIC-FORMULA-Y")) 
-        	{
-        		String collectionName = getAtomicFormulaYCollection(n);
-        		String relationName = getAtomicFormulaYRelation(n);
-
-        		//Variables
-        		List<String> vl = getIdentifierList(n);
-        		
-        		Formula idbf = null;
-        		
-        		// Will throw an exception rather than return null
-        		idbf = validateDBIdentifier(collectionName, relationName);
-        		
-        		// Perform variable substitution
-        		MIDBCollection pol = MEnvironment.getPolicyOrView(collectionName);
-        		        		        		
-        		writeToLog("\nAtomic-Formula-Y: \nCollection Name: " + collectionName + "\nRelation Name: " + 
-        				relationName + "\nPolicy: " + pol + "\nvl: " + vl.toString() + "\n\n");
-       			writeToLog("\nBefore substitution: "+idbf);
-       			
-       			idbf = performSubstitution(collectionName, pol, idbf, vl);
-
-       			writeToLog("\nAfter substitution: "+idbf+"\n");
-       			
-        		// Assemble MExploreCondition object	
-        		//writeToLog("Returning from atomic-formula-y");
-        		return new MExploreCondition(idbf, pol, vl);
-
-        	}*/
         	
         	MEnvironment.errorWriter.println("exploreHelper returning null! error! name was: "+name);
         	
         return null;
     }
      
-     private static MTerm termHelper(Node n) 
+
+
+	private static MTerm termHelper(Node n) 
      {
     	 NodeList childNodes = n.getChildNodes();
 
@@ -1483,29 +1476,32 @@ public class MCommunicator
 		}
 	}
 	
-	private static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<String> newvarnames)
+	private static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<MTerm> newterms)
 	throws MUserException, MGEUnknownIdentifier
 	{		
+		// Replace expressions (here, variables) with other expressions
+		// e.g. x becomes f(y, c)
+		
 		if(f == null)
 			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
-		if(newvarnames.size() != coll.varOrderings.get(collectionIdSymbol).size())
-			report_arity_error(collectionIdSymbol, newvarnames, coll);
+		if(newterms.size() != coll.varOrderings.get(collectionIdSymbol).size())
+			report_arity_error(collectionIdSymbol, newterms, coll);
 		
-		HashMap<Variable, Variable> toReplace = new HashMap<Variable, Variable>();
+		HashMap<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
 			
 		// coll knows what its idbs free variable vector is.
 		int ii = 0;
 		writeToLog("\nsubs found coll.varOrdering for IDB = "+coll.varOrderings.get(collectionIdSymbol));
 		for(Variable oldv : coll.varOrderings.get(collectionIdSymbol))		
 		{
-			Variable v = MFormulaManager.makeVariable(newvarnames.get(ii));
-			toReplace.put(oldv, v);
+			Expression newterm = newterms.get(ii).expr;
+			toReplace.put(oldv, newterm);
 			
-			writeToLog("\nsubs will replace var: "+oldv+" with new var: "+v);
+			writeToLog("\nsubs will replace var: "+oldv+" with the term: "+newterm);
 			ii ++;	
 		}
 		
-		return f.accept(new RelationAndVariableReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
 	}
 	
 	protected static Formula validateDBIdentifier(String objn, String dbn)
@@ -1526,9 +1522,9 @@ public class MCommunicator
 		 return idbf;
 	}
 	
-	private static void report_arity_error(String idbSymbol, List<String> varlist, MIDBCollection coll) throws MUserException
+	private static void report_arity_error(String idbSymbol, List<MTerm> termlist, MIDBCollection coll) throws MUserException
 	{
-		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+varlist+
+		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+termlist+
 				", but collection expects arity "+coll.varOrderings.get(idbSymbol).size()+".");
 	}
 

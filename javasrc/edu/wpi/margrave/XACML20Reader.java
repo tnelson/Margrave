@@ -972,7 +972,7 @@ class XACML20Reader {
 			for(String s : involves_list)
 				varsList.add(s);			
 						
-			kodkod.ast.Expression tuple = MFormulaManager.makeVarTuple(varsList);
+			kodkod.ast.Expression tuple = MFormulaManager.makeExprTuple(varsList);
 			mr.condition = MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
 		}
 		catch(MGEUnknownIdentifier e)

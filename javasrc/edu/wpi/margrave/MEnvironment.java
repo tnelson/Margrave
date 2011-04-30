@@ -409,7 +409,7 @@ class MExploreCondition
 	}
 	
 	// Atomic EDB formulas: made(vec)
-	MExploreCondition(Formula f, Relation made, List<String> varnamevector)
+	/*MExploreCondition(Formula f, Relation made, List<String> varnamevector)
 	{
 		fmla = f;
 		madeEDBs.add(made);
@@ -423,10 +423,21 @@ class MExploreCondition
 		
 		// This constructor means an atomic necessary assertion:
 		assertAtomicNecessary.get(varvector).add(new MVariableVectorAssertion(true, made));				
+	}*/
+	
+	MExploreCondition(Formula f, Relation made, List<MTerm> vec)
+	{
+		fmla = f;
+		madeEDBs.add(made);
+	}
+	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
+	{
+		fmla = f;
+		seenIDBs.add(pol);
 	}
 	
 	// Atomic IDB Formulas pol.idbname(vec)
-	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<String> varnamevector)
+	/*MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<String> varnamevector)
 	{
 		fmla = f;
 		seenIDBs.add(pol);
@@ -453,7 +464,7 @@ class MExploreCondition
 			
 			assertAtomicNecessary.get(thisVar).add(new MVariableVectorAssertion(true, pol.varSorts.get(oldVar)));	
 		}
-	}
+	}*/
 	
 	List<Variable> vectorize(List<String> namevector)
 	{
@@ -747,9 +758,7 @@ public class MEnvironment
 	
 	
 	static MIDBCollection getPolicyOrView(String str)
-	{
-						str = str.toLowerCase();
-		
+	{		
 		// Is str the name of an idb I know?
 		if(envIDBCollections.containsKey(str))
 			return envIDBCollections.get(str);
@@ -759,7 +768,6 @@ public class MEnvironment
 	
 	static MVocab getVocab(String str)
 	{
-		str = str.toLowerCase();	
 		if(envVocabularies.containsKey(str))
 			return envVocabularies.get(str);		
 		return null;
@@ -792,8 +800,6 @@ public class MEnvironment
 	
 	static Formula getIDB(String collname, String idbname)
 	{
-		collname = collname.toLowerCase();
-		
 		MIDBCollection collection = getPolicyOrView(collname);
 		if(collection == null)
 			return null;
@@ -1101,9 +1107,7 @@ public class MEnvironment
 	// Assume that the policy is already loaded FOR NOW. 
 	// Later we will add a LOAD POLICY keyword.
 	static public Document savePolicyAs(String ident, MPolicy pol)
-	{
-		ident = ident.toLowerCase();
-		
+	{		
 		if("last".equals(ident))
 		{						
 			errorResponse(sReserved, sIDBCollection, ident);

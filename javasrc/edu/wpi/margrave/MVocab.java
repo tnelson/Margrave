@@ -106,8 +106,8 @@ class MFunctionTerm extends MTerm
 		this.funcName = funcName;
 		this.subTerms = subTerms;
 		
-		Relation funcRel = MFormulaManager.makeRelation(funcName, subTerms.size());
-		
+		// Room for each subterm, plus one
+		Relation funcRel = MFormulaManager.makeRelation(funcName, subTerms.size()+1);
 		this.seenRelations.add(funcRel);
 		
 		this.expr = funcRel;
@@ -1018,12 +1018,13 @@ public class MVocab {
 		return result;
 	}	
 
-	public static List<String> constructVarNameList(BinaryExpression be) {
+/*	public static List<String> constructVarNameList(Expression be) 
+	{
 		return inorderTraversalOfVariableProduct(be, null, null);
 	}
-
+*/
 	private static List<String> inorderTraversalOfVariableProduct(
-			BinaryExpression be, HashMap<Variable, Integer> indexing,
+			Expression e, HashMap<Variable, Integer> indexing,
 			HashMap<Variable, String> sortenv)
 	{
 		// DFS this expression. Assume either a BinaryExpression node or a
@@ -1033,8 +1034,22 @@ public class MVocab {
 		List<String> varname_result = new ArrayList<String>();
 
 		List<Expression> dfslist = new LinkedList<Expression>();
-		dfslist.add(be.left());
-		dfslist.add(be.right());
+		if(e instanceof BinaryExpression)
+		{
+			BinaryExpression be = (BinaryExpression) e;
+			dfslist.add(be.left());
+			dfslist.add(be.right());
+		}
+		else if (e instanceof NaryExpression)
+		{
+			NaryExpression ne = (NaryExpression) e;
+			
+			// TODO Still no support below (need to add cause)
+			for(int ii=0;ii<ne.size();ii++)
+			{
+				dfslist.add(ne.child(ii));
+			}			
+		}
 
 		while (dfslist.size() > 0)
 		{

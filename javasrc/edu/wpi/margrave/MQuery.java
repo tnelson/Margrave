@@ -920,10 +920,10 @@ public class MQuery extends MIDBCollection
 			HashMap<String, MIDBCollection> tupledIDBCollections = new HashMap<String, MIDBCollection>();
 
 			// Re-use visitors when possible
-			HashMap<MIDBCollection, RelationAndVariableReplacementV> initialVisitors = new HashMap<MIDBCollection, RelationAndVariableReplacementV>();
+			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = new HashMap<MIDBCollection, RelationAndTermReplacementV>();
 			// HashMap equality is by entry equality is by key/value
 			// equality, so it's ok to use them as keys here.
-			HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV> indexingVisitors = new HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV>();
+			HashMap<HashMap<Variable, Expression>, RelationAndTermReplacementV> indexingVisitors = new HashMap<HashMap<Variable, Expression>, RelationAndTermReplacementV>();
 
 			
 			
@@ -1821,8 +1821,8 @@ public class MQuery extends MIDBCollection
 			List<String> indexedIDBNamesToOutput,
 			MatrixTuplingV mtup,
 			HashMap<String, MIDBCollection> tupledIDBCollections,
-			HashMap<MIDBCollection, RelationAndVariableReplacementV> initialVisitors,
-			HashMap<HashMap<Variable, Variable>, RelationAndVariableReplacementV> indexingVisitors) {
+			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors,
+			HashMap<HashMap<Variable, Expression>, RelationAndTermReplacementV> indexingVisitors) {
 		if (getIDBNamesToOutput().size() > 0)
 		{
 			for (String idbname : getIDBNamesToOutput())
@@ -1846,7 +1846,7 @@ public class MQuery extends MIDBCollection
 				// Convert from the original policy/custom's vocab to
 				// the ubervocab being used for this query.
 				// !!! TODO is this even needed anymore?
-				RelationAndVariableReplacementV vis;
+				RelationAndTermReplacementV vis;
 				if (initialVisitors.containsKey(coll))
 					vis = initialVisitors.get(coll);
 				else {
@@ -1879,7 +1879,7 @@ public class MQuery extends MIDBCollection
 							idbnameSuffix += ","+iStr;
 					} // end String iStr : user_indexing
 
-					HashMap<Variable, Variable> newvars = new HashMap<Variable, Variable>();
+					HashMap<Variable, Expression> newvars = new HashMap<Variable, Expression>();
 
 
 					// MREPL.outStream.println("pren.revIndexing, then user_indexing for idb: "+idbname);
@@ -1929,14 +1929,14 @@ public class MQuery extends MIDBCollection
 					if (newvars.size() > 0) // Don't even bother if there's
 											// no replacements to make
 					{
-						RelationAndVariableReplacementV renaming;
+						RelationAndTermReplacementV renaming;
 						if (indexingVisitors.containsKey(newvars))
 						{
 							renaming = indexingVisitors.get(newvars);
 						}
 						else
 						{
-							renaming = new RelationAndVariableReplacementV(
+							renaming = new RelationAndTermReplacementV(
 									new HashMap<Relation, Relation>(),
 									newvars);
 							indexingVisitors.put(newvars, renaming);

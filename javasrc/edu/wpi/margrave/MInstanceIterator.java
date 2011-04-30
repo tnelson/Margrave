@@ -1964,8 +1964,8 @@ public abstract class MInstanceIterator
 		if(fromResult.forQuery.getIDBNamesToOutput().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
-			HashMap<MIDBCollection, RelationAndVariableReplacementV> initialVisitors = 
-				new HashMap<MIDBCollection, RelationAndVariableReplacementV>();
+			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = 
+				new HashMap<MIDBCollection, RelationAndTermReplacementV>();
 			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
 			Set<Formula> impSet = new HashSet<Formula>();
 			
@@ -1997,7 +1997,7 @@ public abstract class MInstanceIterator
 					
 					/// !!! TODO is this even needed anymore?
 					
-					RelationAndVariableReplacementV vis;
+					RelationAndTermReplacementV vis;
 					if(initialVisitors.containsKey(idbs))
 						vis = initialVisitors.get(idbs);
 					else
@@ -2058,7 +2058,7 @@ public abstract class MInstanceIterator
 					}
 					if(idbArity != actualVarNameOrder.size())
 						throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
-					Expression tup = MFormulaManager.makeVarTuple(actualVarNameOrder);
+					Expression tup = MFormulaManager.makeExprTuple(actualVarNameOrder);
 					
 					/*Expression tup;
 					if(idbs instanceof MPolicy)

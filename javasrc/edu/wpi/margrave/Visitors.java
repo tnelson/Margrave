@@ -34,6 +34,7 @@ import kodkod.ast.Decl;
 import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
+import kodkod.ast.NaryExpression;
 import kodkod.ast.NaryFormula;
 import kodkod.ast.Node;
 import kodkod.ast.NotFormula;
@@ -420,22 +421,23 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
  * @author tn
  *
  */
-class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
+class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 {
 	private HashMap<Relation, Relation> relpairs;
-	private HashMap<Variable, Variable> varpairs;
+	private HashMap<Variable, Expression> termpairs;
 
 	private boolean no_change;
 
-	public RelationAndVariableReplacementV(HashMap<Relation, Relation> pps,
-			HashMap<Variable, Variable> vps) {
+	public RelationAndTermReplacementV(HashMap<Relation, Relation> pps,
+			HashMap<Variable, Expression> vps)
+	{
 		super(new HashSet<Node>());
 
 		// Replace P with Q in the pair.
 		relpairs = pps;
 
-		// Replace x with y in the pair.
-		varpairs = vps;
+		// Replace x with t in the pair.
+		termpairs = vps;
 
 		// Only visit if there is SOMETHING different
 		no_change = true;
@@ -445,8 +447,8 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 				break;
 			}
 
-		for (Variable v : varpairs.keySet())
-			if (!v.equals(varpairs.get(v))) {
+		for (Variable v : termpairs.keySet())
+			if (!v.equals(termpairs.get(v))) {
 				no_change = false;
 				break;
 			}
@@ -461,10 +463,10 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 		// If qf binds one of the "to" variables in the substitution, 
 		// refuse the substitution and throw an error
 		
-		Set<Variable> toVars = new HashSet<Variable>(varpairs.values());
+		Set<Expression> toTerms = new HashSet<Expression>(termpairs.values());
 		for(Decl d: qf.decls())
 		{
-			if(toVars.contains(d.variable()))
+			if(toTerms.contains(d.variable()))
 				throw new MGEVariableAlreadyBound(d.variable(), "The variable name "+d.variable()+
 						" is already used by some part of this query, and could not be safely substituted. " +
 						"(See the ``Substitution'' section of the documentation for more information.)");
@@ -535,15 +537,20 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 			Expression newlhs;
 			Expression newrhs;
 
+			
+			
 			try {
 				// We have a var tuple? Replace vars AS NEEDED!
-				if (comp.left() instanceof BinaryExpression)
-					newlhs = MFormulaManager.substituteVarTuple((BinaryExpression) comp.left(), varpairs);
+				if (comp.left() instanceof BinaryExpression ||
+						comp.left() instanceof NaryExpression)
+					newlhs = MFormulaManager.substituteVarTuple(comp.left(), termpairs);
+								
 				else
 					newlhs = comp.left().accept(this);
 
-				if(comp.right() instanceof BinaryExpression)
-					newrhs = MFormulaManager.substituteVarTuple((BinaryExpression) comp.right(), varpairs);
+				if(comp.right() instanceof BinaryExpression ||
+						comp.right() instanceof NaryExpression)
+					newrhs = MFormulaManager.substituteVarTuple(comp.right(), termpairs);
 				else
 					newrhs = comp.right().accept(this);
 
@@ -565,13 +572,13 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 		cached.add(var);
 
 		// Perform the variable replacement here, if needed.
-		if (varpairs.containsKey(var))
-			return cache(var, varpairs.get(var));
+		if (termpairs.containsKey(var))
+			return cache(var, termpairs.get(var));
 		else
 			return cache(var, var);
 	}
 
-	private static void runUnitTest(RelationAndVariableReplacementV vrepl,
+	private static void runUnitTest(RelationAndTermReplacementV vrepl,
 			Formula pre, Formula post) {
 		if (!pre.accept(vrepl).toString().equals(post.toString()))
 			MEnvironment.writeErrLine("Error: Expected " + post.toString() + ", got: "
@@ -582,7 +589,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 		MEnvironment.writeErrLine("----- Begin RelationReplacementV Tests (No messages is good.) -----");
 
 		HashMap<Relation, Relation> rtestset = new HashMap<Relation, Relation>();
-		HashMap<Variable, Variable> vtestset = new HashMap<Variable, Variable>();
+		HashMap<Variable, Expression> vtestset = new HashMap<Variable, Expression>();
 
 		Relation R = MFormulaManager.makeRelation("R", 1);
 		Relation P = MFormulaManager.makeRelation("P", 1);
@@ -593,7 +600,7 @@ class RelationAndVariableReplacementV extends AbstractCacheAllReplacer
 		Variable y = MFormulaManager.makeVariable("y");
 		vtestset.put(x, y);
 
-		RelationAndVariableReplacementV v = new RelationAndVariableReplacementV(
+		RelationAndTermReplacementV v = new RelationAndTermReplacementV(
 				rtestset, vtestset);
 
 		runUnitTest(v, R.no(), P.no());

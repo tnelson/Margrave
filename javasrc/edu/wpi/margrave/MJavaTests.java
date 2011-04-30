@@ -105,7 +105,7 @@ public class MJavaTests
 		MEnvironment.writeOutLine("Starting java-based tests.");
 		
 		/////////////////////////////////////////////////////////////
-		RelationAndVariableReplacementV.unitTests();
+		RelationAndTermReplacementV.unitTests();
 		/////////////////////////////////////////////////////////////
 		MQuery.unitTest();
 		/////////////////////////////////////////////////////////////
@@ -118,7 +118,8 @@ public class MJavaTests
 		MCommunicator.unitTests();
 				
 		/////////////////////////////////////////////////////////////
-		try {
+		try 
+		{
 			FormulaSigInfo.unitTests();
 		} catch (MNotASortException e) {
 			

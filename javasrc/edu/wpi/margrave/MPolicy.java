@@ -102,10 +102,10 @@ abstract class MIDBCollection
 
 	// TODO Tn april 2011, I don't think this method has been necessary since MFormulaManager
 	
-	protected static RelationAndVariableReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
+	protected static RelationAndTermReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
 	throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		HashMap<Variable, Variable> varpairs = new HashMap<Variable, Variable>();
+		HashMap<Variable, Expression> varpairs = new HashMap<Variable, Expression>();
 		HashMap<Relation, Relation> relpairs = new HashMap<Relation, Relation>();
 		
 		// Each type 
@@ -127,7 +127,7 @@ abstract class MIDBCollection
 		
 		// NOTE APRIL 2011: no more request/other vars declared at the vocab level. so no need to replace vars here anymore
 		
-		return new RelationAndVariableReplacementV(relpairs, varpairs);
+		return new RelationAndTermReplacementV(relpairs, varpairs);
 	}	
 	
 	void initIDBs()
@@ -797,7 +797,7 @@ public abstract class MPolicy extends MIDBCollection
 				varsList.add(s);			
 			
 			// New XACML library has an Expression type as well. Be specific.			
-			kodkod.ast.Expression tuple = MFormulaManager.makeVarTuple(varsList);
+			kodkod.ast.Expression tuple = MFormulaManager.makeExprTuple(varsList);
 			mr.condition = MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
 		}
 		catch(MGEUnknownIdentifier e)

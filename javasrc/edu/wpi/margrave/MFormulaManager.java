@@ -47,6 +47,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import kodkod.ast.*;
+import kodkod.ast.operator.ExprOperator;
 import kodkod.ast.operator.FormulaOperator;
 import kodkod.ast.operator.Multiplicity;
 import kodkod.ast.operator.Quantifier;
@@ -495,7 +496,7 @@ public class MFormulaManager
 	// Variable tuples: (x, y, z) ... to be tested for membership in Relations
 	// Lists and Sets (BUT NOT ARRAYS!)
 	// will consider different instances containing the same strings to be "equal":
-	private static MWeakValueHashMap< List<String>, Expression> varTuples;
+	private static MWeakValueHashMap< List<Expression>, Expression> exprTuples;
 
 	
 	
@@ -541,7 +542,7 @@ public class MFormulaManager
 	{								
 		vars = new MWeakValueHashMap<String, Variable>();
 		relations = new MWeakValueHashMap<String, Relation>();
-		varTuples = new MWeakValueHashMap< List<String>, Expression>();
+		exprTuples = new MWeakValueHashMap< List<Expression>, Expression>();
 		atomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
 		negFormulas = new MWeakValueHashMap< MSetWrapper<Formula>, Formula>();
 		andFormulas = new MWeakValueHashMap< MSetWrapper<Formula>, Formula>();
@@ -580,7 +581,7 @@ public class MFormulaManager
 		theResult.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"); theResult.append(MEnvironment.eol);
 		theResult.append("Formula Manager statistics:"); theResult.append(MEnvironment.eol);
 		theResult.append("Variables: "+vars.size()); theResult.append(MEnvironment.eol);
-		theResult.append("Variable Tuples: "+varTuples.size()); theResult.append(MEnvironment.eol);				           
+		theResult.append("Expression Tuples: "+exprTuples.size()); theResult.append(MEnvironment.eol);				           
 		theResult.append("Relations: "+relations.size()); theResult.append(MEnvironment.eol);
 		theResult.append("Decls: "+declNodes.size()); theResult.append(MEnvironment.eol);
 		
@@ -621,7 +622,7 @@ public class MFormulaManager
         loneMultiplicities.countReclaimed +
         oneMultiplicities.countReclaimed +
         vars.countReclaimed +
-        varTuples.countReclaimed +
+        exprTuples.countReclaimed +
         relations.countReclaimed +
         atomFormulas.countReclaimed +
         negFormulas.countReclaimed +
@@ -651,7 +652,7 @@ public class MFormulaManager
 			loneMultiplicities.size() +
 			oneMultiplicities.size() +
 			vars.size()+
-			varTuples.size()+
+			exprTuples.size()+
 			relations.size()+
 			atomFormulas.size() +
 			negFormulas.size() +
@@ -752,59 +753,82 @@ public class MFormulaManager
 		return newRel;		
 	}
 
-	static Expression substituteVarTuple(BinaryExpression expr, HashMap<Variable, Variable> varpairs)
+	static Expression substituteVarTuple(Expression expr, HashMap<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
-		// Given the current variable tuple, replace and rebuild.
-		// In-order traversal of tuple tree
-		List<String> varnames = MVocab.constructVarNameList(expr); 
-		List<String> newvarnames = new ArrayList<String>();
-		
-		// Debug log
-		MCommunicator.writeToLog("\nin MFormulaManager.substituteVarTuple: "+expr+" w/ "+varpairs);
-		MCommunicator.writeToLog("\n  varnames list was constructed: "+varnames);
-		for(String v : varnames)
+		// Do the substitution recursively
+		if(expr instanceof Variable)
 		{
-			Variable vvar = makeVariable(v);
-			if(varpairs.containsKey(vvar))
-				newvarnames.add(varpairs.get(vvar).name());
+			Variable v = (Variable) expr;
+			if(termpairs.containsKey(v))
+				return termpairs.get(v);
 			else
-				newvarnames.add(v);
+				return v;
 		}
-		
-		return makeVarTuple(newvarnames);		
+		else if(expr instanceof NaryExpression)
+		{
+			NaryExpression ne = (NaryExpression) expr;
+			List<Expression> theExpr = new ArrayList<Expression>();
+			
+			for(int ii=0;ii<ne.size();ii++)
+				theExpr.add(substituteVarTuple(ne.child(ii), termpairs));
+			
+			if(ExprOperator.PRODUCT.equals(ne.op()))
+				return MFormulaManager.makeExprTupleE(theExpr);
+			else
+				throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+ne.op());			
+		}
+		else if(expr instanceof BinaryExpression)
+		{
+			BinaryExpression be = (BinaryExpression) expr;
+
+			List<Expression> theExpr = new ArrayList<Expression>();
+			
+			theExpr.add(be.left());
+			theExpr.add(be.right());
+			
+			if(ExprOperator.PRODUCT.equals(be.op()))
+				return MFormulaManager.makeExprTupleE(theExpr);
+			else
+				throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+be.op());						
+		}
+		else
+			throw new MGEManagerException("substituteVarTuple: Unsupported expression type: "+expr.getClass());
+					
+	}
+
+	static Expression makeExprTuple(List<String> varNames)
+	{
+		List<Expression> key = new ArrayList<Expression>(varNames.size());
+		for(String vname : varNames)
+			key.add(MFormulaManager.makeVariable(vname));
+		return makeExprTupleE(key);
+	}
+
+	static Expression makeTermTuple(List<MTerm> terms)
+	{
+		List<Expression> key = new ArrayList<Expression>(terms.size());
+		for(MTerm term : terms)
+			key.add(term.expr);
+		return makeExprTupleE(key);
 	}
 	
-	static Expression makeVarTuple(List<String> varNames)
+	static Expression makeExprTupleE(List<Expression> exprs)
 	throws MGEManagerException
 	{
 		if(!hasBeenInitialized)
 			initialize();		
 		
-		if(varNames.size() < 1)
+		if(exprs.size() < 1)
 			throw new MGEManagerException("makeVarTuple called with empty list.");		
 		
-		Expression cachedValue = varTuples.get(varNames); 
+		Expression cachedValue = exprTuples.get(exprs); 
 		if(cachedValue != null)
 			return cachedValue;		
+						
+		Expression newTuple = Expression.product(exprs);
 		
-		Expression newTuple = Expression.NONE; // never used
-		boolean first = true;
-		for(String name : varNames)
-		{
-			Variable var = vars.get(name);
-			if(var == null)
-				var = makeVariable(name);			
-			
-			if(first)
-				newTuple = var;
-			else
-				newTuple = newTuple.product(var);
-			
-			first = false;
-		}
-		
-		varTuples.put(varNames, newTuple);
+		exprTuples.put(exprs, newTuple);
 		return newTuple;
 	}
 
@@ -816,7 +840,7 @@ public class MFormulaManager
 		for(Variable v : vars)
 			key.add(v.name());
 		
-		return makeVarTuple(key);
+		return makeExprTuple(key);
 	}
 
 	static Decl makeOneOfDecl(Variable v, Expression expr)
@@ -1454,7 +1478,7 @@ public class MFormulaManager
 		
 		vars.clear();
 		relations.clear();
-		varTuples.clear();
+		exprTuples.clear();
 		atomFormulas.clear();
 		negFormulas.clear();
 		andFormulas.clear();
@@ -1491,7 +1515,7 @@ public class MFormulaManager
 		Element theResult = xmldoc.createElementNS(null, "MANAGER");
 			
 		theResult.setAttribute("num-variables", String.valueOf(vars.size()));
-		theResult.setAttribute("variable-tuples", String.valueOf(varTuples.size()));
+		theResult.setAttribute("variable-tuples", String.valueOf(exprTuples.size()));
 		theResult.setAttribute("relations", String.valueOf(relations.size()));
 		theResult.setAttribute("decls", String.valueOf(declNodes.size()));
 										          			
@@ -1542,7 +1566,7 @@ public class MFormulaManager
 	       loneMultiplicities.countReclaimed +
 	       oneMultiplicities.countReclaimed +
 	       vars.countReclaimed +
-	       varTuples.countReclaimed +
+	       exprTuples.countReclaimed +
 	       relations.countReclaimed +
 	       atomFormulas.countReclaimed +
 	       negFormulas.countReclaimed +
