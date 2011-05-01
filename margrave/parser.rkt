@@ -517,7 +517,9 @@ Margrave did not understand the condition or options given around \"~a\"."
         ; atomic formulas        
         
         ; a predicate in the condition can be
-        ; R or pol.R or Pol.Child.R and so on
+        ; r (an edb relation)
+        ; pol.permit or Pol.Child.permit and so on (policy idb)
+        ; Q (a saved query idb)
         
         ; original doesn't match case properly
 ;        (condition-predicate 
@@ -528,8 +530,10 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(<capitalized-id> DOT <lowercase-id>) (list $1 $3)]
          [(<capitalized-id> DOT complex-condition-predicate) (append (list $1) $3)])
         
-        ;(atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN) 
+        ;(atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN)         
         (atomic-formula [(<lowercase-id> LPAREN condition-term-list RPAREN) 
+                         (build-so (list 'ATOMIC-FORMULA (list $1) (append (list 'TERM-LIST) $3)) 1 4)]
+                        [(<capitalized-id> LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA (list $1) (append (list 'TERM-LIST) $3)) 1 4)]
                         [(complex-condition-predicate LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]

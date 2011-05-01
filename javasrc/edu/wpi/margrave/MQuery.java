@@ -4135,7 +4135,7 @@ public class MQuery extends MIDBCollection
 		//System.err.println(sortsForPublish);
 		
 		// NEXT: Unpublished vars
-		for (Variable v : freeVarsUnsorted)
+		/*for (Variable v : freeVarsUnsorted)
 		{
 			if (publish.contains(v.name()))
 				continue;
@@ -4150,6 +4150,17 @@ public class MQuery extends MIDBCollection
 			qryFormula = MFormulaManager.makeExists(qryFormula, d);
 
 			prefixVarOrder.add(v.name());
+		}
+		*/
+		// There should be NO unpublished free variables. If there are, throw an error. 
+		// (need to get the sort for them somehow!)
+		// quantifiers are now inserted explicitly in the query, not "inferred".
+		// - TN 5/11
+		
+		for (Variable v : freeVarsUnsorted)
+		{
+			if (!publish.contains(v.name()))			
+				throw new MGEUnknownIdentifier("The query formula had a free variable "+v.name()+" that was not declared or typed.");
 		}
 
 		//MEnvironment.writeErrLine("Temp debug info: "+qryFormula);
@@ -4230,14 +4241,14 @@ public class MQuery extends MIDBCollection
 		result.doTupling = bTupling;
 		result.userSizeCeiling = iCeiling;
 
-		// Remember our varvector and the inferred sorts.
-		result.varOrderings.put("saved", varOrdering);
+		// Remember our varvector and the inferred sorts (use this query's ID for the idb name).
+		result.varOrderings.put(queryID, varOrdering);
 		for (Variable v : varOrdering)
 		{
 			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
 			result.varSorts.put(v, theSort);
 		}
-		result.idbs.put("saved", idbFormula);
+		result.idbs.put(queryID, idbFormula);
 		
 		
 		MEnvironment.setLast(result);

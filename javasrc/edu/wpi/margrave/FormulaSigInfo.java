@@ -65,7 +65,8 @@ class SigFunction
 	// is interpreted by this visitor as \forall x^A \exists y^B (x=y).)
 	boolean fromSortAsPredicate = false; 	
 	// For SAP B(x), this will be the variable x.
-	Variable tempCause = null;
+	Variable variableCause = null;
+	Expression theCause = null;
 	// if x is eventually existentially quantified, will be the function 
 	// induced by that quantifier.
 	SigFunction funcCause = null;
@@ -237,9 +238,12 @@ public class FormulaSigInfo
 			
 			if(ExprCompOperator.SUBSET.equals(comp.op()))
 			{
-				// TODO more than just x in R (R1 in R2, x = R, etc.)
-				
-				// Treat sorts-as-predicates depending on params	
+				/////////////////////////////////////////////////////
+				// Sorts-as-predicates handling
+				// Extract a SAP coercion from a ComparisonFormula
+				// e.g. (x in A)
+				// or ( f(c) in A )
+												
 				if(! (comp.right() instanceof LeafExpression))
 				{
 					error = true;
@@ -253,7 +257,7 @@ public class FormulaSigInfo
 				if(predicates.containsKey(rel))
 					return cache(comp, new HashSet<SigFunction>());
 				
-				// sort as predicate
+				// sort as predicate: variable
 				if(comp.left() instanceof Variable)					
 				{					
 					if(sap.equals(FormulaSigInfo.EnumSAPHandling.sapIgnore))
@@ -262,13 +266,29 @@ public class FormulaSigInfo
 					// The caller will decide what to do
 					SigFunction newfunc = new SigFunction("SAP_VR_"+comp.toString(), rel, false);
 					newfunc.fromSortAsPredicate = true;
-					newfunc.tempCause = (Variable) comp.left(); // store the variable involved
+					newfunc.variableCause = (Variable) comp.left(); // store the variable involved
 					
 					Set<SigFunction> result = new HashSet<SigFunction>();
 					result.add(newfunc);  
 					return cache(comp, result);
-				}													
+				}
+				else if(comp.left() instanceof BinaryExpression)
+				{
+					// Need to find the TYPE of this expression. Not as simple as a lookup
+					// table since this is potentially a complex term.
+					// TODO
 				
+					// Then create a new SigFunction. No variable cause, but populate funCause immediately.
+					
+					
+				}
+				else if(comp.left() instanceof NaryExpression)
+				{
+					//TODO
+					// effectively same as above
+					
+					
+				}
 				// Otherwise it's an unsupported comparison formula
 				error = true;
 				error_condition += "  Unsupported ComparisonFormula: "+comp;				
@@ -448,7 +468,7 @@ public class FormulaSigInfo
 						if(!sap.fromSortAsPredicate)
 							continue;
 						
-						if(d.variable().equals(sap.tempCause))
+						if(d.variable().equals(sap.variableCause))
 							sap.funcCause = f;
 					}
 					

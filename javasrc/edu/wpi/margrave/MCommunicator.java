@@ -316,9 +316,6 @@ public class MCommunicator
 	        						// <PUBLISH><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION>
 	        						//          <VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH>
 	        						
-	        						// TODO
-	        						// publ
-        							// publSorts
 	        						NodeList decls = publishNode.getChildNodes();
 	        						for(int ii=0; ii<decls.getLength();ii++)
 	        						{
@@ -1265,10 +1262,12 @@ public class MCommunicator
         				if(idbf != null)
         				{
         					// Perform variable substitution
+        					//System.err.println("view before: "+idbf);
         					idbf = performSubstitution(relationName, pol, idbf, terms);
-
+        					//System.err.println("view after: "+idbf);
+        					
         					// Assemble MExploreCondition object
-        					return new MExploreCondition(idbf, pol, "saved", terms);        		
+        					return new MExploreCondition(idbf, pol, relationName, terms);        		
         				}
         			}
         			
@@ -1304,6 +1303,11 @@ public class MCommunicator
         		
         		// throws exception rather than returning null
         		Formula idbf = validateDBIdentifier(collName, relationName);
+        		
+        		// Substitute variables in policy's IDB for terms in query
+        		//System.err.println("pol before: "+idbf);
+        		idbf = performSubstitution(relationName, pol, idbf, terms);
+        		//System.err.println("pol after: "+idbf);
         		
         		return new MExploreCondition(idbf, pol, relationName, terms);
         	}
@@ -1527,7 +1531,7 @@ public class MCommunicator
 	throws MUserException, MGEUnknownIdentifier
 	{		
 		// Replace expressions (here, variables) with other expressions
-		// e.g. x becomes f(y, c)
+		// e.g. x becomes f(y, c)		
 		
 		if(f == null)
 			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
@@ -1615,12 +1619,10 @@ public class MCommunicator
 		String aQuery = 
 "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
-"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><CONSTANT-TERM id=\"c\" /></EQUALS>" +
+"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
 "<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
-		
-		String polCreate1 = "";
-		
+				
 		
 		/*handleXMLCommand(testInfo);
 		handleXMLCommand(testInfoWithID);
