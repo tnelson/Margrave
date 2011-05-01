@@ -543,7 +543,8 @@ class MExploreCondition
 		Decl theDecls = MFormulaManager.makeOneOfDecl(theVar, theSort);		
 		fmla = MFormulaManager.makeExists(this.fmla, theDecls);
 		
-		// TODO what happens to assertions in exists and forall?
+		// Catch unknown sort
+		madeEDBs.add(theSort);
 		
 		return this;
 	}
@@ -552,6 +553,9 @@ class MExploreCondition
 	{
 		Decl theDecls = MFormulaManager.makeOneOfDecl(theVar, theSort);		
 		fmla = MFormulaManager.makeForAll(this.fmla, theDecls);
+		
+		// Catch unknown sort
+		madeEDBs.add(theSort);
 		
 		return this;
 	}

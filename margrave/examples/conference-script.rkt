@@ -22,6 +22,6 @@ count Q6;
 let Q7[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r)))  and exists anAction : Action (anAction = anAction) CEILING 4;
 count Q7;
 
-let Q8[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Mypol.deny(s,a,r) DEBUG 3;
-// !!! TODO :  why did removing the cache stop the null ptr? deny is not false.
+let Q8[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Mypol.deny(s,a,r);
+is poss? Q8;
 
