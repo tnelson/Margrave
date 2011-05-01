@@ -376,12 +376,12 @@
                 (let loop-func ([is-first #t])
                   (if (equal? is-first #f)
                       (begin
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn))
+                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn))
                         (loop-func #f))
                       (begin
                         (yield (begin
                                  (send-and-receive-xml (xml-make-reset-command ,explore-id) #:syntax  #',syn)
-                                 (send-and-receive-xml (xml-make-get-command `(type "ONE") ,explore-id) #:syntax  #',syn)))  
+                                 (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn)))  
                         (loop-func #f)))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function

@@ -6,3 +6,6 @@ count Q;
 
 let Q2[s : Subject, a: Action, r : Resource] be Q(s, a, r);
 let Q3[s : Subject, a: Action, r : Resource] be Q(s, a, f(r));
+let Q4[s : Subject, r : Resource] be forall a2 : A (Q(s, a2, f(r)));
+// unbound leaf exception on show Q4. s/b better error. due to no sort A.
+let Q5[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r)));
