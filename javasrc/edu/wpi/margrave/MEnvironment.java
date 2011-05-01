@@ -435,6 +435,11 @@ class MExploreCondition
 		fmla = f;
 		seenIDBs.add(pol);
 	}
+	MExploreCondition(Formula f, Relation madeSort, Variable v)
+	{
+		fmla = f;
+		madeEDBs.add(madeSort);
+	}
 	
 	// Atomic IDB Formulas pol.idbname(vec)
 	/*MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<String> varnamevector)
@@ -511,7 +516,7 @@ class MExploreCondition
 	}
 	
 	MExploreCondition and(MExploreCondition oth)	
-	{
+	{		
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
 		seenIDBs.addAll(oth.seenIDBs);
 		madeEDBs.addAll(oth.madeEDBs);
@@ -1603,6 +1608,45 @@ public class MEnvironment
 		}
 	}*/
 
+	public static Document addConstant(String vname, String sname, String typename)
+	{
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			MSort theSort = voc.getSort(typename);
+			Relation rel = MFormulaManager.makeRelation(sname, 1);
+			MConstant theConst = new MConstant(sname, rel, theSort);
+			voc.constants.put(sname, theConst);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
+	public static Document addFunction(String vname, String sname, List<String> constr)
+	{
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{			
+			List<MSort> theAritySorts = new ArrayList<MSort>();
+			for(String typename : constr)
+				theAritySorts.add(voc.getSort(typename));
+			MSort theResultSort = theAritySorts.get(theAritySorts.size()-1);
+			theAritySorts.remove(theAritySorts.size()-1);
+			
+			Relation rel = MFormulaManager.makeRelation(sname, constr.size());
+			MFunction theFunc = new MFunction(sname, rel, theAritySorts, theResultSort);
+			voc.functions.put(sname, theFunc);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addPredicate(String vname, String sname, List<String> constr)
 	{
 
@@ -1635,6 +1679,26 @@ public class MEnvironment
 		try
 		{
 			pol.addRule(rname, decision, varOrdering, target, condition);
+		}
+		catch(MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+		return successResponse();
+	}
+	
+	public static Document addVarDec(String pname, String varname, String typename)
+	{
+		if(!envIDBCollections.containsKey(pname))
+			return errorResponse(sUnknown, sPolicy, pname);			
+		MIDBCollection coll = envIDBCollections.get(pname);
+		if(!(coll instanceof MPolicyLeaf))
+			return errorResponse(sNotExpected, sPolicyLeaf, pname);
+		MPolicyLeaf pol = (MPolicyLeaf) coll;
+		
+		try
+		{
+			pol.varSorts.put(MFormulaManager.makeVariable(varname), pol.vocab.getSort(typename).rel);
 		}
 		catch(MBaseException e)
 		{

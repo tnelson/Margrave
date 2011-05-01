@@ -181,7 +181,7 @@ class MConstant
 	public String toString()
 	{
 		return name;
-	}
+	}	
 	
 	MConstant(String name, Relation rel, MSort type)
 	{

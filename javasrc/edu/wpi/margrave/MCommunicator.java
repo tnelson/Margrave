@@ -422,21 +422,15 @@ public class MCommunicator
         				Set<String> rFA = new HashSet<String>();
         				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
         				
-        				
-        				// TODO connect rcomb 
-        				
+        				handleComb(n, rFA, rO);        				        				
         				theResponse = MEnvironment.setRCombine(pname, rFA, rO);
         			}	
         			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
-        				String pname = getPolicyName(n);
-        				//List<String> idl = getIdentifierList(n);
-        				
-
+        				String pname = getPolicyName(n);        				
         				Set<String> rFA = new HashSet<String>();
         				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
         				        				
-        				// TODO connect pcomb
-        				
+        				handleComb(n, rFA, rO);        				
         				theResponse = MEnvironment.setPCombine(pname, rFA, rO);
         			}
         			else if (type.equalsIgnoreCase("QUIT"))
@@ -577,7 +571,8 @@ public class MCommunicator
         			//Add Statement
         			else if (type.equalsIgnoreCase("ADD")) {
         				Node childNode = n.getFirstChild();
-        				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER")) {
+        				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER"))
+        				{
         					String vname = getVocabName(n);
         					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
         					String addType = secondChildNode.getNodeName();
@@ -605,6 +600,20 @@ public class MCommunicator
         						List<String> constr = getRelationsList(n);
         						writeToLog("Adding Predicate\n");
         						theResponse = MEnvironment.addPredicate(vname, sName, constr);
+        					}
+        					
+        					else if (addType.equalsIgnoreCase("CONSTANT")) {
+        						String sName = getNodeAttribute(secondChildNode, "CONSTANT", "name");
+        						String sSort = getNodeAttribute(secondChildNode, "CONSTANT", "type");     
+        						writeToLog("Adding constant "+sName+" : "+sSort+"\n");
+        						theResponse = MEnvironment.addConstant(vname, sName, sSort);
+        					}
+        					else if (addType.equalsIgnoreCase("FUNCTION"))
+        					{
+        						String sName = getNodeAttribute(secondChildNode, "FUNCTION", "name");   
+        						List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");        						
+        						writeToLog("Adding function "+sName+" : "+constr+"\n");
+        						theResponse = MEnvironment.addFunction(vname, sName, constr);
         					}
         					
         					else if (addType.equalsIgnoreCase("CONSTRAINT")) {
@@ -657,69 +666,42 @@ public class MCommunicator
         						}        						
         					}
         				}
-        				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER")) {
+        				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER"))
+        				{
         					String pname = getPolicyName(n);
-        					String rname= getRuleName(n);
-
-        					// IMPORTANT
-        					// Assume ADD -> POLICY-IDENTIFIER is always adding a RULE.
         					
-        					// WORRY This should be changed to be made more generic, because it assumes too much
-        					Node ruleNode = childNode.getNextSibling();
+        					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
+        					if(secondChildNode.getNodeName().equalsIgnoreCase("RULE"))
+        					{        					
+        						String rname= getRuleName(n);
         					
-        					String decName = getDecisionType(ruleNode);
+        						// WORRY This should be changed to be made more generic, because it assumes too much
+        						Node ruleNode = childNode.getNextSibling();
         					
-        					List<String> varOrdering = new ArrayList<String>();
-        					// TODO: populate var ordering in rule addition
+        						// Decision
+        						String decName = getDecisionType(ruleNode);        						
+        						
+        						List<String> varOrdering = new ArrayList<String>();        						
+        						varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
+        						
+        						System.err.println(varOrdering);
+        						
+        						// Target fmla
+        						Node targetNode = getChildNode(ruleNode, "TARGET");        					
+        						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
+        						Formula target = targetCondition.fmla;
         					
-        					Node targetNode = getChildNode(n, "TARGET");
-        					
-        					MExploreCondition targetCondition = exploreHelper(targetNode);
-        					Formula target = targetCondition.fmla;
-        					
-        					// condition is used exclusively for XACML, so it's ignored here.
-        					Formula condition = Formula.TRUE;
-        					
-        					// XXX to remove: old code for extracting conjunct strings.
-        					
-        					/*List<Node> relationNodes = getListOfRelationNodes(ruleNode);
-        					List<String> relationsList = new LinkedList<String>();
-        					String relationName;
-        					String sign;
-        					String exclamationPoint = "";
-            				List<String> variables;
-            				String variableListString;
-            				
-            				for (Node relNode : relationNodes) {
-            					
-            					relationName = getRelationName(relNode);
-            					sign = getRelationSign(relNode);
-            					//writeToLog("\n\n\n*******************************************\nSIGN IS: " + sign + "\n*****************");
-            					if (sign.equalsIgnoreCase("true")) {
-            						//writeToLog("No exclamation point");
-            						exclamationPoint = "";
-            					}
-            					else {
-            						//writeToLog("Added exclamation point");
-            						exclamationPoint = "!";
-            					}
-            					
-            					variables = getIdentifierList(relNode);
-            					variableListString = "";
-            					for (String v : variables) {
-            						//Avoid beginning space
-            						if (variableListString.length() < 1) {
-            							variableListString = v;
-            						}
-            						else {
-            							variableListString = variableListString + " " + v;
-            						}
-            					}
-            					relationsList.add(exclamationPoint + relationName + " " + variableListString);
-            				}
-            				writeToLog("\nRELATIONSLIST: " + relationsList.toString() + "\n");*/
-        					
-            				theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition);
+        						// condition is used exclusively for XACML, so it's ignored here.
+        						Formula condition = Formula.TRUE;        					        					
+        						theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition);
+        					}
+        					else if(secondChildNode.getNodeName().equalsIgnoreCase("VARIABLE-DECLARATION"))
+        					{
+        						String varname = getNodeAttribute(secondChildNode, "VARIABLE-DECLARATION", "varname");
+        						String vartype = getNodeAttribute(secondChildNode, "VARIABLE-DECLARATION", "sort");
+        						
+        						theResponse = MEnvironment.addVarDec(pname, varname, vartype);
+        					}
             				
         				}
         				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
@@ -749,7 +731,32 @@ public class MCommunicator
         	return theResponse;
         }
         
-        private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes)
+        private static void handleComb(Node n, Set<String> rFA, Map<String, Set<String>> rO)
+        {
+        	Node combListNode = getChildNode(n, "COMB-LIST");
+			NodeList combNodes = combListNode.getChildNodes();
+			for(int ii=0;ii<combNodes.getLength();ii++)
+			{
+				Node combNode = combNodes.item(ii);
+				if("FA".equalsIgnoreCase(combNode.getNodeName()))
+				{
+					List<String> names = getListElements(combListNode, "FA", "id");
+					rFA.addAll(names);
+				}
+				else if("OVERRIDES".equalsIgnoreCase(combNode.getNodeName()))
+				{
+					String under = getNodeAttribute(combNode, "OVERRIDES", "decision");
+					List<String> overs = getListElements(combListNode, "OVER", "id");
+					if(!rO.containsKey(under))
+						rO.put(under, new HashSet<String>());
+					rO.get(under).addAll(overs);
+				}
+				// else do nothing		
+			}
+			
+		}
+
+		private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes)
         {
         	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
         
@@ -1024,13 +1031,16 @@ public class MCommunicator
         
         //Returns the child node of n whose name is nodeName 
         //If no child, returns null
-        private static Node getChildNode(Node n, String nodeName) {
+        private static Node getChildNode(Node n, String nodeName)
+        {
         	NodeList childNodes = n.getChildNodes();
         	
         	Node childNode;
-        	for (int i = 0; i < childNodes.getLength(); i++) {
+        	for (int i = 0; i < childNodes.getLength(); i++)
+        	{
         		childNode = childNodes.item(i);
-        		if (nodeName.equalsIgnoreCase(childNode.getNodeName())) {
+        		if (nodeName.equalsIgnoreCase(childNode.getNodeName()))
+        		{
         			return childNode;
         		}
         	}
@@ -1068,11 +1078,11 @@ public class MCommunicator
         private static List<String> getListElements(Node n, String listName, String attributeName)
         {
         	Node listNode = getChildNode(n, listName);
-        	
-        	writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");
+        	writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");        
         	
         	//Return null if we can't find the node
-        	if (listNode == null) {
+        	if (listNode == null)
+        	{
         		writeToLog("\nNo child node found with that name. Returning null.\n");
         		return null;
         	}
@@ -1100,7 +1110,8 @@ public class MCommunicator
         	//else
         	//	writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
 
-        	if (name.equalsIgnoreCase("AND")) {
+        	if (name.equalsIgnoreCase("AND"))
+        	{        		        		
         		return exploreHelper(childNodes.item(0)).and(exploreHelper(childNodes.item(1)));
         	}
         	else if (name.equalsIgnoreCase("OR")) {
@@ -1117,6 +1128,17 @@ public class MCommunicator
         		MExploreCondition consequentFmla = exploreHelper(consequent.getFirstChild());
         		        		
         		return antecedentFmla.implies(consequentFmla);
+        	}
+        	else if(name.equalsIgnoreCase("ISA"))
+        	{
+        		String varname = getNodeAttribute(n, "ISA", "var");
+        		String typename = getNodeAttribute(n, "ISA", "sort");
+        		
+        		Variable theVar = MFormulaManager.makeVariable(varname);
+        		Relation theRel = MFormulaManager.makeRelation(typename, 1);
+        		Formula fmla = MFormulaManager.makeAtom(theVar, theRel);
+        		        		
+        		return new MExploreCondition(fmla, theRel, theVar);
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
@@ -1271,9 +1293,7 @@ public class MCommunicator
         		return new MExploreCondition(true);
         	}
         	
-        	MEnvironment.errorWriter.println("exploreHelper returning null! error! name was: "+name);
-        	
-        return null;
+        	throw new MUserException("exploreHelper was unable to match node type: "+name);
     }
      
 
@@ -1595,18 +1615,21 @@ public class MCommunicator
 		List<String> creationCommands = new ArrayList<String>();
 		
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"C\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"C\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
 		
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
 		
-		// TODO test rule parsing
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><RULE name=\"Rule1\"><DECISION-TYPE type=\"permit\"><ID id=\"x\" /><ID id=\"y\" /></DECISION-TYPE>" +
+				"<TARGET><AND><ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
+				"<ISA var=\"y\" sort=\"B\" />"+
+				"</AND></TARGET></RULE></MARGRAVE-COMMAND>");
 		
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST><FA><ID id=\"permit\" /><ID id=\"deny\" /></FA></COMB-LIST></MARGRAVE-COMMAND>"); 
-		//creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
+		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST><FA><ID id=\"permit\" /><ID id=\"deny\" /></FA></COMB-LIST></MARGRAVE-COMMAND>"); 
+		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
 		
 		//creationCommands.add("");
 		
@@ -1615,8 +1638,7 @@ public class MCommunicator
 			handleXMLCommand(cmd);
 		}
 		
-		// Next
-		// Start changing vocab+pol xml
+		
 		
 		
 		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	

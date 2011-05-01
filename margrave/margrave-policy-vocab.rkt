@@ -22,7 +22,8 @@
          margrave/helpers         
          racket/list
          racket/contract
-         (for-syntax margrave/helpers
+         (for-syntax (only-in srfi/13 string-contains)
+                     margrave/helpers
                      ;margrave/margrave-xml
                      (file "margrave-xml.rkt")
                      racket/list
@@ -154,6 +155,15 @@
   (and (symbol? dat)
        (char-lower-case? (string-ref (symbol->string dat) 0))))
 
+; Is this a dotted identifier? Must have a . somewhere.
+(define-for-syntax (dotted-id-syn? syn)
+  (define dat (if (syntax? syn)
+                  (syntax->datum syn)
+                  syn))  
+  (and (symbol? dat)
+       (string-contains (symbol->string dat) ".")))
+
+
 ; Apply given pred to each
 ; (to be used on lists of identifiers)
 (define-for-syntax (all-are-syn? syn-list fpred)
@@ -198,10 +208,16 @@
                                           (symbol->string (syntax->datum #'var))
                                           (symbol->string (syntax->datum #'type)))]
     [(isa var type) (xml-make-isa-formula #'var #'type)]
-    ; last, so it doesn't supercede keywords
-    [(dottedpred t0 t ...) (xml-make-atomic-formula (symbol->string (syntax->datum #'dottedpred)) 
-                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
     
+    ; last, so it doesn't supercede keywords
+    ; P.r or r
+    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
+                               (dotted-id-syn? #'dottedpred))
+                           (xml-make-atomic-formula (symbol->string (syntax->datum #'dottedpred)) 
+                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
+    ; A
+    [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
+                      (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
     [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
 
 ; Used so that rules can be written nicely, e.g.
@@ -849,9 +865,9 @@
                     
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
                                                    ',(xml-make-rule (syntax->datum #'rulename)
-                                                                   (xml-make-decision-type (syntax->datum #'decision)
-                                                                                           (syntax->datum #'(rvar ...)))
-                                                                   (handle-formula-list #'(fmla0 fmla ...)))))]
+                                                                    (xml-make-decision-type (syntax->datum #'decision)
+                                                                                            (syntax->datum #'(rvar ...)))
+                                                                    (xml-make-target (handle-formula-list #'(fmla0 fmla ...))))))]
                    [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
                                              
                (map handle-rule the-rules))))
