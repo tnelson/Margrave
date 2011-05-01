@@ -2314,6 +2314,18 @@ public class MEnvironment
 				MEnvironment.errorWriter.println("(Policy Leaf)");
 				pleaf.prettyPrintRules();
 			}
+			if(coll instanceof MQuery)
+			{
+				MQuery qry = (MQuery) coll;
+				MEnvironment.errorWriter.println("(Saved Query)");
+				MQueryResult res = qry.runQuery();
+				MTotalInstanceIterator it = res.getTotalIterator();
+				MSolutionInstance sol = it.next();
+				MEnvironment.errorWriter.println(sol.getFacts());
+				MEnvironment.errorWriter.println(res.sufficientMaxSize);
+			}
+			
+			MEnvironment.errorWriter.println();
 		}
 		
 		

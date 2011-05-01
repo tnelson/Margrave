@@ -1954,7 +1954,13 @@ public abstract class MInstanceIterator
 		// State predicates (EDB)
 		for(MPredicate p : fromResult.forQuery.vocab.predicates.values())
 			qryBounds.bound(p.rel, factory.allOf(p.rel.arity()));				
-		
+		// constants
+		for(MConstant c : fromResult.forQuery.vocab.constants.values())
+			qryBounds.bound(c.rel, factory.allOf(c.rel.arity()));
+		// functions
+		for(MFunction fn : fromResult.forQuery.vocab.functions.values())
+			qryBounds.bound(fn.rel, factory.allOf(fn.rel.arity()));				
+
 		
 		// ****************************************
 		// Bound IDBs that we want to output
