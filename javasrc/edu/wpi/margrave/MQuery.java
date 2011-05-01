@@ -346,6 +346,23 @@ public class MQuery extends MIDBCollection
 		Map<LeafExpression, List<LeafExpression>> predicates = new HashMap<LeafExpression, List<LeafExpression>>();
 		Map<LeafExpression, Set<LeafExpression>> disjointness = new HashMap<LeafExpression, Set<LeafExpression>>();
 		
+		Map<Expression, LeafExpression> termTypes = new HashMap<Expression, LeafExpression>();
+		for(Expression expr : vocab.exprToTerm.keySet())
+		{
+			MTerm t = vocab.exprToTerm.get(expr);
+			
+			if(t instanceof MFunctionTerm)
+			{
+				MFunction theFunc = vocab.functions.get(((MFunctionTerm) t).funcName);
+				termTypes.put(expr, theFunc.result.rel);
+			}
+			else if(t instanceof MConstantTerm)
+			{
+				MConstant theConst = vocab.constants.get(((MConstantTerm) t).constName);
+				termTypes.put(expr, theConst.type.get(0).rel);
+			}
+		}
+		
 		for (MSort s : vocab.sorts.values()) {
 			// s.rel is a sort.
 			sorts.add(s.rel);
@@ -404,7 +421,7 @@ public class MQuery extends MIDBCollection
 
 			FormulaSigInfo info = new FormulaSigInfo(sorts, supersorts,
 					predicates, new HashSet<SigFunction>(),
-					new HashSet<SigFunction>(), nnf_formula, sap, disjointness);
+					new HashSet<SigFunction>(), nnf_formula, sap, disjointness, termTypes);
 
 			if (debug_verbosity >= 2) {
 				MEnvironment.writeOutLine("DEBUG: Generating a ceiling on necessary model size.");
@@ -4254,6 +4271,10 @@ public class MQuery extends MIDBCollection
 		MEnvironment.setLast(result);
 		MEnvironment.setQueryForID(queryID, result);
 		result.name = queryID; // used for saving query result, query knows its own ID
+		
+		// Populate exprToTerm
+		for(MTerm t : mpc.terms)
+			result.vocab.exprToTerm.put(t.expr, t);
 		
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 

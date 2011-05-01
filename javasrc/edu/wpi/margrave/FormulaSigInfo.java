@@ -272,27 +272,31 @@ public class FormulaSigInfo
 					result.add(newfunc);  
 					return cache(comp, result);
 				}
-				else if(comp.left() instanceof BinaryExpression)
-				{
-					// Need to find the TYPE of this expression. Not as simple as a lookup
-					// table since this is potentially a complex term.
-					// TODO
 				
-					// Then create a new SigFunction. No variable cause, but populate funCause immediately.
-					
-					
-				}
-				else if(comp.left() instanceof NaryExpression)
+				// Other kind of Expression. Hopefully we know what sort it has.
+				if(!termTypes.containsKey(comp.left()))
 				{
-					//TODO
-					// effectively same as above
-					
-					
+					error = true;
+					error_condition += "  Did not have a type for expression: "+comp.left()+" used in sort-as-predicate.";				
+					return cache(comp, new HashSet<SigFunction>()); // fail
 				}
-				// Otherwise it's an unsupported comparison formula
-				error = true;
-				error_condition += "  Unsupported ComparisonFormula: "+comp;				
-				return cache(comp, new HashSet<SigFunction>()); // fail
+								
+				
+				// Create a func for this SAP.
+				LeafExpression theSort = termTypes.get(comp.left());
+				// System.err.println(theSort);
+				SigFunction newfunc = new SigFunction("SAP_TERMR_"+comp.toString(), rel, false);
+				newfunc.fromSortAsPredicate = true;
+				newfunc.variableCause = null; 
+				newfunc.theCause = comp.left();
+				newfunc.funcCause = null; // global!
+				newfunc.arity.add(theSort);
+				
+				Set<SigFunction> result = new HashSet<SigFunction>();
+				result.add(newfunc);  
+				return cache(comp, result);
+				
+				
 			}
 			
 			// otherwise it is an equality comparison, which can't hide any Skolem functions.
@@ -598,6 +602,8 @@ public class FormulaSigInfo
 	static public boolean enableDebug = false; 
 	static public boolean enableDisjointness = true;
 	
+	private Map<Expression, LeafExpression> termTypes = new HashMap<Expression, LeafExpression>();
+	
 	//  ------------- Calculated fields  ----------------
 	
 	// transitive closure of blue edges: calculated in cycle check
@@ -673,24 +679,12 @@ public class FormulaSigInfo
 			Set<SigFunction> originalConstants,
 			Formula fmla,
 			EnumSAPHandling sap,
+			Map<Expression, LeafExpression> termTypes,
 			boolean htmlOutput)
 				throws MUnsupportedFormulaException, MNotASortException
 	{
 		init(sorts, supersorts, predicates, originalFunctions, originalConstants,
-				fmla, sap, htmlOutput, new HashMap<LeafExpression, Set<LeafExpression>>());
-	}
-	
-	FormulaSigInfo(Set<LeafExpression> sorts, 
-			Map<LeafExpression, Set<LeafExpression>> supersorts,
-			Map<LeafExpression, List<LeafExpression>> predicates, 
-			Set<SigFunction> originalFunctions,
-			Set<SigFunction> originalConstants,
-			Formula fmla,
-			EnumSAPHandling sap)
-	throws MUnsupportedFormulaException, MNotASortException
-	{
-		init(sorts, supersorts, predicates, originalFunctions, originalConstants,
-				fmla, sap, false, new HashMap<LeafExpression, Set<LeafExpression>>());
+				fmla, sap, htmlOutput, new HashMap<LeafExpression, Set<LeafExpression>>(), termTypes);
 	}
 	
 	FormulaSigInfo(Set<LeafExpression> sorts, 
@@ -700,11 +694,26 @@ public class FormulaSigInfo
 			Set<SigFunction> originalConstants,
 			Formula fmla,
 			EnumSAPHandling sap,
-			Map<LeafExpression, Set<LeafExpression>> disjointConstraints)
+			Map<Expression, LeafExpression> termTypes)
+	throws MUnsupportedFormulaException, MNotASortException
+	{
+		init(sorts, supersorts, predicates, originalFunctions, originalConstants,
+				fmla, sap, false, new HashMap<LeafExpression, Set<LeafExpression>>(), termTypes);
+	}
+	
+	FormulaSigInfo(Set<LeafExpression> sorts, 
+			Map<LeafExpression, Set<LeafExpression>> supersorts,
+			Map<LeafExpression, List<LeafExpression>> predicates, 
+			Set<SigFunction> originalFunctions,
+			Set<SigFunction> originalConstants,
+			Formula fmla,
+			EnumSAPHandling sap,
+			Map<LeafExpression, Set<LeafExpression>> disjointConstraints,
+			Map<Expression, LeafExpression> termTypes)
 			throws MUserException
 	{
 		init(sorts, supersorts, predicates, originalFunctions, originalConstants, 
-				fmla, sap, false, disjointConstraints);
+				fmla, sap, false, disjointConstraints, termTypes);
 	}
 	
 	private void handleUNIV()
@@ -725,7 +734,8 @@ public class FormulaSigInfo
 			Formula fmla,
 			EnumSAPHandling sap,
 			boolean htmlOutput,
-			Map<LeafExpression, Set<LeafExpression>> disjointConstraints)
+			Map<LeafExpression, Set<LeafExpression>> disjointConstraints,
+			Map<Expression, LeafExpression> termTypes)
 	throws MUnsupportedFormulaException, MNotASortException
 	{
 		// Fix a set of Sorts, a partial order on them, and a Formula.
@@ -736,6 +746,8 @@ public class FormulaSigInfo
 		
 		this.sap = sap;
 		this.htmlOutput = htmlOutput;
+		
+		this.termTypes = termTypes;
 		
 		// pre-Skolem functions
 		this.originalConstants = originalConstants;
@@ -1853,16 +1865,18 @@ public class FormulaSigInfo
 		Set<SigFunction> emptyFunctions = new HashSet<SigFunction>();
 		Set<SigFunction> emptyConstants = new HashSet<SigFunction>();
 		
-		FormulaSigInfo test1 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla1, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test2 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla2, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test3 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla3, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test4 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla4, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test5 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla5, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test6 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla6, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test7 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla7, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test8 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla8, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test9 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9, EnumSAPHandling.sapKeep);
-		FormulaSigInfo test9a = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9a, EnumSAPHandling.sapKeep);
+		Map<Expression, LeafExpression> termTypes = new HashMap<Expression, LeafExpression>();
+		
+		FormulaSigInfo test1 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla1, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test2 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla2, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test3 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla3, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test4 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla4, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test5 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla5, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test6 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla6, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test7 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla7, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test8 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla8, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test9 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9, EnumSAPHandling.sapKeep, termTypes);
+		FormulaSigInfo test9a = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9a, EnumSAPHandling.sapKeep, termTypes);
 		
 		// 1 in Sort1
 		if(test1.getTermCount() != 1)
@@ -1907,7 +1921,7 @@ public class FormulaSigInfo
 		// Nothing but a A->A func
 		// make sure self-reference is dealt with
 		Formula fmla9b =  Sort1.some().and(Formula.TRUE.forSome(x.oneOf(Sort1)).forAll(y.oneOf(Sort1)));
-		FormulaSigInfo test9b = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9b, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test9b = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla9b, EnumSAPHandling.sapKeep, termTypes);
 		if(test9b.getTermCount() != -1 )
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 9b failed.");		
 		
@@ -1917,7 +1931,7 @@ public class FormulaSigInfo
 						.and(Sort1.some());
 		sorts1.add(Sort3);
 		order1.put(Sort3, new HashSet<LeafExpression>());
-		FormulaSigInfo test10 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla10, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test10 = new FormulaSigInfo(sorts1, order1, predicates, emptyFunctions, emptyConstants, fmla10, EnumSAPHandling.sapKeep, termTypes);
 		if(test10.getTermCount() != 2 || test10.productiveFunctions.size() != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 10 failed.");
 		
@@ -1937,7 +1951,7 @@ public class FormulaSigInfo
 		order2.get(A).add(C);
 		
 		Formula fmla11 = Formula.TRUE.forSome(x.oneOf(A)).forSome(y.oneOf(B)).forSome(z.oneOf(C));
-		FormulaSigInfo test11 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla11,EnumSAPHandling.sapKeep);
+		FormulaSigInfo test11 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla11,EnumSAPHandling.sapKeep, termTypes);
 		if(test11.getTermCount() != 3)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 11 failed.");		
 		
@@ -1947,20 +1961,20 @@ public class FormulaSigInfo
 		
 		// Test simple constant->constant SAP coercion
 		Formula fmla12 = x.in(C).forSome(x.oneOf(B));
-		FormulaSigInfo test12 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla12, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test12 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla12, EnumSAPHandling.sapKeep, termTypes);
 		if(test12.getTermCount() != 1 || test12.getTermCount(B) != 1 || test12.getTermCount(C) != 1 || test12.getTermCount(A) != 0)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 12 failed.");		
 		
 		// Test simple constant + coercion function SAP
 		Formula fmla13 = x.in(C).forAll(x.oneOf(B)).forSome(y.oneOf(A)).forSome(z.oneOf(B));
-		FormulaSigInfo test13 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla13, EnumSAPHandling.sapKeep);		
+		FormulaSigInfo test13 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla13, EnumSAPHandling.sapKeep, termTypes);		
 		if(test13.getTermCount() != 2 || test13.getTermCount(B) != 2 || test13.getTermCount(C) != 2 || test13.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 13 failed.");		
 		
 		// Test finite number of terms via coercion function to subsort
 		// (Cycle detection needs to require a normal function on the cycle)
 		Formula fmla14 = x.in(A).forAll(x.oneOf(B)).forSome(y.oneOf(B));
-		FormulaSigInfo test14 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla14, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test14 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla14, EnumSAPHandling.sapKeep, termTypes);
 		if(test14.getTermCount() != 1 || test14.getTermCount(B) != 1 || test14.getTermCount(C) != 1 || test14.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 14 failed.");							
 		
@@ -1968,14 +1982,14 @@ public class FormulaSigInfo
 		// The result of z[b] is always in A as well as B (by SAP coercion). So inf A too.
 		// Since C is a supersort of A, it must also be infinitary!
 		Formula fmla15 = z.in(A).forSome(z.oneOf(B)).forAll(x.oneOf(B)).forSome(y.oneOf(B)).and(C.some());;
-		FormulaSigInfo test15 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla15, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test15 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla15, EnumSAPHandling.sapKeep, termTypes);
 		if(test15.getTermCount() != -1 || test15.getTermCount(B) != -1 || test15.getTermCount(C) != -1 || test15.getTermCount(A) != -1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 15 failed.");		
 		
 		// Test partial infinitary, partial finitary
 		// Changed only the coercion sort from test 15, but it prevents the infinitaryness from leaking into A (and from there, to C)
 		Formula fmla16 = z.in(B).forSome(z.oneOf(B)).forAll(x.oneOf(B)).forSome(y.oneOf(B)).and(C.some());
-		FormulaSigInfo test16 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla16, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test16 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla16, EnumSAPHandling.sapKeep, termTypes);
 		if(test16.getTermCount() != -1 || test16.getTermCount(B) != -1 || test16.getTermCount(C) != 1 || test16.getTermCount(A) != 0)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 16 failed.");	
 				
@@ -1983,14 +1997,14 @@ public class FormulaSigInfo
 		
 		// First, no coercion. x:A (and hence in both B and C.) f:B->C. So 2 terms in C.
 		Formula fmla17 = Formula.TRUE.forSome(y.oneOf(C)).forAll(x.oneOf(B)).and(A.some());
-		FormulaSigInfo test17 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla17, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test17 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla17, EnumSAPHandling.sapKeep, termTypes);
 		if(test17.getTermCount() != 2 || test17.getTermCount(B) != 1 || test17.getTermCount(C) != 2 || test17.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 17 failed.");
 		
 		// second, force C in B via SAP. Now only A is still finitary
 		Formula fmla18 = Formula.TRUE.forSome(y.oneOf(C)).forAll(x.oneOf(B)).and(A.some())
 		                 .and(x.in(B).forAll(x.oneOf(C)));
-		FormulaSigInfo test18 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla18, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test18 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla18, EnumSAPHandling.sapKeep, termTypes);
 		if(test18.getTermCount() != -1 || test18.getTermCount(B) != -1 || test18.getTermCount(C) != -1 || test18.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 18 failed.");	
 		
@@ -1999,7 +2013,7 @@ public class FormulaSigInfo
 		// z: A, f: A->B. But coerce all of B into C. f(z) must be propagated to C. (so |C| = 2)
 		Formula fmla19 = Formula.TRUE.forSome(y.oneOf(B)).forAll(x.oneOf(A)).and(A.some())
         		          .and(x.in(C).forAll(x.oneOf(B)));
-		FormulaSigInfo test19 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla19, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test19 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla19, EnumSAPHandling.sapKeep, termTypes);
 		if(test19.getTermCount() != 2 || test19.getTermCount(B) != 2 || test19.getTermCount(C) != 2 || test19.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 19 failed.");	
 		//test19.printInfo();
@@ -2007,13 +2021,13 @@ public class FormulaSigInfo
 		// Term counting *populates* for SAP "extra sort" functions
 		// z:A. f: A->B. But f's output is coerced to C as well.
 		Formula fmla20 = y.in(C).forSome(y.oneOf(B)).forAll(x.oneOf(A)).and(A.some());        
-		FormulaSigInfo test20 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla20, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test20 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla20, EnumSAPHandling.sapKeep, termTypes);
 		if(test20.getTermCount() != 2 || test20.getTermCount(B) != 2 || test20.getTermCount(C) != 2 || test20.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 20 failed.");	
 		
 		// test local SAP coercions have same arity as the real function they come from
 		Formula fmla21 = z.in(A).forSome(z.oneOf(C)).forAll(y.oneOf(B)).forAll(x.oneOf(A)).and(B.some());        
-		FormulaSigInfo test21 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla21, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test21 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla21, EnumSAPHandling.sapKeep, termTypes);
 		if(test21.getTermCount() != 1 || test21.getTermCount(B) != 1 || test21.getTermCount(C) != 0 || test21.getTermCount(A) != 0)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 21 failed.");	
 		
@@ -2025,7 +2039,7 @@ public class FormulaSigInfo
 		// test no doublecounting.
 		// Say forall x^B, C(x) or A(x).
 		Formula fmla22 = (x.in(A).or(x.in(C))).forAll(x.oneOf(B)).and(B.some());        
-		FormulaSigInfo test22 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla22, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test22 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla22, EnumSAPHandling.sapKeep, termTypes);
 		if(test22.getTermCount() != 1 || test22.getTermCount(B) != 1 || test22.getTermCount(C) != 1 || test22.getTermCount(A) != 1)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 22 failed.");	
 		
@@ -2045,7 +2059,7 @@ public class FormulaSigInfo
 			A.some() // a in A
 		.and(x.in(D).forAll(x.oneOf(C))); // SAP from C to D
 		
-		FormulaSigInfo test23 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test23 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23, EnumSAPHandling.sapKeep, termTypes);
 		if(test23.getTermCount() != 1 || test23.getTermCount(A) != 1 || test23.getTermCount(C) != 1
 				|| test23.getTermCount(D) != 1 ||  test23.getTermCount(E) != 1)
 		{
@@ -2069,7 +2083,7 @@ public class FormulaSigInfo
 		.and(x.in(F).forAll(x.oneOf(E))) // SAP from E to F
 		.and(x.in(B).forAll(x.oneOf(F))); // sap from F to B (so B will have 2 in it)
 		
-		FormulaSigInfo test23a = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23a, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test23a = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla23a, EnumSAPHandling.sapKeep, termTypes);
 		if(test23a.getTermCount() != 2 || test23a.getTermCount(A) != 1 || test23a.getTermCount(C) != 1 ||
 				test23a.getTermCount(B) != 2 || 
 				test23a.getTermCount(D) != 1 || test23a.getTermCount(E) != 1 || 
@@ -2084,7 +2098,7 @@ public class FormulaSigInfo
 		// _local_ SAP coercion for a into B.
 		// Make sure we do not double-count in A due to improper population phase for a.
 		Formula fmla24 = x.in(C).forSome(x.oneOf(A));
-		FormulaSigInfo test24 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla24, EnumSAPHandling.sapKeep);
+		FormulaSigInfo test24 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla24, EnumSAPHandling.sapKeep, termTypes);
 		if(test24.getTermCount() != 1 || test24.getTermCount(A) != 1 || test24.getTermCount(B) != 1)
 		{
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 24 failed.");
@@ -2129,7 +2143,7 @@ public class FormulaSigInfo
 		
 		
 		//enableDebug = true;
-		FormulaSigInfo testd1 = new FormulaSigInfo(sortsd1, orderd1, predicates, emptyFunctions, emptyConstants, fmlad1, EnumSAPHandling.sapKeep, disjs1);
+		FormulaSigInfo testd1 = new FormulaSigInfo(sortsd1, orderd1, predicates, emptyFunctions, emptyConstants, fmlad1, EnumSAPHandling.sapKeep, disjs1, termTypes);
 		if(testd1.getTermCount() != 4 || testd1.getTermCount(Sort1) != 4 || testd1.getTermCount(Sort2) != 2 || testd1.getTermCount(Sort3) != 3)
 		{
 			MEnvironment.errorWriter.println("FormulaSigInfo test case DISJ-1 failed.");
@@ -2161,7 +2175,7 @@ public class FormulaSigInfo
 		
 		//enableDebug = true;
 		
-		FormulaSigInfo testd2 = new FormulaSigInfo(sortsd1, orderd2, predicates, emptyFunctions, emptyConstants, fmlad2, EnumSAPHandling.sapKeep, disjs2);
+		FormulaSigInfo testd2 = new FormulaSigInfo(sortsd1, orderd2, predicates, emptyFunctions, emptyConstants, fmlad2, EnumSAPHandling.sapKeep, disjs2, termTypes);
 		
 		if(testd2.getTermCount() != -1 || testd2.getTermCount(Sort1) != 1 || testd2.getTermCount(Sort2) != -1 || testd2.getTermCount(Sort3) != -1)
 		{

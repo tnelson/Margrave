@@ -119,6 +119,8 @@ class MExploreCondition
 	HashMap<List<Variable>, Set<MVariableVectorAssertion>> inferredSorts = 
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
+	// Terms seen
+	Set<MTerm> terms = new HashSet<MTerm>();
 	
 	// **************************************************************
 	// **************************************************************
@@ -406,6 +408,9 @@ class MExploreCondition
 		
 		//if(isPlaceholder)
 		//	eqPlaceholders.add(fmla);
+		
+		terms.add(t1);
+		terms.add(t2);
 	}
 	
 	// Atomic EDB formulas: made(vec)
@@ -429,11 +434,17 @@ class MExploreCondition
 	{
 		fmla = f;
 		madeEDBs.add(made);
+		
+		for(MTerm t : vec)
+			terms.add(t);
 	}
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
 	{
 		fmla = f;
 		seenIDBs.add(pol);
+		
+		for(MTerm t : vec)
+			terms.add(t);
 	}
 	MExploreCondition(Formula f, Relation madeSort, Variable v)
 	{

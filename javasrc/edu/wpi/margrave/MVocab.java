@@ -310,6 +310,9 @@ public class MVocab {
 	
 	// More constraints on the domain of discourse
 	public MConstraints axioms;
+	
+	// Backward map from Expression to MTerm, used by FormulaSigInfo
+	Map<Expression, MTerm> exprToTerm = new HashMap<Expression, MTerm>();
 
 	///////////////////////////////////////////////////////////////////////
 	// CACHE
