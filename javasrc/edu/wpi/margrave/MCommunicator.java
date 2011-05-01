@@ -270,9 +270,17 @@ public class MCommunicator
 	        				String name = n.getNodeName();
 	        				if (name.equalsIgnoreCase("EXPLORE"))
 	        				{
-	        					//writeToLog("IN EXPLORE" + "\n");
+	        					
 	        					
 	        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
+	        					String queryID = getNodeAttribute(n, "EXPLORE", "id");
+	        					
+	        					if(MEnvironment.isQueryIDUsed(queryID))
+	        					{
+	        						// Don't allow ID re-use.
+	        						return MEnvironment.errorResponse(MEnvironment.sQuery, MEnvironment.sFailure, "The query identifier "+queryID+" is already in use.");
+	        					}
+	        					
 	        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
 	        					if (exploreCondition == null)
 	        						MEnvironment.errorWriter.println("explore condition is null!");
@@ -280,7 +288,8 @@ public class MCommunicator
 	        					
 	        					//Default Values                                     					
 	        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
-	        					List<String> publ = null;
+	        					List<String> publ = new ArrayList<String>();
+	        					Map<String, String> publSorts = new HashMap<String, String>();
 	                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
 	                            Boolean tupling = false;
 	        					Integer debugLevel = 0;
@@ -302,8 +311,24 @@ public class MCommunicator
 	        						under = namesToIDBCollections(getUnderList(n));
 	        						
 	        					}
-	        					if (publishNode != null) {
-	        						publ = getExplorePublishVars(publishNode);
+	        					if (publishNode != null)
+	        					{
+	        						// <PUBLISH><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION>
+	        						//          <VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH>
+	        						
+	        						// TODO
+	        						// publ
+        							// publSorts
+	        						NodeList decls = publishNode.getChildNodes();
+	        						for(int ii=0; ii<decls.getLength();ii++)
+	        						{
+	        							Node varDeclNode = decls.item(ii);  	        								
+	        							String varname = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "varname");
+	            						String vartype = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "sort");
+	            						publ.add(varname);
+	    	        					publSorts.put(varname, vartype);
+	        						}
+
 	        					}
 	        					if (idbOutputNode != null) {
 	        						NodeList idbChildNodes = idbOutputNode.getChildNodes();
@@ -322,11 +347,10 @@ public class MCommunicator
 	        					
 	        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
 	        					
-	        					Map<String, String> publSorts = new HashMap<String, String>();
-	        					// !!! TODO populate that map from XML
 	        					
 	        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
 	        					result = MQuery.createFromExplore(
+	        							queryID,
 	        							exploreCondition.addSeenIDBCollections(under), 
 	        							publ,
 	        							publSorts,
@@ -992,9 +1016,7 @@ public class MCommunicator
 			return getChildNode(n, "CEILING");
 		}
         
-		public static List<String> getExplorePublishVars(Node n) {
-			return getIdentifierList(n);
-		}
+	
         public static String getDebugLevel(Node n) {
         	return getNodeAttribute(n, "DEBUG", "debug-level");
         }
@@ -1594,10 +1616,10 @@ public class MCommunicator
 
 		String aQuery = 
 "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
-"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"r\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
-"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><CONSTANT-TERM id=\"d\" /></EQUALS>" +
-"<ISA var=\"x\" sort=\"Sort1\" /></AND></OR></CONDITION>" +
-"<PUBLISH><VARIABLE-DECLARATION sort=\"A\"><VARIABLE-TERM id=\"z\" /></VARIABLE-DECLARATION><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION><VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
+"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
+"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><CONSTANT-TERM id=\"c\" /></EQUALS>" +
+"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 		
 		String polCreate1 = "";
 		
@@ -1608,7 +1630,7 @@ public class MCommunicator
 		handleXMLCommand(show);
 		handleXMLCommand(count);
 		handleXMLCommand(isposs);*/
-		//handleXMLCommand(aQuery);
+		
 		//handleXMLCommand(showUnrealizedForCases);
 		
 		List<String> creationCommands = new ArrayList<String>();
@@ -1637,8 +1659,11 @@ public class MCommunicator
 			handleXMLCommand(cmd);
 		}
 		
-		MEnvironment.debug();
 		
+		
+		handleXMLCommand(aQuery);
+		
+		MEnvironment.debug();
 		
 		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	
 	}

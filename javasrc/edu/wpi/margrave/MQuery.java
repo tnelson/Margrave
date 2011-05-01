@@ -3978,6 +3978,7 @@ public class MQuery extends MIDBCollection
 	// Create a query from it.
 
 	public static MQuery createFromExplore(
+			String queryID,
 			MExploreCondition mpc,
 			List<String> publish,
 			Map<String, String> sortsForPublish,
@@ -4129,7 +4130,10 @@ public class MQuery extends MIDBCollection
 		}
 
 
-
+		//System.err.println(freeVarsUnsorted);
+		//System.err.println(publish);
+		//System.err.println(sortsForPublish);
+		
 		// NEXT: Unpublished vars
 		for (Variable v : freeVarsUnsorted)
 		{
@@ -4236,6 +4240,7 @@ public class MQuery extends MIDBCollection
 		result.idbs.put("saved", idbFormula);
 
 		MEnvironment.setLast(result);
+		MEnvironment.setQueryForID(queryID, result);
 
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 

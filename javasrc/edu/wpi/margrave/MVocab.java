@@ -203,7 +203,6 @@ class MConstant extends MPredicate
 
 class MFunction extends MPredicate
 {
-	Relation rel;
 	List<MSort> arity;
 	MSort result;
 	
@@ -837,7 +836,7 @@ public class MVocab {
 		//////////////////////////////////////////////
 		// Functions are total
 		for(MFunction aFunc : functions.values())
-			axiomSet.add(makeFunctionalFormula(aFunc.rel, "T"));
+			axiomSet.add(makeFunctionalFormula(aFunc, "T"));
 		
 		//////////////////////////////////////////////
 		// Constants have only one atom
@@ -869,20 +868,18 @@ public class MVocab {
 
 		return results;
 	}
-
-
-	Formula makeFunctionalFormula(Relation r, String type)
+	
+	Formula makeFunctionalFormula(MPredicate thePred, String type)
 	throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName, MGEManagerException
 	{
 		// Used to do forall x, y, z (x.y.z).R.one()  (where R is 4-ary)
 		// Changed to forall x, y, z, exists r | (x y z r) in R and forall k ((x y z k) in R implies k=r)
 		// This is longer, but complies with current FormulaSigInfo
-
-		if (!predicates.containsKey(r.name()))
-			throw new MGEUnknownIdentifier(
-					"Unable to find definition for predicate: " + r.name());
-
-		MPredicate thePred = predicates.get(r.name());
+		
+		if(thePred == null)
+			throw new MGEUnknownIdentifier("Unknown predicate in makeFunctionalFormula.");
+		
+		Relation r = thePred.rel;
 		
 		if (thePred.type.size() != r.arity())
 			throw new MGEArityMismatch(

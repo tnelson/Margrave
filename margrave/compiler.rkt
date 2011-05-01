@@ -461,9 +461,10 @@
                                                        (rest interns)))))]        
     
     [(equal? first-datum 'VARIABLE-DECL)
-     (define the-var-xml (helper-syn->xml (second interns)))
+     ; strip the VARIABLE-TERM label w/ second
+     (define the-var-str (symbol->string (second (syntax->datum (second interns)))))
      (define the-sort (syntax->string (third interns)))
-     `(xml-make-variable-declaration ,the-var-xml ,the-sort)]
+     `(xml-make-variable-declaration ,the-var-str ,the-sort)]
     
     [(equal? first-datum 'ATOMIC-FORMULA)
      (define compound-predicate-list (syntax->datum (second interns)))

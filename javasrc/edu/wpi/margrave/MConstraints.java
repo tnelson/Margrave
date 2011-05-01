@@ -250,17 +250,17 @@ public class MConstraints
 		// Constrain total and partial functions to be such
 		for(String r : funcPartial)
 		{
-			results.add(vocab.makeFunctionalFormula(vocab.getRelation(r), "P"));
+			results.add(vocab.makeFunctionalFormula(vocab.predicates.get(r), "P"));
 		}
 
 		for(String r : funcTotal)
 		{
-			results.add(vocab.makeFunctionalFormula(vocab.getRelation(r), "T"));
+			results.add(vocab.makeFunctionalFormula(vocab.predicates.get(r), "T"));
 		}
 		
 		for(String r : relTotal)
 		{
-			results.add(vocab.makeFunctionalFormula(vocab.getRelation(r), "R"));
+			results.add(vocab.makeFunctionalFormula(vocab.predicates.get(r), "R"));
 		}
 
 		// Finally, other constraint strings. These need to be parsed.

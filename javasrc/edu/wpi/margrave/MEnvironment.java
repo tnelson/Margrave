@@ -1126,6 +1126,15 @@ public class MEnvironment
 		envIDBCollections.put("last", qry);
 	}
 	
+	static protected void setQueryForID(String id, MQuery qry)
+	{
+		envIDBCollections.put(id, qry);
+	}
+	
+	static protected boolean isQueryIDUsed(String id)
+	{
+		return envIDBCollections.containsKey(id);
+	}
 	
 	public static String foldConcatWithSpaces(List<String> idl)
 	{
@@ -2306,6 +2315,7 @@ public class MEnvironment
 				pleaf.prettyPrintRules();
 			}
 		}
+		
 		
 	}
 
