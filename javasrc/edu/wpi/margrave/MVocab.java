@@ -180,7 +180,7 @@ class MConstant
 	
 	public String toString()
 	{
-		return name;
+		return "Constant "+name+": "+type;
 	}	
 	
 	MConstant(String name, Relation rel, MSort type)
@@ -208,15 +208,15 @@ class MConstant
 
 class MFunction extends MPredicate
 {
-	String name;
 	Relation rel;
 	List<MSort> arity;
 	MSort result;
 	
 	public String toString()
 	{
-		return name;
+		return "Function "+ name + ": "+arity+" -> "+result;
 	}
+	
 	
 	MFunction(String name, Relation rel, List<MSort> arity, MSort result)
 	{
@@ -252,7 +252,7 @@ class MPredicate
 	
 	public String toString()
 	{
-		return name;
+		return "Predicate "+ name + ": "+type;
 	}
 	
 	MPredicate(String name, Relation rel, List<MSort> type)

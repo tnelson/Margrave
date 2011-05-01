@@ -2278,6 +2278,19 @@ public class MEnvironment
 		envQueryResults.remove("last");
 		envIterators.remove("last");		
 	}
+	public static void debug() 
+	{
+		for(String v : envVocabularies.keySet())
+		{
+			MEnvironment.errorWriter.println("Vocabulary: "+v);
+			MVocab voc = envVocabularies.get(v);
+			MEnvironment.errorWriter.println(voc.sorts);
+			MEnvironment.errorWriter.println(voc.predicates);
+			MEnvironment.errorWriter.println(voc.constants);
+			MEnvironment.errorWriter.println(voc.functions);
+		}
+		
+	}
 
 	
 	/*

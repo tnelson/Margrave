@@ -589,7 +589,7 @@ public class MCommunicator
         						writeToLog("Added Sort\n");
         					}
         					else if (addType.equalsIgnoreCase("SORT-WITH-CHILDREN")) {
-        						String sortName = getSortName(n);
+        						String sortName = getNodeAttribute(n, "SORT-WITH-CHILDREN", "name");
         						        						
         						List<String> childnames = getListElements(n, "SORT-WITH-CHILDREN", "name");        						        						
         						theResponse = MEnvironment.addSortWithSubs(vname, sortName, childnames);
@@ -613,6 +613,7 @@ public class MCommunicator
         						String sName = getNodeAttribute(secondChildNode, "FUNCTION", "name");   
         						List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");        						
         						writeToLog("Adding function "+sName+" : "+constr+"\n");
+        						//System.err.println("Adding function "+sName+" : "+constr+"\n");
         						theResponse = MEnvironment.addFunction(vname, sName, constr);
         					}
         					
@@ -683,9 +684,7 @@ public class MCommunicator
         						
         						List<String> varOrdering = new ArrayList<String>();        						
         						varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
-        						
-        						System.err.println(varOrdering);
-        						
+        						        						
         						// Target fmla
         						Node targetNode = getChildNode(ruleNode, "TARGET");        					
         						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
@@ -1638,7 +1637,7 @@ public class MCommunicator
 			handleXMLCommand(cmd);
 		}
 		
-		
+		MEnvironment.debug();
 		
 		
 		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	
