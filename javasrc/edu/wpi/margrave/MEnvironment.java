@@ -870,11 +870,26 @@ public class MEnvironment
 			}
 		}		
 	}
-				
+	
+	public static Document resetIterator(String id) 
+	{
+		// Do we have a result for this qry?
+		if(!envQueryResults.containsKey(id))
+			return errorResponse(sUnknown, sResultID, id);
+		
+		MQueryResult result = getQueryResult(id);
+		
+		// Reset the iterator
+		MInstanceIterator it = result.getTotalIterator();
+		envIterators.put(id, it);
+		
+		return successResponse();		
+	}
+	
 	static Document getFirstModel(String id) 
 	throws MBaseException
 	{
-		// Do we have a result for this num?
+		// Do we have a result for this qry?
 		if(!envQueryResults.containsKey(id))
 			return errorResponse(sUnknown, sResultID, id);
 
@@ -2329,7 +2344,6 @@ public class MEnvironment
 		
 		
 	}
-
 	
 	/*
 	public static Document returnCompareQuery(String originalXMLText,

@@ -458,6 +458,13 @@ public class MCommunicator
         			{
         				 MEnvironment.quitMargrave();
         			}
+        			
+        			else if (type.equalsIgnoreCase("RESET"))
+        			{
+        				// "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>"
+        				String id = getNodeAttribute(n, "RESET", "id");
+        				theResponse = MEnvironment.resetIterator(id);        				
+        			}
         			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
         				String id = getNodeAttribute(n, "IS-POSSIBLE", "id");
         				theResponse = MEnvironment.isPoss(id);
@@ -1623,7 +1630,6 @@ public class MCommunicator
 "<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 				
-		
 		/*handleXMLCommand(testInfo);
 		handleXMLCommand(testInfoWithID);
 		handleXMLCommand(reset);
@@ -1665,9 +1671,11 @@ public class MCommunicator
 		
 		String aShow = 
 			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry\" /></MARGRAVE-COMMAND>";
-		
+		String aReset = "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>";
+
 		handleXMLCommand(aQuery);
 		handleXMLCommand(aShow); // results in a model xml response
+		handleXMLCommand(aReset);
 		
 		MEnvironment.debug();
 		
