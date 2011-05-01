@@ -906,13 +906,10 @@ public class MEnvironment
 					return errorResponse(sFailure, sQuery, XMLCommand);
 				}
 				
-				// Compile the query and get the result handle.
+				// Compile the query and get the result.
 				MQueryResult qryResult = qry.runQuery();
 				
-				String queryId = qry.name;
-				
-				envQueryResults.put(queryId, qryResult);								
-				
+				envQueryResults.put(qry.name, qryResult);
 				return resultHandleResponse(0);
 												
 			}  // end: a query
@@ -2313,6 +2310,8 @@ public class MEnvironment
 				MPolicyLeaf pleaf = (MPolicyLeaf) coll;
 				MEnvironment.errorWriter.println("(Policy Leaf)");
 				pleaf.prettyPrintRules();
+				MEnvironment.errorWriter.println(pleaf.rCombineFA);
+				MEnvironment.errorWriter.println(pleaf.rCombineWhatOverrides);
 			}
 			if(coll instanceof MQuery)
 			{

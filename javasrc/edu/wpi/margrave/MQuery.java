@@ -4238,10 +4238,12 @@ public class MQuery extends MIDBCollection
 			result.varSorts.put(v, theSort);
 		}
 		result.idbs.put("saved", idbFormula);
-
+		
+		
 		MEnvironment.setLast(result);
 		MEnvironment.setQueryForID(queryID, result);
-
+		result.name = queryID; // used for saving query result, query knows its own ID
+		
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 
 

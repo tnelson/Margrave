@@ -62,6 +62,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
+(define margrave-version "3.1-alpha-internal-1")
 
 ;****************************************************************
 ;;Java Connection
@@ -200,10 +201,11 @@ gmarceau
              [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
         
         ;(printf "~a~n" margrave-params)        
-        (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
+       ; (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
         (printf "--------------------------------------------------~n")
         (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
                 home-path java-path user-jvm-params user-margrave-params)
+        (printf "Welcome to Margrave version ~a.~n" margrave-version)
         (printf "--------------------------------------------------~n")
         ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
         (set! java-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))

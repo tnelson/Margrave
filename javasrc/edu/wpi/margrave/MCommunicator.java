@@ -487,7 +487,6 @@ public class MCommunicator
 							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
-							//MEnvironment.showFirstModel(id);
         				}
         				else if (showType.equalsIgnoreCase("NEXT"))
         				{
@@ -497,7 +496,6 @@ public class MCommunicator
 							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
-							//MEnvironment.showNextModel(id);
         				}
         				//else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
         				//	theResponse = MEnvironment.showNextCollapse(id);
@@ -769,7 +767,7 @@ public class MCommunicator
 				else if("OVERRIDES".equalsIgnoreCase(combNode.getNodeName()))
 				{
 					String under = getNodeAttribute(combNode, "OVERRIDES", "decision");
-					List<String> overs = getListElements(combListNode, "OVER", "id");
+					List<String> overs = getListElements(combListNode, "OVERRIDES", "id");
 					if(!rO.containsKey(under))
 						rO.put(under, new HashSet<String>());
 					rO.get(under).addAll(overs);
@@ -1649,7 +1647,11 @@ public class MCommunicator
 				"<ISA var=\"y\" sort=\"B\" />"+
 				"</AND></TARGET></RULE></MARGRAVE-COMMAND>");
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST><FA><ID id=\"permit\" /><ID id=\"deny\" /></FA></COMB-LIST></MARGRAVE-COMMAND>"); 
+		// FA {Permit, Deny}, but CallPolice overrides both.
+		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST>" +
+				"<FA><ID id=\"permit\" /><ID id=\"deny\" /></FA>" +
+				"<OVERRIDES decision=\"permit\"><ID id=\"callpolice\" /></OVERRIDES>" +
+				"<OVERRIDES decision=\"deny\"><ID id=\"callpolice\" /></OVERRIDES></COMB-LIST></MARGRAVE-COMMAND>"); 
 		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
 		
 		//creationCommands.add("");
@@ -1659,9 +1661,11 @@ public class MCommunicator
 			handleXMLCommand(cmd);
 		}
 		
-		
+		String aShow = 
+			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry\" /></MARGRAVE-COMMAND>";
 		
 		handleXMLCommand(aQuery);
+		handleXMLCommand(aShow); // results in a model xml response
 		
 		MEnvironment.debug();
 		

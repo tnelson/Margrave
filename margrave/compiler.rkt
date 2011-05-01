@@ -275,6 +275,8 @@
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     ; Like GET, only pretty-print the result
+    ; SHOW by itself means "give me the next model on the iterator"
+    ; create the iterator if still uncreated. So "NEXT", not "ONE".
     [(equal? first-datum 'SHOW)
      (define query-id (if (equal? 1 (length interns))
                           ""
@@ -282,7 +284,7 @@
      
      `(lambda () (pretty-print-response-xml 
                   (send-and-receive-xml
-                   (xml-make-get-command (xml-make-type "ONE") 
+                   (xml-make-get-command (xml-make-type "NEXT") 
                                          ,query-id) #:syntax  #',syn)))]
     
     [(equal? first-datum 'RESET)

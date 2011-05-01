@@ -241,6 +241,9 @@ Margrave did not understand the condition or options given around \"~a\"."
               (left AND)
               (nonassoc NOT)
               
+              (nonassoc LPAREN)
+              (nonassoc RPAREN)
+              
               (left COMMA)
              ;(nonassoc IN)
               (nonassoc COLON)
@@ -515,12 +518,22 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         ; a predicate in the condition can be
         ; R or pol.R or Pol.Child.R and so on
-        (condition-predicate 
-         [(<capitalized-id>) (list $1)]
-         [(condition-predicate DOT <capitalized-id>) (append $1 (list $3))])
         
-        (atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN) 
+        ; original doesn't match case properly
+;        (condition-predicate 
+;         [(<capitalized-id>) (list $1)]
+;         [(condition-predicate DOT <capitalized-id>) (append $1 (list $3))])
+         
+        (complex-condition-predicate
+         [(<capitalized-id> DOT <lowercase-id>) (list $1 $3)]
+         [(<capitalized-id> DOT complex-condition-predicate) (append (list $1) $3)])
+        
+        ;(atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN) 
+        (atomic-formula [(<lowercase-id> LPAREN condition-term-list RPAREN) 
+                         (build-so (list 'ATOMIC-FORMULA (list $1) (append (list 'TERM-LIST) $3)) 1 4)]
+                        [(complex-condition-predicate LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
+                        
                        ; !!! TODO re-add in 
                         ; [(in-formula)
                        ;  $1]
@@ -580,4 +593,4 @@ Margrave did not understand the condition or options given around \"~a\"."
   (port-count-lines! in)
   ((parse "test param to parse-s") (lambda () (lex in))))
 
-; (parse-s "let F[x, y, z] be P.C.Foo(x, y) and not Bar(z);")
+; (test-parse-s "let F[x: A, y : B, z:C] be P1.P2.f(x, y) and not bar(z);")
