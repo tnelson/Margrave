@@ -1636,7 +1636,7 @@ public class MCommunicator
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"C\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"A\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
 		
 		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");

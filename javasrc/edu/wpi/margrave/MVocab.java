@@ -623,15 +623,12 @@ public class MVocab {
 		}
 	}	
 
-	private Formula getPredTypeFormula(String relname)
+	private Formula getPredTypeFormula(MPredicate thePred)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName 
 	{
-		// Accepts a relation name
 		// Returns a Formula expressing constraints on the parent relation
 		// This method works only for non-type EDB predicates, not types
 		// themselves
-		
-		MPredicate thePred = predicates.get(relname); 		
 
 		Expression rin = Expression.NONE; // will be overwritten below
 
@@ -772,16 +769,19 @@ public class MVocab {
 		for(MSort aSort : conciseDisjs)
 		{
 			if(first)
+			{
 				unions = aSort.rel;
+				first = false;
+			}
 			else
 			{
-				unions = unions.union(aSort.rel);
-				first = false;
+				unions = unions.union(aSort.rel);			
 			}
 		}
 												
 		HashSet<Formula> results = new HashSet<Formula>();
 		results.add(t.rel.intersection(unions).no());
+		
 		return results;
 	}
 	
@@ -831,18 +831,27 @@ public class MVocab {
 		// e.g.: EdgePredicate in (Nodes x Nodes)
 		// This also covers constants and functions due to inheritance.
 		for (MPredicate aPred : predicates.values())
-			axiomSet.add(getPredTypeFormula(aPred.name));		
+			axiomSet.add(getPredTypeFormula(aPred));		
 		
 		//////////////////////////////////////////////
 		// Functions are total
-		for(MFunction aFunc : functions.values())
+		// and their sig is respected
+		for(MFunction aFunc : functions.values())	
+		{
 			axiomSet.add(makeFunctionalFormula(aFunc, "T"));
+			axiomSet.add(getPredTypeFormula(aFunc));
+		}
 		
 		//////////////////////////////////////////////
 		// Constants have only one atom
+		// and their sig is respected
 		for(MConstant aConst : constants.values())
+		{
 			axiomSet.add(MFormulaManager.makeMultiplicity(aConst.rel, Multiplicity.ONE));
+			axiomSet.add(getPredTypeFormula(aConst));
+		}
 		
+		//System.err.println(axiomSet);
 		
 		return MFormulaManager.makeConjunction(axiomSet); // .accept(new SimplifyFormulaV());
 	}
@@ -926,11 +935,13 @@ public class MVocab {
 		
 		if("T".equals(type))
 		{
-			// EXISTS fc1 ((tuple1) in R) and (FORALL fc2 (tuple2 in R implies fc1=fc2)) 
+			// tuple1 = (..., fc1)
+			// tuple2 = (..., fc2)
+			// EXISTS fc1 [(tuple1 in R) and (FORALL fc2 (tuple2 in R implies fc1=fc2))] 
 			pt1 = MFormulaManager.makeAtom(tuple1, r);
 			
 			pt2 = MFormulaManager.makeAtom(tuple2, r);
-			pt2 = MFormulaManager.makeIFF(pt2, MFormulaManager.makeEqAtom(fc1, fc2));
+			pt2 = MFormulaManager.makeImplication(pt2, MFormulaManager.makeEqAtom(fc1, fc2));
 			pt2 = MFormulaManager.makeForAll(pt2, dfc2);
 			
 			f = MFormulaManager.makeAnd(pt1, pt2);
@@ -938,7 +949,7 @@ public class MVocab {
 		}
 		else if("P".equals(type))
 		{
-			// FORALL fc1 FORALL fc2 ( (tuple1 in R) and (tuple2 in R) iff fc1=fc2)
+			// FORALL fc1 FORALL fc2 ( ((tuple1 in R) and (tuple2 in R)) iff fc1=fc2)
 			
 			pt1 = MFormulaManager.makeAtom(tuple1, r);
 			pt2 = MFormulaManager.makeAtom(tuple2, r);
@@ -967,6 +978,8 @@ public class MVocab {
 		{
 			f = MFormulaManager.makeForAll(f, d);
 		}
+		
+		//System.err.println(thePred.toString() + " --- " +f);
 		
 		//MEnvironment.errorStream.println(r + " "+ type);
 		//MEnvironment.errorStream.println(f);
