@@ -1982,7 +1982,7 @@ public abstract class MInstanceIterator
 			{			
 				// What is this policy publishing?
 			 
-				for(String idbname : idbs.idbs.keySet())
+				for(String idbname : idbs.idbKeys())
 				{
 					//MEnvironment.errorStream.println(idbs.name+":"+idbname);							
 					
@@ -1992,7 +1992,7 @@ public abstract class MInstanceIterator
 						continue;
 					}
 															
-					Formula idbFormula = idbs.idbs.get(idbname);
+					Formula idbFormula = idbs.getIDB(idbname);
 					
 					//MEnvironment.errorStream.println("++ " +idbs.name+":"+idbname);
 					//MEnvironment.errorStream.println(idbFormula.hashCode());

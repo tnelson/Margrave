@@ -1820,11 +1820,11 @@ public class MQuery extends MIDBCollection
 						+ polName);
 			MIDBCollection coll = myIDBCollections.get(polName);
 
-			if (!coll.idbs.containsKey(internal_idbname))
+			if (!coll.containsIDB(internal_idbname))
 				throw new MGEUnknownIdentifier("Unknown IDB: "
 						+ internal_idbname + " in collection: " + polName);
 
-			Formula idbformula = coll.idbs.get(internal_idbname);
+			Formula idbformula = coll.getIDB(internal_idbname);
 
 			// If there is a quantifier...
 			if (idbformula.accept(qfreecheck))
@@ -1857,7 +1857,7 @@ public class MQuery extends MIDBCollection
 				// These should all be valid, would have errored out
 				// beforehand otherwise.
 				MIDBCollection coll = myIDBCollections.get(polName);
-				Formula originalIDBFormula = coll.idbs.get(internal_idbname);
+				Formula originalIDBFormula = coll.getIDB(internal_idbname);
 
 				// ***
 				// Convert from the original policy/custom's vocab to
@@ -1979,7 +1979,7 @@ public class MQuery extends MIDBCollection
 
 					indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
 
-					tupledIDBCollections.get(polName).idbs.put(new_internal_name, new_idbformula);
+					tupledIDBCollections.get(polName).putIDB(new_internal_name, new_idbformula);
 					tupledIDBCollections.get(polName).varOrderings.put(new_internal_name, new ArrayList<Variable>());
 					tupledIDBCollections.get(polName).varOrderings.get(new_internal_name).add(mtup.newvar);
 					// ^^^ No sort yet (calculated below), but we know the variable
@@ -2099,7 +2099,7 @@ public class MQuery extends MIDBCollection
 
 		MIDBCollection coll = myIDBCollections.get(polName);
 
-		if (!coll.idbs.containsKey(internal_idbname))
+		if (!coll.containsIDB(internal_idbname))
 			throw new MGEUnknownIdentifier("Unknown IDB: " + internal_idbname
 					+ " in collection: " + polName);
 
@@ -4265,7 +4265,7 @@ public class MQuery extends MIDBCollection
 			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
 			result.varSorts.put(v, theSort);
 		}
-		result.idbs.put(queryID, idbFormula);
+		result.putIDB(queryID, idbFormula);
 		
 		
 		MEnvironment.setLast(result);

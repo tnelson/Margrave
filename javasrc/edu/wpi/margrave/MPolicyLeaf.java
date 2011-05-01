@@ -289,7 +289,7 @@ public class MPolicyLeaf extends MPolicy
 		// Do NOT call this!
 		//super.initIDBs();
 		
-		idbs.clear();
+		clearIDBs();
 		disjunctionOfRules_cache.clear();
 		
 		// Combine rules
@@ -326,11 +326,11 @@ public class MPolicyLeaf extends MPolicy
 		}
 		
 		/////////////////////////////////////////////////////////////
-		if(!idbs.keySet().contains(decision))
+		if(!idbKeys().contains(decision))
 		{
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
 			// (Sorts of all these variables should be known already.)			
-			idbs.put(decision, Formula.FALSE);
+			putIDB(decision, Formula.FALSE);
 			this.varOrderings.put(decision, ruleFreeVars);	
 			
 			// Add the decision to the list as well
@@ -680,7 +680,7 @@ public class MPolicyLeaf extends MPolicy
 		// (a) These are easy:
 		for(MRule r : rules)
 		{
-			idbs.put(r.name+"_matches", r.target_and_condition);
+			putIDB(r.name+"_matches", r.target_and_condition);
 		}
 		
 		/////////////////////////////////////////////////////////////////
@@ -699,7 +699,7 @@ public class MPolicyLeaf extends MPolicy
 			}
 			for(MRule overR2 : rulesThatCanOverride(r))
 				rFmlas.add(MFormulaManager.makeNegation(overR2.target_and_condition));
-			idbs.put(r.name+"_applies", MFormulaManager.makeConjunction(rFmlas));
+			putIDB(r.name+"_applies", MFormulaManager.makeConjunction(rFmlas));
 		}
 
 		
@@ -735,16 +735,16 @@ public class MPolicyLeaf extends MPolicy
 			
 			negPriors.add(IDB_FA); // don't forget that the original rule applies!			
 			Formula decFmla = MFormulaManager.makeConjunction(negPriors);
-			idbs.put(decName, decFmla);
+			putIDB(decName, decFmla);
 		}
 					
 		
 		/////////////////////////////////////////////////////////
 		// Finally, each of these IDBs only apply if the _policy's_ target is met. 		
 		
-		for(String idbname : idbs.keySet())
+		for(String idbname : idbKeys())
 		{			
-			idbs.put(idbname, MFormulaManager.makeAnd(idbs.get(idbname), target));		
+			putIDB(idbname, MFormulaManager.makeAnd(getIDB(idbname), target));		
 		}
 		
 	} // end doCombineRules
@@ -815,7 +815,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////////
 		// (1) Rule 1 matches; this is FA so Rule 3 can never apply, so deny won't happen.
-		Formula testFmla1 = pol.idbs.get("deny");
+		Formula testFmla1 = pol.getIDB("deny");
 		testFmla1 = MFormulaManager.makeAnd(testFmla1, MFormulaManager.makeAtom(s, admin));		
 		
 		if(MJavaTests.testIsSatisfiable(testFmla1, voc, 3, varSorts))
@@ -823,7 +823,7 @@ public class MPolicyLeaf extends MPolicy
 		/////////////////////////////////////////////////////////////
 		// (2) Restricted, we should see deny apply.
 		
-		Formula testFmla2 = pol.idbs.get("deny");
+		Formula testFmla2 = pol.getIDB("deny");
 		testFmla2 = MFormulaManager.makeAnd(testFmla2, MFormulaManager.makeAtom(r, restricted));
 		
 		if(!MJavaTests.testIsSatisfiable(testFmla2, voc, 3, varSorts))
@@ -842,7 +842,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////////
 		// (3) This is now Deny overrides. Make sure that happens.
-		Formula testFmla3 = pol.idbs.get("permit");
+		Formula testFmla3 = pol.getIDB("permit");
 		testFmla3 = MFormulaManager.makeAnd(testFmla3, MFormulaManager.makeAtom(r, restricted));		
 		
 		if(MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))

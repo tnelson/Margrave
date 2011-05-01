@@ -148,8 +148,10 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 	}
 }
 
-abstract class AbstractCacheAllDetector extends AbstractDetector {
-	AbstractCacheAllDetector(HashSet<Node> beginCache) {
+abstract class AbstractCacheAllDetector extends AbstractDetector
+{
+	AbstractCacheAllDetector(HashSet<Node> beginCache)
+	{
 		super(beginCache);
 	}
 
@@ -656,21 +658,8 @@ class ReplaceComparisonFormulasV extends AbstractCacheAllReplacer
  * @author tn
  *
  */
-class FindClosureUseV extends AbstractCacheAllDetector {
-	// static cache, will not interfere with garbage collection, but will try
-	// to prevent recomputation. (Booleans are safe, so...)
-	private static WeakHashMap<Node, Boolean> closureUseCache = new WeakHashMap<Node, Boolean>();
-
-	protected Boolean lookup(Node f) {
-		return closureUseCache.get(f);
-	}
-
-	protected Boolean cache(Node f, Boolean value) {
-
-		closureUseCache.put(f, value);
-		return value;
-	}
-
+class FindClosureUseV extends AbstractCacheAllDetector
+{
 	public FindClosureUseV() {
 		super(new HashSet<Node>());
 	}
@@ -686,16 +675,6 @@ class FindClosureUseV extends AbstractCacheAllDetector {
 			return cache(ue, true);
 		return cache(ue, false);
 	}
-
-	// public Boolean visit(NaryFormula nary)
-	// {
-	// maybe it should implement map after all, would let us abstract all this
-	// out to the parent class
-	// (how?)
-	// abstract's constructor takes the Map<K, V>?
-	// concrete's constructor passes... but then a synch problem?
-	// }
-
 }
 
 class ContainsQuantifiersCheckV extends AbstractCacheAllDetector {

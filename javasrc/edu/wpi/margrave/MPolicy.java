@@ -90,7 +90,9 @@ abstract class MIDBCollection
 		
 	// IDBs: note that these are IF AND ONLY IF.
 	// Formulas for Policy decisions, rule applicability, etc.
-	protected HashMap<String, Formula> idbs = new HashMap<String, Formula>();	
+	// This is PRIVATE because we want to force the use of the accessors below.
+	// (Return a nice friendly Formula.FALSE if the IDB isn't defined.)
+	private HashMap<String, Formula> idbs = new HashMap<String, Formula>();	
 	
 	// The entire collection can contain IDBs with different arities and 
 	// different vectors of free variables.
@@ -98,6 +100,36 @@ abstract class MIDBCollection
 	protected Map<String, List<Variable>> varOrderings = new HashMap<String, List<Variable>>();	
 	protected HashMap<Variable, Expression> varSorts = new HashMap<Variable, Expression>();	
 	
+	Formula getIDB(String idbname)
+	{
+		if(idbs.containsKey(idbname))
+			return idbs.get(idbname);
+		return Formula.FALSE;
+	}
+	void putIDB(String idbname, Formula val)
+	{
+		idbs.put(idbname, val);
+	}
+	boolean containsIDB(String idbname)
+	{
+		return idbs.containsKey(idbname);
+	}
+	int size()
+	{
+		return idbs.size();
+	}
+	Set<String> idbKeys()
+	{
+		return idbs.keySet();
+	}
+	String idbsAsString()
+	{
+		return idbs.toString();
+	}
+	void clearIDBs()
+	{
+		idbs.clear();
+	}
 	
 
 	// TODO Tn april 2011, I don't think this method has been necessary since MFormulaManager
@@ -375,9 +407,9 @@ public abstract class MPolicy extends MIDBCollection
 	public void prettyPrintIDBs()
 	{
 		MEnvironment.errorWriter.println("IDBs in policy "+name+":");
-		for(String n : idbs.keySet())
+		for(String n : idbKeys())
 		{
-			MEnvironment.errorWriter.println(n+": "+idbs.get(n));
+			MEnvironment.errorWriter.println(n+": "+getIDB(n));
 		}
 		MEnvironment.errorWriter.println("");
 	}	
@@ -416,8 +448,8 @@ public abstract class MPolicy extends MIDBCollection
 	public List<String> getIDBNameList()
 	{
 		// Order independent list
-		ArrayList<String> result = new ArrayList<String>(idbs.size());		
-		result.addAll(idbs.keySet());		
+		ArrayList<String> result = new ArrayList<String>(size());		
+		result.addAll(idbKeys());		
 		return result;
 	}
 
@@ -425,8 +457,8 @@ public abstract class MPolicy extends MIDBCollection
 	{
 		// Order independent list
 		// Same as getIDBNameList, but include polname: prefix
-		ArrayList<String> result = new ArrayList<String>(idbs.size());
-		for(String idbname : idbs.keySet())
+		ArrayList<String> result = new ArrayList<String>(size());
+		for(String idbname : idbKeys())
 			result.add(name + ":" + idbname);			
 		return result;
 	}
@@ -978,14 +1010,13 @@ class MInternalIDBCollection extends MIDBCollection
 	
 	protected MInternalIDBCollection(String n, MVocab voc)
 	{
-		idbs = new HashMap<String, Formula>();
 		name = n;		
 		vocab = voc;
 	}
 
 	protected void addIDB(String idbname, Formula idb)
 	{
-		idbs.put(idbname, idb);
+		putIDB(idbname, idb);		
 	}
 	
 }

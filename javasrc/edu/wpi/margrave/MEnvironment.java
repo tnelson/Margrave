@@ -820,8 +820,8 @@ public class MEnvironment
 		if(collection == null)
 			return null;
 		
-		if(collection.idbs.containsKey(idbname))
-			return collection.idbs.get(idbname);
+		if(collection.containsIDB(idbname))
+			return collection.getIDB(idbname);
 		return null;
 	}
 	
@@ -832,11 +832,11 @@ public class MEnvironment
 		if(collection == null)
 			return null;
 		
-		if(collection.idbs.size() != 1)
+		if(collection.size() != 1)
 			return null;
 		
-		for(String name : collection.idbs.keySet())
-			return collection.idbs.get(name);
+		for(String name : collection.idbKeys())
+			return collection.getIDB(name);
 		return null;
 	}
 	
@@ -980,7 +980,7 @@ public class MEnvironment
 			theElement.setAttribute("rule-combine", pleaf.printCombinators(pleaf.rCombineFA, pleaf.rCombineWhatOverrides));
 			
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
-			for(String key : coll.idbs.keySet())
+			for(String key : coll.idbKeys())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
@@ -1014,7 +1014,7 @@ public class MEnvironment
 			theElement.setAttribute("policy-combine", pset.printCombinators(pset.pCombineFA, pset.pCombineWhatOverrides));					
 			
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
-			for(String key : coll.idbs.keySet())
+			for(String key : coll.idbKeys())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
@@ -1051,7 +1051,7 @@ public class MEnvironment
 			theElement.setAttribute("name", qry.name);
 
 			Element idbsElement = xmldoc.createElementNS(null, "IDBS");
-			for(String key : coll.idbs.keySet())
+			for(String key : coll.idbKeys())
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
@@ -2327,7 +2327,7 @@ public class MEnvironment
 			MEnvironment.errorWriter.println("IDB Collection: "+p);
 			MIDBCollection coll = envIDBCollections.get(p);
 			
-			MEnvironment.errorWriter.println(coll.idbs);
+			MEnvironment.errorWriter.println(coll.idbsAsString());
 			MEnvironment.errorWriter.println(coll.varOrderings);
 			MEnvironment.errorWriter.println(coll.varSorts);
 			
@@ -2345,8 +2345,15 @@ public class MEnvironment
 				MEnvironment.errorWriter.println("(Saved Query)");
 				MQueryResult res = qry.runQuery();
 				MTotalInstanceIterator it = res.getTotalIterator();
-				MSolutionInstance sol = it.next();
-				MEnvironment.errorWriter.println(sol.getFacts());
+				try
+				{
+					MSolutionInstance sol = it.next();
+					MEnvironment.errorWriter.println(sol.getFacts());
+				}
+				catch(MGENoMoreSolutions e)
+				{
+					MEnvironment.errorWriter.println("No more solutions.");
+				}
 				MEnvironment.errorWriter.println(res.sufficientMaxSize);
 			}
 			

@@ -144,7 +144,7 @@ public class MPolicySet extends MPolicy
 		
 		// Recalling this method should "reset" all IDBs. Start out with a clean slate:
 		decisions.clear();
-		idbs.clear();						
+		clearIDBs();						
 				
 		// Prepare the IDBs of child policies
 		for(MPolicy dc : children)
@@ -170,9 +170,9 @@ public class MPolicySet extends MPolicy
 			for(MPolicy dc : children)
 			{
 				// Don't forget to include the child's target!
-				if(dc.idbs.containsKey(dec))
+				if(dc.containsIDB(dec))
 					preComb.put(dec, MFormulaManager.makeOr(preComb.get(dec), 
-							MFormulaManager.makeAnd(dc.idbs.get(dec), dc.target)));
+							MFormulaManager.makeAnd(dc.getIDB(dec), dc.target)));
 			}
 		}
 		
@@ -210,10 +210,10 @@ public class MPolicySet extends MPolicy
 					// (1) No older child's target applied
 					// (2) The child's IDB for this decision applies
 					// (3) The child's target applies.
-					if(child.idbs.containsKey(dec))
+					if(child.containsIDB(dec))
 					{
 						thisdec.add(MFormulaManager.makeAnd(MFormulaManager.makeAnd(MFormulaManager.makeConjunction(negpriortargets), 
-								child.idbs.get(dec)), 
+								child.getIDB(dec)), 
 								child.target));
 					}
 
@@ -232,7 +232,7 @@ public class MPolicySet extends MPolicy
 					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
 				}
 					
-				idbs.put(dec, MFormulaManager.makeDisjunction(thisdec));				
+				putIDB(dec, MFormulaManager.makeDisjunction(thisdec));				
 			}
 			
 			// OVERRIDES
@@ -243,11 +243,11 @@ public class MPolicySet extends MPolicy
 				// Here we have something similar: we can derive proto-decisions (just "matches")
 				// --- preComb
 				
-				idbs.put(dec, preComb.get(dec));
+				putIDB(dec, preComb.get(dec));
 				for(String dOverrides : pCombineWhatOverrides.get(dec))
 				{
 					// If A > B, anytime A matches, B can't hold (even if A is itself overridden)
-					idbs.put(dec, MFormulaManager.makeAnd(idbs.get(dec), 
+					putIDB(dec, MFormulaManager.makeAnd(getIDB(dec), 
 							MFormulaManager.makeNegation(preComb.get(dOverrides))));
 				}										
 				
@@ -262,11 +262,11 @@ public class MPolicySet extends MPolicy
 				
 				for(MPolicy ch : children)
 				{
-					if(ch.idbs.containsKey(dec))
-						childrenHave.add(ch.idbs.get(dec));
+					if(ch.containsIDB(dec))
+						childrenHave.add(ch.getIDB(dec));
 				}
 				
-				idbs.put(dec, MFormulaManager.makeDisjunction(childrenHave));
+				putIDB(dec, MFormulaManager.makeDisjunction(childrenHave));
 			}
 				
 		}
@@ -420,7 +420,7 @@ public class MPolicySet extends MPolicy
 		
 		/////////////////////////////////////////////////////////////
 		// (1) We're FA, so callpolice requires a non-Computer request (pol1 handles those).
-		Formula testFmla1 = polparent.idbs.get("callpolice");
+		Formula testFmla1 = polparent.getIDB("callpolice");
 		testFmla1 = MFormulaManager.makeAnd(testFmla1, MFormulaManager.makeAtom(r, Computer));		
 		
 		if(MJavaTests.testIsSatisfiable(testFmla1, voc, 3, varSorts))
@@ -428,7 +428,7 @@ public class MPolicySet extends MPolicy
 
 		/////////////////////////////////////////////////////////////
 		// (2) But can still satisfy callpolice 
-		Formula testFmla2 = polparent.idbs.get("callpolice");			
+		Formula testFmla2 = polparent.getIDB("callpolice");			
 		
 		if(!MJavaTests.testIsSatisfiable(testFmla2, voc, 3, varSorts))
 			MEnvironment.errorWriter.println("********** MPolicySet test 2: FAILED!");
@@ -452,7 +452,7 @@ public class MPolicySet extends MPolicy
 		/////////////////////////////////////////////////////////////
 		// (3) Now have CP > Deny > Permit. The callpolice decision now applies 
 		// even for a Computer (pol1's target) request.
-		Formula testFmla3 = polparent.idbs.get("callpolice");			
+		Formula testFmla3 = polparent.getIDB("callpolice");			
 		testFmla3 = MFormulaManager.makeAnd(testFmla3, MFormulaManager.makeAtom(r, Computer));	
 		
 		if(!MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))
