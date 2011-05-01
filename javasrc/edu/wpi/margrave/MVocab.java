@@ -25,6 +25,7 @@ import java.io.*;
 import java.util.*;
 
 import kodkod.ast.*;
+import kodkod.ast.operator.Multiplicity;
 
 
 class MSort
@@ -172,12 +173,8 @@ class MVariableTerm extends MTerm
 	}	
 }
 
-class MConstant
-{
-	String name;
-	Relation rel;
-	MSort type;
-	
+class MConstant extends MPredicate
+{	
 	public String toString()
 	{
 		return "Constant "+name+": "+type;
@@ -185,9 +182,7 @@ class MConstant
 	
 	MConstant(String name, Relation rel, MSort type)
 	{
-		this.name = name;
-		this.rel = rel;
-		this.type = type;
+		super(name, rel, type);
 	}
 	
 	public boolean equals(Object other)
@@ -215,8 +210,7 @@ class MFunction extends MPredicate
 	public String toString()
 	{
 		return "Function "+ name + ": "+arity+" -> "+result;
-	}
-	
+	}	
 	
 	MFunction(String name, Relation rel, List<MSort> arity, MSort result)
 	{
@@ -269,6 +263,15 @@ class MPredicate
 		this.rel = rel;
 		this.type = new ArrayList<MSort>(arity);
 		this.type.add(result);
+	}	
+	
+	// Used for constants
+	MPredicate(String name, Relation rel, MSort cType)
+	{
+		this.name = name;
+		this.rel = rel;
+		this.type = new ArrayList<MSort>(1);
+		this.type.add(cType);
 	}	
 	
 	public boolean equals(Object other)
@@ -827,9 +830,21 @@ public class MVocab {
 		//////////////////////////////////////////////					
 		// Predicates have a sig which must be respected
 		// e.g.: EdgePredicate in (Nodes x Nodes)
+		// This also covers constants and functions due to inheritance.
 		for (MPredicate aPred : predicates.values())
 			axiomSet.add(getPredTypeFormula(aPred.name));		
-
+		
+		//////////////////////////////////////////////
+		// Functions are total
+		for(MFunction aFunc : functions.values())
+			axiomSet.add(makeFunctionalFormula(aFunc.rel, "T"));
+		
+		//////////////////////////////////////////////
+		// Constants have only one atom
+		for(MConstant aConst : constants.values())
+			axiomSet.add(MFormulaManager.makeMultiplicity(aConst.rel, Multiplicity.ONE));
+		
+		
 		return MFormulaManager.makeConjunction(axiomSet); // .accept(new SimplifyFormulaV());
 	}
 

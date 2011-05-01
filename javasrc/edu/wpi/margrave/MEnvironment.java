@@ -2290,6 +2290,23 @@ public class MEnvironment
 			MEnvironment.errorWriter.println(voc.functions);
 		}
 		
+		for(String p : envIDBCollections.keySet())
+		{
+			MEnvironment.errorWriter.println("IDB Collection: "+p);
+			MIDBCollection coll = envIDBCollections.get(p);
+			
+			MEnvironment.errorWriter.println(coll.idbs);
+			MEnvironment.errorWriter.println(coll.varOrderings);
+			MEnvironment.errorWriter.println(coll.varSorts);
+			
+			if(coll instanceof MPolicyLeaf)
+			{
+				MPolicyLeaf pleaf = (MPolicyLeaf) coll;
+				MEnvironment.errorWriter.println("(Policy Leaf)");
+				pleaf.prettyPrintRules();
+			}
+		}
+		
 	}
 
 	
