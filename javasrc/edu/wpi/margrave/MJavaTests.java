@@ -57,8 +57,8 @@ public class MJavaTests
 		}
 				
 		// And make sure the vocabulary's constraints are respected!
-		fmla = MFormulaManager.makeAnd(fmla, voc.getFixedAxiomFormula());
-		fmla = MFormulaManager.makeAnd(fmla, MFormulaManager.makeConjunction(voc.getUserAxiomFormulas()));	
+		fmla = MFormulaManager.makeAnd(fmla, voc.getAxiomFormulaNoEffectOnSize());
+		fmla = MFormulaManager.makeAnd(fmla, MFormulaManager.makeConjunction(voc.getAxiomFormulasThatMayAffectSize()));	
 		
 		/////////////////////////////////////////////////////////////
 		// Now apply Kodkod

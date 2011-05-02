@@ -49,18 +49,18 @@ class MRule
 	String name;
 	private String myDecision;
 
-	Formula target;
-	Formula condition;
+	Formula target = Formula.TRUE;
+	Formula condition = Formula.TRUE;
 	
 	// Single reference to both, must be updated whenever target or condition is.
-	Formula target_and_condition;
+	Formula target_and_condition = Formula.TRUE;
 		
+	// ids of predicates this rule refers to. Get from MExploreCondition
+	Set<String> involvesPredicates = new HashSet<String>();
+	
 	MRule()
 	{
-		target = Formula.TRUE;
-		condition = Formula.TRUE;
 		
-		target_and_condition = Formula.TRUE;
 	}
 	
 	protected void setDecision(String s)
@@ -408,6 +408,10 @@ public abstract class MPolicy extends MIDBCollection
 		for(String n : idbKeys())
 		{
 			MEnvironment.errorWriter.println(n+": "+getIDB(n));
+			if(this instanceof MPolicyLeaf)
+			{
+				MEnvironment.errorWriter.println("    Uses relation names: "+((MPolicyLeaf) this).decisionUsesPredicates.get(n));
+			}
 		}
 		MEnvironment.errorWriter.println("");
 	}	

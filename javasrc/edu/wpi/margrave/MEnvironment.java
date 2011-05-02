@@ -1719,7 +1719,7 @@ public class MEnvironment
 		
 		try
 		{
-			pol.addRule(rname, decision, varOrdering, target, condition);
+			pol.addRule(rname, decision, varOrdering, target, condition, helper);
 		}
 		catch(MBaseException e)
 		{

@@ -363,6 +363,14 @@ public class FormulaSigInfo
 				SigFunction f = new SigFunction(name, r, isSing);
 				result.add(f);				
 			}
+			else if(termTypes.containsKey(r))
+			{
+				// constant, etc.
+				// cannot be isSing because c.one() and c2.one() indicate different terms
+				LeafExpression theTypeRel = termTypes.get(r);
+				SigFunction f = new SigFunction(name, theTypeRel, false);
+				result.add(f);
+			}
 			else
 			{
 				error = true;

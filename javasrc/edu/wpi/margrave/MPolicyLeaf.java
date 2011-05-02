@@ -52,6 +52,10 @@ public class MPolicyLeaf extends MPolicy
 	protected HashMap<String, MRule> rulemap;
 	protected HashMap<String, Formula> disjunctionOfRules_cache;
 	
+	// Populated by doCombineRules
+	protected HashMap<String, Set<String>> decisionUsesPredicates =
+		new HashMap<String, Set<String>>();
+	
 	// New rule combination as of 3.1
 	// A overridden by B, C
 	// B overridden by C, D ...
@@ -197,12 +201,11 @@ public class MPolicyLeaf extends MPolicy
 	 */
 	public void prettyPrintRules()
 	{
-		MEnvironment.errorWriter.println("Rules (Name ::= Decision :- Target, Condition):");
-		Iterator<MRule> blergh = rules.iterator();
-		while(blergh.hasNext())			
+		MEnvironment.errorWriter.println("Rules (Name ::= Decision :- Target, Condition. [Used Predicates]):");
+		
+		for(MRule r : rules)
 		{
-			MRule blerghr = blergh.next();
-			MEnvironment.errorWriter.println(blerghr.name + " ::= " + blerghr.decision() + " :- "+ blerghr.target + ", "+blerghr.condition);
+			MEnvironment.errorWriter.println(r.name + " ::= " + r.decision() + " :- "+ r.target + ", "+r.condition+". "+r.involvesPredicates);
 		}
 		MEnvironment.errorWriter.println("");
 	}
@@ -294,12 +297,99 @@ public class MPolicyLeaf extends MPolicy
 		
 		// Combine rules
 		doCombineRules();
+		
+		// Substitute out local IDBs that appeared on the RHS of rules.
+		// e.g. permit(x) <- not deny(x); disallowing cycles of course.
+		doSubstituteIDBs();
+		
 	}
+		
+	protected String noSuccessors(Map<String, Set<String>> tempUses)
+	{
+		for(String candidate : tempUses.keySet())
+		{
+			if(tempUses.get(candidate).size() < 1)
+			{
+				return candidate;
+			}
+		}
+		
+		return "";
+	}
+	
+	protected void doSubstituteIDBs() 
+	{
+		MEnvironment.writeToLog("MPolicyLeaf.doSubstituteIDBs() ...");
+		
+		/////////////////////////////////////////////////////////////
+		// (1) topologically sort decisions using decisionUsesPredicates 
+		List<String> sortedDecisions = new ArrayList<String>(decisions.size());
+		Map<String, Set<String>> tempUses = new HashMap<String, Set<String>>();
+		
+		// Populate temp map
+		for(String dec : decisionUsesPredicates.keySet())
+		{
+			tempUses.put(dec, new HashSet<String>());
 			
-	/*
-	 * 
-	 */ 
-	public void addRule(String rulename, String decision, List<String> freeVarOrdering, Formula aTarget, Formula aCondition)
+			for(String aPred : decisionUsesPredicates.get(dec))
+			{
+				if(decisions.contains(aPred))
+					tempUses.get(dec).add(aPred);
+			}
+		}
+		
+		MEnvironment.writeToLog("  Removed non-decisions from mapping. Got: "+tempUses);
+		
+		while(tempUses.keySet().size() > 0)
+		{
+			String aSafeDecision = noSuccessors(tempUses);
+			if(aSafeDecision.length() < 1)
+			{
+				MEnvironment.writeToLog("  Found cycle in: "+tempUses);
+				throw new MUserException("Policy contained cyclic references among rules for decisions: "+tempUses.keySet());
+			}
+			
+			// Remove from candidates
+			tempUses.remove(aSafeDecision);
+			
+			// Remove from dependencies
+			for(String dec : tempUses.keySet())
+				tempUses.get(dec).remove(aSafeDecision);
+				
+			// Add to sorted list
+			sortedDecisions.add(aSafeDecision);
+		}
+		MEnvironment.writeToLog("  Sort complete. Got: "+sortedDecisions);
+		
+		/////////////////////////////////////////////////////////////
+		// (2) Traverse the sorts in order, substituting.
+		
+		for(String dec : sortedDecisions)
+		{
+			// What predicates for this decision use?
+			for(String aPred : decisionUsesPredicates.get(dec))
+			{
+				// Concerned with decisions only, not EDBs
+				if(!decisions.contains(aPred))
+					continue;
+				
+				// Substitute!
+				
+				
+			}
+		}
+		
+	}
+
+	// For test cases 
+	protected void addRule(String rulename, String decision, List<String> freeVarOrdering, 
+			Formula aTarget, Formula aCondition)
+	{
+		addRule(rulename, decision, freeVarOrdering, aTarget, aCondition, null);
+	}
+	
+	public void addRule(String rulename, String decision, List<String> freeVarOrdering, 
+			Formula aTarget, Formula aCondition, MExploreCondition helper)
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
 	{	
 		/////////////////////////////////////////////////////////////
@@ -337,139 +427,7 @@ public class MPolicyLeaf extends MPolicy
 		{
 			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
 					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars);
-		}
-		
-		
-		// For each literal fmla in the list
-		// XXX to remove. string-handling for what used to be conjunction of literals
-	/*	for(String conj : conjuncts)
-		{
-			conj = conj.toLowerCase();
-			
-			if(conj.compareTo("true")==0)
-				continue; // no restrictions		
-				
-			Formula atom;
-			boolean pred_used_request_vars_only = true;
-			
-			String[] breakdown = conj.split(" "); // split by spaces
-							
-			boolean negation = false;
-			
-			// Just in case the user is cruel and double-negates...
-			while(breakdown[0].startsWith("!"))
-			{
-				negation = !negation;
-				breakdown[0] = breakdown[0].substring(1);			
-			}
-						
-			// getRelation will throw an exception if the name is unknown.
-			// It will also apply reflexive, transitive closure if the final char is *.
-			// special treatment for equality
-			
-			try
-			{
-				if("=".equals(breakdown[0]))
-				{
-					// EQ
-					
-					// May see a rule-scope existential for the first time here.
-					
-					Variable v1; 
-					Variable v2;
-					
-					if(!ruleFreeVars.contains(breakdown[1]))
-					{
-						otherVarLocals.put(breakdown[1], 
-								          MFormulaManager.makeVariable(rulename+"_"+breakdown[1]));
-						v1 = otherVarLocals.get(breakdown[1]);
-						pred_used_request_vars_only = false;							
-					}
-					else
-						v1 = MFormulaManager.makeVariable(breakdown[1]);
-					
-					if(!ruleFreeVars.contains(breakdown[2]))
-					{
-						otherVarLocals.put(breakdown[2], 
-								          MFormulaManager.makeVariable(rulename+"_"+breakdown[2]));
-						v2 = otherVarLocals.get(breakdown[2]);
-						pred_used_request_vars_only = false;							
-					}
-					else
-						v2 = MFormulaManager.makeVariable(breakdown[2]);
-					
-					
-					// Any exceptions for bad variable name will propagate up.					
-					
-					atom = MFormulaManager.makeEqAtom(v1, v2);
-				}	
-				else
-				{
-					// IN
-				
-					Expression relexp = getRelationExpr(breakdown[0]);					
-					
-					// breakdown elements 1-k are variables. (There are no function calls allowed syntactically:
-					// use "(Knight f) (Father s f)" rather than "(Knight (Father s))"
-					// loop to build up varexp Expression.
-
-					List<String> tupleList = new ArrayList<String>(breakdown.length-1);
-					for(int ii = 1; ii< breakdown.length;ii++)
-					{
-						// Handle rule-scope local variables and request variables differently.
-							
-						// to be removed: TN april 2011
-						// Caller must have explicitly added all variables (and say what type they are) already
-						//if(!vocab.requestVariables.containsKey(breakdown[ii]) &&
-						//		!vocab.otherVarDomains.containsKey(breakdown[ii]))
-						//	throw new MGEUnknownIdentifier("Error: Unknown variable name: "+breakdown[ii]);
-							
-						if(!ruleFreeVars.contains(breakdown[ii]))
-						{
-							otherVarLocals.put(breakdown[ii], 
-									          MFormulaManager.makeVariable(rulename+"_"+breakdown[ii]));
-							tupleList.add(rulename+"_"+breakdown[ii]);
-							pred_used_request_vars_only = false;							
-						}
-						else
-							tupleList.add(breakdown[ii]);
-					}
-														
-						
-					Expression varexp = MFormulaManager.makeVarTuple(tupleList);
-					atom = MFormulaManager.makeAtom(varexp, relexp);
-					
-					// Sanity check: arity
-					if(varexp.arity() != relexp.arity())
-						throw new MGEArityMismatch("Error: Arity mismatch between: "+varexp+" and "+relexp);
-
-				}
-				
-				// Done preparing the atom
-				Formula literal = atom;
-				if(negation)
-					literal = MFormulaManager.makeNegation(atom); 
-				
-				
-				// Is this a target or a condition?
-				// Just in case we need to distinguish between them in the future; they are XACML constructs 
-				// TARGET: domains/subdomains only, also can only ask about REQUEST variables!
-				// CONDITION: all else
-				if(vocab.isSort(breakdown[0]) && pred_used_request_vars_only)
-					thisruletarget.add(literal);
-				else
-					thisrulecondition.add(literal);
-
-			
-			}
-			catch(MGEManagerException e)
-			{
-				throw new MGEUnknownIdentifier(e.toString());
-			}
-		
-			
-		} // end for each conjunct
-		*/
+		}			
 		
 		/////////////////////////////////////////////////////////////
 		// Add this rule to the rule set.
@@ -479,30 +437,12 @@ public class MPolicyLeaf extends MPolicy
 		newrule.target = aTarget;
 		newrule.condition = aCondition;
 				
-		// XXX to remove: quantification s/b done already in the construction of aTarget, aCondition
-		
-		// Any rule-scope variables here need explicit existential quantification.
-		// (added to the CONDITION -- since the target cannot involve non-request vars.)
-		/*
-		for(Variable v : otherVarLocals.values())
+		// Remember which relation names this rule depends on.
+		if(helper != null)
 		{
-			// What was it originally?
-			for(String vname : otherVarLocals.keySet())
-				if(v.equals(otherVarLocals.get(vname)))
-				{
-					try
-					{
-						Decls d = MFormulaManager.makeOneOfDecl(v, varSorts.get(vname));					
-						newrule.condition = MFormulaManager.makeExists(newrule.condition, d);
-					}
-					catch(MGEManagerException e)
-					{
-						throw new MGEUnknownIdentifier("Error adding rule-scope quantification for rule "+rulename+". "+e);
-					}
-					break;
-				}
+			for(Relation r : helper.madeEDBs)
+				newrule.involvesPredicates.add(r.name());
 		}
-		*/
 		
 		newrule.target_and_condition = MFormulaManager.makeAnd(newrule.target, newrule.condition);		
 		rules.add(newrule);
@@ -592,7 +532,10 @@ public class MPolicyLeaf extends MPolicy
 
 		// Make sure all the formulas are appropriately initialized, since we or onto them below.
 		for(String d : decisions)
+		{
 			result.put(d, Formula.FALSE);
+			decisionUsesPredicates.put(d, new HashSet<String>());
+		}
 				
 		List<MRule> backwards = new ArrayList<MRule>(rules);
 		Collections.reverse(backwards);
@@ -624,6 +567,8 @@ public class MPolicyLeaf extends MPolicy
 						theFmla = MFormulaManager.makeOr(MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)), r.target_and_condition);  
 							
 					//System.err.println("Put: "+dec+" -> "+theFmla);
+					
+					decisionUsesPredicates.get(dec).addAll(r.involvesPredicates);
 					result.put(dec, theFmla);
 				} // end same decision				
 				
@@ -651,6 +596,8 @@ public class MPolicyLeaf extends MPolicy
 						theFmla = MFormulaManager.makeAnd(result.get(dec), MFormulaManager.makeNegation(r.target)); 		
 					
 					//System.err.println("Put: "+dec+" -> "+theFmla);
+					
+					decisionUsesPredicates.get(dec).addAll(r.involvesPredicates);
 					result.put(dec, theFmla);
 				} // end other decision
 			}  // end for each decision
@@ -673,7 +620,9 @@ public class MPolicyLeaf extends MPolicy
 		// (a) These are easy:
 		for(MRule r : rules)
 		{
-			putIDB(r.name+"_matches", r.target_and_condition);
+			String decName = r.name+"_matches";
+			putIDB(decName, r.target_and_condition);			
+			decisionUsesPredicates.put(decName, r.involvesPredicates);
 		}
 		
 		/////////////////////////////////////////////////////////////////
@@ -681,6 +630,7 @@ public class MPolicyLeaf extends MPolicy
 		// OPT likely a lot of repeated work here, but not optimizing yet
 		for(MRule r : rules)
 		{
+			Set<String> usesPreds = new HashSet<String>(r.involvesPredicates);
 			Set<Formula> rFmlas = new HashSet<Formula>();
 			rFmlas.add(r.target_and_condition);
 			for(MRule overR1 : rulesThatApplyBefore(r))
@@ -689,10 +639,17 @@ public class MPolicyLeaf extends MPolicy
 					rFmlas.add(MFormulaManager.makeNegation(overR1.target));
 				else
 					rFmlas.add(MFormulaManager.makeNegation(overR1.target_and_condition));
+				
+				usesPreds.addAll(overR1.involvesPredicates);
 			}
 			for(MRule overR2 : rulesThatCanOverride(r))
+			{
+				usesPreds.addAll(overR2.involvesPredicates);
 				rFmlas.add(MFormulaManager.makeNegation(overR2.target_and_condition));
-			putIDB(r.name+"_applies", MFormulaManager.makeConjunction(rFmlas));
+			}
+			String decName = r.name+"_applies";
+			decisionUsesPredicates.put(decName, usesPreds);
+			putIDB(decName, MFormulaManager.makeConjunction(rFmlas));
 		}
 
 		
@@ -724,6 +681,7 @@ public class MPolicyLeaf extends MPolicy
 					if(overrideDecs.contains(r.decision()))
 					{
 						negPriors.add(MFormulaManager.makeNegation(r.target_and_condition));
+						decisionUsesPredicates.get(decName).addAll(r.involvesPredicates);
 					}
 					
 				}
@@ -734,6 +692,7 @@ public class MPolicyLeaf extends MPolicy
 			
 			MEnvironment.writeToLog("\n  IDB_FA: "+IDB_FA);
 			MEnvironment.writeToLog("\n  decFmla: "+decFmla);
+			MEnvironment.writeToLog("\n  Uses Predicates:"+decisionUsesPredicates.get(decName));
 			putIDB(decName, decFmla);
 		}
 					
@@ -847,7 +806,7 @@ public class MPolicyLeaf extends MPolicy
 		if(MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))
 			MEnvironment.errorWriter.println("********** MPolicyLeaf test 3: FAILED!");
 		
-		//pol.prettyPrintIDBs();
+		pol.prettyPrintIDBs();
 		/////////////////////////////////////////////////////////////
 		
 		

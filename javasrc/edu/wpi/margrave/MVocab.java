@@ -788,7 +788,7 @@ public class MVocab {
 		return results;
 	}
 	
-	Formula getFixedAxiomFormula() throws MGEUnknownIdentifier, MGEBadIdentifierName
+	Formula getAxiomFormulaNoEffectOnSize() throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{		
 		// Returns a formula stating "This is a model of order-sorted FoL over
 		// these sorts and this ordering." 
@@ -835,31 +835,29 @@ public class MVocab {
 		// This also covers constants and functions due to inheritance.
 		for (MPredicate aPred : predicates.values())
 			axiomSet.add(getPredTypeFormula(aPred));		
-		
+				
 		//////////////////////////////////////////////
-		// Functions are total
-		// and their sig is respected
+		// sig is respected
 		for(MFunction aFunc : functions.values())	
 		{
-			axiomSet.add(makeFunctionalFormula(aFunc, "T"));
 			axiomSet.add(getPredTypeFormula(aFunc));
 		}
 		
 		//////////////////////////////////////////////
-		// Constants have only one atom
-		// and their sig is respected
+		// sig is respected
 		for(MConstant aConst : constants.values())
 		{
-			axiomSet.add(MFormulaManager.makeMultiplicity(aConst.rel, Multiplicity.ONE));
 			axiomSet.add(getPredTypeFormula(aConst));
 		}
+		// The other functional/const axioms are in the other function
+		
 		
 		//System.err.println(axiomSet);
 		
 		return MFormulaManager.makeConjunction(axiomSet); // .accept(new SimplifyFormulaV());
 	}
 
-	Set<Formula> getUserAxiomFormulas() throws MGEUnknownIdentifier,
+	Set<Formula> getAxiomFormulasThatMayAffectSize() throws MGEUnknownIdentifier,
 			MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName {
 		// Returns a set of formulas asserting sig restrictions
 		// AXIOMS for our domain of discourse that will be added to the query
@@ -869,7 +867,27 @@ public class MVocab {
 
 		Set<Formula> results = new HashSet<Formula>();
 
-		// (6) User-defined axioms -- things like "lone R", "A disjoint B", etc.
+		
+		
+		//////////////////////////////////////////////
+		// Functions are total
+		// and their sig is respected
+		for(MFunction aFunc : functions.values())	
+		{
+			results.add(makeFunctionalFormula(aFunc, "T"));
+		}
+		
+		//////////////////////////////////////////////
+		// Constants have only one atom
+		// and their sig is respected
+		for(MConstant aConst : constants.values())
+		{
+			results.add(MFormulaManager.makeMultiplicity(aConst.rel, Multiplicity.ONE));
+		}
+		
+		
+		
+		// User-defined axioms -- things like "lone R", "A disjoint B", etc.
 		results.addAll(axioms.getConstraintFormulas());
 
 		// This restriction is necessary because other constraint strings may

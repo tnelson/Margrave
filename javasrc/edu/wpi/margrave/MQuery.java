@@ -347,6 +347,8 @@ public class MQuery extends MIDBCollection
 		Map<LeafExpression, Set<LeafExpression>> disjointness = new HashMap<LeafExpression, Set<LeafExpression>>();
 		
 		Map<Expression, LeafExpression> termTypes = new HashMap<Expression, LeafExpression>();
+		
+		// All terms seen by the vocabulary so far
 		for(Expression expr : vocab.exprToTerm.keySet())
 		{
 			MTerm t = vocab.exprToTerm.get(expr);
@@ -361,6 +363,12 @@ public class MQuery extends MIDBCollection
 				MConstant theConst = vocab.constants.get(((MConstantTerm) t).constName);
 				termTypes.put(expr, theConst.type.get(0).rel);
 			}
+		}
+		
+		// And constants (which may not have been mentioned, but will be!)
+		for(MConstant c : vocab.constants.values())
+		{
+			termTypes.put(c.rel, c.type.get(0).rel);
 		}
 		
 		for (MSort s : vocab.sorts.values()) {
@@ -713,8 +721,8 @@ public class MQuery extends MIDBCollection
 
 		// Formulas for fixed and query axioms.
 		// Query axioms affect Herbrand Universe size!
-		Formula myFixedAxioms = vocab.getFixedAxiomFormula();
-		Set<Formula> myQueryAxioms = vocab.getUserAxiomFormulas();
+		Formula myFixedAxioms = vocab.getAxiomFormulaNoEffectOnSize();
+		Set<Formula> myQueryAxioms = vocab.getAxiomFormulasThatMayAffectSize();
 		Formula queryAxiomsConjunction = MFormulaManager
 				.makeConjunction(myQueryAxioms);
 
