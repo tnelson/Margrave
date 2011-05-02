@@ -252,9 +252,9 @@ public class FormulaSigInfo
 				}
 				
 				LeafExpression rel = (LeafExpression) comp.right();
-				
-				// Check for var in non-sort predicate (no effect)
-				if(predicates.containsKey(rel))
+								
+				// Not a sort? Not a sort-as-pred!
+				if(!sorts.contains(rel))
 					return cache(comp, new HashSet<SigFunction>());
 				
 				// sort as predicate: variable

@@ -206,7 +206,7 @@
                      ) #:mutable)
 
 ;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-tuples) #:mutable)
+(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable)
 
 ;Maps strings (such as "s") to their corresponding atoms
 ;(define atom-hash (make-hash))
@@ -247,7 +247,8 @@
                   
                   ;if the relation (predicate) doesn't exist in the hash yet, create it
                   (when (not (hash-ref predicate-hash relation-name #f))
-                    (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty)))                    
+                    (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty (or relation-is-sort
+                                                                                                                   (equal? (string-ref relation-name 0) #\$)))))
                   
                   (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
                          [tuple-elements (get-child-elements relation 'TUPLE)]) 
@@ -290,7 +291,7 @@
                                             (if (= relation-arity 1) 
                                                 
                                                 ; Sort (tuple is unary)                                                  
-                                                (begin 
+                                                (begin                                                   
                                                   ; Note that this atom belongs to this sort
                                                   (when relation-is-sort
                                                     (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))                             
@@ -298,7 +299,7 @@
                                                   (list atom-struct)) 
                                                 
                                                 
-                                                ; Predicate (tuple is k-ary, where k is the arity of the pred)                           
+                                                ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
                                                 (cons atom-struct (parse-tuple-contents (rest atom-elements) )))))))))]
                       
                       (for-each insert-tuple tuple-elements)))))))
@@ -337,8 +338,8 @@
                            (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
           (define (predicate-helper hash-pos)
             (cond [(false? hash-pos) ""]
-                  [else (let ((predicate (hash-iterate-value predicate-hash hash-pos)))
-                          (if (= (predicate-arity predicate) 1) ;If type, continue, otherwise print
+                  [else (let ([predicate (hash-iterate-value predicate-hash hash-pos)])
+                          (if (predicate-is-sort-or-variable predicate)
                               (predicate-helper (hash-iterate-next predicate-hash hash-pos))
                               (string-append
                                (predicate-name predicate)

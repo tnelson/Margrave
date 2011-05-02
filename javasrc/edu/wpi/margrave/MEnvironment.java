@@ -79,7 +79,7 @@ class MVariableVectorAssertion
 class MExploreCondition
 {
 	Formula fmla;
-	Set<MIDBCollection> seenIDBs = new HashSet<MIDBCollection>();
+	Set<MIDBCollection> seenIDBCollections = new HashSet<MIDBCollection>();
 	
 	/* So we can detect bad EDB names
 	when combining vocabs at very end, 
@@ -441,7 +441,7 @@ class MExploreCondition
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
 	{
 		fmla = f;
-		seenIDBs.add(pol);
+		seenIDBCollections.add(pol);
 		
 		for(MTerm t : vec)
 			terms.add(t);
@@ -529,7 +529,7 @@ class MExploreCondition
 	MExploreCondition and(MExploreCondition oth)	
 	{		
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
-		seenIDBs.addAll(oth.seenIDBs);
+		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
@@ -564,7 +564,7 @@ class MExploreCondition
 	MExploreCondition or(MExploreCondition oth)	
 	{		
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			
-		seenIDBs.addAll(oth.seenIDBs);
+		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
@@ -637,7 +637,7 @@ class MExploreCondition
 	MExploreCondition implies(MExploreCondition oth)	
 	{
 		fmla = MFormulaManager.makeImplication(fmla, oth.fmla);
-		seenIDBs.addAll(oth.seenIDBs);
+		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
 		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
@@ -653,7 +653,7 @@ class MExploreCondition
 	MExploreCondition iff(MExploreCondition oth)	
 	{
 		fmla = MFormulaManager.makeIFF(fmla, oth.fmla);
-		seenIDBs.addAll(oth.seenIDBs);	
+		seenIDBCollections.addAll(oth.seenIDBCollections);	
 		madeEDBs.addAll(oth.madeEDBs);	
 		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
@@ -676,7 +676,7 @@ class MExploreCondition
 		
 	MExploreCondition addSeenIDBCollections(List<MIDBCollection> moreIDBCollections)
 	{
-		seenIDBs.addAll(moreIDBCollections);		
+		seenIDBCollections.addAll(moreIDBCollections);		
 		return this;
 	}	
 }
@@ -818,16 +818,6 @@ public class MEnvironment
 	}
 */
 	
-	static Formula getIDB(String collname, String idbname)
-	{
-		MIDBCollection collection = getPolicyOrView(collname);
-		if(collection == null)
-			return null;
-		
-		if(collection.containsIDB(idbname))
-			return collection.getIDB(idbname);
-		return null;
-	}
 	
 	static Formula getOnlyIDB(String collname)
 	{
@@ -988,7 +978,8 @@ public class MEnvironment
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
-				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				idbElement.setAttribute("is-false", String.valueOf(coll.getIDB(key).equals(Formula.FALSE)));
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+"."+key));
 				idbsElement.appendChild(idbElement);
 			}
 			theElement.appendChild(idbsElement);
@@ -1082,11 +1073,14 @@ public class MEnvironment
 		return xmldoc;
 	}
 	
-	static void writeToLog(String s) {
-   	 try{
+	static void writeToLog(String s)
+	{
+		MCommunicator.writeToLog(s);
+   	 /*try
+   	 {
    		    // Create file 
    		    FileWriter fstream = new FileWriter("log.txt", true);
-   		        BufferedWriter out = new BufferedWriter(fstream);
+   		    BufferedWriter out = new BufferedWriter(fstream);
    		    out.write(s);
    		    //Close the output stream
    		    out.close();
@@ -1094,7 +1088,7 @@ public class MEnvironment
    		    {
    		      //Catch exception if any
    		    	MEnvironment.errorWriter.println("Error: " + e.getMessage());
-   		    }
+   		    }*/
     }
 
 	private static Document getVocabInfo(MVocab voc) 
@@ -1366,6 +1360,8 @@ public class MEnvironment
 
 	public static Document preparePolicy(String pname)
 	{
+		writeToLog("Preparing: "+pname);
+		
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);
 		MIDBCollection pol = envIDBCollections.get(pname);
@@ -1373,6 +1369,8 @@ public class MEnvironment
 		{
 			try
 			{
+				writeToLog("  (It was a policy.)");
+
 				((MPolicy)pol).initIDBs();
 				return successResponse();
 			}
@@ -1699,7 +1697,7 @@ public class MEnvironment
 		}
 	}
 
-	public static Document addRule(String pname, String rname, String decision, List<String> varOrdering, Formula target, Formula condition)
+	public static Document addRule(String pname, String rname, String decision, List<String> varOrdering, Formula target, Formula condition, MExploreCondition helper)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);			
@@ -1708,6 +1706,13 @@ public class MEnvironment
 			return errorResponse(sNotExpected, sPolicyLeaf, pname);
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
+		// Vocab needs to know about terms mentioned in this rule.
+		for(MTerm t : helper.terms) 
+		{
+			writeToLog("\nRule "+rname+" saw term: "+t.toString());
+			pol.vocab.exprToTerm.put(t.expr, t);
+		}
+				
 		// No longer just a list of literal fmlas in a single conjunction.
 		// Now we have an actual formula, potentially with quantifiers!
 		// (But still need to separate target/condition for XACML.)

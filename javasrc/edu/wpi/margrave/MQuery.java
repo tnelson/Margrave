@@ -4032,7 +4032,7 @@ public class MQuery extends MIDBCollection
 		// **********************************************************
 		MVocab uber = null;
 
-		for (MIDBCollection p : mpc.seenIDBs) {
+		for (MIDBCollection p : mpc.seenIDBCollections) {
 			if (uber == null)
 				uber = p.vocab;
 			else			
@@ -4097,6 +4097,14 @@ public class MQuery extends MIDBCollection
 		//Map<Variable, Expression> freeVars = new HashMap<Variable, Expression>();
 		//handleSortAssertions(uber, mpc, freeVars);
 		
+		if(iDebugLevel >= 3)
+		{
+			MEnvironment.outWriter.println("DEBUG: Query Formula = "+ qryFormula);
+			MEnvironment.outWriter.println("DEBUG: MPC made EDBs: "+mpc.madeEDBs);
+			MEnvironment.outWriter.println("DEBUG: MPC saw IDB Collections: "+mpc.seenIDBCollections);
+			MEnvironment.outWriter.println("DEBUG: MPC terms: "+mpc.terms);
+		}
+		
 		Set<Variable> freeVarsUnsorted = qryFormula.accept(new FreeVariableCollectionV());		
 		
 		
@@ -4150,25 +4158,7 @@ public class MQuery extends MIDBCollection
 		//System.err.println(freeVarsUnsorted);
 		//System.err.println(publish);
 		//System.err.println(sortsForPublish);
-		
-		// NEXT: Unpublished vars
-		/*for (Variable v : freeVarsUnsorted)
-		{
-			if (publish.contains(v.name()))
-				continue;
 
-			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
-			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
-
-			// If not published, bury the quantifier in the IDB formula
-			idbFormula = MFormulaManager.makeExists(idbFormula, d);
-
-			// include in the query as normal
-			qryFormula = MFormulaManager.makeExists(qryFormula, d);
-
-			prefixVarOrder.add(v.name());
-		}
-		*/
 		// There should be NO unpublished free variables. If there are, throw an error. 
 		// (need to get the sort for them somehow!)
 		// quantifiers are now inserted explicitly in the query, not "inferred".
@@ -4186,7 +4176,7 @@ public class MQuery extends MIDBCollection
 		// Reverse because we are building the quantifiers from inside out
 		Collections.reverse(prefixVarOrder);
 
-		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBs);
+		MQuery result = new MQuery(uber, qryFormula, mpc.seenIDBCollections);
 
 		//MEnvironment.outStream.println("Query created. Fmla = ");
 		//qryFormula.accept(new FormulaIndentPrintV());
@@ -4273,8 +4263,12 @@ public class MQuery extends MIDBCollection
 		result.name = queryID; // used for saving query result, query knows its own ID
 		
 		// Populate exprToTerm
+		MEnvironment.writeToLog("\nQuery created with ID "+queryID+". Terms were: "+mpc.terms);
 		for(MTerm t : mpc.terms)
+		{
+			MEnvironment.writeToLog("\nQuery condition saw term: "+t.toString());
 			result.vocab.exprToTerm.put(t.expr, t);
+		}
 		
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 

@@ -298,8 +298,7 @@ public class MPolicyLeaf extends MPolicy
 			
 	/*
 	 * 
-	 */
-//	public void addRule(String rulename, String decision, List<String> freeVarOrdering, List<String> conjuncts) 
+	 */ 
 	public void addRule(String rulename, String decision, List<String> freeVarOrdering, Formula aTarget, Formula aCondition)
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
 	{	
@@ -311,12 +310,6 @@ public class MPolicyLeaf extends MPolicy
 			dupeRuleSuffix++;
 		}
 		
-		// XXX to remove. renaming is done by caller now.
-		// We rename bound variables internally. e.g. if policy declares variable x : A,
-		// and two separate rules use x as a rule-scope existential, we create x_rule1 and x_rule2
-		// to standardize apart.
-		HashMap<String, Variable> otherVarLocals = new HashMap<String, Variable>();
-
 		/////////////////////////////////////////////////////////////
 		// Variable ordering on this rule 
 		List<Variable> ruleFreeVars = new ArrayList<Variable>();
@@ -710,8 +703,11 @@ public class MPolicyLeaf extends MPolicy
 		// FA is made more efficient by a single traversal:
 		Map<String, Formula> IDB_FAs = buildConciseIDBFAs();
 		
+		MEnvironment.writeToLog("\nIn doCombineRules...  "+decisions);
 		for(String decName : decisions)
 		{			
+			MEnvironment.writeToLog("\nIn doCombineRules for decision "+decName);
+			
 			Formula IDB_FA = IDB_FAs.get(decName);
 			// decFmla = IDB_FA and none of the overrides decision rules apply
 									
@@ -735,6 +731,9 @@ public class MPolicyLeaf extends MPolicy
 			
 			negPriors.add(IDB_FA); // don't forget that the original rule applies!			
 			Formula decFmla = MFormulaManager.makeConjunction(negPriors);
+			
+			MEnvironment.writeToLog("\n  IDB_FA: "+IDB_FA);
+			MEnvironment.writeToLog("\n  decFmla: "+decFmla);
 			putIDB(decName, decFmla);
 		}
 					

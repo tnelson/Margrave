@@ -103,6 +103,9 @@ public class MJavaTests
 	throws MBaseException
 	{
 		MEnvironment.writeOutLine("Starting java-based tests.");
+	
+		MCommunicator.initializeLog();
+		MCommunicator.writeToLog("\n\n");
 		
 		/////////////////////////////////////////////////////////////
 		RelationAndTermReplacementV.unitTests();

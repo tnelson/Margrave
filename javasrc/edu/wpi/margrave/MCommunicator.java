@@ -718,7 +718,7 @@ public class MCommunicator
         					
         						// condition is used exclusively for XACML, so it's ignored here.
         						Formula condition = Formula.TRUE;        					        					
-        						theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition);
+        						theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition, targetCondition);
         					}
         					else if(secondChildNode.getNodeName().equalsIgnoreCase("VARIABLE-DECLARATION"))
         					{
@@ -1160,7 +1160,9 @@ public class MCommunicator
         		Variable theVar = MFormulaManager.makeVariable(varname);
         		Relation theRel = MFormulaManager.makeRelation(typename, 1);
         		Formula fmla = MFormulaManager.makeAtom(theVar, theRel);
-        		        		
+        		        
+        		writeToLog("\nNew Explore condition (ISA): "+fmla);
+        		
         		return new MExploreCondition(fmla, theRel, theVar);
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
@@ -1174,10 +1176,10 @@ public class MCommunicator
         		
         		writeToLog("\nEQUALS: "+term1+" = "+term2+"\n\n");
         		        		
-        		        		
         		//Variable v1 = MFormulaManager.makeVariable(idname1);
         		//Variable v2 = MFormulaManager.makeVariable(idname2);
         		Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
+        		writeToLog("\nNew Explore condition (equals): "+fmla);
         		        		        	
         		return new MExploreCondition(fmla, term1, term2, true);        		
         	}
@@ -1269,11 +1271,11 @@ public class MCommunicator
         				if(idbf != null)
         				{
         					// Perform variable substitution
-        					//System.err.println("view before: "+idbf);
+        	        		writeToLog("\nView IDB before substitution: "+idbf);
         					idbf = performSubstitution(relationName, pol, idbf, terms);
-        					//System.err.println("view after: "+idbf);
         					
         					// Assemble MExploreCondition object
+        	        		writeToLog("\nNew Explore condition (view): "+idbf);
         					return new MExploreCondition(idbf, pol, relationName, terms);        		
         				}
         			}
@@ -1292,6 +1294,7 @@ public class MCommunicator
         			f = MFormulaManager.makeAtom(termvector, rel);
 
         			// No variable substitution needed!
+            		writeToLog("\nNew Explore condition (EDB): "+f);
         			return new MExploreCondition(f, rel, terms);
 
         		}
@@ -1312,10 +1315,10 @@ public class MCommunicator
         		Formula idbf = validateDBIdentifier(collName, relationName);
         		
         		// Substitute variables in policy's IDB for terms in query
-        		//System.err.println("pol before: "+idbf);
+        		writeToLog("\nNon-view IDB before substitution: "+idbf);
         		idbf = performSubstitution(relationName, pol, idbf, terms);
-        		//System.err.println("pol after: "+idbf);
         		
+        		writeToLog("\nNew Explore condition (non-view IDB): "+idbf);
         		return new MExploreCondition(idbf, pol, relationName, terms);
         	}
         	else if(name.equalsIgnoreCase("TRUE"))
@@ -1565,19 +1568,23 @@ public class MCommunicator
 	protected static Formula validateDBIdentifier(String objn, String dbn)
 	throws MUserException
 	{
+		writeToLog("\nMCommunicator.validateDBIdentifier invoked for: "+objn+", "+dbn);
 		
 		// Is objn a policy name? If not, error.
-		 MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
-		 
-		 if(pol == null)
-			 throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);
-			   	
-		 // Is idb an idb in objn? If not, error
-		 Formula idbf = MEnvironment.getIDB(objn, dbn);
-		 if(idbf == null)
-			 throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);
-		 
-		 return idbf;
+		MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
+		 		
+		if(pol == null)
+			throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);
+			   				
+		writeToLog("\n  Collection found. Contains="+pol.containsIDB(dbn));
+		
+		if(pol.containsIDB(dbn))
+		{
+			writeToLog("\n  Returning: "+pol.getIDB(dbn));
+			return pol.getIDB(dbn);
+		}
+		else
+			throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);		 
 	}
 	
 	private static void report_arity_error(String idbSymbol, List<MTerm> termlist, MIDBCollection coll) throws MUserException

@@ -11,7 +11,7 @@
              (Predicates
               (Predicate conflicted Reviewer Paper)
               (Predicate assigned Reviewer Paper))
-             (Constants (Constant c Resource))
+             (Constants (Constant 'c Resource))
              (Functions (Function f Resource Resource)))
 
 	      

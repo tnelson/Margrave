@@ -201,12 +201,12 @@
     [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
     [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
     [(not f) (xml-make-not (handle-formula #'f))]
-    [(exists f var type) (xml-make-exists (handle-formula #'f) 
-                                          (symbol->string (syntax->datum #'var))
-                                          (symbol->string (syntax->datum #'type)))]
-    [(forall f var type) (xml-make-forall (handle-formula #'f)
-                                          (symbol->string (syntax->datum #'var))
-                                          (symbol->string (syntax->datum #'type)))]
+    [(exists var type f ) (xml-make-exists (symbol->string (syntax->datum #'var))
+                                           (symbol->string (syntax->datum #'type))
+                                           (handle-formula #'f))]
+    [(forall var type f ) (xml-make-forall (symbol->string (syntax->datum #'var))
+                                           (symbol->string (syntax->datum #'type))
+                                           (handle-formula #'f))]
     [(isa var type) (xml-make-isa-formula #'var #'type)]
     
     ; last, so it doesn't supercede keywords
@@ -638,14 +638,16 @@
                  
                
                (define (handle-constant const)
-                 ; No colon. Just (Constant a A)
+                 ; No colon. Just (Constant 'a A)
                  (syntax-case const [Constant]                    
-                   [(Constant cname crel) (and (lower-id-syn? #'cname)
-                                      (is-valid-type? #'crel))  
-                                           #`( cname
-                                               #,(add-constant #'myvocabname #'cname #'crel))] 
-                   [(Constant cname crel) (not (lower-id-syn? #'cname))
-                                 (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]     
+                   [(Constant 'cname crel) (and (lower-id-syn? (syntax cname))
+                                               (is-valid-type? (syntax crel)))  
+                                          #`( cname
+                                              #,(add-constant (syntax myvocabname) (syntax cname) (syntax crel)))] 
+                   
+                   [(Constant 'cname crel) (not (lower-id-syn? (syntax cname)))
+                                 (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
+                   [(constant cname crel) (raise-syntax-error `Vocab "Invalid constant name. Constant names must be preceded with a single quote. For instance: (Constant 'c A)" #f #f (list const) )]
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]))
                

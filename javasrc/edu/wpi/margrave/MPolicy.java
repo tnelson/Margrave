@@ -65,7 +65,7 @@ class MRule
 	
 	protected void setDecision(String s)
 	{
-		myDecision = s.toLowerCase();
+		myDecision = s;
 	}
 	
 	protected String decision()
@@ -194,7 +194,7 @@ abstract class MIDBCollection
 public abstract class MPolicy extends MIDBCollection
 {	
 	// Formula which dictates when this policy can apply. (Used mostly for XACML.)
-	public Formula target;
+	public Formula target = Formula.TRUE; // default to always-applies.	
 	
 	Set<String> decisions = new HashSet<String>();
 	
@@ -208,9 +208,7 @@ public abstract class MPolicy extends MIDBCollection
 		super();
 		
 		vocab = voc;
-		name = n.toLowerCase();				
-		
-		target = Formula.TRUE; // default to always-applies.	
+		name = n;					
 	}
 			
 	public String printCombinators(Set<String> combineFA, Map<String, Set<String>> combineWhatOverrides)
