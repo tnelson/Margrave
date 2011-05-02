@@ -2319,6 +2319,37 @@ public class MEnvironment
 		envQueryResults.remove("last");
 		envIterators.remove("last");		
 	}
+		
+	static Formula performSubstitution(String idbname, MIDBCollection coll, Formula f, List<Expression> newterms)
+	throws MUserException, MGEUnknownIdentifier
+	{		
+		// Replace expressions (here, variables) with other expressions
+		// e.g. x becomes f(y, c)		
+		
+		if(f == null)
+			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+idbname);
+		if(newterms.size() != coll.varOrderings.get(idbname).size())
+			throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+newterms+
+					", but collection expects arity "+coll.varOrderings.get(idbname).size()+".");
+		
+		HashMap<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+			
+		// coll knows what its idbs free variable vector is.
+		int ii = 0;
+		writeToLog("\nsubs found coll.varOrdering for IDB = "+coll.varOrderings.get(idbname));
+		for(Variable oldv : coll.varOrderings.get(idbname))		
+		{
+			Expression newterm = newterms.get(ii);
+			toReplace.put(oldv, newterm);
+			
+			writeToLog("\nsubs will replace var: "+oldv+" with the term: "+newterm);
+			ii ++;	
+		}
+
+		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+	}
+	
+	
 	public static void debug() 
 	{
 		for(String v : envVocabularies.keySet())

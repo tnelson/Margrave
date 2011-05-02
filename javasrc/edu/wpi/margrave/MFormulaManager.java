@@ -753,6 +753,7 @@ public class MFormulaManager
 		return newRel;		
 	}
 
+	// Called by replacement visitor
 	static Expression substituteVarTuple(Expression expr, HashMap<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{

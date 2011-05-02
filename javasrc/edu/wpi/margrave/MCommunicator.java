@@ -1543,27 +1543,14 @@ public class MCommunicator
 		// Replace expressions (here, variables) with other expressions
 		// e.g. x becomes f(y, c)		
 		
-		if(f == null)
-			throw new MGEUnknownIdentifier("Did not have a formula for IDB: "+collectionIdSymbol);
-		if(newterms.size() != coll.varOrderings.get(collectionIdSymbol).size())
-			report_arity_error(collectionIdSymbol, newterms, coll);
+		List<Expression> newtermsexprs = new ArrayList<Expression>(newterms.size());
+		for(MTerm t : newterms)
+			newtermsexprs.add(t.expr);
 		
-		HashMap<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
-			
-		// coll knows what its idbs free variable vector is.
-		int ii = 0;
-		writeToLog("\nsubs found coll.varOrdering for IDB = "+coll.varOrderings.get(collectionIdSymbol));
-		for(Variable oldv : coll.varOrderings.get(collectionIdSymbol))		
-		{
-			Expression newterm = newterms.get(ii).expr;
-			toReplace.put(oldv, newterm);
-			
-			writeToLog("\nsubs will replace var: "+oldv+" with the term: "+newterm);
-			ii ++;	
-		}
-		
-		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+		return MEnvironment.performSubstitution(collectionIdSymbol, coll, f, newtermsexprs);	
 	}
+	
+
 	
 	protected static Formula validateDBIdentifier(String objn, String dbn)
 	throws MUserException
@@ -1587,12 +1574,6 @@ public class MCommunicator
 			throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);		 
 	}
 	
-	private static void report_arity_error(String idbSymbol, List<MTerm> termlist, MIDBCollection coll) throws MUserException
-	{
-		throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+termlist+
-				", but collection expects arity "+coll.varOrderings.get(idbSymbol).size()+".");
-	}
-
 	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MUserException
 	{
 		if(names == null)

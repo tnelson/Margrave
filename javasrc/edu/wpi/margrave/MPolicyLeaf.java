@@ -375,6 +375,17 @@ public class MPolicyLeaf extends MPolicy
 				
 				// Substitute!
 				
+				// DFSGAFD
+				// OH. It's going to be a potentially different substitution for each **INSTANCE**. We will be replacing each atomic fmla separately?
+				sadasd;
+				List<Expression> toExprOrdering = new ArrayList<Expression>();
+				// TODO construct toExprOrdering
+				
+				Formula oldUsedIDBf = getIDB(aPred);
+				Formula newUsedIDBf = MEnvironment.performSubstitution(aPred, this, oldUsedIDBf, toExprOrdering);
+				
+				// Replace each i
+				
 				
 			}
 		}
