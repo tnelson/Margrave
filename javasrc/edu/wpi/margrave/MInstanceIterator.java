@@ -1787,11 +1787,11 @@ class MQueryResult
 	
 	public int countModelsAtSize(Integer n)
 	{	
+		int count = 0; 
 		try
 		{
 			MInstanceIterator it = getTotalIterator();
 			
-			int count = 0; 
 			while(it.hasNext()) 
 			{ 
 				try 
@@ -1804,16 +1804,19 @@ class MQueryResult
 				{} 
 				
 				if(count > iModelCountingLimit)
-					throw new MUserException("There were more than "+iModelCountingLimit+" scenarios.");
+					break;
 			
-			}
-			
-			return count;
+			}						
 		}
 		catch(MBaseException e)
 		{
 			return -1; // error
-		}		
+		}	
+		
+		if(count > iModelCountingLimit)
+			throw new MUserException("There were more than "+iModelCountingLimit+" scenarios.");
+		
+		return count;
 	}
 
 	public boolean isSatisfiable()
