@@ -79,6 +79,7 @@
   [lex:uppercase-letter (:/ #\A #\Z)]
   [lex:lowercase-letter (:/ #\a #\z)]
   [lex:digit (:/ #\0 #\9)]
+  [lex:allowed-non-alphanum (:or #\_ #\- )]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
   
@@ -203,15 +204,15 @@
     (token-<natural> (string->symbol lexeme))]
    
    ; lowercase-ids
-   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit)))
+   [(:: lex:lowercase-letter (:* (:or lex:letter lex:digit lex:allowed-non-alphanum)))
     (token-<lowercase-id> (string->symbol lexeme))]
    
    ; Capitalized ids
-   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit)))
+   [(:: lex:uppercase-letter (:* (:or lex:letter lex:digit lex:allowed-non-alphanum)))
     (token-<capitalized-id> (string->symbol lexeme))]
    
    ; Quoted ids (trim off the quote)
-   [(:: "'" (:+ (:or lex:letter lex:digit)))
+   [(:: "'" (:+ (:or lex:letter lex:digit lex:allowed-non-alphanum)))
     (token-<quoted-id> (string->symbol (substring lexeme 1)))]
    
    ; Identifiers enclosed in double quotes
@@ -219,7 +220,7 @@
    ; allow escaping the double-quote via \"   
    
    ; Quoted only lowercase letters and digits? produce a lowercase id:
-   [(:: #\" lex:lowercase-letter (:* (:or lex:letter lex:digit)) #\")
+   [(:: #\" lex:lowercase-letter (:* (:or lex:letter lex:digit lex:allowed-non-alphanum)) #\")
     (token-<lowercase-id> (string->symbol 
                              (substring lexeme 1 (- (string-length lexeme) 1))))]
    
