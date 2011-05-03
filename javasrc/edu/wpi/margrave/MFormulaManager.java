@@ -718,6 +718,14 @@ public class MFormulaManager
 	}
 	
 	
+	static String varCacheToString()
+	{
+		String result = "";
+		for(String v : vars.keySet())
+			result += "variable "+v+"="+vars.get(v).hashCode()+"  ";
+		return result;
+	}
+	
 	static Variable makeVariable(String name)
 	{
 		if(!hasBeenInitialized)
@@ -729,6 +737,9 @@ public class MFormulaManager
 			return cachedValue; // otherwise, recreate
 		
 		Variable newVar = Variable.unary(name);
+		
+		//MEnvironment.outWriter.println("Variable CREATED: "+newVar+" = "+newVar.hashCode());		
+		
 		vars.put(name, newVar);
 		return newVar;
 	}
@@ -802,7 +813,10 @@ public class MFormulaManager
 	{
 		List<Expression> key = new ArrayList<Expression>(varNames.size());
 		for(String vname : varNames)
-			key.add(MFormulaManager.makeVariable(vname));
+		{
+			Variable theVar = MFormulaManager.makeVariable(vname);
+			key.add(theVar);
+		}
 		return makeExprTupleE(key);
 	}
 

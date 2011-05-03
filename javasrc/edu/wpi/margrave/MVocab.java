@@ -25,6 +25,7 @@ import java.io.*;
 import java.util.*;
 
 import kodkod.ast.*;
+import kodkod.ast.operator.ExprOperator;
 import kodkod.ast.operator.Multiplicity;
 
 
@@ -1022,7 +1023,7 @@ public class MVocab {
 		return false;
 	}
 
-	public static String constructAdornment(BinaryExpression be,
+/*	public static String constructAdornment(BinaryExpression be,
 			HashMap<Variable, String> sortenv)
 	{
 		List<String> lst = inorderTraversalOfVariableProduct(be, null, sortenv);
@@ -1035,7 +1036,9 @@ public class MVocab {
 
 		return result;
 	}
-
+*/
+	
+	// Called by MatrixTuplingV
 	public static String constructIndexing(BinaryExpression be,
 			HashMap<Variable, Integer> indexing) {
 		List<String> lst = inorderTraversalOfVariableProduct(be, indexing, null);
@@ -1069,6 +1072,103 @@ public class MVocab {
 		return inorderTraversalOfVariableProduct(be, null, null);
 	}
 */
+	
+	// OPT Variant on inorderTraversalOfVariableProduct below.
+	// Duplicate code but sufficient complex that I've just
+	// copied and modified for now. - TN 5/11
+	static List<Expression> getInOrderTerms(Expression e)
+	{
+		List<Expression> result = new ArrayList<Expression>();
+		
+		/////////////////////////////////////////////////////////////
+		// Setup for DFS
+		List<Expression> dfslist = new LinkedList<Expression>();
+		if(e instanceof BinaryExpression)
+		{			
+			BinaryExpression be = (BinaryExpression) e;
+			
+			if(!be.op().equals(ExprOperator.PRODUCT))
+			{
+				// Not a product, so must be a term.
+				result.add(be);
+				return result;
+			}
+			
+			dfslist.add(be.left());
+			dfslist.add(be.right());
+		}
+		else if (e instanceof NaryExpression)
+		{
+			NaryExpression ne = (NaryExpression) e;
+			
+			if(!ne.op().equals(ExprOperator.PRODUCT))
+			{
+				// Not a product, so must be a term.
+				result.add(ne);
+				return result;
+			}
+
+			for(int ii=0;ii<ne.size();ii++)
+			{
+				dfslist.add(ne.child(ii));
+			}			
+		}
+		
+		/////////////////////////////////////////////////////////////
+		// DFS
+		while (dfslist.size() > 0)
+		{
+			Expression next = dfslist.get(0);
+			dfslist.remove(0);
+
+			if (next instanceof Variable)
+			{
+				result.add(next);
+			}
+			else if (next instanceof BinaryExpression)
+			{
+				BinaryExpression benext = (BinaryExpression) next;
+				if(!benext.op().equals(ExprOperator.PRODUCT))
+				{
+					// Not a product, so must be a term.
+					result.add(benext);				
+				}
+				else
+				{
+					dfslist.add(0, benext.right());
+					dfslist.add(0, benext.left());
+				}
+			} // end BinaryExpression
+			else if(next instanceof NaryExpression)
+			{
+				NaryExpression nenext = (NaryExpression) next;
+				
+				if(!nenext.op().equals(ExprOperator.PRODUCT))
+				{
+					// Not a product, so must be a term.
+					result.add(nenext);				
+				}
+				else
+				{
+					// In reverse order
+					for(int ii=nenext.size()-1;ii>=0;ii--)
+					{
+						Expression childexpr = nenext.child(ii);
+						dfslist.add(0, childexpr);
+					}
+				}
+			} // end NaryExpression
+
+			else
+				throw new MUserException("getInOrderTerms: Unsupported Expression type: "+next);
+		} // while there remain DFS nodes to explore
+		
+		
+		return result;
+	} // end getInOrderTerms
+	
+	
+	// OPT Duplicate code with above function for now. - TN
 	private static List<String> inorderTraversalOfVariableProduct(
 			Expression e, HashMap<Variable, Integer> indexing,
 			HashMap<Variable, String> sortenv)
@@ -1079,24 +1179,32 @@ public class MVocab {
 		List<String> index_result = new ArrayList<String>();
 		List<String> varname_result = new ArrayList<String>();
 
+		/////////////////////////////////////////////////////////////
+		// Setup for DFS
 		List<Expression> dfslist = new LinkedList<Expression>();
 		if(e instanceof BinaryExpression)
-		{
+		{			
 			BinaryExpression be = (BinaryExpression) e;
+			if(!be.op().equals(ExprOperator.PRODUCT))
+				throw new MUserException("inorderTraversalOfVariableProduct: Not product: "+be);
+			
 			dfslist.add(be.left());
 			dfslist.add(be.right());
 		}
 		else if (e instanceof NaryExpression)
 		{
 			NaryExpression ne = (NaryExpression) e;
-			
-			// TODO Still no support below (need to add cause)
+			if(!ne.op().equals(ExprOperator.PRODUCT))
+				throw new MUserException("inorderTraversalOfVariableProduct: Not product: "+ne);
+
 			for(int ii=0;ii<ne.size();ii++)
 			{
 				dfslist.add(ne.child(ii));
 			}			
 		}
 
+		/////////////////////////////////////////////////////////////
+		// DFS
 		while (dfslist.size() > 0)
 		{
 			Expression next = dfslist.get(0);
@@ -1122,6 +1230,17 @@ public class MVocab {
 				// Add right first (so left ends up in its proper place)
 				dfslist.add(0, benext.right());
 				dfslist.add(0, benext.left());
+			}
+			else if(next instanceof NaryExpression)
+			{
+				NaryExpression nenext = (NaryExpression) next;
+				
+				// In reverse order
+				for(int ii=nenext.size()-1;ii>=0;ii--)
+				{
+					Expression childexpr = nenext.child(ii);
+					dfslist.add(0, childexpr);
+				}
 			}
 
 			else

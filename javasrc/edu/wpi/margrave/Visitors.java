@@ -19,6 +19,7 @@
 
 package edu.wpi.margrave;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1232,6 +1233,70 @@ class RelationsUsedCollectionV extends AbstractCacheAllCollector<Relation> {
 
 }
 
+
+class MIDBReplacementV extends AbstractCacheAllReplacer
+{
+	// Visitor will find ComparisonFormula, need to extract ... what?								
+	// soln: voc.getInOrderTerms(expr)
+	
+	Expression rhsTarget;
+	List<Variable> varVector;
+	Formula idbFormula;
+	
+	MIDBReplacementV(Expression rhsTarget, List<Variable> varVector, Formula idbFormula)
+	{		
+		super(new HashSet<Node>());
+		
+		this.rhsTarget = rhsTarget;
+		this.varVector = varVector;
+		this.idbFormula = idbFormula;		
+	}
+	
+	public Formula visit(ComparisonFormula comp) 
+	{
+		if (cache.containsKey(comp))
+			return lookup(comp);
+
+		Expression rhs = comp.right();
+		if(!rhs.equals(rhsTarget))
+		{
+			cached.add(comp);
+			return cache(comp, comp);
+		}
+		
+		// This is an IDB reference that we want to replace.		
+		Expression lhs = comp.left();
+				
+		List<Expression> toExprOrdering = MVocab.getInOrderTerms(lhs); 
+		
+		if(toExprOrdering.size() != varVector.size())
+		{
+			// error!
+			throw new MGEArityMismatch("MIDBReplacementV given varVector: "+varVector+" whose arity did not match "+toExprOrdering);
+		}
+				
+		// Substitute each var from varVector in idbFormula with the
+		// matching expr in toExprOrdering, then return the result.
+		
+		HashMap<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+		
+		int ii = 0;
+		MEnvironment.writeToLog("\nMIDBReplacementV replacing occurrence of relation "+rhsTarget+" for terms "+toExprOrdering);
+		for(Variable oldv : varVector)		
+		{
+			Expression newterm = toExprOrdering.get(ii);
+			toReplace.put(oldv, newterm);					
+			ii ++;	
+		}
+
+		Formula newComp = idbFormula.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));	
+		
+		cached.add(newComp);
+		return cache(comp, newComp);
+	}
+	
+	
+}
 
 
 /*

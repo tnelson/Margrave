@@ -373,20 +373,13 @@ public class MPolicyLeaf extends MPolicy
 				if(!decisions.contains(aPred))
 					continue;
 				
-				// Substitute!
-				
-				// DFSGAFD
-				// OH. It's going to be a potentially different substitution for each **INSTANCE**. We will be replacing each atomic fmla separately?
-				sadasd;
-				List<Expression> toExprOrdering = new ArrayList<Expression>();
-				// TODO construct toExprOrdering
-				
-				Formula oldUsedIDBf = getIDB(aPred);
-				Formula newUsedIDBf = MEnvironment.performSubstitution(aPred, this, oldUsedIDBf, toExprOrdering);
-				
-				// Replace each i
-				
-				
+				// Replace (with substitution). Potentially different substitution for each occurrence, so use a visitor.
+				Formula fullFormula = getIDB(dec);
+				Formula subIdbFormula = getIDB(aPred); 
+				Relation targetRel = MFormulaManager.makeRelation(aPred, varOrderings.get(aPred).size());
+				List<Variable> targetVars = varOrderings.get(aPred);
+				MIDBReplacementV vis = new MIDBReplacementV(targetRel, targetVars, subIdbFormula);
+				putIDB(dec, fullFormula.accept(vis));																			
 			}
 		}
 		
@@ -412,7 +405,8 @@ public class MPolicyLeaf extends MPolicy
 		}
 		
 		/////////////////////////////////////////////////////////////
-		// Variable ordering on this rule 
+		// Variable ordering on this rule from the rule head; 
+		// e.g. (permit s a r) :- ...
 		List<Variable> ruleFreeVars = new ArrayList<Variable>();
 		for(String vname : freeVarOrdering)
 		{
@@ -433,12 +427,41 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////////
 		// Make sure The decision is not expecting a different arity.
+		// This is what we used after receiving prior rules with the same decision.
 		List<Variable> expectedIDBFreeVars = varOrderings.get(decision);
-		if(!ruleFreeVars.equals(expectedIDBFreeVars))
+		
+		// order-independent
+		Set<Variable> expectedSet = new HashSet<Variable>(expectedIDBFreeVars);
+		Set<Variable> thisSet = new HashSet<Variable>(ruleFreeVars);
+		
+		if(!expectedSet.equals(thisSet))
 		{
+			String hashStr = "";
+			
+			int ii = 0;
+			for(Variable v1 : expectedIDBFreeVars)
+			{
+				Variable v2 = ruleFreeVars.get(ii);
+				if(!v1.equals(v2))
+				{
+					hashStr += "Mismatch between var "+v1.toString()+" (hash="+v1.hashCode()+") and var "+
+					v2.toString()+" (hash="+v2.hashCode()+")\n";
+					hashStr += "MFormulaManager had hash="+MFormulaManager.makeVariable(v1.toString()).hashCode();
+				}
+				ii++;
+			}
+			hashStr += "\n";
+			hashStr += "Formula Manager's variable cache was: "+MFormulaManager.varCacheToString()+"\n";
+			
+			
 			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
-					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars);
+					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars+". Hashes were: \n"+hashStr);
+
 		}			
+		
+		// TODO check that those variables are indeed free in the rule.		
+		
+		// TODO re-order and substitute if order is different
 		
 		/////////////////////////////////////////////////////////////
 		// Add this rule to the rule set.
