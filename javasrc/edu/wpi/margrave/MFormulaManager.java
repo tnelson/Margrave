@@ -328,7 +328,7 @@ class MWeakValueHashMap<K, V> implements Map<K, V>
 			MWeakValue<V> weakVal = (MWeakValue)ref;
 			
 			// It _is_ possible for the poll to return References that are not in the map.
-			// In that case...ignore.						
+			// In that case...ignore.			
 			if(weakVal.getKey() != null)
 				internalMap.remove(weakVal.getKey());
 			
@@ -738,12 +738,24 @@ public class MFormulaManager
 		
 		Variable newVar = Variable.unary(name);
 		
-		//MEnvironment.outWriter.println("Variable CREATED: "+newVar+" = "+newVar.hashCode());		
+		// Code to track bug that may occur only in Eclipse 
+		//MEnvironment.writeToLog("Variable CREATED: "+newVar+" = "+newVar.hashCode());
+		//StackTraceElement[] tr = new Throwable().getStackTrace();				
+		//MEnvironment.writeToLog(traceToString(tr));
 		
 		vars.put(name, newVar);
 		return newVar;
 	}
 
+	public static String traceToString(StackTraceElement[] tr)
+	{
+		String x = "";
+		
+		for(int ii=0;ii<tr.length;ii++)
+			x += tr[ii]+" \n";
+		return x;
+	}
+	
 	static Relation makeRelation(String name, int arity)
 	{
 		if(!hasBeenInitialized)
@@ -1511,16 +1523,6 @@ public class MFormulaManager
 		
 	}		
 	
-	static boolean varIsSaved(String varname)
-	{
-		// Can't use containsKey. It isn't trustworthy when using
-		// WeakReferences because of race conditions.
-		
-		Variable var = vars.get(varname);
-		//MEnvironment.writeErrLine("Searching for "+varname+" got "+var);
-		return var != null;		
-	}
-
 	public static Element getStatisticsNode(Document xmldoc)
 	{
 		// Return a structured object with statistics, instead of a string.

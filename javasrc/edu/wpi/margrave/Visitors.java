@@ -1272,7 +1272,7 @@ class MIDBReplacementV extends AbstractCacheAllReplacer
 		if(toExprOrdering.size() != varVector.size())
 		{
 			// error!
-			throw new MGEArityMismatch("MIDBReplacementV given varVector: "+varVector+" whose arity did not match "+toExprOrdering);
+			throw new MGEArityMismatch("MIDBReplacementV given varVector: "+varVector+" whose arity did not match LHS breakdown: "+toExprOrdering+". LHS was: "+lhs);
 		}
 				
 		// Substitute each var from varVector in idbFormula with the
