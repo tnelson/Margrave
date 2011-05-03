@@ -1,4 +1,4 @@
 (Vocab AbadiBinder
        (Types
-        (Type Person)              
-        (Type Door))
+        (Type Person > Manager)              
+        (Type Door)))

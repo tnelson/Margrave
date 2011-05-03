@@ -3,5 +3,6 @@
          (Variable p Person)
          (Variable d Door))
         (Rules                     
-          (CharliePermitsEveryone = (canOpen p d) :- true)))
+          (CharliePermitsAdmins = (canOpen p d) :- (admin p) (Door d))
+          (CharlieAdminsAreManagers = (admin p) :- (Manager p)))) 
 
