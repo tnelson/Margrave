@@ -419,7 +419,7 @@ public class MPolicyLeaf extends MPolicy
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
 			// (Sorts of all these variables should be known already.)			
 			putIDB(decision, Formula.FALSE);
-			this.varOrderings.put(decision, ruleFreeVars);	
+			varOrderings.put(decision, ruleFreeVars);	
 			
 			// Add the decision to the list as well
 			decisions.add(decision);
@@ -458,9 +458,7 @@ public class MPolicyLeaf extends MPolicy
 					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars+". Hashes were: \n"+hashStr);
 
 		}			
-		
-		// TODO check that those variables are indeed free in the rule.		
-		
+				
 		// TODO re-order and substitute if order is different
 		
 		/////////////////////////////////////////////////////////////
@@ -470,6 +468,7 @@ public class MPolicyLeaf extends MPolicy
 		newrule.name = rulename;	
 		newrule.target = aTarget;
 		newrule.condition = aCondition;
+		newrule.varOrdering = ruleFreeVars;
 				
 		// Remember which relation names this rule depends on.
 		if(helper != null)
@@ -657,6 +656,7 @@ public class MPolicyLeaf extends MPolicy
 			String decName = r.name+"_matches";
 			putIDB(decName, r.target_and_condition);			
 			decisionUsesPredicates.put(decName, r.involvesPredicates);
+			varOrderings.put(decName, r.varOrdering);
 		}
 		
 		/////////////////////////////////////////////////////////////////
@@ -684,6 +684,7 @@ public class MPolicyLeaf extends MPolicy
 			String decName = r.name+"_applies";
 			decisionUsesPredicates.put(decName, usesPreds);
 			putIDB(decName, MFormulaManager.makeConjunction(rFmlas));
+			varOrderings.put(decName, r.varOrdering);
 		}
 
 		

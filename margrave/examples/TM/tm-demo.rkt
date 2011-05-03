@@ -32,4 +32,5 @@ let QA2[p: Person, d: Door] be QAlice(p, d) and d:GradCtrDoor;
 // Who can open ALL doors?
 let QA3[p: Person] be forall d : Door (QAlice(p, d));
 
-let QA4[p: Person, d: Door] be QAlice(p, d) and Alice.AliceTrustsBob_matches(p, d);
+let QA4[p: Person, d: Door] be QAlice(p, d) and Alice.AliceTrustsBob_matches(p, d)
+  DEBUG 3;

@@ -58,6 +58,8 @@ class MRule
 	// ids of predicates this rule refers to. Get from MExploreCondition
 	Set<String> involvesPredicates = new HashSet<String>();
 	
+	List<Variable> varOrdering = new ArrayList<Variable>();
+	
 	MRule()
 	{
 		

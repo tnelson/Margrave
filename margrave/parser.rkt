@@ -515,19 +515,11 @@ Margrave did not understand the condition or options given around \"~a\"."
                 
         ; ***********************************************************        
         ; atomic formulas        
-        
-        ; a predicate in the condition can be
-        ; r (an edb relation)
-        ; pol.permit or Pol.Child.permit and so on (policy idb)
-        ; Q (a saved query idb)
-        
-        ; original doesn't match case properly
-;        (condition-predicate 
-;         [(<capitalized-id>) (list $1)]
-;         [(condition-predicate DOT <capitalized-id>) (append $1 (list $3))])
-         
+                 
+        ; lowercase id can only be last in the list
         (complex-condition-predicate
          [(<capitalized-id> DOT <lowercase-id>) (list $1 $3)]
+         [(<capitalized-id> DOT <capitalized-id>) (list $1 $3)]
          [(<capitalized-id> DOT complex-condition-predicate) (append (list $1) $3)])
         
         ;(atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN)         
