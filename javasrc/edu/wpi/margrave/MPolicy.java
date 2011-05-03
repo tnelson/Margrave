@@ -201,8 +201,6 @@ public abstract class MPolicy extends MIDBCollection
 	// Affects how first-applicable is handled.
 	public boolean isXACML = false;
 	
-	
-	
 	MPolicy(String n, MVocab voc)
 	{
 		super();
@@ -211,6 +209,13 @@ public abstract class MPolicy extends MIDBCollection
 		name = n;					
 	}
 			
+	public void enhanceVocabularyWith(MVocab other)
+	{
+		// 	Add other's info to vocab.
+		MEnvironment.writeToLog("\n[Enhancing Vocab in "+name+"]");
+		vocab = vocab.combineWith(other);
+	}
+	
 	public String printCombinators(Set<String> combineFA, Map<String, Set<String>> combineWhatOverrides)
 	{
 		if(combineFA.size() < 1 && combineWhatOverrides.size() < 1)

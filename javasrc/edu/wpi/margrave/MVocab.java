@@ -1418,7 +1418,18 @@ public class MVocab {
 			uber.predicates.put(d, predicates.get(d));
 		for (String d : other.predicates.keySet())
 			uber.predicates.put(d, other.predicates.get(d));
-
+		
+		// Constants
+		for (String d : constants.keySet())			
+			uber.constants.put(d, constants.get(d));
+		for (String d : other.constants.keySet())
+			uber.constants.put(d, other.constants.get(d));
+		
+		// Functions
+		for (String d : other.functions.keySet())
+			uber.functions.put(d, other.functions.get(d));
+		for (String d : functions.keySet())			
+			uber.functions.put(d, functions.get(d));
 		
 		// Constraints
 		for (String con : axioms.setsSingleton) {
