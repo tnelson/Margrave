@@ -1080,6 +1080,13 @@ public class MVocab {
 	{
 		List<Expression> result = new ArrayList<Expression>();
 		
+		// If we just have a Variable, don't bother with the dfs.
+		if(e instanceof Variable)
+		{
+			result.add(e);
+			return result;
+		}
+		
 		/////////////////////////////////////////////////////////////
 		// Setup for DFS
 		List<Expression> dfslist = new LinkedList<Expression>();
