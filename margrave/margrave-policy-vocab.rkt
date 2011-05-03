@@ -189,6 +189,11 @@
     
     [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
 
+; Return list of components
+; (One or more non-dot characters)
+(define-for-syntax (handle-dotted-pred syn)
+  (define str (symbol->string (syntax->datum syn)))
+  (regexp-match* #rx"[^.]+" str))
 
 ; Takes formula syntax and returns XML for the formula.
 ; todo: detect valid vars, sorts, etc.
@@ -213,12 +218,13 @@
     ; P.r or r
     [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
                                (dotted-id-syn? #'dottedpred))
-                           (xml-make-atomic-formula (symbol->string (syntax->datum #'dottedpred)) 
+                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
                                                     (map handle-term (syntax->list #'(t0 t ...)))) ]
     ; A
     [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
                       (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
     [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
+
 
 ; Used so that rules can be written nicely, e.g.
 ; ... :- (p x) (r y)
@@ -995,7 +1001,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
-;(expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
+;(expand-once '(Policy uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
 ; Why not case-insensitive in match?
 ; (expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
 ;(expand-once '(Policy polname uses vocabname (Variables (Variable x A) (Variable y B) (Variable z C)) (RComb (fa Permit Deny) (over Permit CallPolice) (over Deny CallPolice)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
