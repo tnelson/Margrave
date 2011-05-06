@@ -402,7 +402,8 @@
   (let* ((string-buffer (open-output-string)))
     (local ((define (write s)
               (write-string s string-buffer)))
-      (write "\nSTATISTICS: \n")
+      ;(write "\nSTATISTICS: \n")
+      (write (format "~n"))
       (let* ([computed-max (get-attribute-value stat-element 'computed-max-size)]
              [user-provided-max (get-attribute-value stat-element 'user-max-size)]
              [used-max (get-attribute-value stat-element 'max-size)]
@@ -415,15 +416,17 @@
             (write (format "Margrave computed that ~a would be a sufficient size ceiling.\n" computed-max)))
 
         (if (< user-provided-max-num 0)
-            (write "No ceiling explicitly provided in the query's CEILING clause.\n")
-            (write (format "Size ceiling given in the query's CEILING clause: ~a.\n" user-provided-max)))
+            (write (format "No ceiling explicitly provided. Used size ceiling: ~a.~n" used-max))
+            (write (format "Size ceiling manually given: ~a. Used size ceiling: ~a.~n"
+                           user-provided-max
+                           used-max)))
         
-        (write (format "Used size ceiling: ~a\n" used-max))
+        ;(write (format "Used size ceiling: ~a\n" used-max))
         
         (cond [(< computed-max-num 0)
                (write "WARNING:  Margrave could not calculate a sufficient ceiling size. Completeness is not guaranteed! You may need to check for larger scenarios.\n")]
               [(< used-max-num computed-max-num)
-               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, use the CEILING clause of EXPLORE.\n" used-max-num))])
+               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, set the CEILING parameter.\n" used-max-num))])
         
         (get-output-string string-buffer)))))
 

@@ -62,7 +62,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-alpha-internal-1")
+(define margrave-version "3.1-alpha")
 
 ;****************************************************************
 ;;Java Connection
@@ -97,7 +97,7 @@
         (printf "Using the java executable in the path given: ~a.~n" concrete-path)
         (set! java-path concrete-path))
       (begin
-        (printf "Searching for java executable ...~n")
+        ;(printf "Searching for java executable ...~n")
         (let* ([path-value (getenv path-env)]
                [env-paths (cons (path->string (current-directory)) (regexp-split java-class-separator path-value))]
                [paths-with-java (findf (lambda (a-path) ; find first match in list                                    
@@ -107,7 +107,7 @@
                [the-path (or paths-with-java "")])
           (if (equal? the-path "")
               (printf "Could not find java executable in PATH. Margrave will be unable to run.~n")
-              (printf "Using the java executable in: ~a~n" the-path))
+              (printf "Using the java executable found in: ~a~n" the-path))
           (set! java-path the-path)))))
 
 ; Search for the java exe
@@ -203,8 +203,8 @@ gmarceau
         ;(printf "~a~n" margrave-params)        
        ; (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
         (printf "--------------------------------------------------~n")
-        (printf "Starting Margrave's Java engine...~n    Margrave path was: ~a~n    Java path was: ~a~nJVM params: ~a~nMargrave params: ~a~n"
-                home-path java-path user-jvm-params user-margrave-params)
+        (printf "Starting Margrave at: ~a~n    JVM params: ~a~n    Margrave params: ~a~n"
+                home-path user-jvm-params user-margrave-params)
         (printf "Welcome to Margrave version ~a.~n" margrave-version)
         (printf "--------------------------------------------------~n")
         ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau

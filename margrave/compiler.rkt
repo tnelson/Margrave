@@ -406,7 +406,7 @@
                  ; !!! todo environment change [currently handled in java]
                  
                  ; (3) resulting lambda will just return polname
-                 (list polname))))
+                 (list (string-append "Policy " polname " loaded.")))))
 
 (define (syntax->string s)
   (symbol->string (syntax->datum s)))
