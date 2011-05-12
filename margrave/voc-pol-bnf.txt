@@ -108,7 +108,7 @@ The terminal <id> represents any identifier, regardless of case.
           "'" <low-id> |
           "(" <low-id> <LIST-OF-TERMS> ")"
 
-<PCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
+<RCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
 
 <FACS> ::= "(" "FA" <LIST-OF-TYPES> ")"
 
