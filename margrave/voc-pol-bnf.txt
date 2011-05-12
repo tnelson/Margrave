@@ -57,7 +57,8 @@ The terminal <id> represents any identifier, regardless of case.
 
 
 	
-<POLICY> ::= "(" "Policy"
+<POLICY> ::= "(" "Policy" 
+             "uses" <id>
    	 <TARGET-CLAUSE>
             <VARIABLES-CLAUSE>
             <RULES-CLAUSE>
