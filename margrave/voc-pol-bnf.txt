@@ -40,7 +40,7 @@ The terminal <id> represents any identifier, regardless of case.
 
 <FUNCTIONS-CLAUSE> ::= "(" "Functions" <LIST-OF-FUNCS> ")"
 <LIST-OF-FUNCS> ::= <FUNC> | <FUNC> <LIST-OF-FUNCS>
-<FUNC> ::= "(" "Functions" <low-id> <LIST-OF-TYPPES>  ")"
+<FUNC> ::= "(" "Function" <low-id> <LIST-OF-TYPES>  ")"
 
 
 /////////////////////////////////////////////////////////////////////
