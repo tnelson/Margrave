@@ -77,7 +77,7 @@ The terminal <id> represents any identifier, regardless of case.
 // Any deeper than top level, must give an explicit "and".
 
 <RULE> ::= "(" <id> "="
-          <low-id> "(" <VAR-LIST> ")" ":-"
+          "(" <low-id> <VAR-LIST> ")" ":-"
           <LIST-OF-FORMULAS>
           ")"
 
@@ -106,7 +106,7 @@ The terminal <id> represents any identifier, regardless of case.
 
 <TERM> ::= <low-id> |
           "'" <low-id> |
-          <low-id> "(" <LIST-OF-TERMS> ")"
+          "(" <low-id> <LIST-OF-TERMS> ")"
 
 <PCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
 
