@@ -102,14 +102,10 @@ public class MCommunicator
 		// Uses Apache Commons IO for WriterOutputStream.
 		System.setErr(new PrintStream(new WriterOutputStream(MEnvironment.errorWriter), true));
 	
-		
-		// Re-direct all System.out input to our custom buffer.
-		// (We have already saved System.out.)
-		// This is useful in case we start getting GC messages from SAT4j.
-		System.setOut(new PrintStream(new WriterOutputStream(MEnvironment.outWriter), true));
-		
 		initializeLog();
-		writeToLog("\n\n");		
+		writeToLog("\n\n");
+		
+
 		
 		readCommands();
 
@@ -211,7 +207,8 @@ public class MCommunicator
         //Takes a MARGRAVE-COMMAND node
         private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException
         {        	
-        	NodeList childNodes = node.getChildNodes();
+        	//List<Node> childNodes = getElementChildren(node);
+        	
         	String type = node.getAttributes().item(0).getNodeValue();
         	writeToLog("  Type attribute was: " + type + "\n");
 
@@ -320,10 +317,9 @@ public class MCommunicator
 	        						// <PUBLISH><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION>
 	        						//          <VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH>
 	        						
-	        						NodeList decls = publishNode.getChildNodes();
-	        						for(int ii=0; ii<decls.getLength();ii++)
-	        						{
-	        							Node varDeclNode = decls.item(ii);  	        								
+	        						List<Node> decls = getElementChildren(publishNode);
+	        						for(Node varDeclNode : decls)
+	        						{	        							  	        							
 	        							String varname = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "varname");
 	            						String vartype = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "sort");
 	            						publ.add(varname);
@@ -332,7 +328,7 @@ public class MCommunicator
 
 	        					}
 	        					if (idbOutputNode != null) {
-	        						NodeList idbChildNodes = idbOutputNode.getChildNodes();
+	        						List<Node> idbChildNodes = getElementChildren(idbOutputNode);
 	        						
 	        						idbOut = atomicFormulasToHashmap(idbChildNodes);
 	        					}
@@ -524,7 +520,7 @@ public class MCommunicator
         					
         					Node showNode = getChildNode(n, "SHOW");
         					Node forCasesNode = getForCasesNode(showNode);
-        					NodeList atomicFormulaNodes = showNode.getChildNodes();
+        					List<Node> atomicFormulaNodes = getElementChildren(showNode);
         					
         					// not this call
         					//NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
@@ -538,7 +534,7 @@ public class MCommunicator
         					if (forCasesNode != null)
         					{
         						//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
-        						NodeList forCasesAtomicFormulaNodes = forCasesNode.getChildNodes();
+        						List<Node> forCasesAtomicFormulaNodes = getElementChildren(forCasesNode);
         						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
         					}
         					        			
@@ -763,10 +759,9 @@ public class MCommunicator
         private static void handleComb(Node n, Set<String> rFA, Map<String, Set<String>> rO)
         {
         	Node combListNode = getChildNode(n, "COMB-LIST");
-			NodeList combNodes = combListNode.getChildNodes();
-			for(int ii=0;ii<combNodes.getLength();ii++)
+			List<Node> combNodes = getElementChildren(combListNode);
+			for(Node combNode : combNodes)
 			{
-				Node combNode = combNodes.item(ii);
 				if("FA".equalsIgnoreCase(combNode.getNodeName()))
 				{
 					List<String> names = getListElements(combListNode, "FA", "id");
@@ -785,7 +780,7 @@ public class MCommunicator
 			
 		}
 
-		private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(NodeList childNodes)
+		private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(List<Node> childNodes)
         {
         	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
         
@@ -928,15 +923,10 @@ public class MCommunicator
         private static String getRelationSign(Node n) {
         	return getNodeAttribute(n, "RELATION", "sign");
         }
-        private static List<Node> getListOfRelationNodes(Node n) {
+        private static List<Node> getListOfRelationNodes(Node n)
+        {
         	Node relationsNode = getChildNode(n, "RELATIONS");
-        	List<Node> relationNodes = new LinkedList<Node>();
-        	NodeList childNodes = relationsNode.getChildNodes();
-
-        	for (int i = 0; i < childNodes.getLength(); i++) {
-        		relationNodes.add(childNodes.item(i));
-        	}
-
+        	List<Node> relationNodes = getElementChildren(relationsNode);
         	return relationNodes;
         } 
         
@@ -989,11 +979,12 @@ public class MCommunicator
         }
         
         //ATOMIC FORMULAS
-        public static NodeList getAtomicFormulaNodesFromList(Node n) {
+        public static List<Node> getAtomicFormulaNodesFromList(Node n) 
+        {
         	Node child = getChildNode(n, "ATOMIC-FORMULA-LIST");
         	if(child == null)
         		return null;
-        	return child.getChildNodes();
+        	return getElementChildren(child);
         }
         
         private static String getLoadFileName(Node n) {
@@ -1060,12 +1051,10 @@ public class MCommunicator
         //If no child, returns null
         private static Node getChildNode(Node n, String nodeName)
         {
-        	NodeList childNodes = n.getChildNodes();
-        	
-        	Node childNode;
-        	for (int i = 0; i < childNodes.getLength(); i++)
+        	List<Node> childNodes = getElementChildren(n);
+        	        	
+        	for (Node childNode : childNodes)
         	{
-        		childNode = childNodes.item(i);
         		if (nodeName.equalsIgnoreCase(childNode.getNodeName()))
         		{
         			return childNode;
@@ -1116,17 +1105,33 @@ public class MCommunicator
         	
         	LinkedList<String> attributeValues = new LinkedList<String>();
         	
-        	NodeList childNodes = listNode.getChildNodes();
-        	for (int i = 0; i < childNodes.getLength(); i++) {
-        		attributeValues.add(childNodes.item(i).getAttributes().getNamedItem(attributeName).getNodeValue());
+        	List<Node> childNodes = getElementChildren(listNode);
+        	for (Node aNode : childNodes) {
+        		attributeValues.add(aNode.getAttributes().getNamedItem(attributeName).getNodeValue());
         	}
         	return attributeValues;
         }
 
+        private static List<Node> getElementChildren(Node n)
+        {
+        	// NodeList does not implement Iterable
+        	NodeList nlResult = n.getChildNodes();
+        	List<Node> result = new ArrayList<Node>();
+        	for(int ii = 0;ii<nlResult.getLength();ii++)
+        	{
+        		Node aChild = nlResult.item(ii);
+        		//if(aChild.getNodeType() != Node.TEXT_NODE)
+        		if(aChild.getNodeType() == Node.ELEMENT_NODE)
+        			result.add(aChild);        		
+        	}
+        		        	 
+        	return result;
+        }
+        
         //Expects the node one down from condition node
         private static MExploreCondition exploreHelper(Node n) throws MUserException, MGEManagerException, MGEUnknownIdentifier
         {
-        	NodeList childNodes = n.getChildNodes();
+        	List<Node> childNodes = getElementChildren(n);
 
         	String name = n.getNodeName();
         	
@@ -1139,10 +1144,14 @@ public class MCommunicator
 
         	if (name.equalsIgnoreCase("AND"))
         	{        		        		
-        		return exploreHelper(childNodes.item(0)).and(exploreHelper(childNodes.item(1)));
+        		return exploreHelper(childNodes.get(0)).and(exploreHelper(childNodes.get(1)));
         	}
-        	else if (name.equalsIgnoreCase("OR")) {
-        		return exploreHelper(n.getFirstChild()).or(exploreHelper(n.getChildNodes().item(1)));
+        	else if (name.equalsIgnoreCase("OR")) 
+        	{
+        		List<Node> cList = getElementChildren(n);
+        		Node n1 = cList.get(0);
+        		Node n2 = cList.get(1);
+        		return exploreHelper(n1).or(exploreHelper(n2));
         	}
         	else if (name.equalsIgnoreCase("IMPLIES"))
         	{
@@ -1172,8 +1181,11 @@ public class MCommunicator
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
         		// Comes in with 2 TERMS now instead of 2 maybe-variables.    
-        		MTerm term1 = termHelper(childNodes.item(0));
-        		MTerm term2 = termHelper(childNodes.item(1));
+        		
+        		childNodes = getElementChildren(n);
+        		
+        		MTerm term1 = termHelper(childNodes.get(0));
+        		MTerm term2 = termHelper(childNodes.get(1));
         			
         		//String idname1 = getNodeAttribute(n, "EQUALS", "v1");
         		//String idname2 = getNodeAttribute(n, "EQUALS", "v2");
@@ -1220,12 +1232,10 @@ public class MCommunicator
         		/////////////////////////////////////////////////////
         		// Relation name
         		Node relationNameNode = getChildNode(n, "RELATION-NAME");
-        		NodeList relationComponents = relationNameNode.getChildNodes();        		        	
+        		List<Node> relationComponents = getElementChildren(relationNameNode);        		        	
         		List<String> relationNameComponents = new ArrayList<String>();        		
-        		for(int ii=0;ii<relationComponents.getLength();ii++)
+        		for(Node theNode : relationComponents)
         		{
-        			// not Iterable...
-        			Node theNode = relationComponents.item(ii);        			
         			// <ID id=\"P\"/>
         			String nameStr = getNodeAttribute(theNode, "ID", "id");
         			relationNameComponents.add(nameStr);
@@ -1235,12 +1245,10 @@ public class MCommunicator
         		// Terms
         		
         		Node termsNode = getChildNode(n, "TERMS");
-        		NodeList termsNodeComponents = termsNode.getChildNodes();   
+        		List<Node> termsNodeComponents = getElementChildren(termsNode);   
         		List<MTerm> terms = new ArrayList<MTerm>();
-        		for(int ii=0;ii<termsNodeComponents.getLength();ii++)
+        		for(Node theNode : termsNodeComponents)
         		{
-        			// not Iterable...
-        			Node theNode = termsNodeComponents.item(ii);
         			MTerm theTerm = termHelper(theNode); 
         			
         			//String nameStr = getNodeAttribute(theNode, "ID", "id");
@@ -1337,7 +1345,7 @@ public class MCommunicator
 
 	private static MTerm termHelper(Node n) 
      {
-    	 NodeList childNodes = n.getChildNodes();
+    	 List<Node> childNodes = getElementChildren(n);
 
     	 String name = n.getNodeName();
      	
@@ -1353,9 +1361,10 @@ public class MCommunicator
      		String funcName = getNodeAttribute(n, "FUNCTION-TERM", "func");
      		
      		List<MTerm> subTerms = new ArrayList<MTerm>();
-     		for(int ii=0;ii<childNodes.getLength();ii++)
+     		for(Node aNode : childNodes)
      		{
-     			subTerms.add(termHelper(childNodes.item(ii)));
+     			MTerm aChildTerm = termHelper(aNode);
+     			subTerms.add(aChildTerm);
      		}
      		
      		return new MFunctionTerm(funcName, subTerms);
@@ -1368,20 +1377,25 @@ public class MCommunicator
      		String constName = getNodeAttribute(n, "CONSTANT-TERM", "id");     		
      		return new MConstantTerm(constName);
      	}
-     	else
+     	else if (name.equalsIgnoreCase("VARIABLE-TERM"))
      	{
      		String varName = getNodeAttribute(n, "VARIABLE-TERM", "id");
-     		return new MVariableTerm(varName);
+     		return new MVariableTerm(varName);     
+     	}
+     	else
+     	{     		     		
+     		throw new MGEUnsupportedXACML("Unsupported term type: "+name);
      	}
      }
 
 	//Returns a list containing the value of the first attribute of every child node of n
-     protected static List<String> getListChildren(Node n) {
-         NodeList childNodes = n.getChildNodes();
+     protected static List<String> getListChildren(Node n) 
+     {
+         List<Node> childNodes = getElementChildren(n);
          List<String> list = new LinkedList<String>();
 
-          for (int i = 0; i < childNodes.getLength(); i++) {
-              list.add(childNodes.item(i).getAttributes().item(0).getNodeValue());
+          for (Node aNode : childNodes) {
+              list.add(aNode.getAttributes().item(0).getNodeValue());
           }
           
           return list;
@@ -1622,6 +1636,14 @@ public class MCommunicator
 "<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 				
+		String aTupledQuery = 
+			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
+			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
+			"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
+			"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+			"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH><TUPLING /></EXPLORE></MARGRAVE-COMMAND> ";
+		
+		
 		/*handleXMLCommand(testInfo);
 		handleXMLCommand(testInfoWithID);
 		handleXMLCommand(reset);
@@ -1664,10 +1686,16 @@ public class MCommunicator
 		String aShow = 
 			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry\" /></MARGRAVE-COMMAND>";
 		String aReset = "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>";
+		String aShowT = 
+			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"MyTupledQry\" /></MARGRAVE-COMMAND>";
 
 		handleXMLCommand(aQuery);
-		handleXMLCommand(aShow); // results in a model xml response
-		handleXMLCommand(aReset);
+		handleXMLCommand(aShow); // results in a model xml response (or unsat)
+		handleXMLCommand(aReset); // success
+		
+		handleXMLCommand(aTupledQuery);
+		
+		handleXMLCommand(aShowT);
 		
 		MEnvironment.debug();
 		

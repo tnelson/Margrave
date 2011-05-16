@@ -1726,10 +1726,6 @@ class MQueryResult
 	
 	protected Formula qryFormulaWithAxioms;
 	
-	// Stop at a reasonable number of models. Each model seen must be remembered,
-	// leading to high memory consumption at large numbers of models counted/printed.
-	public static final int iModelCountingLimit = 50000;	
-	
 	MQuery forQuery;
 	
 	protected MQueryResult(MQuery q, Formula qfwa, int maxsize, int hbmax, long timeCreateObject, long timeRunQuery, long timeTupling)
@@ -1787,11 +1783,11 @@ class MQueryResult
 	
 	public int countModelsAtSize(Integer n)
 	{	
-		int count = 0; 
 		try
 		{
 			MInstanceIterator it = getTotalIterator();
 			
+			int count = 0; 
 			while(it.hasNext()) 
 			{ 
 				try 
@@ -1802,21 +1798,15 @@ class MQueryResult
 				}
 				catch(MGENoMoreSolutions e)
 				{} 
-				
-				if(count > iModelCountingLimit)
-					break;
 			
-			}						
+			}
+			
+			return count;
 		}
 		catch(MBaseException e)
 		{
 			return -1; // error
-		}	
-		
-		if(count > iModelCountingLimit)
-			throw new MUserException("There were more than "+iModelCountingLimit+" scenarios.");
-		
-		return count;
+		}		
 	}
 
 	public boolean isSatisfiable()

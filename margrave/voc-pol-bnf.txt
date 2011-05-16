@@ -5,12 +5,14 @@ We use identifiers that start with lowercase letters (<low-id>) for: variables, 
 Identifiers that begin with a capital letter (<cap-id>) are Sorts. 
 The terminal <id> represents any identifier, regardless of case.
 
+Non-terminals wrapped in [] denote optional parameters.
+
 
 <VOCAB> ::= "(" "Vocab" <id>
            <TYPES-CLAUSE>
-           <PREDS-CLAUSE>
-           <CONSTANTS-CLAUSE>
-           <FUNCTIONS-CLAUSE> ")"
+           [<PREDS-CLAUSE>]
+           [<CONSTANTS-CLAUSE>]
+           [<FUNCTIONS-CLAUSE>] ")"
 
 
 // Clearer than old hierarchical format.
@@ -59,10 +61,10 @@ The terminal <id> represents any identifier, regardless of case.
 	
 <POLICY> ::= "(" "Policy" 
              "uses" <id>
-   	 <TARGET-CLAUSE>
+   	    [<TARGET-CLAUSE>]
             <VARIABLES-CLAUSE>
             <RULES-CLAUSE>
-            <RCOMB-CLAUSE> ")"
+            [<RCOMB-CLAUSE>] ")"
 
 <TARGET-CLAUSE> ::= "(" "Target" <FORMULA> ")"
 
@@ -110,22 +112,24 @@ The terminal <id> represents any identifier, regardless of case.
 
 <RCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
 
-<FACS> ::= "(" "FA" <LIST-OF-TYPES> ")"
+<FACS> ::= "(" "FA" <LIST-OF-DECISIONS> ")"
 
 <LIST-OF-OVERS> ::= nothing | <OVER> <LIST-OF-OVERS>
 
 // (Overrides A B C D) means A is overridden by B, C, and D.
 
-<OVER> ::= "(" "Overrides" <cap-id> <LIST-OF-TYPES>  ")"
+<OVER> ::= "(" "Overrides" <cap-id> <LIST-OF-DECISIONS>  ")"
+
+<LIST-OF-DECISIONS> ::= <low-id> | <low-id> <LIST-OF-DECISIONS>
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
 
 <POLICYSET> ::=  "(" "PolicySet"
-    		<TARGET-CLAUSE>
+    		[<TARGET-CLAUSE>]
                 <CHILDREN-CLAUSE>
-                <PCOMB-CLAUSE> ")"
+                [<PCOMB-CLAUSE>] ")"
 
 <CHILDREN-CLAUSE> ::= "(" "Children" <LIST-OF-POLICIES> ")"
 

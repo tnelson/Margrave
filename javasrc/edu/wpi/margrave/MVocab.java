@@ -448,7 +448,7 @@ public class MVocab {
 
 	}
 
-	protected void addSingleTopLevelSort(String name)
+	protected void makeThisTheTopLevelSort(String name)
 			throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// Creates a new sort and makes it the parent of all parentless types
@@ -460,6 +460,9 @@ public class MVocab {
 			sorts.put(name, new MSort(name));
 		MSort t = getSort(name);
 
+		if(isSubtype(t))
+			throw new MGEBadIdentifierName("Sort "+name+" had supersorts; could not make it top level.");
+		
 		for (MSort candidate : sorts.values())
 		{
 			if (!isSubtype(candidate) && !(candidate.name.equals(name)))
@@ -1039,7 +1042,7 @@ public class MVocab {
 */
 	
 	// Called by MatrixTuplingV
-	public static String constructIndexing(BinaryExpression be,
+	public static String constructIndexing(Expression be,
 			HashMap<Variable, Integer> indexing) {
 		List<String> lst = inorderTraversalOfVariableProduct(be, indexing, null);
 		if (lst.size() < 1)
@@ -1079,13 +1082,6 @@ public class MVocab {
 	static List<Expression> getInOrderTerms(Expression e)
 	{
 		List<Expression> result = new ArrayList<Expression>();
-		
-		// If we just have a Variable, don't bother with the dfs.
-		if(e instanceof Variable)
-		{
-			result.add(e);
-			return result;
-		}
 		
 		/////////////////////////////////////////////////////////////
 		// Setup for DFS
@@ -1193,16 +1189,20 @@ public class MVocab {
 		{			
 			BinaryExpression be = (BinaryExpression) e;
 			if(!be.op().equals(ExprOperator.PRODUCT))
-				throw new MUserException("inorderTraversalOfVariableProduct: Not product: "+be);
+				throw new MUserException("inorderTraversalOfVariableProduct: Not a variable: "+be);
 			
 			dfslist.add(be.left());
 			dfslist.add(be.right());
 		}
+		
+		// This method is NOT meant to handle more than a variable product. The above "term" traversal method does that.
+		// This method is called from tupling, which requires only variables!
+		
 		else if (e instanceof NaryExpression)
 		{
 			NaryExpression ne = (NaryExpression) e;
 			if(!ne.op().equals(ExprOperator.PRODUCT))
-				throw new MUserException("inorderTraversalOfVariableProduct: Not product: "+ne);
+				throw new MUserException("inorderTraversalOfVariableProduct: Not a variable: "+ne);
 
 			for(int ii=0;ii<ne.size();ii++)
 			{
@@ -1262,6 +1262,11 @@ public class MVocab {
 
 	}
 
+	Set<MSort> buildSubSortSet(String tname)
+	{
+		return buildSubSortSet(getSort(tname));
+	}
+	
 	protected Set<MSort> buildSubSortSet(MSort t)
 	{
 		if(cacheDescend.containsKey(t))
@@ -1353,7 +1358,8 @@ public class MVocab {
 		// unrelated sorts, no common lower-bound
 		return false; 
 	}
-
+	
+	
 	protected MVocab combineWith(MVocab other) throws MGECombineVocabs,
 			MGEBadIdentifierName, MGEUnknownIdentifier 
 	{
@@ -1418,18 +1424,7 @@ public class MVocab {
 			uber.predicates.put(d, predicates.get(d));
 		for (String d : other.predicates.keySet())
 			uber.predicates.put(d, other.predicates.get(d));
-		
-		// Constants
-		for (String d : constants.keySet())			
-			uber.constants.put(d, constants.get(d));
-		for (String d : other.constants.keySet())
-			uber.constants.put(d, other.constants.get(d));
-		
-		// Functions
-		for (String d : other.functions.keySet())
-			uber.functions.put(d, other.functions.get(d));
-		for (String d : functions.keySet())			
-			uber.functions.put(d, functions.get(d));
+
 		
 		// Constraints
 		for (String con : axioms.setsSingleton) {

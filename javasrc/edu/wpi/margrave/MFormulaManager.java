@@ -731,6 +731,11 @@ public class MFormulaManager
 		if(!hasBeenInitialized)
 			initialize();
 		
+		if(name == null)
+		{
+			throw new MGEManagerException("Unable to create variable null.");
+		}
+		
 		Variable cachedValue = vars.get(name);
 		
 		if(cachedValue != null)

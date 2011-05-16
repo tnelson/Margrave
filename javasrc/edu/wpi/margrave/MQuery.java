@@ -870,7 +870,7 @@ public class MQuery extends MIDBCollection
 		// cannot be converted to the same in the new vocab (or we'd get
 		// additional existentials AFTER tupling the ones we have now.)
 		
-		// TODO tupling: one, some
+		// TODO tupling: one, some. constants!!
 
 		
 		
@@ -905,15 +905,15 @@ public class MQuery extends MIDBCollection
 
 			if (debug_verbosity >= 2)
 				MEnvironment.writeOutLine("DEBUG: Starting matrix rewrite. ");
-
+			
 			MatrixTuplingV mtup = new MatrixTuplingV(pren, vocab);
 							
 			for(String edbname : edbIncludesIndexing.keySet())
 				for(List<String> indexing : edbIncludesIndexing.get(edbname))
-					mtup.forceIncludeEDB(edbname, indexing);
+					mtup.forceIncludeEDB(edbname, indexing);		
 			
 			Formula tupledFormula = pren.matrix.accept(mtup);
-
+			
 			if (debug_verbosity >= 3) {
 				// Show what the tupled sorts are in detail.
 				MEnvironment.writeOutLine("DEBUG: Tupled sorts that appeared in the query body: ");
@@ -940,7 +940,7 @@ public class MQuery extends MIDBCollection
 						+ (mxBean.getCurrentThreadCpuTime() - startTime)
 						/ 1000000);
 			startTime = mxBean.getCurrentThreadCpuTime();
-
+						
 			// replaces myIDBCollections in new query creation
 			HashMap<String, MIDBCollection> tupledIDBCollections = new HashMap<String, MIDBCollection>();
 
@@ -950,17 +950,13 @@ public class MQuery extends MIDBCollection
 			// equality, so it's ok to use them as keys here.
 			HashMap<HashMap<Variable, Expression>, RelationAndTermReplacementV> indexingVisitors = new HashMap<HashMap<Variable, Expression>, RelationAndTermReplacementV>();
 
-			
-			
-			
+						
 			// ******************
 			// IDB OUTPUT ("INCLUDE")
 			// ******************
 			tuplingHandleINCLUDE(pren, indexedIDBNamesToOutput, mtup,
 					tupledIDBCollections, initialVisitors, indexingVisitors);
 			// *********** END IDBOUTPUT ****************
-
-			
 			
 			
 			if (debug_verbosity >= 2)
@@ -1068,11 +1064,12 @@ public class MQuery extends MIDBCollection
 
 
 			/////////////////////////////////////////////////////////
-			// FINALIZE *single* top-level sort
-			// DO NOT ADD ANY SORTS AFTER THIS!
+			// FINALIZE *single* top-level sort. May have added new
+			// sorts between the first call and this call, hence this
+			// call. DO NOT ADD ANY SORTS AFTER THIS!
 			try
 			{
-				mtup.newvocab.addSingleTopLevelSort(pren.tupleTypeName);
+				mtup.newvocab.makeThisTheTopLevelSort(pren.tupleTypeName);
 			} catch (MGEBadIdentifierName e) {
 				throw new MGEBadQueryString(
 						"Tupling error: Unable to create unified top-level sort: "
@@ -1356,30 +1353,143 @@ public class MQuery extends MIDBCollection
 
 	private Set<Formula> tuplingDoDisjointness(PrenexCheckV pren,
 			MatrixTuplingV mtup)
-	{
-		Set<MSortPair> disjs = mtup.oldvocab.getConciseDisjointSortsAsymm();		
-		
-		
+	{		
 		/////////////////////////////////////////////////////////////
 		// (1) If A and B are incomparable, but have a lower bound C, but C 
 		// does not appear at index i, need to add C_i.
-		// TODO [new tupling disj 1]
+		
+		// for each idx
+		for (int iIndex = 1; iIndex <= pren.qCount; iIndex++)
+		{
+			String strIndex = String.valueOf(iIndex);
+			String strIndexWithUnderscore = "_" + strIndex;
+
+			Set<String> oldPredsForThisIndex = mtup.getIndexingToPredicates(strIndex);
+
+			// OPT Naive algorithm, quadratic in number of appearing sorts...
+			
+			// for each SORT predicate tupled in this index 
+			for (String oldPredName1 : oldPredsForThisIndex)
+			{				
+				if(!mtup.oldvocab.fastIsSort(oldPredName1))
+					continue; 
+				
+				for(String oldPredName2 : oldPredsForThisIndex)
+				{
+					if(!mtup.oldvocab.fastIsSort(oldPredName2))
+						continue; 
+					
+					// If pred1 is related to pred2, the same holds in new vocab.
+					// If pred 1 is NOT related to pred2, and they have a LB, need to add the LB.
+					
+					// Can't do this in the visitor since we only add if the LB doesn't appear...
+
+					boolean related = mtup.oldvocab.isSubOrSubOf(oldPredName1, oldPredName2);
+					
+					Set<MSort> subs1 = mtup.oldvocab.buildSubSortSet(oldPredName1);
+					Set<MSort> subs2 = mtup.oldvocab.buildSubSortSet(oldPredName2);
+					boolean haveLB = !Collections.disjoint(subs1, subs2);
+					
+					// If related, can happily ignore disjointness
+					if(related)
+						continue;										
+					
+					// Don't add a new LB if there already is one (in the NEW vocab):
+					if(mtup.newvocab.possibleOverlap(oldPredName1+strIndexWithUnderscore,
+							                         oldPredName2+strIndexWithUnderscore))
+						continue;
+					
+					// LB exists in the OLD vocab, but not the NEW one.
+					if(haveLB)
+					{
+						String newPredName = oldPredName1+"-"+oldPredName2+"-LB"+strIndexWithUnderscore;
+						
+						mtup.newvocab.addSubSort(newPredName, oldPredName1+strIndexWithUnderscore);
+						mtup.newvocab.addSubSort(newPredName, oldPredName2+strIndexWithUnderscore);
+					}
+															
+				} 				
+			}
+		}
 		
 		/////////////////////////////////////////////////////////////
 		// (2) A_1 and A_2 are not necessarily disjoint (unless x_1 and x_2
 		// have disjoint types). Need to add a "sink" lower bound for all
-		// such situations.
-		// TODO [new tupling disj 2]
+		// such situations. NOT covered by prior block since i != j.
+		for (int ii = 1; ii <= pren.qCount; ii++)
+		{
+			String strIndex1 = String.valueOf(ii);
+			Set<String> oldPredsAtIndex1 = mtup.getIndexingToPredicates(strIndex1);
+			
+			// start 1 higher than ii; shave off lower-right half of grid
+			for (int jj = ii+1; jj <= pren.qCount; jj++)
+			{
+				String strIndex2 = String.valueOf(jj);
+				Set<String> oldPredsAtIndex2 = mtup.getIndexingToPredicates(strIndex2);
+				
+				oldPredsAtIndex2.retainAll(oldPredsAtIndex1);
+				for(String oldPredName : oldPredsAtIndex2)
+				{
+					// Add new sort that is LB for both.
+					// Which index does this belong to? For now, just use ii.
+					
+					String newPredName = oldPredName+"-LB-"+ii+"-"+jj+"_"+ii;
+					
+					mtup.newvocab.addSubSort(newPredName, oldPredName+"_"+ii);
+					mtup.newvocab.addSubSort(newPredName, oldPredName+"_"+jj);
+				}												
+			}
+		}
+		
+		Set<Formula> eqDisjAxioms = new HashSet<Formula>();
 		
 		/////////////////////////////////////////////////////////////
 		// (3) If A_i disj B_j [after the above lower-bounds have been
 		// added!], assert A_i and B_j --> not =_i,j
-		// TODO [new tupling disj 3]
-		
-		
+		for (int iIndex = 1; iIndex <= pren.qCount; iIndex++)
+		{
+			String strIndex = String.valueOf(iIndex);
+			String strIndexWithUnderscore = "_" + strIndex;
+
+			Set<String> oldPredsForThisIndex = mtup.getIndexingToPredicates(strIndex);
+			
+			for(String oldPredName : oldPredsForThisIndex)
+			{
+				if(!mtup.oldvocab.fastIsSort(oldPredName))
+					continue;
+				MSort oldSort = mtup.oldvocab.fastGetSort(oldPredName); 
+				Set<MSort> disjoints = mtup.oldvocab.getConciseDisjointSorts(oldSort);				
+				
+				// TODO *DO* Condensed axioms disjs suffice?
+				// symm?
+				
+				MSort newSort = mtup.newvocab.getSort(oldPredName+ strIndexWithUnderscore);
+				
+				for(MSort oldDisjoint : disjoints)
+				{
+					for (int iIndex2 = iIndex + 1; iIndex2 <= pren.qCount; iIndex2++)
+					{
+						
+						String new2 = oldDisjoint.name + "_" + iIndex2;
+
+						// second index -- is this sort tupled into it?
+						// don't validate
+						if (!mtup.newvocab.fastIsSort(new2))
+							continue;
+						
+						MSort ns1 = newSort;
+						MSort ns2 = mtup.newvocab.getSort(new2);
+						Relation eqpred = mtup.newvocab.getRelation("=_" + iIndex + "," + iIndex2);
+
+						Formula thisAxiom = makeDisjointnessEqAxiom(mtup.newvar, ns1.rel, ns2.rel, eqpred);
+						eqDisjAxioms.add(thisAxiom);
+					} // end for iIndex2	
+				} // end for each disjoint sort			
+			} // end for each old pred at this index								
+		} // end for each index iIndex
 
 		
-		Set<Formula> eqDisjAxioms = new HashSet<Formula>();
+	
 		
 		
 		/// !!! XXX OLD CODE TO BE REMOVED

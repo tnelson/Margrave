@@ -1712,17 +1712,6 @@ public class MEnvironment
 			writeToLog("\nRule "+rname+" saw term: "+t.toString());
 			pol.vocab.exprToTerm.put(t.expr, t);
 		}
-		
-		// If policy had a rule like A.r(x), referencing another policy
-		// that external policy may have extra vocabulary information.
-		// Make sure this policy has the extra info.
-		for(MIDBCollection seenColl : helper.seenIDBCollections)
-		{
-			if(seenColl instanceof MPolicy)
-			{
-				pol.enhanceVocabularyWith(seenColl.vocab);
-			}
-		}
 				
 		// No longer just a list of literal fmlas in a single conjunction.
 		// Now we have an actual formula, potentially with quantifiers!

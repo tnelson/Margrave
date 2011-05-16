@@ -912,6 +912,19 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		newvar = MFormulaManager.makeVariable("z");
 		equalAxiomsNeeded = new HashSet<String>();
 
+		/////////////////////////////////////////////////////////
+		// CREATE *single* top-level sort. 
+		try
+		{
+			newvocab.makeThisTheTopLevelSort(pren.tupleTypeName);
+		} catch (MGEBadIdentifierName e) {
+			throw new MGEBadIdentifierName(
+					"Tupling error: Unable to create unified top-level sort: "
+							+ pren.tupleTypeName);
+		}			
+
+		
+		
 		// FOR NOW, all equality predicates. 
 		// OPT: no need to model i=j if their sorts are always disjoint
 		for (int ileft = 1; ileft <= pren.qCount; ileft++)
@@ -928,7 +941,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 
 		
 		pv = pren;
-
+		
 		// New top-level sort is created AFTER this visitor runs.
 		// Not elegant, but avoids problem of A < B < C
 		
@@ -936,19 +949,21 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 
 	Formula tuplingFail(Formula fmla, String msg)
 	{
-		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		MEnvironment.writeErrLine(msg);
-		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		System.exit(2);
-		return fmla; // don't know what to do
+		throw new MGETuplingFailure(msg + " fmla: "+fmla);
+		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		//MEnvironment.writeErrLine(msg);
+		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		//System.exit(2);
+		//return fmla; // don't know what to do
 	}
 	
 	void tuplingFail(String msg)
 	{
-		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		MEnvironment.writeErrLine(msg);
-		MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		System.exit(2);		
+		throw new MGETuplingFailure(msg);
+		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		//MEnvironment.writeErrLine(msg);
+		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		//System.exit(2);		
 	}	
 	
 	public Formula visit(ComparisonFormula cf)
@@ -1026,6 +1041,8 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 				suffix = "_" + pv.indexing.get(cf.left());
 			else if (cf.left() instanceof BinaryExpression)
 				suffix = "_" + MVocab.constructIndexing((BinaryExpression) cf.left(), pv.indexing);
+			else if(cf.left() instanceof NaryExpression)
+				suffix = "_" + MVocab.constructIndexing(cf.left(), pv.indexing);
 			else {
 				return tuplingFail(cf, "Comparison: " + cf + " -- improper LHS.");
 			}
@@ -1106,7 +1123,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 		
 		
 	}
-
+	
 	void addSortWithSupers(MVocab newvocab, MVocab oldvocab,
 			String oldpredname, String suffix)
 	throws MGEUnknownIdentifier, MGEBadIdentifierName 

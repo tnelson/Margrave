@@ -58,9 +58,6 @@ public class MPolicySet extends MPolicy
 	public void addChild(MPolicy ch)
 	{
 		children.add(ch); // allow adding multiple times
-		
-		// Make sure the parent has all the child's vocabulary info.
-		enhanceVocabularyWith(ch.vocab);
 	}	
 	
 	void handleXACML2Combine(Node combAlgNode)
