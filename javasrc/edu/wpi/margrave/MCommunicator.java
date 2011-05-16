@@ -96,12 +96,15 @@ public class MCommunicator
 			bDoLogging = true;
 		}					
 	 
-		// also TODO: re-enable stack printing!
-
 		// Re-direct all System.err input to our custom buffer		
 		// Uses Apache Commons IO for WriterOutputStream.
 		System.setErr(new PrintStream(new WriterOutputStream(MEnvironment.errorWriter), true));
 	
+		// Re-direct all System.out input to our custom buffer.
+		// (We have already saved System.out.)
+		// This is useful in case we start getting GC messages from SAT4j.
+		System.setOut(new PrintStream(new WriterOutputStream(MEnvironment.outWriter), true));
+				
 		initializeLog();
 		writeToLog("\n\n");
 		
