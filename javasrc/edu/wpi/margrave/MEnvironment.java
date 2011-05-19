@@ -852,7 +852,7 @@ public class MEnvironment
 			outWriter.println(out.toString());
 	}
 	
-	static Document getNextModel(String id)
+	static Document getNextModel(String id, HashMap<String, Set<List<MTerm>>> includeMap)
 	throws MBaseException
 	{		
 		// Do we have a result for this num?
@@ -860,11 +860,13 @@ public class MEnvironment
 			return errorResponse(sUnknown, sResultID, id);
 		
 		if(!envIterators.containsKey(id))
-			return getFirstModel(id);
+			return getFirstModel(id, includeMap);
 		else
 		{
 			// Return next model in the iterator.
 			MQueryResult result = getQueryResult(id);
+			result.setInclude(includeMap);
+			
 			try
 			{
 				return scenarioResponse(result, envIterators.get(id).next(), id);
@@ -891,7 +893,7 @@ public class MEnvironment
 		return successResponse();		
 	}
 	
-	static Document getFirstModel(String id) 
+	static Document getFirstModel(String id, HashMap<String, Set<List<MTerm>>> includeMap) 
 	throws MBaseException
 	{
 		// Do we have a result for this qry?
@@ -899,6 +901,7 @@ public class MEnvironment
 			return errorResponse(sUnknown, sResultID, id);
 
 		MQueryResult result = getQueryResult(id);
+		result.setInclude(includeMap);
 		
 		// Reset the iterator (or create it if new)
 		MInstanceIterator it = result.getTotalIterator();
@@ -1180,8 +1183,8 @@ public class MEnvironment
 	}
 	
 	public static Document showPopulated(String id,
-			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist) throws MBaseException
+			Map<String, Set<List<MTerm>>> rlist,
+			Map<String, Set<List<MTerm>>> clist) throws MBaseException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1221,14 +1224,14 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document showPopulated(String id, Map<String, Set<List<String>>> rlist) throws MBaseException
+	public static Document showPopulated(String id, Map<String, Set<List<MTerm>>> rlist) throws MBaseException
 	{
-		return showPopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
+		return showPopulated(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
 	}
 	
 	public static Document showUnpopulated(String id,
-			Map<String, Set<List<String>>> rlist,
-			Map<String, Set<List<String>>> clist) throws MUserException
+			Map<String, Set<List<MTerm>>> rlist,
+			Map<String, Set<List<MTerm>>> clist) throws MUserException
 	{
 		MQueryResult aResult = getQueryResult(id);
 		if(aResult == null)
@@ -1245,7 +1248,7 @@ public class MEnvironment
 		Map<String, Set<String>> outsets;
 		try
 		{
-			outsets = aResult.getPopulatedRelationFinder().getUnpopulatedRelations(rlist, clist);
+			outsets = aResult.getPopulatedRelationFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));
@@ -1258,9 +1261,9 @@ public class MEnvironment
 		}
 	}
 	
-	public static Document showUnpopulated(String id, Map<String, Set<List<String>>> rlist) throws MUserException 
+	public static Document showUnpopulated(String id, Map<String, Set<List<MTerm>>> rlist) throws MUserException 
 	{
-		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<String>>>());
+		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
 	}
 	
 	public static Document countModels(String id, Integer n) throws MUserException

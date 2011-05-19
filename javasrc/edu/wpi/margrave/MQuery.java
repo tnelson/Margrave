@@ -4117,7 +4117,7 @@ public class MQuery extends MIDBCollection
 			MExploreCondition mpc,
 			List<String> publish,
 			Map<String, String> sortsForPublish,
-			Map<String, Set<List<String>>> includeMap,
+			Map<String, Set<List<MTerm>>> includeMap,
 			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
 			throws MUserException
 			{
@@ -4301,7 +4301,8 @@ public class MQuery extends MIDBCollection
 		
 		// **********************************
 		// Handle INCLUDE parameters
-		for(String dbname : includeMap.keySet())
+		// TODO remove this. include now at SHOW rather than EXPLORE level
+		/*for(String dbname : includeMap.keySet())
 		{
 			// Indexings if any
 			Set<List<String>> indexingsToAdd = new HashSet<List<String>>();
@@ -4309,7 +4310,7 @@ public class MQuery extends MIDBCollection
 			try
 			{				
 			
-				for(List<String> indexing : includeMap.get(dbname))
+				for(List<MTerm> indexing : includeMap.get(dbname))
 				{
 					// Can't add directly: user has provided a vector of identifiers.
 					// addIDBOutputIndexing expects an _indexing_ into the tupled ordering.
@@ -4360,7 +4361,7 @@ public class MQuery extends MIDBCollection
 			}
 			
 		}
-
+*/
 
 		result.debug_verbosity = iDebugLevel;
 		result.doTupling = bTupling;

@@ -304,12 +304,11 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 	
 	
 	
-	public Map<String, Set<String>> getRealizedFormulas(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases)
+	public Map<String, Set<String>> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates, Map<String, Set<List<MTerm>>> cases)
 	throws MUserException
 	{
 								
 		// This version contains indexings for tupling
-		// TODO strings everywhere; should be more structured?
 
 		Map<String, String> originalPreds = new HashMap<String, String>();
 		Map<String, List<String>> originalIndexing = new HashMap<String, List<String>>();
@@ -374,32 +373,32 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 			
 	}
 	
-	public Set<String> getRealizedFormulas(Map<String, Set<List<String>>> candidates) throws MUserException
+	public Set<String> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
 		return getRealizedFormulas(candidates, cases).get("");
 	}
 	
-	public Set<String> getRealizedFormulas(List<String> candidates)
+	public Set<String> getRealizedFormulas(List<MTerm> candidates)
 	{
 		List<String> cases = new ArrayList<String>();
 		return getRealizedFormulas(candidates, cases).get("");		
 	}
 
-	public Set<String> getUnrealizedFormulas(Map<String, Set<List<String>>> candidates) throws MUserException
+	public Set<String> getUnrealizedFormulas(Map<String, Set<List<MTerm>>> candidates) throws MUserException
 	{
-		Map<String, Set<List<String>>> cases = new HashMap<String, Set<List<String>>>();
-		return getUnpopulatedRelations(candidates, cases).get("");
+		Map<String, Set<List<MTerm>>> cases = new HashMap<String, Set<List<MTerm>>>();
+		return getUnrealizedFormulas(candidates, cases).get("");
 	}
 	
-	public Set<String> getUnrealizedFormulas(List<String> candidates)
+	public Set<String> getUnrealizedFormulas(List<MTerm> candidates)
 	{
 		List<String> cases = new ArrayList<String>();
 		return getUnrealizedFormulas(candidates, cases).get("");		
 	}
 
 	
-	public Map<String, Set<String>> getRealizedFormulas(List<String> candidates, List<String> cases)
+	public Map<String, Set<String>> getRealizedFormulas(List<MTerm> candidates, List<MTerm> cases)
 	{
 		// No indexings in this verison. Names are raw; will not work with tupling unaided.
 		
@@ -409,7 +408,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 		for(int iSize=1;iSize<=fromResult.maxSize;iSize++)
 		{
 			// Call first to add "" if needed
-			Map<String, Set<String>> thisResult = getPopulatedRelationsAtSize(candidates, cases, iSize);		
+			Map<String, Set<String>> thisResult = getRealizedFormulasAtSize(candidates, cases, iSize);		
 			addToMap(result, thisResult);
 		}
 		
@@ -455,7 +454,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 		{
 			// <--- diff. for unpop
 			// Call first to add "" if needed
-			Map<String, Set<String>> thisResult = getUnpopulatedRelationsAtSize(candidates, cases, iSize);		
+			Map<String, Set<String>> thisResult = getUnrealizedFormulasAtSize(candidates, cases, iSize);		
 			
 			// Don't addToMap. Want to intersect.
 			intersectToMap(result, thisResult);
@@ -464,7 +463,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 		return result;				
 	}
 	
-	public Map<String, Set<String>> getUnpopulatedRelations(Map<String, Set<List<String>>> candidates, Map<String, Set<List<String>>> cases ) throws MUserException
+	public Map<String, Set<String>> getUnrealizedFormulas(Map<String, Set<List<MTerm>>> candidates, Map<String, Set<List<MTerm>>> cases ) throws MUserException
 	{
 		Map<String, String> originalPreds = new HashMap<String, String>();
 		Map<String, List<String>> originalIndexing = new HashMap<String, List<String>>();
@@ -521,7 +520,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 
 	}
 	
-	public Map<String, Set<String>> getUnpopulatedRelationsAtSize(List<String> candidates, List<String> cases, int atSize)
+	public Map<String, Set<String>> getUnrealizedFormulasAtSize(List<String> candidates, List<String> cases, int atSize)
 	{
 		// There appears to be a lot of duplicated code between pop and unpop, but in reality
 		// the two approaches differ in subtle ways. Leaving the "duplicate" code for now. - TN
@@ -661,7 +660,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
         		MEnvironment.writeOutLine("DEBUG: UNPOPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
         				". SAT4j constraint count = "+realSolver.nConstraints());        
         	
-        	result.put(aCase, internalUnpopulated(candidates, caseClause, realSolver, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
+        	result.put(aCase, internalUnrealized(candidates, caseClause, realSolver, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
         	
         	if(caseClause != null && caseClause.length > 1)
         		realSolver.removeConstr(toRemove);
@@ -681,7 +680,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 	}
 	
 
-	Set<String> internalUnpopulated(Collection<String> startWith, int[] caseClause, ISolver solver, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
+	Set<String> internalUnrealized(Collection<String> startWith, int[] caseClause, ISolver solver, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
 	{
 		Set<String> result = new HashSet<String>(startWith);
 		
@@ -764,7 +763,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 		return result;
 	}
 	
-	public Map<String, Set<String>> getPopulatedRelationsAtSize(List<String> candidates, List<String> cases, int atSize)
+	public Map<String, Set<String>> getRealizedFormulasAtSize(List<String> candidates, List<String> cases, int atSize)
 	{			
 		//MEnvironment.errorStream.println("~~~~ Getting populated relations at size "+atSize);
 		
@@ -908,7 +907,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
         			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
         					". SAT4j Constraint count = "+realSolver.nConstraints());
         	        	
-        		result.put(aCase, internalPopulated(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
+        		result.put(aCase, internalRealized(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
         		if(toRemove != null)
         			realSolver.removeConstr(toRemove);
         	}
@@ -927,7 +926,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 	}
 
 	
-	Set<String> internalPopulated(ISolver solver, int[] caseClause, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
+	Set<String> internalRealized(ISolver solver, int[] caseClause, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
 	{
 		Set<String> result = new HashSet<String>();
 		boolean issat = false;
@@ -1005,7 +1004,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 				MEnvironment.writeOutLine("DEBUG: Satisfiable. Adding to result.");
 			
 			// return not just those that are true, but all for nonempty relations
-			addPopulatedToListAndTrimGoals(solver, theTranslation, numPrimaryVariables, mapCandidateRels, result, lookForTheseVars);
+			addRealizedToListAndTrimGoals(solver, theTranslation, numPrimaryVariables, mapCandidateRels, result, lookForTheseVars);
 									
 		} while(issat && lookForTheseVars.size() > 0);
         
@@ -1015,7 +1014,7 @@ class MRealizedFormulaFinder extends MPartialInstanceIterator
 	}
 	
 	
-	protected void addPopulatedToListAndTrimGoals(ISolver theSolver, Translation trans, int numPrimary, 
+	protected void addRealizedToListAndTrimGoals(ISolver theSolver, Translation trans, int numPrimary, 
 			Map<Integer, Relation> relMap, Set<String> result, Set<Integer> lookForTheseVars)
 	{
 		// This method needs to do 2 things:
@@ -1728,6 +1727,8 @@ class MQueryResult
 	
 	MQuery forQuery;
 	
+	Map<String, Set<List<MTerm>>> includeMap = new HashMap<String, Set<List<MTerm>>>();
+	
 	protected MQueryResult(MQuery q, Formula qfwa, int maxsize, int hbmax, long timeCreateObject, long timeRunQuery, long timeTupling)
 	{
 		// Used to print intelligently		
@@ -1819,6 +1820,12 @@ class MQueryResult
 		return false;
 		
 		// return exception if the iterator has problems; distinguish from true/false.
+	}
+
+	public void setInclude(HashMap<String, Set<List<MTerm>>> includeMap)
+	{
+		this.includeMap = includeMap; 
+		
 	}
 
 /*	public String getPrettySolution(MSolutionInstance sol, MInstanceIterator fromIterator)

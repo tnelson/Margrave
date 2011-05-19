@@ -294,7 +294,7 @@ public class MCommunicator
 	        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
 	        					List<String> publ = new ArrayList<String>();
 	        					Map<String, String> publSorts = new HashMap<String, String>();
-	                            HashMap<String, Set<List<String>>> idbOut = new HashMap<String, Set<List<String>>>();
+	                            HashMap<String, Set<List<MTerm>>> idbOut = new HashMap<String, Set<List<MTerm>>>();
 	                            Boolean tupling = false;
 	        					Integer debugLevel = 0;
 	        					Integer ceilingLevel = -1; 
@@ -331,8 +331,7 @@ public class MCommunicator
 
 	        					}
 	        					if (idbOutputNode != null) {
-	        						List<Node> idbChildNodes = getElementChildren(idbOutputNode);
-	        						
+	        						List<Node> idbChildNodes = getElementChildren(idbOutputNode);	        						
 	        						idbOut = atomicFormulasToHashmap(idbChildNodes);
 	        					}
 	        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
@@ -487,19 +486,29 @@ public class MCommunicator
         				if (showType.equalsIgnoreCase("ONE"))
         				{
         					writeToLog("In Show One");
+        					
+        					Node includeNode = getIdbNode(n);        					
+        					List<Node> idbChildNodes = getElementChildren(includeNode);    						
+        					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
+    						
         					try
         					{
         						writeToLog("In Show One");
-								theResponse = MEnvironment.getFirstModel(id);
+								theResponse = MEnvironment.getFirstModel(id, includeMap);
 							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
         				}
         				else if (showType.equalsIgnoreCase("NEXT"))
         				{
+        					
+        					Node includeNode = getIdbNode(n);        					
+        					List<Node> idbChildNodes = getElementChildren(includeNode);    						
+        					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
+
         					try
         					{
-								theResponse = MEnvironment.getNextModel(id);
+								theResponse = MEnvironment.getNextModel(id, includeMap);
 							} catch (MBaseException e) {
 								theResponse = MEnvironment.exceptionResponse(e);						
 							}
@@ -529,11 +538,11 @@ public class MCommunicator
         					//NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
         					
         					// atomicFormulasToHashmap will ignore the FOR-CASES element.
-        					Map<String, Set<List<String>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
+        					Map<String, Set<List<MTerm>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
         					    
         					
         					// Default map is empty. If FOR CASES, populate it.
-        					Map<String, Set<List<String>>> forCasesAtomicFormulas = new HashMap<String, Set<List<String>>>();
+        					Map<String, Set<List<MTerm>>> forCasesAtomicFormulas = new HashMap<String, Set<List<MTerm>>>();
         					if (forCasesNode != null)
         					{
         						//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
@@ -783,80 +792,49 @@ public class MCommunicator
 			
 		}
 
-		private static HashMap<String, Set<List<String>>> atomicFormulasToHashmap(List<Node> childNodes)
+		private static HashMap<String, Set<List<MTerm>>> atomicFormulasToHashmap(List<Node> childNodes)
         {
-        	HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
+        	//HashMap<String, Set<List<String>>> hashMap = new HashMap<String, Set<List<String>>>();
         
+        	// Used to be just variables:
         	// R(x, y), P(y, z), R(z, z) --->
         	// [ R->[["x","y"], ["z","z"]] P->[["y","z"]]
+        	// Now we have terms as well.
         	
-        	// TODO no longer so straightforward; need MTerms instead of strings (used to always be vars!)
-        	/*
-        	
-        	
-        	// default of empty map is set above. Just populate it.
-			        	        
-        	
-			String collectionName;
-			String relationName;
-			List<String> identifiers;
+			HashMap<String, Set<List<MTerm>>> hashMap = new HashMap<String, Set<List<MTerm>>>();
 			
-			// For each atomic formula sent
-			for (int i = 0; i < childNodes.getLength(); i++)
+			for(Node childNode : childNodes)
 			{
-				Node childNode = childNodes.item(i);
-				
-				//writeToLog("\nnodename: "+childNode.getNodeName());
-				//writeToLog("\nnodetype: "+childNode.getNodeType());
-				
-				
-				// If this is not an atomic formula, pass over it
 				if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
-				{				
-					collectionName = getAtomicFormulaYCollection(childNode); // may be null!
-					if(collectionName != null)				
-						relationName = getAtomicFormulaYRelation(childNode);
-					else
-						relationName = getAtomicFormulaNRelation(childNode);
+				{
+					List<String> relNamePieces = getRelationNameFromAtomicFmla(childNode);
+					List<MTerm> terms = getTermsFromAtomicFmla(childNode);
 					
-					identifiers = getIdentifierList(childNode); //could be empty!
-	
-					writeToLog("\natomicFormulasToHashmap (ATOMIC-FMLA): "+collectionName+", "+relationName+", "+identifiers+"\n");
-					
-					
-					
-					String idbName;
-					if(collectionName != null && collectionName.length() > 0)
-						idbName = collectionName + ":" + relationName;
-					else
-						idbName = relationName;
-					
-					// initialize if needed
-					if(!hashMap.containsKey(idbName))
-						hashMap.put(idbName, new HashSet<List<String>>());
-					
-					if (identifiers.size() > 0)
+					String relName = "";
+					for(int ii=0; ii < relNamePieces.size();ii++)
 					{
-						// indexed: need to add a variable vector to the entry's value
-						hashMap.get(idbName).add(identifiers);
+						relName += relNamePieces.get(ii);
 					}
+					
+					if(!hashMap.containsKey(relName))
+						hashMap.put(relName, new HashSet<List<MTerm>>());
+					hashMap.get(relName).add(terms);
+				
 				}
 				else if(childNode.getNodeName().equalsIgnoreCase("EQUALS"))
 				{
-					String idname1 = getNodeAttribute(childNode, "EQUALS", "v1");
-	        		String idname2 = getNodeAttribute(childNode, "EQUALS", "v2");
-	        		
-	        		writeToLog("\natomicFormulasToHashmap (EQUALS): "+idname1+", "+idname2+"\n");
-	        		
-	        		if(!hashMap.containsKey("="))
-	        			hashMap.put("=", new HashSet<List<String>>());
-	        		List<String> params = new ArrayList<String>(2);
-	        		params.add(idname1);
-	        		params.add(idname2);
-	        		hashMap.get("=").add(params);	        			        		
+					List<MTerm> terms = getTermsFromEqualsFmla(childNode);
+					
+					if(!hashMap.containsKey("="))
+						hashMap.put("=", new HashSet<List<MTerm>>());
+					hashMap.get("=").add(terms);
 				}
-				
-			}*/
+				else
+				{
+					throw new MUnsupportedFormulaException("INCLUDE must be a list of atomic formulas.");
+				}
+			}
+        							        
         	return hashMap;
         }
         
@@ -1183,24 +1161,7 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
-        		// Comes in with 2 TERMS now instead of 2 maybe-variables.    
-        		
-        		childNodes = getElementChildren(n);
-        		
-        		MTerm term1 = termHelper(childNodes.get(0));
-        		MTerm term2 = termHelper(childNodes.get(1));
-        			
-        		//String idname1 = getNodeAttribute(n, "EQUALS", "v1");
-        		//String idname2 = getNodeAttribute(n, "EQUALS", "v2");
-        		
-        		writeToLog("\nEQUALS: "+term1+" = "+term2+"\n\n");
-        		        		
-        		//Variable v1 = MFormulaManager.makeVariable(idname1);
-        		//Variable v2 = MFormulaManager.makeVariable(idname2);
-        		Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
-        		writeToLog("\nNew Explore condition (equals): "+fmla);
-        		        		        	
-        		return new MExploreCondition(fmla, term1, term2, true);        		
+        		return handleEqualsFormula(n);        		
         	}
         	else if (name.equalsIgnoreCase("IFF")) {
         		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
@@ -1231,110 +1192,7 @@ public class MCommunicator
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
         	{
         		// "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>"
-
-        		/////////////////////////////////////////////////////
-        		// Relation name
-        		Node relationNameNode = getChildNode(n, "RELATION-NAME");
-        		List<Node> relationComponents = getElementChildren(relationNameNode);        		        	
-        		List<String> relationNameComponents = new ArrayList<String>();        		
-        		for(Node theNode : relationComponents)
-        		{
-        			// <ID id=\"P\"/>
-        			String nameStr = getNodeAttribute(theNode, "ID", "id");
-        			relationNameComponents.add(nameStr);
-        		}
-        		
-        		/////////////////////////////////////////////////////
-        		// Terms
-        		
-        		Node termsNode = getChildNode(n, "TERMS");
-        		List<Node> termsNodeComponents = getElementChildren(termsNode);   
-        		List<MTerm> terms = new ArrayList<MTerm>();
-        		for(Node theNode : termsNodeComponents)
-        		{
-        			MTerm theTerm = termHelper(theNode); 
-        			
-        			//String nameStr = getNodeAttribute(theNode, "ID", "id");
-        			terms.add(theTerm);
-        		}
-        		
-        		/////////////////////////////////////////////////////
-        		
-        		// Could be:
-        		// (1) compound relation name, e.g. pol.idbname
-        		// (2) EDB name
-        		// (3) view name (really an idb!)
-        		
-        		writeToLog("\nAtomic-Formula: \nrelationNameComponents: " + relationNameComponents + "\nterms: " + terms.toString());
-        		
-        		if(relationNameComponents.size() < 1)
-        			throw new MUserException("Unable to obtain relation name in atomic formula.");
-        		
-        		String relationName = relationNameComponents.get(relationNameComponents.size() - 1);
-        		
-        		if(relationNameComponents.size() == 1)
-        		{        		
-        			MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
-        			
-        			writeToLog("\n		relationName: " + relationName + "\npol: " + pol + "\n\n");
-
-        			/////////////////////////////////////////////////////
-        			// (3) view?
-        			if (pol != null)
-        			{
-        				Formula idbf = MEnvironment.getOnlyIDB(relationName);
-        				if(idbf != null)
-        				{
-        					// Perform variable substitution
-        	        		writeToLog("\nView IDB before substitution: "+idbf);
-        					idbf = performSubstitution(relationName, pol, idbf, terms);
-        					
-        					// Assemble MExploreCondition object
-        	        		writeToLog("\nNew Explore condition (view): "+idbf);
-        					return new MExploreCondition(idbf, pol, relationName, terms);        		
-        				}
-        			}
-        			
-        			/////////////////////////////////////////////////////
-        			// (2) EDB, then!
-
-        			// We don't have a vocabulary yet. So just make the relation.
-        			// The manager will prevent duplicates.
-        			Relation rel = MFormulaManager.makeRelation(relationName, terms.size());
-
-        			Expression termvector;
-        			Formula f = null;
-
-        			termvector = MFormulaManager.makeTermTuple(terms);
-        			f = MFormulaManager.makeAtom(termvector, rel);
-
-        			// No variable substitution needed!
-            		writeToLog("\nNew Explore condition (EDB): "+f);
-        			return new MExploreCondition(f, rel, terms);
-
-        		}
-        		
-        		/////////////////////////////////////////////////////
-        		// (1) compound relation name (reference to a policy, etc.)
-        		String collName = "";
-        		for(int ii=0; ii < relationNameComponents.size()-1;ii++)
-        		{
-        			collName += relationNameComponents.get(ii);
-        		}
-        		
-        		MIDBCollection pol = MEnvironment.getPolicyOrView(collName);
-        		if(pol == null)
-        			throw new MUserException("Unknown policy: "+collName);
-        		
-        		// throws exception rather than returning null
-        		Formula idbf = validateDBIdentifier(collName, relationName);
-        		
-        		// Substitute variables in policy's IDB for terms in query
-        		writeToLog("\nNon-view IDB before substitution: "+idbf);
-        		idbf = performSubstitution(relationName, pol, idbf, terms);
-        		
-        		writeToLog("\nNew Explore condition (non-view IDB): "+idbf);
-        		return new MExploreCondition(idbf, pol, relationName, terms);
+        		return handleAtomicFormula(n);
         	}
         	else if(name.equalsIgnoreCase("TRUE"))
         	{
@@ -1343,6 +1201,154 @@ public class MCommunicator
         	
         	throw new MUserException("exploreHelper was unable to match node type: "+name);
     }
+
+		private static MExploreCondition handleEqualsFormula(Node n) {
+			// Comes in with 2 TERMS now instead of 2 maybe-variables.    
+						
+			List<MTerm> terms = getTermsFromEqualsFmla(n);
+			MTerm term1 = terms.get(0);
+			MTerm term2 = terms.get(1);
+				
+			//String idname1 = getNodeAttribute(n, "EQUALS", "v1");
+			//String idname2 = getNodeAttribute(n, "EQUALS", "v2");
+			
+			writeToLog("\nEQUALS: "+term1+" = "+term2+"\n\n");
+			        		
+			//Variable v1 = MFormulaManager.makeVariable(idname1);
+			//Variable v2 = MFormulaManager.makeVariable(idname2);
+			Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
+			writeToLog("\nNew Explore condition (equals): "+fmla);
+			        		        	
+			return new MExploreCondition(fmla, term1, term2, true);
+		}
+
+		private static List<MTerm> getTermsFromEqualsFmla(Node n)
+		{
+			List<Node> childNodes = getElementChildren(n);
+			
+			List<MTerm> terms = new ArrayList<MTerm>(2);
+			
+			terms.add(termHelper(childNodes.get(0)));
+			terms.add(termHelper(childNodes.get(1)));
+			return terms;			
+		}
+
+		private static MExploreCondition handleAtomicFormula(Node n)
+		{
+			
+			List<String> relationNameComponents = getRelationNameFromAtomicFmla(n);
+			List<MTerm> terms = getTermsFromAtomicFmla(n);
+			
+			/////////////////////////////////////////////////////
+			
+			// Could be:
+			// (1) compound relation name, e.g. pol.idbname
+			// (2) EDB name
+			// (3) view name (really an idb!)
+			
+			writeToLog("\nAtomic-Formula: \nrelationNameComponents: " + relationNameComponents + "\nterms: " + terms.toString());
+			
+			if(relationNameComponents.size() < 1)
+				throw new MUserException("Unable to obtain relation name in atomic formula.");
+			
+			String relationName = relationNameComponents.get(relationNameComponents.size() - 1);
+			
+			if(relationNameComponents.size() == 1)
+			{        		
+				MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
+				
+				writeToLog("\n		relationName: " + relationName + "\npol: " + pol + "\n\n");
+
+				/////////////////////////////////////////////////////
+				// (3) view?
+				if (pol != null)
+				{
+					Formula idbf = MEnvironment.getOnlyIDB(relationName);
+					if(idbf != null)
+					{
+						// Perform variable substitution
+			    		writeToLog("\nView IDB before substitution: "+idbf);
+						idbf = performSubstitution(relationName, pol, idbf, terms);
+						
+						// Assemble MExploreCondition object
+			    		writeToLog("\nNew Explore condition (view): "+idbf);
+						return new MExploreCondition(idbf, pol, relationName, terms);        		
+					}
+				}
+				
+				/////////////////////////////////////////////////////
+				// (2) EDB, then!
+
+				// We don't have a vocabulary yet. So just make the relation.
+				// The manager will prevent duplicates.
+				Relation rel = MFormulaManager.makeRelation(relationName, terms.size());
+
+				Expression termvector;
+				Formula f = null;
+
+				termvector = MFormulaManager.makeTermTuple(terms);
+				f = MFormulaManager.makeAtom(termvector, rel);
+
+				// No variable substitution needed!
+				writeToLog("\nNew Explore condition (EDB): "+f);
+				return new MExploreCondition(f, rel, terms);
+
+			}
+			
+			/////////////////////////////////////////////////////
+			// (1) compound relation name (reference to a policy, etc.)
+			String collName = "";
+			for(int ii=0; ii < relationNameComponents.size()-1;ii++)
+			{
+				collName += relationNameComponents.get(ii);
+			}
+			
+			MIDBCollection pol = MEnvironment.getPolicyOrView(collName);
+			if(pol == null)
+				throw new MUserException("Unknown policy: "+collName);
+			
+			// throws exception rather than returning null
+			Formula idbf = validateDBIdentifier(collName, relationName);
+			
+			// Substitute variables in policy's IDB for terms in query
+			writeToLog("\nNon-view IDB before substitution: "+idbf);
+			idbf = performSubstitution(relationName, pol, idbf, terms);
+			
+			writeToLog("\nNew Explore condition (non-view IDB): "+idbf);
+			return new MExploreCondition(idbf, pol, relationName, terms);
+		}
+
+		private static List<MTerm> getTermsFromAtomicFmla(Node n) {
+			/////////////////////////////////////////////////////
+			// Terms
+			
+			Node termsNode = getChildNode(n, "TERMS");
+			List<Node> termsNodeComponents = getElementChildren(termsNode);   
+			List<MTerm> terms = new ArrayList<MTerm>();
+			for(Node theNode : termsNodeComponents)
+			{
+				MTerm theTerm = termHelper(theNode); 
+				
+				//String nameStr = getNodeAttribute(theNode, "ID", "id");
+				terms.add(theTerm);
+			}
+			return terms;
+		}
+
+		private static List<String> getRelationNameFromAtomicFmla(Node n) {
+			/////////////////////////////////////////////////////
+			// Relation name
+			Node relationNameNode = getChildNode(n, "RELATION-NAME");
+			List<Node> relationComponents = getElementChildren(relationNameNode);        		        	
+			List<String> relationNameComponents = new ArrayList<String>();        		
+			for(Node theNode : relationComponents)
+			{
+				// <ID id=\"P\"/>
+				String nameStr = getNodeAttribute(theNode, "ID", "id");
+				relationNameComponents.add(nameStr);
+			}
+			return relationNameComponents;
+		}
      
 
 
