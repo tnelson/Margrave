@@ -694,7 +694,7 @@ public class MEnvironment
 	private static Map<String, MIDBCollection> envIDBCollections = new HashMap<String, MIDBCollection>();
 	private static Map<String, MVocab> envVocabularies = new HashMap<String, MVocab>();
 	
-	private static Map<String, MQueryResult> envQueryResults = new HashMap<String, MQueryResult>();
+	private static Map<String, MPreparedQueryContext> envQueryResults = new HashMap<String, MPreparedQueryContext>();
 	private static Map<String, MInstanceIterator> envIterators = new HashMap<String, MInstanceIterator>();
 			
 	// both streams will be packaged with the response XML
@@ -793,7 +793,7 @@ public class MEnvironment
 		return null;
 	}
 
-	static MQueryResult getQueryResult(String id) throws MUserException
+	static MPreparedQueryContext getQueryResult(String id) throws MUserException
 	{		
 		if(envQueryResults.containsKey(id))
 			return envQueryResults.get(id);		
@@ -864,7 +864,7 @@ public class MEnvironment
 		else
 		{
 			// Return next model in the iterator.
-			MQueryResult result = getQueryResult(id);
+			MPreparedQueryContext result = getQueryResult(id);
 			result.setInclude(includeMap);
 			
 			try
@@ -884,7 +884,7 @@ public class MEnvironment
 		if(!envQueryResults.containsKey(id))
 			return errorResponse(sUnknown, sResultID, id);
 		
-		MQueryResult result = getQueryResult(id);
+		MPreparedQueryContext result = getQueryResult(id);
 		
 		// Reset the iterator
 		MInstanceIterator it = result.getTotalIterator();
@@ -900,7 +900,7 @@ public class MEnvironment
 		if(!envQueryResults.containsKey(id))
 			return errorResponse(sUnknown, sResultID, id);
 
-		MQueryResult result = getQueryResult(id);
+		MPreparedQueryContext result = getQueryResult(id);
 		result.setInclude(includeMap);
 		
 		// Reset the iterator (or create it if new)
@@ -930,7 +930,7 @@ public class MEnvironment
 				}
 				
 				// Compile the query and get the result.
-				MQueryResult qryResult = qry.runQuery();
+				MPreparedQueryContext qryResult = qry.runQuery();
 				
 				envQueryResults.put(qry.name, qryResult);
 				return resultHandleResponse(0);
@@ -1186,7 +1186,7 @@ public class MEnvironment
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MBaseException
 	{
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
@@ -1201,7 +1201,7 @@ public class MEnvironment
 		Map<String, Set<String>> outsets;
 		try
 		{
-			outsets = aResult.getPopulatedRelationFinder().getRealizedFormulas(rlist, clist);
+			outsets = aResult.getRealizedFormulaFinder().getRealizedFormulas(rlist, clist);
 			
 			MCommunicator.writeToLog(rlist.toString());
 			MCommunicator.writeToLog(clist.toString());
@@ -1233,7 +1233,7 @@ public class MEnvironment
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MUserException
 	{
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
@@ -1248,7 +1248,7 @@ public class MEnvironment
 		Map<String, Set<String>> outsets;
 		try
 		{
-			outsets = aResult.getPopulatedRelationFinder().getUnrealizedFormulas(rlist, clist);
+			outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));
@@ -1268,7 +1268,7 @@ public class MEnvironment
 	
 	public static Document countModels(String id, Integer n) throws MUserException
 	{
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		return intResponse(aResult.countModelsAtSize(n));				
@@ -1282,7 +1282,7 @@ public class MEnvironment
 	public static Document isGuar(String id) throws MUserException
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		if(aResult.get_hu_ceiling() > aResult.get_universe_max())
@@ -1292,7 +1292,7 @@ public class MEnvironment
 
 	public static Document isPoss(String id) throws MUserException 
 	{	
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		try
@@ -1307,7 +1307,7 @@ public class MEnvironment
 
 	public static Document showCeiling(String id) throws MUserException
 	{
-		MQueryResult aResult = getQueryResult(id);
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 		return intResponse(aResult.get_universe_max());
@@ -1981,7 +1981,7 @@ public class MEnvironment
 	}
 	
 	
-	private static Document noSolutionResponse(MQueryResult theResult, String id)
+	private static Document noSolutionResponse(MPreparedQueryContext theResult, String id)
 	{
 		Document xmldoc = makeInitialResponse(sUnsat);
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
@@ -1991,7 +1991,7 @@ public class MEnvironment
 		return xmldoc;
 	}
 
-	private static Element makeStatisticsElement(Document xmldoc, MQueryResult theResult, String id)
+	private static Element makeStatisticsElement(Document xmldoc, MPreparedQueryContext theResult, String id)
 	{
 		Element statsElement = xmldoc.createElementNS(null, "STATISTICS");;		
 		
@@ -2046,7 +2046,7 @@ public class MEnvironment
 		return xmldoc;
 	}
 	
-	private static Document boolResponseWithStats(MQueryResult aResult, String id, boolean b)
+	private static Document boolResponseWithStats(MPreparedQueryContext aResult, String id, boolean b)
 	{
 		Document xmldoc = makeInitialResponse("boolean");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
@@ -2132,7 +2132,7 @@ public class MEnvironment
 		return null;
 	}
 
-	private static Document scenarioResponse(MQueryResult mQueryResult,
+	private static Document scenarioResponse(MPreparedQueryContext mQueryResult,
 			MSolutionInstance nextPreTup, String id)
 	{
 		MSolutionInstance next;
@@ -2386,7 +2386,7 @@ public class MEnvironment
 			{
 				MQuery qry = (MQuery) coll;
 				MEnvironment.errorWriter.println("(Saved Query)");
-				MQueryResult res = qry.runQuery();
+				MPreparedQueryContext res = qry.runQuery();
 				MTotalInstanceIterator it = res.getTotalIterator();
 				try
 				{

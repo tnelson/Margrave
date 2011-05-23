@@ -702,7 +702,7 @@ public class MQuery extends MIDBCollection
 	 * @throws MGEBadIdentifierName
 	 */
 
-	public MQueryResult runQuery() throws MBaseException
+	public MPreparedQueryContext runQuery() throws MBaseException
 	{				
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Beginning to execute query (runQuery) ");
@@ -824,13 +824,13 @@ public class MQuery extends MIDBCollection
 		}
 
 
-		return new MQueryResult(this, queryWithAxioms,
+		return new MPreparedQueryContext(this, queryWithAxioms,
 				maxSizeToCheck, totalHerbrandMax, msPreprocessingTime,
 				cputime, msTuplingTime);
 
 	}
 
-	private MQueryResult doTupling(ThreadMXBean mxBean, long start,
+	private MPreparedQueryContext doTupling(ThreadMXBean mxBean, long start,
 			PrenexCheckV pren, boolean prenexExistential) {
 		long startTime;
 		// Try to build a more optimal "tupled" query
@@ -2255,7 +2255,7 @@ public class MQuery extends MIDBCollection
 	public boolean runTestCase(int expected_size, int expected_sols,
 			int expected_hbu) throws MBaseException
 	{
-		MQueryResult res = runQuery();
+		MPreparedQueryContext res = runQuery();
 
 		int count = res.countModelsAtSize(expected_size);
 
@@ -3189,7 +3189,7 @@ public class MQuery extends MIDBCollection
 				}
 				else
 				{
-					prettyPrintSolution(it.fromResult.forQuery.vocab, partialInstance, it);
+					prettyPrintSolution(it.fromContext.forQuery.vocab, partialInstance, it);
 				}
 
 				counter++;
@@ -3214,15 +3214,15 @@ public class MQuery extends MIDBCollection
 
 		if (counter == 1)
 			MEnvironment.writeOutLine("\n1 solution" + pmod
-					+ " found at model sizes up to " + it.fromResult.get_universe_max()
+					+ " found at model sizes up to " + it.fromContext.get_universe_max()
 					+ ".");
 		else
 			MEnvironment.writeOutLine("\n" + counter + " solution" + pmod + pluralpmod
-					+ " found at model sizes up to " + it.fromResult.get_universe_max()
+					+ " found at model sizes up to " + it.fromContext.get_universe_max()
 					+ ".");
 
-		if (it.fromResult.get_hu_ceiling() > -1)
-			MEnvironment.writeOutLine("(HU ceiling was " + it.fromResult.get_hu_ceiling()
+		if (it.fromContext.get_hu_ceiling() > -1)
+			MEnvironment.writeOutLine("(HU ceiling was " + it.fromContext.get_hu_ceiling()
 					+ " atoms.)");
 		else
 			MEnvironment.writeOutLine("(HU was infinite.)");
@@ -3233,7 +3233,7 @@ public class MQuery extends MIDBCollection
 			MEnvironment.outWriter
 					.println("* (The H.U. was empty, infinite, or larger than the user provided model size maximum.)\n");
 		}
-		if (it.fromResult.msQueryCreationTime < 0)
+		if (it.fromContext.msQueryCreationTime < 0)
 			MEnvironment.outWriter
 					.println("\nThreadMXBean's isCurrentThreadCpuTimeSupported() returned false; unable to benchmark via CPU time.");
 		else {
@@ -3246,7 +3246,7 @@ public class MQuery extends MIDBCollection
 					+ it.msKodkodTransTime + " ms, and solving: "
 					+ it.msKodkodSolveTime + " ms.");
 			MEnvironment.writeOutLine("CPU Time to prepare Margrave Query: "
-					+ it.fromResult.msQueryCreationTime + " ms.");
+					+ it.fromContext.msQueryCreationTime + " ms.");
 			MEnvironment.outWriter
 					.println("CPU Time spent getting solutions from KodKod (not including I/O): "
 							+ (timeused - timeforoutput) + " ms.");
