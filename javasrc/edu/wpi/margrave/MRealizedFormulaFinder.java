@@ -99,7 +99,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		return indexedCandidates;
 	}
 	
-	Set<String> undoIndexing(Set<String> results, Map<String, String> originalPreds, Map<String, List<String>> originalIndexing)
+	Set<String> undoIndexing(Set<String> results, Map<String, String> originalPreds, Map<String, List<MTerm>> originalIndexing)
 	{
 		Set<String> convertedResults = new HashSet<String>();
 		for(String r : results)
@@ -109,7 +109,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		return convertedResults;
 	}
 	
-	String undoIndexing (String singleString, Map<String, String> originalPreds, Map<String, List<String>> originalIndexing)
+	String undoIndexing(String singleString, Map<String, String> originalPreds, Map<String, List<MTerm>> originalIndexing)
 	{
 		// If we changed nothing
 		if(!originalPreds.containsKey(singleString))
@@ -209,14 +209,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Map<String, Set<List<MTerm>>> cases = new HashMap<String, Set<List<MTerm>>>();
 		return getRealizedFormulas(candidates, cases).get("");
 	}
-	
-	/*public Set<String> getRealizedFormulas(List<MTerm> candidates)
-	{
-		List<String> cases = new ArrayList<String>();
-		return getRealizedFormulas(candidates, cases).get("");		
-	}*/
-	
-	
+		
 	
 	void addToMap(Map<String, Set<String>> dest, Map<String, Set<String>> src)
 	{
@@ -229,42 +222,108 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}
 	}
 		
-	public Map<String, Set<String>> getRealizedFormulasAtSize(List<String> candidates, List<String> cases, int atSize)
+	public String caseToString(String predname, List<MTerm> args)	
+	{
+		String result = predname + "(";
+		
+		boolean first = true;
+		for(MTerm t : args)
+		{
+			if(first)
+			{
+				result += t.toString();
+				first = false;
+			}
+			else
+			{
+				result += ", "+t.toString();
+			}
+		}
+		
+		return result + ")";
+	}
+	
+	public Set<int[]> makeClauseSetFor(Bounds theBounds, Translation theTranslation, 
+			String predname, List<MTerm> args, 
+			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
+	{
+		Set<int[]> clauseSet = new HashSet<int[]>();
+		
+		// R(t_1, ..., t_n)
+		
+		// Produce a set of clauses that says R(t_1, ..., t_n) holds. 
+		// Must cover each potential binding for the interior terms, though!
+		
+		// (1) for each p_i meaning R(a_1, ..., a_n)
+		// q_i <-> t_1(a_1) and ... and t_n(a_n) and p_i 
+		// (2) and (q_1 or ... or ... q_k)
+		
+		// Many valid p_i's means potentially intractable number of clauses.
+		
+		// For each q_i, remember that that being true means that R(t_1, ..., t_n) is true.
+		
+        
+        Relation r = MFormulaManager.makeRelation(predname, args.size());
+        IntSet s = theTranslation.primaryVariables(r);
+        
+        IntIterator it = s.iterator();
+        while(it.hasNext())
+        {
+        	int aVar = it.next();
+ 
+        	dfsdf;
+        	
+        }
+
+        return clauseSet;
+	}
+	
+	public Map<String, Set<String>> getRealizedFormulasAtSize(Map<String, Set<List<MTerm>>> candidates, 
+			Map<String, Set<List<MTerm>>> cases, int atSize)
 	{			
-		//MEnvironment.errorStream.println("~~~~ Getting populated relations at size "+atSize);
+		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
+
+		//MEnvironment.errorStream.println("~~~~ Getting realized fmlas at size "+atSize);
 		
 		// For each case,
 		// which candidates can be populated?
 		// If cases is empty, add a single trivial case:
 		if(cases.size() < 1)
-			cases.add("");
+			cases.put("", new HashSet<List<MTerm>>());
 				
 		//MCommunicator.writeToLog("getPopulatedRelationsAtSize: "+candidates);
 		
-		// Is there any solving to do?
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
+		// Is there any solving to do at all? Maybe not.
+		// If the query is trivially false, impossible. If trivially true, 
+		// may still have a contradiction between cases and candidates!
+		
 		if(nonTrivialTranslations.get(atSize) == null || nonTrivialBounds.get(atSize) == null)
-		{
-			
-			Map<String, Set<String>> result = new HashMap<String, Set<String>> ();
-			if(trivialTrue.contains(atSize))
+		{			
+			/*if(trivialTrue.contains(atSize))
 			{
-				// Trivially true --> all relations can be populated at this size
+				// Trivially true --> all candidates can be realized at this size		
 				for(String c : cases)
 					result.put(c, new HashSet<String>(candidates));
 			}
-			else
+			else*/
+			// TODO above not safe
+			if(trivialFalse.contains(atSize))
 			{
-				// Trivially false --> no relations can be populated at this size
-				for(String c : cases)
-					result.put(c, new HashSet<String>());
+				// Trivially false --> no candidates can be realized at this size,
+				// regardless of case.
+				for(String c : cases.keySet())
+					for(List<MTerm> args : cases.get(c))
+						result.put(caseToString(c, args), new HashSet<String>());
 			}
 			return result;			
 		}
+		/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
 
 		//MCommunicator.writeToLog("getPopulatedRelationsAtSize. Not trivial. Continuing. ");
-		
-		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
-				
+						
 		// Get the base problem.
 		Translation theTranslation = nonTrivialTranslations.get(atSize); 
 		CNFSpy theSolver = (CNFSpy) theTranslation.cnf();
@@ -275,25 +334,31 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
     		MEnvironment.writeOutLine("Stats: "+theTranslation.numPrimaryVariables() +" primary vars. " + theSolver.numberOfClauses() +" clauses." );
 
 		
-		// Which variables mean a populated relation?
-		// Which variables map to which relation?
-		Set<Integer> lookForTheseVars = new HashSet<Integer>();			
+		/////////////////////////////////////////////////////////////
+		
+		// If we were just trying to tell if R is populated, could make a single
+		// clause that was the disjunction of each R(a_i).
+		// Since we are trying to realize a formula R(x), instead we need the CNF
+		// of the disjunction of each R(a_i) \wedge x(a_i). 
+		Set<int[]> lookForClauses = new HashSet<int[]>();
+		
+		// Remember which relation a prop. variable belongs to.
 		HashMap<Integer, Relation> mapCandidateRels = new HashMap<Integer, Relation>();
+		
         for(Relation r : theBounds.relations())
         {
+        	// The variables for each R(a_i) ...
             IntSet s = theTranslation.primaryVariables(r);            
 
             // only remember candidate rels (dont care about the rest)
-            if(candidates.contains(r.name()))
+            if(candidates.keySet().contains(r.name()))
             {
+            	// not iterable, need to do iteration manually
                 IntIterator it = s.iterator();
             	while(it.hasNext())
             	{
             		Integer theInt = it.next();
-            		mapCandidateRels.put(theInt, r);
-            		//MEnvironment.errorStream.println(theInt +" -> "+r);
-                
-            		lookForTheseVars.add(theInt); // related to candidate, watch it
+            		mapCandidateRels.put(theInt, r);                           		
             	}
             }
         }        
@@ -301,89 +366,101 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		//MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize. lookForTheseVars: "+lookForTheseVars);
 		//MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize. mapCandidateRels: "+mapCandidateRels);
         
-        // If nothing to find, don't bother looking.
+        // Populate the result with empty sets
         result.clear();
-        if(lookForTheseVars.size() == 0)
-        {        	        	
-			for(String c : cases)
-				result.put(c, new HashSet<String>());
+		for(String c : cases.keySet())
+			for(List<MTerm> args : cases.get(c))
+				result.put(caseToString(c, args), new HashSet<String>());
+
+		// If nothing to find, don't bother looking.
+        if(lookForClauses.size() == 0)
         	return result;
-        }
         
         try
         {        	
         	ISolver realSolver = theSolver.getEquivalentSAT4j();
         
         	// Fresh todo list for each case.
-        	for(String aCase : cases)
+        	for(String aCaseRel : cases.keySet())        	
         	{
-        		Set<Integer> currentLookFor = new HashSet<Integer>(lookForTheseVars);        	
-        	
-        		// Assert that this case must be satisfied.
-        		Set<Integer> caseSet = new HashSet<Integer>();
-        		for(Relation r : theBounds.relations())
-        			if(r.name().equals(aCase))
-        			{
-        				IntSet caseVars = theTranslation.primaryVariables(r);
-        				IntIterator cvIt = caseVars.iterator();
-        				while(cvIt.hasNext())
-        					caseSet.add(cvIt.next());
-        				break;
-        			}
-        	
-        		// We DO want an empty clause if the case makes no sense. But don't add if the case is ""
-        		int[] caseClause = constructLookForClause(caseSet);
-        		IConstr toRemove = null;
-        		
-          		if(!("".equals(aCase)))
+        		for(List<MTerm> caseargs : cases.get(aCaseRel))
         		{
-            		if(caseClause.length == 0)
-            		{        	
-            			if(fromContext.forQuery.debug_verbosity > 1)
-                			MEnvironment.writeOutLine("DEBUG: case clause was empty. Moving on.");
-                					
-        				result.put(aCase, new HashSet<String>());
-        				continue; // next case        			
+        			String aCase = caseToString(aCaseRel, caseargs);
+        			
+            		Set<int[]> freshCandidateClauseSet = new HashSet<int[]>(candidatesClauseSet);        	
+                	
+            		Set<int[]> caseClauseSet = makeClauseSetFor(aCaseRel, caseargs);
+            		
+            		/*
+            		// Assert that this case must be satisfied.
+            		Set<Integer> caseSet = new HashSet<Integer>();
+            		for(Relation r : theBounds.relations())
+            			if(r.name().equals(aCase))
+            			{
+            				IntSet caseVars = theTranslation.primaryVariables(r);
+            				IntIterator cvIt = caseVars.iterator();
+            				while(cvIt.hasNext())
+            					caseSet.add(cvIt.next());
+            				break;
+            			}
+            	
+            		// We DO want an empty clause if the case makes no sense. But don't add if the case is ""
+            		int[] caseClause = constructLookForClause(caseSet);
+            		IConstr toRemove = null;
+            		
+              		if(!("".equals(aCase)))
+            		{
+                		if(caseClause.length == 0)
+                		{        	
+                			if(fromContext.forQuery.debug_verbosity > 1)
+                    			MEnvironment.writeOutLine("DEBUG: case clause was empty. Moving on.");
+                    					
+            				result.put(aCase, new HashSet<String>());
+            				continue; // next case        			
+                		}
+                		
+            			// SAT4j doesn't let you remove unit clauses. Instead, can pass as an ASSUMPTION
+            			try
+            			{
+            				if(caseClause.length > 1)
+            					toRemove = realSolver.addClause(new VecInt(caseClause));
+            			}
+            			catch(ContradictionException e)
+            			{
+            				// If adding that clause caused a contradiction, the case is impossible. Nothing can get populated.
+            				if(fromContext.forQuery.debug_verbosity > 1)
+                    			MEnvironment.writeOutLine("DEBUG: case led to a contradiction.");
+                    					
+            				result.put(aCase, new HashSet<String>());
+            				continue; // next case
+            			}
+    					
+            		}
+            		else
+            		{
+            			// Not empty clause; NO clause.
+            			caseClause = null;
             		}
             		
-        			// SAT4j doesn't let you remove unit clauses. Instead, can pass as an ASSUMPTION
-        			try
-        			{
-        				if(caseClause.length > 1)
-        					toRemove = realSolver.addClause(new VecInt(caseClause));
-        			}
-        			catch(ContradictionException e)
-        			{
-        				// If adding that clause caused a contradiction, the case is impossible. Nothing can get populated.
-        				if(fromContext.forQuery.debug_verbosity > 1)
-                			MEnvironment.writeOutLine("DEBUG: case led to a contradiction.");
-                					
-        				result.put(aCase, new HashSet<String>());
-        				continue; // next case
-        			}
-					
-        		}
-        		else
-        		{
-        			// Not empty clause; NO clause.
-        			caseClause = null;
+            		*/
+            		
+            		if(fromContext.forQuery.debug_verbosity > 1)
+            			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+caseClauseSet+
+            					". SAT4j Constraint count = "+realSolver.nConstraints());
+            	        	
+            		//result.put(aCase, internalRealized(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
+            		result.put(aCase, internalRealized(realSolver, caseClauseSet, freshCandidateClauseSet, theTranslation, numPrimaryVariables, mapCandidateRels));
+            		//if(toRemove != null)
+            		//	realSolver.removeConstr(toRemove);
+
         		}
         		
-        		if(fromContext.forQuery.debug_verbosity > 1)
-        			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+Arrays.toString(caseClause)+
-        					". SAT4j Constraint count = "+realSolver.nConstraints());
-        	        	
-        		result.put(aCase, internalRealized(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
-        		if(toRemove != null)
-        			realSolver.removeConstr(toRemove);
-        	}
+        	} // end for each case
 
 		}
 		catch(ContradictionException e)
 		{
-			// Trivially false --> no relations can be populated at this size
-			for(String c : cases)
-				result.put(c, new HashSet<String>(candidates));
+			// Trivially false --> no (more) candidates can be realized at this size
 			return result;
 		}
 
@@ -392,7 +469,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 
 	
-	Set<String> internalRealized(ISolver solver, int[] caseClause, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
+	Set<String> internalRealized(ISolver solver, Set<int[]> caseClauseSet, Set<Integer> lookForTheseVars, Translation theTranslation, int numPrimaryVariables, Map<Integer, Relation> mapCandidateRels)
 	{
 		Set<String> result = new HashSet<String>();
 		boolean issat = false;

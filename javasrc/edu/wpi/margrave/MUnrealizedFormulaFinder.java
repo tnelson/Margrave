@@ -21,7 +21,7 @@ import org.sat4j.specs.IConstr;
 import org.sat4j.specs.IProblem;
 import org.sat4j.specs.ISolver;
 import org.sat4j.specs.TimeoutException;
-
+/*
 public class MUnrealizedFormulaFinder extends MCNFSpyQueryResult
 {
 	MUnrealizedFormulaFinder(MPreparedQueryContext qr)
@@ -35,14 +35,6 @@ public class MUnrealizedFormulaFinder extends MCNFSpyQueryResult
 		Map<String, Set<List<MTerm>>> cases = new HashMap<String, Set<List<MTerm>>>();
 		return getUnrealizedFormulas(candidates, cases).get("");
 	}
-	
-	public Set<String> getUnrealizedFormulas(List<MTerm> candidates)
-	{
-		List<String> cases = new ArrayList<String>();
-		return getUnrealizedFormulas(candidates, cases).get("");		
-	}
-
-
 	
 	public Map<String, Set<String>> getUnrealizedFormulas(List<String> candidates, List<String> cases)
 	{
@@ -387,3 +379,4 @@ public class MUnrealizedFormulaFinder extends MCNFSpyQueryResult
 	
 	
 }
+*/

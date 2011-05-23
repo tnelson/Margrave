@@ -708,11 +708,11 @@ class MPreparedQueryContext
 		return new MRealizedFormulaFinder(this);
 	}
 
-	public MUnrealizedFormulaFinder getUnrealizedFormulaFinder() 
+	/*public MUnrealizedFormulaFinder getUnrealizedFormulaFinder() 
 	throws MUserException
 	{
 		return new MUnrealizedFormulaFinder(this);
-	}
+	}*/
 
 	
 	public int countModels() 

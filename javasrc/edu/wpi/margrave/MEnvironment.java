@@ -1245,10 +1245,11 @@ public class MEnvironment
 		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
 		//}
 		
-		Map<String, Set<String>> outsets;
+		Map<String, Set<String>> outsets = new HashMap<String, Set<String>>();
 		try
 		{
-			outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
+			// TODO
+			//outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));
