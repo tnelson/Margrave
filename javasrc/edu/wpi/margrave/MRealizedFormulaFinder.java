@@ -10,9 +10,13 @@ import kodkod.engine.fol2sat.Translation;
 import kodkod.engine.fol2sat.Translator;
 import kodkod.engine.fol2sat.TrivialFormulaException;
 import kodkod.instance.Bounds;
+import kodkod.instance.Tuple;
+import kodkod.instance.TupleFactory;
+import kodkod.instance.TupleSet;
 import kodkod.instance.Universe;
 import kodkod.util.ints.IntIterator;
 import kodkod.util.ints.IntSet;
+import kodkod.util.ints.Ints;
 
 import org.sat4j.core.VecInt;
 import org.sat4j.specs.*;
@@ -243,6 +247,43 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		return result + ")";
 	}
 	
+	public Tuple getTupleForPropVariable(Bounds theBounds, Translation theTranslation, int arity, int minVar, int theVar)
+	{		
+		// Compute index: literal - min of this relation's indices. 
+        int index = theVar - minVar;                
+        TupleFactory factory = theBounds.universe().factory();
+        Tuple tup = factory.tuple(arity, index);      
+        return tup;
+	}
+	
+	Relation getRelationFromBounds(Bounds theBounds, String name)
+	{
+		for(Relation r : theBounds.relations())
+			if(r.name().equals(name))
+				return r;
+		return null;
+	}
+	
+	int getPropVariableForVariable(Bounds theBounds, Translation theTranslation, MTerm termi, Object theAtom)
+	{		
+		if(!(termi instanceof MVariableTerm))
+			throw new MUserException("REALIZED candidates must only involve variables, not constants or functions. Got: "+termi);
+		MVariableTerm vti = (MVariableTerm) termi;
+		String varname = termi.toString();
+		
+		// varname(theAtom) ?
+		
+		// First, the skolem relation.
+		// This will NOT be available via MFormulaManager, since Kodkod adds it internally. 
+		Relation skRel = getRelationFromBounds(theBounds, "$"+varname);
+		
+		theTranslation.primaryVariables(skRel);
+//theBounds.upp
+		
+		// TODO
+	}
+	
+	
 	public Set<int[]> makeClauseSetFor(Bounds theBounds, Translation theTranslation, 
 			String predname, List<MTerm> args, List<Integer> startHereWrapper,
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
@@ -256,7 +297,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		        
         Relation r = MFormulaManager.makeRelation(predname, args.size());
         IntSet s = theTranslation.primaryVariables(r);
-
+    	int minVarForR = s.min();
+    	
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
         int firstVar = q;
@@ -267,20 +309,48 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         IntIterator it = s.iterator();
         while(it.hasNext())
         {
-        	int aVar = it.next();
+        	int aVar = it.next();        	
         	
         	// This is a primary variable signifying R(a_1, ..., a_n)
         	// Issue a set of clauses that signify R(t_1, ..., t_n). The t's are the hard part.
+
+        	// (a_1, ..., a_n)
+        	Tuple thisTuple = getTupleForPropVariable(theBounds, theTranslation,r.arity(), minVarForR, aVar);        	               
         	
+    		/////////////////////////////////////////////////////////       	        	
+        	// * For each i <=n, issue (!q or t_i(a_i))
+        	for(int ii=0;ii<thisTuple.arity();ii++)
+        	{        		
+        		// proposition for t_i(a_i)
+        		int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii));        		        		        		
+        		
+        		int[] thisClause = new int[2];
+        		thisClause[0] = -1 * q;
+        		thisClause[1] = tiai;
+        		clauseSet.add(thisClause);
+        	}
         	
-        	         	
+    		/////////////////////////////////////////////////////////        	
+        	// * issue (!q or aVar)
+        	int[] thisClause = new int[2];
+    		thisClause[0] = -1 * q;
+    		thisClause[1] = aVar;
+    		clauseSet.add(thisClause);
+
+    		/////////////////////////////////////////////////////////
+        	// * issue (!t_1(a_1) or ... or !t_n(a_n) or q)
+    		thisClause = new int[thisTuple.arity()+1];
+    		for(int ii=0;ii<thisTuple.arity();ii++)
+        	{
+    			int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii)); 
+    			thisClause[ii] = -1 * tiai;
+        	}
+    		thisClause[thisTuple.arity()] = q;    		
+    		clauseSet.add(thisClause);
+    		
         
-        	/////
         	intermVarToPred.put(q, predname);
-        	intermVarToArgs.put(q, args);        	
-        	
-        	/////
-        	
+        	intermVarToArgs.put(q, args);        	        	               	
         	q++;        
         }
 
@@ -392,6 +462,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         if(lookForClauses.size() == 0)
         	return result;
         
+        List<Integer> startHereWrapper = new ArrayList<Integer>(1);
+        startHereWrapper.add(theTranslation.cnf().numberOfVariables());
+		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
+		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
+        
         try
         {        	
         	ISolver realSolver = theSolver.getEquivalentSAT4j();
@@ -405,7 +480,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         			
             		Set<int[]> freshCandidateClauseSet = new HashSet<int[]>(candidatesClauseSet);        	
                 	
-            		Set<int[]> caseClauseSet = makeClauseSetFor(aCaseRel, caseargs);
+            		Set<int[]> caseClauseSet = makeClauseSetFor(theBounds, theTranslation, aCaseRel, caseargs, 
+            				startHereWrapper, intermVarToPred, intermVarToArgs);
             		
             		/*
             		// Assert that this case must be satisfied.
