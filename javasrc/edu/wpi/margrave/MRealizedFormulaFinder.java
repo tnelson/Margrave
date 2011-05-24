@@ -244,37 +244,53 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 	
 	public Set<int[]> makeClauseSetFor(Bounds theBounds, Translation theTranslation, 
-			String predname, List<MTerm> args, 
+			String predname, List<MTerm> args, List<Integer> startHereWrapper,
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
 	{
 		Set<int[]> clauseSet = new HashSet<int[]>();
-		
-		// R(t_1, ..., t_n)
-		
+
 		// Produce a set of clauses that says R(t_1, ..., t_n) holds. 
 		// Must cover each potential binding for the interior terms, though!
 		
-		// (1) for each p_i meaning R(a_1, ..., a_n)
-		// q_i <-> t_1(a_1) and ... and t_n(a_n) and p_i 
-		// (2) and (q_1 or ... or ... q_k)
-		
 		// Many valid p_i's means potentially intractable number of clauses.
-		
-		// For each q_i, remember that that being true means that R(t_1, ..., t_n) is true.
-		
-        
+		        
         Relation r = MFormulaManager.makeRelation(predname, args.size());
         IntSet s = theTranslation.primaryVariables(r);
+
+    	// Start with which integer as q_1?
+        int q = startHereWrapper.get(0);
+        int firstVar = q;
         
+        // CLAUSES:
+        // (1) for each p_i meaning R(a_1, ..., a_n)
+		// q_i <-> t_1(a_1) and ... and t_n(a_n) and p_i 
         IntIterator it = s.iterator();
         while(it.hasNext())
         {
         	int aVar = it.next();
- 
-        	dfsdf;
         	
+        	// This is a primary variable signifying R(a_1, ..., a_n)
+        	// Issue a set of clauses that signify R(t_1, ..., t_n). The t's are the hard part.
+        	
+        	
+        	         	
+        
+        	/////
+        	intermVarToPred.put(q, predname);
+        	intermVarToArgs.put(q, args);        	
+        	
+        	/////
+        	
+        	q++;        
         }
 
+        // (2) and (q_1 or ... or ... q_k)
+    	int[] finalClause = new int[q-firstVar];
+    	for(int ii=0;ii<(q-firstVar);ii++)
+    		finalClause[ii] = firstVar+ii;
+    	clauseSet.add(finalClause);
+        
+        startHereWrapper.set(0, q);
         return clauseSet;
 	}
 	
