@@ -358,21 +358,22 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	}
         	
     		/////////////////////////////////////////////////////////        	
-        	// * issue (!q or aVar)
+        	// * issue (!q or aVar) where aVar is R(...)
         	int[] thisClause = new int[2];
     		thisClause[0] = -1 * q;
     		thisClause[1] = aVar;
     		clauseSet.add(thisClause);
 
     		/////////////////////////////////////////////////////////
-        	// * issue (!t_1(a_1) or ... or !t_n(a_n) or q)
-    		thisClause = new int[thisTuple.arity()+1];
+        	// * issue (!t_1(a_1) or ... or !t_n(a_n) or !aVar or q)
+    		thisClause = new int[thisTuple.arity()+2];
     		for(int ii=0;ii<thisTuple.arity();ii++)
         	{
     			int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii)); 
     			thisClause[ii] = -1 * tiai;
         	}
-    		thisClause[thisTuple.arity()] = q;    		
+    		thisClause[thisTuple.arity()] = -1 * aVar;
+    		thisClause[thisTuple.arity()+1] = q;
     		clauseSet.add(thisClause);
     		
         
