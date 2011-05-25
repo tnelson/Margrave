@@ -96,6 +96,7 @@ abstract class MTerm
 	Set<Relation> seenRelations = new HashSet<Relation>();
 	
 	abstract public String toString();
+	abstract public boolean equals(Object other);
 }
 
 class MFunctionTerm extends MTerm
@@ -138,6 +139,20 @@ class MFunctionTerm extends MTerm
 		}
 		return funcName+"("+childStr+")";
 	}
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MFunctionTerm))
+            return false;
+
+        MFunctionTerm othx = (MFunctionTerm)other;
+        
+        return othx.funcName.equals(funcName) &&
+               othx.subTerms.equals(subTerms);
+	}
 }
 
 class MConstantTerm extends MTerm
@@ -154,6 +169,19 @@ class MConstantTerm extends MTerm
 	public String toString()
 	{
 		return constName; 
+	}
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MConstantTerm))
+            return false;
+
+        MConstantTerm othx = (MConstantTerm)other;
+        
+        return othx.constName.equals(constName);
 	}
 }
 
@@ -172,6 +200,19 @@ class MVariableTerm extends MTerm
 	{
 		return variableName; 
 	}	
+	
+	public boolean equals(Object other)
+	{
+		if (this == other)
+            return true;
+
+        if (!(other instanceof MVariableTerm))
+            return false;
+
+        MVariableTerm othx = (MVariableTerm)other;
+        
+        return othx.variableName.equals(variableName);
+	}
 }
 
 class MConstant extends MPredicate

@@ -1182,7 +1182,7 @@ public class MEnvironment
 		return envIterators.get(id);
 	}
 	
-	public static Document showPopulated(String id,
+	public static Document showRealized(String id,
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MBaseException
 	{
@@ -1224,12 +1224,12 @@ public class MEnvironment
 		return unsupportedResponse();
 	}
 
-	public static Document showPopulated(String id, Map<String, Set<List<MTerm>>> rlist) throws MBaseException
+	public static Document showRealized(String id, Map<String, Set<List<MTerm>>> rlist) throws MBaseException
 	{
-		return showPopulated(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
+		return showRealized(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
 	}
 	
-	public static Document showUnpopulated(String id,
+	public static Document showUnrealized(String id,
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MUserException
 	{
@@ -1262,9 +1262,9 @@ public class MEnvironment
 		}
 	}
 	
-	public static Document showUnpopulated(String id, Map<String, Set<List<MTerm>>> rlist) throws MUserException 
+	public static Document showUnrealized(String id, Map<String, Set<List<MTerm>>> rlist) throws MUserException 
 	{
-		return showUnpopulated(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
+		return showUnrealized(id, rlist,  new HashMap<String, Set<List<MTerm>>>());
 	}
 	
 	public static Document countModels(String id, Integer n) throws MUserException

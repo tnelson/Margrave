@@ -554,10 +554,10 @@ public class MCommunicator
         					
         					// Get the result and return it
         					if (showType.equalsIgnoreCase("REALIZED")) {
-    							theResponse = MEnvironment.showPopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+    							theResponse = MEnvironment.showRealized(popId, atomicFormulas, forCasesAtomicFormulas);
     						}
     						else {
-    							theResponse = MEnvironment.showUnpopulated(popId, atomicFormulas, forCasesAtomicFormulas);
+    							theResponse = MEnvironment.showUnrealized(popId, atomicFormulas, forCasesAtomicFormulas);
     						}        					
         					
         				} // end pop/unpop
@@ -1096,8 +1096,15 @@ public class MCommunicator
         private static List<Node> getElementChildren(Node n)
         {
         	// NodeList does not implement Iterable
-        	NodeList nlResult = n.getChildNodes();
+        	
         	List<Node> result = new ArrayList<Node>();
+        	if(n == null)
+        		return result;
+        	NodeList nlResult = n.getChildNodes();
+
+        	if(nlResult == null)
+        		return result;
+        	
         	for(int ii = 0;ii<nlResult.getLength();ii++)
         	{
         		Node aChild = nlResult.item(ii);
@@ -1426,7 +1433,7 @@ public class MCommunicator
     		 File logFILE = new File(absoluteLogFileNameURL.getFile());
     		 
     		 String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8"); 
-    		 
+    		     		 
     		 MCommunicator.outLogStream = new FileWriter(absoluteLogFileName);
     		 MCommunicator.outLog = new BufferedWriter(outLogStream);
     		 MCommunicator.outLog.write("Margrave engine log started at: "+ new Date()+"\n");	   
@@ -1535,7 +1542,7 @@ public class MCommunicator
 		}
 	}
      
-     protected static byte[] transformXML(Document theResponse) 
+     protected static String transformXMLToString(Document theResponse)
      {
     	 try
     	 {
@@ -1553,16 +1560,22 @@ public class MCommunicator
 			
 			String xmlString = result.getWriter().toString();
 			xmlString += cEOF;
-			return xmlString.getBytes();
-		}
+			return xmlString;
+    	 }
 		catch(Exception e)
 		{
 			// Will hit this if theResponse is null.	
 			// don't do this. would go through System.err
 			//e.printStackTrace();
-			return (makeDetailedError(e.getLocalizedMessage())+cEOF).getBytes();
+			return (makeDetailedError(e.getLocalizedMessage())+cEOF);
 		}
-	}
+    	 
+     }
+     
+     protected static byte[] transformXML(Document theResponse) 
+     {
+    	return transformXMLToString(theResponse).getBytes(); 
+     }
 	
 	private static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<MTerm> newterms)
 	throws MUserException, MGEUnknownIdentifier

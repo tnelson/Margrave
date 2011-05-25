@@ -1,7 +1,9 @@
 package edu.wpi.margrave;
 
+import java.io.PrintWriter;
 import java.util.*;
 
+import kodkod.ast.Expression;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
@@ -20,6 +22,7 @@ import kodkod.util.ints.Ints;
 
 import org.sat4j.core.VecInt;
 import org.sat4j.specs.*;
+import org.w3c.dom.Document;
 
 
 
@@ -32,6 +35,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		super(qr);			
   	}
 		
+	
 	public List<String> applyIndexing(Map<String, Set<List<MTerm>>> candidates, Map<String, String> originalPreds, Map<String, List<MTerm>> originalIndexing)
 	{
 		// Translate to tupled form
@@ -228,6 +232,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 	public String caseToString(String predname, List<MTerm> args)	
 	{
+		if(predname.length() < 1)
+			return "";
+		
 		String result = predname + "(";
 		
 		boolean first = true;
@@ -307,14 +314,17 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	{
 		Set<int[]> clauseSet = new HashSet<int[]>();
 
+		MCommunicator.writeToLog("\n  makeClauseSetFor: "+predname+" "+args);
+		
 		// Produce a set of clauses that says R(t_1, ..., t_n) holds. 
 		// Must cover each potential binding for the interior terms, though!
 		
 		// Many valid p_i's means potentially intractable number of clauses.
 		        
-        Relation r = MFormulaManager.makeRelation(predname, args.size());
+		// Can't trust manager here, since Kodkod adds relations
+        Relation r = getRelationFromBounds(theBounds, predname);
         IntSet s = theTranslation.primaryVariables(r);
-    	int minVarForR = s.min();
+    	int minVarForR = s.min();    	
     	
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
@@ -378,8 +388,20 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
     	clauseSet.add(finalClause);
         
         startHereWrapper.set(0, q);
+                
+		MCommunicator.writeToLog("\n  makeClauseSetFor returning: "+stringifyArrays(clauseSet));
         return clauseSet;
 	}
+
+	String stringifyArrays(Set<int[]> arrs)
+	{
+		String result = "< ";
+		for(int[] arr : arrs)
+			result += " " + Arrays.toString(arr);
+			
+		return result + ">";
+	}
+	
 	
 	public Map<String, Set<String>> getRealizedFormulasAtSize(Map<String, Set<List<MTerm>>> candidates, 
 			Map<String, Set<List<MTerm>>> cases, int atSize)
@@ -392,9 +414,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// which candidates can be populated?
 		// If cases is empty, add a single trivial case:
 		if(cases.size() < 1)
+		{
 			cases.put("", new HashSet<List<MTerm>>());
+			cases.get("").add(new ArrayList<MTerm>());
+		}
 				
-		//MCommunicator.writeToLog("getPopulatedRelationsAtSize: "+candidates);
+		MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize: "+candidates + " at size: "+atSize);
 		
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
@@ -425,7 +450,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 
-		//MCommunicator.writeToLog("getPopulatedRelationsAtSize. Not trivial. Continuing. ");
+		//MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize. Not trivial. Continuing. ");
 						
 		// Get the base problem.
 		Translation theTranslation = nonTrivialTranslations.get(atSize); 
@@ -443,7 +468,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// clause that was the disjunction of each R(a_i).
 		// Since we are trying to realize a formula R(x), instead we need the CNF
 		// of the disjunction of each R(a_i) \wedge x(a_i). 
-		Set<int[]> lookForClauses = new HashSet<int[]>();
+//		Set<int[]> lookForClauses = new HashSet<int[]>();
 		
 		// Remember which relation a prop. variable belongs to.
 		//HashMap<Integer, Relation> mapCandidateRels = new HashMap<Integer, Relation>();
@@ -472,15 +497,15 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         // Populate the result with empty sets
         result.clear();
 		for(String c : cases.keySet())
+		{
+			if(c.length() < 1)
+				result.put(c, new HashSet<String>());
 			for(List<MTerm> args : cases.get(c))
 				result.put(caseToString(c, args), new HashSet<String>());
-
-		// If nothing to find, don't bother looking.
-        if(lookForClauses.size() == 0)
-        	return result;
+		}
         
         List<Integer> startHereWrapper = new ArrayList<Integer>(1);
-        startHereWrapper.add(theTranslation.cnf().numberOfVariables());
+        startHereWrapper.add(theTranslation.cnf().numberOfVariables()+1);
 		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
 		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
         
@@ -493,9 +518,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	// Map the intermediate variables that indicate this candidate ---> the clauses used by them
         	// This way we know the candidate -> clauses mapping.
         	Map<Set<Integer>, Set<int[]>> candidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>();        	
-        	for(String aCandidateRel : cases.keySet())        	
+        	for(String aCandidateRel : candidates.keySet())        	
         	{
-        		for(List<MTerm> candidateargs : cases.get(aCandidateRel))
+        		for(List<MTerm> candidateargs : candidates.get(aCandidateRel))
         		{   
         			Set<int[]> candidateClauseSet = makeClauseSetFor(theBounds, theTranslation, aCandidateRel, candidateargs, 
             				startHereWrapper, intermVarToPred, intermVarToArgs);
@@ -508,77 +533,29 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	for(String aCaseRel : cases.keySet())        	
         	{
         		for(List<MTerm> caseargs : cases.get(aCaseRel))
-        		{
+        		{        		
         			String aCase = caseToString(aCaseRel, caseargs);
 
+        			MCommunicator.writeToLog("\n  Handling case: "+aCase);
+        			
                 	// Fresh todo list for each case.
         			// TODO confirm this is a deep enough copy
         			Map<Set<Integer>, Set<int[]>> freshCandidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>(candidateClauseSets);        	
                 	
-            		Set<int[]> caseClauseSet = makeClauseSetFor(theBounds, theTranslation, aCaseRel, caseargs, 
-            				startHereWrapper, intermVarToPred, intermVarToArgs);
-            		
-            		/*
-            		// Assert that this case must be satisfied.
-            		Set<Integer> caseSet = new HashSet<Integer>();
-            		for(Relation r : theBounds.relations())
-            			if(r.name().equals(aCase))
-            			{
-            				IntSet caseVars = theTranslation.primaryVariables(r);
-            				IntIterator cvIt = caseVars.iterator();
-            				while(cvIt.hasNext())
-            					caseSet.add(cvIt.next());
-            				break;
-            			}
-            	
-            		// We DO want an empty clause if the case makes no sense. But don't add if the case is ""
-            		int[] caseClause = constructLookForClause(caseSet);
-            		IConstr toRemove = null;
-            		
-              		if(!("".equals(aCase)))
-            		{
-                		if(caseClause.length == 0)
-                		{        	
-                			if(fromContext.forQuery.debug_verbosity > 1)
-                    			MEnvironment.writeOutLine("DEBUG: case clause was empty. Moving on.");
-                    					
-            				result.put(aCase, new HashSet<String>());
-            				continue; // next case        			
-                		}
-                		
-            			// SAT4j doesn't let you remove unit clauses. Instead, can pass as an ASSUMPTION
-            			try
-            			{
-            				if(caseClause.length > 1)
-            					toRemove = realSolver.addClause(new VecInt(caseClause));
-            			}
-            			catch(ContradictionException e)
-            			{
-            				// If adding that clause caused a contradiction, the case is impossible. Nothing can get populated.
-            				if(fromContext.forQuery.debug_verbosity > 1)
-                    			MEnvironment.writeOutLine("DEBUG: case led to a contradiction.");
-                    					
-            				result.put(aCase, new HashSet<String>());
-            				continue; // next case
-            			}
-    					
-            		}
-            		else
-            		{
-            			// Not empty clause; NO clause.
-            			caseClause = null;
-            		}
-            		
-            		*/
+            		Set<int[]> caseClauseSet = new HashSet<int[]>();
+            		if(aCaseRel.length() > 1)
+            			caseClauseSet = makeClauseSetFor(theBounds, theTranslation, aCaseRel, caseargs, 
+            					startHereWrapper, intermVarToPred, intermVarToArgs);
+            		            	
             		
             		if(fromContext.forQuery.debug_verbosity > 1)
             			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+caseClauseSet+
             					". SAT4j Constraint count = "+realSolver.nConstraints());
-            	        	
-            		//result.put(aCase, internalRealized(realSolver, caseClause, currentLookFor, theTranslation, numPrimaryVariables, mapCandidateRels));
-            		result.put(aCase, internalRealized(realSolver, caseClauseSet, freshCandidateClauseSets, theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
-            		//if(toRemove != null)
-            		//	realSolver.removeConstr(toRemove);
+            	        	            		
+            		result.put(aCase, 
+            				internalRealized(realSolver, caseClauseSet, freshCandidateClauseSets, 
+            						theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
+            		
 
         		}
         		
@@ -603,14 +580,22 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Set<String> result = new HashSet<String>();
 		boolean issat = false;
 		
+		List<Integer> unitClausesToAssumeCases = new ArrayList<Integer>();	
+		
+		int firstQ = Collections.min(intermVarToArgs.keySet());
+		int lastQ = Collections.max(intermVarToArgs.keySet());
+		
 		///////////////////////////////////////////
-		// Add the CASE. Should always be non-unit
+		// Add the CASE. 
 		Set<IConstr> toRemoveCase = new HashSet<IConstr>();
 		try
 		{
 			for(int[] aClause : caseClauseSet)
 			{
-				toRemoveCase.add(solver.addClause(new VecInt(aClause)));												
+				if(aClause.length > 1)
+					toRemoveCase.add(solver.addClause(new VecInt(aClause)));
+				else
+					unitClausesToAssumeCases.add(aClause[0]);
 			}
 		}
 		catch(ContradictionException e)
@@ -627,28 +612,43 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			clausesToAdd.addAll(aSet);
 		}	
 				
+		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars());
+		solver.newVar(lastQ);
+		
 		do
 		{				
 			MCommunicator.writeToLog("\ninternalPopulated core loop. these clauses remain: "+candidateClauseSets);
 			MCommunicator.writeToLog("\n  result is now: "+result);
 
 			// We can remove non-unit clauses.
-			Set<IConstr> toRemove = new HashSet<IConstr>();
+			Set<IConstr> toRemoveCandidate = new HashSet<IConstr>();
+			
+			List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
 			
 			try
 			{
 				for(int[] aClause : clausesToAdd)
-				{
+				{								
+					
+					MCommunicator.writeToLog("\n solver.nConstraints() = "+solver.nConstraints());
 					if(aClause.length > 1)
-						toRemove.add(solver.addClause(new VecInt(aClause)));	
+					{						
+						IConstr x = solver.addClause(new VecInt(aClause));
+						MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+x);
+						toRemoveCandidate.add(x);
+					}
 					else
-						throw new MUserException("MRealizedFormulaFinder -- UNIT CLAUSE IN CANDIDATES: "+aClause);
+					{
+						MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
+						unitClausesToAssumeCandidates.add(aClause[0]);
+					}
+					MCommunicator.writeToLog("\n solver.nConstraints() = "+solver.nConstraints()+"\n");
 				}
 			}
 			catch(ContradictionException e)
 			{
 				// No more
-				for(IConstr rem : toRemove)
+				for(IConstr rem : toRemoveCandidate)
 					solver.removeConstr(rem);
 				for(IConstr rem : toRemoveCase)
 					solver.removeConstr(rem);	
@@ -658,9 +658,24 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
 			try
-			{
-
-				issat = solver.isSatisfiable();
+			{			
+				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCandidates.size() + unitClausesToAssumeCases.size()];
+				int ii = 0;
+				for(int lit : unitClausesToAssumeCandidates)
+				{
+					unitClausesToAssumeArr[ii] = lit;
+					ii++;
+				}	
+				for(int lit : unitClausesToAssumeCases)
+				{
+					unitClausesToAssumeArr[ii] = lit;
+					ii++;
+				}					
+				
+												
+				//assumps - a set of literals (represented by usual non null integers in Dimacs format). 								
+				
+				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
 				
 /*				if(newClause.length == 1)
 				{
@@ -691,7 +706,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			}
 			
 			
-			for(IConstr rem : toRemove)
+			for(IConstr rem : toRemoveCandidate)
 				solver.removeConstr(rem);				
 			final long endSolve = System.currentTimeMillis();
         
@@ -702,8 +717,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			//	MEnvironment.writeOutLine("DEBUG: Satisfiable. Adding to result.");
 			
 			// return not just those that are true, but all for nonempty relations
-			int firstQ = Collections.min(intermVarToArgs.keySet());
-			int lastQ = Collections.max(intermVarToArgs.keySet());
 			if(issat)
 				addRealizedToListAndTrimGoals(solver, theTranslation, 
 						firstQ, lastQ, 
@@ -762,5 +775,86 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		} // end for each Q variable		
 		
 	}
+	
+	
+	/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////
+	
+	static void tests_createvp1()
+	{
+		List<String> creationCommands = new ArrayList<String>();
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"A\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><RULE name=\"Rule1\"><DECISION-TYPE type=\"permit\"><ID id=\"x\" /><ID id=\"y\" /></DECISION-TYPE>" +
+				"<TARGET><AND><ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
+				"<ISA var=\"y\" sort=\"B\" />"+
+				"</AND></TARGET></RULE></MARGRAVE-COMMAND>");
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST>" +
+				"<FA><ID id=\"permit\" /><ID id=\"deny\" /></FA>" +
+				"<OVERRIDES decision=\"permit\"><ID id=\"callpolice\" /></OVERRIDES>" +
+				"<OVERRIDES decision=\"deny\"><ID id=\"callpolice\" /></OVERRIDES></COMB-LIST></MARGRAVE-COMMAND>"); 
+		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
+		
+		//creationCommands.add("");
+		
+		for(String cmd : creationCommands)
+		{
+			MCommunicator.handleXMLCommand(cmd);
+		}
+	}
+	
+	static void tests_createqry1()
+	{
+		// P.permit(x, y)
+		String aQuery = 
+			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"SRQry1\"><CONDITION>" +
+			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
+			"</CONDITION>" +
+			"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
+		MCommunicator.handleXMLCommand(aQuery);
+	}
+	
+	public static void unitTests()
+	{
+		MEnvironment.writeErrLine("----- Begin MRealizedFormulaFinder Tests (No messages is good.) -----");
+		
+		tests_createvp1();
+		tests_createqry1();
+		
+		
+		// TODO need to force inclusion!
+		
+		// simple no cases
+		Document result;
+		Map<String, Set<List<MTerm>>> map1 = new HashMap<String, Set<List<MTerm>>>();
+		/*map1.put("Permit", new HashSet<List<MTerm>>());
+		List<MTerm> tlist1 = new ArrayList<MTerm>();
+		tlist1.add(new MVariableTerm("x"));
+		tlist1.add(new MVariableTerm("y"));
+		map1.get("Permit").add(tlist1);*/
+		map1.put("A", new HashSet<List<MTerm>>());
+		List<MTerm> tlist1 = new ArrayList<MTerm>();
+		tlist1.add(new MVariableTerm("x"));
+		map1.get("A").add(tlist1);
+		
+				
+		result = MEnvironment.showRealized("SRQry1", map1);
+		
+		
+		System.err.println(MCommunicator.transformXMLToString(result));
+		
+		MEnvironment.writeErrLine("----- End MRealizedFormulaFinder Tests -----");	
+	}
+
 	
 }

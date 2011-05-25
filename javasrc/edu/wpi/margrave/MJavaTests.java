@@ -102,8 +102,9 @@ public class MJavaTests
 	public static void main(String[] args)
 	throws MBaseException
 	{
-		MEnvironment.writeOutLine("Starting java-based tests.");
-	
+		MEnvironment.writeOutLine("Starting java-based tests.");			
+		
+		MCommunicator.bDoLogging = true;
 		MCommunicator.initializeLog();
 		MCommunicator.writeToLog("\n\n");
 		
@@ -119,6 +120,8 @@ public class MJavaTests
 		MPolicySet.unitTests();
 		/////////////////////////////////////////////////////////////
 		MCommunicator.unitTests();
+		/////////////////////////////////////////////////////////////
+		MRealizedFormulaFinder.unitTests();
 				
 		/////////////////////////////////////////////////////////////
 		try 
