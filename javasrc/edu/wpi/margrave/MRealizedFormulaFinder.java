@@ -583,8 +583,23 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		List<Integer> unitClausesToAssumeCases = new ArrayList<Integer>();	
 		
+		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
+		
 		int firstQ = Collections.min(intermVarToArgs.keySet());
 		int lastQ = Collections.max(intermVarToArgs.keySet());
+		
+		MCommunicator.writeToLog("\n  Values:");
+		for(int ii=1;ii<=theSolver.nVars();ii++)
+			MCommunicator.writeToLog("\n  "+ii+": "+theSolver.getVocabulary().valueToString(ii+1));
+		
+		// Make sure the solver has space for our new variables.
+		solver.newVar(lastQ);
+		// doesnt help: theSolver.getVocabulary().unassign(30);
+		theSolver.getVocabulary().unassign(30);
+		solver.clearLearntClauses();
+		MCommunicator.writeToLog("\n  Values:");
+		for(int ii=1;ii<=theSolver.nVars();ii++)
+			MCommunicator.writeToLog("\n  "+ii+": "+theSolver.getVocabulary().valueToString(ii+1));
 		
 		///////////////////////////////////////////
 		// Add the CASE. 
@@ -612,10 +627,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{
 			clausesToAdd.addAll(aSet);
 		}	
-				
-		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars());
-		solver.newVar(lastQ);
+			
+		// as of 2.3.0, default sat4j was
+		// return newMiniLearningHeapRsatExpSimpBiere();
+	
+		// can a non unit clause RESULT in a unit clause?
+		// e.g., will [8, 30] be treated as unit if we know that 8 holds already?
 		
+		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars());		
+		
+		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars()+"; class was "+solver.getClass().toString());
 		do
 		{				
 			MCommunicator.writeToLog("\ninternalPopulated core loop. these clauses remain: "+candidateClauseSets);
@@ -625,6 +646,21 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			Set<IConstr> toRemoveCandidate = new HashSet<IConstr>();
 			
 			List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
+			MCommunicator.writeToLog("\n  Values:");
+			for(int ii=1;ii<=theSolver.nConstraints();ii++)
+				MCommunicator.writeToLog("\n c"+ii+": "+theSolver.getIthConstr(ii));
+
+			// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
+			// theSolver.propagate();
+			
+			
+			// DO NOT TRUST vocab.valueToString. uses "head" from the clause, not same as var #.
+			// instead trust getIthConst.
+			
+			// ok, how to USE getIthConst?
+			
+			MCommunicator.writeToLog("\n"+theSolver.getOrder());
+			MCommunicator.writeToLog("\n"+theSolver.getStats());
 			
 			try
 			{
