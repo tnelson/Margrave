@@ -420,8 +420,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			cases.get("").add(new ArrayList<MTerm>());
 		}
 				
-		MCommunicator.writeToLog("\ngetPopulatedRelationsAtSize: "+candidates + " at size: "+atSize);
-		
+		MCommunicator.writeToLog("\nIn getPopulatedRelationsAtSize: "+candidates + " at size: "+atSize);
+		MCommunicator.writeToLog("\n-------------------------------------------------\n");
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 		// Is there any solving to do at all? Maybe not.
@@ -574,6 +574,32 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 
 	
+	void handleClause(ISolver solver, int[] aClause, Set<IConstr> toRemove, List<Integer> toAssume)
+	throws ContradictionException
+	{
+		MCommunicator.writeToLog("\nin handleClause:");
+		MCommunicator.writeToLog("\n BEFORE solver.nConstraints() = "+solver.nConstraints()+"\n");
+		if(aClause.length > 1)
+		{			
+			IConstr aConstraint = solver.addClause(new VecInt(aClause));
+			
+			// May return null for non-unit clauses if the clause is already satisfied
+			// If a non-unit clause returns null, can ignore it.
+			if(aConstraint != null)
+				toRemove.add(aConstraint);
+			
+			MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+aConstraint);
+			
+		}
+		else
+		{
+			MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
+			toAssume.add(aClause[0]);
+		}
+		MCommunicator.writeToLog("\n AFTER solver.nConstraints() = "+solver.nConstraints()+"\n");
+
+	}
+	
 	Set<String> internalRealized(ISolver solver, Set<int[]> caseClauseSet, Map<Set<Integer>, Set<int[]>> candidateClauseSets,
 			Translation theTranslation, int numPrimaryVariables, 
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
@@ -582,24 +608,13 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		boolean issat = false;
 		
 		List<Integer> unitClausesToAssumeCases = new ArrayList<Integer>();	
-		
-		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
-		
+				
 		int firstQ = Collections.min(intermVarToArgs.keySet());
 		int lastQ = Collections.max(intermVarToArgs.keySet());
 		
-		MCommunicator.writeToLog("\n  Values:");
-		for(int ii=1;ii<=theSolver.nVars();ii++)
-			MCommunicator.writeToLog("\n  "+ii+": "+theSolver.getVocabulary().valueToString(ii+1));
-		
 		// Make sure the solver has space for our new variables.
 		solver.newVar(lastQ);
-		// doesnt help: theSolver.getVocabulary().unassign(30);
-		theSolver.getVocabulary().unassign(30);
-		solver.clearLearntClauses();
-		MCommunicator.writeToLog("\n  Values:");
-		for(int ii=1;ii<=theSolver.nVars();ii++)
-			MCommunicator.writeToLog("\n  "+ii+": "+theSolver.getVocabulary().valueToString(ii+1));
+		//solver.clearLearntClauses();
 		
 		///////////////////////////////////////////
 		// Add the CASE. 
@@ -608,10 +623,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{
 			for(int[] aClause : caseClauseSet)
 			{
-				if(aClause.length > 1)
-					toRemoveCase.add(solver.addClause(new VecInt(aClause)));
-				else
-					unitClausesToAssumeCases.add(aClause[0]);
+				handleClause(solver, aClause, toRemoveCase, unitClausesToAssumeCases);							
 			}
 		}
 		catch(ContradictionException e)
@@ -629,57 +641,32 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}	
 			
 		// as of 2.3.0, default sat4j was
-		// return newMiniLearningHeapRsatExpSimpBiere();
-	
-		// can a non unit clause RESULT in a unit clause?
-		// e.g., will [8, 30] be treated as unit if we know that 8 holds already?
+		// return newMiniLearningHeapRsatExpSimpBiere();	
 		
-		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars());		
 		
-		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars pre Q: "+solver.nVars()+"; class was "+solver.getClass().toString());
+		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars is now: "+solver.nVars()+"; class was "+solver.getClass().toString());
+		
 		do
 		{				
-			MCommunicator.writeToLog("\ninternalPopulated core loop. these clauses remain: "+candidateClauseSets);
-			MCommunicator.writeToLog("\n  result is now: "+result);
+			MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: "+candidateClauseSets);
+			MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
 
 			// We can remove non-unit clauses.
 			Set<IConstr> toRemoveCandidate = new HashSet<IConstr>();
 			
 			List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
-			MCommunicator.writeToLog("\n  Values:");
-			for(int ii=1;ii<=theSolver.nConstraints();ii++)
-				MCommunicator.writeToLog("\n c"+ii+": "+theSolver.getIthConstr(ii));
-
+			
+									
 			// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
-			// theSolver.propagate();
+			// don't call it! just noting that the function is separate + accessible 
+			// theSolver.propagate();									
 			
-			
-			// DO NOT TRUST vocab.valueToString. uses "head" from the clause, not same as var #.
-			// instead trust getIthConst.
-			
-			// ok, how to USE getIthConst?
-			
-			MCommunicator.writeToLog("\n"+theSolver.getOrder());
-			MCommunicator.writeToLog("\n"+theSolver.getStats());
-			
+						
 			try
 			{
 				for(int[] aClause : clausesToAdd)
 				{								
-					
-					MCommunicator.writeToLog("\n solver.nConstraints() = "+solver.nConstraints());
-					if(aClause.length > 1)
-					{						
-						IConstr x = solver.addClause(new VecInt(aClause));
-						MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+x);
-						toRemoveCandidate.add(x);
-					}
-					else
-					{
-						MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
-						unitClausesToAssumeCandidates.add(aClause[0]);
-					}
-					MCommunicator.writeToLog("\n solver.nConstraints() = "+solver.nConstraints()+"\n");
+					handleClause(solver, aClause, toRemoveCandidate, unitClausesToAssumeCandidates);
 				}
 			}
 			catch(ContradictionException e)
@@ -712,29 +699,13 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 												
 				//assumps - a set of literals (represented by usual non null integers in Dimacs format). 								
 				
+				MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
+				
+				debugPrintClauses(solver);
+				//solver.printInfos(new PrintWriter(System.err), ">>>");
+				
 				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
-				
-/*				if(newClause.length == 1)
-				{
-					// neither clause can be safely removed (possibly can't remove caseClause b/c it doesn't exist)
-					if(caseClause != null && caseClause.length == 1)
-						issat = solver.isSatisfiable(new VecInt(new int[] {caseClause[0], newClause[0]}));
-				
-					// caseClause can be safely removed, but newClause cannot
-					else
-						issat = solver.isSatisfiable(new VecInt(new int[] {newClause[0]}));
-				
-				}
-				else
-				{
-					// newClause can be safely removed, but caseClause cannot (or doesn't exist)
-					if(caseClause != null && caseClause.length == 1)
-						issat = solver.isSatisfiable(new VecInt(new int[] {caseClause[0]}));
-				
-					// both can be safely removed
-					else
-						issat = solver.isSatisfiable();
-				}*/
+				MCommunicator.writeToLog("\nResult was: "+issat);
 			}
 			catch(TimeoutException e)
 			{
@@ -769,6 +740,31 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 	
 	
+	private void debugPrintClauses(ISolver solver)
+	{
+		// DO NOT TRUST vocab.valueToString. uses "head" from the clause, not same as var #.
+		// And getIthConstr is returning ArrayIndexOutOfBoundsException even if we use nConstraints as a limiter...
+		
+		// debug
+		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
+
+		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+" clauses. They are:");
+		
+		try
+		{
+			for(int ii=0;ii<theSolver.nConstraints();ii++)
+				MCommunicator.writeToLog("\n clause "+ii+": "+theSolver.getIthConstr(ii));
+		}
+		catch(ArrayIndexOutOfBoundsException e)
+		{
+			// Why in the world is this being thrown? It's off by a lot more than 1.
+			MCommunicator.writeToLog("\n clause ... (stopped here; array index went out of bounds.)");			
+		}
+		
+
+	}
+
+
 	protected void addRealizedToListAndTrimGoals(ISolver theSolver, Translation trans, int firstQ, int lastQ, 
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs, 
 			Set<String> result, 
@@ -792,7 +788,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 				if(!result.contains(fmla))
 				{
-					MEnvironment.writeToLog("--- New Realized found: "+fmla);
+					MEnvironment.writeToLog("\n--- New Realized found: "+fmla+"\n");
 					result.add(fmla);
 
 					// Remove from clause list
@@ -821,26 +817,40 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	static void tests_createvp1()
 	{
 		List<String> creationCommands = new ArrayList<String>();
+		// U >= {A, B, C}
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"SRTest1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");
+		// R: A 
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"SRTest1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/></RELATIONS></MARGRAVE-COMMAND> ");
+		// c: -> C
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"SRTest1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
+		// f: C -> A
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"SRTest1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"A\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"A\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
-		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"P\" /><VOCAB-IDENTIFIER vname=\"Test1\" /></MARGRAVE-COMMAND> ");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"CREATE POLICY LEAF\"><POLICY-IDENTIFIER pname=\"SRP1\" /><VOCAB-IDENTIFIER vname=\"SRTest1\" /></MARGRAVE-COMMAND> ");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></MARGRAVE-COMMAND>");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /></MARGRAVE-COMMAND>");
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><RULE name=\"Rule1\"><DECISION-TYPE type=\"permit\"><ID id=\"x\" /><ID id=\"y\" /></DECISION-TYPE>" +
-				"<TARGET><AND><ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
-				"<ISA var=\"y\" sort=\"B\" />"+
-				"</AND></TARGET></RULE></MARGRAVE-COMMAND>");
+		// r(x)
+		// any y
 		
-		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST>" +
+		// TODO: error if bad arity in rule
+		
+		// TODO: error if re-defining relation in same vocab
+		
+		// TODO: allow x, y in var list if y not used after substitution
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"SRP1\" /><RULE name=\"Rule1\"><DECISION-TYPE type=\"permit\"><ID id=\"x\" /><ID id=\"y\" /></DECISION-TYPE>" +
+				"<TARGET><AND><ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
+				"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></AND>" +				
+				"</TARGET></RULE></MARGRAVE-COMMAND>");
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"SRP1\" /><COMB-LIST>" +
 				"<FA><ID id=\"permit\" /><ID id=\"deny\" /></FA>" +
 				"<OVERRIDES decision=\"permit\"><ID id=\"callpolice\" /></OVERRIDES>" +
 				"<OVERRIDES decision=\"deny\"><ID id=\"callpolice\" /></OVERRIDES></COMB-LIST></MARGRAVE-COMMAND>"); 
-		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
+		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"SRP1\" /></MARGRAVE-COMMAND>"); 
+		 
 		
 		//creationCommands.add("");
 		
@@ -855,9 +865,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// P.permit(x, y)
 		String aQuery = 
 			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"SRQry1\"><CONDITION>" +
-			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
+			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"SRP1\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
 			"</CONDITION>" +
-			"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
+			"<PUBLISH><VARIABLE-DECLARATION sort=\"A\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"A\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 		MCommunicator.handleXMLCommand(aQuery);
 	}
 	
@@ -866,10 +876,18 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		MEnvironment.writeErrLine("----- Begin MRealizedFormulaFinder Tests (No messages is good.) -----");
 		
 		tests_createvp1();
+		
+		System.err.println(MCommunicator.transformXMLToString(MEnvironment.printInfo("SRP1")));
+		
 		tests_createqry1();
 		
 		
-		// TODO need to force inclusion!
+		// !!!!!!!!!!!!
+		// TODO need to force inclusion of IDBs!
+
+		// !!!!!!!!!!!!
+		// TODO confirm deep enough copy (above)
+
 		
 		// simple no cases
 		Document result;

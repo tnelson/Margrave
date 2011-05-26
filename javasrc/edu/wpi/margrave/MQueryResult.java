@@ -119,6 +119,9 @@ class MCNFSpyQueryResult extends MQueryResult
         {
         	// Translate via Kodkod
     		final long startTransl = System.currentTimeMillis();
+    		
+    		MCommunicator.writeToLog(qryBounds.toString());
+    		MCommunicator.writeToLog(f.toString());
             Translation trans = Translator.translate(f, qryBounds, qrySolver.options());
             CNFSpy theSpy = (CNFSpy)trans.cnf();         
     		final long endTransl = System.currentTimeMillis();
