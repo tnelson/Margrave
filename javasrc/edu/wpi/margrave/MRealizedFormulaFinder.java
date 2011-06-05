@@ -332,7 +332,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         int firstVar = q;
         
         // CLAUSES:
-        // (1) for each p_i meaning R(a_1, ..., a_n)
+        // for each p_i meaning R(a_1, ..., a_n)
 		// q_i <-> t_1(a_1) and ... and t_n(a_n) and p_i 
         IntIterator it = s.iterator();
         while(it.hasNext())
@@ -383,12 +383,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	newQVarsIntroduced.add(q);
         	q++;        
         }
-
-        // (2) and (q_1 or ... or ... q_k)
-    	int[] finalClause = new int[q-firstVar];
-    	for(int ii=0;ii<(q-firstVar);ii++)
-    		finalClause[ii] = firstVar+ii;
-    	clauseSet.add(finalClause);
         
         startHereWrapper.set(0, q);
                 
@@ -440,7 +434,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					result.put(c, new HashSet<String>(candidates));
 			}
 			else*/
-			// TODO above not safe
+			// TODO above not safe [tn: why???]
 			if(trivialFalse.contains(atSize))
 			{
 				// Trivially false --> no candidates can be realized at this size,
@@ -479,6 +473,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         startHereWrapper.add(theTranslation.cnf().numberOfVariables()+1);
 		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
 		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
+        Set<Integer> candidateGoalSet = new HashSet<Integer>();
         
         try
         {        	
@@ -497,7 +492,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         			
         			Set<int[]> candidateClauseSet = makeClauseSetFor(theBounds, theTranslation, aCandidateRel, candidateargs, 
             				startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);
-                	candidateClauseSets.put(Collections.unmodifiableSet(newQVarsIntroduced), candidateClauseSet);                	
+                	candidateClauseSets.put(Collections.unmodifiableSet(newQVarsIntroduced), candidateClauseSet);          
+                	candidateGoalSet.addAll(newQVarsIntroduced);
         		}
         	}
             
@@ -513,14 +509,21 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
                 	// Fresh todo list for each case.
         			// TODO confirm this is a deep enough copy
         			Map<Set<Integer>, Set<int[]>> freshCandidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>(candidateClauseSets);        	
-                	
+        			Set<Integer> freshCandidateGoals = new HashSet<Integer>(candidateGoalSet);
+        			
             		Set<int[]> caseClauseSet = new HashSet<int[]>();
             		
+            		Set<Integer> caseGoals;
             		if(aCaseRel.length() > 0)        
             		{
             			Set<Integer> newQVarsIntroduced = new HashSet<Integer>();
             			caseClauseSet = makeClauseSetFor(theBounds, theTranslation, aCaseRel, caseargs, 
-            					startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);            		
+            					startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);      
+            			caseGoals = newQVarsIntroduced;
+            		}
+            		else
+            		{
+            			caseGoals = null;
             		}
             		            	
             		
@@ -529,7 +532,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
             					". SAT4j Constraint count = "+realSolver.nConstraints());
             	        	            		
             		result.put(aCase, 
-            				internalRealized(realSolver, candidates, caseClauseSet, freshCandidateClauseSets, 
+            				internalRealized(realSolver, 
+            						candidates, caseClauseSet, freshCandidateClauseSets, 
+            						freshCandidateGoals, caseGoals,
             						theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
             		
 
@@ -548,8 +553,19 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         return result;
 	}
 
+	void handleClause (ISolver solver, int[] aClause, Set<IConstr> toRemove, List<Integer> toAssume)
+	throws ContradictionException
+	{
+		Map<int[], IConstr> tempMap = new HashMap<int[], IConstr>();
+		handleClause(solver, aClause, tempMap, toAssume);
+		
+		// May result in a null
+		if(tempMap.size() > 0)
+			toRemove.add(tempMap.get(aClause));		
+	}
 	
-	void handleClause(ISolver solver, int[] aClause, Set<IConstr> toRemove, List<Integer> toAssume)
+	
+	void handleClause(ISolver solver, int[] aClause, Map<int[], IConstr> toRemove, List<Integer> toAssume)
 	throws ContradictionException
 	{
 		MCommunicator.writeToLog("\nin handleClause:");
@@ -561,7 +577,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// May return null for non-unit clauses if the clause is already satisfied
 			// If a non-unit clause returns null, can ignore it.
 			if(aConstraint != null)
-				toRemove.add(aConstraint);
+				toRemove.put(aClause, aConstraint);
 			
 			MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+aConstraint);
 			
@@ -577,6 +593,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	
 	Set<String> internalRealized(ISolver solver, Map<String, Set<List<MTerm>>> candidates,
 			Set<int[]> caseClauseSet, Map<Set<Integer>, Set<int[]>> candidateClauseSets,
+			Set<Integer> candidateGoals, Set<Integer> caseGoals,
 			Translation theTranslation, int numPrimaryVariables, 
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
 	{
@@ -600,7 +617,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{
 			for(int[] aClause : caseClauseSet)
 			{
-				handleClause(solver, aClause, toRemoveCase, unitClausesToAssumeCases);							
+				handleClause(solver, aClause, toRemoveCase, unitClausesToAssumeCases);		
 			}
 		}
 		catch(ContradictionException e)
@@ -611,50 +628,53 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		
 		///////////////////////////////////////////
-		Set<int[]> clausesToAdd = new HashSet<int[]>();
-		for(Set<int[]> aSet : candidateClauseSets.values())
-		{
-			clausesToAdd.addAll(aSet);
-		}	
+		//Set<int[]> clausesToAdd = new HashSet<int[]>();
+		//for(Set<int[]> aSet : candidateClauseSets.values())
+	//	{
+	//		clausesToAdd.addAll(aSet);
+	//	}	
 			
 		// as of 2.3.0, default sat4j was
 		// return newMiniLearningHeapRsatExpSimpBiere();	
 		
+		// We can remove non-unit clauses.
+		Map<int[], IConstr> toRemoveCandidate = new HashMap<int[], IConstr>();
+		List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
 		
+		
+		// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
+		// don't call it! just noting that the function is separate + accessible 
+		// theSolver.propagate();									
+		
+		try
+		{
+			for(Set<int[]> aSet : candidateClauseSets.values())
+			{		
+				for(int[] aClause : aSet)
+				{
+					handleClause(solver, aClause, toRemoveCandidate, unitClausesToAssumeCandidates);
+				}
+			}
+		}
+		catch(ContradictionException e)
+		{
+			// No more
+			for(IConstr rem : toRemoveCandidate.values())
+				solver.removeConstr(rem);
+			for(IConstr rem : toRemoveCase)
+				solver.removeConstr(rem);	
+			return result;
+		}	
+		
+				
 		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars is now: "+solver.nVars()+"; class was "+solver.getClass().toString());
 		
+		// Loop while there are still goals
 		do
 		{				
 			MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: "+candidateClauseSets);
 			MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
-
-			// We can remove non-unit clauses.
-			Set<IConstr> toRemoveCandidate = new HashSet<IConstr>();
-			
-			List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
-			
-									
-			// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
-			// don't call it! just noting that the function is separate + accessible 
-			// theSolver.propagate();									
-			
-						
-			try
-			{
-				for(int[] aClause : clausesToAdd)
-				{								
-					handleClause(solver, aClause, toRemoveCandidate, unitClausesToAssumeCandidates);
-				}
-			}
-			catch(ContradictionException e)
-			{
-				// No more
-				for(IConstr rem : toRemoveCandidate)
-					solver.removeConstr(rem);
-				for(IConstr rem : toRemoveCase)
-					solver.removeConstr(rem);	
-				return result;
-			}
+					
 				
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
@@ -690,9 +710,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				throw new MUserException(e.toString());
 			}
 			
-			
-			for(IConstr rem : toRemoveCandidate)
-				solver.removeConstr(rem);				
 			final long endSolve = System.currentTimeMillis();
         
 			msKodkodSolveTime += (endSolve - startSolve);
@@ -705,14 +722,22 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			if(issat)
 				addRealizedToListAndTrimGoals(solver, theTranslation, candidates, 
 						firstQ, lastQ, 
-						intermVarToPred, intermVarToArgs, result, candidateClauseSets, clausesToAdd);
+						intermVarToPred, intermVarToArgs, result, candidateClauseSets, candidateGoals,
+						unitClausesToAssumeCandidates, toRemoveCandidate);
 									
-		} while(issat && clausesToAdd.size() > 0);
+		} while(issat && candidateGoals.size() > 0);
         
 		// Fall through should mean that we found everything.
 		
+		// preserve state for next case
+		// required: addRealizedToListAndTrimGoals removed from toRemoveCandidate map
+		for(IConstr rem : toRemoveCandidate.values())
+			solver.removeConstr(rem);
+		
+		// remove current case
 		for(IConstr rem : toRemoveCase)
-			solver.removeConstr(rem);	
+			solver.removeConstr(rem);
+		
         return result;
 	}
 	
@@ -746,7 +771,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			Map<String, Set<List<MTerm>>> candidates, int firstQ, int lastQ, 
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs, 
 			Set<String> result, 
-			Map<Set<Integer>, Set<int[]>> candidateClauseSets, Set<int[]> clausesToAdd)
+			Map<Set<Integer>, Set<int[]>> candidateClauseSets, 
+			Set<Integer> candidateGoals,
+			List<Integer> unitClausesToAssumeCandidates,
+			Map<int[], IConstr> toRemoveCandidates)
 	{
 		// This method needs to do 2 things:
 		// (1) Add caseToString(String predname, List<MTerm> args) to result
@@ -771,14 +799,33 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					MEnvironment.writeToLog("\n--- New Realized found: "+fmla+"\n");
 					result.add(fmla);
 				
-					// Remove from clause list
+					// We can remove all clause sets and goals for this fmla
+					// Each fmla has a unique set of q's used as interm. vars
+					// And this map takes the set of q's to the clauses for it.
 					for(Map.Entry<Set<Integer>, Set<int[]>> entry : candidateClauseSets.entrySet())
 					{
 						Set<Integer> qVars = entry.getKey();						
-						if(qVars.contains(iVar))
+						if(qVars.contains(iVar)) // is this for q?
 						{
 							Set<int[]> clausesForQ = entry.getValue();
-							clausesToAdd.removeAll(clausesForQ);
+							
+							MEnvironment.writeToLog("\n--- Removing clauses: "+clausesForQ+"\n");
+							MEnvironment.writeToLog("\n--- Removing goals: "+qVars+"\n");
+							
+							// remove clause sets (vals)
+							for(int[] aClause : clausesForQ)
+							{
+								if(toRemoveCandidates.containsKey(aClause))
+								{
+									theSolver.removeConstr(toRemoveCandidates.get(aClause));
+									toRemoveCandidates.remove(aClause); // no longer needs removal at end
+								}
+								else
+									unitClausesToAssumeCandidates.remove(aClause);
+							}
+							
+							// remove goals (keys)
+							candidateGoals.removeAll(qVars);
 						}
 					}									
 					
