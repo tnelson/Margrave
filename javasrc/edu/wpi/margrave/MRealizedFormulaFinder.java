@@ -139,6 +139,17 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		Map<String, Set<String>> results = new HashMap<String, Set<String>>();
 		
+		
+		// If we are missing some IDB names, re-compile the query with those names axiomatized
+		// and re-invoke this procedure for the results of that query.
+		
+		/// TODO THIS IS VITAL IMPORTANT DO NOT FORGET TO DO THIS
+		
+		
+		
+		
+		
+		
 		/////////////////////////////////////////////////////////////
 		if(fromContext.forQuery.tupled)
 		{
@@ -419,6 +430,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 		MCommunicator.writeToLog("\nIn getPopulatedRelationsAtSize: "+candidates + " at size: "+atSize);
 		MCommunicator.writeToLog("\n-------------------------------------------------\n");
+		
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
 		// Is there any solving to do at all? Maybe not.
@@ -434,7 +446,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					result.put(c, new HashSet<String>(candidates));
 			}
 			else*/
-			// TODO above not safe [tn: why???]
+			// TODO above not safe [tn: why??? answer: because of cases. candidates by themselves would be fine, but may have contradiction
+			// between case and candidate]
 			if(trivialFalse.contains(atSize))
 			{
 				// Trivially false --> no candidates can be realized at this size,
@@ -626,14 +639,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			return result;
 		}
 		
-		
-		///////////////////////////////////////////
-		//Set<int[]> clausesToAdd = new HashSet<int[]>();
-		//for(Set<int[]> aSet : candidateClauseSets.values())
-	//	{
-	//		clausesToAdd.addAll(aSet);
-	//	}	
-			
+					
 		// as of 2.3.0, default sat4j was
 		// return newMiniLearningHeapRsatExpSimpBiere();	
 		
@@ -676,12 +682,50 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
 					
 				
+			List<Integer> potentialGoalUnit = new ArrayList<Integer>();
+			
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
+			IConstr remGoals = null;
 			try
 			{			
-				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCandidates.size() + unitClausesToAssumeCases.size()];
+				//////////////////////////////////
+				// New Goals clause each iteration
+				int[] goalClause = new int[candidateGoals.size()];
 				int ii = 0;
+				for(int lit : candidateGoals)
+				{
+					goalClause[ii] = lit;
+					ii++;
+				}
+				
+				try
+				{
+					remGoals = solver.addClause(new VecInt(goalClause));
+					if(candidateGoals.size() == 1)
+					{
+						for(int lit : candidateGoals)
+							potentialGoalUnit.add(lit);
+					}
+						
+				}			
+				catch(ContradictionException e)
+				{
+					// No more
+					for(IConstr rem : toRemoveCandidate.values())
+						solver.removeConstr(rem);
+					for(IConstr rem : toRemoveCase)
+						solver.removeConstr(rem);	
+					return result;
+				}	
+								
+				
+				//////////////////////////////////
+				// Re-construct unit clause set each iteration
+				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCandidates.size() + 
+				                                       unitClausesToAssumeCases.size() +
+				                                       potentialGoalUnit.size()];
+				ii = 0;
 				for(int lit : unitClausesToAssumeCandidates)
 				{
 					unitClausesToAssumeArr[ii] = lit;
@@ -691,9 +735,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				{
 					unitClausesToAssumeArr[ii] = lit;
 					ii++;
-				}					
+				}	
+				if(potentialGoalUnit.size() > 0)
+					unitClausesToAssumeArr[ii] = potentialGoalUnit.get(0);
 				
-												
+											
 				//assumps - a set of literals (represented by usual non null integers in Dimacs format). 								
 				
 				MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
@@ -710,20 +756,19 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				throw new MUserException(e.toString());
 			}
 			
-			final long endSolve = System.currentTimeMillis();
-        
+			final long endSolve = System.currentTimeMillis();        
 			msKodkodSolveTime += (endSolve - startSolve);
         
-			
-			//if(fromContext.forQuery.debug_verbosity > 1)
-			//	MEnvironment.writeOutLine("DEBUG: Satisfiable. Adding to result.");
-			
-			// return not just those that are true, but all for nonempty relations
+			// Satisfiable? Then we have goals to remove and results to add.
 			if(issat)
 				addRealizedToListAndTrimGoals(solver, theTranslation, candidates, 
 						firstQ, lastQ, 
 						intermVarToPred, intermVarToArgs, result, candidateClauseSets, candidateGoals,
 						unitClausesToAssumeCandidates, toRemoveCandidate);
+			
+			// Remove the "used" goals disjunction in preparation for the new one.
+			if(remGoals != null)
+				solver.removeConstr(remGoals);
 									
 		} while(issat && candidateGoals.size() > 0);
         
@@ -780,13 +825,18 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// (1) Add caseToString(String predname, List<MTerm> args) to result
 		// (2) Remove clauses
 		
+		MCommunicator.writeToLog("\nartlatg: goals were "+candidateGoals);
+		
 		// For (1) need to go backwards from var to its relation.
 		for(int iVar = firstQ;iVar <= lastQ;iVar++)
 		{						
-			//if(theSolver.valueOf(iVar)) // true
+			
+			MCommunicator.writeToLog("\n  checking variable "+iVar);
+			
+			// theSolver.model: Provide the truth value of a specific variable in the model.
 			if(theSolver.model(iVar))
 			{
-			//	MCommunicator.writeToLog("aptlatg. var true in the model: "+iVar);
+				MCommunicator.writeToLog("\n  var true in the model: "+iVar);
 				
 				String predname = intermVarToPred.get(iVar);
 				List<MTerm> args = intermVarToArgs.get(iVar);
@@ -833,6 +883,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 			} // end if model sets Q to true
 		} // end for each Q variable		
+	
+		MCommunicator.writeToLog("\n  artlatg: goals are "+candidateGoals);
 		
 	}
 	
@@ -907,7 +959,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		tests_createvp1();
 		
-		System.err.println(MCommunicator.transformXMLToString(MEnvironment.printInfo("SRP1")));
+		//System.err.println(MCommunicator.transformXMLToString(MEnvironment.printInfo("SRP1")));
 		
 		tests_createqry1();
 		
@@ -921,13 +973,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// !!!!!!!!!!!!
 		// TODO confirm deep enough copy (above)
 
-		
-		// !!!!!!!!!!!!
-		// TODO clause set. versus goals
-
-		// !!!!!!!!!!!!
-		// TODO test CASES
-
+	
 		
 		
 		// simple no cases
@@ -945,24 +991,49 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		tlist_x.add(new MVariableTerm("x"));
 		mapAx.get("A").add(tlist_x);
 		
-				
-		result = MEnvironment.showRealized("SRQry1", mapAx);								
-		System.err.println(MCommunicator.transformXMLToString(result));
-				
+		
+						
+		//result = MEnvironment.showRealized("SRQry1", mapAx);								
+		//System.err.println(MCommunicator.transformXMLToString(result));
+		testCase("1", "SRQry1", mapAx, new HashMap<String, Set<List<MTerm>>>(), "{=[A(x)]}");
+		//////////////////////////////
+		
 		mapBx.put("B", new HashSet<List<MTerm>>());
 		mapBx.get("B").add(tlist_x);
 		
-		result = MEnvironment.showRealized("SRQry1", mapAx, mapBx);								
-		System.err.println(MCommunicator.transformXMLToString(result));
+									
+		testCase("2", "SRQry1", mapAx, mapBx, "{B(x)=[A(x)]}");
+		//////////////////////////////
 		
 		mapPx.put("p", new HashSet<List<MTerm>>());
 		mapPx.get("p").add(tlist_x);
 		
-		result = MEnvironment.showRealized("SRQry1", mapPx, mapAx);								
-		System.err.println(MCommunicator.transformXMLToString(result));
+		testCase("3", "SRQry1", mapPx, mapAx, "{A(x)=[p(x)]}");
 		
+		//////////////////////////////
+		Map<String, Set<List<MTerm>>> mapPxRx = new HashMap<String, Set<List<MTerm>>>(mapPx);
+		mapPxRx.put("r", new HashSet<List<MTerm>>());
+		mapPxRx.get("r").add(tlist_x);
+		
+		testCase("4", "SRQry1", mapPxRx, mapAx, "{A(x)=[r(x), p(x)]}");
+				
+		
+		//////////////////////////////
 		MEnvironment.writeErrLine("----- End MRealizedFormulaFinder Tests -----");	
 	}
 
+	
+	static void testCase(String testId, String qId, Map<String, Set<List<MTerm>>> candidates, Map<String, Set<List<MTerm>>> cases, String expected)
+	{
+		MPreparedQueryContext aResult = MEnvironment.getQueryResult(qId);
+		Map<String, Set<String>> result = aResult.getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
+		if(!result.toString().equals(expected))
+		{
+			MEnvironment.writeErrLine("  MRealizedFormulaFinder test "+testId+" failed!");
+			MEnvironment.writeErrLine("  Expected: "+expected);
+			MEnvironment.writeErrLine("  Got: "+result);
+		}
+
+	}
 	
 }
