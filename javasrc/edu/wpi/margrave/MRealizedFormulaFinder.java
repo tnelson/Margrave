@@ -144,9 +144,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// and re-invoke this procedure for the results of that query.
 		
 		/// TODO THIS IS VITAL IMPORTANT DO NOT FORGET TO DO THIS
+				
 		
-		
-		
+		MQuery newQuery = new MQuery(fromContext.forQuery);
 		
 		
 		
