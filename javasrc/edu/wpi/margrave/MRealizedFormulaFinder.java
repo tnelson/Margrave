@@ -36,7 +36,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
   	}
 		
 	
-	public List<String> applyIndexing(Map<String, Set<List<MTerm>>> candidates, Map<String, String> originalPreds, Map<String, List<MTerm>> originalIndexing)
+	public List<String> applyIndexing(Map<String, Set<List<MTerm>>> candidates,
+			Map<String, String> originalPreds, Map<String, List<MTerm>> originalIndexing)
 	{
 		// Translate to tupled form
 		// e.g.
@@ -138,49 +139,51 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Map<String, List<MTerm>> originalIndexing = new HashMap<String, List<MTerm>>();
 		
 		Map<String, Set<String>> results = new HashMap<String, Set<String>>();
-		
-		
+						
 		// If we are missing some IDB names, re-compile the query with those names axiomatized
 		// and re-invoke this procedure for the results of that query.
-		
-		/// TODO THIS IS VITAL IMPORTANT DO NOT FORGET TO DO THIS
-				
-		
-		MQuery newQuery = new MQuery(fromContext.forQuery);
-		
-		
-		
 		/////////////////////////////////////////////////////////////
-		if(fromContext.forQuery.tupled)
+		if(!fromContext.forQuery.tupled)
 		{
-			// *** (1) Convert to indexed form
+			Set<String>missingRels = findMissingRelations(candidates); 
+			missingRels.addAll(findMissingRelations(cases));
+					
+			if(missingRels.size() > 0)
+			{
+				MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
+				MCommunicator.writeToLog("\nMissing: "+missingRels);
+				MQuery newQuery = new MQuery(fromContext.forQuery);
+				newQuery.addIDBOutputs(missingRels);			
+				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
+				return newQuery.runQuery().getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
+			}			
+			// otherwise, continue as normal: we have all the relations we need
+			
+		}
+		else
+		{
+			Map<String, Set<List<String>>> missingFmlas1 = findMissingFmlasTupled(candidates);
+			Map<String, Set<List<String>>> missingFmlas2 = findMissingFmlasTupled(cases);
+			if(missingFmlas1.size() + missingFmlas2.size() > 0)
+			{
+				MQuery newQuery = new MQuery(fromContext.forQuery);
+				for(Map.Entry<String, Set<List<String>>> e : missingFmlas1.entrySet())
+					for(List<String> lst : e.getValue())
+						newQuery.addIDBOutputIndexing(e.getKey(), lst);
+				for(Map.Entry<String, Set<List<String>>> e : missingFmlas2.entrySet())
+					for(List<String> lst : e.getValue())
+						newQuery.addIDBOutputIndexing(e.getKey(), lst);
+					
+				return newQuery.runQuery().getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
+			}				
+			
+			// Convert to indexed form
 			List<String> indexedCandidates = applyIndexing(candidates, originalPreds, originalIndexing);
 			List<String> indexedCases = applyIndexing(cases, originalPreds, originalIndexing);
 			
-			// *********************************************************************************
-			// Make certain that the IDB names and indexings are declared in the parent query via IDBOUTPUT.		
-			// But allow for indexed EDB names, too. Instead of checking idbOutputIndexing, check for whether 
-			// the indexed name is in the vocab.
-			for(String predname : indexedCandidates)
-			{			
-				if(!fromContext.forQuery.vocab.isSort(predname) && 
-						!fromContext.forQuery.vocab.predicates.containsKey(predname) && 
-						!fromContext.forQuery.idbOutputIndexing.keySet().contains(predname))
-					throw new MUserException("Candidate in SHOW REALIZED: "+predname+
-							" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromContext.forQuery.idbOutputIndexing.keySet());
-			}
-			for(String predname : indexedCases)
-			{
-				if(!fromContext.forQuery.vocab.isSort(predname) && 
-						!fromContext.forQuery.vocab.predicates.containsKey(predname) && 
-						!fromContext.forQuery.idbOutputIndexing.keySet().contains(predname))
-					throw new MUserException("Case in SHOW REALIZED: "+predname+
-							" was not valid. If it is an EDB, it may be mis-spelled. If an IDB, it was not declared in the INCLUDE clause. Declared: "+fromContext.forQuery.idbOutputIndexing.keySet());
-		
-			} 	
-			// TODO de-index the error messages
-						
-		} // end tupled PRE PROCESSING
+			
+			// TODO convert to fmlas. right now nothing will happen and tupling+SR is unavailable
+		} 
 						
 		
 		/////////////////////////////////////////////////////////////
@@ -223,6 +226,91 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 	}
 	
+	
+	private Set<String> findMissingRelations(
+			Map<String, Set<List<MTerm>>> corc)
+	{ 
+		Set<String> missingRels = new HashSet<String>();
+		
+		for(String key : corc.keySet())
+		{					
+			// If this is an EDB, pass on
+			if(fromContext.forQuery.vocab.predicates.containsKey(key) ||
+			   fromContext.forQuery.vocab.isSort(key))
+				continue;
+			
+			
+			
+			// If this isn't an IDB in the query, error
+			// Note that containsIDB is not the correct method to call, here. 
+			//if(!fromContext.forQuery.containsIDB(key))
+			if(!fromContext.forQuery.myIDBCollectionsContainWithColon(key))
+				throw new MUserException("Could not show realized formula involving IDB relation "+key+" since the query had no knowledge of that relation.\n"+
+						"The query knew about the following IDB relations: "+fromContext.forQuery.idbKeys());
+			
+			// Validate arities in which we are using the relation.
+			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithColon(key);
+			
+			for(List<MTerm> args : corc.get(key))
+			{
+				if(arity != args.size())
+					throw new MUserException("Could not show realized formula "+key+args+" since the that relation has arity "+arity);							
+				
+			}
+			
+			
+			// Does the query contain an INCLUDE for this?
+			if(!fromContext.forQuery.idbsToAddInFormula.containsKey(key))
+				missingRels.add(key);
+		}
+		
+		return missingRels;
+	}
+	
+	private Map<String, Set<List<String>>> findMissingFmlasTupled(
+			Map<String, Set<List<MTerm>>> corc)
+	{
+		// Given a bunch of R(x, y, z...)
+		// Which are not represented by INCLUDE in the query?
+		Map<String, Set<List<String>>> missingRels = new HashMap<String, Set<List<String>>>();
+				
+		for(String key : corc.keySet())
+		{
+			// If this is an EDB, pass on
+			if(fromContext.forQuery.vocab.predicates.containsKey(key) ||
+			   fromContext.forQuery.vocab.isSort(key))
+				continue;
+			
+			if(!missingRels.containsKey(key))
+				missingRels.put(key, new HashSet<List<String>>());
+				
+			for(List<MTerm> args : corc.get(key))
+			{
+				// Construct string list from MTerm list
+				List<String> sList = termListToStringList(args);
+				
+				// Does the query contain an INCLUDE for this, with an indexing (since tupled)?
+				if(!fromContext.forQuery.idbsToAddInFormula.containsKey(key))
+					missingRels.get(key).add(sList);
+				
+				if(!fromContext.forQuery.idbsToAddInFormula.get(key).contains(sList))
+					missingRels.get(key).add(sList);
+			}
+		}
+
+		return missingRels;
+	}
+
+
+	private List<String> termListToStringList(List<MTerm> args)
+	{
+		List<String> result = new ArrayList<String>(args.size());
+		for(MTerm t : args)
+			result.add(t.toString());
+		return result;
+	}
+
+
 	public Set<String> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates) throws MUserException
 	{
 		Map<String, Set<List<MTerm>>> cases = new HashMap<String, Set<List<MTerm>>>();
@@ -520,8 +608,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         			MCommunicator.writeToLog("\n  Handling case: "+aCase+ ". Was: "+aCaseRel+" of "+caseargs);
         			
                 	// Fresh todo list for each case.
-        			// TODO confirm this is a deep enough copy
-        			Map<Set<Integer>, Set<int[]>> freshCandidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>(candidateClauseSets);        	
+        			// Deep enough copy
+        			Map<Set<Integer>, Set<int[]>> freshCandidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>();
+        			for(Map.Entry<Set<Integer>, Set<int[]>> e : candidateClauseSets.entrySet())
+        				freshCandidateClauseSets.put(e.getKey(), new HashSet<int[]>(e.getValue()));
+        			
+        			// This is deep enough since Integers are immutable
         			Set<Integer> freshCandidateGoals = new HashSet<Integer>(candidateGoalSet);
         			
             		Set<int[]> caseClauseSet = new HashSet<int[]>();
@@ -745,7 +837,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
 				
 				debugPrintClauses(solver);
-				//solver.printInfos(new PrintWriter(System.err), ">>>");
 				
 				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
 				MCommunicator.writeToLog("\nResult was: "+issat);
@@ -965,13 +1056,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		
 		// !!!!!!!!!!!!
-		// TODO need to force inclusion of IDBs!
-		
-		// !!!!!!!!!!!!
 		// TODO terms (similar to forcing inclusion of idbs? )
-
-		// !!!!!!!!!!!!
-		// TODO confirm deep enough copy (above)
 
 	
 		
@@ -1016,8 +1101,24 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		mapPxRx.get("r").add(tlist_x);
 		
 		testCase("4", "SRQry1", mapPxRx, mapAx, "{A(x)=[r(x), p(x)]}");
+						
+		//////////////////////////////
+		Map<String, Set<List<MTerm>>> mapPermitx = new HashMap<String, Set<List<MTerm>>>();
 				
+		List<MTerm> tlist_xy = new ArrayList<MTerm>(tlist_x);
+		tlist_xy.add(new MVariableTerm("y"));
 		
+		mapPermitx.put("SRP1:permit", new HashSet<List<MTerm>>());
+		mapPermitx.get("SRP1:permit").add(tlist_xy);
+				
+		//result = MEnvironment.showRealized("SRQry1", mapPermitx, mapAx);								
+		//System.err.println(MCommunicator.transformXMLToString(result));
+		
+		testCase("5", "SRQry1", mapPermitx, mapAx, "{A(x)=[SRP1:permit(x, y)]}");
+		
+		
+		//////////////////////////////
+		//////////////////////////////
 		//////////////////////////////
 		MEnvironment.writeErrLine("----- End MRealizedFormulaFinder Tests -----");	
 	}

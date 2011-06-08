@@ -120,8 +120,8 @@ class MCNFSpyQueryResult extends MQueryResult
         	// Translate via Kodkod
     		final long startTransl = System.currentTimeMillis();
     		
-    		MCommunicator.writeToLog(qryBounds.toString());
-    		MCommunicator.writeToLog(f.toString());
+    		//MCommunicator.writeToLog("\nBounds: \n"+qryBounds.toString());
+    		//MCommunicator.writeToLog("\nFormula: "+f.toString());
             Translation trans = Translator.translate(f, qryBounds, qrySolver.options());
             CNFSpy theSpy = (CNFSpy)trans.cnf();         
     		final long endTransl = System.currentTimeMillis();
@@ -212,7 +212,7 @@ public abstract class MQueryResult
 				// What is this policy publishing?
 			 
 				for(String idbname : idbs.idbKeys())
-				{
+				{						
 					//MEnvironment.errorStream.println(idbs.name+":"+idbname);							
 					
 					// Is this an idb to be published? If not, skip it.
@@ -220,7 +220,9 @@ public abstract class MQueryResult
 					{						
 						continue;
 					}
-															
+					
+					MCommunicator.writeToLog("\nAxiomatizing IDB: "+idbname);													
+					
 					Formula idbFormula = idbs.getIDB(idbname);
 					
 					//MEnvironment.errorStream.println("++ " +idbs.name+":"+idbname);

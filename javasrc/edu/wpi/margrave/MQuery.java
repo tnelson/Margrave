@@ -102,10 +102,10 @@ public class MQuery extends MIDBCollection
 	// For tupled queries. Need to know which tuple indexing to use for a given
 	// IDB. Setting function will confirm that it is a valid list of numbers, and
 	// that the arity matches the desired IDB name.
-	protected HashMap<String, Set<List<String>>> idbOutputIndexing = new HashMap<String, Set<List<String>>>();
+	protected HashMap<String, Set<List<String>>> idbsToAddInFormula = new HashMap<String, Set<List<String>>>();
 
 	// For instructing tupling to KEEP certain edb indexings, even if they do not appear in the condition
-	protected HashMap<String, Set<List<String>>> edbIncludesIndexing = new HashMap<String, Set<List<String>>>();;
+	protected HashMap<String, Set<List<String>>> edbsToForceTupling = new HashMap<String, Set<List<String>>>();;
 		
 	
 	public boolean doTupling;
@@ -232,10 +232,30 @@ public class MQuery extends MIDBCollection
 		init(nFormula);
 		myIDBCollections = new HashMap<String, MIDBCollection>();
 	}
+	
+	MQuery(MQuery previous) 
+	throws MGEUnknownIdentifier, MGEBadQueryString, MGEArityMismatch 
+	{
+		vocab = previous.vocab;
+		init(previous.myQueryFormula);
+		doTupling = previous.doTupling;
+		debug_verbosity = previous.debug_verbosity;
+		ceilingOfLastResort = previous.ceilingOfLastResort;
+		
+		// "Deep enough" copy
+		for(Map.Entry<String, Set<List<String>>> e : previous.edbsToForceTupling.entrySet())
+			edbsToForceTupling.put(e.getKey(), new HashSet<List<String>>(e.getValue()));
+		
+		// "Deep enough" copy
+		for(Map.Entry<String, Set<List<String>>> e : previous.idbsToAddInFormula.entrySet())
+			idbsToAddInFormula.put(e.getKey(), new HashSet<List<String>>(e.getValue()));
+				
+		myIDBCollections = new HashMap<String, MIDBCollection>(previous.myIDBCollections);
+	}
 
 	public Set<String> getIDBNamesToOutput()
 	{
-		return idbOutputIndexing.keySet();
+		return idbsToAddInFormula.keySet();
 	}
 
 	public void useMiniSAT() {
@@ -830,6 +850,27 @@ public class MQuery extends MIDBCollection
 
 	}
 
+	boolean myIDBCollectionsContainWithColon(String k)
+	{		
+		String[] arr = k.split(":");
+		if(arr.length < 2)
+			return false;
+		if(!myIDBCollections.containsKey(arr[0]))
+			return false;
+		return myIDBCollections.get(arr[0]).containsIDB(arr[1]);
+	
+	}
+	
+	int myIDBCollectionsHaveArityForWithColon(String k)
+	{
+		String[] arr = k.split(":");
+		if(arr.length < 2)
+			return -1;
+		if(!myIDBCollections.containsKey(arr[0]))
+			return -1;
+		return myIDBCollections.get(arr[0]).varOrderings.get(arr[1]).size();
+		
+	}
 	private MPreparedQueryContext doTupling(ThreadMXBean mxBean, long start,
 			PrenexCheckV pren, boolean prenexExistential) {
 		long startTime;
@@ -908,8 +949,8 @@ public class MQuery extends MIDBCollection
 			
 			MatrixTuplingV mtup = new MatrixTuplingV(pren, vocab);
 							
-			for(String edbname : edbIncludesIndexing.keySet())
-				for(List<String> indexing : edbIncludesIndexing.get(edbname))
+			for(String edbname : edbsToForceTupling.keySet())
+				for(List<String> indexing : edbsToForceTupling.get(edbname))
 					mtup.forceIncludeEDB(edbname, indexing);		
 			
 			Formula tupledFormula = pren.matrix.accept(mtup);
@@ -1917,7 +1958,7 @@ public class MQuery extends MIDBCollection
 		for (String idbname : getIDBNamesToOutput())
 		{
 			// Make certain that we have an indexing for this IDB.
-			if (!idbOutputIndexing.containsKey(idbname))
+			if (!idbsToAddInFormula.containsKey(idbname))
 				throw new MGEUnknownIdentifier(
 						"Query with tupling enabled lacked indexing for IDB to output: "
 								+ idbname);
@@ -1993,7 +2034,7 @@ public class MQuery extends MIDBCollection
 
 
 				// for each indexing
-				Set<List<String>> indexings = idbOutputIndexing.get(idbname);
+				Set<List<String>> indexings = idbsToAddInFormula.get(idbname);
 				for(List<String> user_indexing : indexings)
 				{
 					// Fresh copy of the original formula
@@ -2182,8 +2223,8 @@ public class MQuery extends MIDBCollection
 
 	public void removeIDBOutputIndexing(String idbname, List<String> indexing)
 	{
-		if(idbOutputIndexing.containsKey(idbname))
-			idbOutputIndexing.get(idbname).remove(indexing);
+		if(idbsToAddInFormula.containsKey(idbname))
+			idbsToAddInFormula.get(idbname).remove(indexing);
 	}
 
 	public void addIDBOutputIndexing(String idbname, List<String> indexing)
@@ -2231,9 +2272,9 @@ public class MQuery extends MIDBCollection
 					+ idbArity.size());
 
 		// Add to indexing map
-		if(!idbOutputIndexing.containsKey(idbname))
-			idbOutputIndexing.put(idbname, new HashSet<List<String>>());
-		idbOutputIndexing.get(idbname).add(indexing);
+		if(!idbsToAddInFormula.containsKey(idbname))
+			idbsToAddInFormula.put(idbname, new HashSet<List<String>>());
+		idbsToAddInFormula.get(idbname).add(indexing);
 	}
 
 /*	public boolean isQuerySatisfiable() throws MGException
@@ -4544,15 +4585,15 @@ public class MQuery extends MIDBCollection
 	public void addIDBOutputs(String idbname)
 	{
 		//MEnvironment.errorStream.println("adding: "+idbname);
-		if(!idbOutputIndexing.containsKey(idbname))
-			idbOutputIndexing.put(idbname, new HashSet<List<String>>());
+		if(!idbsToAddInFormula.containsKey(idbname))
+			idbsToAddInFormula.put(idbname, new HashSet<List<String>>());
 		//MEnvironment.errorStream.println(idbOutputIndexing);
 	}
 
 	public void addEDBIncludes(String edbname)
 	{
-		if(!edbIncludesIndexing.containsKey(edbname))
-			edbIncludesIndexing.put(edbname, new HashSet<List<String>>());		
+		if(!edbsToForceTupling.containsKey(edbname))
+			edbsToForceTupling.put(edbname, new HashSet<List<String>>());		
 	}
 	
 	public void addEDBIncludesIndexing(String edbname, List<String> indexing)
@@ -4560,13 +4601,13 @@ public class MQuery extends MIDBCollection
 	{
 
 		// Add to indexing map
-		if(!edbIncludesIndexing.containsKey(edbname))
-			edbIncludesIndexing.put(edbname, new HashSet<List<String>>());
-		edbIncludesIndexing.get(edbname).add(indexing);
+		if(!edbsToForceTupling.containsKey(edbname))
+			edbsToForceTupling.put(edbname, new HashSet<List<String>>());
+		edbsToForceTupling.get(edbname).add(indexing);
 	}
 	
 	
-	public void addIDBOutputs(List<String> idbnames)
+	public void addIDBOutputs(Collection<String> idbnames)
 	{
 		for(String s : idbnames)
 			addIDBOutputs(s);

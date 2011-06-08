@@ -119,7 +119,9 @@ class MSetWrapper<T>
 	
 	MSetWrapper(Set<T> internalSet)
 	{
-		this.internalSet = internalSet;
+		// Make certain that internalSet is immutable, 
+		// since this object is going to be used as a key.		
+		this.internalSet = Collections.unmodifiableSet(internalSet);
 		
 		// set hash code EXACTLY ONCE
 		myHashCode = internalSet.hashCode();
