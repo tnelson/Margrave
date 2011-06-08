@@ -192,8 +192,13 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		for(int iSize=1;iSize<=fromContext.maxSize;iSize++)
 		{
 			// Call first to add "" if needed
+
+			// TODO optimization here?
+			// XXX OPT lots of duplication being done here. Should not search for candidate-case pairs if 
+			// XXX OPT they have already been found, right?
+			
 			Map<String, Set<String>> thisResult = getRealizedFormulasAtSize(candidates, cases, iSize);		
-			addToMap(results, thisResult);
+			addToMap(results, thisResult);						
 		}
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
@@ -428,7 +433,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
     	
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
-        int firstVar = q;
         
         // CLAUSES:
         // for each p_i meaning R(a_1, ..., a_n)
@@ -605,7 +609,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         		{        		
         			String aCase = caseToString(aCaseRel, caseargs);
 
-        			MCommunicator.writeToLog("\n  Handling case: "+aCase+ ". Was: "+aCaseRel+" of "+caseargs);
+        			MCommunicator.writeToLog("\n\n\n  Handling case: "+aCase+ ". Was: "+aCaseRel+" of "+caseargs);
         			
                 	// Fresh todo list for each case.
         			// Deep enough copy
@@ -616,8 +620,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         			// This is deep enough since Integers are immutable
         			Set<Integer> freshCandidateGoals = new HashSet<Integer>(candidateGoalSet);
         			
-            		Set<int[]> caseClauseSet = new HashSet<int[]>();
-            		
+            		Set<int[]> caseClauseSet = new HashSet<int[]>();            		
             		Set<Integer> caseGoals;
             		if(aCaseRel.length() > 0)        
             		{
@@ -720,10 +723,25 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Set<IConstr> toRemoveCase = new HashSet<IConstr>();
 		try
 		{
+			// Case clause sets
 			for(int[] aClause : caseClauseSet)
 			{
 				handleClause(solver, aClause, toRemoveCase, unitClausesToAssumeCases);		
 			}
+			
+			// case goals (if any case)
+			if(caseGoals != null)
+			{
+				int[] caseGoalClause = new int[caseGoals.size()];
+				int ii =0;
+				for(int lit : caseGoals)
+				{
+					caseGoalClause[ii] = lit;;
+					ii++;
+				}
+				handleClause(solver, caseGoalClause, toRemoveCase, unitClausesToAssumeCases);
+			}
+
 		}
 		catch(ContradictionException e)
 		{
@@ -753,6 +771,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					handleClause(solver, aClause, toRemoveCandidate, unitClausesToAssumeCandidates);
 				}
 			}
+			
+			
 		}
 		catch(ContradictionException e)
 		{
@@ -1086,8 +1106,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		mapBx.put("B", new HashSet<List<MTerm>>());
 		mapBx.get("B").add(tlist_x);
 		
-									
-		testCase("2", "SRQry1", mapAx, mapBx, "{B(x)=[A(x)]}");
+		// B is disjoint from A, so expect unrealized
+		testCase("2", "SRQry1", mapAx, mapBx, "{B(x)=[]}");
 		//////////////////////////////
 		
 		mapPx.put("p", new HashSet<List<MTerm>>());
@@ -1115,9 +1135,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		//System.err.println(MCommunicator.transformXMLToString(result));
 		
 		testCase("5", "SRQry1", mapPermitx, mapAx, "{A(x)=[SRP1:permit(x, y)]}");
-		
-		
+				
 		//////////////////////////////
+		
+		// Test multiple cases, addition of IDBs
+		Map<String, Set<List<MTerm>>> mapAxBx = new HashMap<String, Set<List<MTerm>>>(mapAx);
+		mapAxBx.put("B", new HashSet<List<MTerm>>());
+		mapAxBx.get("B").add(tlist_x);
+		
+		testCase("6", "SRQry1", mapPermitx, mapAxBx, "{A(x)=[SRP1:permit(x, y)], B(x)=[]}");
+		
 		//////////////////////////////
 		//////////////////////////////
 		MEnvironment.writeErrLine("----- End MRealizedFormulaFinder Tests -----");	
