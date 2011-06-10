@@ -22,6 +22,58 @@
          margrave
          xml)
 
+
+(define (string-contains? str phrase)
+  (cond [(< (string-length str) (string-length phrase)) false]
+        [else (or (equal? (substring str 0 (string-length phrase)) phrase)
+                  (string-contains? (substring str 1) phrase))]))
+
+(define (exn-contains-message msg)
+  (lambda (e) (and (exn? e) 
+                   (string-contains? (exn-message e) msg))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define query1
+  (test-suite
+   "Query Tests: 1"
+   #:before (lambda () 
+              (start-margrave-engine #:margrave-params '("-log"))
+              (mtext "#load policy PConference = \"*margrave*/examples/conference1.p\";"))
+   #:after (lambda () (stop-margrave-engine))
+   
+   ; Test basic functionality
+   (check-true (string-contains? (response->string (mtext "let Q[s : Subject,a : Action,r : Resource] be PConference.permit(s, a, r) and conflicted(s, r) and not s : Author"))
+                                 "created successfully"))
+   (check-true (string-contains? (mtext "show Q") "SOLUTION FOUND"))
+   (check-true (string-contains? (mtext "show Q") "4 would be a sufficient size ceiling."))
+   (check-true (> (string-length (mtext "show all Q")) 2000)) ; many solns
+   (check-true (string-contains? (response->string (mtext "is poss? Q")) "true"))
+   (check-true (string-contains? (response->string (mtext "count Q")) "31"))
+   
+   ; Test creation of second query with different name, different num of solns
+   ; Test re-use of prior query identifiers
+   ; Test use of constants
+   ; Test forall to constrain multiplicity of sorts
+   (check-true (string-contains? (response->string (mtext 
+    "let Q2[s : Subject,a : Action,r : Resource] be Q(s, a, r) and 'c = r and forall x : Subject (x = s) and forall y : Action (y=a) and forall z : Resource (z = r)"))
+                                 "created successfully"))   
+   (check-true (string-contains? (response->string (mtext "count Q2")) "1"))
+   
+   
+   (display-response (mtext "show realized Q2 PConference.permit(s,a,r)"))
+   ; Could not show realized formula involving IDB relation PConferencepermit since the query had no knowledge of that relation.
+   ; why glommed together? should be parsing the . properly??
+   
+   
+   
+   ))
+
+; need MUCH better errors at query parsing level
+
+(run-tests query1)
+
+#|
 (require margrave/margrave-policy-vocab)
 
 (define (string-contains? str phrase)
@@ -746,3 +798,6 @@
 (run-tests policy-errors)
 (run-tests query-errors)
 (run-tests query-results)
+
+|#
+
