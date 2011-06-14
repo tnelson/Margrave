@@ -850,9 +850,11 @@ public class MQuery extends MIDBCollection
 
 	}
 
-	boolean myIDBCollectionsContainWithColon(String k)
+	boolean myIDBCollectionsContainWithDot(String k)
 	{		
-		String[] arr = k.split(":");
+		// Dot is a special character; remember to escape it.
+		String[] arr = k.split("\\.");
+		
 		if(arr.length < 2)
 			return false;
 		if(!myIDBCollections.containsKey(arr[0]))
@@ -861,9 +863,23 @@ public class MQuery extends MIDBCollection
 	
 	}
 	
-	int myIDBCollectionsHaveArityForWithColon(String k)
+	String getmyIDBCollectionsIDBs()
 	{
-		String[] arr = k.split(":");
+		String result = "";
+		for(String cname : myIDBCollections.keySet())
+		{
+			MIDBCollection coll = myIDBCollections.get(cname);
+			
+			result += "Collection "+cname+": "+coll.idbKeys()+"\n";
+		}
+		
+		return result;
+	}
+	
+	int myIDBCollectionsHaveArityForWithDot(String k)
+	{
+		// Dot is a special character; remember to escape it.
+		String[] arr = k.split("\\.");
 		if(arr.length < 2)
 			return -1;
 		if(!myIDBCollections.containsKey(arr[0]))
@@ -1964,7 +1980,7 @@ public class MQuery extends MIDBCollection
 								+ idbname);
 
 			// Get the IDB formula
-			String[] split = idbname.split(":");
+			String[] split = idbname.split(MEnvironment.sIDBSeparator);
 			String polName = split[0].toLowerCase();
 
 			if (split.length < 2)
@@ -2136,7 +2152,7 @@ public class MQuery extends MIDBCollection
 
 					String new_internal_name = internal_idbname + idbnameSuffix;
 
-					indexedIDBNamesToOutput.add(polName+":"+new_internal_name);
+					indexedIDBNamesToOutput.add(polName+MEnvironment.sIDBSeparator+new_internal_name);
 
 					tupledIDBCollections.get(polName).putIDB(new_internal_name, new_idbformula);
 					tupledIDBCollections.get(polName).varOrderings.put(new_internal_name, new ArrayList<Variable>());
@@ -2241,7 +2257,7 @@ public class MQuery extends MIDBCollection
 
 		// CHECK: Valid idb name
 
-		String[] split = idbname.split(":");
+		String[] split = idbname.split(MEnvironment.sIDBSeparator);
 		String polName = split[0].toLowerCase();
 
 		if (split.length < 2)
@@ -2446,13 +2462,13 @@ public class MQuery extends MIDBCollection
 
 		// If this keyword is an IDB reference, break it into policy name and
 		// IDB name:
-		String[] idbbreak = breakdownlist.get(0).split(":");
+		String[] idbbreak = breakdownlist.get(0).split(MEnvironment.sIDBSeparator);
 
 		// See the IDB:Decision section below. Policy names may contain ':'!
 		String idbbreak_last = idbbreak[idbbreak.length - 1];
 		String idbbreak_start = idbbreak[0];
 		for (int ii = 1; ii < idbbreak.length - 1; ii++)
-			idbbreak_start = idbbreak_start + ":" + idbbreak[ii];
+			idbbreak_start = idbbreak_start + MEnvironment.sIDBSeparator + idbbreak[ii];
 
 		// MREPL.outStream.println(qryString);
 		// MREPL.outStream.println(breakdownlist);

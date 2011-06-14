@@ -813,7 +813,11 @@ public class MCommunicator
 					String relName = "";
 					for(int ii=0; ii < relNamePieces.size();ii++)
 					{
-						relName += relNamePieces.get(ii);
+						// Re-compose dotted notation (for now)
+						if("".equals(relName))
+							relName += relNamePieces.get(ii);
+						else
+							relName += "."+relNamePieces.get(ii);
 					}
 					
 					if(!hashMap.containsKey(relName))

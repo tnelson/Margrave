@@ -223,7 +223,7 @@ public class MPolicySet extends MPolicy
 					// Child exposes some IDBs. 
 					// We must expose them, after making sure CHILD'S target applies, and no older children grabbed the mic.
 					//for(String idbname : child.idbs.keySet())						
-					//	idbs.put(child.name+":"+idbname, MFormulaManager.makeAnd(child.idbs.get(idbname), 
+					//	idbs.put(child.name+MEnvironment.sIDBSeparator+idbname, MFormulaManager.makeAnd(child.idbs.get(idbname), 
 					//			                                     MFormulaManager.makeAnd(child.target,
 					//			                                    		 MFormulaManager.makeConjunction(negpriortargets))));
 					
@@ -307,13 +307,13 @@ public class MPolicySet extends MPolicy
 	public String getDecisionForRuleIDBName(String idbname)
 	{
 		// may pass canonical idb name ("PolicyName:Rule12" instead of "Rule12")
-		if(idbname.startsWith(this.name+":")) // name is already lowercase
+		if(idbname.startsWith(this.name+MEnvironment.sIDBSeparator)) // name is already lowercase
 		{
 			idbname = idbname.substring(this.name.length()+1);
 		}	
 	
 		// Defer to child
-		String[] split = idbname.split(":");
+		String[] split = idbname.split(MEnvironment.sIDBSeparator);
 		String polName = split[0].toLowerCase();
 		
 		for(MPolicy pol : children)

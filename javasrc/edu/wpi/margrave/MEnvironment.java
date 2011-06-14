@@ -711,40 +711,42 @@ public class MEnvironment
 	protected static StringWriter outBuffer = new StringWriter();
 	protected static PrintWriter outWriter = new PrintWriter(outBuffer);
 	
-	public static String eol = System.getProperty("line.separator");
-	public static String sNoIterator = "no iterator";
-	public static String sFalse = String.valueOf(false);
-	public static String sTrue = String.valueOf(true);
-	public static String sUnknown = "unknown";
-	public static String sNotExpected = "not expected type";
-	public static String sVocabulary = "vocabulary";
-	public static String sPolicy = "policy";
-	public static String sPolicySet = "policyset";
-	public static String sPolicyLeaf = "policyleaf";
-	public static String sIdentifier = "identifier";
-	public static String sIDBCollection = "idb collection";
-	public static String sQuery = "query";
-	public static String sResultID = "result ID";
-	public static String sUsed = "used";
-	public static String sReserved = "reserved";
-	public static String sReqVector = "request vector";	
-	public static String sNotDocument = "value not XML document";
-	public static String sFailure = "failure";
-	public static String sCommand = "command";
-	public static String sConstraint = "constraint";
+	public static final String eol = System.getProperty("line.separator");
+	public static final String sNoIterator = "no iterator";
+	public static final String sFalse = String.valueOf(false);
+	public static final String sTrue = String.valueOf(true);
+	public static final String sUnknown = "unknown";
+	public static final String sNotExpected = "not expected type";
+	public static final String sVocabulary = "vocabulary";
+	public static final String sPolicy = "policy";
+	public static final String sPolicySet = "policyset";
+	public static final String sPolicyLeaf = "policyleaf";
+	public static final String sIdentifier = "identifier";
+	public static final String sIDBCollection = "idb collection";
+	public static final String sQuery = "query";
+	public static final String sResultID = "result ID";
+	public static final String sUsed = "used";
+	public static final String sReserved = "reserved";
+	public static final String sReqVector = "request vector";	
+	public static final String sNotDocument = "value not XML document";
+	public static final String sFailure = "failure";
+	public static final String sCommand = "command";
+	public static final String sConstraint = "constraint";
 	
-	public static String sShow = "show";
-	public static String sNext = "next";
-	public static String sGet = "get";
-	public static String sFirst = "first";	
+	public static final String sShow = "show";
+	public static final String sNext = "next";
+	public static final String sGet = "get";
+	public static final String sFirst = "first";	
 	
-	public static String sTopQualifiedName = "MARGRAVE-RESPONSE";
-	public static String sSuccess = "success";
-	public static String sUnsat = "unsat";
-	public static String sDebug = "debug";
-	public static String sQuitMargrave = "quit";
+	public static final String sTopQualifiedName = "MARGRAVE-RESPONSE";
+	public static final String sSuccess = "success";
+	public static final String sUnsat = "unsat";
+	public static final String sDebug = "debug";
+	public static final String sQuitMargrave = "quit";
 
-	public static String tempVarPrefix = "_";
+	public static final String tempVarPrefix = "_";
+	
+	public static final String sIDBSeparator = ".";
 	
 	// Used in exception output
 	static String lastCommandReceived = "";
@@ -1016,7 +1018,7 @@ public class MEnvironment
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
-				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+MEnvironment.sIDBSeparator+key));
 				
 				Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
 				for(Variable v : coll.varOrderings.get(key))
@@ -1053,7 +1055,7 @@ public class MEnvironment
 			{
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
-				idbElement.appendChild(xmldoc.createTextNode(coll.name+":"+key));
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+MEnvironment.sIDBSeparator+key));
 				
 				Element varsElement = xmldoc.createElementNS(null, "FREE-VARIABLES");
 				for(Variable v : coll.varOrderings.get(key))

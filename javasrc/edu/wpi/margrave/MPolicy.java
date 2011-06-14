@@ -461,7 +461,7 @@ public abstract class MPolicy extends MIDBCollection
 		// Same as getIDBNameList, but include polname: prefix
 		ArrayList<String> result = new ArrayList<String>(size());
 		for(String idbname : idbKeys())
-			result.add(name + ":" + idbname);			
+			result.add(name + MEnvironment.sIDBSeparator + idbname);			
 		return result;
 	}
 		  

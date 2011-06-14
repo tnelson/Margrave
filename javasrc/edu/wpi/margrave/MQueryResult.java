@@ -174,6 +174,8 @@ public abstract class MQueryResult
 		// Create bounds on relations 
 		TupleFactory factory = u.factory();
 				
+		MCommunicator.writeToLog("\nCreating bounds for universe "+u+"...");
+		
 		// Type predicates (EDB) 
 		for(MSort t : fromContext.forQuery.vocab.sorts.values())
 		{						
@@ -205,6 +207,7 @@ public abstract class MQueryResult
 			Set<Formula> impSet = new HashSet<Formula>();
 			
 			//MEnvironment.errorStream.println(fromContext.forQuery.idbNamesToOutput);
+			MCommunicator.writeToLog("\nThere are IDBs to axiomatize.");
 			
 			// Decisions, Rule Applicability, etc. (IDBs at policy level)
 			for(MIDBCollection idbs : fromContext.forQuery.myIDBCollections.values())
@@ -213,10 +216,10 @@ public abstract class MQueryResult
 			 
 				for(String idbname : idbs.idbKeys())
 				{						
-					//MEnvironment.errorStream.println(idbs.name+":"+idbname);							
+					//MEnvironment.errorStream.println(idbs.name+MEnvironment.sIDBSeparator+idbname);							
 					
 					// Is this an idb to be published? If not, skip it.
-					if(!fromContext.forQuery.getIDBNamesToOutput().contains(idbs.name+":"+idbname))
+					if(!fromContext.forQuery.getIDBNamesToOutput().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
 					{						
 						continue;
 					}
@@ -225,7 +228,7 @@ public abstract class MQueryResult
 					
 					Formula idbFormula = idbs.getIDB(idbname);
 					
-					//MEnvironment.errorStream.println("++ " +idbs.name+":"+idbname);
+					//MEnvironment.errorStream.println("++ " +idbs.name+MEnvironment.sIDBSeparator+idbname);
 					//MEnvironment.errorStream.println(idbFormula.hashCode());
 					
 					// At this point, idbFormula is using object references from the Policy instead
@@ -274,10 +277,10 @@ public abstract class MQueryResult
 						// Debug only (messes up listing possibly nonempty relations, etc, etc.)
 						//List<String> indexing = idbOutputIndexing.get(idbs.name+":"+idbname);
 						//therel = MGFormulaManager.makeRelation(idbs.name+":"+idbname+indexing, idbArity);
-						therel = MFormulaManager.makeRelation(idbs.name+":"+idbname, idbArity); // same as non-tupled
+						therel = MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity); // same as non-tupled
 					}
 					else
-						therel = MFormulaManager.makeRelation(idbs.name+":"+idbname, idbArity);
+						therel = MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);
 					
 					// And "bound" it.
 					qryBounds.bound(therel, factory.allOf(idbArity));			

@@ -155,7 +155,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				MQuery newQuery = new MQuery(fromContext.forQuery);
 				newQuery.addIDBOutputs(missingRels);			
 				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
-				return newQuery.runQuery().getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
+				
+				MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
+				return newFinder.getRealizedFormulas(candidates, cases);
 			}			
 			// otherwise, continue as normal: we have all the relations we need
 			
@@ -249,12 +251,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// If this isn't an IDB in the query, error
 			// Note that containsIDB is not the correct method to call, here. 
 			//if(!fromContext.forQuery.containsIDB(key))
-			if(!fromContext.forQuery.myIDBCollectionsContainWithColon(key))
+			if(!fromContext.forQuery.myIDBCollectionsContainWithDot(key))
 				throw new MUserException("Could not show realized formula involving IDB relation "+key+" since the query had no knowledge of that relation.\n"+
-						"The query knew about the following IDB relations: "+fromContext.forQuery.idbKeys());
+						"The query knew about the following IDB relations: "+fromContext.forQuery.getmyIDBCollectionsIDBs());
 			
 			// Validate arities in which we are using the relation.
-			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithColon(key);
+			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithDot(key);
 			
 			for(List<MTerm> args : corc.get(key))
 			{
@@ -428,6 +430,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		        
 		// Can't trust manager here, since Kodkod adds relations
         Relation r = getRelationFromBounds(theBounds, predname);
+        MCommunicator.writeToLog("Bounds: "+theBounds); // TODO bounds not containing it! why?
         IntSet s = theTranslation.primaryVariables(r);
     	int minVarForR = s.min();    	
     	
@@ -1128,13 +1131,13 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		List<MTerm> tlist_xy = new ArrayList<MTerm>(tlist_x);
 		tlist_xy.add(new MVariableTerm("y"));
 		
-		mapPermitx.put("SRP1:permit", new HashSet<List<MTerm>>());
-		mapPermitx.get("SRP1:permit").add(tlist_xy);
+		mapPermitx.put("SRP1.permit", new HashSet<List<MTerm>>());
+		mapPermitx.get("SRP1.permit").add(tlist_xy);
 				
 		//result = MEnvironment.showRealized("SRQry1", mapPermitx, mapAx);								
 		//System.err.println(MCommunicator.transformXMLToString(result));
 		
-		testCase("5", "SRQry1", mapPermitx, mapAx, "{A(x)=[SRP1:permit(x, y)]}");
+		testCase("5", "SRQry1", mapPermitx, mapAx, "{A(x)=[SRP1.permit(x, y)]}");
 				
 		//////////////////////////////
 		
@@ -1143,7 +1146,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		mapAxBx.put("B", new HashSet<List<MTerm>>());
 		mapAxBx.get("B").add(tlist_x);
 		
-		testCase("6", "SRQry1", mapPermitx, mapAxBx, "{A(x)=[SRP1:permit(x, y)], B(x)=[]}");
+		testCase("6", "SRQry1", mapPermitx, mapAxBx, "{A(x)=[SRP1.permit(x, y)], B(x)=[]}");
 		
 		//////////////////////////////
 		//////////////////////////////

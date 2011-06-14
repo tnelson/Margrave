@@ -216,7 +216,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		String qualstr = "";
 		if(qualified)
-			qualstr = name + ":";
+			qualstr = name + MEnvironment.sIDBSeparator;
 		
 		// Use rules, not idbs, since rules contains the actual rule ordering
 		for(MRule aRule : rules)
@@ -255,7 +255,7 @@ public class MPolicyLeaf extends MPolicy
 	public List<String> ruleIDBsWithHigherPriorityThan(String rulename)
 	{		
 		// may pass canonical idb name ("PolicyName:Rule12" instead of "Rule12")
-		if(rulename.startsWith(this.name+":")) 
+		if(rulename.startsWith(this.name+MEnvironment.sIDBSeparator)) 
 			rulename = rulename.substring(this.name.length()+1);		
 		
 		List<String> result = new LinkedList<String>();
@@ -270,9 +270,9 @@ public class MPolicyLeaf extends MPolicy
 		Set<MRule> over2 = rulesThatCanOverride(theRule);
 		
 		for(MRule r1 : over1)
-			result.add(this.name+":"+r1.name);
+			result.add(this.name+MEnvironment.sIDBSeparator+r1.name);
 		for(MRule r2 : over2)
-			result.add(this.name+":"+r2.name);			
+			result.add(this.name+MEnvironment.sIDBSeparator+r2.name);			
 		
 		return result;
 	}
@@ -491,7 +491,7 @@ public class MPolicyLeaf extends MPolicy
 		idbname = idbname.toLowerCase();
 		
 		// may pass canonical idb name ("PolicyName:Rule12" instead of "Rule12")
-		if(idbname.startsWith(this.name+":")) // name is already lowercase
+		if(idbname.startsWith(this.name+MEnvironment.sIDBSeparator)) // name is already lowercase
 		{
 			idbname = idbname.substring(this.name.length()+1);
 		}		
