@@ -519,7 +519,7 @@ public class MCommunicator
         				else if (showType.equalsIgnoreCase("CEILING")) {
         					theResponse = MEnvironment.showCeiling(id);
         				}
-        				else if (showType.equalsIgnoreCase("REALIZED") |
+        				else if (showType.equalsIgnoreCase("REALIZED") ||
         						showType.equalsIgnoreCase("UNREALIZED")) 
         				{
         					String popId;

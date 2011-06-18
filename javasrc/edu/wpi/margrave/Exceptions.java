@@ -19,9 +19,6 @@
 
 package edu.wpi.margrave;
 
-import kodkod.ast.Variable;
-
-
 //***********************************************
 //Margrave Exceptions
 //***********************************************

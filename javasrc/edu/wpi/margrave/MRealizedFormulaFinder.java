@@ -381,7 +381,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	{		
 		if(!(termi instanceof MVariableTerm))
 			throw new MUserException("REALIZED candidates must only involve variables, not constants or functions. Got: "+termi);
-		MVariableTerm vti = (MVariableTerm) termi;
+		//MVariableTerm vti = (MVariableTerm) termi;
 		String varname = termi.toString();
 		
 		// Much of this code is taken from interpret() in Translation.class in Kodkod
@@ -985,7 +985,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 									toRemoveCandidates.remove(aClause); // no longer needs removal at end
 								}
 								else
-									unitClausesToAssumeCandidates.remove(aClause);
+								{
+									// aClause should be unit; remove the first literal
+									assert(aClause.length == 1);
+									unitClausesToAssumeCandidates.remove(aClause[0]);
+								}
 							}
 							
 							// remove goals (keys)

@@ -19,13 +19,11 @@
 
 package edu.wpi.margrave;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 import kodkod.ast.BinaryExpression;
 import kodkod.ast.BinaryFormula;
@@ -380,7 +378,10 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
 
 	public Boolean visit(ComparisonFormula comp) {
 		if (!cache.containsKey(comp))
+		{
 			counter++;
+			iComparisonFormula++;
+		}
 		return super.visit(comp);
 	}
 
@@ -1088,8 +1089,7 @@ class MatrixTuplingV extends AbstractCacheAllReplacer
 
 		// for new features
 		MEnvironment.writeErrLine("Comparison: " + cf + "; unrecognized operator.");
-		System.exit(1);
-		return cf;
+		throw new MGETuplingFailure("Comparison: " + cf + "; unrecognized operator.");	
 	}
 
 	void addToCaches(String oldname, String suffix, String newToAdd)

@@ -747,6 +747,7 @@ public class MEnvironment
 	public static final String tempVarPrefix = "_";
 	
 	public static final String sIDBSeparator = ".";
+	public static final String sIDBSeparatorRegExp = "\\.";
 	
 	// Used in exception output
 	static String lastCommandReceived = "";
@@ -1179,10 +1180,11 @@ public class MEnvironment
 	}
 	
 	
-	protected static MInstanceIterator getIteratorFor(Integer id)
+	/*protected static MInstanceIterator getIteratorFor(Integer id)
 	{
+	// commented out; if needed don't forget to convert int to string if needed. this code will not work.
 		return envIterators.get(id);
-	}
+	}*/
 	
 	public static Document showRealized(String id,
 			Map<String, Set<List<MTerm>>> rlist,

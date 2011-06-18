@@ -61,6 +61,13 @@ class MSort
         // Equal if names are equal.
         return othSort.name.equals(this.name);
 	}
+	
+	public int hashCode()
+	{
+		return name.hashCode();
+	}
+	
+	
 
 	
 }
@@ -80,12 +87,17 @@ class MSortPair
 	{
 		if(this == other)
 			return true;
-		if(! (other instanceof MSortPair))
+		if(!(other instanceof MSortPair))
 			return false;
 		
 		MSortPair mspOther = (MSortPair) other;
 		return ((s1.equals(mspOther.s1) && s2.equals(mspOther.s2)) ||
 				(s1.equals(mspOther.s2) && s2.equals(mspOther.s1)));
+	}
+	
+	public int hashCode()
+	{
+		return s1.hashCode() + s2.hashCode();
 	}
 }
 
@@ -97,6 +109,7 @@ abstract class MTerm
 	
 	abstract public String toString();
 	abstract public boolean equals(Object other);
+	abstract public int hashCode();
 }
 
 class MFunctionTerm extends MTerm
@@ -153,6 +166,11 @@ class MFunctionTerm extends MTerm
         return othx.funcName.equals(funcName) &&
                othx.subTerms.equals(subTerms);
 	}
+	
+	public int hashCode()
+	{
+		return funcName.hashCode() + subTerms.hashCode();
+	}
 }
 
 class MConstantTerm extends MTerm
@@ -182,6 +200,11 @@ class MConstantTerm extends MTerm
         MConstantTerm othx = (MConstantTerm)other;
         
         return othx.constName.equals(constName);
+	}
+	
+	public int hashCode()
+	{
+		return constName.hashCode();
 	}
 }
 
@@ -213,6 +236,11 @@ class MVariableTerm extends MTerm
         
         return othx.variableName.equals(variableName);
 	}
+	
+	public int hashCode()
+	{
+		return variableName.hashCode();
+	}
 }
 
 class MConstant extends MPredicate
@@ -241,6 +269,11 @@ class MConstant extends MPredicate
                othConst.type.equals(this.type);
 	}
 
+	public int hashCode()
+	{
+		return name.hashCode() + type.hashCode();
+	}
+	
 }
 
 class MFunction extends MPredicate
@@ -274,6 +307,11 @@ class MFunction extends MPredicate
                othFunc.rel.equals(this.rel) &&
                othFunc.result.equals(this.result) &&
                othFunc.arity.equals(this.arity);
+	}
+	
+	public int hashCode()
+	{
+		return name.hashCode() + rel.hashCode() + result.hashCode() + arity.hashCode();
 	}
 
 	
@@ -328,6 +366,11 @@ class MPredicate
         return othPred.name.equals(this.name) &&
                othPred.rel.equals(this.rel) &&
                othPred.type.equals(this.type);
+	}
+	
+	public int hashCode()
+	{
+		return name.hashCode() + rel.hashCode() + type.hashCode();
 	}
 	
 }
@@ -976,7 +1019,7 @@ public class MVocab {
 					+ type + "_" + x_counter);
 			
 			// "forall xi^Ai"
-			quants.add( MFormulaManager.makeOneOfDecl(tempvar, thePred.type.get(x_counter-1).rel));
+			quants.add(MFormulaManager.makeOneOfDecl(tempvar, thePred.type.get(x_counter-1).rel));
 			
 			tuple1vars.add(tempvar);
 			tuple2vars.add(tempvar);

@@ -337,17 +337,19 @@ public class SQSReader
 		sFileName = MPolicy.convertSeparators(sFileName);
 		
 		// Read in the JSON text
+		
+		BufferedReader reader; 
 		try
 		{
-			BufferedReader reader = new BufferedReader(new FileReader(sFileName));
-			String target = "";
+			reader = new BufferedReader(new FileReader(sFileName));
+			StringBuffer target = new StringBuffer();
 			while(reader.ready())
 			{
 				String line = reader.readLine();
-				target += line + "\n";
-			}			
+				target.append(line + "\n");
+			}									
 			
-			JSONObject json = new JSONObject(target);
+			JSONObject json = new JSONObject(target.toString());
 			String polId;
 			
 			if(!json.isNull("Id"))

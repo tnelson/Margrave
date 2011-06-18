@@ -123,7 +123,7 @@ class MCNFSpyQueryResult extends MQueryResult
     		//MCommunicator.writeToLog("\nBounds: \n"+qryBounds.toString());
     		//MCommunicator.writeToLog("\nFormula: "+f.toString());
             Translation trans = Translator.translate(f, qryBounds, qrySolver.options());
-            CNFSpy theSpy = (CNFSpy)trans.cnf();         
+           // CNFSpy theSpy = (CNFSpy)trans.cnf();         
     		final long endTransl = System.currentTimeMillis();
     		msKodkodTransTime += (endTransl - startTransl);
             
@@ -268,21 +268,9 @@ public abstract class MQueryResult
 					}				
 					// Create a temporary relation 
 					// (If tupled, attach the indexing -- uglier but desirable for correctness checking.)
-					Relation therel;
-					if(fromContext.forQuery.tupled)
-					{
-						//outStream.println(idbOutputIndexing);
-						//outStream.println(idbs.name+":"+idbname);
-						
-						// Debug only (messes up listing possibly nonempty relations, etc, etc.)
-						//List<String> indexing = idbOutputIndexing.get(idbs.name+":"+idbname);
-						//therel = MGFormulaManager.makeRelation(idbs.name+":"+idbname+indexing, idbArity);
-						therel = MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity); // same as non-tupled
-					}
-					else
-						therel = MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);
+					Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);		
 					
-					// And "bound" it.
+					// And bound it.
 					qryBounds.bound(therel, factory.allOf(idbArity));			
 				
 					///////////////////////////////////////////////////////
@@ -298,49 +286,14 @@ public abstract class MQueryResult
 					}
 					if(idbArity != actualVarNameOrder.size())
 						throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
-					Expression tup = MFormulaManager.makeExprTuple(actualVarNameOrder);
+					Expression tup = MFormulaManager.makeExprTuple(actualVarNameOrder);										
 					
-					/*Expression tup;
-					if(idbs instanceof MPolicy)
-					{
-						// We assume the request vector ordering from the vocab, since this is a Policy, not a custom IDB.
-						// But any given request variable need not appear. The order, however, is preserved.
-						
-						// Convert from a list of vars to a list of strings; keep only vars that actually appear.
-						List<String> varnameorder = new ArrayList<String>(idbArity);
-						for(Variable v : idbs.vocab.requestVectorOrder)
-							if(freeVars.contains(v))
-								varnameorder.add(v.name());
-						
-						if(idbArity != varnameorder.size())
-							throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
-																
-						//ordered_tempvars = idbs.vocab.requestVectorOrder;						
-						tup = MFormulaManager.makeVarTuple(varnameorder);
-					}
-					else if(idbs instanceof MQuery) // used to be MCustomIDB
-					{
-						if(idbArity != idbs.varOrderings.get(idbname).size())
-							throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);												
-						tup = MFormulaManager.makeVarTupleV( idbs.varOrderings.get(idbname) );
-					}
-					else if(idbs instanceof MInternalIDBCollection)
-					{
-						// Tupled query's IDB. This was a policy before.
-						
-						if(idbs.varOrdering.size() < 1 )
-							throw new MGEBadIdentifierName("Error finding arity of collection: "+idbs.name);						
-						tup = idbs.varOrdering.get(0);
-					}
-					else
-						throw new MGEUnknownIdentifier("Bad IDB collection type: "+idbs.getClass().getName());
+					////////////////////////////////////////////////////////////
+					// The relation holds IF AND ONLY IF its idb formula is true									
+					////////////////////////////////////////////////////////////
 					
-					 */
-					
-					// Don't forget to add bi-implication (the relation holds iff the policy says it does.)									
-
 					// Restrict the IDB Formulas to use the proper types for their free variables.
-					// (Note that rule-scope existentials are already typed in their quantifier.)
+					// TODO: when we fix bounds, this will no longer be necessary
 					Set<Formula> properTypes = new HashSet<Formula>();					
 					for(Variable var : freeVars)
 					{ 	

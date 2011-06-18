@@ -195,12 +195,16 @@ class XACML20Reader {
 					String fResponse = sFileName.substring(0, sFileName.length()-10) + "Response.xml";
 					String decision = "";
 					
-					try
+					BufferedReader reader;
+					try					
 					{
-						BufferedReader reader = new BufferedReader(new FileReader(fResponse));
+						reader = new BufferedReader(new FileReader(fResponse));
 						while(reader.ready())
 						{
 							String line = reader.readLine();
+							
+							if(line == null)
+								continue;
 							
 							if(line.contains("<Decision>NotApplicable</Decision>"))
 							{
@@ -249,7 +253,7 @@ class XACML20Reader {
 					{
 						throw new MGEUnsupportedXACML("Test failed: IO Exception "+e);
 					}
-					
+			
 				}
 				catch(MGEUnsupportedXACML e)
 				{
@@ -950,12 +954,12 @@ class XACML20Reader {
 				
 		try
 		{			
-			String construct = "";
+			StringBuffer construct = new StringBuffer();
 			for(String s : involves_list)	
-				construct = construct + s + " ";
+				construct.append(s + " ");
 			
 			// create the predicate
-			env.addPredicate(newname, construct);
+			env.addPredicate(newname, construct.toString());
 			
 		}
 		catch(MGEBadIdentifierName e)

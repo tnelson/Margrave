@@ -313,7 +313,7 @@ public class MPolicySet extends MPolicy
 		}	
 	
 		// Defer to child
-		String[] split = idbname.split(MEnvironment.sIDBSeparator);
+		String[] split = idbname.split(MEnvironment.sIDBSeparatorRegExp);
 		String polName = split[0].toLowerCase();
 		
 		for(MPolicy pol : children)

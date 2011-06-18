@@ -2265,78 +2265,78 @@ public class FormulaSigInfo
 			boldOff = "</B>";
 		}
 		
-		String result = "";
+		StringBuffer result = new StringBuffer();
 		
 		if(sapConstants.size() > 0 || sapFunctions.size() > 0)
 		{
-			result += boldOn+"A sort symbol occured as a predicate. Setting for Sort-as-predicate handling was:" + boldOff+eol;
+			result.append(boldOn+"A sort symbol occured as a predicate. Setting for Sort-as-predicate handling was:" + boldOff+eol);
 			if(sap.equals(EnumSAPHandling.sapKeep))
-				result += "Keep."+eol;
+				result.append("Keep."+eol);
 			else if(sap.equals(EnumSAPHandling.sapIgnore))
-				result += "Ignore. (Totals may be incorrect.)"+eol;
+				result.append("Ignore. (Totals may be incorrect.)"+eol);
 			else
-				result += "Throw exception. (SAP would have caused an error; this should never be seen)."+eol;
-			result += eol;
+				result.append("Throw exception. (SAP would have caused an error; this should never be seen)."+eol);
+			result.append(eol);
 		}
 		
-		result += boldOn+"Constants (both original and Skolem):"+boldOff+eol;
+		result.append(boldOn+"Constants (both original and Skolem):"+boldOff+eol);
 		for(SigFunction c : skolemConstants)
-			result += "  "+ c.toPrettyString() + ""+eol;
+			result.append("  "+ c.toPrettyString() + ""+eol);
 		for(SigFunction c : originalConstants)
-			result += "  "+ c.toPrettyString() + ""+eol;
+			result.append("  "+ c.toPrettyString() + ""+eol);
 		
 		if(sapConstants.size() > 0)
 		{
-			result += boldOn+"Coercions applied to individual constants due to sorts-as-predicates:"+boldOff+eol;
+			result.append(boldOn+"Coercions applied to individual constants due to sorts-as-predicates:"+boldOff+eol);
 			for(SigFunction sc : sapConstants)
-				result += "  "+ sc.toPrettyString() + ""+eol;
+				result.append("  "+ sc.toPrettyString() + ""+eol);
 		}
 
-		result += ""+eol;
+		result.append(""+eol);
 		
-		result += boldOn+"Functions (both original and Skolem): "+boldOff+eol;
+		result.append(boldOn+"Functions (both original and Skolem): "+boldOff+eol);
 		for(SigFunction f : skolemFunctions)
-			result += "  "+ f.toPrettyString() +""+eol;
+			result.append("  "+ f.toPrettyString() +""+eol);
 		for(SigFunction f : originalFunctions)
-			result += "  "+ f.toPrettyString() +""+eol;
+			result.append("  "+ f.toPrettyString() +""+eol);
 		if(skolemFunctions.size() + originalFunctions.size() < 1)
-			result += "  (No non-nullary functions.)"+eol;
+			result.append("  (No non-nullary functions.)"+eol);
 		
 		if(sapFunctions.size() > 0)
 		{
-			result += boldOn+"Coercions due to sorts-as-predicates:"+boldOff+eol;
+			result.append(boldOn+"Coercions due to sorts-as-predicates:"+boldOff+eol);
 			for(SigFunction sf : sapFunctions)
-				result += "  "+ sf.toPrettyString() + ""+eol;
+				result.append("  "+ sf.toPrettyString() + ""+eol);
 		}
 		
 		// OPT distinction between finitary and finitary+populated?
 		
 		
 		
-		result += ""+eol;
-		result += boldOn+"Functions that contribute to the count: "+boldOff+eol;
+		result.append(""+eol);
+		result.append(boldOn+"Functions that contribute to the count: "+boldOff+eol);
 		for(SigFunction f : productiveFunctions)
-			result += f.toPrettyString()+eol;
+			result.append(f.toPrettyString()+eol);
 		if(productiveFunctions.size() == 0)
-			result += "(None!)"+eol;
+			result.append("(None!)"+eol);
 		if(productiveSAPFunctions.size() > 0)
 		{
-			result += boldOn+"Coercions due to sorts-as-predicates which contributed:"+boldOff+eol;
+			result.append(boldOn+"Coercions due to sorts-as-predicates which contributed:"+boldOff+eol);
 			for(SigFunction sf : productiveSAPFunctions)
-				result += "  "+ sf.toPrettyString() + ""+eol;
+				result.append("  "+ sf.toPrettyString() + ""+eol);
 		}
 		
 		
-		result += eol;
+		result.append(eol);
 		
 		// infinitary sorts
 		Set<LeafExpression> infSorts = new HashSet<LeafExpression>(sorts);
 		infSorts.removeAll(finitarySorts);		
 		
-		result += boldOn+"Finitary sorts:"+boldOff+eol + finitarySorts.toString()+""+eol; 
-		result += boldOn+"Infinitary sorts:"+boldOff+eol + infSorts.toString()+""+eol;
+		result.append(boldOn+"Finitary sorts:"+boldOff+eol + finitarySorts.toString()+""+eol); 
+		result.append(boldOn+"Infinitary sorts:"+boldOff+eol + infSorts.toString()+""+eol);
 			
-		result += ""+eol; 
+		result.append(""+eol); 
 		
 		String sPopTermCounts = "";
 		for(LeafExpression r : termCounts.keySet())
@@ -2346,10 +2346,10 @@ public class FormulaSigInfo
 		}
 		
 		if(htmlOutput)		
-			result += "<HR><div style=\"text-align:center\">\n";
+			result.append("<HR><div style=\"text-align:center\">\n");
 		
 		if(termCounts.keySet().size() > 0)
-			result += "Counts for finitary, populated sorts: "+boldOn+sPopTermCounts+boldOff+eol;
+			result.append("Counts for finitary, populated sorts: "+boldOn+sPopTermCounts+boldOff+eol);
 		
 		Set<LeafExpression> unpopulatedSorts = new HashSet<LeafExpression>();
 		for(LeafExpression r : finitarySorts)
@@ -2359,17 +2359,17 @@ public class FormulaSigInfo
 
 		}
 		if(unpopulatedSorts.size() > 0)
-			result += "The following sorts were finitary but unpopulated by ground terms: "+unpopulatedSorts + ""+eol;
+			result.append("The following sorts were finitary but unpopulated by ground terms: "+unpopulatedSorts + ""+eol);
 		
 		if(getTermCount() > 0)
-			result += "Number of "+boldOn+"distinct"+boldOff+" terms across all finitary sorts: "+boldOn+getTermCount()+boldOff+eol;
+			result.append("Number of "+boldOn+"distinct"+boldOff+" terms across all finitary sorts: "+boldOn+getTermCount()+boldOff+eol);
 		else
-			result += "There were infinitary sorts, so could not establish a bound for the entire signature."+eol;
+			result.append("There were infinitary sorts, so could not establish a bound for the entire signature."+eol);
 		
 
 		if(htmlOutput)
-			result += "<HR>\n";
-		result += eol;
+			result.append("<HR>\n");
+		result.append(eol);
 		
 		// Docs: "Expresses a value in megaCycles as its approximate equivalent
 		//        of CPU seconds on a theoretical 1.2 GHz CPU. "
@@ -2381,14 +2381,14 @@ public class FormulaSigInfo
 		//double msBounds = qs.convertMegacyclesToCpuSeconds(mCycBounds) * 1000;
 		if(!htmlOutput)
 		{
-			result += "Time to collect Skolem functions: "+msCollect +eol;
-			result += "Time to identify productive functions: "+msProductive +eol;
-			result += "Time to identify finitary sorts: "+msFinitary +eol;
-			result += "Time to calculate number of terms: "+msBounds +eol;
+			result.append("Time to collect Skolem functions: "+msCollect +eol);
+			result.append("Time to identify productive functions: "+msProductive +eol);
+			result.append("Time to identify finitary sorts: "+msFinitary +eol);
+			result.append("Time to calculate number of terms: "+msBounds +eol);
 				
-		result += "-----------------------------------"+eol;
+		result.append("-----------------------------------"+eol);
 		}
-		return result;
+		return result.toString();
 	}	
 	
 }

@@ -270,27 +270,28 @@ class MWeakArrayVector<T>
 	
 	public String toString()
 	{
-		String result = "[ ";
+		StringBuffer result = new StringBuffer("[ ");
+			
 		
 		for(WeakReference<T> ref : internalList)
 		{
 			if(ref == null)
 			{
-				result += "null ";
+				result.append("null ");
 			}
 			else
 			{
 				T val = ref.get();
 				
 				if(val == null)
-					result += "null ";
+					result.append("null ");
 				else
-					result += val.toString() + " ";
+					result.append(val.toString() + " ");
 				
 			}
 		}
 		
-		return result + "]" + " ~ "+myHashCode;
+		return result.toString() + "]" + " ~ "+myHashCode;
 	}
 	
 }
@@ -423,25 +424,25 @@ class MWeakValueHashMap<K, V> implements Map<K, V>
 
 	public String toString()
 	{
-		String result = "[";
+		StringBuffer result = new StringBuffer("[");
 		for(K key : internalMap.keySet())
 		{
 			WeakReference<V> ref = internalMap.get(key); 
 			
 			if(ref == null)
-				result += " " + key.toString() + " -> null";
+				result.append(" " + key.toString() + " -> null");
 			else
 			{
 				V val = ref.get();
 				
 				 if(val == null)
-					result += " " + key.toString() + " -> null";
+					result.append(" " + key.toString() + " -> null");
 				else
-					result += " " + key.toString() + " ~ hash="+key.hashCode() + " -> " + val.toString();
+					result.append(" " + key.toString() + " ~ hash="+key.hashCode() + " -> " + val.toString());
 			}
 		}
 		
-		return result + " ]";
+		return result.toString() + " ]";
 	}
 
 	@Override
@@ -647,22 +648,20 @@ public class MFormulaManager
 			initialize();
 		
 		// Never used, but calling size() pings each of the caches.		
-		@SuppressWarnings("unused")
-		long total =  
-			someMultiplicities.size() +
-			noMultiplicities.size()+
-			loneMultiplicities.size() +
-			oneMultiplicities.size() +
-			vars.size()+
-			exprTuples.size()+
-			relations.size()+
-			atomFormulas.size() +
-			negFormulas.size() +
-			andFormulas.size() +
-			orFormulas.size() +
-			declNodes.size() +
-			forallFormulas.size() +
-			existsFormulas.size();
+		someMultiplicities.size();				 		
+		noMultiplicities.size();
+		loneMultiplicities.size();
+		oneMultiplicities.size();
+		vars.size();
+		exprTuples.size();
+		relations.size();
+		atomFormulas.size();
+		negFormulas.size();
+		andFormulas.size();
+		orFormulas.size();
+		declNodes.size();
+		forallFormulas.size();
+		existsFormulas.size();
 	}
 	
 	static Formula makeMultiplicity(Expression e, Multiplicity m)
@@ -672,17 +671,17 @@ public class MFormulaManager
 			initialize();
 		
 		// Use a weak singleton set as key
-		final Set<Expression> weakSetKey = Collections.newSetFromMap(
+		final Set<Expression> weakSetNotYetKey = Collections.newSetFromMap(
 		        new WeakHashMap<Expression, Boolean>());
-		weakSetKey.add(e);
+		weakSetNotYetKey.add(e);
 		
 		// wrap the set to prevent hashCode clobbering by the GC
-		final MSetWrapper<Expression> key = new MSetWrapper<Expression>(weakSetKey);
+		final MSetWrapper<Expression> key = new MSetWrapper<Expression>(weakSetNotYetKey);
 		
 		switch(m)
 		{
 		case LONE:
-			Formula cachedValue = loneMultiplicities.get(weakSetKey);
+			Formula cachedValue = loneMultiplicities.get(key);
 			if(cachedValue != null) 
 				return cachedValue; // otherwise, re-create.
 			Formula newFormula = e.lone();
@@ -690,7 +689,7 @@ public class MFormulaManager
 			return newFormula;
 			
 		case ONE:
-			cachedValue = oneMultiplicities.get(weakSetKey);
+			cachedValue = oneMultiplicities.get(key);
 			if(cachedValue != null) 
 				return cachedValue; // otherwise, re-create.
 			newFormula = e.one();
@@ -698,7 +697,7 @@ public class MFormulaManager
 			return newFormula;
 
 		case NO:
-			cachedValue = noMultiplicities.get(weakSetKey);
+			cachedValue = noMultiplicities.get(key);
 			if(cachedValue != null) 
 				return cachedValue; // otherwise, re-create.
 			newFormula = e.no();
@@ -707,7 +706,7 @@ public class MFormulaManager
 
 
 		case SOME:
-			cachedValue = someMultiplicities.get(weakSetKey);
+			cachedValue = someMultiplicities.get(key);
 			if(cachedValue != null) 
 				return cachedValue; // otherwise, re-create.
 			newFormula = e.some();
@@ -722,10 +721,10 @@ public class MFormulaManager
 	
 	static String varCacheToString()
 	{
-		String result = "";
+		StringBuffer result = new StringBuffer();
 		for(String v : vars.keySet())
-			result += "variable "+v+"="+vars.get(v).hashCode()+"  ";
-		return result;
+			result.append("variable "+v+"="+vars.get(v).hashCode()+"  ");
+		return result.toString();
 	}
 	
 	static Variable makeVariable(String name)

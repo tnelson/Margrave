@@ -25,34 +25,11 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 
-import org.sat4j.core.VecInt;
-import org.sat4j.minisat.SolverFactory;
-import org.sat4j.specs.ContradictionException;
-import org.sat4j.specs.IConstr;
-import org.sat4j.specs.IProblem;
-import org.sat4j.specs.ISolver;
-import org.sat4j.specs.TimeoutException;
-
-
-import kodkod.ast.Decl;
-import kodkod.ast.Expression;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
-import kodkod.ast.Variable;
 import kodkod.engine.Solution;
 import kodkod.engine.Solver;
-import kodkod.engine.bool.BooleanFormula;
-import kodkod.engine.config.Reporter;
-import kodkod.engine.fol2sat.Translation;
-import kodkod.engine.fol2sat.Translator;
-import kodkod.engine.fol2sat.TrivialFormulaException;
-import kodkod.engine.satlab.SATAbortedException;
-import kodkod.engine.satlab.SATFactory;
-import kodkod.engine.satlab.SATSolver;
 import kodkod.instance.*;
-import kodkod.util.ints.IntIterator;
-import kodkod.util.ints.IntSet;
-import kodkod.util.ints.Ints;
 
 class MSolutionInstance
 {
