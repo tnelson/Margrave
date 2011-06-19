@@ -48,13 +48,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		//MCommunicator.writeToLog("\napplyIndexing: "+candidates +";   "+originalPreds+";   "+originalIndexing);
 		
-		if(!fromContext.forQuery.tupled)
+		if(!(fromContext.forQuery instanceof MInternalTupledQuery))
 		{
 			// Not tupled, ignore indexing
 			indexedCandidates = new ArrayList<String>(candidates.keySet());			
 		}
 		else
 		{
+			
+			MInternalTupledQuery forQueryTupled = (MInternalTupledQuery) fromContext.forQuery;
+			
 			// create indexed list
 			indexedCandidates = new ArrayList<String>();	
 		
@@ -73,7 +76,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					
 					// Query should have saved the visitor (and hence the ordering) in internalTuplingVisitor
 
-					Map<Variable, Integer> theTupling = fromContext.forQuery.internalTuplingVisitor.pv.indexing;
+					Map<Variable, Integer> theTupling = forQueryTupled.internalTuplingVisitor.pv.indexing;
 					
 					for(MTerm idxTerm : anIndexing)
 					{
@@ -143,7 +146,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// If we are missing some IDB names, re-compile the query with those names axiomatized
 		// and re-invoke this procedure for the results of that query.
 		/////////////////////////////////////////////////////////////
-		if(!fromContext.forQuery.tupled)
+		if((fromContext.forQuery instanceof MInternalTupledQuery))
 		{
 			Set<String>missingRels = findMissingRelations(candidates); 
 			missingRels.addAll(findMissingRelations(cases));
@@ -206,7 +209,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		/////////////////////////////////////////////////////////////
 			
 		
-		if(fromContext.forQuery.tupled)
+		if(fromContext.forQuery instanceof MInternalTupledQuery)
 		{
 			// *** (3) Convert BACK to the original notation
 			Map<String, Set<String>> indexedResults = new HashMap<String, Set<String>>();
@@ -499,11 +502,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 
 	String stringifyArrays(Set<int[]> arrs)
 	{
-		String result = "< ";
+		StringBuffer result = new StringBuffer("< ");
 		for(int[] arr : arrs)
-			result += " " + Arrays.toString(arr);
+			result.append(" " + Arrays.toString(arr));
 			
-		return result + ">";
+		return result.toString() + ">";
 	}
 	
 	

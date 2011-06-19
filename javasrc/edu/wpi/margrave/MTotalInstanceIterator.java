@@ -226,7 +226,7 @@ abstract class MInstanceIterator extends MQueryResult
 	public boolean warn_user()
 	{
 		// Warn the user if there is an inf. herbrand univ, OR if the user has overridden a finite one.
-		if(fromContext.get_hu_ceiling() < 0 || fromContext.get_hu_ceiling() > fromContext.get_universe_max())
+		if(fromContext.getCeilingUsed() < 0 || fromContext.getCeilingUsed() > fromContext.get_universe_max())
 			return true;
 		
 		return false;

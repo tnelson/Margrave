@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -208,557 +207,337 @@ public class MCommunicator
         
         
         //Takes a MARGRAVE-COMMAND node
-        private static Document xmlHelper(Node node, String originalXMLText) throws MBaseException
+        private static Document xmlHelper(Node margraveCommandNode, String originalXMLText) throws MBaseException
         {        	
         	//List<Node> childNodes = getElementChildren(node);
         	
-        	String type = node.getAttributes().item(0).getNodeValue();
-        	writeToLog("  Type attribute was: " + type + "\n");
-
-        	Node n;
-        	MExploreCondition exploreCondition;
+        	//String type = node.getAttributes().item(0).getNodeValue();
+        	writeToLog("\n  In XML Helper...");
 
         	Document theResponse = null;
-        	//for (int i = 0; i < childNodes.getLength(); i++) {
-        		n = node;
-
-        		if (n.getNodeType() == Node.ELEMENT_NODE)
+        	        	        	
+        	if (margraveCommandNode.getNodeType() == Node.ELEMENT_NODE)
+        	{
+        		String type = getNodeAttribute(margraveCommandNode, "type");
+        		writeToLog("  At command node. Type attribute was: " + type + "\n");
+            	
+        		if(type.equalsIgnoreCase("SET"))
         		{
-
-        			/*if (type.equalsIgnoreCase("COMPARE"))
-        			{
-        				n = n.getFirstChild();
-        				// n is now the COMPARE element
-        				    					
-    					Node tuplingNode = getTuplingNode(n);
-    					Node debugNode = getDebugNode(n);
-    					Node ceilingNode = getCeilingNode(n);
-    					
-    					Node pol1 =  getChildNode(n, "POLICY1");
-    					Node pol2 =  getChildNode(n, "POLICY2");
-    					    					
-    					String polname1 = getPolicyName(pol1);
-    					String polname2 = getPolicyName(pol2);
-
-    					List<String> publ = null;
-    					Boolean tupling = false;
-    					Integer debugLevel = 0;
-    					Integer ceilingLevel = -1; 
-
-    					// Publish, under make no sense
-    					
-    					if (tuplingNode != null) 
-    						tupling = true;    					
-    					if (debugNode != null) 
-    						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));    					
-    					if (ceilingNode != null) 
-    						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));    					
-    					    					
-    					writeToLog("\nCOMPARE policies: "+polname1+ ", "+polname2+"\n"); 
-    					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
-    			
-    					// Exception will be thrown and caught by caller to return an EXCEPTION element.
-    					theResponse = MEnvironment.returnCompareQuery(originalXMLText,
-    								polname1, polname2,    								    							
-    								tupling, debugLevel, ceilingLevel);    			      					    					
-        				
-        			}*/
+        			Node setNode = getChildNode(margraveCommandNode, "SET");
         			
-        			if (type.equalsIgnoreCase("EXPLORE"))
+        			String setParameter = getNodeAttribute(setNode, "parameter");
+        			String setSubParameter = getNodeAttribute(setNode, "subparameter");
+        			String setValue = getNodeAttribute(setNode, "value");
+        			
+        			if("CEILING".equalsIgnoreCase(setParameter))
         			{
-        				// Catch and re-throw any exception, because if EXPLORE fails,
-        				// need to reset lastResult to -1.
         				try
-        				{        				        			
-	        				n = n.getFirstChild();
-	        				String name = n.getNodeName();
-	        				if (name.equalsIgnoreCase("EXPLORE"))
-	        				{
-	        					
-	        					
-	        					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
-	        					String queryID = getNodeAttribute(n, "EXPLORE", "id");
-	        					
-	        					if(MEnvironment.isQueryIDUsed(queryID))
-	        					{
-	        						// Don't allow ID re-use.
-	        						return MEnvironment.errorResponse(MEnvironment.sQuery, MEnvironment.sFailure, "The query identifier "+queryID+" is already in use.");
-	        					}
-	        					
-	        					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
-	        					if (exploreCondition == null)
-	        						MEnvironment.errorWriter.println("explore condition is null!");
-	        					MQuery result = null;
-	        					
-	        					//Default Values                                     					
-	        					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
-	        					List<String> publ = new ArrayList<String>();
-	        					Map<String, String> publSorts = new HashMap<String, String>();
-	                            HashMap<String, Set<List<MTerm>>> idbOut = new HashMap<String, Set<List<MTerm>>>();
-	                            Boolean tupling = false;
-	        					Integer debugLevel = 0;
-	        					Integer ceilingLevel = -1; 
-	        					
-	        					Node underNode = getUnderNode(n);
-	        					Node publishNode = getPublishNode(n);
-	        					Node tuplingNode = getTuplingNode(n);
-	        					Node debugNode = getDebugNode(n);
-	        					Node ceilingNode = getCeilingNode(n);
-	        					
-	        					// Now called INCLUDE, and 
-	        					// used to alert tupling that there are EDB indexings it needs
-	        					// to include, even if they don't appear.
-	        					Node idbOutputNode = getIdbNode(n);
-	        					
-	        					if (underNode != null)
-	        					{ 
-	        						under = namesToIDBCollections(getUnderList(n));
-	        						
-	        					}
-	        					if (publishNode != null)
-	        					{
-	        						// <PUBLISH><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION>
-	        						//          <VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH>
-	        						
-	        						List<Node> decls = getElementChildren(publishNode);
-	        						for(Node varDeclNode : decls)
-	        						{	        							  	        							
-	        							String varname = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "varname");
-	            						String vartype = getNodeAttribute(varDeclNode, "VARIABLE-DECLARATION", "sort");
-	            						publ.add(varname);
-	    	        					publSorts.put(varname, vartype);
-	        						}
-
-	        					}
-	        					if (idbOutputNode != null) {
-	        						List<Node> idbChildNodes = getElementChildren(idbOutputNode);	        						
-	        						idbOut = atomicFormulasToHashmap(idbChildNodes);
-	        					}
-	        					if (tuplingNode != null) { //For now if the node exists just set tupling to true
-	        						tupling = true;
-	        					}
-	        					if (debugNode != null) {
-	        						 debugLevel = Integer.parseInt(getDebugLevel(debugNode));
-	        					}
-	        					if (ceilingNode != null) {
-	        						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
-	        					}
-	        					
-	        					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
-	        					
-	        					
-	        					// Exception will be thrown and caught by caller to return an EXCEPTION element.
-	        					result = MQuery.createFromExplore(
-	        							queryID,
-	        							exploreCondition.addSeenIDBCollections(under), 
-	        							publ,
-	        							publSorts,
-	        							idbOut, tupling, debugLevel, ceilingLevel);
-	        			
-	      
-	        					writeToLog("AT END OF EXPLORE");
-	        					theResponse = MEnvironment.returnQueryResponse(result, originalXMLText);
-	        					
-	        				}
-	  
-        				} 
-          				catch(MBaseException e)
         				{
-          					MEnvironment.clearLastQuery();
-          					throw e;
-        				}
-          				
-        			}
-        			else if (type.equalsIgnoreCase("INFO")) {
-        				writeToLog("In Info");
-        				String idString = getInfoId(n);
-        				writeToLog("\nPast getting id info");
-        				if (idString != null) {
-        					theResponse = MEnvironment.printInfo(idString); 
-        				}
-        				else {
-        					theResponse = MEnvironment.printSystemInfo(); 
-        				}
-        				writeToLog("Returning from info");
-        			}
+        					int intValue = Integer.parseInt(setValue);
+            				// Global parameters for size ceilings per sort
+            				theResponse = MEnvironment.setSortCeiling(setSubParameter, intValue);
 
-        			//Create Statement
-        			else if (type.equalsIgnoreCase("CREATE POLICY LEAF")) {
-        				String pname = getPolicyName(n);
-        				String vname = getVocabName(n);
-        				theResponse = MEnvironment.createPolicyLeaf(pname, vname);
-        			} 
-        			else if (type.equalsIgnoreCase("CREATE POLICY SET")) {
-        				String pname = getPolicyName(n);
-        				String vname = getVocabName(n);
-        				theResponse = MEnvironment.createPolicySet(pname, vname);
-        			} 
-        			else if (type.equalsIgnoreCase("CREATE VOCABULARY")) {
-        				writeToLog("In Create Vocabulary\n");
-        				String vname = getVocabName(node);
-        				writeToLog("Got Vocab name. It is: " + vname + "\n");
-        				theResponse = MEnvironment.createVocabulary(vname);
-        				if (theResponse == null) {
-        					writeToLog("The result of create vocabulary was null!!\n");
         				}
-        				writeToLog("Finished Create Vocabulary\n");
-        			} 
-        			else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
-        				String fileName = getLoadFileName(n);
-        				String schemaFileName = getLoadSchemaFileName(n);
-        				theResponse = MEnvironment.loadXACML(fileName, schemaFileName);
-        			}
-        			else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
-        				String fileName = getLoadFileName(n);
-        				theResponse = MEnvironment.loadSQS(fileName);
-        			}
-        			
-        			else if (type.equalsIgnoreCase("PREPARE")) {
-        				String pname = getPolicyName(n);
-        				theResponse = MEnvironment.preparePolicy(pname);
-        			} 
-        			else if (type.equalsIgnoreCase("DELETE VOCABULARY")) {
-        				String vname = getVocabName(n);
-        				theResponse = MEnvironment.deleteVocabulary(vname);
-        			} 
-        			/* Ignoring for now
-        			else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
-        				String fname = n.getAttributes().item(0).getNodeValue();
-        				String sfname = n.getAttributes().item(1).getNodeValue();
-        				theResponse = MEnvironment.loadXACML(fname, sfname);
-        			} 
-        			else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
-        				String fname = n.getAttributes().item(0).getNodeValue();
-        				theResponse = MEnvironment.loadSQS(fname);
-        			} */
-        			//Set Statement
-        			
-        			else if (type.equalsIgnoreCase("SET TARGET FOR POLICY")) {
-        				String pname = getPolicyName(n);
-        				List<String> conjuctChain = getConjunctChainList(n);
-        				theResponse = MEnvironment.setPolicyTarget(pname, conjuctChain);
-        			}	
-        			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
-        				String pname = getPolicyName(n);
-        				//List<String> idl = getIdentifierList(n);
-        				
-        				Set<String> rFA = new HashSet<String>();
-        				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
-        				
-        				handleComb(n, rFA, rO);        				        				
-        				theResponse = MEnvironment.setRCombine(pname, rFA, rO);
-        			}	
-        			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
-        				String pname = getPolicyName(n);        				
-        				Set<String> rFA = new HashSet<String>();
-        				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
-        				        				
-        				handleComb(n, rFA, rO);        				
-        				theResponse = MEnvironment.setPCombine(pname, rFA, rO);
-        			}
-        			else if (type.equalsIgnoreCase("QUIT"))
-        			{
-        				 MEnvironment.quitMargrave();
-        			}
-        			
-        			else if (type.equalsIgnoreCase("RESET"))
-        			{
-        				// "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>"
-        				String id = getNodeAttribute(n, "RESET", "id");
-        				theResponse = MEnvironment.resetIterator(id);        				
-        			}
-        			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
-        				String id = getNodeAttribute(n, "IS-POSSIBLE", "id");
-        				theResponse = MEnvironment.isPoss(id);
-        				writeToLog("Returning from IS-POSSIBLE");
-        			}
-        			else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
-        				String id = getNodeAttribute(n, "IS-GUARANTEED", "id");
-        				theResponse = MEnvironment.isGuar(id);
-        			}
-        			else if (type.equalsIgnoreCase("SHOW")) {
-        				writeToLog("In show");
-        				String showType = getShowType(n);
-        				writeToLog("In show");
-        				String id = getNodeAttribute(n, "SHOW", "id");
-        				
-        				writeToLog("\nshowtype: " + showType + "\n");
-        				if (showType.equalsIgnoreCase("ONE"))
+        				catch(NumberFormatException e)
         				{
-        					writeToLog("In Show One");
-        					
-        					Node includeNode = getIdbNode(n);        					
-        					List<Node> idbChildNodes = getElementChildren(includeNode);    						
-        					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
-    						
-        					try
-        					{
-        						writeToLog("In Show One");
-								theResponse = MEnvironment.getFirstModel(id, includeMap);
-							} catch (MBaseException e) {
-								theResponse = MEnvironment.exceptionResponse(e);						
-							}
-        				}
-        				else if (showType.equalsIgnoreCase("NEXT"))
-        				{
-        					
-        					Node includeNode = getIdbNode(n);        					
-        					List<Node> idbChildNodes = getElementChildren(includeNode);    						
-        					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
-
-        					try
-        					{
-								theResponse = MEnvironment.getNextModel(id, includeMap);
-							} catch (MBaseException e) {
-								theResponse = MEnvironment.exceptionResponse(e);						
-							}
-        				}
-        				//else if (showType.equalsIgnoreCase("NEXTCOLLAPSE")) {
-        				//	theResponse = MEnvironment.showNextCollapse(id);
-        				//}
-        				else if (showType.equalsIgnoreCase("CEILING")) {
-        					theResponse = MEnvironment.showCeiling(id);
-        				}
-        				else if (showType.equalsIgnoreCase("REALIZED") ||
-        						showType.equalsIgnoreCase("UNREALIZED")) 
-        				{
-        					String popId;
-        					if (showType.equalsIgnoreCase("REALIZED")) {
-        						popId = getPopulatedId(n); // command
-        					}
-        					else {
-        						popId = getUnpopulatedId(n); // command
-        					}
-        					
-        					Node showNode = getChildNode(n, "SHOW");
-        					Node forCasesNode = getForCasesNode(showNode);
-        					List<Node> atomicFormulaNodes = getElementChildren(showNode);
-        					
-        					// not this call
-        					//NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
-        					
-        					// atomicFormulasToHashmap will ignore the FOR-CASES element.
-        					Map<String, Set<List<MTerm>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
-        					    
-        					
-        					// Default map is empty. If FOR CASES, populate it.
-        					Map<String, Set<List<MTerm>>> forCasesAtomicFormulas = new HashMap<String, Set<List<MTerm>>>();
-        					if (forCasesNode != null)
-        					{
-        						//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
-        						List<Node> forCasesAtomicFormulaNodes = getElementChildren(forCasesNode);
-        						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
-        					}
-        					        			
-        					//writeToLog(showType+" " + popIdString + " " + atomicFormulas + " --- " + forCasesAtomicFormulas);
-        					
-        					// Get the result and return it
-        					if (showType.equalsIgnoreCase("REALIZED")) {
-    							theResponse = MEnvironment.showRealized(popId, atomicFormulas, forCasesAtomicFormulas);
-    						}
-    						else {
-    							theResponse = MEnvironment.showUnrealized(popId, atomicFormulas, forCasesAtomicFormulas);
-    						}        					
-        					
-        				} // end pop/unpop
-
-
-        			} // end show
-        			else if (type.equalsIgnoreCase("COUNT")) {
-        				String id = getCountId(n);
-        				theResponse = MEnvironment.countModels(id);
-        				
-        				Node sizeNode = getSizeNode(n);
-        				if (sizeNode != null) {
-        					Integer countSize = Integer.parseInt(getCountSize(sizeNode));
-        					theResponse = MEnvironment.countModels(id, countSize);
-        				}
-        				else {
-        					theResponse = MEnvironment.countModels(id);
-        				}
-        			}
-        			
-        			else if (type.equalsIgnoreCase("GET-INFO"))
-        			{
-        				// n is the margrave-command node.
-        				String getType = getGetInfoType(n); 
-        				Node getNode = getChildNode(n, "GET-INFO");
-        				String pname = getPolicyName(getNode);
-        				String decname = getDecisionName(getNode);
-        				// decname will be null, if the user doesn't want to limit by decision
-        				
-        				writeToLog("\n");
-        				writeToLog("GET-INFO: "+getType+" "+getNode + " " + pname +" "+decname);
-        				
-        				String rname = "";
-        				//if (getType.equalsIgnoreCase("DECISION")) {
-        				//	theResponse = MEnvironment.getDecisionFor(pname, rname);;
-        				//}
-        				
-        				if (getType.equalsIgnoreCase("HIGHER-PRIORITY-THAN")) {
-        					theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
-        				}
-        				else if (getType.equalsIgnoreCase("RULES")) {
-        					theResponse = MEnvironment.getRulesIn(pname, false, decname);
-        				}
-        				else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
-        					theResponse = MEnvironment.getRulesIn(pname, true, decname);
-        				}
-        			}        			        		
-        			
-        			//Add Statement
-        			else if (type.equalsIgnoreCase("ADD")) {
-        				Node childNode = n.getFirstChild();
-        				if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER"))
-        				{
-        					String vname = getVocabName(n);
-        					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
-        					String addType = secondChildNode.getNodeName();
-        					writeToLog("addType: " + addType +"\n");
-        					
-        					if (addType.equalsIgnoreCase("SUBSORT")) {
-        						String parent = getSubSortParent(n);
-        						String child = getSubSortChild(n);
-        						theResponse = MEnvironment.addSubsort(vname, parent, child);
-        					}
-        					else if (addType.equalsIgnoreCase("SORT")) {
-        						String sortName = getSortName(n);
-        						theResponse = MEnvironment.addSort(vname, sortName);
-        						writeToLog("Added Sort\n");
-        					}
-        					else if (addType.equalsIgnoreCase("SORT-WITH-CHILDREN")) {
-        						String sortName = getNodeAttribute(n, "SORT-WITH-CHILDREN", "name");
-        						        						
-        						List<String> childnames = getListElements(n, "SORT-WITH-CHILDREN", "name");        						        						
-        						theResponse = MEnvironment.addSortWithSubs(vname, sortName, childnames);
-        						writeToLog("Added Sort\n");
-        					}        					
-        					else if (addType.equalsIgnoreCase("PREDICATE")) {
-        						String sName = getPredicateName(n);
-        						List<String> constr = getRelationsList(n);
-        						writeToLog("Adding Predicate\n");
-        						theResponse = MEnvironment.addPredicate(vname, sName, constr);
-        					}
-        					
-        					else if (addType.equalsIgnoreCase("CONSTANT")) {
-        						String sName = getNodeAttribute(secondChildNode, "CONSTANT", "name");
-        						String sSort = getNodeAttribute(secondChildNode, "CONSTANT", "type");     
-        						writeToLog("Adding constant "+sName+" : "+sSort+"\n");
-        						theResponse = MEnvironment.addConstant(vname, sName, sSort);
-        					}
-        					else if (addType.equalsIgnoreCase("FUNCTION"))
-        					{
-        						String sName = getNodeAttribute(secondChildNode, "FUNCTION", "name");   
-        						List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");        						
-        						writeToLog("Adding function "+sName+" : "+constr+"\n");
-        						//System.err.println("Adding function "+sName+" : "+constr+"\n");
-        						theResponse = MEnvironment.addFunction(vname, sName, constr);
-        					}
-        					
-        					else if (addType.equalsIgnoreCase("CONSTRAINT")) {
-        						Node constraintNode = secondChildNode; //Just for clarity
-        						        						        						
-        						String constraintType = getConstraintType(constraintNode);
-        						
-        						
-        						List<String> relations = getRelationsList(constraintNode); 
-        						String firstRelation = relations.get(0);
-
-        						
-        						if (constraintType.equalsIgnoreCase("SINGLETON")) {
-        							theResponse = MEnvironment.addConstraintSingleton(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("SINGLETON-ALL")) {
-        							theResponse = MEnvironment.addConstraintSingletonAll(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
-        							theResponse = MEnvironment.addConstraintAtMostOne(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
-        							theResponse = MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("NONEMPTY")) {
-        							theResponse = MEnvironment.addConstraintNonempty(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("NONEMPTY-ALL")) {
-        							theResponse = MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("ABSTRACT")) {
-        							theResponse = MEnvironment.addConstraintAbstract(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("ABSTRACT-ALL")) {
-        							theResponse = MEnvironment.addConstraintAbstractAll(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
-        							theResponse = MEnvironment.addConstraintTotalFunction(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("TOTAL-RELATION")) {
-        							theResponse = MEnvironment.addConstraintTotalRelation(vname, firstRelation);
-        						}
-        						else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
-        							theResponse = MEnvironment.addConstraintPartialFunction(vname, firstRelation);
-        						}
-        						else
-        						{
-        							// Unknown constraint type; throw an exception
-        							theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
-        						}        						
-        					}
-        				}
-        				else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER"))
-        				{
-        					String pname = getPolicyName(n);
-        					
-        					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
-        					if(secondChildNode.getNodeName().equalsIgnoreCase("RULE"))
-        					{        					
-        						String rname= getRuleName(n);
-        					
-        						// WORRY This should be changed to be made more generic, because it assumes too much
-        						Node ruleNode = childNode.getNextSibling();
-        					
-        						// Decision
-        						String decName = getDecisionType(ruleNode);        						
-        						
-        						List<String> varOrdering = new ArrayList<String>();        						
-        						varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
-        						        						
-        						// Target fmla
-        						Node targetNode = getChildNode(ruleNode, "TARGET");        					
-        						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
-        						Formula target = targetCondition.fmla;
-        					
-        						// condition is used exclusively for XACML, so it's ignored here.
-        						Formula condition = Formula.TRUE;        					        					
-        						theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition, targetCondition);
-        					}
-        					else if(secondChildNode.getNodeName().equalsIgnoreCase("VARIABLE-DECLARATION"))
-        					{
-        						String varname = getNodeAttribute(secondChildNode, "VARIABLE-DECLARATION", "varname");
-        						String vartype = getNodeAttribute(secondChildNode, "VARIABLE-DECLARATION", "sort");
-        						
-        						theResponse = MEnvironment.addVarDec(pname, varname, vartype);
-        					}
-            				
-        				}
-        				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
-        					String parent = getParentName(childNode);
-        					String child = getChildName(childNode);
-        					theResponse = MEnvironment.addChild(parent, child);
-        				}
+        					theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, "Not an integer", setValue);
+        				}        				
         			}
         			else
         			{
-        				theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sCommand, "");
+        				theResponse = MEnvironment.errorResponse(MEnvironment.sCommand, MEnvironment.sUnknown, setParameter);
+        			}
+        			
+        		}        			
+        		else if (type.equalsIgnoreCase("EXPLORE"))
+        		{
+        			theResponse = handleExplore(originalXMLText, margraveCommandNode);        			
+        		}
+        		else if (type.equalsIgnoreCase("INFO")) {
+        			writeToLog("In Info");
+        			String idString = getInfoId(margraveCommandNode);
+        			writeToLog("\nPast getting id info");
+        			if (idString != null) {
+        				theResponse = MEnvironment.printInfo(idString); 
+        			}
+        			else {
+        				theResponse = MEnvironment.printSystemInfo(); 
+        			}
+        			writeToLog("Returning from info");
+        		}
+
+        		//Create Statement
+        		else if (type.equalsIgnoreCase("CREATE POLICY LEAF")) {
+        			String pname = getPolicyName(margraveCommandNode);
+        			String vname = getVocabName(margraveCommandNode);
+        			theResponse = MEnvironment.createPolicyLeaf(pname, vname);
+        		} 
+        		else if (type.equalsIgnoreCase("CREATE POLICY SET")) {
+        			String pname = getPolicyName(margraveCommandNode);
+        			String vname = getVocabName(margraveCommandNode);
+        			theResponse = MEnvironment.createPolicySet(pname, vname);
+        		} 
+        		else if (type.equalsIgnoreCase("CREATE VOCABULARY")) {
+        			writeToLog("In Create Vocabulary\n");
+        			String vname = getVocabName(margraveCommandNode);
+        			writeToLog("Got Vocab name. It is: " + vname + "\n");
+        			theResponse = MEnvironment.createVocabulary(vname);
+        			if (theResponse == null) {
+        				writeToLog("The result of create vocabulary was null!!\n");
+        			}
+        			writeToLog("Finished Create Vocabulary\n");
+        		} 
+        		else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
+        			String fileName = getLoadFileName(margraveCommandNode);
+        			String schemaFileName = getLoadSchemaFileName(margraveCommandNode);
+        			theResponse = MEnvironment.loadXACML(fileName, schemaFileName);
+        		}
+        		else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
+        			String fileName = getLoadFileName(margraveCommandNode);
+        			theResponse = MEnvironment.loadSQS(fileName);
+        		}
+
+        		else if (type.equalsIgnoreCase("PREPARE")) {
+        			String pname = getPolicyName(margraveCommandNode);
+        			theResponse = MEnvironment.preparePolicy(pname);
+        		} 
+        		else if (type.equalsIgnoreCase("DELETE VOCABULARY")) {
+        			String vname = getVocabName(margraveCommandNode);
+        			theResponse = MEnvironment.deleteVocabulary(vname);
+        		} 
+
+     
+
+        		else if (type.equalsIgnoreCase("SET TARGET FOR POLICY")) {
+        			String pname = getPolicyName(margraveCommandNode);
+        			List<String> conjuctChain = getConjunctChainList(margraveCommandNode);
+        			theResponse = MEnvironment.setPolicyTarget(pname, conjuctChain);
+        		}	
+        		else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
+        			String pname = getPolicyName(margraveCommandNode);
+        			//List<String> idl = getIdentifierList(n);
+
+        			Set<String> rFA = new HashSet<String>();
+        			Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
+
+        			handleComb(margraveCommandNode, rFA, rO);        				        				
+        			theResponse = MEnvironment.setRCombine(pname, rFA, rO);
+        		}	
+        		else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
+        			String pname = getPolicyName(margraveCommandNode);        				
+        			Set<String> rFA = new HashSet<String>();
+        			Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
+
+        			handleComb(margraveCommandNode, rFA, rO);        				
+        			theResponse = MEnvironment.setPCombine(pname, rFA, rO);
+        		}
+        		else if (type.equalsIgnoreCase("QUIT"))
+        		{
+        			MEnvironment.quitMargrave();
+        		}
+
+        		else if (type.equalsIgnoreCase("RESET"))
+        		{
+        			// "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>"
+        			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "RESET", "id");
+        			theResponse = MEnvironment.resetIterator(id);        				
+        		}
+        		else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
+        			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "IS-POSSIBLE", "id");
+        			theResponse = MEnvironment.isPoss(id);
+        			writeToLog("Returning from IS-POSSIBLE");
+        		}
+        		else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
+        			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "IS-GUARANTEED", "id");
+        			theResponse = MEnvironment.isGuar(id);
+        		}
+        		else if (type.equalsIgnoreCase("SHOW")) {
+        			writeToLog("In show");
+        			String showType = getShowType(margraveCommandNode);
+        			writeToLog("In show");
+        			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "SHOW", "id");
+
+        			writeToLog("\nshowtype: " + showType + "\n");
+        			if (showType.equalsIgnoreCase("ONE"))
+        			{
+        				writeToLog("In Show One");
+
+        				Node includeNode = getIdbNode(margraveCommandNode);        					
+        				List<Node> idbChildNodes = getElementChildren(includeNode);    						
+        				HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
+
+        				try
+        				{
+        					writeToLog("In Show One");
+        					theResponse = MEnvironment.getFirstModel(id, includeMap);
+        				} catch (MBaseException e) {
+        					theResponse = MEnvironment.exceptionResponse(e);						
+        				}
+        			}
+        			else if (showType.equalsIgnoreCase("NEXT"))
+        			{
+
+        				Node includeNode = getIdbNode(margraveCommandNode);        					
+        				List<Node> idbChildNodes = getElementChildren(includeNode);    						
+        				HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
+
+        				try
+        				{
+        					theResponse = MEnvironment.getNextModel(id, includeMap);
+        				} catch (MBaseException e) {
+        					theResponse = MEnvironment.exceptionResponse(e);						
+        				}
+        			}
+        			else if (showType.equalsIgnoreCase("CEILING")) {
+        				theResponse = MEnvironment.showCeiling(id);
+        			}
+        			else if (showType.equalsIgnoreCase("REALIZED") ||
+        					showType.equalsIgnoreCase("UNREALIZED")) 
+        			{
+        				String popId;
+        				if (showType.equalsIgnoreCase("REALIZED")) {
+        					popId = getPopulatedId(margraveCommandNode); // command
+        				}
+        				else {
+        					popId = getUnpopulatedId(margraveCommandNode); // command
+        				}
+
+        				Node showNode = getChildNode(margraveCommandNode, "SHOW");
+        				Node forCasesNode = getForCasesNode(showNode);
+        				List<Node> atomicFormulaNodes = getElementChildren(showNode);
+
+        				// not this call
+        				//NodeList atomicFormulaNodes = getAtomicFormulaNodesFromList(n);
+
+        				// atomicFormulasToHashmap will ignore the FOR-CASES element.
+        				Map<String, Set<List<MTerm>>> atomicFormulas = atomicFormulasToHashmap(atomicFormulaNodes);
+
+
+        				// Default map is empty. If FOR CASES, populate it.
+        				Map<String, Set<List<MTerm>>> forCasesAtomicFormulas = new HashMap<String, Set<List<MTerm>>>();
+        				if (forCasesNode != null)
+        				{
+        					//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
+        					List<Node> forCasesAtomicFormulaNodes = getElementChildren(forCasesNode);
+        					forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
+        				}
+
+        				//writeToLog(showType+" " + popIdString + " " + atomicFormulas + " --- " + forCasesAtomicFormulas);
+
+        				// Get the result and return it
+        				if (showType.equalsIgnoreCase("REALIZED")) {
+        					theResponse = MEnvironment.showRealized(popId, atomicFormulas, forCasesAtomicFormulas);
+        				}
+        				else {
+        					theResponse = MEnvironment.showUnrealized(popId, atomicFormulas, forCasesAtomicFormulas);
+        				}        					
+
+        			} // end pop/unpop
+
+
+        		} // end show
+        		else if (type.equalsIgnoreCase("COUNT")) {
+        			String id = getCountId(margraveCommandNode);
+        			theResponse = MEnvironment.countModels(id);
+
+        			Node sizeNode = getSizeNode(margraveCommandNode);
+        			if (sizeNode != null) {
+        				Integer countSize = Integer.parseInt(getCountSize(sizeNode));
+        				theResponse = MEnvironment.countModels(id, countSize);
+        			}
+        			else {
+        				theResponse = MEnvironment.countModels(id);
+        			}
+        		}
+
+        		else if (type.equalsIgnoreCase("GET-INFO"))
+        		{
+        			// n is the margrave-command node.
+        			String getType = getGetInfoType(margraveCommandNode); 
+        			Node getNode = getChildNode(margraveCommandNode, "GET-INFO");
+        			String pname = getPolicyName(getNode);
+        			String decname = getDecisionName(getNode);
+        			
+        			// decname will be null, if the user doesn't want to limit by decision
+
+        			writeToLog("\n");
+        			writeToLog("GET-INFO: "+getType+" "+getNode + " " + pname +" "+decname);
+
+        			String rname = "";
+
+        			if (getType.equalsIgnoreCase("HIGHER-PRIORITY-THAN")) {
+        				theResponse = MEnvironment.getHigherPriorityThan(pname, rname);
+        			}
+        			else if (getType.equalsIgnoreCase("RULES")) {
+        				theResponse = MEnvironment.getRulesIn(pname, false, decname);
+        			}
+        			else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
+        				theResponse = MEnvironment.getRulesIn(pname, true, decname);
+        			}
+        		}        			        		
+
+        		//Add Statement
+        		else if (type.equalsIgnoreCase("ADD")) {
+        			
+        			Node childNode = margraveCommandNode.getFirstChild();
+        			
+        			if (childNode.getNodeName().equalsIgnoreCase("VOCAB-IDENTIFIER"))
+        			{
+        				theResponse = handleAddVocabFact(margraveCommandNode, childNode);
+        			}
+        			else if (childNode.getNodeName().equalsIgnoreCase("POLICY-IDENTIFIER"))
+        			{
+        				String pname = getPolicyName(margraveCommandNode);
+
+        				Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
+        				if(secondChildNode.getNodeName().equalsIgnoreCase("RULE"))
+        				{        					
+        					String rname= getRuleName(margraveCommandNode);
+
+        					// WORRY This should be changed to be made more generic, because it assumes too much
+        					Node ruleNode = childNode.getNextSibling();
+
+        					// Decision
+        					String decName = getDecisionType(ruleNode);        						
+
+        					List<String> varOrdering = new ArrayList<String>();        						
+        					varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
+
+        					// Target fmla
+        					Node targetNode = getChildNode(ruleNode, "TARGET");        					
+        					MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
+        					Formula target = targetCondition.fmla;
+
+        					// condition is used exclusively for XACML, so it's ignored here.
+        					Formula condition = Formula.TRUE;        					        					
+        					theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition, targetCondition);
+        				}
+        				else if(secondChildNode.getNodeName().equalsIgnoreCase("VARIABLE-DECLARATION"))
+        				{
+        					String varname = getAttributeOfChildNodeOrNode(secondChildNode, "VARIABLE-DECLARATION", "varname");
+        					String vartype = getAttributeOfChildNodeOrNode(secondChildNode, "VARIABLE-DECLARATION", "sort");
+
+        					theResponse = MEnvironment.addVarDec(pname, varname, vartype);
+        				}
+
+        			}
+        			else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
+        				String parent = getParentName(childNode);
+        				String child = getChildName(childNode);
+        				theResponse = MEnvironment.addChild(parent, child);
         			}
         		}
         		else
         		{
-        			theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, "", "");
+        			theResponse = MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sCommand, "");
         		}
+        	}
+        	else
+        	{
+        		theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, "", "");
+        	}
 
-        	//}
-        		
+
         	// Finally -- did we assign a proper response? If not, none of the above cases was matched.
         	// _SHOULD_ have elses everywhere. This is just in case.
         	if(theResponse == null)
@@ -767,6 +546,210 @@ public class MCommunicator
         		
         	return theResponse;
         }
+
+		private static Document handleAddVocabFact(Node margraveCommandNode, Node childNode) {
+			String vname = getVocabName(margraveCommandNode);
+			Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
+			String addType = secondChildNode.getNodeName();
+			writeToLog("addType: " + addType +"\n");
+
+			if (addType.equalsIgnoreCase("SUBSORT")) {
+				String parent = getSubSortParent(margraveCommandNode);
+				String child = getSubSortChild(margraveCommandNode);
+				return MEnvironment.addSubsort(vname, parent, child);
+			}
+			else if (addType.equalsIgnoreCase("SORT")) {
+				String sortName = getSortName(margraveCommandNode);
+				return MEnvironment.addSort(vname, sortName);
+			}
+			else if (addType.equalsIgnoreCase("SORT-WITH-CHILDREN")) {
+				String sortName = getAttributeOfChildNodeOrNode(margraveCommandNode, "SORT-WITH-CHILDREN", "name");
+
+				List<String> childnames = getListElements(margraveCommandNode, "SORT-WITH-CHILDREN", "name");        						        						
+				return MEnvironment.addSortWithSubs(vname, sortName, childnames);				
+			}        					
+			else if (addType.equalsIgnoreCase("PREDICATE")) {
+				String sName = getPredicateName(margraveCommandNode);
+				List<String> constr = getRelationsList(margraveCommandNode);
+				writeToLog("Adding Predicate\n");
+				return MEnvironment.addPredicate(vname, sName, constr);
+			}
+
+			else if (addType.equalsIgnoreCase("CONSTANT")) {
+				String sName = getAttributeOfChildNodeOrNode(secondChildNode, "CONSTANT", "name");
+				String sSort = getAttributeOfChildNodeOrNode(secondChildNode, "CONSTANT", "type");     
+				writeToLog("Adding constant "+sName+" : "+sSort+"\n");
+				return MEnvironment.addConstant(vname, sName, sSort);
+			}
+			else if (addType.equalsIgnoreCase("FUNCTION"))
+			{
+				String sName = getAttributeOfChildNodeOrNode(secondChildNode, "FUNCTION", "name");   
+				List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");        						
+				writeToLog("Adding function "+sName+" : "+constr+"\n");
+				//System.err.println("Adding function "+sName+" : "+constr+"\n");
+				return MEnvironment.addFunction(vname, sName, constr);
+			}
+
+			else if (addType.equalsIgnoreCase("CONSTRAINT")) {
+				Node constraintNode = secondChildNode; //Just for clarity
+
+				String constraintType = getConstraintType(constraintNode);
+
+
+				List<String> relations = getRelationsList(constraintNode); 
+				String firstRelation = relations.get(0);
+
+
+				if (constraintType.equalsIgnoreCase("SINGLETON")) {
+					return MEnvironment.addConstraintSingleton(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("SINGLETON-ALL")) {
+					return MEnvironment.addConstraintSingletonAll(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
+					return MEnvironment.addConstraintAtMostOne(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
+					return MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("NONEMPTY")) {
+					return MEnvironment.addConstraintNonempty(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("NONEMPTY-ALL")) {
+					return MEnvironment.addConstraintNonemptyAll(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("ABSTRACT")) {
+					return MEnvironment.addConstraintAbstract(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("ABSTRACT-ALL")) {
+					return MEnvironment.addConstraintAbstractAll(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("TOTAL-FUNCTION")) {
+					return MEnvironment.addConstraintTotalFunction(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("TOTAL-RELATION")) {
+					return MEnvironment.addConstraintTotalRelation(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("PARTIAL-FUNCTION")) {
+					return MEnvironment.addConstraintPartialFunction(vname, firstRelation);
+				}
+				else {
+					// Unknown constraint type; throw an exception
+					return MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
+				}        						
+			}
+			else {
+				return MEnvironment.errorResponse(MEnvironment.sCommand, MEnvironment.sNotExpected, addType);
+			}
+		}
+
+		private static Document handleExplore(String originalXMLText, Node n) 
+		{
+			MExploreCondition exploreCondition;
+			
+			// Catch and re-throw any exception, because if EXPLORE fails,
+			// need to reset lastResult to -1.
+		
+			try
+			{        				        			
+				n = n.getFirstChild();
+				String name = n.getNodeName();
+				if (name.equalsIgnoreCase("EXPLORE"))
+				{
+					//Explore should only have one child - "Condition". exploreHelper takes the node one down from condition
+					String queryID = getAttributeOfChildNodeOrNode(n, "EXPLORE", "id");
+
+					if(MEnvironment.isQueryIDUsed(queryID))
+					{
+						// Don't allow ID re-use.
+						return MEnvironment.errorResponse(MEnvironment.sQuery, MEnvironment.sFailure, "The query identifier "+queryID+" is already in use.");
+					}
+
+					exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
+					if (exploreCondition == null)
+						MEnvironment.errorWriter.println("explore condition is null!");
+					MQuery result = null;
+
+					//Default Values                                     					
+					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
+					List<String> publ = new ArrayList<String>();
+					Map<String, String> publSorts = new HashMap<String, String>();
+					HashMap<String, Set<List<MTerm>>> idbOut = new HashMap<String, Set<List<MTerm>>>();
+					Boolean tupling = false;
+					Integer debugLevel = 0;
+					Integer ceilingLevel = -1; 
+
+					Node underNode = getUnderNode(n);
+					Node publishNode = getPublishNode(n);
+					Node tuplingNode = getTuplingNode(n);
+					Node debugNode = getDebugNode(n);
+					Node ceilingNode = getCeilingNode(n);
+
+					// Now called INCLUDE, and 
+					// used to alert tupling that there are EDB indexings it needs
+					// to include, even if they don't appear.
+					Node idbOutputNode = getIdbNode(n);
+
+					if (underNode != null)
+					{ 
+						under = namesToIDBCollections(getUnderList(n));
+
+					}
+					if (publishNode != null)
+					{
+						// <PUBLISH><VARIABLE-DECLARATION sort=\"B\"><VARIABLE-TERM id=\"y\" /></VARIABLE-DECLARATION>
+						//          <VARIABLE-DECLARATION sort=\"C\"><VARIABLE-TERM id=\"x\" /></VARIABLE-DECLARATION></PUBLISH>
+
+						List<Node> decls = getElementChildren(publishNode);
+						for(Node varDeclNode : decls)
+						{	        							  	        							
+							String varname = getAttributeOfChildNodeOrNode(varDeclNode, "VARIABLE-DECLARATION", "varname");
+							String vartype = getAttributeOfChildNodeOrNode(varDeclNode, "VARIABLE-DECLARATION", "sort");
+							publ.add(varname);
+							publSorts.put(varname, vartype);
+						}
+
+					}
+					if (idbOutputNode != null) {
+						List<Node> idbChildNodes = getElementChildren(idbOutputNode);	        						
+						idbOut = atomicFormulasToHashmap(idbChildNodes);
+					}
+					if (tuplingNode != null) { //For now if the node exists just set tupling to true
+						tupling = true;
+					}
+					if (debugNode != null) {
+						debugLevel = Integer.parseInt(getDebugLevel(debugNode));
+					}
+					if (ceilingNode != null) {
+						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
+					}
+
+					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
+
+
+					// Exception will be thrown and caught by caller to return an EXCEPTION element.
+					result = MQuery.createFromExplore(
+							queryID,
+							exploreCondition.addSeenIDBCollections(under), 
+							publ,
+							publSorts,
+							idbOut, tupling, debugLevel, ceilingLevel);
+
+
+					writeToLog("AT END OF EXPLORE");
+					return MEnvironment.returnQueryResponse(result, originalXMLText);
+
+				} // end if explore node
+				
+				throw new MUserException("Internal error: Command promised a query definition but did not provide it.");
+
+			} 
+			catch(MBaseException e)
+			{
+				MEnvironment.clearLastQuery();
+				throw e;
+			}			
+		}
         
         private static void handleComb(Node n, Set<String> rFA, Map<String, Set<String>> rO)
         {
@@ -781,7 +764,7 @@ public class MCommunicator
 				}
 				else if("OVERRIDES".equalsIgnoreCase(combNode.getNodeName()))
 				{
-					String under = getNodeAttribute(combNode, "OVERRIDES", "decision");
+					String under = getAttributeOfChildNodeOrNode(combNode, "OVERRIDES", "decision");
 					List<String> overs = getListElements(combListNode, "OVERRIDES", "id");
 					if(!rO.containsKey(under))
 						rO.put(under, new HashSet<String>());
@@ -843,97 +826,67 @@ public class MCommunicator
         }
         
 		private static String getInfoId(Node n) {
-			return getNodeAttribute(n, "INFO", "id");
+			return getAttributeOfChildNodeOrNode(n, "INFO", "id");
 		}
 		
         //Helper functions for specific parts of commands
         private static String getPolicyName(Node n) {
-        	return getNodeAttribute(n, "POLICY-IDENTIFIER", "pname");
+        	return getAttributeOfChildNodeOrNode(n, "POLICY-IDENTIFIER", "pname");
         }
         
         private static String getVocabName(Node n) {
-        	return getNodeAttribute(n, "VOCAB-IDENTIFIER", "vname");
+        	return getAttributeOfChildNodeOrNode(n, "VOCAB-IDENTIFIER", "vname");
         }
         
         private static String getSubSortParent(Node n) {
-        	return getNodeAttribute(n, "SUBSORT", "parent");
+        	return getAttributeOfChildNodeOrNode(n, "SUBSORT", "parent");
         }
         
         private static String getSubSortChild(Node n) {
-        	return getNodeAttribute(n, "SUBSORT", "child");
+        	return getAttributeOfChildNodeOrNode(n, "SUBSORT", "child");
         }
         
         private static String getSortName(Node n) {
-        	return getNodeAttribute(n, "SORT", "name");
+        	return getAttributeOfChildNodeOrNode(n, "SORT", "name");
         }
         
         private static String getPredicateName(Node n) {
-        	return getNodeAttribute(n, "PREDICATE", "name");
+        	return getAttributeOfChildNodeOrNode(n, "PREDICATE", "name");
         }
-        
-        private static String getRequestVar(Node n) {
-        	return getNodeAttribute(n, "REQUESTVAR", "name");
-        }
-		
-        private static String getRequestSort(Node n) {
-        	return getNodeAttribute(n, "REQUESTVAR", "sort");
-        }
-        
+              
         private static String getParentName(Node n) {
-        	return getNodeAttribute(n, "PARENT-IDENTIFIER", "name");
+        	return getAttributeOfChildNodeOrNode(n, "PARENT-IDENTIFIER", "name");
         }
         
         private static String getChildName(Node n) {
-        	return getNodeAttribute(n, "CHILD-IDENTIFIER", "name");
+        	return getAttributeOfChildNodeOrNode(n, "CHILD-IDENTIFIER", "name");
         }
         
         private static String getRuleName(Node n) {
-        	return getNodeAttribute(n, "RULE", "name");
+        	return getAttributeOfChildNodeOrNode(n, "RULE", "name");
         }
         private static String getDecisionName(Node n) {
-        	return getNodeAttribute(n, "DECISION", "name");
+        	return getAttributeOfChildNodeOrNode(n, "DECISION", "name");
         }
         private static String getDecisionType(Node n) {
-        	return getNodeAttribute(n, "DECISION-TYPE", "type");
+        	return getAttributeOfChildNodeOrNode(n, "DECISION-TYPE", "type");
         }
         
         private static String getConstraintType(Node n) {
-        	return getNodeAttribute(n, "CONSTRAINT", "type");
+        	return getAttributeOfChildNodeOrNode(n, "CONSTRAINT", "type");
         }
-
-        //Relations in a rule
-        private static String getRelationName(Node n) {
-        	return getNodeAttribute(n, "RELATION", "name");
-        }
-        private static String getRelationSign(Node n) {
-        	return getNodeAttribute(n, "RELATION", "sign");
-        }
-        private static List<Node> getListOfRelationNodes(Node n)
-        {
-        	Node relationsNode = getChildNode(n, "RELATIONS");
-        	List<Node> relationNodes = getElementChildren(relationsNode);
-        	return relationNodes;
-        } 
-        
-        //Othervar
-        public static String getOtherVarName(Node n) {
-        	return getNodeAttribute(n, "OTHERVAR", "name");
-        }
-        public static String getOtherVarSort(Node n) {
-        	return getNodeAttribute(n, "OTHERVAR", "sort");
-        }
-        
+                
         //Rename
-        public static String getRenameFirstId(Node n) {
-        	return getNodeAttribute(n, "RENAME", "id1");
+       /* public static String getRenameFirstId(Node n) {
+        	return getAttributeOfChildNodeOrNode(n, "RENAME", "id1");
         }
         public static String getRenameSecondId(Node n) {
-        	return getNodeAttribute(n, "RENAME", "id2");
-        }
+        	return getAttributeOfChildNodeOrNode(n, "RENAME", "id2");
+        }*/
                 
         //SHOW
         public static String getShowType(Node n) {
-        	return getNodeAttribute(n, "SHOW", "type");
+        	return getAttributeOfChildNodeOrNode(n, "SHOW", "type");
         }
         public static Node getForCasesNode(Node n) {
         	return getChildNode(n, "FORCASES");
@@ -941,26 +894,26 @@ public class MCommunicator
         
         // <SHOW type="populated" id="0" ... 
         public static String getPopulatedId(Node n) {
-        	return getNodeAttribute(n, "SHOW", "id");
+        	return getAttributeOfChildNodeOrNode(n, "SHOW", "id");
         }
         public static String getUnpopulatedId(Node n) {
-        	return getNodeAttribute(n, "SHOW", "id");
+        	return getAttributeOfChildNodeOrNode(n, "SHOW", "id");
         }
         
         //COUNT
         private static String getCountId(Node n) {
-        	return getNodeAttribute(n, "COUNT", "id");
+        	return getAttributeOfChildNodeOrNode(n, "COUNT", "id");
         }
         private static Node getSizeNode(Node n) {
         	return getChildNode(n, "SIZE");
         }
         private static String getCountSize(Node n) {
-        	return getNodeAttribute(n, "COUNT", "size");
+        	return getAttributeOfChildNodeOrNode(n, "COUNT", "size");
         }
         
         //GET
         public static String getGetInfoType(Node n) {
-        	return getNodeAttribute(n, "GET-INFO", "type");
+        	return getAttributeOfChildNodeOrNode(n, "GET-INFO", "type");
         }
         
         //ATOMIC FORMULAS
@@ -973,10 +926,10 @@ public class MCommunicator
         }
         
         private static String getLoadFileName(Node n) {
-        	return getNodeAttribute(n, "LOAD", "file-name");
+        	return getAttributeOfChildNodeOrNode(n, "LOAD", "file-name");
         }
         private static String getLoadSchemaFileName(Node n) {
-        	return getNodeAttribute(n, "LOAD", "schema-file-name");
+        	return getAttributeOfChildNodeOrNode(n, "LOAD", "schema-file-name");
         }
         
         public static Node getUnderNode(Node n) {
@@ -1000,10 +953,10 @@ public class MCommunicator
         
 	
         public static String getDebugLevel(Node n) {
-        	return getNodeAttribute(n, "DEBUG", "debug-level");
+        	return getAttributeOfChildNodeOrNode(n, "DEBUG", "debug-level");
         }
         public static String getCeilingLevel(Node n) {
-        	return getNodeAttribute(n, "CEILING", "ceiling-level");
+        	return getAttributeOfChildNodeOrNode(n, "CEILING", "ceiling-level");
         }
         
         //LISTS
@@ -1014,15 +967,7 @@ public class MCommunicator
         private static List<String> getConjunctChainList(Node n) {        	
 			return getListElements(n, "CONJUNCTCHAIN", "name");
 		}
-        
-        private static List<String> getIdentifierList(Node n)
-        {
-        	List<String> result = getListElements(n, "IDENTIFIERS", "name");
-        	if(result != null)
-        		return result;
-        	return new ArrayList<String>();
-        }
-        
+                
         private static List<String> getUnderList(Node n)
         {
 			// The under node is the "list" node, so need to be passed the EXPLORE node,
@@ -1048,11 +993,33 @@ public class MCommunicator
         	return null; //Didn't find it, error
         }
         
-        //Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
-        private static String getNodeAttribute(Node n, String nodeName, String attributeName)
+        private static List<Node> getChildNodes(Node n, String nodeName)
         {
-        	if(n == null)
+        	List<Node> childNodes = getElementChildren(n);
+        	List<Node> result = new ArrayList<Node>();
+        	
+        	for (Node childNode : childNodes)
+        	{
+        		if (nodeName.equalsIgnoreCase(childNode.getNodeName()))
+        		{
+        			result.add(childNode);
+        		}
+        	}
+        	return result; 
+        }
+        
+        /**
+         * Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
+         * @param n 
+         * @param nodeName
+         * @param attributeName
+         * @return
+         */
+        private static String getAttributeOfChildNodeOrNode(Node n, String nodeName, String attributeName)
+        {
+        	if(n == null) {
         		return null;
+        	}
         	
         	Node node = null;
         	if (n.getNodeName().equalsIgnoreCase(nodeName))
@@ -1072,7 +1039,23 @@ public class MCommunicator
         	if (attribute == null) {
         		return null;
         	}
-        	return node.getAttributes().getNamedItem(attributeName).getNodeValue();
+        	return attribute.getNodeValue();
+        }
+        
+        
+        
+        private static String getNodeAttribute(Node n, String attributeName)
+        {
+        	if(n == null) { 
+        		return null;
+        	}
+        	
+        	Node attribute = n.getAttributes().getNamedItem(attributeName);
+        	if(attribute == null) {
+        		return null;
+        	}        		
+        	
+        	return attribute.getNodeValue();
         }
         
         //Returns a list of the attribute values associated with the attributeName of every childNode of a Node named listName, which is itself a child node of n
@@ -1159,8 +1142,8 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("ISA"))
         	{
-        		String varname = getNodeAttribute(n, "ISA", "var");
-        		String typename = getNodeAttribute(n, "ISA", "sort");
+        		String varname = getAttributeOfChildNodeOrNode(n, "ISA", "var");
+        		String typename = getAttributeOfChildNodeOrNode(n, "ISA", "sort");
         		
         		Variable theVar = MFormulaManager.makeVariable(varname);
         		Relation theRel = MFormulaManager.makeRelation(typename, 1);
@@ -1182,8 +1165,8 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("EXISTS"))
         	{
-        		String theVarName = getNodeAttribute(n, "EXISTS", "var");
-        		String theSortName = getNodeAttribute(n, "EXISTS", "sort");
+        		String theVarName = getAttributeOfChildNodeOrNode(n, "EXISTS", "var");
+        		String theSortName = getAttributeOfChildNodeOrNode(n, "EXISTS", "sort");
         		
         		Variable theVar = MFormulaManager.makeVariable(theVarName);
         		Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
@@ -1192,8 +1175,8 @@ public class MCommunicator
         	}
         	else if(name.equalsIgnoreCase("FORALL"))
         	{
-        		String theVarName = getNodeAttribute(n, "FORALL", "var");
-        		String theSortName = getNodeAttribute(n, "FORALL", "sort");
+        		String theVarName = getAttributeOfChildNodeOrNode(n, "FORALL", "var");
+        		String theSortName = getAttributeOfChildNodeOrNode(n, "FORALL", "sort");
         		
         		Variable theVar = MFormulaManager.makeVariable(theVarName);
         		Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
@@ -1355,7 +1338,7 @@ public class MCommunicator
 			for(Node theNode : relationComponents)
 			{
 				// <ID id=\"P\"/>
-				String nameStr = getNodeAttribute(theNode, "ID", "id");
+				String nameStr = getAttributeOfChildNodeOrNode(theNode, "ID", "id");
 				relationNameComponents.add(nameStr);
 			}
 			return relationNameComponents;
@@ -1378,7 +1361,7 @@ public class MCommunicator
 
      	if (name.equalsIgnoreCase("FUNCTION-TERM"))
      	{
-     		String funcName = getNodeAttribute(n, "FUNCTION-TERM", "func");
+     		String funcName = getAttributeOfChildNodeOrNode(n, "FUNCTION-TERM", "func");
      		
      		List<MTerm> subTerms = new ArrayList<MTerm>();
      		for(Node aNode : childNodes)
@@ -1394,12 +1377,12 @@ public class MCommunicator
      	}	
      	else if (name.equalsIgnoreCase("CONSTANT-TERM"))
      	{
-     		String constName = getNodeAttribute(n, "CONSTANT-TERM", "id");     		
+     		String constName = getAttributeOfChildNodeOrNode(n, "CONSTANT-TERM", "id");     		
      		return new MConstantTerm(constName);
      	}
      	else if (name.equalsIgnoreCase("VARIABLE-TERM"))
      	{
-     		String varName = getNodeAttribute(n, "VARIABLE-TERM", "id");
+     		String varName = getAttributeOfChildNodeOrNode(n, "VARIABLE-TERM", "id");
      		return new MVariableTerm(varName);     
      	}
      	else
@@ -1642,19 +1625,20 @@ public class MCommunicator
 		// Test XML handling.
 		// handleXMLCommand
 		
-		String testInfo = "<MARGRAVE-COMMAND type=\"INFO\"><INFO /></MARGRAVE-COMMAND> ";
-		String testInfoWithID = "<MARGRAVE-COMMAND type=\"INFO\"><INFO id=\"Something\" /></MARGRAVE-COMMAND>  ";
-		String reset = "<MARGRAVE-COMMAND type=\"RESET\"><ID>MyQuery</ID></MARGRAVE-COMMAND>";  // ***
-		String show = "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"ONE\" ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
-		String count = "<MARGRAVE-COMMAND type=\"COUNT\"><COUNT ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
-		String isposs = "<MARGRAVE-COMMAND type=\"IS-POSSIBLE\"><IS-POSSIBLE ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
-		String showUnrealizedForCases = 
+	//	String testInfo = "<MARGRAVE-COMMAND type=\"INFO\"><INFO /></MARGRAVE-COMMAND> ";
+	//	String testInfoWithID = "<MARGRAVE-COMMAND type=\"INFO\"><INFO id=\"Something\" /></MARGRAVE-COMMAND>  ";
+	//	String reset = "<MARGRAVE-COMMAND type=\"RESET\"><ID>MyQuery</ID></MARGRAVE-COMMAND>";  // ***
+	//	String show = "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"ONE\" ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+	//	String count = "<MARGRAVE-COMMAND type=\"COUNT\"><COUNT ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+	//	String isposs = "<MARGRAVE-COMMAND type=\"IS-POSSIBLE\"><IS-POSSIBLE ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
+	/*	String showUnrealizedForCases = 
 "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"UNREALIZED\" ID=\"Myquery\">"+
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /><VARIABLE-TERM id=\"z\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>"+
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>" +
 "<FORCASES><ATOMIC-FORMULA><RELATION-NAME><ID id=\"IDB\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R3\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></FORCASES></SHOW></MARGRAVE-COMMAND> ";
-
+*/
+		
 		String aQuery = 
 "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +

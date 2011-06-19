@@ -1132,10 +1132,10 @@ public class MVocab {
 		if (lst.size() < 1)
 			return "";
 
-		String result = lst.get(0);
+		StringBuffer result = new StringBuffer(lst.get(0));
 		for (int ii = 1; ii < lst.size(); ii++)
-			result += "," + lst.get(ii);
-		return result;
+			result.append("," + lst.get(ii));
+		return result.toString();
 	}
 	
 	public static String constructIndexing(List<String> vars,
@@ -1145,13 +1145,13 @@ public class MVocab {
 			return "";
 
 		Variable theVar = MFormulaManager.makeVariable(vars.get(0));
-		String result = String.valueOf(indexing.get(theVar));
+		StringBuffer result = new StringBuffer(String.valueOf(indexing.get(theVar)));
 		for (int ii = 1; ii < vars.size(); ii++)
 		{
 			theVar = MFormulaManager.makeVariable(vars.get(ii));
-			result += "," + String.valueOf(indexing.get(theVar));
+			result.append("," + String.valueOf(indexing.get(theVar)));
 		}
-		return result;
+		return result.toString();
 	}	
 
 /*	public static List<String> constructVarNameList(Expression be) 

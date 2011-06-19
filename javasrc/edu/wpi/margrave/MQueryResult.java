@@ -609,8 +609,8 @@ class SkolemReporter implements Reporter
 
 class MPreparedQueryContext
 {
-	protected int maxSize;	
-	protected int sufficientMaxSize;	
+	Map<String, Integer> ceilingsToUse;
+	Map<String, Integer> ceilingsSufficient;
 	
 	public long msQueryCreationTime;
 	public long msQueryRunTime;
@@ -622,16 +622,31 @@ class MPreparedQueryContext
 	
 	Map<String, Set<List<MTerm>>> includeMap = new HashMap<String, Set<List<MTerm>>>();
 	
-	protected MPreparedQueryContext(MQuery q, Formula qfwa, int maxsize, int hbmax, long timeCreateObject, long timeRunQuery, long timeTupling)
+	public int getCeilingUsed()
+	{
+		if(ceilingsToUse.containsKey(""))
+			return ceilingsToUse.get("");
+		return -1;
+	}
+	public int getCeilingComputed()
+	{
+		if(ceilingsSufficient.containsKey(""))
+			return ceilingsSufficient.get("");
+		return -1;
+	}
+	
+	protected MPreparedQueryContext(MQuery q, Formula qfwa, 
+			Map<String, Integer> ceilingsToUse, Map<String, Integer> ceilingsSufficient, 
+			long timeCreateObject, long timeRunQuery, long timeTupling)
 	{
 		// Used to print intelligently		
 		forQuery = q;
 	
 		// How big a universe did we check up to?
-		maxSize = maxsize;
+		this.ceilingsToUse = ceilingsToUse;
 	
 		// How big did our analysis say the HB term universe could be?
-		sufficientMaxSize = hbmax;
+		this.ceilingsSufficient = ceilingsSufficient;
 
 		qryFormulaWithAxioms = qfwa;
 	
@@ -641,15 +656,6 @@ class MPreparedQueryContext
 		msQueryTuplingTime = timeTupling;
 	}
 	
-	public int get_hu_ceiling()
-	{
-		return sufficientMaxSize;
-	}
-	
-	public int get_universe_max()
-	{
-		return maxSize;
-	}
 	
 	public MTotalInstanceIterator getTotalIterator() 
 	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName

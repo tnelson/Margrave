@@ -2391,5 +2391,17 @@ public class FormulaSigInfo
 		return result.toString();
 	}	
 	
+	Map<String, Integer> getCountMapping()
+	{
+		Map<String, Integer> result = new HashMap<String, Integer>();
+		for(LeafExpression e : sorts)
+		{
+			result.put(e.toString(), getTermCount(e));
+		}
+		
+		result.put("", getTermCount());
+		return result;
+	}
+	
 }
 

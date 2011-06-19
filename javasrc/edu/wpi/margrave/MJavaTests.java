@@ -25,6 +25,22 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 
+import org.sat4j.core.VecInt;
+import org.sat4j.maxsat.WeightedMaxSatDecorator;
+import org.sat4j.minisat.SolverFactory;
+import org.sat4j.opt.MaxSatDecorator;
+import org.sat4j.pb.IPBSolver;
+import org.sat4j.pb.OptToPBSATAdapter;
+import org.sat4j.pb.tools.XplainPB;
+import org.sat4j.specs.ContradictionException;
+import org.sat4j.specs.IConstr;
+import org.sat4j.specs.IProblem;
+import org.sat4j.specs.ISolver;
+import org.sat4j.specs.TimeoutException;
+import org.sat4j.tools.ModelIterator;
+import org.sat4j.tools.xplain.Explainer;
+import org.sat4j.tools.xplain.Xplain;
+
 import kodkod.engine.*;
 import kodkod.instance.*;
 import kodkod.ast.*;
@@ -102,6 +118,9 @@ public class MJavaTests
 	public static void main(String[] args)
 	throws MBaseException
 	{
+		testSAT();
+		System.exit(1);
+		
 		MEnvironment.writeOutLine("Starting java-based tests.");			
 		
 		MCommunicator.bDoLogging = true;
@@ -188,6 +207,199 @@ public class MJavaTests
 		 */
 	}
 	
+	public static void testSAT()
+	{
+		// "Hello World" for MaxSAT
+		// 1 or (2 and !3)
+		// == 1 or 2; 1 or !3
+		
+		// 5 models overall. Two minimal ones:
+		// [-1, 2, -3] 
+		// and  [1, -2, -3]
+		
+		try
+		{	
+			ISolver solver = org.sat4j.minisat.SolverFactory.newDefault();
+			Xplain<ISolver> xpl1 = new Xplain<ISolver>(solver);
+			xpl1.newVar(3);		
+			xpl1.addClause(new VecInt(new int[] {1, 2}));
+			xpl1.addClause(new VecInt(new int[] {1, -3}));
+			xpl1.addClause(new VecInt(new int[] {-1}));
+			//xpl1.addClause(new VecInt(new int[] {2}));xpl1.addClause(new VecInt(new int[] {3}));
+		
+			//////////////////////////////////////////////
+			if(xpl1.isSatisfiable())
+			{
+				// >> iterator must decorate the Xplainer.
+				ModelIterator mi = new ModelIterator(xpl1);
+				System.err.println("Satisfiable. Models:");
+				
+				while(mi.isSatisfiable())
+				{
+					System.err.println(Arrays.toString(mi.model()));
+					System.err.println(Arrays.toString(mi.primeImplicant()));
+					System.err.println();
+				}
+				
+				// Returns null if no assumptions used
+				//System.err.println(mi.unsatExplanation());
+							
+				System.err.println("Out of models. Explanation:");
+				System.err.println(xpl1.explain());	
+				// This works ^. 
+				
+			}
+			else
+			{
+				System.err.println("Unsatisfiable.");
+				System.err.println(xpl1.explain());	
+			}
+			
+			//////////////////////////////////////////////
+			// Requires org.sat4j.maxsat
+			//////////////////////////////////////////////
+			
+			IPBSolver pbsolver = org.sat4j.pb.SolverFactory.newDefault();
+			//XplainPB x = new XplainPB(pbsolver);
+			
+			WeightedMaxSatDecorator d = new WeightedMaxSatDecorator(pbsolver);
+			d.newVar(3);		
+			d.addHardClause(new VecInt(new int[] {1, 2}));
+			d.addHardClause(new VecInt(new int[] {1, -3}));
+			
+			//d.addLiteralsToMinimize(new VecInt(new int [] {1, 2, 3} ));
+			d.addSoftClause(1, new VecInt(new int[] {-1}));
+			d.addSoftClause(1, new VecInt(new int[] {-2}));
+			d.addSoftClause(1, new VecInt(new int[] {-3}));
+						
+			if(d.admitABetterSolution())
+			{
+			
+				
+				// prime impl not OK given cnf conversion
+				
+				//ModelIterator mi = new ModelIterator(d);
+				System.err.println("MaxSAT was satisfiable. Objective function value was: "+d.calculateObjective());
+				System.err.println("Models at that objective function value are:");
+				
+				int funcValue = d.getObjectiveValue().intValue();
+							
+				while(d.admitABetterSolution() && d.getObjectiveValue().intValue() == funcValue)
+				{
+					System.err.println(Arrays.toString(d.model()));
+					System.err.println(Arrays.toString(d.primeImplicant()));
+					System.err.println(d.isOptimal());
+					//System.err.println(Arrays.toString(mi.model()));					
+					
+					int[] negationOfThisModel = new int [d.nVars()];
+					for(int iVar=1;iVar<=d.nVars();iVar++)
+					{
+						if(d.model(iVar)) { negationOfThisModel[iVar-1] = -iVar; }
+						else { negationOfThisModel[iVar-1] = iVar; };						
+					}
+					
+					// This stops us at 1 solution. (Not sure why).
+					// Ahh, is it used to abandon a potentially sub-optimal soln?
+					//d.discardCurrentSolution();
+					
+					// Note: this might be a very inefficient way of iterating through models. ModelIterator doesn't seem to work with maxsat...
+					// If it slows down in practice, ask. 														
+					d.addHardClause(new VecInt(negationOfThisModel));
+				}
+								
+			}
+			else
+			{
+				System.err.println("MaxSAT was unsatisfiable.");
+			}
+			
+			
+			
+			//////////////////////////////////////////////
+			// Requires org.sat4j.maxsat
+			//////////////////////////////////////////////
+			
+			pbsolver = org.sat4j.pb.SolverFactory.newDefault();		
+			 d = new WeightedMaxSatDecorator(pbsolver);		
+
+			d.newVar(3);		
+			d.addHardClause(new VecInt(new int[] {1, 2}));
+			d.addHardClause(new VecInt(new int[] {1, -3}));
+			
+			//d.addLiteralsToMinimize(new VecInt(new int [] {1, 2, 3} ));
+			d.addSoftClause(1, new VecInt(new int[] {-1}));
+			d.addSoftClause(1, new VecInt(new int[] {-2}));
+			d.addSoftClause(1, new VecInt(new int[] {-3}));
+					
+			IPBSolver d2 = new OptToPBSATAdapter(d);
+			if(d2.isSatisfiable())
+			{
+			
+				
+				// prime impl not OK given cnf conversion
+				
+				//ModelIterator mi = new ModelIterator(d);
+				System.err.println("Models are:");
+										
+				
+				while(d2.isSatisfiable())
+				{
+					System.err.println(d.calculateObjective());
+					System.err.println(d.isOptimal());
+					System.err.println(Arrays.toString(d2.model()));
+					System.err.println(Arrays.toString(d2.primeImplicant()));
+					//System.err.println(Arrays.toString(mi.model()));					
+					
+					int[] negationOfThisModel = new int [d.nVars()];
+					for(int iVar=1;iVar<=d.nVars();iVar++)
+					{
+						if(d.model(iVar)) { negationOfThisModel[iVar-1] = -iVar; }
+						else { negationOfThisModel[iVar-1] = iVar; };						
+					}
+					
+					// This stops us at 1 solution. (Not sure why).
+					// Ahh, is it used to abandon a potentially sub-optimal soln?
+					//d.discardCurrentSolution();
+					
+					// Note: this might be a very inefficient way of iterating through models. ModelIterator doesn't seem to work with maxsat...
+					// If it slows down in practice, ask. 														
+					d.addHardClause(new VecInt(negationOfThisModel));
+				}
+								
+			}
+			else
+			{
+				System.err.println("MaxSAT was unsatisfiable.");
+			}
+
+			
+			
+			
+		}
+		catch(ContradictionException e)
+		{
+			System.err.println("Unsatisfiable due to contradiction detected when adding a clause.");
+		}
+		catch(TimeoutException e)
+		{
+			System.err.println("SAT Solver ran out of time.");
+		}
+		
+				
+		
+		
+		
+		
+		
+		/*
+		 * The proposal is: add extra props for each potential variable equality. Put a high cost on primary vars; low cost on var equality.
+		 * 
+		 * 
+		 */
+		
+		// TODO: test Opt adapter instead of the above.
+		
+	}
 
 }
 

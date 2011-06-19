@@ -653,17 +653,18 @@ public abstract class MPolicy extends MIDBCollection
 		// null for any of these below means no restrictions to target for that sort
 		
 		// Subjects
-		if(targ.getSubjects() != null)
-			for(List<TargetMatch> subl : (List<List<TargetMatch>>)targ.getSubjects())
-			{				
+		if(targ.getSubjects() != null) {
+			for(List<TargetMatch> subl : (List<List<TargetMatch>>)targ.getSubjects()) {				
 				Formula thissubject = Formula.TRUE; 
 				for(TargetMatch tm : subl)
 					thissubject = MFormulaManager.makeAnd(thissubject, handleXACMLTargetMatch(tm, env,  "s", "Subject"));
 				subf.add(thissubject);
 			}
-		else
+		}
+		else {
 			subf.add(Formula.TRUE); // no restrictions to subjects
-				
+		}
+		
 		// Actions
 		if(targ.getActions() != null)
 			for(List<TargetMatch> subl : (List<List<TargetMatch>>)targ.getActions())

@@ -20,7 +20,6 @@
 
 package edu.wpi.margrave;
 
-import java.lang.*;
 import java.util.*;
 import java.io.*;
 
@@ -33,7 +32,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 
 import kodkod.ast.*;
-import kodkod.ast.operator.Multiplicity;
 import kodkod.instance.Instance;
 import kodkod.instance.Tuple;
 
@@ -138,7 +136,7 @@ class MExploreCondition
 	
 	// Remember what we decided were true placeholders, so MQuery won't
 	// think they are real free variables.
-	Set<Variable> knownPlaceholders = new HashSet<Variable>();
+	//Set<Variable> knownPlaceholders = new HashSet<Variable>();
 	
 	/*void resolvePlaceholders(MVocab vocab)
 	throws MUserException, MGEManagerException
@@ -752,6 +750,9 @@ public class MEnvironment
 	// Used in exception output
 	static String lastCommandReceived = "";
 
+	// Global sort ceilings set by user
+	static Map<String, Integer> sortCeilings = new HashMap<String, Integer>(); 
+	
 	// Functions to send immediately: don't run out of space. 
 	// Writing too much without flushing seems to interfere 
 	// with the XML protocol.
@@ -1284,7 +1285,7 @@ public class MEnvironment
 		return countModels(id, -1); // -1 for overall total to ceiling
 	}
 
-	public static Document isGuar(String id) throws MUserException
+	/*public static Document isGuar(String id) throws MUserException
 	{
 		// Is this solution complete? (Is the ceiling high enough?)
 		MPreparedQueryContext aResult = getQueryResult(id);
@@ -1293,7 +1294,7 @@ public class MEnvironment
 		if(aResult.get_hu_ceiling() > aResult.get_universe_max())
 			return boolResponse(false);
 		return boolResponse(true);
-	}
+	}*/
 
 	public static Document isPoss(String id) throws MUserException 
 	{	
@@ -1309,15 +1310,6 @@ public class MEnvironment
 			return exceptionResponse(e);
 		}
 	}
-
-	public static Document showCeiling(String id) throws MUserException
-	{
-		MPreparedQueryContext aResult = getQueryResult(id);
-		if(aResult == null)
-			return errorResponse(sUnknown, sResultID, id);
-		return intResponse(aResult.get_universe_max());
-	}
-
 	
 	public static Document createPolicySet(String pname, String vname) 
 	{
@@ -2002,9 +1994,9 @@ public class MEnvironment
 		
 		// Report the size ceiling (calculated and user-provided) so a warning
 		// can be given if need be.
-		statsElement.setAttribute("max-size", String.valueOf(theResult.maxSize));
-		statsElement.setAttribute("user-max-size", String.valueOf(theResult.forQuery.userSizeCeiling));
-		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.sufficientMaxSize));
+		statsElement.setAttribute("max-size", String.valueOf(theResult.getCeilingUsed()));
+		statsElement.setAttribute("user-max-size", String.valueOf(MEnvironment.sortCeilings.get("")));
+		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.getCeilingComputed()));
 		statsElement.setAttribute("result-id", String.valueOf(id));
 		return statsElement;
 	}
@@ -2144,10 +2136,10 @@ public class MEnvironment
 		MVocab theVocab;
 		
 		// If this query was tupled, don't forget to convert back to the original signature.		
-		if(mQueryResult.forQuery.tupled) 
-		{
-			next = mQueryResult.forQuery.processTupledSolutionForThis(nextPreTup);
-			theVocab = mQueryResult.forQuery.internalTupledQuery.vocab;
+		if(mQueryResult.forQuery instanceof MInternalTupledQuery) 
+		{			
+			next = ((MInternalTupledQuery)mQueryResult.forQuery).internalPreTuplingQuery.processTupledSolutionForThis(nextPreTup);
+			theVocab = ((MInternalTupledQuery)mQueryResult.forQuery).internalPreTuplingQuery.vocab;
 			MCommunicator.writeToLog("\nscenarioResponse: query was TUPLED.");
 			MCommunicator.writeToLog("\ntupled model = "+nextPreTup.getFacts());
 			MCommunicator.writeToLog("\nconverted model = "+next.getFacts());			
@@ -2409,6 +2401,10 @@ public class MEnvironment
 		}
 		
 		
+	}
+	public static Document setSortCeiling(String sortName, int value) {
+		sortCeilings.put(sortName, value);
+		return successResponse();
 	}
 	
 	/*
