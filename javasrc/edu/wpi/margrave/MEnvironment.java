@@ -753,6 +753,15 @@ public class MEnvironment
 	// Global sort ceilings set by user
 	static Map<String, Integer> sortCeilings = new HashMap<String, Integer>(); 
 	
+	// If both term-counting and user fail to provide a size ceiling
+	// mimic Alloy
+	// "If you omit the scope, the tool will use the default scope in which
+	// each top-level signature is limited to three elements". (pg 128)
+	// This is not the same as a universe size bound: it's a bound on EACH
+	// top-level sort.
+	public static final int topSortCeilingOfLastResort = 3;
+
+	
 	// Functions to send immediately: don't run out of space. 
 	// Writing too much without flushing seems to interfere 
 	// with the XML protocol.
@@ -2394,7 +2403,7 @@ public class MEnvironment
 				{
 					MEnvironment.errorWriter.println("No more solutions.");
 				}
-				MEnvironment.errorWriter.println(res.sufficientMaxSize);
+				MEnvironment.errorWriter.println(res.getCeilingComputed());
 			}
 			
 			MEnvironment.errorWriter.println();

@@ -1698,7 +1698,7 @@ public class MVocab {
 	 * Given a set of sort names, asserts the internal sort ordering 
 	 * and returns the set as a list.
 	 * @param theSet
-	 * @return 
+	 * @return A list of sorts, topologically sorted.
 	 */
 	public List<String> assertSortOrdering(Set<String> theSet) 
 	{

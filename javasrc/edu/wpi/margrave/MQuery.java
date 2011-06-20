@@ -71,9 +71,6 @@ public class MQuery extends MIDBCollection
 	 */
 	public int mySB;
 	
-	// Use this if user and Margrave both fail to give a ceiling
-	public int ceilingOfLastResort = 6;
-
 	/**
 	 * 0: No debug output 1: Display statistics 2: Display statistics and query
 	 * execution stages 3: Display statistics, query execution stages, and
@@ -117,7 +114,7 @@ public class MQuery extends MIDBCollection
 	}
 
 	// constructors
-	private MQuery(Formula nFormula, MPolicy initialPolicy)
+	/*private MQuery(Formula nFormula, MPolicy initialPolicy)
 			throws  MGEUnknownIdentifier,
 			MGEBadQueryString, MGEArityMismatch {
 		vocab = initialPolicy.vocab;
@@ -128,7 +125,7 @@ public class MQuery extends MIDBCollection
 
 		// Don't need to combine or replace -- only one source vocab.
 
-	}
+	}*/
 
 	protected MQuery(MVocab uber, Formula nFormula,
 			Set<MIDBCollection> idbcollections) {
@@ -154,7 +151,6 @@ public class MQuery extends MIDBCollection
 		init(previous.myQueryFormula);
 
 		debug_verbosity = previous.debug_verbosity;
-		ceilingOfLastResort = previous.ceilingOfLastResort;
 		
 		// "Deep enough" copy
 		for(Map.Entry<String, Set<List<String>>> e : previous.idbsToAddInFormula.entrySet())
@@ -384,40 +380,21 @@ public class MQuery extends MIDBCollection
 		}
 
 	}
-
-
-	/**
-	 * Runs KodKod on the query this object represents, returning a MGSolution
-	 * object. Will discover whether the query has a finite Herbrand Universe
-	 * and take appropriate action.
-	 *
-	 * @return MGSolution for this query.
-	 *
-	 * @throws MGEUnsortedVariable
-	 * @throws MGEQueryUnsatisfiable
-	 * @throws MGEUnknownIdentifier
-	 * @throws MGEArityMismatch
-	 * @throws MGEBadQueryString
-	 * @throws MGEManagerException
-	 * @throws MGEBadIdentifierName
-	 */
-
+	
 	public MPreparedQueryContext runQuery() throws MBaseException
 	{				
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Beginning to execute query (runQuery) ");
 		
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
-		long start = mxBean.getCurrentThreadCpuTime();
-
-		long startTime = mxBean.getCurrentThreadCpuTime();
+		long totalStartTime = mxBean.getCurrentThreadCpuTime();
+		long localStartTime = mxBean.getCurrentThreadCpuTime();
 
 		// Formulas for fixed and query axioms.
 		// Query axioms affect Herbrand Universe size!
 		Formula myFixedAxioms = vocab.getAxiomFormulaNoEffectOnSize();
 		Set<Formula> myQueryAxioms = vocab.getAxiomFormulasThatMayAffectSize();
-		Formula queryAxiomsConjunction = MFormulaManager
-				.makeConjunction(myQueryAxioms);
+		Formula queryAxiomsConjunction = MFormulaManager.makeConjunction(myQueryAxioms);
 
 		// Build the actual query formula: The user query, the user axioms, and
 		// the fixed sig axioms
@@ -428,18 +405,14 @@ public class MQuery extends MIDBCollection
 
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) to get and build axiom formulas: "
-							+ (mxBean.getCurrentThreadCpuTime() - startTime)
+							+ (mxBean.getCurrentThreadCpuTime() - localStartTime)
 							/ 1000000);
-		startTime = mxBean.getCurrentThreadCpuTime();
+		localStartTime = mxBean.getCurrentThreadCpuTime();
 
-
-		PrenexCheckV pren = new PrenexCheckV();
-		boolean prenexExistential = myQueryFormula.accept(pren);
-
-		// Get Herbrand Universe
 		Map<String, Integer> sufficientSortCeilings = new HashMap<String, Integer>();
 		
 		// If this is a tupled query, we know size = 1.
+		// This is NECESSARY since MInternalTupledQuery.runQuery() just invokes this parent method.
 		if (this instanceof MInternalTupledQuery) {
 			// Limit the size of the universe to 1
 			sufficientSortCeilings.put("", 1);
@@ -448,6 +421,9 @@ public class MQuery extends MIDBCollection
 			if (debug_verbosity >= 2)
 				MEnvironment.writeOutLine("DEBUG: Getting HU Ceiling. ");
 			
+			PrenexCheckV pren = new PrenexCheckV();
+			boolean prenexExistential = myQueryFormula.accept(pren);
+			
 			sufficientSortCeilings = getHerbrandUniverseCeilingFor(
 					MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
 					prenexExistential);
@@ -455,7 +431,7 @@ public class MQuery extends MIDBCollection
 
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) in getHerbrandUniverseCeilingFor block: "
-							+ (mxBean.getCurrentThreadCpuTime() - startTime)
+							+ (mxBean.getCurrentThreadCpuTime() - localStartTime)
 							/ 1000000);
 		//startTime = mxBean.getCurrentThreadCpuTime();
 
@@ -480,7 +456,7 @@ public class MQuery extends MIDBCollection
 		}
 
 		// result of cputime is nanosecond scale
-		long cputime = (mxBean.getCurrentThreadCpuTime() - start) / 1000000;
+		long cputime = (mxBean.getCurrentThreadCpuTime() - totalStartTime) / 1000000;
 		
 		if (!mxBean.isCurrentThreadCpuTimeSupported())
 			cputime = -1;
@@ -504,8 +480,54 @@ public class MQuery extends MIDBCollection
 
 	}
 
+	/**
+	 * Our term-counting algorithm has given us ceilings on all sorts (-1 for infinity).
+	 * The user has also given us ceilings. We need to reconcile our bounds with the user's.
+	 * 
+	 * We may also have to sanity-check the user-provided bounds. For instance, if B < A
+	 * and user(A) = 2 and user(B) = 3, we need to resolve the mis-match.
+	 * 
+	 * @param sortCeilings
+	 * @return Ceilings, filtered to respect what the user wants.
+	 */
 	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> sortCeilings)
 	{
+		Map<String, Integer> result = new HashMap<String, Integer>();
+		
+		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
+		//                has been given a bound, the bounds of its parent and of any other
+		//                extensions of the same parent can be determined."
+		
+		// TODO For now, we have a very simple subset of that functionality from Alloy.
+		// 
+		
+		// User bounds are in:
+		// MEnvironment.sortCeilings 
+		// not guaranteed to be complete (may not contain a bound for many sorts)
+		
+		// Calculate bounds for each top-level sort separately, then populate universe's bound. (Key="")		
+				
+		
+		// For each top level sort: 
+		//   User < Calc --> Use user-provided bounds at top level. DO NOT create special atoms at lower levels. Analysis may be incomplete. 
+		//   Calc < User --> 
+		
+		
+		// (1) If user has provided a size for a sort, USE IT
+		
+		// (2) If user has NOT provided a ceiling, and we can't calculate one (or calculated is above last resort)
+		// then use last resort (MEnvironment.topSortCeilingOfLastResort)
+		
+		// (3) Otherwise, use our calculate sizes
+		
+		
+		// TN note: Alloy is much more sophisticated about user bounds.
+		
+		
+		
+		
+		
+		
 		// Commented out 6/11: now PER SORT
 		// If the user has provided a ceiling (i.e., sizeCeiling != -1)
 		// use that ALWAYS.
@@ -521,6 +543,7 @@ public class MQuery extends MIDBCollection
 
 		// TODO
 		
+		//return result;
 	}
 
 	boolean myIDBCollectionsContainWithDot(String k)

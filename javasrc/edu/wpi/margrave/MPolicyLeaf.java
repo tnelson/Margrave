@@ -34,7 +34,6 @@ import com.sun.xacml.combine.FirstApplicableRuleAlg;
 import com.sun.xacml.combine.PermitOverridesPolicyAlg;
 import com.sun.xacml.combine.PermitOverridesRuleAlg;
 
-import kodkod.ast.Decls;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;

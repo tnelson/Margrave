@@ -82,7 +82,7 @@ public class MTotalInstanceIterator extends MInstanceIterator
 			
 		// Search linearly from model size 1 up to maxsize. 
 		LinkedList<String> atoms = new LinkedList<String>();
-		for(int modelsize=1;modelsize<=qr.maxSize;modelsize++)
+		for(int modelsize=1;modelsize<=qr.getCeilingUsed();modelsize++)
 		{
 			atoms.clear();
 			for(int ii=0;ii<modelsize;ii++)			
@@ -223,14 +223,14 @@ abstract class MInstanceIterator extends MQueryResult
 		return result;
 	}
 	
-	public boolean warn_user()
+	/*public boolean warn_user()
 	{
 		// Warn the user if there is an inf. herbrand univ, OR if the user has overridden a finite one.
 		if(fromContext.getCeilingUsed() < 0 || fromContext.getCeilingUsed() > fromContext.get_universe_max())
 			return true;
 		
 		return false;
-	}	
+	}	*/
 
 	
 	public long getQueryTuplingTime()

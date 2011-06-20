@@ -79,11 +79,11 @@ class MWeakValue<T> extends WeakReference<T>
 		if (this == other)
             return true;
 
-        if (!(other instanceof MWeakValue))
+        if (!(other instanceof MWeakValue<?>))
             return false;
 
         Object ref1 = this.get();
-        Object ref2 = ((MWeakValue<T>) other).get();
+        Object ref2 = ((MWeakValue<?>) other).get();
 
         if (ref1 == ref2)
             return true;
@@ -138,10 +138,10 @@ class MSetWrapper<T>
 			return true;
 		
 		if(! (other instanceof MSetWrapper<?>))
-			return false;
+			return false;				
 		
-		// Let the internal sets decide
-		return ((MSetWrapper<T>) other).internalSet.equals(this.internalSet);
+		// Let the internal sets decide		
+		return ((MSetWrapper<?>) other).internalSet.equals(this.internalSet);
 	}
 }
 
@@ -328,7 +328,7 @@ class MWeakValueHashMap<K, V> implements Map<K, V>
 		{				
 			int formerSize = internalMap.size();
 								
-			MWeakValue<V> weakVal = (MWeakValue)ref;
+			MWeakValue<? extends V> weakVal = (MWeakValue<? extends V>)ref;
 			
 			// It _is_ possible for the poll to return References that are not in the map.
 			// In that case...ignore.			

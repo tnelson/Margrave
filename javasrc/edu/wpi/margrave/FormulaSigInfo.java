@@ -1221,7 +1221,7 @@ public class FormulaSigInfo
 		
 	}
 	
-	private void printSetMatrix(Set[][] validM, int max)
+	private void printSetMatrix(Set<?>[][] validM, int max)
 	{
 		for(int row=0;row<max;row++)
 		{

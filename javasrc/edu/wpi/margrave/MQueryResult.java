@@ -49,7 +49,7 @@ class MCNFSpyQueryResult extends MQueryResult
 				
 		// Prepare a CNF for each model size to be tested.
 		
-		for(int iSize=1;iSize<=fromContext.maxSize;iSize++)
+		for(int iSize=1;iSize<=fromContext.getCeilingUsed();iSize++)
 		{
 			try
 			{

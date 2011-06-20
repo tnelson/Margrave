@@ -1,5 +1,6 @@
 package edu.wpi.margrave;
 
+/*
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +22,7 @@ import org.sat4j.specs.IConstr;
 import org.sat4j.specs.IProblem;
 import org.sat4j.specs.ISolver;
 import org.sat4j.specs.TimeoutException;
+*/
 /*
 public class MUnrealizedFormulaFinder extends MCNFSpyQueryResult
 {

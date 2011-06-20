@@ -347,10 +347,10 @@ public class MCommunicator
         			theResponse = MEnvironment.isPoss(id);
         			writeToLog("Returning from IS-POSSIBLE");
         		}
-        		else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
+        		/*else if (type.equalsIgnoreCase("IS-GUARANTEED")) {
         			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "IS-GUARANTEED", "id");
         			theResponse = MEnvironment.isGuar(id);
-        		}
+        		}*/
         		else if (type.equalsIgnoreCase("SHOW")) {
         			writeToLog("In show");
         			String showType = getShowType(margraveCommandNode);
@@ -388,9 +388,9 @@ public class MCommunicator
         					theResponse = MEnvironment.exceptionResponse(e);						
         				}
         			}
-        			else if (showType.equalsIgnoreCase("CEILING")) {
+        			/*else if (showType.equalsIgnoreCase("CEILING")) {
         				theResponse = MEnvironment.showCeiling(id);
-        			}
+        			}*/
         			else if (showType.equalsIgnoreCase("REALIZED") ||
         					showType.equalsIgnoreCase("UNREALIZED")) 
         			{

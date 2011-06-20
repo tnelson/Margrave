@@ -194,7 +194,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////				
 		// Check at all sizes.
-		for(int iSize=1;iSize<=fromContext.maxSize;iSize++)
+		for(int iSize=1;iSize<=fromContext.getCeilingUsed();iSize++)
 		{
 			// Call first to add "" if needed
 
@@ -910,7 +910,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// And getIthConstr is returning ArrayIndexOutOfBoundsException even if we use nConstraints as a limiter...
 		
 		// debug
-		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
+		org.sat4j.minisat.core.Solver<?> theSolver = (org.sat4j.minisat.core.Solver<?>) solver;
 
 		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+" clauses. They are:");
 		
@@ -1092,7 +1092,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		
 		// simple no cases
-		Document result;
+		
 		Map<String, Set<List<MTerm>>> mapAx = new HashMap<String, Set<List<MTerm>>>();
 		Map<String, Set<List<MTerm>>> mapBx = new HashMap<String, Set<List<MTerm>>>();
 		Map<String, Set<List<MTerm>>> mapPx = new HashMap<String, Set<List<MTerm>>>();
