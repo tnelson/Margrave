@@ -175,8 +175,7 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		
 		Iterator<Solution> sols = qrySolver.solveAll(f, qryBounds);
 		
-		return sols; 
-		
+		return sols; 		
 	}
 
 	

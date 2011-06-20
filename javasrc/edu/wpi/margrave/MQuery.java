@@ -543,7 +543,7 @@ public class MQuery extends MIDBCollection
 
 		// TODO
 		
-		//return result;
+		return result;
 	}
 
 	boolean myIDBCollectionsContainWithDot(String k)

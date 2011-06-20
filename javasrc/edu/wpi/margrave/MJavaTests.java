@@ -375,6 +375,90 @@ public class MJavaTests
 			
 			
 			
+			
+			
+			
+			
+			
+			
+			
+			
+			//////////////////////////////////////////////
+			// Requires org.sat4j.maxsat
+			//////////////////////////////////////////////
+			
+			pbsolver = org.sat4j.pb.SolverFactory.newDefault();			
+			
+			d = new WeightedMaxSatDecorator(pbsolver);
+			d.newVar(1000);					
+			// Test w/ at most one 
+			int[] fooArray = new int[10000];
+			for(int i=0;i<10000;i++)
+				fooArray[i] = i+1;
+			
+			// option 1: at most range-size of range(a1), range(a2). a1 != a2 since they are ELEMENTS not terms
+			// 
+			//d.addAtMost(new VecInt(fooArray), 5001);
+			// (not strictly required...)
+			d.addAtLeast(new VecInt(fooArray), 4999);
+					
+			
+			
+			// Why is atmost so much faster than atleast? (yes, checked them separately)
+			// is it the solver trying to give max negatives?
+			// is it fewer clauses?
+			// ...?
+			// check UNSAT time...
+			
+			//for(int i=0;i<5000;i++)
+			//	d.addHardClause(new VecInt(new int[] { i+1 }));
+
+			for(int i=0;i<5000;i++)
+				d.addHardClause(new VecInt(new int[] { (-1) *(i+1) }));
+
+			
+			if(d.admitABetterSolution())
+			{
+			
+				
+				// prime impl not OK given cnf conversion
+				
+				//ModelIterator mi = new ModelIterator(d);
+				System.err.println("[atleast/most] MaxSAT was satisfiable. Objective function value was: "+d.calculateObjective());
+				
+				int funcValue = d.getObjectiveValue().intValue();
+							
+				while(d.admitABetterSolution())
+				{
+					System.err.println(Arrays.toString(d.model()));
+					//System.err.println(Arrays.toString(d.primeImplicant()));
+					//System.err.println(d.isOptimal());
+					//System.err.println(Arrays.toString(mi.model()));					
+					
+					int[] negationOfThisModel = new int [d.nVars()];
+					for(int iVar=1;iVar<=d.nVars();iVar++)
+					{
+						if(d.model(iVar)) { negationOfThisModel[iVar-1] = -iVar; }
+						else { negationOfThisModel[iVar-1] = iVar; };						
+					}
+					
+					// This stops us at 1 solution. (Not sure why).
+					// Ahh, is it used to abandon a potentially sub-optimal soln?
+					//d.discardCurrentSolution();
+					
+					// Note: this might be a very inefficient way of iterating through models. ModelIterator doesn't seem to work with maxsat...
+					// If it slows down in practice, ask. 														
+					d.addHardClause(new VecInt(negationOfThisModel));
+				}
+								
+			}
+			else
+			{
+				System.err.println("MaxSAT was unsatisfiable.");
+			}
+
+			
+			
 		}
 		catch(ContradictionException e)
 		{
@@ -398,6 +482,11 @@ public class MJavaTests
 		 */
 		
 		// TODO: test Opt adapter instead of the above.
+		
+		
+		
+		
+		// test cardinality constraints
 		
 	}
 
