@@ -272,7 +272,10 @@ gmarceau
     [(list items ...) items]
     [else response-docs]))
 
-  
+ 
+; TODO: start making scripting better. mtext is silly. 
+;(define (mlet qryid sexpr-vars sexpr-fmla)
+;  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

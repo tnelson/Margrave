@@ -1,16 +1,31 @@
 #lang racket
 
 (require srfi/13                  
-         syntax/readerr)
+         syntax/readerr
+         rackunit)
 
 (provide (all-defined-out))
 
-;****************************************************************
-
 ; HELPERS
 
+;****************************************************************
+;****************************************************************
+
+; partition*
+; Partitions the-list by bucket-func. 
+; If bucket-func returns #f, the element will be IGNORED. 
+; (That is, there can never be a #f bucket.)
+; init-keys contains initial key values that should be present
+; even if no element falls into that bucket.
+
 ; using a mutable hash table for now. if switch to immutable, can fold table creation over the-list
-(define (partition* bucket-func the-list #:init-keys [init-keys '()])
+(define/contract 
+  (partition* bucket-func the-list #:init-keys [init-keys '()])
+  [->* (procedure? 
+        list?)
+       (#:init-keys list?)  
+       hash?]
+  
   (define result-hash (make-hash))
   
   ; initialize
@@ -25,9 +40,28 @@
             the-list)
   result-hash)
 
+; TESTS
+; Need to call hash-copy because partition returns a MUTABLE hash table, but '#hash( ... ) 
+; is immutable. Mut != Immut.
+(check-true (equal? 
+             (partition* even? 
+                         '())
+             (hash-copy '#hash())))
 
-; (partition* (lambda (x) (and (even? x) (remainder x 3))) '(1 2 3 4 5 6 7 8 9 10))
-; '#hash((0 . (6)) (2 . (8 2)) (1 . (10 4)))
+(check-true (equal? 
+             (partition* (lambda (x) (remainder x 3))
+                         '(1 2 3) 
+                         #:init-keys (list 17))
+             (hash-copy '#hash( (0 . (3)) (1 . (1)) (2 . (2)) (17 . () )))))
+
+(check-true (equal?
+             (partition* (lambda (x) (and (even? x) (remainder x 3)))
+                         '(1 2 3 4 5 6 7 8 9 10))    
+            (hash-copy '#hash((0 . (6)) (2 . (8 2)) (1 . (10 4))))))
+
+
+;****************************************************************
+;****************************************************************
 
 (define (fold-append-with-spaces posslist)
   (fold-append-with-separator posslist " "))
