@@ -40,6 +40,7 @@
          pause-for-user
          m-load-policy
          m-let
+         m-is-poss?
          send-and-receive-xml
          load-xacml-policy
          load-sqs-policy
@@ -416,7 +417,7 @@ gmarceau
                           (path->string fn)
                           fn)
                       #'fn))
-  (define load-func (eval func-sexpr))
+  (define load-func (eval func-sexpr the-margrave-namespace))
   (load-func))
 
 ; I'd like to use macros for these functions, since commands all turn into syntax anyway.
@@ -442,6 +443,13 @@ gmarceau
     [else
      (raise-syntax-error 'Policy "Invalid use of m-load-policy. Syntax: (m-load-policy <identifier> <filename>)" #f #f stx)]))
 |#
+
+(define/contract
+  (m-is-poss? qryid)
+  [-> string? boolean?]
+  (define the-xml (xml-make-is-possible-command qryid))
+  (define xml-response (send-and-receive-xml the-xml)) 
+  (xml-bool-response->bool xml-response))
 
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))

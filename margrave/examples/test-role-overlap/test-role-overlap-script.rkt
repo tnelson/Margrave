@@ -43,57 +43,27 @@
 
 ; SR supports only single atomic fmlas for now. Thus, we need to resort to ispossible to check each set in the powerset.
 
-; Want to support sexprs so we can get rid of this stupid string append business.
-
-;(define (cover-roles-qry aroleset)
-;  (fold-append-with-separator 
-;   (map (lambda (arole) (if (member arole aroleset)
-;                            (string-append (symbol->string arole) "(s)")
-;                            (string-append "not " (symbol->string arole) "(s)"))) 
-;        roles)
- ;   " and ") )
-
-(define/contract (cover-roles-qry aroleset)
-  [list? list?]
+;(define/contract (cover-roles-qry aroleset)
+;  [list? list?]
+(define (cover-roles-qry aroleset)
   (map (lambda (arole) 
          (if (member arole aroleset)
              `(,arole s)
              `(not (,arole s))))
        roles))
 
-
-;(define (test-role-combo aroleset)
-;  (define thisid (string-upcase (symbol->string (gensym))))
-;  (define mystr (string-append 
-;                 "let " 
-;                 thisid 
-;                 ;" [s : Subject ,a : Action,r : Resource] be (Mypol.permit(s,a,r) or Mypol.deny(s,a,r)) and "
-;                 
-;                 ; orient toward which decisions? here is easy since only 2
-;                 " [s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Write(a) and "
-;                 (cover-roles-qry aroleset)))
-;  ;(printf "~a~n" mystr)  
-;  (mtext mystr)
-;  (define result (xml-bool-response->bool (mtext (string-append "is poss? " thisid))))
-;  (printf "Testing set: ~a.~nResult was: ~a~n" aroleset result))
-
 (define (test-role-combo aroleset)
   (define thisid (string-upcase (symbol->string (gensym))))
-  
-  ; why isn't this (and load) syntax?
-  ; then it wouldn't have to be evaluated, right? !!!
-  
-  ; Can require (for syntax?) the helpers...
-  
-  ; 
-  
+    
+  (define fmla-sexpr `(and ((Mypol permit) s a r)
+                           (Write a)
+                           ,@(cover-roles-qry aroleset))) 
+  ;(printf "~a~n" fmla-sexpr)
   (m-let thisid 
          '([s Subject]
            [a Action]
            [r Resource])
-         `(and ((Mypol permit) s a r)
-               (Write a)
-               ,@(cover-roles-qry aroleset)))
+         fmla-sexpr)
 
   (define result (m-is-poss? thisid))
   (printf "Testing set: ~a.~nResult was: ~a~n" aroleset result))
