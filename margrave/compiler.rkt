@@ -17,27 +17,45 @@
 
 #lang racket
 
-(require ;margrave/margrave-xml
-        ; margrave/margrave-policy-vocab
+(require 
+ xml
+ 
  (file "margrave-policy-vocab.rkt")
-         margrave/helpers
-         ; !!! todo update this
-         ;margrave/lexer
-         ;margrave/parser
-         (file "lexer.rkt")
-         (file "parser.rkt")
-         (file "margrave-xml.rkt")
-         
-         xml
-         )
+ (file "helpers.rkt")
+ (file "lexer.rkt")
+ (file "parser.rkt")
+ (file "margrave-xml.rkt"))
 
 (provide parse-and-compile
          evaluate-parse 
          parse-and-compile-read
          parse-and-compile-read-syntax
          parse-and-compile-port
-         make-simple-load-func)
+         make-simple-load-func
+         create-policy-loader)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (create-policy-loader policy-id policy-fn src-syntax)  
+  (define policy-creation-list (evaluate-policy policy-fn
+                                                policy-id
+                                                #:syntax src-syntax))
+  
+  (define vocab-name (second policy-creation-list))
+  (define policy-thinks-name-is (first policy-creation-list))
+  
+  (define xml-cmds (append (third policy-creation-list)                                    
+                           (fourth policy-creation-list)))
+  
+  ; Load the policy, but also bind the result in our environment
+  (make-simple-load-func policy-id                            
+                         vocab-name                            
+                         xml-cmds                            
+                         src-syntax))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Take a syntax object for a Margrave command. 
 ; Return a '(lambda ...)  
@@ -85,21 +103,10 @@
     [(equal? first-datum 'LOAD-POLICY)
      (define policy-id (symbol->string (syntax->datum (second interns))))
      (define policy-file-name-syntax (third interns))
-     (define policy-creation-list (evaluate-policy (symbol->string (syntax->datum policy-file-name-syntax))
-                                                   policy-id
-                                                   #:syntax policy-file-name-syntax))
      
-     (define vocab-name (second policy-creation-list))
-     (define policy-thinks-name-is (first policy-creation-list))
-       
-     (define xml-cmds (append (third policy-creation-list)                                    
-                              (fourth policy-creation-list)))
-       
-     ; Load the policy, but also bind the result in our environment
-     (make-simple-load-func policy-id                            
-                            vocab-name                            
-                            xml-cmds                            
-                            policy-file-name-syntax)]
+     (create-policy-loader policy-id
+                           (syntax->string policy-file-name-syntax)
+                           policy-file-name-syntax)]
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     [(equal? first-datum 'LOAD-IOS)

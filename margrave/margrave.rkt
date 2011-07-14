@@ -22,25 +22,30 @@
 
 (require xml
          srfi/13
-         margrave/margrave-xml
-         margrave/compiler
-         margrave/margrave-policy-vocab
-         margrave/helpers
          syntax/readerr
-         racket/generator)
+         racket/generator
+                           
+         (for-syntax (file "compiler.rkt")
+                     (file "margrave-policy-vocab.rkt"))
+         
+         (file "compiler.rkt")
+         (file "margrave-policy-vocab.rkt")
+         (file "helpers.rkt")
+         (file "margrave-xml.rkt"))
 
 (provide stop-margrave-engine
          start-margrave-engine
          run-java-test-cases
          mtext
          pause-for-user
-         load-policy
+         m-load-policy
+         m-let
          send-and-receive-xml
          load-xacml-policy
          load-sqs-policy
          
-         (all-from-out margrave/margrave-xml)
-         (all-from-out margrave/helpers)
+         (all-from-out (file "margrave-xml.rkt"))
+         (all-from-out (file "helpers.rkt"))
 
          display-response
          response->string
@@ -273,10 +278,6 @@ gmarceau
     [else response-docs]))
 
  
-; TODO: start making scripting better. mtext is silly. 
-;(define (mlet qryid sexpr-vars sexpr-fmla)
-;  )
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -403,12 +404,105 @@ gmarceau
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; policy-file-name -> policy-id
+; policy-id policy-file-name -> bool
 
-(define (load-policy fn)
-  (response->string (mtext "LOAD POLICY \"" (if (path? fn)
-                                              (path->string fn)
-                                              fn) "\"")))
+; !!! Why is one working and the other not? Namespace issue, somehow? 
+; One evaluates, one is a macro.
+
+(define (m-load-policy id fn)  
+  (define func-sexpr (create-policy-loader 
+                      id 
+                      (if (path? fn)
+                          (path->string fn)
+                          fn)
+                      #'fn))
+  (define load-func (eval func-sexpr))
+  (load-func))
+
+; I'd like to use macros for these functions, since commands all turn into syntax anyway.
+; ...but no time to understand the namespace issue properly yet. - TN
+
+#|
+(define-syntax (m-load-policyx stx)
+  (syntax-case stx []
+    [(_ id fn)
+     (let ()
+          
+       (define id-datum (syntax->datum #'id))
+       (define filename-datum (if (path? (syntax->datum #'fn))
+                                  (path->string (syntax->datum #'fn))
+                                  (syntax->datum #'fn)))       
+       
+       ; won't work because the namespace isn't known at phase 1.
+       (quasisyntax/loc stx                  
+           ( #,(parameterize ([current-namespace the-margrave-namespace])
+                 (create-policy-loader id-datum
+                                       filename-datum
+                                       #'fn)))))]
+    [else
+     (raise-syntax-error 'Policy "Invalid use of m-load-policy. Syntax: (m-load-policy <identifier> <filename>)" #f #f stx)]))
+|#
+
+; let MyQry [x : A, y : B] be r(x) and q(y) ...
+; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))
+
+(define/contract
+  (m-let qryid sexpr-vars sexpr-fmla)
+  [-> string? (or/c symbol? list?) (or/c symbol? list?) boolean?]
+  
+  (define (handle-var-dec-sexpr sexpr)  
+    (xml-make-variable-declaration (symbol->string (first sexpr))
+                                   (symbol->string (second sexpr))))
+
+  (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
+  (define query-condition-xml (handle-fmla-sexpr sexpr-fmla))  
+  
+  (define the-xml
+     (xml-make-explore-command 
+      qryid
+      free-vars-xml
+      (list query-condition-xml)     
+      ; no options via this function (for now)
+      ;,(if (empty? query-options)
+      ;     'empty
+      ;     `(list ,@query-options))
+      empty))
+  
+  ;(printf "~a~n" the-xml)
+    
+  (define xml-response (send-and-receive-xml the-xml))  
+  (equal? "explore-result" (get-response-type xml-response)))
+  
+
+  
+
+; contract: not empty?, must be list?
+(define (handle-fmla-sexpr sexpr)
+  (define op (first sexpr))
+  (cond [(equal? op 'and) (xml-make-and* (map handle-fmla-sexpr (rest sexpr)))]
+        [(equal? op 'or) (xml-make-or* (map handle-fmla-sexpr (rest sexpr)))]
+        [(equal? op 'not) (xml-make-not (handle-fmla-sexpr (second sexpr)))]
+        [(equal? op 'implies) (xml-make-implies (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
+        [(equal? op 'iff) (xml-make-iff (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
+        [(equal? op 'forall) (xml-make-forall (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
+        [(equal? op 'exists) (xml-make-exists (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
+
+        ;equality
+        [(equal? op '=) (xml-make-equals-formula (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]        
+        ;idb
+        [(list? op) (xml-make-atomic-formula (first sexpr)
+                                             (map handle-term-sexpr (rest sexpr)))]
+        ;edb
+        [else (xml-make-atomic-formula (list (first sexpr))
+                                       (map handle-term-sexpr (rest sexpr)))  ]))
+
+(define (handle-term-sexpr sexpr)
+  (cond [(and (list? sexpr) (> (length sexpr) 1))
+         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
+        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
+         (xml-make-constant-term (symbol->string sexpr))]
+        [else ; variable
+         (xml-make-variable-term (symbol->string sexpr))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -612,3 +706,4 @@ gmarceau
 ;  (printf "defvec: ~a ~a ~n" vecid contents)
   (hash-set! custom-vector-environment vecid contents)
   (format "Custom vector <~a> defined." vecid))
+

@@ -4,7 +4,8 @@
 ; !!! reflection is impossible, it's silly not to allow it
 ; !!! scripting still ugly, half imported from LISA10 version. module exports from margrave s/b cleaner too.
 
-(require margrave)
+;(require margrave)
+(require (file "../../margrave.rkt"))
 
 ; !!! Should use racket/set instead of lists
 
@@ -30,8 +31,9 @@
          (append (map (lambda (sps) (cons pivot sps)) smaller-power-set-T) smaller-power-set-F)]))
 
 
-(start-margrave-engine)
-(mtext "#LOAD policy Mypol = \"M:/RktMargrave/margrave/examples/test-role-overlap/testroleoverlap.p\"")
+(start-margrave-engine #:margrave-params '("-log"))
+;(m-load-policy "Mypol" "M:/RktMargrave/margrave/examples/test-role-overlap/testroleoverlap.p")
+(m-load-policy "Mypol" "F:/msysgit/git/Margrave/margrave/examples/test-role-overlap/testroleoverlap.p")
 
 (define disjoint-pairs (make-hash))
 (define roles '(isFaculty isStudent isAdministrator))
@@ -43,37 +45,57 @@
 
 ; Want to support sexprs so we can get rid of this stupid string append business.
 
-(define (cover-roles-qry aroleset)
-  (fold-append-with-separator 
-   (map (lambda (arole) (if (member arole aroleset)
-                            (string-append (symbol->string arole) "(s)")
-                            (string-append "not " (symbol->string arole) "(s)"))) 
-        roles)
-    " and ") )
+;(define (cover-roles-qry aroleset)
+;  (fold-append-with-separator 
+;   (map (lambda (arole) (if (member arole aroleset)
+;                            (string-append (symbol->string arole) "(s)")
+;                            (string-append "not " (symbol->string arole) "(s)"))) 
+;        roles)
+ ;   " and ") )
+
+(define/contract (cover-roles-qry aroleset)
+  [list? list?]
+  (map (lambda (arole) 
+         (if (member arole aroleset)
+             `(,arole s)
+             `(not (,arole s))))
+       roles))
+
+
+;(define (test-role-combo aroleset)
+;  (define thisid (string-upcase (symbol->string (gensym))))
+;  (define mystr (string-append 
+;                 "let " 
+;                 thisid 
+;                 ;" [s : Subject ,a : Action,r : Resource] be (Mypol.permit(s,a,r) or Mypol.deny(s,a,r)) and "
+;                 
+;                 ; orient toward which decisions? here is easy since only 2
+;                 " [s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Write(a) and "
+;                 (cover-roles-qry aroleset)))
+;  ;(printf "~a~n" mystr)  
+;  (mtext mystr)
+;  (define result (xml-bool-response->bool (mtext (string-append "is poss? " thisid))))
+;  (printf "Testing set: ~a.~nResult was: ~a~n" aroleset result))
 
 (define (test-role-combo aroleset)
   (define thisid (string-upcase (symbol->string (gensym))))
-  (define mystr (string-append 
-                 "let " 
-                 thisid 
-                 ;" [s : Subject ,a : Action,r : Resource] be (Mypol.permit(s,a,r) or Mypol.deny(s,a,r)) and "
-                 
-                 ; orient toward which decisions? here is easy since only 2
-                 " [s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Write(a) and "
-                 (cover-roles-qry aroleset)))
-  ;(printf "~a~n" mystr)  
-  (mtext mystr)
-  (define result (xml-bool-response->bool (mtext (string-append "is poss? " thisid))))
+  
+  ; why isn't this (and load) syntax?
+  ; then it wouldn't have to be evaluated, right? !!!
+  
+  ; Can require (for syntax?) the helpers...
+  
+  ; 
+  
+  (m-let thisid 
+         '([s Subject]
+           [a Action]
+           [r Resource])
+         `(and ((Mypol permit) s a r)
+               (Write a)
+               ,@(cover-roles-qry aroleset)))
+
+  (define result (m-is-poss? thisid))
   (printf "Testing set: ~a.~nResult was: ~a~n" aroleset result))
- 
 
 (for-each test-role-combo powerset-of-roles)
-
-
-
-
-;#lang margrave
-
-;#load policy Mypol = "M:/RktMargrave/margrave/examples/test-role-overlap/testroleoverlap.p";
-;let Q[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r);
-;count Q;

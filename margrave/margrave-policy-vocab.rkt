@@ -17,20 +17,20 @@
 
 #lang racket/base
 
-(require ;margrave/margrave-xml
+(require 
  (file "margrave-xml.rkt")
-         margrave/helpers         
-         racket/list
-         racket/contract
-         (for-syntax (only-in srfi/13 string-contains)
-                     margrave/helpers
-                     ;margrave/margrave-xml
-                     (file "margrave-xml.rkt")
-                     racket/list
-                     racket/match
-                     racket/string
-                     racket/base
-                     racket/contract))
+ (file "helpers.rkt")
+ racket/list
+ racket/contract
+ (for-syntax (only-in srfi/13 string-contains)
+             (file "helpers.rkt")                     
+             (file "margrave-xml.rkt")
+             
+             racket/list
+             racket/match
+             racket/string
+             racket/base
+             racket/contract))
 
 (provide evaluate-policy
          
@@ -60,18 +60,46 @@
 
 
 ;****************************************************************
-; Structs used to pass back info about a vocabulary in a structured fashion
+; Structs used to store information about a vocabulary or policy
+; This data is also stored on the Java side, but it is smart to
+; keep it here, too.
 
-; TODO for later. 
-;(define-struct/contract m-vocabulary 
-;  ([name string?] 
-;   [cmds list?] 
-;   [types (listof string?)] 
-;   [predicates (listof string?)] 
-;   [decisions (listof string?)] 
-;   [constants (listof string?)] 
-;   [functions (listof string?)]))
+#|
+(define-struct/contract m-predicate
+  ([name string?]
+   [arity (listof string?)]))
+
+(define-struct/contract m-constant
+  ([name string?]
+   [type string?]))
+
+(define-struct/contract m-function
+  ([name string?]
+   [result-type string?]
+   [arity (listof string?)]))
+
+(define-struct/contract m-vocabulary 
+  ([name string?] 
+   [cmds list?] 
+   [types (listof string?)] 
+   [type-children hash?] ; string -> (list string) of immediate children
+   [predicates (listof m-predicate?)] 
+   [constants (listof m-constant?)] 
+   [functions (listof m-function?)]))
   
+(define-struct/contract m-policy
+  ([name string?]
+   [vocab m-vocabulary?]
+   [rule-names (listof string?)]))
+|#
+
+;****************************************************************
+
+(define loaded-policies empty)
+(define loaded-vocabularies empty)
+
+;****************************************************************
+
 
 ;****************************************************************
 
@@ -103,8 +131,10 @@
     (port-count-lines! file-port)    
     (define the-policy-syntax (read-syntax fn file-port))   
     
+    ;(printf "evaluate-policy: ~a~n" the-policy-syntax)
+    
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
-    (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))    
+    (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))           
     
     (define pol-result-list (the-policy-func fn policy-id src-syntax))        
     (close-input-port file-port)        
@@ -857,26 +887,28 @@
                                        (list (xml-make-policy-identifier local-policy-id)
                                              ',(handle-formula the-target)))))))    
        
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Rules
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
        (define rules-result
          (if (empty? the-rules-clauses)
              empty
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
-                                             
+                                           
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                     
+                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                         
                     
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
                                                    ',(xml-make-rule (syntax->datum #'rulename)
                                                                     (xml-make-decision-type (syntax->datum #'decision)
                                                                                             (syntax->datum #'(rvar ...)))
                                                                     (xml-make-target (handle-formula-list #'(fmla0 fmla ...))))))]
-                   [_ (raise-syntax-error 'Policy "Invalid rule" #f #f (list a-rule))]))
+                   [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                                              
                (map handle-rule the-rules))))
 
