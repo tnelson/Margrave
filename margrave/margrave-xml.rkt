@@ -178,6 +178,7 @@
           "unsat"))
 
 
+
 ; Fetch various error properties
 ; Document -> String
 (define (get-response-error-type doc)
@@ -213,6 +214,30 @@
 
 ;Maps name of predicates (strings) to their corresponding predicate structs
 ;(define predicate-hash (make-hash))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; In progress: convert XML representation of scenario
+; to something easier to work with.
+(define-struct/contract m-relation
+  ([name string?]
+   [contents (listof (listof string?))]))
+
+(define-struct/contract m-scenario
+  ([size number?]
+   [elements (listof string?)]
+   [relations (listof m-relation?)]
+   [annotations (listof string?)]
+   ;[ (listof string?)]
+   ))
+
+(define/contract 
+  (xml-response->m-scenario doc)
+  [-> document? m-scenario?]
+  #f)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 ;This function goes through the xml and updates atom-hash and predicate-hash
