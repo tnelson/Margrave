@@ -609,6 +609,8 @@ class SkolemReporter implements Reporter
 
 class MPreparedQueryContext
 {
+	// Sort Name ---> Ceiling
+	// "" is the name for the union of all sorts.
 	Map<String, Integer> ceilingsToUse;
 	Map<String, Integer> ceilingsSufficient;
 	

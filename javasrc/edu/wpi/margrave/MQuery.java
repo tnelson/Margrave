@@ -413,11 +413,11 @@ public class MQuery extends MIDBCollection
 		
 		// If this is a tupled query, we know size = 1.
 		// This is NECESSARY since MInternalTupledQuery.runQuery() just invokes this parent method.
-		if (this instanceof MInternalTupledQuery) {
-			// Limit the size of the universe to 1
-			sufficientSortCeilings.put("", 1);
-		}
-		else {
+		//if (this instanceof MInternalTupledQuery) {
+		//	// Limit the size of the universe to 1
+		//	sufficientSortCeilings.put("", 1);
+		//}
+		//else {
 			if (debug_verbosity >= 2)
 				MEnvironment.writeOutLine("DEBUG: Getting HU Ceiling. ");
 			
@@ -427,7 +427,7 @@ public class MQuery extends MIDBCollection
 			sufficientSortCeilings = getHerbrandUniverseCeilingFor(
 					MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
 					prenexExistential);
-		}
+		//}
 
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) in getHerbrandUniverseCeilingFor block: "
@@ -492,7 +492,7 @@ public class MQuery extends MIDBCollection
 	 */
 	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> sortCeilings)
 	{
-		Map<String, Integer> result = new HashMap<String, Integer>();
+		//Map<String, Integer> result = new HashMap<String, Integer>();
 		
 		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
 		//                has been given a bound, the bounds of its parent and of any other
@@ -543,7 +543,11 @@ public class MQuery extends MIDBCollection
 
 		// TODO
 		
+		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
+		
 		return result;
+		
+		
 	}
 
 	boolean myIDBCollectionsContainWithDot(String k)
@@ -724,11 +728,14 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeErrLine("Test 2b failed!");
 
 		// Test for lone (doesn't induce an existential.)
+		// LONE(sort1) and \forall (y:sort1) \exists(x:sort1) (x = y)
+		// expect 1 skolem func from sort1 to sort1, but no constants 
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.lone());
 		test2 = new MQuery(f, env);
 		if (test2.runQuery().getCeilingUsed() != 0)
 			MEnvironment.writeErrLine("Test 2c failed!");
+
 
 		// Test for no (doesn't induce an existential.)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
@@ -1493,12 +1500,13 @@ public class MQuery extends MIDBCollection
 		Collections.reverse(prefixVarOrder);
 
 		MQuery result;
-		if(bTupling) {
-			result = new MTuplingQuery(uber, qryFormula, mpc.seenIDBCollections);
-		}
-		else {
+		// Tupling is deprecated (possibly temporary) as of September 2011 -- TN
+		//if(bTupling) {
+		//	result = new MTuplingQuery(uber, qryFormula, mpc.seenIDBCollections);
+		//}
+		//else {
 			result = new MQuery(uber, qryFormula, mpc.seenIDBCollections);	
-		}
+		//}
 		
 
 		//MEnvironment.outStream.println("Query created. Fmla = ");

@@ -2229,9 +2229,9 @@ public class FormulaSigInfo
 		// It is not safe to add together all "top" sorts, because the caller 
 		// may have given us an ordering that isn't locally filtered. Consider:
 		// A<B, A<C with terms in A.
-		
+				
 		if(finitarySorts.size() != sorts.size())
-			return -1; 
+			return -1; 	
 		
 		// Don't allow huge amounts of terms. Can change this if it is needed. 		
 		if(totalTerms.bitLength() > 30)
@@ -2361,8 +2361,12 @@ public class FormulaSigInfo
 		if(unpopulatedSorts.size() > 0)
 			result.append("The following sorts were finitary but unpopulated by ground terms: "+unpopulatedSorts + ""+eol);
 		
-		if(getTermCount() > 0)
+		int termCount = getTermCount();
+		
+		if(termCount > 0)
 			result.append("Number of "+boldOn+"distinct"+boldOff+" terms across all finitary sorts: "+boldOn+getTermCount()+boldOff+eol);
+		else if(termCount == 0)
+			result.append("Unable to count any terms at all; there were no constants.");
 		else
 			result.append("There were infinitary sorts, so could not establish a bound for the entire signature."+eol);
 		

@@ -1,28 +1,28 @@
 package edu.wpi.margrave;
 
-import java.io.PrintWriter;
+//import java.io.PrintWriter;
 import java.util.*;
 
-import kodkod.ast.Expression;
-import kodkod.ast.Formula;
+//import kodkod.ast.Expression;
+//import kodkod.ast.Formula;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
-import kodkod.engine.Solver;
+//import kodkod.engine.Solver;
 import kodkod.engine.fol2sat.Translation;
-import kodkod.engine.fol2sat.Translator;
-import kodkod.engine.fol2sat.TrivialFormulaException;
+//import kodkod.engine.fol2sat.Translator;
+//import kodkod.engine.fol2sat.TrivialFormulaException;
 import kodkod.instance.Bounds;
 import kodkod.instance.Tuple;
 import kodkod.instance.TupleFactory;
-import kodkod.instance.TupleSet;
-import kodkod.instance.Universe;
+//import kodkod.instance.TupleSet;
+//import kodkod.instance.Universe;
 import kodkod.util.ints.IntIterator;
 import kodkod.util.ints.IntSet;
-import kodkod.util.ints.Ints;
+//import kodkod.util.ints.Ints;
 
 import org.sat4j.core.VecInt;
 import org.sat4j.specs.*;
-import org.w3c.dom.Document;
+//import org.w3c.dom.Document;
 
 
 
@@ -48,65 +48,65 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		//MCommunicator.writeToLog("\napplyIndexing: "+candidates +";   "+originalPreds+";   "+originalIndexing);
 		
-		if(!(fromContext.forQuery instanceof MInternalTupledQuery))
-		{
+	//	if(!(fromContext.forQuery instanceof MInternalTupledQuery))
+	//	{
 			// Not tupled, ignore indexing
 			indexedCandidates = new ArrayList<String>(candidates.keySet());			
-		}
-		else
-		{
-			
-			MInternalTupledQuery forQueryTupled = (MInternalTupledQuery) fromContext.forQuery;
-			
-			// create indexed list
-			indexedCandidates = new ArrayList<String>();	
-		
-			for(String predname : candidates.keySet())
-			{
-				//MCommunicator.writeToLog("\n  applyIndexing loop for: "+predname);
-				
-				//MEnvironment.errorStream.println("predname: "+predname);
-				//MEnvironment.errorStream.println(candidates.get(predname));
-				for(List<MTerm> anIndexing : candidates.get(predname))
-				{
-					//MCommunicator.writeToLog("\n    applyIndexing inner loop for: "+predname);
-					String newName = predname;
-				
-//					MEnvironment.errorStream.println("indexing: "+anIndexing);
-					
-					// Query should have saved the visitor (and hence the ordering) in internalTuplingVisitor
-
-					Map<Variable, Integer> theTupling = forQueryTupled.internalTuplingVisitor.pv.indexing;
-					
-					for(MTerm idxTerm : anIndexing)
-					{
-						if(!(idxTerm instanceof MVariableTerm))
-						{
-							// Forbidden in tupled query
-							throw new MUserException("Query was tupled, but given candidate formula containing term "+idxTerm+
-									". Only variables are allowed when tupling.");
-						}
-						
-						String idx = idxTerm.expr.toString();
-						
-						// idx is a variable name, want to get its index in the tupling
-						// The manager enforces only one Variable with that name.
-						Variable theVar = MFormulaManager.makeVariable(idx);
-						
-						if(newName.equals(predname))
-							newName += "_"+theTupling.get(theVar);
-						else
-							newName += ","+theTupling.get(theVar);
-						
-					}					
-					
-					//MEnvironment.errorStream.println(newName);
-					indexedCandidates.add(newName);
-					originalPreds.put(newName, predname);
-					originalIndexing.put(newName, anIndexing);
-				}
-			}			
-		}
+	//	}
+//		else
+//		{
+//			
+//			MInternalTupledQuery forQueryTupled = (MInternalTupledQuery) fromContext.forQuery;
+//			
+//			// create indexed list
+//			indexedCandidates = new ArrayList<String>();	
+//		
+//			for(String predname : candidates.keySet())
+//			{
+//				//MCommunicator.writeToLog("\n  applyIndexing loop for: "+predname);
+//				
+//				//MEnvironment.errorStream.println("predname: "+predname);
+//				//MEnvironment.errorStream.println(candidates.get(predname));
+//				for(List<MTerm> anIndexing : candidates.get(predname))
+//				{
+//					//MCommunicator.writeToLog("\n    applyIndexing inner loop for: "+predname);
+//					String newName = predname;
+//				
+////					MEnvironment.errorStream.println("indexing: "+anIndexing);
+//					
+//					// Query should have saved the visitor (and hence the ordering) in internalTuplingVisitor
+//
+//					Map<Variable, Integer> theTupling = forQueryTupled.internalTuplingVisitor.pv.indexing;
+//					
+//					for(MTerm idxTerm : anIndexing)
+//					{
+//						if(!(idxTerm instanceof MVariableTerm))
+//						{
+//							// Forbidden in tupled query
+//							throw new MUserException("Query was tupled, but given candidate formula containing term "+idxTerm+
+//									". Only variables are allowed when tupling.");
+//						}
+//						
+//						String idx = idxTerm.expr.toString();
+//						
+//						// idx is a variable name, want to get its index in the tupling
+//						// The manager enforces only one Variable with that name.
+//						Variable theVar = MFormulaManager.makeVariable(idx);
+//						
+//						if(newName.equals(predname))
+//							newName += "_"+theTupling.get(theVar);
+//						else
+//							newName += ","+theTupling.get(theVar);
+//						
+//					}					
+//					
+//					//MEnvironment.errorStream.println(newName);
+//					indexedCandidates.add(newName);
+//					originalPreds.put(newName, predname);
+//					originalIndexing.put(newName, anIndexing);
+//				}
+//			}			
+//		}
 		
 		return indexedCandidates;
 	}
@@ -146,27 +146,27 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// If we are missing some IDB names, re-compile the query with those names axiomatized
 		// and re-invoke this procedure for the results of that query.
 		/////////////////////////////////////////////////////////////
-		if((fromContext.forQuery instanceof MInternalTupledQuery))
-		{
-			Set<String>missingRels = findMissingRelations(candidates); 
-			missingRels.addAll(findMissingRelations(cases));
-					
-			if(missingRels.size() > 0)
-			{
-				MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
-				MCommunicator.writeToLog("\nMissing: "+missingRels);
-				MQuery newQuery = new MQuery(fromContext.forQuery);
-				newQuery.addIDBOutputs(missingRels);			
-				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
-				
-				MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
-				return newFinder.getRealizedFormulas(candidates, cases);
-			}			
-			// otherwise, continue as normal: we have all the relations we need
-			
-		}
-		else
-		{
+//		if((fromContext.forQuery instanceof MInternalTupledQuery))
+//		{
+//			Set<String>missingRels = findMissingRelations(candidates); 
+//			missingRels.addAll(findMissingRelations(cases));
+//					
+//			if(missingRels.size() > 0)
+//			{
+//				MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
+//				MCommunicator.writeToLog("\nMissing: "+missingRels);
+//				MQuery newQuery = new MQuery(fromContext.forQuery);
+//				newQuery.addIDBOutputs(missingRels);			
+//				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
+//				
+//				MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
+//				return newFinder.getRealizedFormulas(candidates, cases);
+//			}			
+//			// otherwise, continue as normal: we have all the relations we need
+//			
+//		}
+//		else
+//		{
 			Map<String, Set<List<String>>> missingFmlas1 = findMissingFmlasTupled(candidates);
 			Map<String, Set<List<String>>> missingFmlas2 = findMissingFmlasTupled(cases);
 			if(missingFmlas1.size() + missingFmlas2.size() > 0)
@@ -188,7 +188,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			
 			
 			// TODO convert to fmlas. right now nothing will happen and tupling+SR is unavailable
-		} 
+		//} 
 						
 		
 		/////////////////////////////////////////////////////////////
@@ -209,7 +209,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		/////////////////////////////////////////////////////////////
 			
 		
-		if(fromContext.forQuery instanceof MInternalTupledQuery)
+		/*if(fromContext.forQuery instanceof MInternalTupledQuery)
 		{
 			// *** (3) Convert BACK to the original notation
 			Map<String, Set<String>> indexedResults = new HashMap<String, Set<String>>();
@@ -229,7 +229,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			}
 			
 			results = indexedResults;
-		}
+		}*/
 		
 		
 		return results;

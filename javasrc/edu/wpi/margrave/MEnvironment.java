@@ -2145,7 +2145,7 @@ public class MEnvironment
 		MVocab theVocab;
 		
 		// If this query was tupled, don't forget to convert back to the original signature.		
-		if(mQueryResult.forQuery instanceof MInternalTupledQuery) 
+		/*if(mQueryResult.forQuery instanceof MInternalTupledQuery) 
 		{			
 			next = ((MInternalTupledQuery)mQueryResult.forQuery).internalPreTuplingQuery.processTupledSolutionForThis(nextPreTup);
 			theVocab = ((MInternalTupledQuery)mQueryResult.forQuery).internalPreTuplingQuery.vocab;
@@ -2156,12 +2156,12 @@ public class MEnvironment
 			MCommunicator.writeToLog(next.getAnnotations().toString());
 		}
 		else
-		{
+		{*/
 			next = nextPreTup;
 			theVocab = mQueryResult.forQuery.vocab;
 			MCommunicator.writeToLog("\nscenarioResponse: query was NOT tupled.");
 			
-		}
+		//}
 		
 		//writeToLog("\nORIG INSTANCE: "+nextPreTup.getFacts());
 		//writeToLog("\nPOST CONVERSION INSTANCE: "+next.getFacts());
