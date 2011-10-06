@@ -1645,7 +1645,17 @@ public class MCommunicator
 "<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
 "<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
-				
+
+// aQuery unsat since publish gives us types of x, y that don't fit the query. 		
+		
+		String aQuery2 = 
+			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry2\"><CONDITION><OR>" +
+			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
+			"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
+			"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+			"<PUBLISH><VARIABLE-DECLARATION sort=\"U\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"U\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
+		
+		
 		String aTupledQuery = 
 			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
 			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
@@ -1695,6 +1705,8 @@ public class MCommunicator
 		
 		String aShow = 
 			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry\" /></MARGRAVE-COMMAND>";
+		String aShow2 = 
+			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry2\" /></MARGRAVE-COMMAND>";		
 		String aReset = "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>";
 		String aShowT = 
 			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"MyTupledQry\" /></MARGRAVE-COMMAND>";
@@ -1702,6 +1714,10 @@ public class MCommunicator
 		handleXMLCommand(aQuery);
 		handleXMLCommand(aShow); // results in a model xml response (or unsat)
 		handleXMLCommand(aReset); // success
+		
+		handleXMLCommand(aQuery2);
+		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
+
 		
 		handleXMLCommand(aTupledQuery);
 		
