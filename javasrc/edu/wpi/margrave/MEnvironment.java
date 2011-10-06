@@ -2169,20 +2169,27 @@ public class MEnvironment
 		Document xmldoc = makeInitialResponse("model");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element modelElement = xmldoc.createElementNS(null, "MODEL");
-		
+				
 		Instance facts = next.getFacts();
 		List<String> annotations = next.getAnnotations();
-		
-		modelElement.setAttribute("size", String.valueOf(facts.universe().size()));
-				
+						
 		// What is the universe?
 		Element universeElement = xmldoc.createElementNS(null, "UNIVERSE");
+		Set<Object> usedAtoms = next.getUsedAtoms();
 		for(Object o : facts.universe())
 		{
-			Element atomElement = xmldoc.createElementNS(null, "ATOM");			
-			atomElement.appendChild(xmldoc.createTextNode(o.toString()));	
-			universeElement.appendChild(atomElement);
+			// Trim out un-used atoms. (Atoms that are in UNIV but in no sort;
+			// this allows us to make only one Kodkod query for each Margrave query, regardless of our size ceiling.)
+			if(usedAtoms.contains(o)) // uses equals() not == 
+			{
+				Element atomElement = xmldoc.createElementNS(null, "ATOM");			
+				atomElement.appendChild(xmldoc.createTextNode(o.toString()));	
+				universeElement.appendChild(atomElement);
+			}
 		}
+		
+		modelElement.setAttribute("size", String.valueOf(usedAtoms.size()));
+		modelElement.setAttribute("original-size", String.valueOf(facts.universe().size()));
 		modelElement.appendChild(universeElement);
 		
 		

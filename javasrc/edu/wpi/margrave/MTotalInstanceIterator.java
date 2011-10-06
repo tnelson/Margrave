@@ -66,6 +66,27 @@ class MSolutionInstance
 		// still passing back the actual objects instead of clones or nonces
 		return annotations;
 	}
+
+	public Set<Object> getUsedAtoms() 
+	{
+		Set<Object> result = new HashSet<Object>();
+		
+		// Check each relation
+		for(Relation r : instance.relations())
+		{
+			TupleSet theTuples = instance.tuples(r);
+			for(Tuple aTuple : theTuples)
+			{
+				for(int iIndex = 0;iIndex < aTuple.arity(); iIndex++)
+				{					
+					result.add(aTuple.atom(iIndex));										
+				}
+			}
+		}
+		
+		return result;
+	}
+
 }
 
 // Old iterator across multiple sizes. Saved just in case. (Will remove soon since this is also in git.) -TN)
@@ -206,10 +227,14 @@ public class MTotalInstanceIterator extends MInstanceIterator
 	}
 	
 	protected void prepareNext()
-	{
-		
-		// We have a real model waiting already from a prior call.
+	{		
+		// We have a real model waiting already from a prior call
 		if(the_next != null)
+			return;
+		
+		// Are we out of models? (iterator contains one "unsat" instance; but calls afterward will
+		// raise an exception if we do not check for this.)
+		if(!kodkodIterator.hasNext())
 			return;
 		
 		Solution sol = kodkodIterator.next(); 
@@ -233,7 +258,9 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		
 		// we got out of the loop by finding a model. Don't forget about it!
 		if(!unsatSol(sol))
-			the_next = new MSolutionInstance(sol.instance(), null);				
+		{
+			the_next = new MSolutionInstance(sol.instance(), null);
+		}
 	}
 
 	protected static boolean unsatSol(Solution sol)
@@ -268,7 +295,6 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		
 		return sols; 		
 	}
-
 	
 }
 
@@ -286,7 +312,7 @@ abstract class MInstanceIterator extends MQueryResult
 	}
 	
 	public boolean hasNext()
-	{			
+	{					
 		// Kodkod returns "unsatisfiable" instances... for purposes of grabbing a real SOLUTION,
 		// those instances are useless. Ignore them.
 		prepareNext();

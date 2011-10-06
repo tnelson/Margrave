@@ -892,14 +892,17 @@ public class MVocab {
 
 		//////////////////////////////////////////////
 		// Every atom is contained in some type.		
-		Expression univunion = Expression.NONE;
+		
+		// Removed this constraint to allow for 1-invocation-per-query 10/11 - TN
+		/*Expression univunion = Expression.NONE;
 		for(MSort aSort : sorts.values())
 		{
 			if(!isSubtype(aSort))
 				univunion = univunion.union(aSort.rel);
 		}
 		axiomSet.add(Expression.UNIV.in(univunion));		
-
+		*/
+		
 		//////////////////////////////////////////////		
 		// All sorts contain their subsorts
 		for (MSort basetype : sorts.values())

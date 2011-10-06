@@ -429,8 +429,6 @@ public class MQuery extends MIDBCollection
 					MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
 					prenexExistential);
 			
-			// Flag pathological cases invalid (univ size 0 for instance)
-			validateSortCeilings(sufficientSortCeilings);
 		//}
 
 		if (debug_verbosity >= 2)
@@ -564,7 +562,10 @@ public class MQuery extends MIDBCollection
 		
 		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
 		
-		// If no useful ceiling provided
+		// Flag pathological cases invalid (univ size 0 for instance)
+		validateSortCeilings(result);
+		
+		// Apply defaults if needed
 		if(result.get("").intValue() < 1)
 			result.put("", MEnvironment.topSortCeilingOfLastResort);
 		
@@ -740,14 +741,14 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.some());
 		MQuery test2 = new MQuery(f, env);
-		if (test2.runQuery().getCeilingUsed() != -1)
+		if (test2.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 2a failed!");
 
 		// Test for other multiplicities that induce existentials (one)
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.one());
 		test2 = new MQuery(f, env);
-		if (test2.runQuery().getCeilingUsed() != -1)
+		if (test2.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 2b failed!");
 
 		// Test for lone (doesn't induce an existential.)
@@ -756,7 +757,7 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.lone());
 		test2 = new MQuery(f, env);
-		if (test2.runQuery().getCeilingUsed() != 0)
+		if (test2.runQuery().getCeilingComputed() != 0)
 			MEnvironment.writeErrLine("Test 2c failed!");
 
 
@@ -764,7 +765,7 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.no());
 		test2 = new MQuery(f, env);
-		if (test2.runQuery().getCeilingUsed() != 0)
+		if (test2.runQuery().getCeilingComputed() != 0)
 			MEnvironment.writeErrLine("Test 2d failed!");
 
 		// So is this (explicit quantifier)
@@ -774,20 +775,20 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		MQuery test3 = new MQuery(f, env);
-		if (test3.runQuery().getCeilingUsed() != -1)
+		if (test3.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 3 failed!");
 
 		// Test multiple ground terms
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.one());
 		MQuery test4 = new MQuery(f, env);
-		if (test4.runQuery().getCeilingUsed() != 1) // should filter out the
+		if (test4.runQuery().getCeilingComputed() != 1) // should filter out the
 													// .one
 			MEnvironment.writeErrLine("Test 4a failed!");
 
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(sort1.some()).or(
 				Formula.TRUE.forSome(x.oneOf(sort1)));
 		test4 = new MQuery(f, env);
-		if (test4.runQuery().getCeilingUsed() != 2) // prunes out the .some, but
+		if (test4.runQuery().getCeilingComputed() != 2) // prunes out the .some, but
 													// still two exists
 			MEnvironment.writeErrLine("Test 4b failed!");
 
@@ -827,14 +828,14 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
 				sort1.some());
 		MQuery test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5a failed!");
 
 		// f:A->B, x:B. One atom.
 		f = x.eq(y).forSome(x.oneOf(sort2)).forAll(y.oneOf(sort1)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 1)
+		if (test5.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 5b failed!");
 
 		// f:A->B, x:B y:B. Two atoms.
@@ -842,7 +843,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z.oneOf(sort2))).and(
 				Formula.TRUE.forSome(z2.oneOf(sort2)));
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5c failed!");
 
 		// f:A->B, x:B, y:B, z:A. Four atoms.
@@ -851,7 +852,7 @@ public class MQuery extends MIDBCollection
 				Formula.TRUE.forSome(z2.oneOf(sort2))).and(
 				Formula.TRUE.forSome(z3.oneOf(sort1)));
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 4)
+		if (test5.runQuery().getCeilingComputed() != 4)
 			MEnvironment.writeErrLine("Test 5d failed!");
 
 		// Special cases:
@@ -859,20 +860,20 @@ public class MQuery extends MIDBCollection
 		// f:A->subA. No ground. Cannot be sure here (HU has zero terms!)
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1));
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 0)
+		if (test5.runQuery().getCeilingComputed() != 0)
 			MEnvironment.writeErrLine("Test 5e failed!");
 
 		// F:subA->A same as above.
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a));
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 0)
+		if (test5.runQuery().getCeilingComputed() != 0)
 			MEnvironment.writeErrLine("Test 5f failed!");
 
 		// Unproductive function and a constant
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 1)
+		if (test5.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 5g failed!");
 
 		// f:subA->A. x:subA. subA <= A.
@@ -881,14 +882,14 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1a)).and(
 				sort1a.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5h failed!");
 
 		// f:A->subA. x:A. (inf; f obviously cyclic)
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1)).and(
 				sort1.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != -1)
+		if (test5.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 5i failed!");
 
 		// f:A->subA x:subA. (inf; f obviously cyclic, and subA is a subtype of
@@ -897,7 +898,7 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort1a)).forAll(y.oneOf(sort1)).and(
 				sort1a.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != -1)
+		if (test5.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 5j failed!");
 
 		// cycle detection with overlapping types
@@ -908,7 +909,7 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a)).and(
 				sort2a.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5k failed!");
 
 		// f:Sort2a->Sort2b. x:2b. Func is unproductive. Only 1 term (the
@@ -916,14 +917,14 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a)).and(
 				sort2b.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 1)
+		if (test5.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 5l failed!");
 
 		// f:Sort2a->Sort2b. x:2. Another unproductive function.
 		f = x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a)).and(
 				sort2.some());
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 1)
+		if (test5.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 5m failed!");
 
 		// make sure we have distinct functions even if declared identically.
@@ -931,7 +932,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(z.oneOf(sort1)).and(
 				Formula.TRUE.forSome(z.oneOf(sort1)));
 		test5 = new MQuery(f, env);
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5n failed!");
 
 		// what if we have more than one level of identity? Make sure we get 2
@@ -952,7 +953,7 @@ public class MQuery extends MIDBCollection
 
 		test5 = new MQuery(f, env);
 		// test5.debug_verbosity = 3;
-		if (test5.runQuery().getCeilingUsed() != 2)
+		if (test5.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 5o failed!");
 
 		// Term ids in the above must be *different*
@@ -1006,7 +1007,7 @@ public class MQuery extends MIDBCollection
 				x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2bx))).and(
 				sort2.some()).and(sort2bx.some());
 		MQuery test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 2)
+		if (test6.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 6a failed!");
 
 		// Non-infinite with non trivial function combinations
@@ -1018,7 +1019,7 @@ public class MQuery extends MIDBCollection
 				x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2c))).and(
 				sort1.some()).and(sort2.some());
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 4)
+		if (test6.runQuery().getCeilingComputed() != 4)
 			MEnvironment.writeErrLine("Test 6b failed!");
 
 		// f:1->2c. g:2a->2b. x:1
@@ -1027,7 +1028,7 @@ public class MQuery extends MIDBCollection
 				x.eq(y).forSome(x.oneOf(sort2b)).forAll(y.oneOf(sort2a))).and(
 				sort1.some());
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 2)
+		if (test6.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 6c failed!");
 
 		// Cycle of longer length
@@ -1037,7 +1038,7 @@ public class MQuery extends MIDBCollection
 				x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2c))).and(
 				sort1.some());
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != -1)
+		if (test6.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 6d failed!");
 
 		// Test more exotic multiplicity locations
@@ -1048,33 +1049,33 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort2ax)).forAll(y.oneOf(sort1)).and(
 				sort2bx.some()).and(sort1.lone());
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 1)
+		if (test6.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 6e failed!");
 
 		// not no
 		// not no(1) -- should give us 1 atom.
 		f = sort1.no().not();
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 1)
+		if (test6.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 6f failed!");
 
 		// not lone -- should give us two atoms
 		f = sort1.lone().not();
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 2)
+		if (test6.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 6g failed!");
 
 		// not one -- same thing (since terms are generated worst-case)
 		f = sort1.one().not();
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 2)
+		if (test6.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 6h failed!");
 
 		// not one encased in a universal -- two functions induced. Add a ground
 		// term and should get *2* plus that ground.
 		f = sort1.one().not().forAll(x.oneOf(sort2)).and(sort2.one());
 		test6 = new MQuery(f, env);
-		if (test6.runQuery().getCeilingUsed() != 3)
+		if (test6.runQuery().getCeilingComputed() != 3)
 			MEnvironment.writeErrLine("Test 6i failed!");
 
 		// We use the hash code of the nodes (Decl, not the variable!) to
@@ -1086,7 +1087,7 @@ public class MQuery extends MIDBCollection
 				.and(sort2.some());
 		test6 = new MQuery(f, env);
 		// test6.debug_show_all_formula = true;
-		if (test6.runQuery().getCeilingUsed() != 3)
+		if (test6.runQuery().getCeilingComputed() != 3)
 			MEnvironment.writeErrLine("Test 6j (simulated alpha renaming) failed!");
 
 		// *********************************************************************************
@@ -1134,14 +1135,14 @@ public class MQuery extends MIDBCollection
 		f = x.eq(y).forSome(x.oneOf(sort2a)).forAll(y.oneOf(sort2a)).and(
 				sort2.some());
 		MQuery test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != 1)
+		if (test7.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 7a failed!");
 
 		// Since 2axx <= 2, infinitely many terms
 		f = x.eq(y).forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2)).and(
 				sort2.some());
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != -1)
+		if (test7.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 7b failed!");
 
 		// Harmless
@@ -1149,7 +1150,7 @@ public class MQuery extends MIDBCollection
 				sort2b.some());
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
-		if (test7.runQuery().getCeilingUsed() != 2)
+		if (test7.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 7c failed!");
 
 		// Make sure that "coverage" logic works correctly
@@ -1167,14 +1168,14 @@ public class MQuery extends MIDBCollection
 				sort1.one());
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
-		if (test7.runQuery().getCeilingUsed() != -1)
+		if (test7.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 7e failed!");
 
 		// But don't be overeager (no starter term)
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2));
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
-		if (test7.runQuery().getCeilingUsed() != 0)
+		if (test7.runQuery().getCeilingComputed() != 0)
 			MEnvironment.writeErrLine("Test 7e(1) failed!");
 
 		// 2 "one"s in the same sort. We want to be smart enough to detect that
@@ -1183,7 +1184,7 @@ public class MQuery extends MIDBCollection
 		// for the total-function relation.)
 		f = sort1.one().and(sort1.one());
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != 2)
+		if (test7.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 7f failed!");
 
 		// Don't want to count 2 explicit existentials as covering each other!
@@ -1193,14 +1194,14 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).and(
 				Formula.TRUE.forSome(y.oneOf(sort1)));
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != 4)
+		if (test7.runQuery().getCeilingComputed() != 4)
 			MEnvironment.writeErrLine("Test 7g failed!");
 
 		// Sub coverage
 		f = sort2.one().and(sort2a.one());
 		test7 = new MQuery(f, env);
 		// test7.debug_show_all_formula = true;
-		if (test7.runQuery().getCeilingUsed() != 1)
+		if (test7.runQuery().getCeilingComputed() != 1)
 			MEnvironment.writeErrLine("Test 7h failed!");
 
 		// Cycles caused by interaction between a total function and something
@@ -1212,7 +1213,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2)).and(
 				sort1.some());
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != -1)
+		if (test7.runQuery().getCeilingComputed() != -1)
 			MEnvironment.writeErrLine("Test 7i failed!");
 
 		// functions induced by "total function" constraints look like this:
@@ -1228,7 +1229,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort1)).forAll(y.oneOf(sort2cx)).and(
 				sort2cx.some());
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != 3)
+		if (test7.runQuery().getCeilingComputed() != 3)
 			MEnvironment.writeErrLine("Test 8a failed!");
 
 		// But add 2axx subset of 2bxx, and they must be disjoint.
@@ -1242,7 +1243,7 @@ public class MQuery extends MIDBCollection
 				.and(sort2cx.some());
 		test7 = new MQuery(f, env);
 		// test7.debug_verbosity = 2;
-		if (test7.runQuery().getCeilingUsed() != 2)
+		if (test7.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 8b failed!");
 
 		// MEnvironment.writeErrLine(env.buildSuperSetSet(env.getType("sort2axx")));
@@ -1260,7 +1261,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2cx))
 				.and(sort2cx.some());
 		test7 = new MQuery(f, env);
-		if (test7.runQuery().getCeilingUsed() != 2)
+		if (test7.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 8c failed!");
 
 		// *********************************************************************************
@@ -1297,7 +1298,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort3)).forAll(y.oneOf(sort2)).and(
 				z.in(sort2).forSome(z.oneOf(sort1)));
 		MQuery test9 = new MQuery(f, env);
-		if (test9.runQuery().getCeilingUsed() != 2)
+		if (test9.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 9a failed!");
 
 		// Same thing, using subsorts (this is really the same test as 9a,
@@ -1306,7 +1307,7 @@ public class MQuery extends MIDBCollection
 		f = Formula.TRUE.forSome(x.oneOf(sort1c)).forAll(y.oneOf(sort1b)).and(
 				z.in(sort1b).forSome(z.oneOf(sort1a)));
 		test9 = new MQuery(f, env);
-		if (test9.runQuery().getCeilingUsed() != 2)
+		if (test9.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 9b failed!");
 
 		MEnvironment.writeErrLine("----- End MQuery Tests -----");

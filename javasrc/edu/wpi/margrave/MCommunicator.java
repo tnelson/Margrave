@@ -1649,13 +1649,15 @@ public class MCommunicator
 // aQuery unsat since publish gives us types of x, y that don't fit the query. 		
 		
 		String aQuery2 = 
-			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry2\"><CONDITION><OR>" +
-			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
-			"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
-			"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry2\"><CONDITION>" +
+			"<AND><NOT><ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></NOT>" +
+			"<EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>"+
+			"<EQUALS><VARIABLE-TERM id=\"x\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></EQUALS></AND></CONDITION>" +
 			"<PUBLISH><VARIABLE-DECLARATION sort=\"U\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"U\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 		
+// aQuery2 sat
 		
+
 		String aTupledQuery = 
 			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
 			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
@@ -1713,9 +1715,13 @@ public class MCommunicator
 
 		handleXMLCommand(aQuery);
 		handleXMLCommand(aShow); // results in a model xml response (or unsat)
+		handleXMLCommand(aShow); // test MULTIPLE unsat in a row (don't get iterator exception)
 		handleXMLCommand(aReset); // success
 		
 		handleXMLCommand(aQuery2);
+		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
+		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
+		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
 		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
 
 		
