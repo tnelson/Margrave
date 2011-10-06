@@ -146,47 +146,47 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// If we are missing some IDB names, re-compile the query with those names axiomatized
 		// and re-invoke this procedure for the results of that query.
 		/////////////////////////////////////////////////////////////
-//		if((fromContext.forQuery instanceof MInternalTupledQuery))
+//		if(!(fromContext.forQuery instanceof MInternalTupledQuery))
 //		{
-//			Set<String>missingRels = findMissingRelations(candidates); 
-//			missingRels.addAll(findMissingRelations(cases));
-//					
-//			if(missingRels.size() > 0)
-//			{
-//				MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
-//				MCommunicator.writeToLog("\nMissing: "+missingRels);
-//				MQuery newQuery = new MQuery(fromContext.forQuery);
-//				newQuery.addIDBOutputs(missingRels);			
-//				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
-//				
-//				MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
-//				return newFinder.getRealizedFormulas(candidates, cases);
-//			}			
-//			// otherwise, continue as normal: we have all the relations we need
-//			
+			Set<String>missingRels = findMissingRelations(candidates); 
+			missingRels.addAll(findMissingRelations(cases));
+					
+			if(missingRels.size() > 0)
+			{
+				MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
+				MCommunicator.writeToLog("\nMissing: "+missingRels);
+				MQuery newQuery = new MQuery(fromContext.forQuery);
+				newQuery.addIDBOutputs(missingRels);			
+				MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
+				
+				MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
+				return newFinder.getRealizedFormulas(candidates, cases);
+			}			
+			// otherwise, continue as normal: we have all the relations we need
+			
 //		}
 //		else
 //		{
-			Map<String, Set<List<String>>> missingFmlas1 = findMissingFmlasTupled(candidates);
-			Map<String, Set<List<String>>> missingFmlas2 = findMissingFmlasTupled(cases);
-			if(missingFmlas1.size() + missingFmlas2.size() > 0)
-			{
-				MQuery newQuery = new MQuery(fromContext.forQuery);
-				for(Map.Entry<String, Set<List<String>>> e : missingFmlas1.entrySet())
-					for(List<String> lst : e.getValue())
-						newQuery.addIDBOutputIndexing(e.getKey(), lst);
-				for(Map.Entry<String, Set<List<String>>> e : missingFmlas2.entrySet())
-					for(List<String> lst : e.getValue())
-						newQuery.addIDBOutputIndexing(e.getKey(), lst);
-					
-				return newQuery.runQuery().getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
-			}				
-			
-			// Convert to indexed form
-			List<String> indexedCandidates = applyIndexing(candidates, originalPreds, originalIndexing);
-			List<String> indexedCases = applyIndexing(cases, originalPreds, originalIndexing);
-			
-			
+//			Map<String, Set<List<String>>> missingFmlas1 = findMissingFmlasTupled(candidates);
+//			Map<String, Set<List<String>>> missingFmlas2 = findMissingFmlasTupled(cases);
+//			if(missingFmlas1.size() + missingFmlas2.size() > 0)
+//			{
+//				MQuery newQuery = new MQuery(fromContext.forQuery);
+//				for(Map.Entry<String, Set<List<String>>> e : missingFmlas1.entrySet())
+//					for(List<String> lst : e.getValue())
+//						newQuery.addIDBOutputIndexing(e.getKey(), lst);
+//				for(Map.Entry<String, Set<List<String>>> e : missingFmlas2.entrySet())
+//					for(List<String> lst : e.getValue())
+//						newQuery.addIDBOutputIndexing(e.getKey(), lst);
+//					
+//				return newQuery.runQuery().getRealizedFormulaFinder().getRealizedFormulas(candidates, cases);
+//			}				
+//			
+//			// Convert to indexed form
+//			List<String> indexedCandidates = applyIndexing(candidates, originalPreds, originalIndexing);
+//			List<String> indexedCases = applyIndexing(cases, originalPreds, originalIndexing);
+//			
+//			
 			// TODO convert to fmlas. right now nothing will happen and tupling+SR is unavailable
 		//} 
 						

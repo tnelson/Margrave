@@ -424,9 +424,13 @@ public class MQuery extends MIDBCollection
 			PrenexCheckV pren = new PrenexCheckV();
 			boolean prenexExistential = myQueryFormula.accept(pren);
 			
+			// Run FormulaSigInfo, counting sort ceilings
 			sufficientSortCeilings = getHerbrandUniverseCeilingFor(
 					MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
 					prenexExistential);
+			
+			// Flag pathological cases invalid (univ size 0 for instance)
+			validateSortCeilings(sufficientSortCeilings);
 		//}
 
 		if (debug_verbosity >= 2)
@@ -470,7 +474,7 @@ public class MQuery extends MIDBCollection
 					+ "ms.");
 		}
 
-
+		// Resolve computed values with user-provided values (and defaults if needed)
 		Map<String, Integer> useTheseSortCeilings = resolveSortCeilings(sufficientSortCeilings);
 		
 		return new MPreparedQueryContext(this, queryWithAxioms, 
@@ -478,6 +482,21 @@ public class MQuery extends MIDBCollection
 				sufficientSortCeilings, msPreprocessingTime,
 				cputime, 0);
 
+	}
+
+	private void validateSortCeilings(Map<String, Integer> sufficientSortCeilings) 
+	{
+		// If we have an empty universe, invalidate the results and use 
+		// user-supplied ceiling, just as if there was an infinite universe.
+		if(!sufficientSortCeilings.containsKey("") ||
+			sufficientSortCeilings.get("").intValue() == 0)
+		{
+			for(String sortName : sufficientSortCeilings.keySet())
+			{
+				sufficientSortCeilings.put(sortName, -1);
+			}
+		}
+		
 	}
 
 	/**
@@ -544,6 +563,10 @@ public class MQuery extends MIDBCollection
 		// TODO
 		
 		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
+		
+		// If no useful ceiling provided
+		if(result.get("").intValue() < 1)
+			result.put("", MEnvironment.topSortCeilingOfLastResort);
 		
 		return result;
 		
