@@ -60,9 +60,10 @@
 
 
 ;****************************************************************
-; Structs used to store information about a vocabulary or policy
-; This data is also stored on the Java side, but it is smart to
-; keep it here, too.
+; Structs used to store information about policies, theories, etc.
+; This data is also stored on the Java side, but we duplicate it
+; here in order to produce helpful error messages and facilitate
+; reflection. (E.g. "What sorts are available in theory X?")
 
 
 (define-struct/contract m-vocabulary 

@@ -169,16 +169,19 @@
 
 (define-struct/contract m-predicate
   ([name string?]
-   [arity (listof string?)]))
+   [arity (listof string?)]
+   [cmd string?]))
 
 (define-struct/contract m-constant
   ([name string?]
-   [type string?]))
+   [type string?]
+   [cmd string?]))
 
 (define-struct/contract m-function
   ([name string?]
    [result string?]
-   [arity (listof string?)]))
+   [arity (listof string?)]
+   [cmd string?]))
 
 (define (m-formula? sexpr)
   (match sexpr 
