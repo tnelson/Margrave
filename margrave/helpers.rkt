@@ -162,3 +162,39 @@
   (if p
       p
       'same))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helpers for formula structures and commands that use formulas
+
+(define-struct/contract m-predicate
+  ([name string?]
+   [arity (listof string?)]))
+
+(define-struct/contract m-constant
+  ([name string?]
+   [type string?]))
+
+(define-struct/contract m-function
+  ([name string?]
+   [result string?]
+   [arity (listof string?)]))
+
+(define (m-formula? sexpr)
+  (match sexpr 
+    ['true #t]
+    ['false #t]
+    [`(= ,t1 ,t2) #t]
+    [`(,(list pids ... idbname) ,@(list terms ...)) #t]
+    [`(,idbname ,@(list terms ...)) #t]    
+    [`(and ,@(list args ...)) (andmap m-formula? args)]
+    [`(or ,@(list args ...)) (andmap m-formula? args)]
+    [`(implies ,arg1 ,arg2) (and (m-formula? arg1) (m-formula? arg2))]   
+    [`(iff ,arg1 ,arg2) (and (m-formula? arg1) (m-formula? arg2))]   
+    [`(not ,arg) (m-formula? arg)]   
+    [`(forall ,vname ,sname ,fmla) (m-formula? fmla)]   
+    [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
+    [else #f]))
+
+; contract: not empty?, must be list?
+

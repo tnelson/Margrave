@@ -453,6 +453,40 @@ gmarceau
 
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))
+        ;[(equal? op 'forall) (xml-make-forall (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
+
+(define (handle-fmla-sexpr sexpr)
+  (match sexpr
+    ['true (xml-make-true)]
+    ['false (xml-make-false)]                                            
+    [`(= ,t1 ,t2) (xml-make-equals-formula (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
+    [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
+     (xml-make-atomic-formula pids-and-idbname
+                              (map handle-term-sexpr terms))]
+    [`(,idbname ,@(list terms ...)) 
+     (xml-make-atomic-formula (list idbname)
+                              (map handle-term-sexpr terms))]    
+
+    [`(and ,@(list args ...)) (xml-make-and* (map handle-fmla-sexpr args))]
+    [`(or ,@(list args ...)) (xml-make-or* (map handle-fmla-sexpr args))]
+    [`(implies ,arg1 ,arg2) (xml-make-implies (handle-fmla-sexpr arg1) (handle-fmla-sexpr arg2))]   
+    [`(iff ,arg1 ,arg2) (xml-make-iff (handle-fmla-sexpr arg1) (handle-fmla-sexpr arg2))]   
+    [`(not ,arg) (xml-make-not (handle-fmla-sexpr arg))]   
+    [`(forall ,vname ,sname ,fmla)
+     (xml-make-forall vname sname (handle-fmla-sexpr fmla))]   
+    [`(exists ,vname ,sname ,fmla)
+     (xml-make-exists vname sname (handle-fmla-sexpr fmla))]  
+    
+    [else    (raise-user-error (format "Formula s-expression not of expected form: ~a.~n" sexpr))]))
+
+(define (handle-term-sexpr sexpr)
+  (cond [(and (list? sexpr) (> (length sexpr) 1))
+         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
+        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
+         (xml-make-constant-term (symbol->string sexpr))]
+        [else ; variable
+         (xml-make-variable-term (symbol->string sexpr))]))
+
 
 (define/contract
   (m-let qryid sexpr-vars sexpr-fmla)
@@ -481,36 +515,6 @@ gmarceau
   (define xml-response (send-and-receive-xml the-xml))  
   (equal? "explore-result" (get-response-type xml-response)))
   
-
-  
-
-; contract: not empty?, must be list?
-(define (handle-fmla-sexpr sexpr)
-  (define op (first sexpr))
-  (cond [(equal? op 'and) (xml-make-and* (map handle-fmla-sexpr (rest sexpr)))]
-        [(equal? op 'or) (xml-make-or* (map handle-fmla-sexpr (rest sexpr)))]
-        [(equal? op 'not) (xml-make-not (handle-fmla-sexpr (second sexpr)))]
-        [(equal? op 'implies) (xml-make-implies (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
-        [(equal? op 'iff) (xml-make-iff (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
-        [(equal? op 'forall) (xml-make-forall (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
-        [(equal? op 'exists) (xml-make-exists (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
-
-        ;equality
-        [(equal? op '=) (xml-make-equals-formula (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]        
-        ;idb
-        [(list? op) (xml-make-atomic-formula (first sexpr)
-                                             (map handle-term-sexpr (rest sexpr)))]
-        ;edb
-        [else (xml-make-atomic-formula (list (first sexpr))
-                                       (map handle-term-sexpr (rest sexpr)))  ]))
-
-(define (handle-term-sexpr sexpr)
-  (cond [(and (list? sexpr) (> (length sexpr) 1))
-         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
-        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
-         (xml-make-constant-term (symbol->string sexpr))]
-        [else ; variable
-         (xml-make-variable-term (symbol->string sexpr))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

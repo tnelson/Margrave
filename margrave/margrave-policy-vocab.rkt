@@ -64,34 +64,25 @@
 ; This data is also stored on the Java side, but it is smart to
 ; keep it here, too.
 
-#|
-(define-struct/contract m-predicate
-  ([name string?]
-   [arity (listof string?)]))
-
-(define-struct/contract m-constant
-  ([name string?]
-   [type string?]))
-
-(define-struct/contract m-function
-  ([name string?]
-   [result-type string?]
-   [arity (listof string?)]))
 
 (define-struct/contract m-vocabulary 
-  ([name string?] 
-   [cmds list?] 
+  ([cmds list?] 
    [types (listof string?)] 
    [type-children hash?] ; string -> (list string) of immediate children
    [predicates (listof m-predicate?)] 
    [constants (listof m-constant?)] 
    [functions (listof m-function?)]))
   
-(define-struct/contract m-policy
+(define-struct/contract m-theory
   ([name string?]
    [vocab m-vocabulary?]
+   [axioms (listof m-formula?)]))
+
+(define-struct/contract m-policy
+  ([bound-id string?]
+   [theory m-theory?]
    [rule-names (listof string?)]))
-|#
+
 
 ;****************************************************************
 
@@ -479,7 +470,46 @@
                  ,my-commands
                  ,child-polnames
                  ))))))))
-                           
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; A Margrave theory contains a vocabulary and axioms constraining the 
+; models of the vocabulary.
+; Syntax (Theory (Vocabulary ... ) (Axioms ...))
+
+
+(define-syntax (Theory stx)
+  (syntax-case stx []
+    ([_ theoryname myvocab myaxioms ]
+     
+     (let ()
+       
+       (define vocabulary-result 'myvocab)
+       (define vocabulary-cmds empty)              
+       (define types-names empty)
+       (define predicates-names-and-arities empty)
+       (define constants-names empty)
+       (define functions-names-and-arities empty)
+       
+       (define axioms-cmds empty)       
+       
+       
+       (with-syntax ([xml-list (append vocabulary-cmds
+                                       axioms-cmds)]
+                     [theory-name (symbol->string 'theoryname)]                     
+                     [types-names types-names]
+                     [predicates-names-and-arities predicates-names-and-arities]
+                     [constants-names constants-names]
+                     [functions-names-and-arities functions-names-and-arities])                  
+         
+         
+         (m-theory "mytname" 
+                   (m-vocabulary empty empty #hash() empty empty empty)
+                   empty)
+         
+         ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
+         (syntax/loc stx '(theory-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
