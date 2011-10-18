@@ -61,7 +61,11 @@
          resolve-java-path!
          resolve-custom-vector-y
          resolve-custom-vector-n
-         define-custom-vector)
+         define-custom-vector
+         
+         cached-policies
+         cached-vocabularies
+         cached-theories)
 
 
 ;****************************************************************
@@ -69,6 +73,10 @@
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
 (define margrave-version "3.1-alpha")
+
+(define cached-policies #hash())
+(define cached-vocabularies #hash())
+(define cached-theories #hash())
 
 ;****************************************************************
 ;;Java Connection

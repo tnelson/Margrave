@@ -67,7 +67,7 @@
 
 
 (define-struct/contract m-vocabulary 
-  ([cmds list?] 
+  ([types-cmds list?] 
    [types (listof string?)] 
    [type-children hash?] ; string -> (list string) of immediate children
    [predicates (listof m-predicate?)] 
@@ -77,12 +77,14 @@
 (define-struct/contract m-theory
   ([name string?]
    [vocab m-vocabulary?]
+   [axioms-cmds list?]
    [axioms (listof m-formula?)]))
 
 (define-struct/contract m-policy
   ([bound-id string?]
    [theory m-theory?]
-   [rule-names (listof string?)]))
+   [rule-names (listof string?)]
+   [cmds list?]))
 
 
 ;****************************************************************
@@ -490,7 +492,7 @@
        (define vocabulary-cmds empty)              
        (define types-names empty)
        (define predicates-names-and-arities empty)
-       (define constants-names empty)
+       (define constants-names-and-types empty)
        (define functions-names-and-arities empty)
        
        (define axioms-cmds empty)       
@@ -501,16 +503,16 @@
                      [theory-name (symbol->string 'theoryname)]                     
                      [types-names types-names]
                      [predicates-names-and-arities predicates-names-and-arities]
-                     [constants-names constants-names]
+                     [constants-names-and-types constants-names-and-types]
                      [functions-names-and-arities functions-names-and-arities])                  
          
          
-         (m-theory "mytname" 
-                   (m-vocabulary empty empty #hash() empty empty empty)
-                   empty)
+         ;(m-theory "mytname" 
+         ;          (m-vocabulary empty empty #hash() empty empty empty)
+         ;          empty)
          
          ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
-         (syntax/loc stx '(theory-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)))))))
+         (syntax/loc stx '(theory-name xml-list types-names predicates-names-and-arities constants-names-and-types functions-names-and-arities)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -709,7 +711,7 @@
                  (syntax-case const [Constant]                    
                    [(Constant 'cname crel) (and (lower-id-syn? (syntax cname))
                                                (is-valid-type? (syntax crel)))  
-                                          #`( cname
+                                          #`( (cname crel)
                                               #,(add-constant (syntax myvocabname) (syntax cname) (syntax crel)))] 
                    
                    [(Constant 'cname crel) (not (lower-id-syn? (syntax cname)))
@@ -721,9 +723,10 @@
                (map handle-constant the-constants))))
 
        ; may be empty
-       (define constants-names (if (empty? constants-result)
-                                   empty
-                                   (map (compose symbol->string/safe first syntax->datum) constants-result)))      
+       (define constants-names-and-types (if (empty? constants-result)
+                                             empty
+                                             (map (compose symbol->string/safe first syntax->datum) constants-result))) 
+       (define constants-names (map first constants-names-and-types))
        
        (define constants-cmds (if (empty? constants-result)
                                            empty
@@ -822,11 +825,11 @@
                      [vocab-name (symbol->string vocab-name)]                     
                      [types-names types-names]
                      [predicates-names-and-arities predicates-names-and-arities]
-                     [constants-names constants-names]
+                     [constants-names-and-types constants-names-and-types]
                      [functions-names-and-arities functions-names-and-arities])                  
          
          ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
-         (syntax/loc stx '(vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)))))))
+         (syntax/loc stx '(vocab-name xml-list types-names predicates-names-and-arities constants-names-and-types functions-names-and-arities)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
