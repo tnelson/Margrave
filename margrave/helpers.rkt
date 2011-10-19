@@ -2,7 +2,8 @@
 
 (require srfi/13                  
          syntax/readerr
-         rackunit)
+         rackunit
+         xml)
 
 (provide (all-defined-out))
 
@@ -201,6 +202,36 @@
     [`(forall ,vname ,sname ,fmla) (m-formula? fmla)]   
     [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
     [else #f]))
+
+
+;****************************************************************
+; Structs used to store information about policies, theories, etc.
+; This data is also stored on the Java side, but we duplicate it
+; here in order to produce helpful error messages and facilitate
+; reflection. (E.g. "What sorts are available in theory X?")
+
+(define-struct/contract m-vocabulary  
+  ([name string?]
+   [xml (listof xexpr?)]
+   [types (listof m-type?)] 
+   [predicates (listof m-predicate?)] 
+   [constants (listof m-constant?)] 
+   [functions (listof m-function?)]))
+
+
+(define-struct/contract m-theory
+  ([name string?]
+   [xml (listof xexpr?)]
+   [vocab m-vocabulary?]
+   [axioms-cmds list?]
+   [axioms (listof m-formula?)]))
+
+(define-struct/contract m-policy
+  ([bound-id string?]
+   [theory m-theory?]
+   [rule-names (listof string?)]
+   [cmds list?]))
+
 
 ; Remove duplicate types, but combine child names.
 ; Child names who don't have their own constructor are given one.

@@ -25,7 +25,7 @@
  (for-syntax (only-in srfi/13 string-contains)
              (file "helpers.rkt")                     
              (file "margrave-xml.rkt")
-             
+             xml
              racket/list
              racket/match
              racket/string
@@ -59,32 +59,6 @@
 (define-for-syntax err-invalid-type-decl "Type declaration was not valid.")
 
 
-;****************************************************************
-; Structs used to store information about policies, theories, etc.
-; This data is also stored on the Java side, but we duplicate it
-; here in order to produce helpful error messages and facilitate
-; reflection. (E.g. "What sorts are available in theory X?")
-
-
-(define-struct/contract m-vocabulary 
-  ([types-cmds list?] 
-   [types (listof string?)] 
-   [type-children hash?] ; string -> (list string) of immediate children
-   [predicates (listof m-predicate?)] 
-   [constants (listof m-constant?)] 
-   [functions (listof m-function?)]))
-  
-(define-struct/contract m-theory
-  ([name string?]
-   [vocab m-vocabulary?]
-   [axioms-cmds list?]
-   [axioms (listof m-formula?)]))
-
-(define-struct/contract m-policy
-  ([bound-id string?]
-   [theory m-theory?]
-   [rule-names (listof string?)]
-   [cmds list?]))
 
 
 ;****************************************************************
@@ -222,7 +196,6 @@
 ; Takes formula syntax and returns XML for the formula.
 ; todo: detect valid vars, sorts, etc.
 (define-for-syntax (handle-formula fmla)         
-  (printf "~a~n" fmla)
   (syntax-case fmla [and or not implies iff exists forall = true isa] 
     [true (xml-make-true-condition)]
     [(= v1 v2) (xml-make-equals-formula (handle-term #'v1) (handle-term #'v2))]
@@ -798,29 +771,19 @@
 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
-       ; Return a list containing the vocabname, and then a list of commands to be sent to java
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.
        ; Also include info on what types are valid, etc. for error generation in the policy macro
        
-       (with-syntax ([xml-list (append types-cmds                                        
-                                       predicates-cmds
-                                       constants-cmds
-                                       functions-cmds)]
-                     [vocab-name vocab-name-string]                     
-                     [types-list types-result]
-                     [predicates-list predicates-result]
-                     [constants-list constants-result]
-                     [functions-list functions-result]
-                     )
-         
-         ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
-         (syntax/loc stx '(vocab-name xml-list 
-                                      types-list 
-                                      predicates-list 
-                                      constants-list 
-                                      functions-list
-                                      )))))))
+       (define xml-list (append types-cmds                                        
+                                predicates-cmds
+                                constants-cmds
+                                functions-cmds))
+       
+       ; (Vocab ...) expands to #(struct:m-vocabulary ...)
+       (with-syntax ([the-vocab (m-vocabulary vocab-name-string xml-list
+                                              types-result predicates-result constants-result functions-result)])                  
+         (syntax/loc stx the-vocab))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
