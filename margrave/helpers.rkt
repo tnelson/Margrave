@@ -182,9 +182,9 @@
    [type string?]))
 
 (define-struct/contract m-function
-  ([name string?]
-   [result string?]
-   [arity (listof string?)]))
+  ([name string?]   
+   [arity (listof string?)]
+   [result string?]))
 
 (define (m-formula? sexpr)
   (match sexpr 

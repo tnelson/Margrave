@@ -471,8 +471,8 @@ gmarceau
     [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
      (xml-make-atomic-formula pids-and-idbname
                               (map handle-term-sexpr terms))]
-    [`(,idbname ,@(list terms ...)) 
-     (xml-make-atomic-formula (list idbname)
+    [`(,edbname ,@(list terms ...)) 
+     (xml-make-atomic-formula (list edbname)
                               (map handle-term-sexpr terms))]    
 
     [`(and ,@(list args ...)) (xml-make-and* (map handle-fmla-sexpr args))]

@@ -222,6 +222,7 @@
 ; Takes formula syntax and returns XML for the formula.
 ; todo: detect valid vars, sorts, etc.
 (define-for-syntax (handle-formula fmla)         
+  (printf "~a~n" fmla)
   (syntax-case fmla [and or not implies iff exists forall = true isa] 
     [true (xml-make-true-condition)]
     [(= v1 v2) (xml-make-equals-formula (handle-term #'v1) (handle-term #'v2))]
@@ -238,16 +239,30 @@
                                            (handle-formula #'f))]
     [(isa var type) (xml-make-isa-formula #'var #'type)]
     
-    ; last, so it doesn't supercede keywords
-    ; P.r or r
-    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
-                               (dotted-id-syn? #'dottedpred))
-                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
-                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
-    ; A
+    ; IDB
+    [( (idbcomponent ...) t0 t ...) 
+     (xml-make-atomic-formula #'(idbcomponent ...)
+                              (map handle-term (syntax->list #'(t0 t ...))))]
+    ; EDB (rel) will be lowercase
+    [(relname t0 t ...) (lower-id-syn? #'relname)
+                        (xml-make-atomic-formula #'(list rename)
+                                                 (map handle-term (syntax->list #'(t0 t ...))))]
+    
+    ; EDB (sort) will be capitalized
     [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
                       (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
-    [else (raise-syntax-error 'Policy "Invalid formula type." #f #f (list fmla))]))
+
+    
+    
+    ; REMOVE THIS: old dotted notation. terrible idea.
+    ; last, so it doesn't supercede keywords
+    ; P.r or r
+    ;[(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
+    ;                           (dotted-id-syn? #'dottedpred))
+    ;                       (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
+    ;                                                (map handle-term (syntax->list #'(t0 t ...)))) ]
+
+    [else (raise-syntax-error 'Policy "Invalid formula." #f #f (list fmla))]))
 
 
 ; Used so that rules can be written nicely, e.g.
@@ -683,21 +698,15 @@
              empty
              (let ()
                (define the-constants-clause (first the-constants-clauses))
-               (define the-constants (rest (syntax-e the-constants-clause)))
-               
-               (define (add-constant vocab-syn constname-syn type-syn)
-                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-constant-decl (symbol->string (syntax->datum constname-syn)) 
-                                                                       (symbol->string (syntax->datum type-syn))))))
-                 
+               (define the-constants (rest (syntax-e the-constants-clause)))                                
                
                (define (handle-constant const)
                  ; No colon. Just (Constant 'a A)
                  (syntax-case const [Constant]                    
                    [(Constant 'cname crel) (and (lower-id-syn? (syntax cname))
                                                (is-valid-type? (syntax crel)))  
-                                          #`( (cname crel)
-                                              #,(add-constant (syntax myvocabname) (syntax cname) (syntax crel)))] 
+                                          (m-constant (syntax->string #'cname)
+                                                      (syntax->string #'crel))] 
                    
                    [(Constant 'cname crel) (not (lower-id-syn? (syntax cname)))
                                  (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
@@ -708,27 +717,28 @@
                (map handle-constant the-constants))))
 
        ; may be empty
-       (define constants-names-and-types (if (empty? constants-result)
-                                             empty
-                                             (map (compose symbol->string/safe first syntax->datum) constants-result))) 
-       (define constants-names (map first constants-names-and-types))
        
        (define constants-cmds (if (empty? constants-result)
-                                           empty
-                                           (map (compose second syntax->datum) constants-result)))
+                                  empty
+                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result)))
        
-              
-       ; Used later to discover whether a constant is being used properly
-       (define (is-valid-const? constname-syn)
-         (define const-name-str (symbol->string/safe (syntax->datum constname-syn)))   
-         ; todo: There's a better func than filter for this. what was it called? -TN
-         (define found-const (filter (lambda (c) (equal? c const-name-str)) constants-names))
-         
-         (when (empty? found-const)
-           (raise-syntax-error 'Vocab 
-                               (format "Invalid declaration. The constant ~a was not declared." const-name-str)
-                               #f #f (list constname-syn) ))                                        
-         #t)
+       
+;       (define constants-names-and-types (if (empty? constants-result)
+;                                             empty
+;                                             (map (lambda (c) (list (m-constant-name c) (m-constant-type c))) constants-result))) 
+;       (define constants-names (map m-constant-name constants-result))
+;                            
+;       ; Used later to discover whether a constant is being used properly
+;       (define (is-valid-const? constname-syn)
+;         (define const-name-str (symbol->string/safe (syntax->datum constname-syn)))   
+;         ; todo: There's a better func than filter for this. what was it called? -TN
+;         (define found-const (filter (lambda (c) (equal? c const-name-str)) constants-names))
+;         
+;         (when (empty? found-const)
+;           (raise-syntax-error 'Vocab 
+;                               (format "Invalid declaration. The constant ~a was not declared." const-name-str)
+;                               #f #f (list constname-syn) ))                                        
+;         #t)
 
 
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -741,60 +751,52 @@
              empty
              (let ()
                (define the-functions-clause (first the-functions-clauses))
-               (define the-functions (rest (syntax-e the-functions-clause)))
-               
-               (define (add-function vocab-syn funcname-syn type-syn)
-                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-function-decl (symbol->string (syntax->datum funcname-syn))                                                                        
-                                                                       (xml-make-relations-list (map symbol->string (syntax->datum type-syn)))))))
-                 
+               (define the-functions (rest (syntax-e the-functions-clause)))                                
                
                (define (handle-function func)
                  ; No colon. Just (function a A B)
                  (syntax-case func [Function]                   
                    [(Function fname frel0 frel ...) (and (lower-id-syn? #'fname)
-                                                         (each-type-in-list-is-valid? #'(frel0 frel ...)))  
-                                                    #`( (fname
-                                                         #,(length (syntax->list #'(frel0 frel ...))))
-                                                        #,(add-function  #'myvocabname #'fname #'(frel0 frel ...)))] 
+                                                         (each-type-in-list-is-valid? #'(frel0 frel ...))) 
+                                                    (let ()
+                                                      (define args (map symbol->string (syntax->datum #'(frel0 frel ...))))
+                                                      (define arity (take args (- (length args) 1)))
+                                                      (define result (last args))
+                                                      (define funcname (syntax->string #'fname))
+                                                      (m-function funcname arity result))] 
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-function #f #f (list func) )]))
                
                (map handle-function the-functions))))
 
        ; may be empty
-       (define functions-names-and-arities (if (empty? functions-result)
-                                               empty
-                                               (map (compose (lambda (ppair) (list (symbol->string/safe (first ppair)) (second ppair)))
-                                                             first 
-                                                             syntax->datum) functions-result)))  
-       
        (define functions-cmds (if (empty? functions-result)
-                                           empty
-                                           (map (compose second syntax->datum) functions-result)))
+                                  empty
+                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result)))
        
-      ; (printf "functions-result: ~a~n" functions-result)  
-       ;(printf "~a ... ~a ~n" functions-names functions-cmds)   
-              
-       ; Used later to discover whether a function is being used properly
-       (define (is-valid-func? funcname-syn [desired-arity #f])
-         (define func-name-str (symbol->string/safe (syntax->datum funcname-syn)))   
-         ; todo: There's a better func than filter for this. what was it called? -TN
-         (define found-func-pair (filter (lambda (pair) (equal? (first pair) func-name-str)) functions-names-and-arities))         
-
-         (when (empty? found-func-pair)
-           (raise-syntax-error 'Vocab 
-                               (format "Invalid declaration. The function ~a was not declared." func-name-str)
-                               #f #f (list funcname-syn) ))   
-         
-         (define the-arity (second (first found-func-pair)))         
-         (unless (or (not desired-arity) 
-                     (equal? desired-arity the-arity))
-                (raise-syntax-error 'Vocab 
-                                    (format "Invalid declaration. The function ~a was declared, but had arity ~a which was not ~a." 
-                                            func-name-str the-arity desired-arity)
-                                    #f #f (list funcname-syn) ))       
-         #t)
+;       (define functions-names-and-arities (if (empty? functions-result)
+;                                               empty
+;                                               (map (lambda (x) (list (m-function-name x) (+ 1 (length (m-function-arity x))))) functions-result)))  
+;                           
+;       ; Used later to discover whether a function is being used properly
+;       (define (is-valid-func? funcname-syn [desired-arity #f])
+;         (define func-name-str (symbol->string/safe (syntax->datum funcname-syn)))   
+;         ; todo: There's a better func than filter for this. what was it called? -TN
+;         (define found-func-pair (filter (lambda (pair) (equal? (first pair) func-name-str)) functions-names-and-arities))         
+;
+;         (when (empty? found-func-pair)
+;           (raise-syntax-error 'Vocab 
+;                               (format "Invalid declaration. The function ~a was not declared." func-name-str)
+;                               #f #f (list funcname-syn) ))   
+;         
+;         (define the-arity (second (first found-func-pair)))         
+;         (unless (or (not desired-arity) 
+;                     (equal? desired-arity the-arity))
+;                (raise-syntax-error 'Vocab 
+;                                    (format "Invalid declaration. The function ~a was declared, but had arity ~a which was not ~a." 
+;                                            func-name-str the-arity desired-arity)
+;                                    #f #f (list funcname-syn) ))       
+;         #t)
 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
@@ -810,16 +812,16 @@
                      [vocab-name vocab-name-string]                     
                      [types-list types-result]
                      [predicates-list predicates-result]
-                     ;[constants-list constants-list]
-                     ;[functions-list functions-list]
+                     [constants-list constants-result]
+                     [functions-list functions-result]
                      )
          
          ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
          (syntax/loc stx '(vocab-name xml-list 
                                       types-list 
                                       predicates-list 
-                                     ; constants-list 
-                                     ; functions-list
+                                      constants-list 
+                                      functions-list
                                       )))))))
 
 
@@ -1071,6 +1073,6 @@
 ;         (Variable r Resource))
 ;        (Rules 
 ;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (ReadPaper a) (Paper r)))
-;	  (PaperAssigned = (Permit s a r) :- (and (Assigned s r) (ReadPaper a) (Paper r)));
-;	  (PaperConflict = (Deny s a r) :- (and (Conflicted s r) (ReadPaper a) (Paper r))))
+;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (ReadPaper a) (Paper r)));
+;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (ReadPaper a) (Paper r))))
 ;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)

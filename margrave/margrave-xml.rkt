@@ -1378,6 +1378,20 @@
                                 (xml-make-predicate (m-predicate-name apred)) 
                                 (xml-make-relations-list (m-predicate-arity apred)))))
 
+(define/contract 
+  (m-constant->cmd vocab-id aconst)  
+  [string? m-constant? . -> . xexpr?]
+  (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id) 
+                                (xml-make-constant-decl (m-constant-name aconst) 
+                                                        (m-constant-type aconst)))))
+
+(define/contract 
+  (m-function->cmd vocab-id afunc)  
+  [string? m-function? . -> . xexpr?]
+  (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id) 
+                                (xml-make-function-decl (m-function-name afunc)
+                                                        (xml-make-relations-list (append (m-function-arity afunc)
+                                                                                         (list (m-function-result afunc))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
