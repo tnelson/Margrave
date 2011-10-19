@@ -167,21 +167,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helpers for formula structures and commands that use formulas
 
+; Might be better with [children (listof m-type?)] 
+; but would need a recursive contract.
+(define-struct/contract m-type
+  ([name string?]
+   [child-names (listof string?)]))
+
 (define-struct/contract m-predicate
   ([name string?]
-   [arity (listof string?)]
-   [cmd string?]))
+   [arity (listof string?)]))
 
 (define-struct/contract m-constant
   ([name string?]
-   [type string?]
-   [cmd string?]))
+   [type string?]))
 
 (define-struct/contract m-function
   ([name string?]
    [result string?]
-   [arity (listof string?)]
-   [cmd string?]))
+   [arity (listof string?)]))
 
 (define (m-formula? sexpr)
   (match sexpr 
@@ -199,5 +202,25 @@
     [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
     [else #f]))
 
-; contract: not empty?, must be list?
+; Remove duplicate types, but combine child names.
+; Child names who don't have their own constructor are given one.
+(define/contract (resolve-m-types types)
+  [(listof m-type?) . -> . (listof m-type?)]
+  (define the-buckets (partition* m-type-name types))
+  (define the-sort-names (hash-keys the-buckets))  
+  
+  (define (combine-same-types name)
+    (define duplicate-types (hash-ref the-buckets name))
+    (define the-children (flatten (map m-type-child-names duplicate-types)))
+    (define unmentioned-children (filter (lambda (c) (not (member c the-sort-names))) the-children))
+    (define unmentioned-mtypes (map (lambda (c) (m-type c empty)) unmentioned-children))    
+    (append unmentioned-mtypes (list (m-type name the-children))))
+  
+  ;(printf "~a : ~a~n" (map m-type-name (flatten (map combine-same-types the-sort-names)))
+  ;        (map m-type-child-names (flatten (map combine-same-types the-sort-names))))
+  (flatten (map combine-same-types the-sort-names)))
 
+;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
+
+(define (syntax->string  x)
+  (symbol->string (syntax->datum x)))

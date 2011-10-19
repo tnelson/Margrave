@@ -18,115 +18,118 @@
 #lang racket
 
 (require xml)
-(require margrave/helpers)
+(require "helpers.rkt")
+(require rackunit)
 
 (provide 
- pretty-print-model
- pretty-print-response-xml 
- get-attribute-value
- response-is-success?
- response-is-error?
- response-is-exception?
- response-is-unsat?
- get-response-type
- get-response-error-type
- get-response-error-subtype
- get-response-error-descriptor
- 
- xml-explore-result->id
- xml-set-response->list
- xml-list-response->list
- xml-map-response->map
- xml-bool-response->bool
- 
- xml-make-load-xacml
- xml-make-load-sqs
- 
- get-response-extra-err
- get-response-extra-out
- 
- ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
- ; They are the correct way to construct XML
- xml-make-target
- xml-make-true-condition
- xml-make-decision
- xml-make-decision-type
- xml-make-rule-list
- xml-make-sort
- xml-make-subsort
- xml-make-request-var
- xml-make-other-var
- xml-make-command
- xml-make-info-command
- xml-make-info-id-command
- xml-make-rename-command
- xml-make-get-command
- xml-make-atomic-formula
- xml-make-variable-term
- xml-make-constant-term
- xml-make-function-term
- xml-make-explore-command
- xml-make-compare-command
- xml-make-reset-command
- xml-make-is-possible-command
- xml-make-debug
- xml-make-publish
- xml-make-tupling
- xml-make-ceiling
- xml-make-is-guaranteed-command
- xml-make-identifiers-list
- xml-make-type
- xml-make-id-element
- xml-make-include
- xml-make-under
- xml-make-create-policy-leaf-command
- xml-make-policy-identifier
- xml-make-vocab-identifier
- xml-make-constraint
- xml-make-subset
- xml-make-predicate
- xml-make-relations-list
- xml-make-conjunct-chain
- xml-make-rule
- xml-make-load-xacml-command
- xml-make-load-sqs-command
- xml-make-count-command
- xml-make-count-with-size-command
- xml-make-size
- xml-make-file-name
- xml-make-schema-file-name
- xml-make-load
- xml-make-load-with-schema
- xml-make-quit
- xml-make-show-realized-command
- xml-make-show-unrealized-command
- xml-make-forcases
- xml-make-parent-identifier
- xml-make-child-identifier
- xml-make-get-rules-command
- xml-make-get-qrules-command
- xml-make-equals-formula
- xml-make-and
- xml-make-or
- xml-make-and*
- xml-make-or*
- xml-make-implies
- xml-make-iff
- xml-make-not
- xml-make-variable-declaration
- xml-make-isa-formula
- 
- xml-make-type-with-subs
- 
- xml-make-constant-decl
- xml-make-function-decl
- xml-make-exists
- xml-make-forall
- xml-make-fa
- xml-make-over
- xml-make-comb-list
- 
- xml-policy-info->req-vector)
+ (all-defined-out)
+; pretty-print-model
+; pretty-print-response-xml 
+; get-attribute-value
+; response-is-success?
+; response-is-error?
+; response-is-exception?
+; response-is-unsat?
+; get-response-type
+; get-response-error-type
+; get-response-error-subtype
+; get-response-error-descriptor
+; 
+; xml-explore-result->id
+; xml-set-response->list
+; xml-list-response->list
+; xml-map-response->map
+; xml-bool-response->bool
+; 
+; xml-make-load-xacml
+; xml-make-load-sqs
+; 
+; get-response-extra-err
+; get-response-extra-out
+; 
+; ; XML construction commands (used by load-policy in margrave.rkt AND the compiler here)
+; ; They are the correct way to construct XML
+; xml-make-target
+; xml-make-true-condition
+; xml-make-decision
+; xml-make-decision-type
+; xml-make-rule-list
+; xml-make-sort
+; xml-make-subsort
+; xml-make-request-var
+; xml-make-other-var
+; xml-make-command
+; xml-make-info-command
+; xml-make-info-id-command
+; xml-make-rename-command
+; xml-make-get-command
+; xml-make-atomic-formula
+; xml-make-variable-term
+; xml-make-constant-term
+; xml-make-function-term
+; xml-make-explore-command
+; xml-make-compare-command
+; xml-make-reset-command
+; xml-make-is-possible-command
+; xml-make-debug
+; xml-make-publish
+; xml-make-tupling
+; xml-make-ceiling
+; xml-make-is-guaranteed-command
+; xml-make-identifiers-list
+; xml-make-type
+; xml-make-id-element
+; xml-make-include
+; xml-make-under
+; xml-make-create-policy-leaf-command
+; xml-make-policy-identifier
+; xml-make-vocab-identifier
+; xml-make-constraint
+; xml-make-subset
+; xml-make-predicate
+; xml-make-relations-list
+; xml-make-conjunct-chain
+; xml-make-rule
+; xml-make-load-xacml-command
+; xml-make-load-sqs-command
+; xml-make-count-command
+; xml-make-count-with-size-command
+; xml-make-size
+; xml-make-file-name
+; xml-make-schema-file-name
+; xml-make-load
+; xml-make-load-with-schema
+; xml-make-quit
+; xml-make-show-realized-command
+; xml-make-show-unrealized-command
+; xml-make-forcases
+; xml-make-parent-identifier
+; xml-make-child-identifier
+; xml-make-get-rules-command
+; xml-make-get-qrules-command
+; xml-make-equals-formula
+; xml-make-and
+; xml-make-or
+; xml-make-and*
+; xml-make-or*
+; xml-make-implies
+; xml-make-iff
+; xml-make-not
+; xml-make-variable-declaration
+; xml-make-isa-formula
+; 
+; xml-make-type-with-subs
+; 
+; xml-make-constant-decl
+; xml-make-function-decl
+; xml-make-exists
+; xml-make-forall
+; xml-make-fa
+; xml-make-over
+; xml-make-comb-list
+; 
+; xml-policy-info->req-vector
+ )
 
 ; ********************************************************
 
@@ -1350,9 +1353,43 @@
   `(IFF ,p1 ,p2))
 (define (xml-make-not p1)
   `(NOT ,p1))
- 
-
 
 ;Takes a command type (string) and a list of children (x-exprs) and returns a margrave-command xexpr
 (define (xml-make-command command-type list-of-children)
    `(MARGRAVE-COMMAND ((type ,command-type)) ,@list-of-children))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define/contract 
+  (m-type->cmd vocab-id atype)  
+  [string? m-type? . -> . xexpr?]
+  (cond [(empty? (m-type-child-names atype))            
+         (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id)
+                                       (xml-make-sort (m-type-name atype))))]
+        [else                                   
+         (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id) 
+                                       (xml-make-type-with-subs (m-type-name atype) (m-type-child-names atype))))]))
+
+
+(define/contract 
+  (m-predicate->cmd vocab-id apred)  
+  [string? m-predicate? . -> . xexpr?]
+  (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id) 
+                                (xml-make-predicate (m-predicate-name apred)) 
+                                (xml-make-relations-list (m-predicate-arity apred)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(check-true (equal?
+             (m-type->cmd "vocabname" (m-type "A" (list "B" "C")))                    
+             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocabname"))) (SORT-WITH-CHILDREN ((name "A")) (SORT ((name "B"))) (SORT ((name "C")))))))
+
+(check-true (equal?
+             (m-predicate->cmd "vocab" (m-predicate "pname" '("A" "B" "C")))                    
+             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab"))) (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
+                    
+             
+             
+
+

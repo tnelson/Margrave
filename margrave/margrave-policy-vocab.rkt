@@ -524,6 +524,7 @@
      (let ()
        (define vocab-name-syntax #'myvocabname)
        (define vocab-name (syntax->datum vocab-name-syntax))
+       (define vocab-name-string (symbol->string vocab-name))
        
        (unless (symbol? vocab-name)
          (raise-syntax-error 'PolicyVocab (format "Expected a name for the vocabulary, got: ~a" vocab-name) #f #f (list vocab-name-syntax)))
@@ -570,15 +571,15 @@
            
            ; (Type T)
            [(Type t) (capitalized-id-syn? #'t)
-                     (make-type-command-syntax (syntax->datum #'t))]  
+                     (m-type (symbol->string (syntax->datum #'t)) empty)]  
            
            [(Type t) (not (capitalized-id-syn? #'t))
                      (raise-syntax-error 'Vocab err-invalid-type-decl-case #f #f (list a-type))] 
            ; (Type T > A B C)
            [(Type t > subt ...) (and (capitalized-id-syn? #'t)
                                 (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
-                                (make-type-command-syntax (syntax->datum #'t)
-                                                          (syntax-e #'(subt ...)))] 
+                                (m-type (symbol->string (syntax->datum #'t))
+                                        (map (compose symbol->string syntax->datum) (syntax-e #'(subt ...))))] 
            [(Type t > subt ...) (not 
                                  (and (capitalized-id-syn? #'t)
                                       (all-are-syn? #'(subt ...) capitalized-id-syn?)))
@@ -586,25 +587,15 @@
                                  'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
            [_ (raise-syntax-error 'Vocab err-invalid-type-decl #f #f (list a-type))]))
-                     
-       (define (make-type-command-syntax typename [child-list empty])
-         (define typenamestr (syntax->string/safe typename))
-         (cond [(empty? child-list)            
-                #`(#,typenamestr
-                   #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name))
-                                                (xml-make-sort (symbol->string typename)))))]
-               [else                 
-                (define childstrlist (map syntax->string/safe child-list))
-                (define alltypeslist (append (list typenamestr) childstrlist))
-                #`(#,alltypeslist
-                   #,(xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string vocab-name)) 
-                                                   (xml-make-type-with-subs (symbol->string typename) childstrlist))))]))
-              
-       (define types-result (map handle-type the-types)) 
-       (define types-cmds (map (compose second syntax->datum) types-result))
+                                          
+       (define types-result (resolve-m-types (map handle-type the-types)))
+       
+       (define types-cmds (map (lambda (x) 
+                                 (m-type->cmd vocab-name-string x))
+                               types-result))
        
        ; potential duplicates here (and in above xml); s/b a set maintained throughout the process?
-       (define types-names (flatten (map (compose first syntax->datum) types-result)))
+       (define types-names (map m-type-name types-result))
        
        ; Used later to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
@@ -631,22 +622,15 @@
              empty
              (let ()
                (define the-predicates-clause (first the-predicates-clauses))
-               (define the-predicates (rest (syntax-e the-predicates-clause)))
-               
-               (define (add-predicate vocab-syn predname-syn listrels-syn)
-                 (xml-make-command "ADD" (list (xml-make-vocab-identifier (symbol->string (syntax->datum vocab-syn))) 
-                                               (xml-make-predicate (symbol->string (syntax->datum predname-syn))) 
-                                               (xml-make-relations-list (map symbol->string (syntax->datum listrels-syn))))))
-                 
+               (define the-predicates (rest (syntax-e the-predicates-clause)))                                        
                
                (define (handle-predicate pred)
                  ; No colon. Just (Predicate predname A B C)
                  (syntax-case pred []                   
                    [(Predicate pname prel0 prel ...) (and (lower-id-syn? #'pname)
-                                                (each-type-in-list-is-valid? #'(prel0 prel ...)))  
-                                           #`( (pname
-                                                #,(length (syntax->list #'(prel0 prel ...))))
-                                               #,(add-predicate  #'myvocabname #'pname #'(prel0 prel ...)))] 
+                                                          (each-type-in-list-is-valid? #'(prel0 prel ...)))  
+                                                     (m-predicate (symbol->string (syntax->datum #'pname))
+                                                                  (map syntax->string (syntax->list #'(prel0 prel ...))))] 
                    
                    [_ (raise-syntax-error 'Vocab "Invalid predicate declaration." #f #f (list pred) )]))
                
@@ -655,13 +639,14 @@
        ; may be empty
        (define predicates-names-and-arities (if (empty? predicates-result)
                                             empty
-                                            (map (compose (lambda (ppair) (list (symbol->string/safe (first ppair)) (second ppair)))
-                                                          first 
-                                                          syntax->datum) predicates-result)))
+                                            (map (lambda (apred) 
+                                                   (list (m-predicate-name apred) (length (m-predicate-arity apred))))
+                                                 predicates-result)))
        
        (define predicates-cmds (if (empty? predicates-result)
                                            empty
-                                           (map (compose second syntax->datum) predicates-result)))
+                                           (map (lambda (x) 
+                                                  (m-predicate->cmd vocab-name-string x)) predicates-result)))
        
       ; (printf "predicates-result: ~a~n" predicates-result)  
        ;(printf "~a ... ~a ~n" predicates-names predicates-cmds)   
@@ -822,14 +807,20 @@
                                        predicates-cmds
                                        constants-cmds
                                        functions-cmds)]
-                     [vocab-name (symbol->string vocab-name)]                     
-                     [types-names types-names]
-                     [predicates-names-and-arities predicates-names-and-arities]
-                     [constants-names-and-types constants-names-and-types]
-                     [functions-names-and-arities functions-names-and-arities])                  
+                     [vocab-name vocab-name-string]                     
+                     [types-list types-result]
+                     [predicates-list predicates-result]
+                     ;[constants-list constants-list]
+                     ;[functions-list functions-list]
+                     )
          
          ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
-         (syntax/loc stx '(vocab-name xml-list types-names predicates-names-and-arities constants-names-and-types functions-names-and-arities)))))))
+         (syntax/loc stx '(vocab-name xml-list 
+                                      types-list 
+                                      predicates-list 
+                                     ; constants-list 
+                                     ; functions-list
+                                      )))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
