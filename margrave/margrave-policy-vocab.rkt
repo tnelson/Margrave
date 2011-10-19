@@ -243,6 +243,14 @@
     [( (idbcomponent ...) t0 t ...) 
      (xml-make-atomic-formula #'(idbcomponent ...)
                               (map handle-term (syntax->list #'(t0 t ...))))]
+    
+    ; IDB -- dotted notation
+    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
+                               (dotted-id-syn? #'dottedpred))
+                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
+                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
+    
+    
     ; EDB (rel) will be lowercase
     [(relname t0 t ...) (lower-id-syn? #'relname)
                         (xml-make-atomic-formula #'(list rename)
@@ -251,17 +259,7 @@
     ; EDB (sort) will be capitalized
     [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
                       (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
-
-    
-    
-    ; REMOVE THIS: old dotted notation. terrible idea.
-    ; last, so it doesn't supercede keywords
-    ; P.r or r
-    ;[(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
-    ;                           (dotted-id-syn? #'dottedpred))
-    ;                       (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
-    ;                                                (map handle-term (syntax->list #'(t0 t ...)))) ]
-
+        
     [else (raise-syntax-error 'Policy "Invalid formula." #f #f (list fmla))]))
 
 
