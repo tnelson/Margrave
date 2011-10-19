@@ -172,20 +172,24 @@
 ; but would need a recursive contract.
 (define-struct/contract m-type
   ([name string?]
-   [child-names (listof string?)]))
+   [child-names (listof string?)])
+  #:transparent)
 
 (define-struct/contract m-predicate
   ([name string?]
-   [arity (listof string?)]))
+   [arity (listof string?)])
+  #:transparent)
 
 (define-struct/contract m-constant
   ([name string?]
-   [type string?]))
+   [type string?])
+  #:transparent)
 
 (define-struct/contract m-function
   ([name string?]   
    [arity (listof string?)]
-   [result string?]))
+   [result string?])
+  #:transparent)
 
 (define (m-formula? sexpr)
   (match sexpr 
@@ -216,7 +220,8 @@
    [types (listof m-type?)] 
    [predicates (listof m-predicate?)] 
    [constants (listof m-constant?)] 
-   [functions (listof m-function?)]))
+   [functions (listof m-function?)])
+  #:transparent)
 
 
 (define-struct/contract m-theory
@@ -224,13 +229,42 @@
    [xml (listof xexpr?)]
    [vocab m-vocabulary?]
    [axioms-cmds list?]
-   [axioms (listof m-formula?)]))
+   [axioms (listof m-formula?)])
+  #:transparent)
+
+(define-struct/contract m-vardec
+  ([vname string?]
+   [vtype string?])
+  #:transparent)
+
+(define-struct/contract m-rule
+  ([rname string?]
+   [rdecision string?]
+   [headvars (listof string?)]
+   [rbody (listof m-formula?)])
+  #:transparent)
+
 
 (define-struct/contract m-policy
-  ([bound-id string?]
-   [theory m-theory?]
-   [rule-names (listof string?)]
-   [cmds list?]))
+  ([id string?]
+   [xml (listof xexpr?)]
+   ;[theory m-theory?]
+   [vocabulary m-vocabulary?]
+   [vardecs (listof m-vardec?)]
+   [rules (listof m-rule?)]
+   [rcomb string?])
+  #:transparent)
+
+; WILL NOT WORK if some fields are opaque
+(define/contract (repackage-transparent-struct the-struct)
+  [struct? . -> . syntax?]
+  (define struct-list (vector->list (struct->vector the-struct)))
+  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
+  (define (safe-param x)
+    (if (list? x)
+        #`'#,x
+        x))  
+  #`(#,struct-name #,@(map safe-param (rest struct-list))))
 
 
 ; Remove duplicate types, but combine child names.

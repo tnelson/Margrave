@@ -370,7 +370,7 @@
               (file-exists?/error vocab-path src-syntax 
                                   (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
               
-              (define vocab-macro-return                 
+              (define my-vocab                 
                 (call-with-input-file
                     vocab-path
                   (lambda (in-port) 
@@ -381,8 +381,8 @@
                     (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
               
              ; (vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)
-             (define vocab-name (first vocab-macro-return))
-             (define vocab-commands (second vocab-macro-return))
+             (define vocab-name (first my-vocab))
+             (define vocab-commands (second my-vocab))
               
               ; Get the 6-tuples for each child
               (define child-policy-macros the-child-policies) ; no '
@@ -583,7 +583,7 @@
        ; potential duplicates here (and in above xml); s/b a set maintained throughout the process?
        (define types-names (map m-type-name types-result))
        
-       ; Used later to recognize a type name that wasn't declared.
+       ; Used by predicate/function/constant sections to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
          (define type-name-str (symbol->string/safe (syntax->datum typename-syn)))
          (unless (member type-name-str types-names)
@@ -632,31 +632,7 @@
        (define predicates-cmds (if (empty? predicates-result)
                                            empty
                                            (map (lambda (x) 
-                                                  (m-predicate->cmd vocab-name-string x)) predicates-result)))
-       
-      ; (printf "predicates-result: ~a~n" predicates-result)  
-       ;(printf "~a ... ~a ~n" predicates-names predicates-cmds)   
-              
-       ; Used later to discover whether a pred is being used properly
-       (define (is-valid-pred? predname-syn [desired-arity #f])
-         (define pred-name-str (symbol->string/safe (syntax->datum predname-syn)))   
-         ; todo: There's a better func than filter for this. what was it called? -TN
-         (define found-pred-pair (filter (lambda (pair) (equal? (first pair) pred-name-str)) predicates-names-and-arities))
-         
-         (when (empty? found-pred-pair)
-           (raise-syntax-error 'Vocab 
-                               (format "Invalid declaration. The predicate ~a was not declared." pred-name-str)
-                               #f #f (list predname-syn) ))    
-                           
-         (define the-arity (second (first found-pred-pair)))         
-         (unless (or (not desired-arity) 
-                     (equal? desired-arity the-arity))
-                (raise-syntax-error 'Vocab 
-                                    (format "Invalid declaration. The predicate ~a was declared, but had arity ~a which was not ~a." 
-                                            pred-name-str the-arity desired-arity)
-                                    #f #f (list predname-syn) ))               
-         #t)
-
+                                                  (m-predicate->cmd vocab-name-string x)) predicates-result)))       
 
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Constants
@@ -691,26 +667,7 @@
        
        (define constants-cmds (if (empty? constants-result)
                                   empty
-                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result)))
-       
-       
-;       (define constants-names-and-types (if (empty? constants-result)
-;                                             empty
-;                                             (map (lambda (c) (list (m-constant-name c) (m-constant-type c))) constants-result))) 
-;       (define constants-names (map m-constant-name constants-result))
-;                            
-;       ; Used later to discover whether a constant is being used properly
-;       (define (is-valid-const? constname-syn)
-;         (define const-name-str (symbol->string/safe (syntax->datum constname-syn)))   
-;         ; todo: There's a better func than filter for this. what was it called? -TN
-;         (define found-const (filter (lambda (c) (equal? c const-name-str)) constants-names))
-;         
-;         (when (empty? found-const)
-;           (raise-syntax-error 'Vocab 
-;                               (format "Invalid declaration. The constant ~a was not declared." const-name-str)
-;                               #f #f (list constname-syn) ))                                        
-;         #t)
-
+                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result)))              
 
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Functions
@@ -743,32 +700,7 @@
        ; may be empty
        (define functions-cmds (if (empty? functions-result)
                                   empty
-                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result)))
-       
-;       (define functions-names-and-arities (if (empty? functions-result)
-;                                               empty
-;                                               (map (lambda (x) (list (m-function-name x) (+ 1 (length (m-function-arity x))))) functions-result)))  
-;                           
-;       ; Used later to discover whether a function is being used properly
-;       (define (is-valid-func? funcname-syn [desired-arity #f])
-;         (define func-name-str (symbol->string/safe (syntax->datum funcname-syn)))   
-;         ; todo: There's a better func than filter for this. what was it called? -TN
-;         (define found-func-pair (filter (lambda (pair) (equal? (first pair) func-name-str)) functions-names-and-arities))         
-;
-;         (when (empty? found-func-pair)
-;           (raise-syntax-error 'Vocab 
-;                               (format "Invalid declaration. The function ~a was not declared." func-name-str)
-;                               #f #f (list funcname-syn) ))   
-;         
-;         (define the-arity (second (first found-func-pair)))         
-;         (unless (or (not desired-arity) 
-;                     (equal? desired-arity the-arity))
-;                (raise-syntax-error 'Vocab 
-;                                    (format "Invalid declaration. The function ~a was declared, but had arity ~a which was not ~a." 
-;                                            func-name-str the-arity desired-arity)
-;                                    #f #f (list funcname-syn) ))       
-;         #t)
-
+                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result)))       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
@@ -781,10 +713,42 @@
                                 functions-cmds))
        
        ; (Vocab ...) expands to #(struct:m-vocabulary ...)
-       (with-syntax ([the-vocab (m-vocabulary vocab-name-string xml-list
-                                              types-result predicates-result constants-result functions-result)])                  
-         (syntax/loc stx the-vocab))))))
+       ; Do not invoke m-vocabulary yet though. Namespace issues, otherwise?
+       ;(with-syntax ([the-vocab (m-vocabulary vocab-name-string xml-list
+       ;                                       types-result predicates-result constants-result functions-result)])                  
+       ;  (syntax/loc stx the-vocab))))))
+              
+       (with-syntax ([vocab-name-string vocab-name-string]
+                     [xml-list xml-list]
+                     [types-result #`(list #,@(map repackage-transparent-struct types-result))]
+                     [predicates-result #`(list #,@(map repackage-transparent-struct predicates-result))]
+                     [constants-result #`(list #,@(map repackage-transparent-struct constants-result))]
+                     [functions-result #`(list #,@(map repackage-transparent-struct functions-result))])     
+         (printf "~v~n" (quasisyntax/loc stx (m-vocabulary vocab-name-string 
+                                                          empty ; 'xml-list
+                                                           types-result
+                                                           predicates-result
+                                                           constants-result
+                                                           functions-result)))
+                  
+         (syntax/loc stx (m-vocabulary vocab-name-string 
+                                       'xml-list
+                                       types-result
+                                       empty ;predicates-result
+                                       empty ;constants-result
+                                       empty ;functions-result
+                                       )))))))
 
+
+; This helps the "cons" example for expand, but not this...
+;(parameterize ([current-namespace margrave-policy-vocab-namespace])
+;  (expand (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r ;X Y)))))
+; ok!
+;(expand #'(m-type "A" '()))
+
+; vocab is ok. but INSIDE m-type is not.
+; lots of expand-once calls give no problem. it's just expand.
+; expand-to-top-form is ok, and docs say it produces same result
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -981,31 +945,32 @@
               (file-exists?/error vocab-path src-syntax 
                                   (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
               
-              (define vocab-macro-return                 
+              (define my-vocab                 
                 (call-with-input-file
                     vocab-path
                   (lambda (in-port) 
                     (port-count-lines! in-port)
-                    (define the-vocab-syntax (read-syntax vocab-path in-port))               
+                    (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
                     ; Keep as syntax here, so the PolicyVocab macro gets the right location info
                     ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
                     (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
-              
-             ; (vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)
-             (define vocab-name (first vocab-macro-return))
-             (define vocab-commands (second vocab-macro-return))
-                  
+                                                           
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
-                              (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                                            
-             
-              ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy
-              `( ,local-policy-id
-                 ,vocab-name
-                 ,vocab-commands  
-                 ,my-commands
-                 )))))]
-
+                              (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span))) 
+    
+             ; TODO: this (and all the rest)
+             (define rules-list empty)
+             (define vardec-list empty)
+             (define rcomb-desc "")
+                         
+             (m-policy local-policy-id                          
+                       my-commands
+                       my-vocab
+                       vardec-list
+                       rules-list
+                       rcomb-desc)))))]
+    
          
             
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
