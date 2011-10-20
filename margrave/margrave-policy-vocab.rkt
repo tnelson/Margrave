@@ -37,6 +37,7 @@
          Policy
          PolicySet
          Vocab
+         Theory
          
          ; for reflection, errors, etc
          cached-policies
@@ -480,33 +481,31 @@
   (syntax-case stx []
     ([_ theoryname myvocab myaxioms ]
      
-     (let ()
-       
-       (define vocabulary-result 'myvocab)
-       (define vocabulary-cmds empty)              
-       (define types-names empty)
-       (define predicates-names-and-arities empty)
-       (define constants-names-and-types empty)
-       (define functions-names-and-arities empty)
-       
-       (define axioms-cmds empty)       
+     (let ()       
+       ; (Vocab ...)
+       ; will expand to (m-vocabulary ...)
+       (define the-vocab-syntax 'myvocab)
        
        
-       (with-syntax ([xml-list (append vocabulary-cmds
-                                       axioms-cmds)]
+       
+       ; TODO
+       (define the-axioms-list empty)
+       
+       
+       
+       (define (axiom->xml axiom)
+         (m-formula->xexpr axiom))
+       
+       ; todo: won't be good enough, because some axioms are fmlas, but some are specific constraint sugar
+       ; e.g. (atmostone-all A) .
+       (define axioms-xml (map axiom->xml the-axioms-list))
+       
+       (with-syntax ([axioms-xml axioms-xml]
                      [theory-name (symbol->string 'theoryname)]                     
-                     [types-names types-names]
-                     [predicates-names-and-arities predicates-names-and-arities]
-                     [constants-names-and-types constants-names-and-types]
-                     [functions-names-and-arities functions-names-and-arities])                  
-         
-         
-         ;(m-theory "mytname" 
-         ;          (m-vocabulary empty empty #hash() empty empty empty)
-         ;          empty)
-         
-         ; Note: make sure to test with '(Vocab ...), not (Vocab ...) or this will cause an error.
-         (syntax/loc stx '(theory-name xml-list types-names predicates-names-and-arities constants-names-and-types functions-names-and-arities)))))))
+                     [the-vocab-syntax the-vocab-syntax]                     
+                     [the-axioms-list the-axioms-list])                  
+                                    
+         (syntax/loc stx (m-theory theory-name axioms-xml the-vocab-syntax the-axioms-list)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

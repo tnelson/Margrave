@@ -457,39 +457,7 @@ gmarceau
 
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))
-        ;[(equal? op 'forall) (xml-make-forall (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)) (handle-fmla-sexpr (fourth sexpr)))]
-
-(define (handle-fmla-sexpr sexpr)
-  (match sexpr
-    ['true (xml-make-true-condition)]
-    ['false (xml-make-false-condition)]                                            
-    [`(= ,t1 ,t2) (xml-make-equals-formula (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
-    [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
-     (xml-make-atomic-formula pids-and-idbname
-                              (map handle-term-sexpr terms))]
-    [`(,edbname ,@(list terms ...)) 
-     (xml-make-atomic-formula (list edbname)
-                              (map handle-term-sexpr terms))]    
-
-    [`(and ,@(list args ...)) (xml-make-and* (map handle-fmla-sexpr args))]
-    [`(or ,@(list args ...)) (xml-make-or* (map handle-fmla-sexpr args))]
-    [`(implies ,arg1 ,arg2) (xml-make-implies (handle-fmla-sexpr arg1) (handle-fmla-sexpr arg2))]   
-    [`(iff ,arg1 ,arg2) (xml-make-iff (handle-fmla-sexpr arg1) (handle-fmla-sexpr arg2))]   
-    [`(not ,arg) (xml-make-not (handle-fmla-sexpr arg))]   
-    [`(forall ,vname ,sname ,fmla)
-     (xml-make-forall vname sname (handle-fmla-sexpr fmla))]   
-    [`(exists ,vname ,sname ,fmla)
-     (xml-make-exists vname sname (handle-fmla-sexpr fmla))]  
-    
-    [else    (raise-user-error (format "Formula s-expression not of expected form: ~a.~n" sexpr))]))
-
-(define (handle-term-sexpr sexpr)
-  (cond [(and (list? sexpr) (> (length sexpr) 1))
-         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
-        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
-         (xml-make-constant-term (symbol->string sexpr))]
-        [else ; variable
-         (xml-make-variable-term (symbol->string sexpr))]))
+        ;[(equal? op 'forall) (xml-make-forall (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)) (m-formula->xexpr (fourth sexpr)))]
 
 
 (define/contract
@@ -501,7 +469,7 @@ gmarceau
                                    (symbol->string (second sexpr))))
 
   (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
-  (define query-condition-xml (handle-fmla-sexpr sexpr-fmla))  
+  (define query-condition-xml (m-formula->xexpr sexpr-fmla))  
   
   (define the-xml
      (xml-make-explore-command 

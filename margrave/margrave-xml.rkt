@@ -1301,5 +1301,35 @@
                     
              
              
+(define (m-formula->xexpr sexpr)
+  (match sexpr
+    ['true (xml-make-true-condition)]
+    ['false (xml-make-false-condition)]                                            
+    [`(= ,t1 ,t2) (xml-make-equals-formula (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)))]
+    [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
+     (xml-make-atomic-formula pids-and-idbname
+                              (map handle-term-sexpr terms))]
+    [`(,edbname ,@(list terms ...)) 
+     (xml-make-atomic-formula (list edbname)
+                              (map handle-term-sexpr terms))]    
 
+    [`(and ,@(list args ...)) (xml-make-and* (map m-formula->xexpr args))]
+    [`(or ,@(list args ...)) (xml-make-or* (map m-formula->xexpr args))]
+    [`(implies ,arg1 ,arg2) (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
+    [`(iff ,arg1 ,arg2) (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
+    [`(not ,arg) (xml-make-not (m-formula->xexpr arg))]   
+    [`(forall ,vname ,sname ,fmla)
+     (xml-make-forall vname sname (m-formula->xexpr fmla))]   
+    [`(exists ,vname ,sname ,fmla)
+     (xml-make-exists vname sname (m-formula->xexpr fmla))]  
+    
+    [else    (raise-user-error (format "Formula s-expression not of expected form: ~a.~n" sexpr))]))
+
+(define (handle-term-sexpr sexpr)
+  (cond [(and (list? sexpr) (> (length sexpr) 1))
+         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
+        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
+         (xml-make-constant-term (symbol->string sexpr))]
+        [else ; variable
+         (xml-make-variable-term (symbol->string sexpr))]))
 

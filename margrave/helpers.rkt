@@ -208,6 +208,16 @@
     [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
     [else #f]))
 
+(define (m-axiom? sexpr)
+  (when (m-formula? sexpr)
+    #t)
+  
+  (match sexpr
+    [`(atmostone-all ,id) #t]
+    [`(atmostone ,id) #t]
+    ; todo ...
+    [else #f]))
+  
 
 ;****************************************************************
 ; Structs used to store information about policies, theories, etc.
@@ -224,13 +234,11 @@
    [functions (listof m-function?)])
   #:transparent)
 
-
 (define-struct/contract m-theory
   ([name string?]
-   [xml (listof xexpr?)]
-   [vocab m-vocabulary?]
-   [axioms-cmds list?]
-   [axioms (listof m-formula?)])
+   [axioms-xml (listof xexpr?)]
+   [vocab m-vocabulary?]   
+   [axioms (listof m-axiom?)])
   #:transparent)
 
 (define-struct/contract m-vardec
