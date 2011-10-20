@@ -210,12 +210,24 @@
 
 (define (m-axiom? sexpr)
   (when (m-formula? sexpr)
-    #t)
-  
+    #t)  
   (match sexpr
     [`(atmostone-all ,id) #t]
     [`(atmostone ,id) #t]
-    ; todo ...
+    [`(singleton-all ,id) #t]
+    [`(singleton ,id) #t]
+    [`(nonempty-all ,id) #t]
+    [`(nonempty ,id) #t]     
+    [`(abstract ,id) #t]
+    [`(partial-function ,id) #t]
+    
+    ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
+    [`(subset ,id1 ,id2) #t]
+    
+    ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
+    ;[`(allow-overlap ,id1 ,id2) #t]
+    ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
+    
     [else #f]))
   
 

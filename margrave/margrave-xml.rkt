@@ -994,11 +994,11 @@
 (define (xml-make-subset parent child)
   `(CONSTRAINT ((type ,"SUBSET")) ,parent ,child))
 
-(define (xml-make-rename id1 id2)
-  `(RENAME ((id1 ,id1) (id2 ,id2))))
-
-(define (xml-make-rename-command id1 id2)
-  (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
+;(define (xml-make-rename id1 id2)
+;  `(RENAME ((id1 ,id1) (id2 ,id2))))
+;
+;(define (xml-make-rename-command id1 id2)
+;  (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
 (define (xml-make-count id)
   `(COUNT ((id ,id))))

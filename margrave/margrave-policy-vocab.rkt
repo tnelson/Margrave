@@ -484,26 +484,34 @@
      (let ()       
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
-       (define the-vocab-syntax 'myvocab)
-       
-       
+       (define the-vocab-syntax 'myvocab)                    
        
        ; TODO
-       (define the-axioms-list empty)
+       (define the-axioms-clauses (syntax-e 'myaxioms))
        
-       
+       (printf ("~v : ~v ~n" the-vocab-syntax the-axioms-clauses))
        
        (define (axiom->xml axiom)
-         (m-formula->xexpr axiom))
+         (if (m-formula? axiom)
+             (m-formula->xexpr axiom)
+             (match axiom
+               [`(atmostone-all ,id) (xml-make-constraint 'ATMOSTONE-ALL (list id))]
+               [`(atmostone ,id) (xml-make-constraint 'ATMOSTONE (list id))]
+               [`(singleton-all ,id) (xml-make-constraint 'SINGLETON-ALL (list id))]
+               [`(singleton ,id) (xml-make-constraint 'SINGLETON (list id))]
+               [`(nonempty-all ,id) (xml-make-constraint 'NONEMPTY-ALL (list id))]
+               [`(nonempty ,id) (xml-make-constraint 'NONEMPTY (list id))]     
+               [`(abstract ,id) (xml-make-constraint 'ABSTRACT (list id))]
+               [`(partial-function ,id) (xml-make-constraint 'PARTIAL-FUNCTION (list id))]                              
+               [`(subset ,id1 ,id2) (xml-make-subset id1 id2)]
+               [else (raise-user-error (format "The axiom ~v was neither a formula nor a constraint statement: ~v.~n" axiom))])))
        
-       ; todo: won't be good enough, because some axioms are fmlas, but some are specific constraint sugar
-       ; e.g. (atmostone-all A) .
-       (define axioms-xml (map axiom->xml the-axioms-list))
+       (define axioms-xml (map axiom->xml the-axioms-clauses))
        
        (with-syntax ([axioms-xml axioms-xml]
                      [theory-name (symbol->string 'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
-                     [the-axioms-list the-axioms-list])                  
+                     [the-axioms-list the-axioms-clauses])                  
                                     
          (syntax/loc stx (m-theory theory-name axioms-xml the-vocab-syntax the-axioms-list)))))))
 
