@@ -32,8 +32,7 @@
              racket/base
              racket/contract))
 
-(provide evaluate-policy
-         
+(provide evaluate-policy        
          ; for test cases
          Policy
          PolicySet
@@ -104,10 +103,9 @@
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
     (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))           
     
-    (define pol-result-list (the-policy-func fn policy-id src-syntax))        
+    (define the-policy-instance (the-policy-func fn policy-id src-syntax))        
     (close-input-port file-port)        
-    pol-result-list))
-
+    the-policy-instance))
 
 
 ;****************************************************************
@@ -718,37 +716,40 @@
        ;                                       types-result predicates-result constants-result functions-result)])                  
        ;  (syntax/loc stx the-vocab))))))
               
+       (define/contract (repackage-transparent-struct the-struct)
+         [struct? . -> . syntax?]
+         (define struct-list (vector->list (struct->vector the-struct)))
+         (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
+         (define (safe-param x)
+           (if (list? x)
+               #`'#,x
+               x))  
+         #`(#,struct-name #,@(map safe-param (rest struct-list))))
+
+       
        (with-syntax ([vocab-name-string vocab-name-string]
                      [xml-list xml-list]
                      [types-result #`(list #,@(map repackage-transparent-struct types-result))]
                      [predicates-result #`(list #,@(map repackage-transparent-struct predicates-result))]
                      [constants-result #`(list #,@(map repackage-transparent-struct constants-result))]
                      [functions-result #`(list #,@(map repackage-transparent-struct functions-result))])     
-         (printf "~v~n" (quasisyntax/loc stx (m-vocabulary vocab-name-string 
-                                                          empty ; 'xml-list
-                                                           types-result
-                                                           predicates-result
-                                                           constants-result
-                                                           functions-result)))
+        ; (printf "~v~n~v~n~v~n" (quasisyntax/loc stx (m-vocabulary vocab-name-string 
+        ;                                                  empty ; 'xml-list
+        ;                                                   types-result
+        ;                                                   predicates-result
+        ;                                                   constants-result
+        ;                                                   functions-result))
+        ;         (length (namespace-mapped-symbols))
+        ;         (member 'm-type (namespace-mapped-symbols)))
                   
          (syntax/loc stx (m-vocabulary vocab-name-string 
                                        'xml-list
                                        types-result
-                                       empty ;predicates-result
-                                       empty ;constants-result
-                                       empty ;functions-result
+                                       predicates-result
+                                       constants-result
+                                       functions-result
                                        )))))))
 
-
-; This helps the "cons" example for expand, but not this...
-;(parameterize ([current-namespace margrave-policy-vocab-namespace])
-;  (expand (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r ;X Y)))))
-; ok!
-;(expand #'(m-type "A" '()))
-
-; vocab is ok. but INSIDE m-type is not.
-; lots of expand-once calls give no problem. it's just expand.
-; expand-to-top-form is ok, and docs say it produces same result
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -764,8 +765,8 @@
      (let ()
        (unless (symbol? (syntax->datum #'vocabname))
          (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
-                                             (syntax->datum #'vocabname)) #f #f (list #'vocabname)))
-              
+                                             (syntax->datum #'vocabname)) #f #f (list #'vocabname)))                          
+       
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
                                                         [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
@@ -899,8 +900,7 @@
       
        (define create-result (list `(xml-make-command "CREATE POLICY LEAF" 
                                                (list (xml-make-policy-identifier local-policy-id)
-                                                     (xml-make-vocab-identifier vocab-name)))))
-     
+                                                     (xml-make-vocab-identifier ,(syntax->string #'vocabname))))))          
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Prepare
@@ -963,10 +963,12 @@
              (define rules-list empty)
              (define vardec-list empty)
              (define rcomb-desc "")
-                         
+             
+             (printf "~v~n" my-commands)
+             
              (m-policy local-policy-id                          
                        my-commands
-                       my-vocab
+                       my-vocab ; an m-vocabulary struct
                        vardec-list
                        rules-list
                        rcomb-desc)))))]

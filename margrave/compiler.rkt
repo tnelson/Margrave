@@ -39,19 +39,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (create-policy-loader policy-id policy-fn src-syntax)  
-  (define policy-creation-list (evaluate-policy policy-fn
-                                                policy-id
-                                                #:syntax src-syntax))
+  (define policy-instance (evaluate-policy policy-fn
+                                           policy-id
+                                           #:syntax src-syntax))
   
-  (define vocab-name (second policy-creation-list))
-  (define policy-thinks-name-is (first policy-creation-list))
   
-  (define xml-cmds (append (third policy-creation-list)                                    
-                           (fourth policy-creation-list)))
+  (define vocab-instance (m-policy-vocabulary policy-instance))
+  (define policy-thinks-name-is (m-policy-id policy-instance))
+  
+  (define xml-cmds (append (m-vocabulary-xml vocab-instance)                                    
+                           (m-policy-xml policy-instance)))
   
   ; Load the policy, but also bind the result in our environment
   (make-simple-load-func policy-id                            
-                         vocab-name                            
+                         (m-vocabulary-name vocab-instance)
                          xml-cmds                            
                          src-syntax))
 
@@ -75,31 +76,12 @@
     ; clogging due to trailing comments/whitespace)
     [(equal? first-datum 'IGNORE)
      '(lambda () (void))]
-    
-    ; ************************************
-    
-    ; !!! todo: I think these can be removed. Check. -TN
-    
-    ; Single command: compile its contents
-    ; [(equal? first-datum 'COMMAND)
-    ;  (let ()
-    ;    ;(printf "COMMAND: ~a~n ~a~n~n" (syntax->datum (second interns)) (compile-margrave-syntax (second interns)))
-    ;    (compile-margrave-syntax (second interns)))]
-    
-    ; Multiple commands: compile each command separately and return a list.
-    ; [(equal? first-datum 'MARGRAVE-SCRIPT) (create-script-list (map compile-margrave-syntax (rest interns)))]
-    
+        
     ; ************************************
     ; ************************************
     ; ************************************
-    
-    ; !!! todo: remove ? -TN
-    ; [(equal? first-datum 'PARANTHESIZED-EXPRESSION)
-    ;  (compile-margrave-syntax (second interns))]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
-    ; third and fourth of the list are func syntax that create vocab, pol respectively
-    ; So create an uber-func that does both
     [(equal? first-datum 'LOAD-POLICY)
      (define policy-id (symbol->string (syntax->datum (second interns))))
      (define policy-file-name-syntax (third interns))
@@ -414,9 +396,6 @@
                  
                  ; (3) resulting lambda will just return polname
                  (list (string-append "Policy " polname " loaded.")))))
-
-(define (syntax->string s)
-  (symbol->string (syntax->datum s)))
 
 (define (helper-syn->xml syn)
   (define interns (syntax-e syn))

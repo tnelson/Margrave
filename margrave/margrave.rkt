@@ -465,8 +465,8 @@ gmarceau
 
 (define (handle-fmla-sexpr sexpr)
   (match sexpr
-    ['true (xml-make-true)]
-    ['false (xml-make-false)]                                            
+    ['true (xml-make-true-condition)]
+    ['false (xml-make-false-condition)]                                            
     [`(= ,t1 ,t2) (xml-make-equals-formula (handle-fmla-sexpr (second sexpr)) (handle-fmla-sexpr (third sexpr)))]
     [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
      (xml-make-atomic-formula pids-and-idbname

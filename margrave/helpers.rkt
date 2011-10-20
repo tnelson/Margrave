@@ -110,7 +110,8 @@
 
 (define (safe-get-margrave-collection-path)
   (with-handlers ([(lambda (e) (exn:fail:filesystem? e))
-                   (lambda (e) #f)])
+                   (lambda (e) (current-directory))])
+    ; If no margrave collection, assume debug mode.
     (collection-path "margrave")))
 
 (define (resolve-margrave-filename-keyword raw-filename)
@@ -256,15 +257,16 @@
   #:transparent)
 
 ; WILL NOT WORK if some fields are opaque
-(define/contract (repackage-transparent-struct the-struct)
-  [struct? . -> . syntax?]
-  (define struct-list (vector->list (struct->vector the-struct)))
-  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
-  (define (safe-param x)
-    (if (list? x)
-        #`'#,x
-        x))  
-  #`(#,struct-name #,@(map safe-param (rest struct-list))))
+; also needed to be in the same module. namespace issue?
+;(define/contract (repackage-transparent-struct the-struct)
+;  [struct? . -> . syntax?]
+;  (define struct-list (vector->list (struct->vector the-struct)))
+;  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
+;  (define (safe-param x)
+;    (if (list? x)
+;        #`'#,x
+;        x))  
+  ;#`(#,struct-name #,@(map safe-param (rest struct-list))));
 
 
 ; Remove duplicate types, but combine child names.
