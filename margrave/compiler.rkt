@@ -39,15 +39,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (create-policy-loader policy-id policy-fn src-syntax)  
+
+  ; Prevent re-binding of a policy identifier
+  (when (hash-has-key? cached-policies policy-id)
+    (raise-user-error (format "Error: The policy identifier ~v has already been used.~n" policy-id)))
+
   (define policy-instance (evaluate-policy policy-fn
                                            policy-id
                                            #:syntax src-syntax))
   
   
   (define vocab-instance (m-policy-vocabulary policy-instance))
-  (define policy-thinks-name-is (m-policy-id policy-instance))
+
+  ; If we already loaded the vocabulary, don't re-send the vocab commands.
+  ; Also cache the vocabulary if this is the first time we've seen it.
+  (define vocab-xml
+    (if (hash-has-key? cached-vocabularies (m-vocabulary-name vocab-instance))
+        empty
+        (begin
+          (hash-set! cached-vocabularies 
+                     (m-vocabulary-name vocab-instance)
+                     vocab-instance)
+          (m-vocabulary-xml vocab-instance))))
+    
+  ;; Cache the policy
+  (hash-set! cached-policies 
+             policy-id
+             policy-instance)
   
-  (define xml-cmds (append (m-vocabulary-xml vocab-instance)                                    
+  (define xml-cmds (append vocab-xml                                    
                            (m-policy-xml policy-instance)))
   
   ; Load the policy, but also bind the result in our environment

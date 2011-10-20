@@ -22,10 +22,8 @@
          syntax/stx
          syntax/readerr
          
-         (file "helpers.rkt")
-         
-         (file "lexer.rkt")
-         )
+         (file "helpers.rkt")         
+         (file "lexer.rkt"))
 
 
 (provide parse)

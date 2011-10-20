@@ -36,7 +36,17 @@
          ; for test cases
          Policy
          PolicySet
-         Vocab)
+         Vocab
+         
+         ; for reflection, errors, etc
+         cached-policies
+         cached-vocabularies
+         cached-theories)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define cached-policies (make-hash))
+(define cached-vocabularies (make-hash))
+(define cached-theories (make-hash))
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy

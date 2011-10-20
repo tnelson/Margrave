@@ -74,10 +74,6 @@
 
 (define margrave-version "3.1-alpha")
 
-(define cached-policies #hash())
-(define cached-vocabularies #hash())
-(define cached-theories #hash())
-
 ;****************************************************************
 ;;Java Connection
 
@@ -418,7 +414,7 @@ gmarceau
 ; !!! Why is one working and the other not? Namespace issue, somehow? 
 ; One evaluates, one is a macro.
 
-(define (m-load-policy id fn)  
+(define (m-load-policy id fn)    
   (define func-sexpr (create-policy-loader 
                       id 
                       (if (path? fn)
