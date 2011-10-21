@@ -411,9 +411,6 @@ gmarceau
 
 ; policy-id policy-file-name -> bool
 
-; !!! Why is one working and the other not? Namespace issue, somehow? 
-; One evaluates, one is a macro.
-
 (define (m-load-policy id fn)    
   (define func-sexpr (create-policy-loader 
                       id 
@@ -423,30 +420,6 @@ gmarceau
                       #'fn))
   (define load-func (eval func-sexpr the-margrave-namespace))
   (load-func))
-
-; I'd like to use macros for these functions, since commands all turn into syntax anyway.
-; ...but no time to understand the namespace issue properly yet. - TN
-
-#|
-(define-syntax (m-load-policyx stx)
-  (syntax-case stx []
-    [(_ id fn)
-     (let ()
-          
-       (define id-datum (syntax->datum #'id))
-       (define filename-datum (if (path? (syntax->datum #'fn))
-                                  (path->string (syntax->datum #'fn))
-                                  (syntax->datum #'fn)))       
-       
-       ; won't work because the namespace isn't known at phase 1.
-       (quasisyntax/loc stx                  
-           ( #,(parameterize ([current-namespace the-margrave-namespace])
-                 (create-policy-loader id-datum
-                                       filename-datum
-                                       #'fn)))))]
-    [else
-     (raise-syntax-error 'Policy "Invalid use of m-load-policy. Syntax: (m-load-policy <identifier> <filename>)" #f #f stx)]))
-|#
 
 (define/contract
   (m-is-poss? qryid)
@@ -458,7 +431,6 @@ gmarceau
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))
         ;[(equal? op 'forall) (xml-make-forall (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)) (m-formula->xexpr (fourth sexpr)))]
-
 
 (define/contract
   (m-let qryid sexpr-vars sexpr-fmla)

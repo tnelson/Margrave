@@ -288,7 +288,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (m-term? sexpr)
-  #t)
+  (match sexpr
+    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t ]    
+    [(? valid-constant? cid) #t]
+    [(? valid-variable? vid) #t]
+    [else #f]))
 
 (define (m-axiom? sexpr)
   (when (m-formula? sexpr)

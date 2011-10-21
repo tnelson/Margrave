@@ -68,17 +68,6 @@
 (define-for-syntax err-invalid-type-decl-case "Type declaration was not valid: Types must have capitalized names.")
 (define-for-syntax err-invalid-type-decl "Type declaration was not valid.")
 
-
-
-
-;****************************************************************
-
-(define loaded-policies empty)
-(define loaded-vocabularies empty)
-
-;****************************************************************
-
-
 ;****************************************************************
 
 ; Initialize policy file name.
@@ -162,70 +151,12 @@
   (and (symbol? dat)
        (char-lower-case? (string-ref (symbol->string dat) 0))))
 
-; Is this a dotted identifier? Must have a . somewhere.
-(define-for-syntax (dotted-id-syn? syn)
-  (define dat (if (syntax? syn)
-                  (syntax->datum syn)
-                  syn))  
-  (and (symbol? dat)
-       (string-contains (symbol->string dat) ".")))
-
-
 ; Apply given pred to each
 ; (to be used on lists of identifiers)
 (define-for-syntax (all-are-syn? syn-list fpred)
   (define proper-list (or (syntax->list syn-list)
                           (list (syntax->datum syn-list))))
   (andmap fpred proper-list))
-
-; Return list of components
-; (One or more non-dot characters)
-(define-for-syntax (handle-dotted-pred syn)
-  (define str (symbol->string (syntax->datum syn)))
-  (regexp-match* #rx"[^.]+" str))
-
-; Takes formula syntax and returns XML for the formula.
-; todo: detect valid vars, sorts, etc.
-(define-for-syntax (handle-formula fmla)         
-  (syntax-case fmla [and or not implies iff exists forall = true isa] 
-    [true (xml-make-true-condition)]
-    [(= v1 v2) (xml-make-equals-formula (m-term->xexpr #'v1) (m-term->xexpr #'v2))]
-    [(and f0 f ...) (xml-make-and* (map handle-formula (syntax->list #'(f0 f ...))))]
-    [(or f0 f ...) (xml-make-or* (map handle-formula (syntax->list #'(f0 f ...))))]
-    [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
-    [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
-    [(not f) (xml-make-not (handle-formula #'f))]
-    [(exists var type f ) (xml-make-exists (symbol->string (syntax->datum #'var))
-                                           (symbol->string (syntax->datum #'type))
-                                           (handle-formula #'f))]
-    [(forall var type f ) (xml-make-forall (symbol->string (syntax->datum #'var))
-                                           (symbol->string (syntax->datum #'type))
-                                           (handle-formula #'f))]
-    [(isa var type) (xml-make-isa-formula #'var #'type)]
-    
-    ; IDB
-    [( (idbcomponent ...) t0 t ...) 
-     (xml-make-atomic-formula #'(idbcomponent ...)
-                              (map m-term->xexpr (syntax->list #'(t0 t ...))))]
-    
-    ; IDB -- dotted notation
-    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
-                               (dotted-id-syn? #'dottedpred))
-                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
-                                                    (map m-term->xexpr (syntax->list #'(t0 t ...)))) ]
-    
-    
-    ; EDB (rel) will be lowercase
-    [(relname t0 t ...) (lower-id-syn? #'relname)
-                        (xml-make-atomic-formula #'(list rename)
-                                                 (map m-term->xexpr (syntax->list #'(t0 t ...))))]
-    
-    ; EDB (sort) will be capitalized
-    [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
-                      (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
-        
-    [else (raise-syntax-error 'Policy "Invalid formula." #f #f (list fmla))]))
-
 
 ; Used so that rules can be written nicely, e.g.
 ; ... :- (p x) (r y)

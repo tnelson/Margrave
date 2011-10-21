@@ -17,9 +17,10 @@
 
 #lang racket
 
-(require xml)
-(require "helpers.rkt")
-(require rackunit)
+(require xml
+         "helpers.rkt"
+         rackunit
+         (only-in srfi/13 string-contains))
 
 (provide 
  (all-defined-out))
@@ -1299,34 +1300,129 @@
              (m-predicate->cmd "vocab" (m-predicate "pname" '("A" "B" "C")))                    
              '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab"))) (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
                     
+
+; Is this a dotted identifier? Must have a . somewhere.
+(define (dotted-id? sym)
+  (and (symbol? sym)
+       (string-contains (symbol->string sym) ".")))
+
+; Return list of components
+; (One or more non-dot characters)
+(define (handle-dotted-pred sym)
+  (define str (symbol->string sym))
+  (regexp-match* #rx"[^.]+" str))
+
              
-             
-(define/contract (m-formula->xexpr sexpr)
-  [m-formula? . -> . xexpr?]
+(define/contract (m-formula->xexpr sexpr #:syntax [src #f])
+  [->* [any/c] ; don't give a contract violation; let the errors work!
+       [#:syntax syntax?]
+       xexpr?]    
+  
+  (define (m-formula->xexpr/down fmla) 
+    (m-formula->xexpr fmla src))
+  (define (m-term->xexpr/down term) 
+    (m-term->xexpr term src))
+     
+  ; This function should work on both syntax and non-syntax.
+  ; e.g. '(and (p x) (r x))
+  ;      #'(and (p x) (r x))
+ 
+  ; currently it does not.
+  ; m-let is a function, not a macro (b/c we don't want to have to eval a 2nd time to support quasiquoting)
+  ; could make it a macro and just do , without `, though. So macro WOULD be ok.
+  
+  ; option 1: make m-let a macro (more work). convert all these to syntax-case. M-term and M-fmla will be syntax, not sexpressions.
+  ; option 2: Leave m-let alone. Convert to syntax-case. If arg isn't syntax, enrich with dummy syntax. user rather than stx errors.
+        ; this seems best. since #`#,sexpr will syntax-ize the form recursively. 
+        ; What about performance?
+  ; option 3: Leave m-let alone. Leave as match. What about syntax? 
+  ; 4: opt 3 but just dupe the functions match -> syntax-case (ugh)
+  ; opt 5: separate blocks in the funcs for syntax vs. nonsyntax?
+        ; this is "ugly" but appealing...
+  
+  ; both 2 and 5 require implementing syntax-cases, so...
+  ; 2 may be better for now. comment out match clauses for later use, perhaps?
+  ; this way, less risk of introducing bugs in new code.
+  
   (match sexpr
+    ; keywords first
+    [`(and ,@(list args ...)) (xml-make-and* (map m-formula->xexpr/down args))]
+    [`(or ,@(list args ...)) (xml-make-or* (map m-formula->xexpr/down args))]
+    [`(implies ,arg1 ,arg2) (xml-make-implies (m-formula->xexpr/down arg1) (m-formula->xexpr/down arg2))]   
+    [`(iff ,arg1 ,arg2) (xml-make-iff (m-formula->xexpr/down arg1) (m-formula->xexpr/down arg2))]   
+    [`(not ,arg) (xml-make-not (m-formula->xexpr/down arg))]   
+    [`(forall ,vname ,sname ,fmla)
+     (xml-make-forall vname sname (m-formula->xexpr/down fmla))]   
+    [`(exists ,vname ,sname ,fmla)
+     (xml-make-exists vname sname (m-formula->xexpr/down fmla))]  
+    
+    [`(isa ,var ,type) (xml-make-isa-formula var type (xml-make-true-condition))]    
+    [`(isa ,var ,type ,fmla) (xml-make-isa-formula var type (m-formula->xexpr/down fmla))]
+        
     ['true (xml-make-true-condition)]
     ['false (xml-make-false-condition)]                                            
-    [`(= ,t1 ,t2) (xml-make-equals-formula (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)))]
+    [`(= ,t1 ,t2) (xml-make-equals-formula (m-term->xexpr/down t1) (m-term->xexpr/down t2))]
     
     [`(,(list pids-and-idbname ...) ,term0 ,@(list terms ...)) 
      (xml-make-atomic-formula pids-and-idbname
-                              (map m-term->xexpr (cons term0 terms)))]
-    
-    [`(,edbname ,term0 ,@(list terms ...)) 
-     (xml-make-atomic-formula (list edbname)
-                              (map m-term->xexpr (cons term0 terms)))]    
+                              (map m-term->xexpr/down (cons term0 terms)))]
 
-    [`(and ,@(list args ...)) (xml-make-and* (map m-formula->xexpr args))]
-    [`(or ,@(list args ...)) (xml-make-or* (map m-formula->xexpr args))]
-    [`(implies ,arg1 ,arg2) (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
-    [`(iff ,arg1 ,arg2) (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
-    [`(not ,arg) (xml-make-not (m-formula->xexpr arg))]   
-    [`(forall ,vname ,sname ,fmla)
-     (xml-make-forall vname sname (m-formula->xexpr fmla))]   
-    [`(exists ,vname ,sname ,fmla)
-     (xml-make-exists vname sname (m-formula->xexpr fmla))]  
+    ; For backward compatability:
+    [`(,(? dotted-id? dottedname) ,term0 ,@(list terms ...)) 
+     (xml-make-atomic-formula (handle-dotted-pred dottedname)
+                              (map m-term->xexpr/down (cons term0 terms)))]    
+
     
-    [else    (raise-user-error (format "Formula s-expression not of expected form: ~a.~n" sexpr))]))
+    [`(,(? valid-predicate? edbname) ,term0 ,@(list terms ...)) 
+     (xml-make-atomic-formula (list edbname)
+                              (map m-term->xexpr/down (cons term0 terms)))]    
+
+    
+    [else    (raise-user-error (format "Invalid formula s-expression: ~a.~n" sexpr))]))
+
+; TN removed from policy macro module
+; Takes formula syntax and returns XML for the formula.
+; todo: detect valid vars, sorts, etc.
+;(define-for-syntax (handle-formula fmla)         
+;  (syntax-case fmla [and or not implies iff exists forall = true isa] 
+;    [true (xml-make-true-condition)]
+;    [(= v1 v2) (xml-make-equals-formula (m-term->xexpr #'v1) (m-term->xexpr #'v2))]
+;    [(and f0 f ...) (xml-make-and* (map handle-formula (syntax->list #'(f0 f ...))))]
+;    [(or f0 f ...) (xml-make-or* (map handle-formula (syntax->list #'(f0 f ...))))]
+;    [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
+;    [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
+;    [(not f) (xml-make-not (handle-formula #'f))]
+;    [(exists var type f ) (xml-make-exists (symbol->string (syntax->datum #'var))
+;                                           (symbol->string (syntax->datum #'type))
+;                                           (handle-formula #'f))]
+;    [(forall var type f ) (xml-make-forall (symbol->string (syntax->datum #'var))
+;                                           (symbol->string (syntax->datum #'type))
+;                                           (handle-formula #'f))]
+;    [(isa var type) (xml-make-isa-formula #'var #'type)]
+;    
+;    ; IDB
+;    [( (idbcomponent ...) t0 t ...) 
+;     (xml-make-atomic-formula #'(idbcomponent ...)
+;                              (map m-term->xexpr (syntax->list #'(t0 t ...))))]
+;    
+;    ; IDB -- dotted notation
+;    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
+;                               (dotted-id-syn? #'dottedpred))
+;                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
+;                                                    (map m-term->xexpr (syntax->list #'(t0 t ...)))) ]
+;    
+;    
+;    ; EDB (rel) will be lowercase
+;    [(relname t0 t ...) (lower-id-syn? #'relname)
+;                        (xml-make-atomic-formula #'(list rename)
+;                                                 (map m-term->xexpr (syntax->list #'(t0 t ...))))]
+;    
+;    ; EDB (sort) will be capitalized
+;    [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
+;                      (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
+;        
+;    [else (raise-syntax-error 'Policy "Invalid formula." #f #f (list fmla))]))
+
 
 ; 10/11 TN moved from policy-vocab module and commented out in favor of
 ; m-term->xexpr. Keeping this for error message creation later. Will
@@ -1351,7 +1447,7 @@
 ; 
 
 (define/contract (m-term->xexpr sexpr #:syntax [src #f])
-  [->* [m-term?]
+  [->* [any/c] ; don't give a contract violation; let the errors work!
        [#:syntax syntax?]
        xexpr?]  
   (match sexpr
