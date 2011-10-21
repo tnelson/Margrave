@@ -25,8 +25,7 @@
   [->* (procedure? 
         list?)
        (#:init-keys list?)  
-       hash?]
-  
+       hash?]  
   (define result-hash (make-hash))
   
   ; initialize
@@ -194,11 +193,11 @@
 
 (define (m-formula? sexpr)
   (match sexpr 
-    ['true #t]
+    ['true #t]    
     ['false #t]
     [`(= ,t1 ,t2) #t]
-    [`(,(list pids ... idbname) ,@(list terms ...)) #t]
-    [`(,idbname ,@(list terms ...)) #t]    
+    [`(,(list pids ... idbname) ,term0 ,@(list terms ...)) #t]
+    [`(,dbname ,term0 ,@(list terms ...)) (list dbname term0 terms)]    
     [`(and ,@(list args ...)) (andmap m-formula? args)]
     [`(or ,@(list args ...)) (andmap m-formula? args)]
     [`(implies ,arg1 ,arg2) (and (m-formula? arg1) (m-formula? arg2))]   
@@ -207,6 +206,89 @@
     [`(forall ,vname ,sname ,fmla) (m-formula? fmla)]   
     [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
     [else #f]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define reserved-words
+  '(function
+    constant
+    predicate
+    rule
+    vocab
+    policy
+    policyset
+    type ; used as synonyms for now
+    sort
+    
+    list
+    quote
+    quasiquote))
+
+; Function symbols must have the first character alpha lowercase
+(define (valid-function? sym)
+  (and (symbol? sym) 
+       (not (member sym reserved-words))
+       (let ([str0 (string-ref (symbol->string sym) 0)])
+         (and 
+          (char-lower-case? str0)
+          (char-alphabetic? str0)))))
+(check-true (valid-function? 'f0))
+(check-false (valid-function? 100))  
+
+; Constant symbols are preceded by a quote, but otherwise same as funcs.
+(define (valid-constant? sym)
+  (match sym
+    [`(quote ,(? valid-function? sym)) #t]
+    [else #f]))
+(check-true (valid-constant? ''cONSTANT))
+(check-false (valid-constant? 'c))
+(check-false (valid-constant? '100))  
+(check-false (valid-constant? ''100))  
+
+; Predicate symbols are the same as function symbols.
+; Understand difference from context.
+(define (valid-predicate? sym)
+  (and (symbol? sym) 
+       (not (member sym reserved-words))
+       (let ([str0 (string-ref (symbol->string sym) 0)])
+         (and 
+          (char-lower-case? str0)
+          (char-alphabetic? str0)))))
+(check-true (valid-predicate? 'myPred))
+(check-false (valid-predicate? 100))  
+
+; Sort symbols must be capitalized.
+(define (valid-sort? sym)
+  (and (symbol? sym) 
+       (not (member sym reserved-words))
+       (let ([str0 (string-ref (symbol->string sym) 0)])
+         (and 
+          (char-upper-case? str0)
+          (char-alphabetic? str0)))))
+(check-true (valid-sort? 'A))
+(check-false (valid-sort? 'a))  
+(check-false (valid-sort? 'constant))  
+(check-false (valid-sort? 100))  
+
+; Variables must begin with a lowercase letter.
+; This is also the same as func ids and predicate ids.
+(define (valid-variable? sym)
+  (and (symbol? sym) 
+       (not (member sym reserved-words))
+       (let ([str0 (string-ref (symbol->string sym) 0)])
+         (and 
+          (char-lower-case? str0)
+          (char-alphabetic? str0)))))
+(check-true (valid-variable? 'myVar0))
+(check-false (valid-variable? 'A))  
+(check-false (valid-variable? 100))  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (m-term? sexpr)
+  #t)
 
 (define (m-axiom? sexpr)
   (when (m-formula? sexpr)
@@ -309,5 +391,5 @@
 
 ;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
 
-(define (syntax->string  x)
+(define (syntax->string x)
   (symbol->string (syntax->datum x)))

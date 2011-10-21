@@ -1301,17 +1301,20 @@
                     
              
              
-(define (m-formula->xexpr sexpr)
+(define/contract (m-formula->xexpr sexpr)
+  [m-formula? . -> . xexpr?]
   (match sexpr
     ['true (xml-make-true-condition)]
     ['false (xml-make-false-condition)]                                            
     [`(= ,t1 ,t2) (xml-make-equals-formula (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)))]
-    [`(,(list pids-and-idbname ...) ,@(list terms ...)) 
+    
+    [`(,(list pids-and-idbname ...) ,term0 ,@(list terms ...)) 
      (xml-make-atomic-formula pids-and-idbname
-                              (map handle-term-sexpr terms))]
-    [`(,edbname ,@(list terms ...)) 
+                              (map m-term->xexpr (cons term0 terms)))]
+    
+    [`(,edbname ,term0 ,@(list terms ...)) 
      (xml-make-atomic-formula (list edbname)
-                              (map handle-term-sexpr terms))]    
+                              (map m-term->xexpr (cons term0 terms)))]    
 
     [`(and ,@(list args ...)) (xml-make-and* (map m-formula->xexpr args))]
     [`(or ,@(list args ...)) (xml-make-or* (map m-formula->xexpr args))]
@@ -1325,11 +1328,39 @@
     
     [else    (raise-user-error (format "Formula s-expression not of expected form: ~a.~n" sexpr))]))
 
-(define (handle-term-sexpr sexpr)
-  (cond [(and (list? sexpr) (> (length sexpr) 1))
-         (xml-make-function-term (first sexpr) (map handle-term-sexpr (rest sexpr)))]
-        [(list? sexpr) ; constant will be quoted within the symbol, e.g. written as 'c, but seen as ''c
-         (xml-make-constant-term (symbol->string sexpr))]
-        [else ; variable
-         (xml-make-variable-term (symbol->string sexpr))]))
+; 10/11 TN moved from policy-vocab module and commented out in favor of
+; m-term->xexpr. Keeping this for error message creation later. Will
+; also need to produce syntax errors sometimes...
+;; todo detect valid vars, sorts. etc. plus valid casing
+; (define-for-syntax (handle-term term)
+;   (syntax-case term []
+;     ['c (lower-id-syn? (syntax c))
+;         (xml-make-constant-term (symbol->string (syntax->datum #'c)))]
+;     ['c (raise-syntax-error `Policy err-invalid-constant-case #f #f (list term))]
+;     
+;     [(func t0 t ...) (lower-id-syn? #'func)
+;                      (xml-make-function-term (symbol->string (syntax->datum #'func)) 
+;                                              (map handle-term (syntax->list #'(t0 t ...))))]
+;     [(func t0 t ...) (raise-syntax-error 'Policy err-invalid-function-case #f #f (list term))]
+;     
+;     [v (lower-id-syn? #'v)
+;        (xml-make-variable-term (symbol->string (syntax->datum #'v)))]
+;     [v (raise-syntax-error 'Policy err-invalid-variable-case #f #f (list term))]
+;     
+;     [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
+; 
 
+(define/contract (m-term->xexpr sexpr #:syntax [src #f])
+  [->* [m-term?]
+       [#:syntax syntax?]
+       xexpr?]  
+  (match sexpr
+    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) 
+     (xml-make-function-term (symbol->string funcid) 
+                             (map (lambda (t) (m-term->xexpr t #:syntax src)) terms)) ]    
+    [(? valid-constant? cid) (xml-make-constant-term (symbol->string sexpr))]
+    [(? valid-variable? vid) (xml-make-variable-term (symbol->string sexpr))]
+    [else (if src
+              (raise-syntax-error 'Margrave (format "Incorrect term expression: ~a.~n" sexpr) #f #f (list src))
+              (raise-user-error (format "Incorrect term expression: ~a.~n" sexpr)))]))
+  

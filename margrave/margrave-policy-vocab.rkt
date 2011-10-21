@@ -178,24 +178,6 @@
                           (list (syntax->datum syn-list))))
   (andmap fpred proper-list))
 
-;; todo detect valid vars, sorts. etc. plus valid casing
-(define-for-syntax (handle-term term)
-  (syntax-case term []
-    ['c (lower-id-syn? (syntax c))
-        (xml-make-constant-term (symbol->string (syntax->datum #'c)))]
-    ['c (raise-syntax-error `Policy err-invalid-constant-case #f #f (list term))]
-    
-    [(func t0 t ...) (lower-id-syn? #'func)
-                     (xml-make-function-term (symbol->string (syntax->datum #'func)) 
-                                             (map handle-term (syntax->list #'(t0 t ...))))]
-    [(func t0 t ...) (raise-syntax-error 'Policy err-invalid-function-case #f #f (list term))]
-    
-    [v (lower-id-syn? #'v)
-       (xml-make-variable-term (symbol->string (syntax->datum #'v)))]
-    [v (raise-syntax-error 'Policy err-invalid-variable-case #f #f (list term))]
-    
-    [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
-
 ; Return list of components
 ; (One or more non-dot characters)
 (define-for-syntax (handle-dotted-pred syn)
@@ -207,7 +189,7 @@
 (define-for-syntax (handle-formula fmla)         
   (syntax-case fmla [and or not implies iff exists forall = true isa] 
     [true (xml-make-true-condition)]
-    [(= v1 v2) (xml-make-equals-formula (handle-term #'v1) (handle-term #'v2))]
+    [(= v1 v2) (xml-make-equals-formula (m-term->xexpr #'v1) (m-term->xexpr #'v2))]
     [(and f0 f ...) (xml-make-and* (map handle-formula (syntax->list #'(f0 f ...))))]
     [(or f0 f ...) (xml-make-or* (map handle-formula (syntax->list #'(f0 f ...))))]
     [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
@@ -224,19 +206,19 @@
     ; IDB
     [( (idbcomponent ...) t0 t ...) 
      (xml-make-atomic-formula #'(idbcomponent ...)
-                              (map handle-term (syntax->list #'(t0 t ...))))]
+                              (map m-term->xexpr (syntax->list #'(t0 t ...))))]
     
     ; IDB -- dotted notation
     [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
                                (dotted-id-syn? #'dottedpred))
                            (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
-                                                    (map handle-term (syntax->list #'(t0 t ...)))) ]
+                                                    (map m-term->xexpr (syntax->list #'(t0 t ...)))) ]
     
     
     ; EDB (rel) will be lowercase
     [(relname t0 t ...) (lower-id-syn? #'relname)
                         (xml-make-atomic-formula #'(list rename)
-                                                 (map handle-term (syntax->list #'(t0 t ...))))]
+                                                 (map m-term->xexpr (syntax->list #'(t0 t ...))))]
     
     ; EDB (sort) will be capitalized
     [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
@@ -478,20 +460,20 @@
 
 
 (define-syntax (Theory stx)
-  (syntax-case stx []
-    ([_ theoryname myvocab myaxioms ]
+  (syntax-case stx [Axioms ]
+    ([_ theoryname myvocab (Axioms myaxioms ...) ]
      
      (let ()       
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
-       (define the-vocab-syntax 'myvocab)                    
+       (define the-vocab-syntax #'myvocab)                    
        
        ; TODO
-       (define the-axioms-clauses (syntax-e 'myaxioms))
+       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))
        
-       (printf ("~v : ~v ~n" the-vocab-syntax the-axioms-clauses))
+       (printf "~v : ~v ~n" the-vocab-syntax the-axioms-clauses)
        
-       (define (axiom->xml axiom)
+       (define (axiom->xml axiom)         
          (if (m-formula? axiom)
              (m-formula->xexpr axiom)
              (match axiom
@@ -504,9 +486,11 @@
                [`(abstract ,id) (xml-make-constraint 'ABSTRACT (list id))]
                [`(partial-function ,id) (xml-make-constraint 'PARTIAL-FUNCTION (list id))]                              
                [`(subset ,id1 ,id2) (xml-make-subset id1 id2)]
-               [else (raise-user-error (format "The axiom ~v was neither a formula nor a constraint statement: ~v.~n" axiom))])))
+               [else (raise-user-error (format "The axiom ~v was neither a formula nor a constraint statement.~n" axiom))])))
        
-       (define axioms-xml (map axiom->xml the-axioms-clauses))
+       (define axioms-xml (map (compose axiom->xml syntax->datum) the-axioms-clauses))
+       
+       (printf "~v ~n" axioms-xml)
        
        (with-syntax ([axioms-xml axioms-xml]
                      [theory-name (symbol->string 'theoryname)]                     
