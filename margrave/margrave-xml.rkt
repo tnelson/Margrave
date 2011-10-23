@@ -923,10 +923,10 @@
   `(VOCAB-IDENTIFIER ((vname ,vocab-name))))
 
 (define (xml-make-parent-identifier parent-name)
-  `(PARENT-IDENTIFIER ((name ,(symbol->string/safe parent-name)))))
+  `(PARENT-IDENTIFIER ((name ,(->string parent-name)))))
 
 (define (xml-make-child-identifier child-name)
-  `(CHILD-IDENTIFIER ((name ,(symbol->string/safe child-name)))))
+  `(CHILD-IDENTIFIER ((name ,(->string child-name)))))
 
 (define (xml-make-predicate pred-name)
   `(PREDICATE ((name ,pred-name))))
@@ -935,7 +935,7 @@
       `(TARGET ,formula))
 
 (define (xml-make-rule rule-name dtype rule-list)
-  `(RULE ((name ,(symbol->string/safe rule-name))) ,dtype ,rule-list))
+  `(RULE ((name ,(->string rule-name))) ,dtype ,rule-list))
 
 ;rule-list is of the form ((!Conflicted s r) (ReadPaper a) (Paper r)), or true
 (define (xml-make-rule-list orig-rule-list)
@@ -948,7 +948,7 @@
     (if (empty? rule-list)
         `(RELATIONS) 
         `(RELATIONS ,@(map (lambda (relation)
-                             (let* ((relation-name (symbol->string/safe (first relation)))
+                             (let* ((relation-name (->string (first relation)))
                                     (negation? (starts-with-exclamation relation-name)))
                                `(RELATION ((name ,(if negation? ;Take out the exclamation point
                                                       (substring relation-name 1)
@@ -966,11 +966,11 @@
       false))
 
 (define (xml-make-decision-type idb-name var-order-list)
-  `(DECISION-TYPE ((type ,(symbol->string/safe idb-name)))
+  `(DECISION-TYPE ((type ,(->string idb-name)))
                   ,@(map xml-make-id-element var-order-list)))
 
 (define (xml-make-decision decision)
-  `(DECISION ((name ,(symbol->string/safe decision)))))
+  `(DECISION ((name ,(->string decision)))))
 
 (define (xml-make-sort sort-name)
   `(SORT ((name ,sort-name))))
@@ -1039,7 +1039,7 @@
   `(type ,type))
 
 (define (xml-make-id-element id)  
-  `(ID ((id ,(symbol->string/safe id)))))
+  `(ID ((id ,(->string id)))))
 
 (define (xml-make-get type id)
   `(SHOW (,type (id ,id))))
@@ -1139,13 +1139,13 @@
 
 
 ;(define (xml-make-atomic-formula-n relName xml-identifier-list)
-;  `(ATOMIC-FORMULA-N ((relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))  
+;  `(ATOMIC-FORMULA-N ((relation-name ,(->string relName))) ,xml-identifier-list))  
 
 ;(define (xml-make-atomic-formula-y collName relName xml-identifier-list)
   ;(printf "~n~nY: ~a ~a ~n" collName relName)
 ;  (if (empty? xml-identifier-list)
-;      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))))
-;      `(ATOMIC-FORMULA-Y ((collection-name ,(symbol->string/safe collName)) (relation-name ,(symbol->string/safe relName))) ,xml-identifier-list))) 
+;      `(ATOMIC-FORMULA-Y ((collection-name ,(->string collName)) (relation-name ,(->string relName))))
+;      `(ATOMIC-FORMULA-Y ((collection-name ,(->string collName)) (relation-name ,(->string relName))) ,xml-identifier-list))) 
 
 ;;EXPLORE
 ;Makes an xexpr for a list of atomic formulas (can be of size 1). symbol can be "and" or "or"
@@ -1446,17 +1446,22 @@
 ;     [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
 ; 
 
-(define/contract (m-term->xexpr sexpr #:syntax [src #f])
-  [->* [any/c] ; don't give a contract violation; let the errors work!
-       [#:syntax syntax?]
-       xexpr?]  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Call m-term->xexpr instead of m-term? in the patterns below.
+; Reason: m-term? does not throw errors. Recursively calling self
+; allows for better error messages. E.g.:
+; "Incorrect term expression 2"
+; versus "Incorrect term expression (f 'c (g 2))"
+(define/contract (m-term->xexpr sexpr)
+  [any/c . -> . xexpr?]
   (match sexpr
-    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) 
-     (xml-make-function-term (symbol->string funcid) 
-                             (map (lambda (t) (m-term->xexpr t #:syntax src)) terms)) ]    
-    [(? valid-constant? cid) (xml-make-constant-term (symbol->string sexpr))]
-    [(? valid-variable? vid) (xml-make-variable-term (symbol->string sexpr))]
-    [else (if src
-              (raise-syntax-error 'Margrave (format "Incorrect term expression: ~a.~n" sexpr) #f #f (list src))
-              (raise-user-error (format "Incorrect term expression: ~a.~n" sexpr)))]))
+    [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
+         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))   ) 
+     (xml-make-function-term (->string funcid) 
+                             (map m-term->xexpr terms))]
+    [(? valid-constant? cid) (xml-make-constant-term (->string sexpr))]
+    [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
+    [else (if (syntax? sexpr)
+              (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
+              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))
   

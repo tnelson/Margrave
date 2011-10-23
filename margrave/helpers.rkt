@@ -98,10 +98,12 @@
       (string-append "\"" (symbol->string arg)"\"")
       (string-append "\"" arg "\"")))
 
-(define (symbol->string/safe arg)
-  (if (symbol? arg)
-      (symbol->string arg)
-      arg))
+(define (->string arg)
+  (cond 
+    [(symbol? arg) (symbol->string arg)]
+    [(number? arg) (number->string arg)]
+    [(syntax? arg) (->string (syntax->datum arg))]        
+    [else (format "~a" arg)]))
 
 
 (define (wrap-list-parens lst)
@@ -313,8 +315,9 @@
 
 (define (m-term? sexpr)
   (match sexpr
-    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t]
-    [(syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t ]            
+    [(or `(,(? valid-function? funcid) ,@(list (? m-term? terms) ...))
+         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term? terms) ...))   ) 
+     #t]
     [(? valid-constant? cid) #t]
     [(? valid-variable? vid) #t]
     [else #f]))
