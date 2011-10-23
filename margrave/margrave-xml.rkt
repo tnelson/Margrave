@@ -1456,24 +1456,71 @@
 (check-false (m-term? #'(f x (g x z) 'c 2)))
 (check-false (m-term? #'('c x (g x z) 'c 2)))
 
+
+(define (m-axiom->xexpr axiom)         
+  (if (m-formula? axiom)
+      (m-formula->xexpr axiom)
+      (match axiom
+        [(or `(atmostone-all ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'atmostone-all) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'ATMOSTONE-ALL (list id))]
+        
+        [(or `(atmostone ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'atmostone) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'ATMOSTONE (list id))]
+        
+        [(or `(singleton-all ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'singleton-all) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'SINGLETON-ALL (list id))]
+        
+        [(or `(singleton ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'singleton) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'SINGLETON (list id))]
+        
+        [(or `(nonempty-all ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'nonempty-all) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'NONEMPTY-ALL (list id))]
+        
+        [(or `(nonempty ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'nonempty) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'NONEMPTY (list id))]     
+        
+        [(or `(abstract ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'abstract) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'ABSTRACT (list id))]
+        
+        [(or `(partial-function ,id)
+             (syntax-list-quasi (make-keyword-predicate/nobind #'partial-function) ,id))
+         (valid-sort-or-predicate?/err id)
+         (xml-make-constraint 'PARTIAL-FUNCTION (list id))]       
+
+        ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
+        [(or `(subset ,id1 ,id2) 
+             (syntax-list-quasi (make-keyword-predicate/nobind #'subset) ,id1 ,id2))
+         (valid-predicate?/err id1)
+         (valid-predicate?/err id2)
+         (xml-make-subset id1 id2)]
+        
+        ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
+        ;[`(allow-overlap ,id1 ,id2) #t]
+        ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
+        
+        [else (if (syntax? axiom)
+                  (raise-syntax-error 'Margrave (format "The axiom ~a was neither a formula nor a constraint declaration.~n" (->string axiom)) #f #f (list axiom))
+                  (raise-user-error (format "The axiom ~a was neither a formula nor a constraint declaration.~n" (->string axiom))))])))
+
 (define (m-axiom? sexpr)
-  (when (m-formula? sexpr)
-    #t)  
-  (match sexpr
-    [`(atmostone-all ,id) #t]
-    [`(atmostone ,id) #t]
-    [`(singleton-all ,id) #t]
-    [`(singleton ,id) #t]
-    [`(nonempty-all ,id) #t]
-    [`(nonempty ,id) #t]     
-    [`(abstract ,id) #t]
-    [`(partial-function ,id) #t]
-    
-    ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
-    [`(subset ,id1 ,id2) #t]
-    
-    ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
-    ;[`(allow-overlap ,id1 ,id2) #t]
-    ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
-    
-    [else #f]))  
+  (with-handlers ([(lambda (e) (exn:fail:syntax? e))
+                   (lambda (e) #f)]
+                  [(lambda (e) (exn:fail:user? e))
+                   (lambda (e) #f)])
+    (if (m-axiom->xexpr sexpr)
+        #t
+        #f)))

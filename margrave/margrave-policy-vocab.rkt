@@ -448,37 +448,15 @@
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
        (define the-vocab-syntax #'myvocab)                    
-       
-       ; TODO
-       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))
-       
-       (printf "~v : ~v ~n" the-vocab-syntax the-axioms-clauses)
-       
-       (define (axiom->xml axiom)         
-         (if (m-formula? axiom)
-             (m-formula->xexpr axiom)
-             (match axiom
-               [`(atmostone-all ,id) (xml-make-constraint 'ATMOSTONE-ALL (list id))]
-               [`(atmostone ,id) (xml-make-constraint 'ATMOSTONE (list id))]
-               [`(singleton-all ,id) (xml-make-constraint 'SINGLETON-ALL (list id))]
-               [`(singleton ,id) (xml-make-constraint 'SINGLETON (list id))]
-               [`(nonempty-all ,id) (xml-make-constraint 'NONEMPTY-ALL (list id))]
-               [`(nonempty ,id) (xml-make-constraint 'NONEMPTY (list id))]     
-               [`(abstract ,id) (xml-make-constraint 'ABSTRACT (list id))]
-               [`(partial-function ,id) (xml-make-constraint 'PARTIAL-FUNCTION (list id))]                              
-               [`(subset ,id1 ,id2) (xml-make-subset id1 id2)]
-               [else (raise-user-error (format "The axiom ~v was neither a formula nor a constraint statement.~n" axiom))])))
-       
-       (define axioms-xml (map (compose axiom->xml syntax->datum) the-axioms-clauses))
-       
-       (printf "~v ~n" axioms-xml)
-       
+              
+       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))              
+       (define axioms-xml (map m-axiom->xexpr the-axioms-clauses))
+              
        (with-syntax ([axioms-xml axioms-xml]
-                     [theory-name (symbol->string 'theoryname)]                     
+                     [theory-name (->string 'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
-                     [the-axioms-list the-axioms-clauses])                  
-                                    
-         (syntax/loc stx (m-theory theory-name axioms-xml the-vocab-syntax the-axioms-list)))))))
+                     [the-axioms-list the-axioms-clauses])                                               
+         (syntax/loc stx (m-theory theory-name 'axioms-xml the-vocab-syntax 'the-axioms-list)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -989,7 +967,7 @@
                                          #f #f (list stx))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant c A) (Constant c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
+;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
 ;(expand-once '(Policy uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
 ; Why not case-insensitive in match?
 ; (expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
@@ -1006,3 +984,5 @@
 ;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
 ;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))
 ;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)
+
+; (eval '(Theory mythy (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))) (Axioms (partial-function func))))

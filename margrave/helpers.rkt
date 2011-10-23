@@ -347,6 +347,11 @@
         [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid sort: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
         [else (raise-user-error (format "Invalid sort: ~a.~n" (->string sexpr)))]))
 
+(define (valid-sort-or-predicate?/err sexpr)
+  (cond [(or (valid-sort? sexpr) (valid-predicate? sexpr)) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid sort or predicate: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid sort or predicate: ~a.~n" (->string sexpr)))]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
