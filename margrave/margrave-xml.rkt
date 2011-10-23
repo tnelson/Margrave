@@ -880,9 +880,14 @@
 ;get ceiling;
 
 ;************************************************************************
-;;These functions return x-exprs for parts of command
+;************************************************************************
+;************************************************************************
+;************************************************************************
+
+;;These functions return x-exprs for commands, formulas, etc.
+
 (define (xml-make-info-id id)
-  `(INFO ((id ,id))))
+  `(INFO ((id ,(->string id)))))
 
 (define (xml-make-info-id-command id)
   (xml-make-command "INFO" (list (xml-make-info-id id))))
@@ -906,21 +911,21 @@
 
 
 (define (xml-make-xacml-load fn sfn)
-  `(LOAD ((file-name ,fn) (schema-file-name ,sfn))))
+  `(LOAD ((file-name ,(->string fn)) (schema-file-name ,(->string sfn)))))
 
 (define (xml-make-sqs-load fn)
-    `(LOAD ((file-name ,fn))))
+    `(LOAD ((file-name ,(->string fn)))))
 
 (define (xml-make-get-rules get-type polid decid-str)
   (if (not (equal? "" decid-str))
-      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)) ,(xml-make-decision decid-str))
-      `(GET-INFO ((type ,get-type)) ,(xml-make-policy-identifier (symbol->string polid)))))
+      `(GET-INFO ((type ,(->string get-type))) ,(xml-make-policy-identifier (->string polid)) ,(xml-make-decision decid-str))
+      `(GET-INFO ((type ,(->string get-type))) ,(xml-make-policy-identifier (->string polid)))))
 
 (define (xml-make-policy-identifier policy-name)
-  `(POLICY-IDENTIFIER ((pname ,policy-name))))
+  `(POLICY-IDENTIFIER ((pname ,(->string policy-name)))))
 
 (define (xml-make-vocab-identifier vocab-name)
-  `(VOCAB-IDENTIFIER ((vname ,vocab-name))))
+  `(VOCAB-IDENTIFIER ((vname ,(->string vocab-name)))))
 
 (define (xml-make-parent-identifier parent-name)
   `(PARENT-IDENTIFIER ((name ,(->string parent-name)))))
@@ -929,7 +934,7 @@
   `(CHILD-IDENTIFIER ((name ,(->string child-name)))))
 
 (define (xml-make-predicate pred-name)
-  `(PREDICATE ((name ,pred-name))))
+  `(PREDICATE ((name ,(->string pred-name)))))
 
 (define (xml-make-target formula)
       `(TARGET ,formula))
@@ -973,24 +978,24 @@
   `(DECISION ((name ,(->string decision)))))
 
 (define (xml-make-sort sort-name)
-  `(SORT ((name ,sort-name))))
+  `(SORT ((name ,(->string sort-name)))))
 
 (define (xml-make-subsort parent child)
-  `(SUBSORT ((parent ,parent) (child ,child))))
+  `(SUBSORT ((parent ,(->string parent)) (child ,(->string child)))))
 
 (define (xml-make-type-with-subs tname clist)
-  `(SORT-WITH-CHILDREN ((name ,tname)) ,@(map xml-make-sort clist)))
+  `(SORT-WITH-CHILDREN ((name ,(->string tname))) ,@(map xml-make-sort clist)))
 
 
 
 (define (xml-make-request-var rvname rvsort)
-  `(REQUESTVAR ((name ,rvname) (sort ,rvsort))))
+  `(REQUESTVAR ((name ,(->string rvname)) (sort ,(->string rvsort)))))
 
-(define (xml-make-other-var ovname ovsort)
-  `(OTHERVAR ((name ,ovname) (sort ,ovsort))))
+;(define (xml-make-other-var ovname ovsort)
+;  `(OTHERVAR ((name ,ovname) (sort ,ovsort))))
 
 (define (xml-make-constraint constraint-type list-of-relations)
-  `(CONSTRAINT ((type ,constraint-type)) ,(xml-make-relations-list list-of-relations)))
+  `(CONSTRAINT ((type ,(->string constraint-type))) ,(xml-make-relations-list list-of-relations)))
 
 (define (xml-make-subset parent child)
   `(CONSTRAINT ((type ,"SUBSET")) ,parent ,child))
@@ -1002,7 +1007,7 @@
 ;  (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
 (define (xml-make-count id)
-  `(COUNT ((id ,id))))
+  `(COUNT ((id ,(->string id)))))
 
 (define (xml-make-count-command id)
   (xml-make-command "COUNT" (list (xml-make-count id))))
@@ -1014,14 +1019,14 @@
   (xml-make-command "COUNT" (list (xml-make-count-with-size id size))))
 
 (define (xml-make-size size)
-  `(size ,size))
+  `(size ,(->string size)))
 
 
 (define (xml-make-file-name file-name)
-  `(file-name ,file-name))
+  `(file-name ,(->string file-name)))
 
 (define (xml-make-schema-file-name schema-file-name)
-  `(schema-file-name ,schema-file-name))
+  `(schema-file-name ,(->string schema-file-name)))
 
 (define (xml-make-load file-name)
   `(LOAD (,file-name)))
@@ -1090,30 +1095,30 @@
   `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
 
 (define (xml-make-debug debug-level)
-  `(DEBUG ((debug-level ,debug-level))))
+  `(DEBUG ((debug-level ,(->string debug-level)))))
 
 (define (xml-make-ceiling ceiling-level)
-  `(CEILING ((ceiling-level ,ceiling-level))))
+  `(CEILING ((ceiling-level ,(->string ceiling-level)))))
 
 ;Atomic Formulas
 (define (xml-make-equals-formula t1 t2)
   `(EQUALS ,t1 ,t2))
 
-(define (xml-make-isa-formula v s)
-  `(ISA ((var ,v) (sort ,s))))
+(define (xml-make-isa-formula v s f)
+  `(ISA ((var ,(->string v)) (sort ,(->string s))) ,f))
 
 (define (xml-make-variable-declaration v s)
-  `(VARIABLE-DECLARATION ((sort ,s) (varname ,v))))
+  `(VARIABLE-DECLARATION ((sort ,(->string s)) (varname ,(->string v)))))
 
 (define (xml-make-variable-term id)
-  `(VARIABLE-TERM ((id ,id))))
+  `(VARIABLE-TERM ((id ,(->string id)))))
 
 (define (xml-make-constant-term id)
-  `(CONSTANT-TERM ((id ,id))))
+  `(CONSTANT-TERM ((id ,(->string id)))))
 
 (define (xml-make-function-term fid subterm-xml-list)
   ;(printf "Function term: ~a ~a ~n" fid subterm-xml-list)
-  `(FUNCTION-TERM ((func ,fid)) ,@subterm-xml-list))
+  `(FUNCTION-TERM ((func ,(->string fid))) ,@subterm-xml-list))
 
 (define (xml-make-atomic-formula compound-id-list-maybe term-list)
   (define compound-id-list
@@ -1125,14 +1130,14 @@
 
 
 (define (xml-make-constant-decl cname ctype)
-  `(CONSTANT ((name ,cname) (type ,ctype))))
+  `(CONSTANT ((name ,(->string cname)) (type ,(->string ctype)))))
 (define (xml-make-function-decl fname ftlist)
-  `(FUNCTION ((name ,fname)) ,ftlist))
+  `(FUNCTION ((name ,(->string fname))) ,ftlist))
 
 (define (xml-make-fa typelist)
   `(FA ,@(map xml-make-id-element typelist)))
 (define (xml-make-over under-type over-list)
-  `(OVERRIDES ((decision ,under-type)) ,@(map xml-make-id-element over-list)))
+  `(OVERRIDES ((decision ,(->string under-type))) ,@(map xml-make-id-element over-list)))
 
 (define (xml-make-comb-list comb-list)
   `(COMB-LIST ,@comb-list))
@@ -1210,7 +1215,7 @@
 ;  (xml-make-generic-list 'RELATIONS 'RELATION 'name relations-list))
 
 (define (xml-make-relation relname)
-  `(RELATION ((name ,relname))))
+  `(RELATION ((name ,(->string relname)))))
 (define (xml-make-relations-list relations-list)
   `(RELATIONS ,@(map xml-make-relation relations-list)))
 
@@ -1219,9 +1224,9 @@
   (xml-make-command "QUIT" empty))
 
 (define (xml-make-forall x s f)
-  `(FORALL ((var ,x) (sort ,s)) ,f))
+  `(FORALL ((var ,(->string x)) (sort ,(->string s))) ,f))
 (define (xml-make-exists x s f)
-  `(EXISTS ((var ,x) (sort ,s)) ,f))
+  `(EXISTS ((var ,(->string x)) (sort ,(->string s))) ,f))
 
 
 (define (xml-make-and p1 p2)
@@ -1294,11 +1299,13 @@
 
 (check-true (equal?
              (m-type->cmd "vocabname" (m-type "A" (list "B" "C")))                    
-             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocabname"))) (SORT-WITH-CHILDREN ((name "A")) (SORT ((name "B"))) (SORT ((name "C")))))))
+             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocabname"))) 
+                                (SORT-WITH-CHILDREN ((name "A")) (SORT ((name "B"))) (SORT ((name "C")))))))
 
 (check-true (equal?
              (m-predicate->cmd "vocab" (m-predicate "pname" '("A" "B" "C")))                    
-             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab"))) (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
+             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab")))
+                                (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
                     
 
 ; Is this a dotted identifier? Must have a . somewhere.
@@ -1312,140 +1319,6 @@
   (define str (symbol->string sym))
   (regexp-match* #rx"[^.]+" str))
 
-             
-(define/contract (m-formula->xexpr sexpr #:syntax [src #f])
-  [->* [any/c] ; don't give a contract violation; let the errors work!
-       [#:syntax syntax?]
-       xexpr?]    
-  
-  (define (m-formula->xexpr/down fmla) 
-    (m-formula->xexpr fmla src))
-  (define (m-term->xexpr/down term) 
-    (m-term->xexpr term src))
-     
-  ; This function should work on both syntax and non-syntax.
-  ; e.g. '(and (p x) (r x))
-  ;      #'(and (p x) (r x))
- 
-  ; currently it does not.
-  ; m-let is a function, not a macro (b/c we don't want to have to eval a 2nd time to support quasiquoting)
-  ; could make it a macro and just do , without `, though. So macro WOULD be ok.
-  
-  ; option 1: make m-let a macro (more work). convert all these to syntax-case. M-term and M-fmla will be syntax, not sexpressions.
-  ; option 2: Leave m-let alone. Convert to syntax-case. If arg isn't syntax, enrich with dummy syntax. user rather than stx errors.
-        ; this seems best. since #`#,sexpr will syntax-ize the form recursively. 
-        ; What about performance?
-  ; option 3: Leave m-let alone. Leave as match. What about syntax? 
-  ; 4: opt 3 but just dupe the functions match -> syntax-case (ugh)
-  ; opt 5: separate blocks in the funcs for syntax vs. nonsyntax?
-        ; this is "ugly" but appealing...
-  
-  ; both 2 and 5 require implementing syntax-cases, so...
-  ; 2 may be better for now. comment out match clauses for later use, perhaps?
-  ; this way, less risk of introducing bugs in new code.
-  
-  (match sexpr
-    ; keywords first
-    [`(and ,@(list args ...)) (xml-make-and* (map m-formula->xexpr/down args))]
-    [`(or ,@(list args ...)) (xml-make-or* (map m-formula->xexpr/down args))]
-    [`(implies ,arg1 ,arg2) (xml-make-implies (m-formula->xexpr/down arg1) (m-formula->xexpr/down arg2))]   
-    [`(iff ,arg1 ,arg2) (xml-make-iff (m-formula->xexpr/down arg1) (m-formula->xexpr/down arg2))]   
-    [`(not ,arg) (xml-make-not (m-formula->xexpr/down arg))]   
-    [`(forall ,vname ,sname ,fmla)
-     (xml-make-forall vname sname (m-formula->xexpr/down fmla))]   
-    [`(exists ,vname ,sname ,fmla)
-     (xml-make-exists vname sname (m-formula->xexpr/down fmla))]  
-    
-    [`(isa ,var ,type) (xml-make-isa-formula var type (xml-make-true-condition))]    
-    [`(isa ,var ,type ,fmla) (xml-make-isa-formula var type (m-formula->xexpr/down fmla))]
-        
-    ['true (xml-make-true-condition)]
-    ['false (xml-make-false-condition)]                                            
-    [`(= ,t1 ,t2) (xml-make-equals-formula (m-term->xexpr/down t1) (m-term->xexpr/down t2))]
-    
-    [`(,(list pids-and-idbname ...) ,term0 ,@(list terms ...)) 
-     (xml-make-atomic-formula pids-and-idbname
-                              (map m-term->xexpr/down (cons term0 terms)))]
-
-    ; For backward compatability:
-    [`(,(? dotted-id? dottedname) ,term0 ,@(list terms ...)) 
-     (xml-make-atomic-formula (handle-dotted-pred dottedname)
-                              (map m-term->xexpr/down (cons term0 terms)))]    
-
-    
-    [`(,(? valid-predicate? edbname) ,term0 ,@(list terms ...)) 
-     (xml-make-atomic-formula (list edbname)
-                              (map m-term->xexpr/down (cons term0 terms)))]    
-
-    
-    [else    (raise-user-error (format "Invalid formula s-expression: ~a.~n" sexpr))]))
-
-; TN removed from policy macro module
-; Takes formula syntax and returns XML for the formula.
-; todo: detect valid vars, sorts, etc.
-;(define-for-syntax (handle-formula fmla)         
-;  (syntax-case fmla [and or not implies iff exists forall = true isa] 
-;    [true (xml-make-true-condition)]
-;    [(= v1 v2) (xml-make-equals-formula (m-term->xexpr #'v1) (m-term->xexpr #'v2))]
-;    [(and f0 f ...) (xml-make-and* (map handle-formula (syntax->list #'(f0 f ...))))]
-;    [(or f0 f ...) (xml-make-or* (map handle-formula (syntax->list #'(f0 f ...))))]
-;    [(implies f1 f2) (xml-make-implies (handle-formula #'f1) (handle-formula #'f2))]
-;    [(iff f1 f2) (xml-make-iff (handle-formula #'f1) (handle-formula #'f2))]
-;    [(not f) (xml-make-not (handle-formula #'f))]
-;    [(exists var type f ) (xml-make-exists (symbol->string (syntax->datum #'var))
-;                                           (symbol->string (syntax->datum #'type))
-;                                           (handle-formula #'f))]
-;    [(forall var type f ) (xml-make-forall (symbol->string (syntax->datum #'var))
-;                                           (symbol->string (syntax->datum #'type))
-;                                           (handle-formula #'f))]
-;    [(isa var type) (xml-make-isa-formula #'var #'type)]
-;    
-;    ; IDB
-;    [( (idbcomponent ...) t0 t ...) 
-;     (xml-make-atomic-formula #'(idbcomponent ...)
-;                              (map m-term->xexpr (syntax->list #'(t0 t ...))))]
-;    
-;    ; IDB -- dotted notation
-;    [(dottedpred t0 t ...) (or (lower-id-syn? #'dottedpred)
-;                               (dotted-id-syn? #'dottedpred))
-;                           (xml-make-atomic-formula (handle-dotted-pred #'dottedpred)
-;                                                    (map m-term->xexpr (syntax->list #'(t0 t ...)))) ]
-;    
-;    
-;    ; EDB (rel) will be lowercase
-;    [(relname t0 t ...) (lower-id-syn? #'relname)
-;                        (xml-make-atomic-formula #'(list rename)
-;                                                 (map m-term->xexpr (syntax->list #'(t0 t ...))))]
-;    
-;    ; EDB (sort) will be capitalized
-;    [(sortsymbol var) (capitalized-id-syn? #'sortsymbol) 
-;                      (xml-make-isa-formula (symbol->string (syntax->datum #'var)) (symbol->string (syntax->datum #'sortsymbol)))]
-;        
-;    [else (raise-syntax-error 'Policy "Invalid formula." #f #f (list fmla))]))
-
-
-; 10/11 TN moved from policy-vocab module and commented out in favor of
-; m-term->xexpr. Keeping this for error message creation later. Will
-; also need to produce syntax errors sometimes...
-;; todo detect valid vars, sorts. etc. plus valid casing
-; (define-for-syntax (handle-term term)
-;   (syntax-case term []
-;     ['c (lower-id-syn? (syntax c))
-;         (xml-make-constant-term (symbol->string (syntax->datum #'c)))]
-;     ['c (raise-syntax-error `Policy err-invalid-constant-case #f #f (list term))]
-;     
-;     [(func t0 t ...) (lower-id-syn? #'func)
-;                      (xml-make-function-term (symbol->string (syntax->datum #'func)) 
-;                                              (map handle-term (syntax->list #'(t0 t ...))))]
-;     [(func t0 t ...) (raise-syntax-error 'Policy err-invalid-function-case #f #f (list term))]
-;     
-;     [v (lower-id-syn? #'v)
-;        (xml-make-variable-term (symbol->string (syntax->datum #'v)))]
-;     [v (raise-syntax-error 'Policy err-invalid-variable-case #f #f (list term))]
-;     
-;     [else (raise-syntax-error 'Policy "Invalid term." #f #f (list term))]))
-; 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Call m-term->xexpr instead of m-term? in the patterns below.
 ; Reason: m-term? does not throw errors. Recursively calling self
@@ -1453,15 +1326,154 @@
 ; "Incorrect term expression 2"
 ; versus "Incorrect term expression (f 'c (g 2))"
 (define/contract (m-term->xexpr sexpr)
-  [any/c . -> . xexpr?]
+  [any/c . -> . xexpr?]  
   (match sexpr
     [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
-         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))   ) 
+         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
      (xml-make-function-term (->string funcid) 
                              (map m-term->xexpr terms))]
     [(? valid-constant? cid) (xml-make-constant-term (->string sexpr))]
     [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
     [else (if (syntax? sexpr)
               (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
-              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))
+              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))    
   
+; Note some clauses have extra calls to validity checker functions.
+; These special functions will throw appropriate errors for invalid 
+; syntax, instead of just returning #f.
+(define/contract (m-formula->xexpr sexpr #:syntax [src #f])
+  [any/c . -> . xexpr?]          
+  (match sexpr 
+    [(or 'true
+         (? (make-keyword-predicate #'true)))
+     (xml-make-true-condition)]    
+    
+    [(or 'false
+         (? (make-keyword-predicate #'false)))
+     (xml-make-false-condition)]
+        
+    [(or `(= ,t1 ,t2)
+         (syntax-list-quasi ,(? (make-keyword-predicate #'=)) ,t1 ,t2))
+     (xml-make-equals-formula (m-term->xexpr t1) (m-term->xexpr t2))]
+    
+    [(or `(and ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate #'and)) ,@(list args ...)))
+     (xml-make-and* (map m-formula->xexpr args))]
+    
+    [(or `(or ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate #'or)) ,@(list args ...)))
+     (xml-make-or* (map m-formula->xexpr args))]
+    
+    [(or `(implies ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'implies)) ,arg1 ,arg2))
+     (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
+
+    [(or `(iff ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'iff)) ,arg1 ,arg2))
+     (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
+
+    [(or `(not ,arg)
+         (syntax-list-quasi ,(? (make-keyword-predicate #'not)) ,arg))
+     (xml-make-not (m-formula->xexpr arg))]   
+
+    [(or `(forall ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'forall)) ,vname ,sname ,fmla))
+     (valid-variable?/err vname)
+     (valid-sort?/err sname)
+     (xml-make-forall vname sname (m-formula->xexpr fmla))] 
+
+    [(or `(exists ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'exists)) ,vname ,sname ,fmla))
+     (valid-variable?/err vname)
+     (valid-sort?/err sname)
+     (xml-make-exists vname sname (m-formula->xexpr fmla))]           
+    
+    [(or `(isa ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'isa)) ,vname ,sname ,fmla))
+     (valid-variable?/err vname)
+     (valid-sort?/err sname)
+     (xml-make-isa-formula vname sname (m-formula->xexpr fmla))]     
+ 
+     ; For backward compatability:
+    ;[`(,(? dotted-id? dottedname) ,term0 ,@(list terms ...)) 
+    ; (xml-make-atomic-formula (handle-dotted-pred dottedname)
+    ;                          (map m-term->xexpr/down (cons term0 terms)))]    
+
+  
+    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
+         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))  
+     (valid-predicate?/err idbname)
+     (xml-make-atomic-formula (append pids (list idbname))
+                              (map m-term->xexpr (cons term0 terms)))]
+  
+    [(or `(,dbname ,term0 ,@(list terms ...)) 
+         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
+     (valid-predicate?/err dbname)
+     (xml-make-atomic-formula (list dbname)
+                              (map m-term->xexpr (cons term0 terms)))]
+    [else (if (syntax? sexpr)
+              (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
+              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))
+
+  
+; Avoid duplicate code. Defer to m-formula->xml
+(define (m-formula? sexpr)
+  (with-handlers ([(lambda (e) (exn:fail:syntax? e))
+                   (lambda (e) #f)]
+                  [(lambda (e) (exn:fail:user? e))
+                   (lambda (e) #f)])
+    (if (m-formula->xexpr sexpr)
+        #t
+        #f)))
+(check-true (m-formula? '(or (= x y) (r x y))))
+(check-true (m-formula? #'(and (= x y) (iff (= 'c z) (r x y)))))
+(check-true (m-formula? #'(implies (= x y) (not (r x y)))))
+(check-true (m-formula? #'(forall x S (r x y))))
+(check-true (m-formula? #'(exists x S (r x y))))
+(check-true (m-formula? #'(isa x S (r x y))))
+(check-false(m-formula? #'(forall X S (r x y))))
+(check-false (m-formula? #'(exists X S (r x y))))
+(check-false (m-formula? #'(isa X S (r x y))))
+(check-true (m-formula? #'true))
+(check-true (m-formula? 'true))
+(check-true (m-formula? #'false))
+(check-false (m-formula? #'(or (= x y) (A x 1))))
+(check-true (m-formula? '((mypolicyname permit) s a r)))
+(check-true (m-formula? '(aRelation s x)))
+(check-false (m-formula? '((mypolicyname permit) 1 2 3)))
+; ^^^ More cases go here. Not fully covered!
+
+; Avoid duplicate code. Defer to m-term->xml
+(define (m-term? sexpr)
+  (with-handlers ([(lambda (e) (exn:fail:syntax? e))
+                   (lambda (e) #f)]
+                  [(lambda (e) (exn:fail:user? e))
+                   (lambda (e) #f)])
+    (if (m-term->xexpr sexpr)
+        #t
+        #f)))
+(check-true (m-term? #'(f x (g x z) 'c x)))
+(check-false (m-term? #'(f x (g x z) 'c 2)))
+(check-false (m-term? #'('c x (g x z) 'c 2)))
+
+(define (m-axiom? sexpr)
+  (when (m-formula? sexpr)
+    #t)  
+  (match sexpr
+    [`(atmostone-all ,id) #t]
+    [`(atmostone ,id) #t]
+    [`(singleton-all ,id) #t]
+    [`(singleton ,id) #t]
+    [`(nonempty-all ,id) #t]
+    [`(nonempty ,id) #t]     
+    [`(abstract ,id) #t]
+    [`(partial-function ,id) #t]
+    
+    ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
+    [`(subset ,id1 ,id2) #t]
+    
+    ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
+    ;[`(allow-overlap ,id1 ,id2) #t]
+    ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
+    
+    [else #f]))  

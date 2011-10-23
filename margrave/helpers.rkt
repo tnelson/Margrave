@@ -312,196 +312,35 @@
 (check-false (valid-variable? 'A))  
 (check-false (valid-variable? 100))  
 
+(define (valid-variable?/err sexpr)
+  (cond [(valid-variable? sexpr) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid variable: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid variable: ~a.~n" (->string sexpr)))]))
 
-(define (m-term? sexpr)
-  (match sexpr
-    [(or `(,(? valid-function? funcid) ,@(list (? m-term? terms) ...))
-         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term? terms) ...))   ) 
-     #t]
-    [(? valid-constant? cid) #t]
-    [(? valid-variable? vid) #t]
-    [else #f]))
-(check-true (m-term? #'(f x (g x z) 'c x)))
-(check-false (m-term? #'(f x (g x z) 'c 2)))
-(check-false (m-term? #'('c x (g x z) 'c 2)))
+(define (valid-predicate?/err sexpr)
+  (cond [(valid-predicate? sexpr) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid predicate: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid predicate: ~a.~n" (->string sexpr)))]))
 
-(define (m-formula? sexpr)
-  (match sexpr 
-    [(or 'true
-         (? (make-keyword-predicate #'true)))
-     #t]    
-    [(or 'false
-         (? (make-keyword-predicate #'false)))
-     #t]
-        
-    [(or `(= ,t1 ,t2)
-         (syntax-list-quasi ,(? (make-keyword-predicate #'=)) ,t1 ,t2))
-     (and (m-term? t1) (m-term? t2))]
-    
-    [(or `(and ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate #'and)) ,@(list args ...)))
-     (andmap m-formula? args)]
-    
-    [(or `(or ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate #'or)) ,@(list args ...)))
-     (andmap m-formula? args)]
-    
-    [(or `(implies ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'implies)) ,arg1 ,arg2))
-     (and (m-formula? arg1) (m-formula? arg2))]   
+(define (valid-constant?/err sexpr)
+  (cond [(valid-constant? sexpr) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid constant: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid constant: ~a.~n" (->string sexpr)))]))
 
-    [(or `(iff ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'iff)) ,arg1 ,arg2))
-     (and (m-formula? arg1) (m-formula? arg2))]   
+(define (valid-function?/err sexpr)
+  (cond [(valid-function? sexpr) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid function: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid function: ~a.~n" (->string sexpr)))]))
 
-    [(or `(not ,arg)
-         (syntax-list-quasi ,(? (make-keyword-predicate #'not)) ,arg))
-     (m-formula? arg)]   
-
-    [(or `(forall ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'forall)) ,vname ,sname ,fmla))
-     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))] 
-
-    [(or `(exists ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'exists)) ,vname ,sname ,fmla))
-     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))]           
-    
-    [(or `(isa ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'isa)) ,vname ,sname ,fmla))
-     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))]     
-    
-    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
-         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))    
-     (and (m-term? term0)
-          (andmap m-term? terms)
-          (valid-predicate? idbname))]
-
-    [(or `(,dbname ,term0 ,@(list terms ...)) 
-         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
-     (and (m-term? term0) 
-          (valid-predicate? dbname) 
-          (andmap m-term? terms))]       
-    [else #f]))
-(check-true (m-formula? '(or (= x y) (r x y))))
-(check-true (m-formula? #'(and (= x y) (iff (= 'c z) (r x y)))))
-(check-true (m-formula? #'(implies (= x y) (not (r x y)))))
-(check-true (m-formula? #'(forall x S (r x y))))
-(check-true (m-formula? #'(exists x S (r x y))))
-(check-true (m-formula? #'(isa x S (r x y))))
-(check-false(m-formula? #'(forall X S (r x y))))
-(check-false (m-formula? #'(exists X S (r x y))))
-(check-false (m-formula? #'(isa X S (r x y))))
-(check-true (m-formula? #'true))
-(check-true (m-formula? 'true))
-(check-true (m-formula? #'false))
-(check-false (m-formula? #'(or (= x y) (A x 1))))
-(check-true (m-formula? '((mypolicyname permit) s a r)))
-(check-false (m-formula? '((mypolicyname permit) 1 2 3)))
-; ^^^ More cases go here. Not fully covered!
+(define (valid-sort?/err sexpr)
+  (cond [(valid-sort? sexpr) #t]
+        [(syntax? sexpr) (raise-syntax-error 'Margrave (format "Invalid sort: ~a.~n" (->string sexpr)) #f #f (list sexpr))]
+        [else (raise-user-error (format "Invalid sort: ~a.~n" (->string sexpr)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (m-axiom? sexpr)
-  (when (m-formula? sexpr)
-    #t)  
-  (match sexpr
-    [`(atmostone-all ,id) #t]
-    [`(atmostone ,id) #t]
-    [`(singleton-all ,id) #t]
-    [`(singleton ,id) #t]
-    [`(nonempty-all ,id) #t]
-    [`(nonempty ,id) #t]     
-    [`(abstract ,id) #t]
-    [`(partial-function ,id) #t]
-    
-    ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
-    [`(subset ,id1 ,id2) #t]
-    
-    ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
-    ;[`(allow-overlap ,id1 ,id2) #t]
-    ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
-    
-    [else #f]))
   
 
-;****************************************************************
-; Structs used to store information about policies, theories, etc.
-; This data is also stored on the Java side, but we duplicate it
-; here in order to produce helpful error messages and facilitate
-; reflection. (E.g. "What sorts are available in theory X?")
-
-(define-struct/contract m-vocabulary  
-  ([name string?]
-   [xml (listof xexpr?)]
-   [types (listof m-type?)] 
-   [predicates (listof m-predicate?)] 
-   [constants (listof m-constant?)] 
-   [functions (listof m-function?)])
-  #:transparent)
-
-(define-struct/contract m-theory
-  ([name string?]
-   [axioms-xml (listof xexpr?)]
-   [vocab m-vocabulary?]   
-   [axioms (listof m-axiom?)])
-  #:transparent)
-
-(define-struct/contract m-vardec
-  ([vname string?]
-   [vtype string?])
-  #:transparent)
-
-(define-struct/contract m-rule
-  ([rname string?]
-   [rdecision string?]
-   [headvars (listof string?)]
-   [rbody (listof m-formula?)])
-  #:transparent)
-
-
-(define-struct/contract m-policy
-  ([id string?]
-   [xml (listof xexpr?)]
-   ;[theory m-theory?]
-   [vocabulary m-vocabulary?]
-   [vardecs (listof m-vardec?)]
-   [rules (listof m-rule?)]
-   [rcomb string?])
-  #:transparent)
-
-; WILL NOT WORK if some fields are opaque
-; also needed to be in the same module. namespace issue?
-;(define/contract (repackage-transparent-struct the-struct)
-;  [struct? . -> . syntax?]
-;  (define struct-list (vector->list (struct->vector the-struct)))
-;  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
-;  (define (safe-param x)
-;    (if (list? x)
-;        #`'#,x
-;        x))  
-  ;#`(#,struct-name #,@(map safe-param (rest struct-list))));
-
-
-; Remove duplicate types, but combine child names.
-; Child names who don't have their own constructor are given one.
-(define/contract (resolve-m-types types)
-  [(listof m-type?) . -> . (listof m-type?)]
-  (define the-buckets (partition* m-type-name types))
-  (define the-sort-names (hash-keys the-buckets))  
-  
-  (define (combine-same-types name)
-    (define duplicate-types (hash-ref the-buckets name))
-    (define the-children (flatten (map m-type-child-names duplicate-types)))
-    (define unmentioned-children (filter (lambda (c) (not (member c the-sort-names))) the-children))
-    (define unmentioned-mtypes (map (lambda (c) (m-type c empty)) unmentioned-children))    
-    (append unmentioned-mtypes (list (m-type name the-children))))
-  
-  ;(printf "~a : ~a~n" (map m-type-name (flatten (map combine-same-types the-sort-names)))
-  ;        (map m-type-child-names (flatten (map combine-same-types the-sort-names))))
-  (flatten (map combine-same-types the-sort-names)))
-
-;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
 
 (define (syntax->string x)
   (symbol->string (syntax->datum x)))

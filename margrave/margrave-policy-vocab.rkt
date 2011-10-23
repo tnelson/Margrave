@@ -22,6 +22,7 @@
  (file "helpers.rkt")
  racket/list
  racket/contract
+ xml
  (for-syntax (only-in srfi/13 string-contains)
              (file "helpers.rkt")                     
              (file "margrave-xml.rkt")
@@ -111,7 +112,7 @@
 ;****************************************************************
 
 (define-for-syntax (syntax->string/safe x)
-  (cond [(syntax? x) (symbol->string/safe (syntax->datum x))]
+  (cond [(syntax? x) (->string (syntax->datum x))]
         [(symbol? x) (symbol->string x)]        
         [else x]))
 
@@ -166,8 +167,8 @@
   (define fmla-list (syntax->list syn))
   (cond
     [(> (length fmla-list) 1)
-     (xml-make-and* (map handle-formula fmla-list))]
-    [else (handle-formula (first fmla-list))]))
+     (xml-make-and* (map m-formula->xexpr fmla-list))]
+    [else (m-formula->xexpr (first fmla-list))]))
 
 (define-for-syntax (handle-combine comb)
   (syntax-case comb [fa over]         
@@ -175,6 +176,55 @@
     [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
                                               (map symbol->string (syntax->datum #'(odec0 odec ...))))]
     [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
+
+
+;****************************************************************
+; Structs used to store information about policies, theories, etc.
+; This data is also stored on the Java side, but we duplicate it
+; here in order to produce helpful error messages and facilitate
+; reflection. (E.g. "What sorts are available in theory X?")
+
+(define-struct/contract m-vocabulary  
+  ([name string?]
+   [xml (listof xexpr?)]
+   [types (listof m-type?)] 
+   [predicates (listof m-predicate?)] 
+   [constants (listof m-constant?)] 
+   [functions (listof m-function?)])
+  #:transparent)
+
+(define-struct/contract m-theory
+  ([name string?]
+   [axioms-xml (listof xexpr?)]
+   [vocab m-vocabulary?]   
+   [axioms (listof m-axiom?)])
+  #:transparent)
+
+(define-struct/contract m-vardec
+  ([vname string?]
+   [vtype string?])
+  #:transparent)
+
+(define-struct/contract m-rule
+  ([rname string?]
+   [rdecision string?]
+   [headvars (listof string?)]
+   [rbody (listof m-formula?)])
+  #:transparent)
+
+
+(define-struct/contract m-policy
+  ([id string?]
+   [xml (listof xexpr?)]
+   ;[theory m-theory?]
+   [vocabulary m-vocabulary?]
+   [vardecs (listof m-vardec?)]
+   [rules (listof m-rule?)]
+   [rcomb string?])
+  #:transparent)
+
+;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,7 +279,7 @@
                (define the-target (first the-targets))                                             
                (list `(xml-make-command "SET TARGET FOR POLICY" 
                                        (list (xml-make-policy-identifier local-policy-id)
-                                             ,(handle-formula the-target)))))))    
+                                             ,(m-formula->xexpr the-target)))))))    
 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -503,7 +553,27 @@
                                  'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
            [_ (raise-syntax-error 'Vocab err-invalid-type-decl #f #f (list a-type))]))
-                                          
+                      
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Remove duplicate types, but combine child names.
+       ; Child names who don't have their own constructor are given one.
+       (define/contract (resolve-m-types types)
+         [(listof m-type?) . -> . (listof m-type?)]
+         (define the-buckets (partition* m-type-name types))
+         (define the-sort-names (hash-keys the-buckets))  
+         
+         (define (combine-same-types name)
+           (define duplicate-types (hash-ref the-buckets name))
+           (define the-children (flatten (map m-type-child-names duplicate-types)))
+           (define unmentioned-children (filter (lambda (c) (not (member c the-sort-names))) the-children))
+           (define unmentioned-mtypes (map (lambda (c) (m-type c empty)) unmentioned-children))    
+           (append unmentioned-mtypes (list (m-type name the-children))))
+         
+         ;(printf "~a : ~a~n" (map m-type-name (flatten (map combine-same-types the-sort-names)))
+         ;        (map m-type-child-names (flatten (map combine-same-types the-sort-names))))
+         (flatten (map combine-same-types the-sort-names)))
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       
        (define types-result (resolve-m-types (map handle-type the-types)))
        
        (define types-cmds (map (lambda (x) 
@@ -515,7 +585,7 @@
        
        ; Used by predicate/function/constant sections to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
-         (define type-name-str (symbol->string/safe (syntax->datum typename-syn)))
+         (define type-name-str (->string typename-syn))
          (unless (member type-name-str types-names)
            (raise-syntax-error 'Vocab 
                                (format "Invalid declaration. The type ~a was not declared." type-name-str)
@@ -770,7 +840,7 @@
                (define the-target (first the-targets))                                             
                (list `(xml-make-command "SET TARGET FOR POLICY" 
                                        (list (xml-make-policy-identifier local-policy-id)
-                                             ',(handle-formula the-target)))))))    
+                                             ',(m-formula->xexpr the-target)))))))    
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
