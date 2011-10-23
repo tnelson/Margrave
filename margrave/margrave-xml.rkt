@@ -1342,54 +1342,54 @@
 ; These special functions will throw appropriate errors for invalid 
 ; syntax, instead of just returning #f.
 (define/contract (m-formula->xexpr sexpr #:syntax [src #f])
-  [any/c . -> . xexpr?]          
+  [any/c . -> . xexpr?]      
   (match sexpr 
     [(or 'true
-         (? (make-keyword-predicate #'true)))
+         (? (make-keyword-predicate/nobind #'true)))
      (xml-make-true-condition)]    
     
     [(or 'false
-         (? (make-keyword-predicate #'false)))
+         (? (make-keyword-predicate/nobind #'false)))
      (xml-make-false-condition)]
         
     [(or `(= ,t1 ,t2)
-         (syntax-list-quasi ,(? (make-keyword-predicate #'=)) ,t1 ,t2))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'=)) ,t1 ,t2))
      (xml-make-equals-formula (m-term->xexpr t1) (m-term->xexpr t2))]
     
     [(or `(and ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate #'and)) ,@(list args ...)))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'and)) ,@(list args ...)))
      (xml-make-and* (map m-formula->xexpr args))]
     
     [(or `(or ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate #'or)) ,@(list args ...)))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'or)) ,@(list args ...)))
      (xml-make-or* (map m-formula->xexpr args))]
     
     [(or `(implies ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'implies)) ,arg1 ,arg2))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'implies)) ,arg1 ,arg2))
      (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
 
     [(or `(iff ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'iff)) ,arg1 ,arg2))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'iff)) ,arg1 ,arg2))
      (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
 
     [(or `(not ,arg)
-         (syntax-list-quasi ,(? (make-keyword-predicate #'not)) ,arg))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'not)) ,arg))
      (xml-make-not (m-formula->xexpr arg))]   
 
     [(or `(forall ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'forall)) ,vname ,sname ,fmla))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'forall)) ,vname ,sname ,fmla))
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-forall vname sname (m-formula->xexpr fmla))] 
 
     [(or `(exists ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'exists)) ,vname ,sname ,fmla))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'exists)) ,vname ,sname ,fmla))
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-exists vname sname (m-formula->xexpr fmla))]           
     
     [(or `(isa ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate #'isa)) ,vname ,sname ,fmla))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'isa)) ,vname ,sname ,fmla))
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-isa-formula vname sname (m-formula->xexpr fmla))]     

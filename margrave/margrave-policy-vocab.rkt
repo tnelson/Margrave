@@ -1002,7 +1002,7 @@
 ;         (Variable a Action)
 ;         (Variable r Resource))
 ;        (Rules 
-;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (ReadPaper a) (Paper r)))
-;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (ReadPaper a) (Paper r)));
-;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (ReadPaper a) (Paper r))))
+;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
+;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
+;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))
 ;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)

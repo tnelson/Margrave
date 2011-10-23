@@ -168,7 +168,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; This section made with help from Danny Yoo
+; This section made by Tim with help from Danny Yoo
 
 ;; This extends Racket's pattern matcher to recognize lists of syntaxes.
 (define-match-expander syntax-list-quasi 
@@ -182,10 +182,20 @@
                  ;(list elts ...)))])))
                  `(elts ...)))])))
 
+; Use this match pattern for actual identifiers that can have bindings in Racket.
 (define (make-keyword-predicate keyword)
- (lambda (stx)
+ (lambda (stx)   
    (and (identifier? stx)
         (free-identifier=? stx keyword))))
+
+; Use _this_ match pattern for matching identifier syntax ***regardless of bindings***.
+; This is useful for matching formula sexpression syntax, etc. Bindings can interfere here.
+; e.g. #'and from one module need not have the same binding as #'and from another. 
+(define (make-keyword-predicate/nobind keyword)
+ (lambda (stx)   
+   (and (identifier? stx)
+        (equal? (syntax->datum keyword) 
+                (syntax->datum stx)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helpers for formula structures and commands that use formulas
