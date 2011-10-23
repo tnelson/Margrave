@@ -164,6 +164,26 @@
       p
       'same))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; This section made with help from Danny Yoo
+
+;; This extends Racket's pattern matcher to recognize lists of syntaxes.
+(define-match-expander syntax-list-quasi 
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ elts ...)
+       #'(? (lambda (x) (and (syntax? x)
+                             (list? (syntax->list x))))
+            (app syntax->list
+                 ; swap these two lines to turn syntax-list-quasi into syntax-list
+                 ;(list elts ...)))])))
+                 `(elts ...)))])))
+
+(define (make-keyword-predicate keyword)
+ (lambda (stx)
+   (and (identifier? stx)
+        (free-identifier=? stx keyword))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helpers for formula structures and commands that use formulas
@@ -191,22 +211,6 @@
    [result string?])
   #:transparent)
 
-(define (m-formula? sexpr)
-  (match sexpr 
-    ['true #t]    
-    ['false #t]
-    [`(= ,t1 ,t2) #t]
-    [`(,(list pids ... idbname) ,term0 ,@(list terms ...)) #t]
-    [`(,dbname ,term0 ,@(list terms ...)) (list dbname term0 terms)]    
-    [`(and ,@(list args ...)) (andmap m-formula? args)]
-    [`(or ,@(list args ...)) (andmap m-formula? args)]
-    [`(implies ,arg1 ,arg2) (and (m-formula? arg1) (m-formula? arg2))]   
-    [`(iff ,arg1 ,arg2) (and (m-formula? arg1) (m-formula? arg2))]   
-    [`(not ,arg) (m-formula? arg)]   
-    [`(forall ,vname ,sname ,fmla) (m-formula? fmla)]   
-    [`(exists ,vname ,sname ,fmla) (m-formula? fmla)]           
-    [else #f]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -221,12 +225,22 @@
     type ; used as synonyms for now
     sort
     
+    and
+    or
+    iff
+    implies
+    not
+    =
+    
     list
     quote
     quasiquote))
 
 ; Function symbols must have the first character alpha lowercase
-(define (valid-function? sym)
+(define (valid-function? sym-or-syn)
+  (define sym (if (syntax? sym-or-syn)
+                  (syntax->datum sym-or-syn)
+                  sym-or-syn))
   (and (symbol? sym) 
        (not (member sym reserved-words))
        (let ([str0 (string-ref (symbol->string sym) 0)])
@@ -237,7 +251,10 @@
 (check-false (valid-function? 100))  
 
 ; Constant symbols are preceded by a quote, but otherwise same as funcs.
-(define (valid-constant? sym)
+(define (valid-constant? sym-or-syn)
+  (define sym (if (syntax? sym-or-syn)
+                  (syntax->datum sym-or-syn)
+                  sym-or-syn))
   (match sym
     [`(quote ,(? valid-function? sym)) #t]
     [else #f]))
@@ -248,7 +265,10 @@
 
 ; Predicate symbols are the same as function symbols.
 ; Understand difference from context.
-(define (valid-predicate? sym)
+(define (valid-predicate? sym-or-syn)
+  (define sym (if (syntax? sym-or-syn)
+                  (syntax->datum sym-or-syn)
+                  sym-or-syn))
   (and (symbol? sym) 
        (not (member sym reserved-words))
        (let ([str0 (string-ref (symbol->string sym) 0)])
@@ -259,7 +279,10 @@
 (check-false (valid-predicate? 100))  
 
 ; Sort symbols must be capitalized.
-(define (valid-sort? sym)
+(define (valid-sort? sym-or-syn)
+  (define sym (if (syntax? sym-or-syn)
+                  (syntax->datum sym-or-syn)
+                  sym-or-syn))
   (and (symbol? sym) 
        (not (member sym reserved-words))
        (let ([str0 (string-ref (symbol->string sym) 0)])
@@ -273,7 +296,10 @@
 
 ; Variables must begin with a lowercase letter.
 ; This is also the same as func ids and predicate ids.
-(define (valid-variable? sym)
+(define (valid-variable? sym-or-syn)  
+  (define sym (if (syntax? sym-or-syn)
+                  (syntax->datum sym-or-syn)
+                  sym-or-syn))
   (and (symbol? sym) 
        (not (member sym reserved-words))
        (let ([str0 (string-ref (symbol->string sym) 0)])
@@ -284,15 +310,94 @@
 (check-false (valid-variable? 'A))  
 (check-false (valid-variable? 100))  
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (m-term? sexpr)
   (match sexpr
-    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t ]    
+    [`(,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t]
+    [(syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term? terms) ...)) #t ]            
     [(? valid-constant? cid) #t]
     [(? valid-variable? vid) #t]
     [else #f]))
+(check-true (m-term? #'(f x (g x z) 'c x)))
+(check-false (m-term? #'(f x (g x z) 'c 2)))
+(check-false (m-term? #'('c x (g x z) 'c 2)))
+
+(define (m-formula? sexpr)
+  (match sexpr 
+    [(or 'true
+         (? (make-keyword-predicate #'true)))
+     #t]    
+    [(or 'false
+         (? (make-keyword-predicate #'false)))
+     #t]
+        
+    [(or `(= ,t1 ,t2)
+         (syntax-list-quasi ,(? (make-keyword-predicate #'=)) ,t1 ,t2))
+     (and (m-term? t1) (m-term? t2))]
+    
+    [(or `(and ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate #'and)) ,@(list args ...)))
+     (andmap m-formula? args)]
+    
+    [(or `(or ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate #'or)) ,@(list args ...)))
+     (andmap m-formula? args)]
+    
+    [(or `(implies ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'implies)) ,arg1 ,arg2))
+     (and (m-formula? arg1) (m-formula? arg2))]   
+
+    [(or `(iff ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'iff)) ,arg1 ,arg2))
+     (and (m-formula? arg1) (m-formula? arg2))]   
+
+    [(or `(not ,arg)
+         (syntax-list-quasi ,(? (make-keyword-predicate #'not)) ,arg))
+     (m-formula? arg)]   
+
+    [(or `(forall ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'forall)) ,vname ,sname ,fmla))
+     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))] 
+
+    [(or `(exists ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'exists)) ,vname ,sname ,fmla))
+     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))]           
+    
+    [(or `(isa ,vname ,sname ,fmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate #'isa)) ,vname ,sname ,fmla))
+     (and (valid-variable? vname) (valid-sort? sname) (m-formula? fmla))]     
+    
+    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
+         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))    
+     (and (m-term? term0)
+          (andmap m-term? terms)
+          (valid-predicate? idbname))]
+
+    [(or `(,dbname ,term0 ,@(list terms ...)) 
+         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
+     (and (m-term? term0) 
+          (valid-predicate? dbname) 
+          (andmap m-term? terms))]       
+    [else #f]))
+(check-true (m-formula? '(or (= x y) (r x y))))
+(check-true (m-formula? #'(and (= x y) (iff (= 'c z) (r x y)))))
+(check-true (m-formula? #'(implies (= x y) (not (r x y)))))
+(check-true (m-formula? #'(forall x S (r x y))))
+(check-true (m-formula? #'(exists x S (r x y))))
+(check-true (m-formula? #'(isa x S (r x y))))
+(check-false(m-formula? #'(forall X S (r x y))))
+(check-false (m-formula? #'(exists X S (r x y))))
+(check-false (m-formula? #'(isa X S (r x y))))
+(check-true (m-formula? #'true))
+(check-true (m-formula? 'true))
+(check-true (m-formula? #'false))
+(check-false (m-formula? #'(or (= x y) (A x 1))))
+(check-true (m-formula? '((mypolicyname permit) s a r)))
+(check-false (m-formula? '((mypolicyname permit) 1 2 3)))
+; ^^^ More cases go here. Not fully covered!
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (m-axiom? sexpr)
   (when (m-formula? sexpr)
