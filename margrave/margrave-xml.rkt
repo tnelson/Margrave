@@ -1408,9 +1408,14 @@
   
     [(or `(,dbname ,term0 ,@(list terms ...)) 
          (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
-     (valid-predicate?/err dbname)
-     (xml-make-atomic-formula (list dbname)
-                              (map m-term->xexpr (cons term0 terms)))]
+     (valid-sort-or-predicate?/err dbname)
+     (cond
+       [(and (valid-sort? dbname) 
+             (empty? terms)
+             (valid-variable? term0))
+        (xml-make-isa-formula term0 dbname (xml-make-true-condition))]
+       [else (xml-make-atomic-formula (list dbname)
+                                      (map m-term->xexpr (cons term0 terms)))])]
     [else (if (syntax? sexpr)
               (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
               (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))

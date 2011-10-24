@@ -221,7 +221,8 @@
    [theory m-theory?]   
    [vardecs (listof m-vardec?)]
    [rules (listof m-rule?)]
-   [rcomb string?])
+   [rcomb string?]
+   [target m-formula?])
   #:transparent)
 
 ;(define-struct/contract m-policyset
@@ -961,10 +962,11 @@
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span))) 
     
-             ; TODO: this (and all the rest)
+             ; !!! TODO: these fields of the m-policy structure need to be populated still
              (define rules-list empty)
              (define vardec-list empty)
              (define rcomb-desc "")
+             (define target-fmla 'true)
              
 ;;             (printf "~v~n" my-commands)
              
@@ -974,7 +976,8 @@
                        my-thy ; an m-theory struct
                        vardec-list
                        rules-list
-                       rcomb-desc)))))]
+                       rcomb-desc
+                       target-fmla)))))]
     
          
             
