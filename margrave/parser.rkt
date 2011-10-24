@@ -280,8 +280,8 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(<capitalized-id>) $1])
         
         (list-of-filenames 
-         [(file-id) (list (symbol->string/safe $1))]
-         [(list-of-filenames COMMA file-id) (append $1 (list (symbol->string/safe $3)))])
+         [(file-id) (list (->string $1))]
+         [(list-of-filenames COMMA file-id) (append $1 (list (->string $3)))])
         
         (numeric-id
          [(<natural>) (build-so (list 'id $1) 1 1)])
@@ -323,9 +323,9 @@ Margrave did not understand the condition or options given around \"~a\"."
          
          ; Multiple configs at once:
          [(LOAD IOS list-of-filenames IN file-id) 
-          (build-so (list 'LOAD-MULT-IOS $3 (symbol->string/safe $5)) 1 5)]
+          (build-so (list 'LOAD-MULT-IOS $3 (->string $5)) 1 5)]
          [(LOAD IOS list-of-filenames IN file-id WITH file-id file-id) 
-          (build-so (list 'LOAD-MULT-IOS-WITH $3 (symbol->string/safe $5) $7 $8) 1 8)]    
+          (build-so (list 'LOAD-MULT-IOS-WITH $3 (->string $5) $7 $8) 1 8)]    
          
          ; XACML configuration
          [(LOAD XACML <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-XACML $3) 1 3)]

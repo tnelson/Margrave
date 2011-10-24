@@ -30,8 +30,7 @@
          evaluate-parse 
          parse-and-compile-read
          parse-and-compile-read-syntax
-         parse-and-compile-port
-         make-simple-load-func
+         parse-and-compile-port         
          create-policy-loader)
 
 
@@ -49,30 +48,34 @@
                                            #:syntax src-syntax))
   
   
-  (define vocab-instance (m-policy-vocabulary policy-instance))
-
-  ; If we already loaded the vocabulary, don't re-send the vocab commands.
-  ; Also cache the vocabulary if this is the first time we've seen it.
-  (define vocab-xml
-    (if (hash-has-key? cached-vocabularies (m-vocabulary-name vocab-instance))
+  (define theory-instance (m-policy-theory policy-instance))
+  (define vocab-instance (m-theory-vocab theory-instance))
+  (define thy-path (m-policy-theory-path policy-instance))
+  (define thy-key (list (path->string thy-path) (m-theory-name theory-instance)))
+  
+  ; If we already loaded the theory, don't re-send the vocab/axiom commands.
+  ; Also cache the theory if this is the first time we've seen it.
+  ; Use the PATH as the key, because may have multiple theories of the same "name"
+  (define vocab-and-axioms-xml    
+    (if (hash-has-key? cached-theories thy-key)
         empty
         (begin
-          (hash-set! cached-vocabularies 
-                     (m-vocabulary-name vocab-instance)
-                     vocab-instance)
-          (m-vocabulary-xml vocab-instance))))
+          (hash-set! cached-theories
+                     thy-key
+                     theory-instance)
+          (append (m-vocabulary-xml vocab-instance)
+                  (m-theory-axioms-xml theory-instance)))))
     
   ;; Cache the policy
   (hash-set! cached-policies 
              policy-id
              policy-instance)
   
-  (define xml-cmds (append vocab-xml                                    
+  (define xml-cmds (append vocab-and-axioms-xml
                            (m-policy-xml policy-instance)))
   
   ; Load the policy, but also bind the result in our environment
-  (make-simple-load-func policy-id                            
-                         (m-vocabulary-name vocab-instance)
+  (make-simple-load-func policy-id                                                     
                          xml-cmds                            
                          src-syntax))
 
@@ -112,14 +115,14 @@
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     [(equal? first-datum 'LOAD-IOS)
-     `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns))) 
+     `(lambda () (parse-and-load-ios-by-filename ,(->string (syntax->datum (second interns))) 
                                                  #:syntax #',(second interns)))]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
     [(equal? first-datum 'LOAD-IOS-WITH)
-     `(lambda () (parse-and-load-ios-by-filename ,(symbol->string/safe (syntax->datum (second interns)))
-                                                 #:prefix ,(symbol->string/safe (syntax->datum (third interns)))
-                                                 #:suffix ,(symbol->string/safe (syntax->datum (fourth interns)))
+     `(lambda () (parse-and-load-ios-by-filename ,(->string (syntax->datum (second interns)))
+                                                 #:prefix ,(->string (syntax->datum (third interns)))
+                                                 #:suffix ,(->string (syntax->datum (fourth interns)))
                                                  #:syntax #',(second interns)))]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
@@ -132,8 +135,8 @@
     [(equal? first-datum 'LOAD-MULT-IOS-WITH)
      `(lambda () (parse-and-load-multi-ios (list ,@(syntax->datum (second interns)))
                                            ,(syntax->datum (third interns))
-                                           #:prefix ,(symbol->string/safe (syntax->datum (fourth interns)))
-                                           #:suffix ,(symbol->string/safe (syntax->datum (fifth interns)))
+                                           #:prefix ,(->string (syntax->datum (fourth interns)))
+                                           #:suffix ,(->string (syntax->datum (fifth interns)))
                                            #:syntax #',(second interns)))]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
@@ -405,16 +408,15 @@
   
   `(lambda () (send-and-receive-xml ,thexml-constructor #:syntax #',syn)))
 
-(define (make-simple-load-func polname vocname list-of-xexprs src-syntax)    
+(define (make-simple-load-func polname list-of-xexprs src-syntax)    
   `(lambda () ,@(append                  
                  ; (1) xml for each command
                  (for/list ([an-xml list-of-xexprs])
                    `(send-and-receive-xml ',an-xml #:syntax #',src-syntax))
                  
-                 ; (2) note that we have loaded such a policy
-                 ; !!! todo environment change [currently handled in java]
+                 ; Environment change happened in _the caller_: create-policy-loader
                  
-                 ; (3) resulting lambda will just return polname
+                 ; (3) resulting lambda will just return polname. Give something nicer.
                  (list (string-append "Policy " polname " loaded.")))))
 
 (define (helper-syn->xml syn)

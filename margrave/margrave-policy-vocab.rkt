@@ -41,9 +41,15 @@
          Theory
          
          ; for reflection, errors, etc
-         cached-policies
-         cached-vocabularies
-         cached-theories)
+         cached-policies         
+         cached-theories
+         
+         ; for use outside this module 
+         (struct-out m-policy)
+         (struct-out m-theory)
+         (struct-out m-vocabulary)
+         (struct-out m-rule)
+         (struct-out m-vardec))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -110,11 +116,6 @@
 
 
 ;****************************************************************
-
-(define-for-syntax (syntax->string/safe x)
-  (cond [(syntax? x) (->string (syntax->datum x))]
-        [(symbol? x) (symbol->string x)]        
-        [else x]))
 
 (define-for-syntax (assert-one-clause stx clause-list descriptor)
   (match clause-list
@@ -215,13 +216,24 @@
 
 (define-struct/contract m-policy
   ([id string?]
+   [theory-path path?]
    [xml (listof xexpr?)]
-   ;[theory m-theory?]
-   [vocabulary m-vocabulary?]
+   [theory m-theory?]   
    [vardecs (listof m-vardec?)]
    [rules (listof m-rule?)]
    [rcomb string?])
   #:transparent)
+
+;(define-struct/contract m-policyset
+;  ([id string?]
+;   [xml (listof xexpr?)]
+;   ;[theory m-theory?]
+;   [vocabulary m-vocabulary?]
+;   [vardecs (listof m-vardec?)]
+;   [rules (listof m-rule?)]
+;   [rcomb string?])
+;  #:transparent)
+
 
 ;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
 
@@ -740,13 +752,16 @@
   
 (define-syntax (Policy stx)
   (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
-    [(_ uses vocabname clauses ... )
+    [(_ uses a-vocab-or-thy-name clauses ... )
 
      (let ()
-       (unless (symbol? (syntax->datum #'vocabname))
-         (raise-syntax-error 'Policy (format "Expected a vocabulary name for the policy to use, got: ~a"
-                                             (syntax->datum #'vocabname)) #f #f (list #'vocabname)))                          
-       
+       (unless (identifier? #'a-vocab-or-thy-name)
+         (raise-syntax-error 'Policy (format "Expected a theory or vocabulary name for the policy to use, got: ~a"
+                                             (syntax->datum #'a-vocab-or-thy-name)) #f #f (list #'a-vocab-or-thy-name)))                          
+              
+       (define my-theory-name-sym (syntax->datum #'a-vocab-or-thy-name))     
+       (define my-theory-name-str (->string my-theory-name-sym)) 
+            
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
                                                         [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
@@ -866,30 +881,31 @@
                                                             (list (xml-make-policy-identifier local-policy-id) 
                                                                   ',(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
                  [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))))
-         
-       ;(printf "rcomb res: ~a~n" rcomb-result)             
+                
+       ; !!! How to make fa, over case insensitive?
+                            
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Create and Prepare
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-; !!! How to make fa, over case insensitive?
-       
-       
-       
-       
-       
-       
-       ;(printf "compile time children: ~a~n" the-child-policies)
-      
        (define create-result (list `(xml-make-command "CREATE POLICY LEAF" 
-                                               (list (xml-make-policy-identifier local-policy-id)
-                                                     (xml-make-vocab-identifier ,(syntax->string #'vocabname))))))          
+                                                      (list (xml-make-policy-identifier local-policy-id)
+                                                            (xml-make-vocab-identifier ,my-theory-name-str)))))   
        
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Prepare
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
             (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
                                
        ; Only know filename and policy id at *runtime*
+       
+       
+       ;(printf "~v~n~v~n~v~n~v~n~v~n~v~n"
+       ;        create-result 
+       ;        variables-result
+       ;        target-result
+       ;        rcomb-result
+       ;        rules-result
+       ;        prepare-result)
        
        ; can't `', or we get ,'((xml-make-command ...
        ; need ,(list (xml-make-command ...
@@ -902,8 +918,7 @@
                                                    rcomb-result
                                                    rules-result
                                                    prepare-result))]
-                    ; [the-child-policies #`(list #,@the-child-policies)]
-                     [vocabname #'vocabname]
+                     [my-theory-name my-theory-name-sym]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -912,28 +927,35 @@
                      [orig-stx-source #`#, (syntax-source stx)]
                      [orig-stx-position #`#, (syntax-position stx)]
                      [orig-stx-span #`#, (syntax-span stx)])     
-        ; (printf "before sloc:~a~n" #'orig-stx)
          
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
-              (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                             (string-append (symbol->string 'vocabname) ".v")))
+             (define s-VOCAB-EXTENSION ".v")
+                          
+             (define vocab-path (build-path (path-only/same local-policy-filename) 
+                                            (string-append (symbol->string 'my-theory-name) s-VOCAB-EXTENSION)))           
              
-              ; Produce a friendly error if the vocab doesn't exist
-              ; src-syntax here is the *command* that spawned the loading, not the Policy form.
-              (file-exists?/error vocab-path src-syntax 
-                                  (format "The policy's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
-              
-              (define my-vocab                 
-                (call-with-input-file
+             ; Produce a friendly error if the vocab doesn't exist
+             ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+             (file-exists?/error vocab-path src-syntax 
+                                 (format "Unable to find the policy's vocabulary. Expected a file at: ~a" (path->string vocab-path)))   
+             
+             (define my-t-or-v                 
+               (call-with-input-file
                     vocab-path
                   (lambda (in-port) 
                     (port-count-lines! in-port)
                     (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
                     ; Keep as syntax here, so the PolicyVocab macro gets the right location info
                     ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
+                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))
+             
+             ; Allow users to provide just a vocab with no theory.
+             (define my-thy
+               (if (m-vocabulary? my-t-or-v)
+                   (m-theory (m-vocabulary-name my-t-or-v) empty my-t-or-v empty)
+                   my-t-or-v))
                                                            
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
@@ -944,11 +966,12 @@
              (define vardec-list empty)
              (define rcomb-desc "")
              
-             (printf "~v~n" my-commands)
+;;             (printf "~v~n" my-commands)
              
              (m-policy local-policy-id                          
+                       vocab-path
                        my-commands
-                       my-vocab ; an m-vocabulary struct
+                       my-thy ; an m-theory struct
                        vardec-list
                        rules-list
                        rcomb-desc)))))]

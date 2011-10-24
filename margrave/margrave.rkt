@@ -64,7 +64,6 @@
          define-custom-vector
          
          cached-policies
-         cached-vocabularies
          cached-theories)
 
 
@@ -193,6 +192,10 @@ gmarceau
 (define (engine-never-started?) ...)
 (define (engine-needs-starting)  ...)
 |#
+
+; If the list is not initialized, the engine was never started (or was closed cleanly).
+(define (engine-needs-starting?)
+  (not java-process-list))
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
 (define (start-margrave-engine #:margrave-path [home-path default-margrave-home-path]
@@ -335,10 +338,8 @@ gmarceau
   
   (define cmd (xexpr->string cmd-xexpr))
   
-
-  (cond [(not java-process-list)       
-         
-         (printf "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.~n")
+  (cond [(not java-process-list)                
+         (raise-user-error "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.")
          #f]
         
         [else
@@ -412,6 +413,9 @@ gmarceau
 ; policy-id policy-file-name -> bool
 
 (define (m-load-policy id fn)    
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started. Unable to load policy."))
+    
   (define func-sexpr (create-policy-loader 
                       id 
                       (if (path? fn)
@@ -424,6 +428,9 @@ gmarceau
 (define/contract
   (m-is-poss? qryid)
   [-> string? boolean?]
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started. Unable to load policy."))
+
   (define the-xml (xml-make-is-possible-command qryid))
   (define xml-response (send-and-receive-xml the-xml)) 
   (xml-bool-response->bool xml-response))
@@ -435,7 +442,9 @@ gmarceau
 (define/contract
   (m-let qryid sexpr-vars sexpr-fmla)
   [-> string? (or/c symbol? list?) (or/c symbol? list?) boolean?]
-  
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started. Unable to load policy."))
+
   (define (handle-var-dec-sexpr sexpr)  
     (xml-make-variable-declaration (symbol->string (first sexpr))
                                    (symbol->string (second sexpr))))
@@ -635,7 +644,7 @@ gmarceau
 ; -------------------------
 (define (resolve-custom-vector-y polid vecid vector-syntax)
   ;(printf "~n~n~a ~a ~a ~a~n" polid vecid polline polcol)
-  (define polid-str (symbol->string/safe polid))
+  (define polid-str (->string polid))
   
   ; Only allow req for now. (Later, DEFINE VECTOR command)
   (when (not (symbol=? vecid 'req))
