@@ -1334,9 +1334,7 @@
                              (map m-term->xexpr terms))]
     [(? valid-constant? cid) (xml-make-constant-term (->string sexpr))]
     [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
-    [else (if (syntax? sexpr)
-              (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
-              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))    
+    [else (margrave-error "Incorrect term expression" sexpr)]))    
   
 ; Note some clauses have extra calls to validity checker functions.
 ; These special functions will throw appropriate errors for invalid 
@@ -1414,11 +1412,13 @@
              (empty? terms)
              (valid-variable? term0))
         (xml-make-isa-formula term0 dbname (xml-make-true-condition))]
+       [(and (valid-sort? dbname) (or (not (empty? terms))
+                                      (not (valid-variable? term0))))
+        (margrave-error "Atomic formulas (S x), where S is a sort name, must contain only a single variable in the x position" sexpr)]
+       
        [else (xml-make-atomic-formula (list dbname)
                                       (map m-term->xexpr (cons term0 terms)))])]
-    [else (if (syntax? sexpr)
-              (raise-syntax-error 'Margrave (format "Incorrect term expression ~a.~n" (->string sexpr)) #f #f (list sexpr))
-              (raise-user-error (format "Incorrect term expression: ~a.~n" (->string sexpr))))]))
+    [else (margrave-error "Incorrect formula expression" sexpr)]))
 
   
 ; Avoid duplicate code. Defer to m-formula->xml
@@ -1446,6 +1446,9 @@
 (check-true (m-formula? '((mypolicyname permit) s a r)))
 (check-true (m-formula? '(aRelation s x)))
 (check-false (m-formula? '((mypolicyname permit) 1 2 3)))
+(check-false (m-formula? '(S x y)))
+(check-false (m-formula? '(S 'c)))
+(check-true (m-formula? '(S x)))
 ; ^^^ More cases go here. Not fully covered!
 
 ; Avoid duplicate code. Defer to m-term->xml
@@ -1517,9 +1520,7 @@
         ;[`(allow-overlap ,id1 ,id2) #t]
         ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
         
-        [else (if (syntax? axiom)
-                  (raise-syntax-error 'Margrave (format "The axiom ~a was neither a formula nor a constraint declaration.~n" (->string axiom)) #f #f (list axiom))
-                  (raise-user-error (format "The axiom ~a was neither a formula nor a constraint declaration.~n" (->string axiom))))])))
+        [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)])))
 
 (define (m-axiom? sexpr)
   (with-handlers ([(lambda (e) (exn:fail:syntax? e))

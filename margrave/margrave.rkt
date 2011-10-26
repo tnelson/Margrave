@@ -198,9 +198,12 @@ gmarceau
   (not java-process-list))
 
 ; Home-path is the location of the margrave.rkt, read.rkt, etc. files.
-(define (start-margrave-engine #:margrave-path [home-path default-margrave-home-path]
+(define/contract (start-margrave-engine #:margrave-path [home-path default-margrave-home-path]
                                #:jvm-params [user-jvm-params empty] 
                                #:margrave-params [user-margrave-params empty])
+  [->* () 
+       (#:margrave-path (or/c path? string?) #:jvm-params (listof string?) #:margrave-params (listof string?))
+       boolean?]
   
   ; If the engine isn't running (either uninitialized, or it died before we called this)
   (if (or (not java-process-list) 
@@ -436,12 +439,12 @@ gmarceau
   (xml-bool-response->bool xml-response))
 
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
-; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))
-        ;[(equal? op 'forall) (xml-make-forall (m-formula->xexpr (second sexpr)) (m-formula->xexpr (third sexpr)) (m-formula->xexpr (fourth sexpr)))]
+; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))        
+; sexpr-vars can be empty, but must be given.
 
 (define/contract
   (m-let qryid sexpr-vars sexpr-fmla)
-  [-> string? (or/c symbol? list?) (or/c symbol? list?) boolean?]
+  [-> string? list? (or/c symbol? list?) boolean?]
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
 
@@ -672,3 +675,7 @@ gmarceau
   (hash-set! custom-vector-environment vecid contents)
   (format "Custom vector <~a> defined." vecid))
 
+;(start-margrave-engine #:margrave-params '("-log"))
+;(m-load-policy "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
+; (m-let "q" '( (s Subject) (a Action) (r Resource)) '( (mypol permit) s a r))
+;(m-is-poss? "q")

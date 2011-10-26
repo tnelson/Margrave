@@ -355,7 +355,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-
+(define (margrave-error msg expr)
+  (if (syntax? expr)
+      (raise-syntax-error 'Margrave msg #f #f (list expr))
+      (raise-user-error (format "~a: ~a.~n" msg (->string expr)))))
 
 (define (syntax->string x)
   (symbol->string (syntax->datum x)))
