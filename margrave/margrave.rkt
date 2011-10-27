@@ -443,8 +443,10 @@ gmarceau
 ; sexpr-vars can be empty, but must be given.
 
 (define/contract
-  (m-let qryid sexpr-vars sexpr-fmla)
-  [-> string? list? (or/c symbol? list?) boolean?]
+  (m-let qryid sexpr-vars sexpr-fmla #:under [under-list empty])
+  [->* (string? list? (or/c symbol? list?))
+       (#:under list?)
+       boolean?]
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
 
@@ -455,16 +457,15 @@ gmarceau
   (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
   (define query-condition-xml (m-formula->xexpr sexpr-fmla))  
   
+  (define query-options (list
+                         (xml-make-under under-list)))
+  
   (define the-xml
      (xml-make-explore-command 
       qryid
       free-vars-xml
-      (list query-condition-xml)     
-      ; no options via this function (for now)
-      ;,(if (empty? query-options)
-      ;     'empty
-      ;     `(list ,@query-options))
-      empty))
+      (list query-condition-xml)           
+      query-options))
   
   ;(printf "~a~n" the-xml)
     

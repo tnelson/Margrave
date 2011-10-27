@@ -84,6 +84,8 @@
 ; Take a syntax object for a Margrave command. 
 ; Return a '(lambda ...)  
 
+;; TODO: this should be rewritten more cleanly, probably using match.
+
 (define (compile-margrave-syntax syn)
   (define interns (syntax-e syn))
   
