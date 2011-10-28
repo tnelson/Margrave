@@ -680,3 +680,8 @@ gmarceau
 ;(m-load-policy "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
 ; (m-let "q" '( (s Subject) (a Action) (r Resource)) '( (mypol permit) s a r))
 ;(m-is-poss? "q")
+
+(start-margrave-engine #:margrave-params '("-log"))
+(m-load-policy "mypol" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
+(mtext "let Q1[s : Subject] be exists a:Action (exists r:Resource (mypol.permit(s, a, r)))")
+(m-is-poss? "Q1")
