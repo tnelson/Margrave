@@ -18,6 +18,7 @@
 #lang racket/base
 
 (require 
+ racket/match
  (file "margrave-xml.rkt")
  (file "helpers.rkt")
  racket/list
@@ -188,10 +189,10 @@
 (define-struct/contract m-vocabulary  
   ([name string?]
    [xml (listof xexpr?)]
-   [types (listof m-type?)] 
-   [predicates (listof m-predicate?)] 
-   [constants (listof m-constant?)] 
-   [functions (listof m-function?)])
+   [htypes (hash/c string? m-type?)] 
+   [hpredicates (hash/c string? m-predicate?)] 
+   [constants (hash/c string? m-constant?)] 
+   [functions (hash/c string? m-function?)])
   #:transparent)
 
 (define-struct/contract m-theory
@@ -991,6 +992,136 @@
                           (not (equal? (syntax->datum #'x1) 'uses)))
                      (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
                                          #f #f (list stx))]))
+
+
+; Inefficient, but works -- compute transitive closure of sort hierarchy.
+(define/contract (m-type-child-names/trans voc sname)
+  [m-vocabulary? string? . -> . (listof string?)]
+  (define child-names (m-type-child-names sname))
+  (define child-types (map (lambda (n) (m-vocabulary-name->type voc n))
+                           child-names))
+  (append child-names 
+          (map m-type-child-names/trans child-types)))
+
+
+
+; What is the sort of this term? If the term is not well-sorted, throw a suitable error.
+(define/contract (m-term->sort/err voc term env)
+  [m-vocabulary? any/c hash? . -> . (or/c symbol? boolean?)]
+  (match term
+    [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
+         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
+     (define mysort (m-vocabulary-function->result voc funcid))
+     (define myarity (m-vocabulary-function->arity voc funcid))
+     (define the-decls (zip terms myarity))
+     (foreach (lambda (p) 
+                (define p-term (first p))
+                (define p-sort (second p))             
+                (unless (member? (m-term->sort/err voc p-term env)
+                                 (m-type-child-names/trans voc p-sort))
+                  (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
+              the-decls)               
+     ; subterms are OK, so the result will have sort of f's result.
+     mysort]
+    [(? valid-constant? cid) 
+     (define mysort (m-vocabulary-constant->sort cid))
+     (if mysort mysort
+         (margrave-error "The constant symbol was not declared in the vocabulary context"))]
+    [(? valid-variable? vid) 
+     (define mysort (hash-ref env term))
+     (if mysort
+         mysort
+         (margrave-error "The variable was not declared in the vocabulary context"))]
+    [else (margrave-error "This term was not well-sorted" term)]))    
+
+
+(define/contract (m-formula-is-well-sorted/err voc fmla env)
+  [any/c hash? . -> . boolean?]      
+    
+  ; Check to see if term <tname> can "fit" as sort <sname>
+  (define/contract (internal-correct tname sname)
+    [string? string? . -> . boolean?]
+    (member? (m-term->sort tname) (m-type-child-names/trans voc sname)))
+  
+  ; Handle case: (isa x A true)
+  (define (internal-correct/isa vname sname)
+    (internal-correct vname sname))
+  
+  ; Handle case: (edbname x y z)
+  (define (internal-correct/edb list-of-vars edbname)
+    (define my-arity (m-predicate-arity (m-vocabulary-name->predicate voc edbname)))
+    (define the-decls (zip list-of-vars my-arity))
+    (andmap (lambda (p) (internal-correct (first p) (second p))) the-decls))
+  
+  ; Handle case: ( (polname idbname) x y z)
+  ; todo for now: only support single element in polidlist
+  ; need to access cached policies
+  (define (internal-correct/idb list-of-vars pol-id-list idbname)
+    (when (empty? pol-id-list) #f)
+    (define this-policy (get-cached-policy/err (first pol-id-list)))
+    (define my-arity (m-policy-idbname->arity this-policy idbname))
+    (define the-decls (zip list-of-vars my-arity))
+    (andmap (lambda (p) (internal-correct (first p) (second p))) the-decls))
+  
+  (match fmla
+    [(or 'true
+         (? (make-keyword-predicate/nobind #'true)))
+     #t]        
+    [(or 'false
+         (? (make-keyword-predicate/nobind #'false)))
+     #t]        
+    
+    [(or `(= ,t1 ,t2)
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'=)) ,t1 ,t2))
+     (and (m-term->sort t1) (m-term->sort t2))]
+    
+    [(or `(and ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'and)) ,@(list args ...)))
+     (andmap m-formula-is-well-sorted/err args)]    
+    [(or `(or ,@(list args ...))
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'or)) ,@(list args ...)))
+     (andmap m-formula-is-well-sorted/err args)]    
+    [(or `(implies ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'implies)) ,arg1 ,arg2))
+     (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
+    [(or `(iff ,arg1 ,arg2) 
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'iff)) ,arg1 ,arg2))
+     (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
+    [(or `(not ,arg)
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'not)) ,arg))
+     (m-formula-is-well-sorted/err arg)]   
+
+    [(or `(forall ,vname ,sname ,subfmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'forall)) ,vname ,sname ,subfmla))
+     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)] 
+    
+    [(or `(exists ,vname ,sname ,subfmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'exists)) ,vname ,sname ,subfmla))
+     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]           
+    
+    ; If (isa x A alpha) is sugar for (exists y A (and (= x y) alpha[x -> y]))
+    ; the sort of x must be _replaced_, not augmented, by the new sort.
+    [(or `(isa ,vname ,sname ,subfmla) 
+         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'isa)) ,vname ,sname ,subfmla))
+     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
+  
+    ; (idb term0 terms ...)
+    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
+         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))       
+     (internal-correct/idb (cons term0 terms) pids idbname)] 
+    
+    [(or `(,dbname ,term0 ,@(list terms ...)) 
+         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
+     (cond
+       [(and (valid-sort? dbname) 
+             (empty? terms)
+             (valid-variable? term0))
+        (internal-correct/isa term0 dbname)] ; sugar for (isa x A true)      
+       [else (internal-correct/edb (cons term0 terms) dbname)])] ; (edb term0 terms ...)
+    
+    [else (margrave-error "This formula was not well-sorted" fmla) ]))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))

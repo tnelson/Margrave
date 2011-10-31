@@ -362,3 +362,8 @@
 
 (define (syntax->string x)
   (symbol->string (syntax->datum x)))
+
+; Sanitize output. Don't report list contents.
+(define (member? ele lst)
+  (if (member ele lst) #t #f))
+
