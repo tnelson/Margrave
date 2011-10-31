@@ -35,13 +35,14 @@
        
        ; logical connectives, parens, equality, etc. and fmla context control
        LET BE LSQBRACK RSQBRACK
-       AND OR NOT IMPLIES IFF LPAREN RPAREN EQUALS COMMA TRUE
-       FORALL EXISTS
+       COMPARE
+       AND OR NOT IMPLIES IFF LPAREN RPAREN EQUALS COMMA TRUE FALSE
+       FORALL EXISTS ISA
        
        ; vector sugar
        GTHAN LTHAN DEFVEC
        
-       ;COMPARE
+       
        
        ; command tokens
        SHOW ALL REALIZED UNREALIZED FOR CASES ISPOSSQ COUNT AT RESET
@@ -146,6 +147,7 @@
    [(lex-ci "be") (token-BE)]
       
    [(lex-ci "true") (token-TRUE)]
+   [(lex-ci "false") (token-FALSE)]
    [(lex-ci "and") (token-AND)] 
    [(lex-ci "or") (token-OR)] 
    [(lex-ci "not") (token-NOT)]  
@@ -153,6 +155,7 @@
    [(lex-ci "iff") (token-IFF)] 
    [(lex-ci "forall") (token-FORALL)] 
    [(lex-ci "exists") (token-EXISTS)] 
+   [(lex-ci "isa") (token-ISA)] 
    
    ; commands
    
@@ -176,13 +179,19 @@
    [(lex-ci "under") (token-UNDER)] 
    
    ; Directives
-   
-   [(lex-ci "#defvec") (token-DEFVEC)]      
-   [(lex-ci "#set") (token-SET)] 
-   [(lex-ci "#get") (token-GET)] 
-   [(lex-ci "#info") (token-INFO)] 
-   [(lex-ci "#quit") (token-QUIT)]    
-   [(lex-ci "#load") (token-LOAD)] 
+   ; Want to remove the # versions eventually. Including for backward compat.
+   [(:or (lex-ci "#defvec")
+         (lex-ci "defvec")) (token-DEFVEC)]      
+   [(:or (lex-ci "#set") 
+         (lex-ci "set")) (token-SET)] 
+   [(:or (lex-ci "#get") 
+         (lex-ci "get")) (token-GET)] 
+   [(:or (lex-ci "#info")
+         (lex-ci "info")) (token-INFO)] 
+   [(:or (lex-ci "#quit")
+         (lex-ci "quit")) (token-QUIT)]    
+   [(:or (lex-ci "#load")
+         (lex-ci "load")) (token-LOAD)] 
     
    ; directive options
 

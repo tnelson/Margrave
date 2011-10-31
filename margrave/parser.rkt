@@ -186,33 +186,7 @@ Margrave did not understand the condition or options given around \"~a\"."
                                      token-value
                                      token-name))]
                         
-                        
-;                        [(equal? first-token 'COUNT)
-;                         "COUNT is a stand-alone command."]
-;                        
-;                        [(and (equal? first-token 'SHOW)
-;                              (equal? second-token 'REALIZED))
-;                         "That was not a valid SHOW REALIZED command."]
-;                        [(and (equal? first-token 'SHOW)
-;                              (equal? second-token 'UNREALIZED))
-;                         "That was not a valid SHOW UNREALIZED command."]
-;                        
-;                        
-;                        [(equal? first-token 'SHOW)
-;                         "SHOW must be followed by a mode. Which SHOW did you intend to use? (SHOW ONE, SHOW ALL, SHOW NEXT, SHOW CEILING...)"]
-;                        [(equal? first-token 'GET)
-;                         "GET must be followed by a mode. Which GET did you intend to use? (GET ONE, GET ALL, GET NEXT, GET RULES IN...)"]
-;                        
-;                        [(and (equal? first-token 'IS)
-;                              (equal? second-token 'POSSIBLEQMARK))
-;                         "IS POSSIBLE? is a standalone command."]
-;                        [(equal? first-token 'IS)
-;                         "Did you mean IS POSSIBLE? ?"]
-;                        
-;                        [(equal? first-token 'DEFVEC)
-;                         "A DEFVEC command is of the form DEFVEC <vecid> x, y, z..."]
-;                        
-                        
+                                                
                         ; Last resort
                         [else (format "Margrave did not understand that command.")]))
                        
@@ -241,8 +215,9 @@ Margrave did not understand the condition or options given around \"~a\"."
               (nonassoc RPAREN)
               
               (left COMMA)
-             ;(nonassoc IN)
+              (nonassoc ISA)
               (nonassoc COLON)
+              (nonassoc EQUALS)
               (nonassoc DOT))
        
        ; Uncomment this to help diagnose any reduce/reduce errors that come up after parser revisions.
@@ -275,35 +250,32 @@ Margrave did not understand the condition or options given around \"~a\"."
         ;**************************************************        
         ; Helper productions
                 
-        (file-id
+        (any-id
          [(<lowercase-id>) $1]
          [(<capitalized-id>) $1])
-        
+
         (list-of-filenames 
-         [(file-id) (list (->string $1))]
-         [(list-of-filenames COMMA file-id) (append $1 (list (->string $3)))])
+         [(any-id) (list (->string $1))]
+         [(list-of-filenames COMMA any-id) (append $1 (list (->string $3)))])
         
         (numeric-id
          [(<natural>) (build-so (list 'id $1) 1 1)])
         
-        ;(get-type
-        ; [(ONE) (build-so (list 'type 'ONE) 1 1)]
-        ; [(NEXT) (build-so (list 'type 'NEXT) 1 1)]
-        ; [(CEILING) (build-so (list 'type 'CEILING) 1 1)])
-       
-                        
-        ;**************************************************
-        ;(m-bind-fmla
-        ; [(let-statement) $1]
-         ;[(compare-statement) $1]
-         ;)
+        (policy-id
+         [(any-id) (build-so (list 'POLICY $1) 1 1)])
         
+        (list-of-policies 
+         [(policy-id) (list $1)]
+         [(list-of-policies COMMA policy-id) (append $1 (list $3))])
+
+        
+
         ;**************************************************
         (m-directive
                    
          ; Get information
          [(INFO) (build-so (list 'INFO) 1 1)]
-         [(INFO <capitalized-id>) (build-so (list 'INFO $2) 1 2)]
+         [(INFO any-id) (build-so (list 'INFO $2) 1 2)]
          
          ; Close out the engine
          [(QUIT) (build-so (list 'QUIT) 1 1)]
@@ -313,25 +285,25 @@ Margrave did not understand the condition or options given around \"~a\"."
          ; (build-so (list 'DEFVEC $3 $5) 1 5)]
          
          ; .p/v policy
-         [(LOAD POLICY <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-POLICY $3 $5) 1 5)]
+         [(LOAD POLICY any-id EQUALS any-id) (build-so (list 'LOAD-POLICY $3 $5) 1 5)]
          
          ; Cisco IOS configuration
-         [(LOAD IOS file-id) (build-so (list 'LOAD-IOS $3) 1 3)]     
+         [(LOAD IOS any-id) (build-so (list 'LOAD-IOS $3) 1 3)]     
          
          ; With prefix and suffix
-         [(LOAD IOS file-id WITH file-id file-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
+         [(LOAD IOS any-id WITH any-id any-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
          
          ; Multiple configs at once:
-         [(LOAD IOS list-of-filenames IN file-id) 
+         [(LOAD IOS list-of-filenames IN any-id) 
           (build-so (list 'LOAD-MULT-IOS $3 (->string $5)) 1 5)]
-         [(LOAD IOS list-of-filenames IN file-id WITH file-id file-id) 
+         [(LOAD IOS list-of-filenames IN any-id WITH any-id any-id) 
           (build-so (list 'LOAD-MULT-IOS-WITH $3 (->string $5) $7 $8) 1 8)]    
          
          ; XACML configuration
-         [(LOAD XACML <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-XACML $3) 1 3)]
+         [(LOAD XACML <capitalized-id> EQUALS any-id) (build-so (list 'LOAD-XACML $3) 1 3)]
          
          ; Amazon SQS configuration
-         [(LOAD SQS <capitalized-id> EQUALS file-id) (build-so (list 'LOAD-SQS $3) 1 3)]         
+         [(LOAD SQS <capitalized-id> EQUALS any-id) (build-so (list 'LOAD-SQS $3) 1 3)]         
          
          )
          
@@ -341,56 +313,31 @@ Margrave did not understand the condition or options given around \"~a\"."
         ;**************************************************
         (m-command
          
-         ; !!! todo: re-enable implicit "last" without identifier given
          
          ; ALL
-         ;[(GET ALL numeric-id) (build-so (list 'GETALL $3) 1 3)]
-         ;[(GET ALL) (build-so (list 'GETALL) 1 2)]
-         [(SHOW ALL <capitalized-id>) (build-so (list 'SHOWALL $3) 1 3)]
-         ;[(SHOW ALL) (build-so (list 'SHOWALL) 1 2)]
+         [(SHOW ALL any-id) (build-so (list 'SHOWALL $3) 1 3)]
          
-         ; 
-         ;[(GET get-type numeric-id) (build-so (list 'GET $2 $3) 1 3)]
-         ;[(GET get-type) (build-so (list 'GET $2) 1 2)]
-         ;[(SHOW get-type numeric-id) (build-so (list 'SHOW $2 $3) 1 3)]
-         ;[(SHOW get-type) (build-so (list 'SHOW $2) 1 2)]
-         [(SHOW <capitalized-id>) (build-so (list 'SHOW $2) 1 2)]
-         ;[(SHOW ) (build-so (list 'SHOW $2) 1 1)]
+         [(SHOW any-id) (build-so (list 'SHOW $2) 1 2)]
          
-         [(RESET <capitalized-id>) (build-so (list 'RESET $2) 1 2)]
+         [(RESET any-id) (build-so (list 'RESET $2) 1 2)]
          
-         [(COUNT <capitalized-id>) (build-so (list 'COUNT $2) 1 2)]
-         ;[(COUNT) (build-so (list 'COUNT) 1 1)]
-         [(COUNT <capitalized-id> AT size) (build-so (list 'COUNT-WITH-SIZE $2 $4) 1 4)]
-                  
+         [(COUNT any-id) (build-so (list 'COUNT $2) 1 2)]
+         [(COUNT any-id AT <natural>) (build-so (list 'COUNT-WITH-SIZE $2 (list 'SIZE $4)) 1 4)]
+
          ; SHOW REALIZED and friends
          ; TN 8/26: replaced "populated" with "realized"
-         [(SHOW REALIZED <capitalized-id> atomic-formula-list) 
+         [(SHOW REALIZED any-id atomic-formula-list) 
           (build-so (list 'SHOWREALIZED $3 $4 empty) 1 4)]
-         [(SHOW UNREALIZED <capitalized-id> atomic-formula-list)
+         [(SHOW UNREALIZED any-id atomic-formula-list)
           (build-so (list 'SHOWUNREALIZED $3 $4 empty) 1 4)]
-         [(SHOW REALIZED <capitalized-id> atomic-formula-list FOR CASES atomic-formula-list)
+         [(SHOW REALIZED any-id atomic-formula-list FOR CASES atomic-formula-list)
           (build-so (list 'SHOWREALIZED $3 $4 $7) 1 7)]
-         [(SHOW UNREALIZED <capitalized-id> atomic-formula-list FOR CASES atomic-formula-list)
+         [(SHOW UNREALIZED any-id atomic-formula-list FOR CASES atomic-formula-list)
           (build-so (list 'SHOWUNREALIZED $3 $4 $7) 1 7)]     
-         
-         ; SHOW REALIZED without a numeric-id
-         ;[(SHOW REALIZED atomic-formula-list) 
-         ; (build-so (list 'LSHOWREALIZED $3 empty) 1 3)]
-         ;[(SHOW UNREALIZED atomic-formula-list)
-         ; (build-so (list 'LSHOWUNREALIZED $3 empty) 1 3)]
-         ;[(SHOW REALIZED atomic-formula-list FOR CASES atomic-formula-list)
-         ; (build-so (list 'LSHOWREALIZED $3 $6) 1 6)]
-         ;[(SHOW UNREALIZED atomic-formula-list FOR CASES atomic-formula-list)
-         ; (build-so (list 'LSHOWUNREALIZED $3 $6) 1 6)]     
-         
+                  
          ;IS POSSIBLE?
-         [(ISPOSSQ <capitalized-id>) (build-so (list 'IS-POSSIBLE? $2) 1 2)]
-         ;[(ISPOSSQ) (build-so (list 'IS-POSSIBLE?) 1 1)]        
+         [(ISPOSSQ any-id) (build-so (list 'IS-POSSIBLE? $2) 1 2)]         
          
-         ; Margrave command wrapped in parantheses
-         ; !!! todo: why is this here? - tn removed for now
-         ;[(LPAREN margrave-command RPAREN) (build-so (list 'PARANTHESIZED-EXPRESSION $2) 1 3)]
          )    
         
         ;**************************************************
@@ -405,10 +352,16 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(variable-term COLON <capitalized-id>) (build-so (list 'VARIABLE-DECL $1 $3) 1 3)])
         
         (m-bind-fmla
-         [(LET <capitalized-id> LSQBRACK typed-variable-list RSQBRACK BE condition) 
+         [(LET any-id LSQBRACK typed-variable-list RSQBRACK BE condition-formula) 
           (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 empty) 1 7)]
-         [(LET <capitalized-id> LSQBRACK typed-variable-list RSQBRACK BE condition explore-modifiers-list) 
-          (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 $8) 1 8)])
+         [(LET any-id LSQBRACK typed-variable-list RSQBRACK BE condition-formula explore-modifiers-list) 
+          (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 $8) 1 8)]
+         ; production for no free vars
+         [(LET any-id LSQBRACK RSQBRACK BE condition-formula) 
+          (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 empty) 1 6)]
+         [(LET any-id LSQBRACK RSQBRACK BE condition-formula explore-modifiers-list) 
+          (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 $7) 1 7)]         
+         )
                 
         ;(compare-statement                  
         ; [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]
@@ -428,18 +381,7 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (explore-modifiers-list
          [(explore-modifier) (list $1)]
-         [(explore-modifier explore-modifiers-list) (append (list $1) $2)])
-        
-        (policy
-         [(<capitalized-id>) (build-so (list 'POLICY $1) 1 1)])
-        
-        (list-of-policies 
-         [(policy) (list $1)]
-         [(list-of-policies COMMA policy) (append $1 (list $3))])
-        
-        (size
-         [(<natural>) (build-so (list 'SIZE $1) 1 1)])
-        
+         [(explore-modifier explore-modifiers-list) (append (list $1) $2)])                       
         
         ; *************************************************
         ; condition-formula: A sub-formula of the condition
@@ -451,21 +393,14 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(condition-formula IMPLIES condition-formula) (build-so (list 'IMPLIES $1 $3) 1 3)]
          [(condition-formula IFF condition-formula) (build-so (list 'IFF $1 $3) 1 3)]
          
-         ; !!! todo, more than one per FORLALL, e.g.: FORALL x:A, y:B, ...
-         ; !!! also parens or not?
+         ; !!! todo, more than one per FORALL (or EXISTS), e.g.: FORALL x:A, y:B, ...
          [(FORALL <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN)
           (build-so (list 'FORALL $2 $4 $6) 1 6)]
          [(EXISTS <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN) 
           (build-so (list 'EXISTS $2 $4 $6) 1 6)]
          
          [(atomic-formula) (build-so $1 1 1)])
-        
-        ; *************************************************
-        ; represents a top-level condition, the fully-developed formula in EXPLORE 
-        ; Can be trivially true
-        (condition [(condition-formula) (list 'CONDITION $1)]
-                   [(TRUE) (build-so (list 'TRUE-CONDITION) 1 1)])
-        
+                
         ;**************************************************
         ; terms
         (variable-term [(<lowercase-id>) (build-so (list 'VARIABLE-TERM $1) 1 1)])
@@ -480,59 +415,30 @@ Margrave did not understand the condition or options given around \"~a\"."
         (condition-term 
          [(variable-term) $1]
          [(constant-term) $1]
-         [(function-term) $1])
+         [(function-term) $1])                    
         
-        
-        ; *************************************************
-        ; (x, y, z) IN DB   or x in DB    
-        ; syntactic sugar for predicate notation
-        ; needs the parens to resolve shift/reduce (deal with this)
-      ;  (in-formula ((LPAREN variable-list RPAREN IN <identifier> COLON <identifier>) 
-      ;               (build-so (list 'ATOMIC-FORMULA-Y $5 ":" $7 (append (list 'VARIABLE-VECTOR) $2)) 1 7))
-      ;              ((LPAREN variable-list RPAREN IN <identifier>)
-      ;               (build-so (list 'ATOMIC-FORMULA-N $5 (append (list 'VARIABLE-VECTOR) $2)) 1 5))
-      ;              ((<identifier> IN <identifier> COLON <identifier>)
-      ;               (build-so (list 'ATOMIC-FORMULA-Y $3 ":" $5 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 5))
-      ;              ((<identifier> IN <identifier>)
-      ;               (build-so (list 'ATOMIC-FORMULA-N $3 (append (list 'VARIABLE-VECTOR) (list (build-so (list 'VARIABLE $1) 1 1)))) 1 3))
-       ;;             )
-        
-        ; !!! removed sugar for initial parser - TN
-        
-        ; *************************************************
-        ; Variable equality         
-        ; Since variables and constants/functions are lexically different, we can distinguish them here.
-        (equals-formula 
-         [(condition-term EQUALS condition-term) (build-so (list 'EQUALS $1 $3) 1 3)])
-        
-        ; Downcasting
-        (isa-formula
-         [(<lowercase-id> COLON <capitalized-id>) (build-so (list 'ISA $1 $3) 1 3)])
-                
         ; ***********************************************************        
         ; atomic formulas        
                  
-        ; lowercase id can only be last in the list
-        (complex-condition-predicate
-         [(<capitalized-id> DOT <lowercase-id>) (list $1 $3)]
-         [(<capitalized-id> DOT <capitalized-id>) (list $1 $3)]
-         [(<capitalized-id> DOT complex-condition-predicate) (append (list $1) $3)])
+        ; Must end with a lowercase ID
+        (complex-predicate
+         [(any-id DOT <lowercase-id>) (list $1 $3)]
+         [(any-id DOT complex-predicate) (append (list $1) $3)])
         
-        ;(atomic-formula [(condition-predicate LPAREN condition-term-list RPAREN)         
         (atomic-formula [(<lowercase-id> LPAREN condition-term-list RPAREN) 
-                         (build-so (list 'ATOMIC-FORMULA (list $1) (append (list 'TERM-LIST) $3)) 1 4)]
-                        [(<capitalized-id> LPAREN condition-term-list RPAREN) 
-                         (build-so (list 'ATOMIC-FORMULA (list $1) (append (list 'TERM-LIST) $3)) 1 4)]
-                        [(complex-condition-predicate LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
                         
-                       ; !!! TODO re-add in 
-                        ; [(in-formula)
-                       ;  $1]
-                        [(equals-formula) 
-                         $1]
-                        [(isa-formula)
-                         $1])   
+                        ; prevent s/r conflict by making this an explicit production here.
+                        ; (issue caused by fact that (f)unctions and (p)redicates have same lexical category at the moment)
+                        [(complex-predicate LPAREN condition-term-list RPAREN) 
+                         (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
+                        
+                        [(TRUE) (build-so (list 'TRUE-CONDITION) 1 1)]
+                        [(FALSE) (build-so (list 'FALSE-CONDITION) 1 1)]
+                                         
+                        [(condition-term EQUALS condition-term) (build-so (list 'EQUALS $1 $3) 1 3)]
+                        [(ISA <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN) (build-so (list 'ISA $2 $4 $6) 1 7)]
+                        )   
         
         (atomic-formula-list
          [(atomic-formula) (list $1)]
