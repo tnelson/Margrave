@@ -28,7 +28,7 @@
  (only-in srfi/1 zip)
  (for-syntax (only-in srfi/13 string-contains)             
              (file "helpers.rkt")                     
-             (file "polvochelpers.rkt")                     
+             (file "polvochelpers.rkt")
              (file "margrave-xml.rkt")
              xml
              racket/list
@@ -80,6 +80,15 @@
 (define local-policy-filename ".")
 
 ;****************************************************************
+
+(define-for-syntax (repackage-transparent-struct-loc the-struct)    
+  (define struct-list (vector->list (struct->vector the-struct)))
+  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
+  (define (safe-param x)
+    (if (list? x)
+        #`'#,x
+        x))  
+  #`(#,struct-name #,@(map safe-param (rest struct-list))))
 
 
 ; policy-file-name policy-id [optional syntax] -> list
@@ -635,15 +644,16 @@
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
-       ; Java will handle creation of the object if the identifier hasn't been seen before.       
+       ; Java will handle creation of the object if the identifier hasn't been seen before.                     
+       (printf "~v~n" #'m-type)
        
        ;;;;;;;;; Final Syntax ;;;;;;;;;
        (with-syntax ([vocab-name-string vocab-name-string]
                      [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
-                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct ele))) (hash-values types-result))))]
-                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct ele))) (hash-values predicates-result))))]
-                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct ele))) (hash-values constants-result))))]
-                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct ele))) (hash-values functions-result))))])     
+                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct-loc ele))) (hash-values types-result))))]
+                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct-loc ele))) (hash-values predicates-result))))]
+                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct-loc ele))) (hash-values constants-result))))]
+                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct-loc ele))) (hash-values functions-result))))])     
          
          (syntax/loc stx (m-vocabulary vocab-name-string 
                                        'xml-list
@@ -837,8 +847,8 @@
                                                    rcomb-result                                                   
                                                    prepare-result))]
                      [my-theory-name my-theory-name-sym]
-                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct ele))) (hash-values rules-hash))))]
-                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct ele))) (hash-values vardec-hash))))]
+                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct-loc ele))) (hash-values rules-hash))))]
+                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct-loc ele))) (hash-values vardec-hash))))]
                      
                      [idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key (hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
                      
