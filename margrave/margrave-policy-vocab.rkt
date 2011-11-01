@@ -24,7 +24,8 @@
  racket/list
  racket/contract
  xml
- (for-syntax (only-in srfi/13 string-contains)
+ (only-in srfi/1 zip)
+ (for-syntax (only-in srfi/13 string-contains)             
              (file "helpers.rkt")                     
              (file "margrave-xml.rkt")
              xml
@@ -94,11 +95,11 @@
   
   ; If fn begins with *MARGRAVE*, replace with the path of the Margrave collections folder.
   (define fn (resolve-margrave-filename-keyword raw-fn))
-      
+  
   ;; Macro returns a func of two arguments:
   ; (1) the filename of the policy (for constructing the location of the vocab file)
   ; (2) the command syntax that started evaluation (for nice error highlighting)
-
+  
   ; Policy ID needs to be known at compile time, not runtime, since it's used by the command XML
   (parameterize ([read-case-sensitive #t])
     
@@ -189,8 +190,8 @@
 (define-struct/contract m-vocabulary  
   ([name string?]
    [xml (listof xexpr?)]
-   [htypes (hash/c string? m-type?)] 
-   [hpredicates (hash/c string? m-predicate?)] 
+   [types (hash/c string? m-type?)] 
+   [predicates (hash/c string? m-predicate?)] 
    [constants (hash/c string? m-constant?)] 
    [functions (hash/c string? m-function?)])
   #:transparent)
@@ -256,11 +257,11 @@
        
        ;(printf "PolicySet Clause list: ~a~n" (syntax->list #'(clauses ...)))
        ;(printf "PolicySet Clause table: ~n~a~n" clause-table)
-
+       
        (define the-target-clauses (hash-ref clause-table 'target))                                 
        (define the-children-clauses (hash-ref clause-table 'children))
        (define the-pcomb-clauses (hash-ref clause-table 'pcomb))
-
+       
        (assert-one-clause stx the-children-clauses "Children")
        (assert-lone-clause stx the-target-clauses "Target")
        (assert-lone-clause stx the-pcomb-clauses "PComb")       
@@ -269,12 +270,12 @@
        ; Children
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define the-child-policies
-             (let ()    
-               (define the-children-clause (first the-children-clauses))
-               (define the-children (rest (syntax-e the-children-clause)))               
-               
-               ; Let the macro system expand these
-               the-children)) 
+         (let ()    
+           (define the-children-clause (first the-children-clauses))
+           (define the-children (rest (syntax-e the-children-clause)))               
+           
+           ; Let the macro system expand these
+           the-children)) 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
@@ -289,17 +290,17 @@
                  (raise-syntax-error 'PolicySet "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
                (when (< (length the-targets) 1)
                  (raise-syntax-error 'PolicySet "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
-                            
+               
                (define the-target (first the-targets))                                             
                (list `(xml-make-command "SET TARGET FOR POLICY" 
-                                       (list (xml-make-policy-identifier local-policy-id)
-                                             ,(m-formula->xexpr the-target)))))))    
-
+                                        (list (xml-make-policy-identifier local-policy-id)
+                                              ,(m-formula->xexpr the-target)))))))    
+       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; PComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     
+       
        (define pcomb-result 
          (if (empty? the-pcomb-clauses)
              empty
@@ -310,7 +311,7 @@
                                                             (list (xml-make-policy-identifier local-policy-id) 
                                                                   ,(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
                  [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
-             
+       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Create
@@ -326,9 +327,9 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define prepare-result 
-            `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))   
+         `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))   
        
-        ; Macro returns a lambda that takes a filename and a syntax object.   
+       ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
        (with-syntax ([my-commands (append create-result ; create must come first                                                                                   
                                           target-result
@@ -348,34 +349,34 @@
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
-              (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                             (string-append (symbol->string 'vocabname) ".v")))
+             (define vocab-path (build-path (path-only/same local-policy-filename) 
+                                            (string-append (symbol->string 'vocabname) ".v")))
              
-              ; Produce a friendly error if the vocab doesn't exist
-              ; src-syntax here is the *command* that spawned the loading, not the Policy form.
-              (file-exists?/error vocab-path src-syntax 
-                                  (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
-              
-              (define my-vocab                 
-                (call-with-input-file
-                    vocab-path
-                  (lambda (in-port) 
-                    (port-count-lines! in-port)
-                    (define the-vocab-syntax (read-syntax vocab-path in-port))               
-                    ; Keep as syntax here, so the PolicyVocab macro gets the right location info
-                    ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
-              
+             ; Produce a friendly error if the vocab doesn't exist
+             ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+             (file-exists?/error vocab-path src-syntax 
+                                 (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
+             
+             (define my-vocab                 
+               (call-with-input-file
+                   vocab-path
+                 (lambda (in-port) 
+                   (port-count-lines! in-port)
+                   (define the-vocab-syntax (read-syntax vocab-path in-port))               
+                   ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                   ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                   (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
+             
              ; (vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)
              (define vocab-name (first my-vocab))
              (define vocab-commands (second my-vocab))
-              
-              ; Get the 6-tuples for each child
-              (define child-policy-macros the-child-policies) ; no '
              
-              
-              ; Each child gives us its own list (pname, vname, vlist, plist, (child-pol-pairs), (child-voc-pairs)
-              ; Error out if there is a duplicate policy name (or the same name as this parent policy)
+             ; Get the 6-tuples for each child
+             (define child-policy-macros the-child-policies) ; no '
+             
+             
+             ; Each child gives us its own list (pname, vname, vlist, plist, (child-pol-pairs), (child-voc-pairs)
+             ; Error out if there is a duplicate policy name (or the same name as this parent policy)
              ; Don't repeat vocabularies
              (define the-children (map (lambda (child)                                          
                                          ((eval child margrave-policy-vocab-namespace) 
@@ -389,14 +390,14 @@
              
              ; take the child policy's tuple from evaluation
              ; get the list of pnames              
-              (define (get-child-pols tuple)
-                (when (or (< (length tuple) 5)
-                          (not (list? (fifth tuple))))
-                  (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
-                                      (make-placeholder-syntax 'placeholder)))
-                (append (list (first tuple)) ; <-- child's pname
-                        (fifth tuple)))      ; <-- list of child's children's pnames
-              
+             (define (get-child-pols tuple)
+               (when (or (< (length tuple) 5)
+                         (not (list? (fifth tuple))))
+                 (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
+                                     (make-placeholder-syntax 'placeholder)))
+               (append (list (first tuple)) ; <-- child's pname
+                       (fifth tuple)))      ; <-- list of child's children's pnames
+             
              (define (get-add-child-xml tuple)
                (xml-make-command "ADD" (list `(PARENT local-policy-id
                                                       ,(xml-make-child-identifier (first tuple))))))
@@ -412,19 +413,19 @@
                                                        (map get-add-child-xml the-children)
                                                        'my-prepare-command))                          
              
-         ;    (define child-polnames (flatten (map get-child-pols the-children)))
+             ;    (define child-polnames (flatten (map get-child-pols the-children)))
              
              ; Throw error if duplicate policy name
-         ;    (define (dup-pname-helper todo sofar)
-         ;      (cond [(empty? todo) #f]
-         ;            [(member (first todo) sofar)                      
-         ;             (raise-syntax-error 'Policy 
-         ;                                 "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names."; 
-       ;                                   (make-placeholder-syntax (first todo)))]
-       ;              [else (dup-pname-helper (rest todo) (cons (first todo) sofar))]))
+             ;    (define (dup-pname-helper todo sofar)
+             ;      (cond [(empty? todo) #f]
+             ;            [(member (first todo) sofar)                      
+             ;             (raise-syntax-error 'Policy 
+             ;                                 "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names."; 
+             ;                                   (make-placeholder-syntax (first todo)))]
+             ;              [else (dup-pname-helper (rest todo) (cons (first todo) sofar))]))
              
-        ;     (dup-pname-helper child-polnames (list (symbol->string 'policyname)))
-              
+             ;     (dup-pname-helper child-polnames (list (symbol->string 'policyname)))
+             
              ; Don't double-load vocabs
              ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
              (for-each (lambda (tuple)
@@ -434,17 +435,17 @@
                             (format "Child policy used a vocabulary other than \"~a\". Child vocabulary must match parent vocabulary." 'vocabname)                
                             (make-placeholder-syntax (second tuple)))))
                        the-children)
-                       
-                          
-              
-              ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
-              `( ,local-policy-id
-                 ,(symbol->string 'vocabname)
-                 ,vocab-commands
-                 ,my-commands-with-children
-                 ,my-commands
-                 ,child-polnames
-                 ))))))))
+             
+             
+             
+             ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
+             `( ,local-policy-id
+                ,(symbol->string 'vocabname)
+                ,vocab-commands
+                ,my-commands-with-children
+                ,my-commands
+                ,child-polnames
+                ))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -462,10 +463,10 @@
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
        (define the-vocab-syntax #'myvocab)                    
-              
+       
        (define the-axioms-clauses (syntax-e #'(myaxioms ...)))              
        (define axioms-xml (map m-axiom->xexpr the-axioms-clauses))
-              
+       
        (with-syntax ([axioms-xml axioms-xml]
                      [theory-name (->string 'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
@@ -478,7 +479,7 @@
 (define-syntax (Vocab stx)
   (syntax-case stx [Types Predicates Constants Functions Vocab]
     ([_ myvocabname clauses ...]     
-                   
+     
      (let ()
        (define vocab-name-syntax #'myvocabname)
        (define vocab-name (syntax->datum vocab-name-syntax))
@@ -496,10 +497,6 @@
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types predicates constants functions)))
        
-      ; (printf "Vocab syntax: ~a~n" stx)
-      ; (printf "Clause list: ~a~n" (syntax->list #'(clauses ...)))
-      ;(printf "Clause table: ~n~a~n" clause-table)
-       
        ; from gmarceau
        ;(define-syntax (syntax-case-match? stx)
        ;  [(_ v lits pattern) #'(syntax-case v (Types Decisions Predicates ReqVariables OthVariables Constraints) [pattern #t] [_ #f])])       
@@ -509,12 +506,12 @@
        (define the-predicates-clauses (hash-ref clause-table 'predicates))
        (define the-constants-clauses (hash-ref clause-table 'constants))
        (define the-functions-clauses (hash-ref clause-table 'functions))
-                     
+       
        (assert-one-clause stx the-types-clauses "Types")
        (assert-lone-clause stx the-predicates-clauses "Predicates")
        (assert-lone-clause stx the-constants-clauses "Constants")
        (assert-lone-clause stx the-functions-clauses "Functions")     
-             
+       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Types
@@ -535,7 +532,7 @@
                      (raise-syntax-error 'Vocab err-invalid-type-decl-case #f #f (list a-type))] 
            ; (Type T > A B C)
            [(Type t > subt ...) (and (capitalized-id-syn? #'t)
-                                (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
+                                     (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
                                 (m-type (symbol->string (syntax->datum #'t))
                                         (map (compose symbol->string syntax->datum) (syntax-e #'(subt ...))))] 
            [(Type t > subt ...) (not 
@@ -545,7 +542,7 @@
                                  'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
            [_ (raise-syntax-error 'Vocab err-invalid-type-decl #f #f (list a-type))]))
-                      
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Remove duplicate types, but combine child names.
        ; Child names who don't have their own constructor are given one.
@@ -561,19 +558,21 @@
            (define unmentioned-mtypes (map (lambda (c) (m-type c empty)) unmentioned-children))    
            (append unmentioned-mtypes (list (m-type name the-children))))
          
-         ;(printf "~a : ~a~n" (map m-type-name (flatten (map combine-same-types the-sort-names)))
-         ;        (map m-type-child-names (flatten (map combine-same-types the-sort-names))))
          (flatten (map combine-same-types the-sort-names)))
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define types-result (resolve-m-types (map handle-type the-types)))
+       (define types-result-list (resolve-m-types (map handle-type the-types)))
+       
+       (define (type-aggregator ele sofar)
+         (hash-set sofar (m-type-name ele) ele))
+       (define types-result (foldl type-aggregator (make-immutable-hash '()) types-result-list))
        
        (define types-cmds (map (lambda (x) 
                                  (m-type->cmd vocab-name-string x))
-                               types-result))
+                               types-result-list))
        
        ; potential duplicates here (and in above xml); s/b a set maintained throughout the process?
-       (define types-names (map m-type-name types-result))
+       (define types-names (hash-keys types-result))
        
        ; Used by predicate/function/constant sections to recognize a type name that wasn't declared.
        (define (is-valid-type? typename-syn)
@@ -588,14 +587,14 @@
        (define (each-type-in-list-is-valid? typelist-syntax)
          (define type-syn-list (syntax->list typelist-syntax))
          (andmap is-valid-type? type-syn-list))
-             
+       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Predicates
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        ; Optional clause; allow to be empty.
-       (define predicates-result
+       (define predicates-result-list
          (if (empty? the-predicates-clauses)
              empty
              (let ()
@@ -613,26 +612,23 @@
                    [_ (raise-syntax-error 'Vocab "Invalid predicate declaration." #f #f (list pred) )]))
                
                (map handle-predicate the-predicates))))
-
-       ; may be empty
-       (define predicates-names-and-arities (if (empty? predicates-result)
-                                            empty
-                                            (map (lambda (apred) 
-                                                   (list (m-predicate-name apred) (length (m-predicate-arity apred))))
-                                                 predicates-result)))
+       
+       (define (predicate-aggregator ele sofar)
+         (hash-set sofar (m-predicate-name ele) ele))
+       (define predicates-result (foldl predicate-aggregator (make-immutable-hash '()) predicates-result-list))
+       
        
        (define predicates-cmds (if (empty? predicates-result)
-                                           empty
-                                           (map (lambda (x) 
-                                                  (m-predicate->cmd vocab-name-string x)) predicates-result)))       
-
+                                   empty
+                                   (map (lambda (x) 
+                                          (m-predicate->cmd vocab-name-string x)) predicates-result-list)))       
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Constants
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;              
        
        ; Optional clause; allow to be empty.
-       (define constants-result
+       (define constants-result-list
          (if (empty? the-constants-clauses)
              empty
              (let ()
@@ -643,30 +639,32 @@
                  ; No colon. Just (Constant 'a A)
                  (syntax-case const [Constant]                    
                    [(Constant 'cname crel) (and (lower-id-syn? (syntax cname))
-                                               (is-valid-type? (syntax crel)))  
-                                          (m-constant (syntax->string #'cname)
-                                                      (syntax->string #'crel))] 
+                                                (is-valid-type? (syntax crel)))  
+                                           (m-constant (syntax->string #'cname)
+                                                       (syntax->string #'crel))] 
                    
                    [(Constant 'cname crel) (not (lower-id-syn? (syntax cname)))
-                                 (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
+                                           (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
                    [(constant cname crel) (raise-syntax-error `Vocab "Invalid constant name. Constant names must be preceded with a single quote. For instance: (Constant 'c A)" #f #f (list const) )]
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]))
                
                (map handle-constant the-constants))))
-
-       ; may be empty
+       
+       (define (constants-aggregator ele sofar)
+         (hash-set sofar (m-constant-name ele) ele))
+       (define constants-result (foldl constants-aggregator (make-immutable-hash '()) constants-result-list))
        
        (define constants-cmds (if (empty? constants-result)
                                   empty
-                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result)))              
-
+                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result-list)))              
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Functions
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        ; Optional clause; allow to be empty.
-       (define functions-result
+       (define functions-result-list
          (if (empty? the-functions-clauses)
              empty
              (let ()
@@ -688,28 +686,20 @@
                    [_ (raise-syntax-error 'Vocab err-invalid-function #f #f (list func) )]))
                
                (map handle-function the-functions))))
-
-       ; may be empty
+       
+       (define (functions-aggregator ele sofar)
+         (hash-set sofar (m-function-name ele) ele))
+       (define functions-result (foldl functions-aggregator (make-immutable-hash '()) functions-result-list))
+       
        (define functions-cmds (if (empty? functions-result)
                                   empty
-                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result)))       
+                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result-list)))       
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.
-       ; Also include info on what types are valid, etc. for error generation in the policy macro
        
-       (define xml-list (append types-cmds                                        
-                                predicates-cmds
-                                constants-cmds
-                                functions-cmds))
-       
-       ; (Vocab ...) expands to #(struct:m-vocabulary ...)
-       ; Do not invoke m-vocabulary yet though. Namespace issues, otherwise?
-       ;(with-syntax ([the-vocab (m-vocabulary vocab-name-string xml-list
-       ;                                       types-result predicates-result constants-result functions-result)])                  
-       ;  (syntax/loc stx the-vocab))))))
-              
+       ; Convert from actual structs to syntax constructing the same struct.
        (define/contract (repackage-transparent-struct the-struct)
          [struct? . -> . syntax?]
          (define struct-list (vector->list (struct->vector the-struct)))
@@ -719,30 +709,21 @@
                #`'#,x
                x))  
          #`(#,struct-name #,@(map safe-param (rest struct-list))))
-
        
+       ;;;;;;;;; Final Syntax ;;;;;;;;;
        (with-syntax ([vocab-name-string vocab-name-string]
-                     [xml-list xml-list]
-                     [types-result #`(list #,@(map repackage-transparent-struct types-result))]
-                     [predicates-result #`(list #,@(map repackage-transparent-struct predicates-result))]
-                     [constants-result #`(list #,@(map repackage-transparent-struct constants-result))]
-                     [functions-result #`(list #,@(map repackage-transparent-struct functions-result))])     
-        ; (printf "~v~n~v~n~v~n" (quasisyntax/loc stx (m-vocabulary vocab-name-string 
-        ;                                                  empty ; 'xml-list
-        ;                                                   types-result
-        ;                                                   predicates-result
-        ;                                                   constants-result
-        ;                                                   functions-result))
-        ;         (length (namespace-mapped-symbols))
-        ;         (member 'm-type (namespace-mapped-symbols)))
-                  
+                     [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
+                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct ele))) (hash-values types-result))))]
+                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct ele))) (hash-values predicates-result))))]
+                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct ele))) (hash-values constants-result))))]
+                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct ele))) (hash-values functions-result))))])     
+         
          (syntax/loc stx (m-vocabulary vocab-name-string 
                                        'xml-list
                                        types-result
                                        predicates-result
                                        constants-result
-                                       functions-result
-                                       )))))))
+                                       functions-result)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -751,19 +732,19 @@
 
 ; Policy: Parses a policy definition and creates an MPolicyLeaf OR MPolicySet object
 ; Policies are permitted to have child policies, so this may be recursively called
-  
+
 (define-syntax (Policy stx)
   (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
     [(_ uses a-vocab-or-thy-name clauses ... )
-
+     
      (let ()
        (unless (identifier? #'a-vocab-or-thy-name)
          (raise-syntax-error 'Policy (format "Expected a theory or vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'a-vocab-or-thy-name)) #f #f (list #'a-vocab-or-thy-name)))                          
-              
+       
        (define my-theory-name-sym (syntax->datum #'a-vocab-or-thy-name))     
        (define my-theory-name-str (->string my-theory-name-sym)) 
-            
+       
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
                                                         [(Variables vardec ...) 'variables]
                                                         [(Target targ ...) 'target]                   
@@ -775,12 +756,12 @@
        
        ;(printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
        ;(printf "Policy Clause table: ~n~a~n" clause-table)
-
+       
        (define the-variables-clauses (hash-ref clause-table 'variables))                            
        (define the-target-clauses (hash-ref clause-table 'target))                                 
        (define the-rules-clauses (hash-ref clause-table 'rules))
        (define the-rcomb-clauses (hash-ref clause-table 'rcomb))
-
+       
        (assert-one-clause stx the-variables-clauses "Variables")
        (assert-lone-clause stx the-target-clauses "Target")
        (assert-one-clause stx the-rules-clauses "Rules")
@@ -796,7 +777,7 @@
              (let ()    
                (define the-variables-clause (first the-variables-clauses))
                (define the-variables (rest (syntax-e the-variables-clause)))
-                                             
+               
                (define (handle-variable a-var-dec)
                  (syntax-case a-var-dec [Variable]
                    [(Variable lowid capid)                                         
@@ -804,17 +785,17 @@
                          (lower-id-syn? #'lowid))
                     `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
                                                    ',(xml-make-variable-declaration (symbol->string (syntax->datum #'lowid))
-                                                                                   (symbol->string (syntax->datum #'capid)))))]
+                                                                                    (symbol->string (syntax->datum #'capid)))))]
                    [(Variable lowid capid)                                         
                     (not (capitalized-id-syn? #'capid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's type must be capitalized." #f #f (list a-var-dec))]
-
+                   
                    [(Variable lowid capid)                                         
                     (not (lower-id-syn? #'lowid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's name must begin with a lowercase letter." #f #f (list a-var-dec))]
-                                                          
+                   
                    [_ (raise-syntax-error 'Policy "Invalid variable declaration. Expected (Variable varname Typename)" #f #f (list a-var-dec))]))
-                                             
+               
                (map handle-variable the-variables))))
        
        
@@ -831,11 +812,11 @@
                  (raise-syntax-error 'Policy "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
                (when (< (length the-targets) 1)
                  (raise-syntax-error 'Policy "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
-                            
+               
                (define the-target (first the-targets))                                             
                (list `(xml-make-command "SET TARGET FOR POLICY" 
-                                       (list (xml-make-policy-identifier local-policy-id)
-                                             ',(m-formula->xexpr the-target)))))))    
+                                        (list (xml-make-policy-identifier local-policy-id)
+                                              ',(m-formula->xexpr the-target)))))))    
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -848,7 +829,7 @@
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
                (define the-rules (rest (syntax-e the-rules-clause)))
-                                           
+               
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
                    [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                         
@@ -859,20 +840,20 @@
                                                                                             (syntax->datum #'(rvar ...)))
                                                                     (xml-make-target (handle-formula-list #'(fmla0 fmla ...))))))]
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
-                                             
+               
                (map handle-rule the-rules))))
-
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define (handle-combine comb)         
          (syntax-case comb [fa over]         
-          [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
-          [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
-                                                    (map symbol->string (syntax->datum #'(odec0 odec ...))))]
-          [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
-              
+           [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
+           [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
+                                                     (map symbol->string (syntax->datum #'(odec0 odec ...))))]
+           [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
+       
        (define rcomb-result 
          (if (empty? the-rcomb-clauses)
              empty
@@ -883,9 +864,9 @@
                                                             (list (xml-make-policy-identifier local-policy-id) 
                                                                   ',(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
                  [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))))
-                
+       
        ; !!! How to make fa, over case insensitive?
-                            
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Create and Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -896,8 +877,8 @@
        
        
        (define prepare-result 
-            (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
-                               
+         (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
+       
        ; Only know filename and policy id at *runtime*
        
        
@@ -934,7 +915,7 @@
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
              (define s-VOCAB-EXTENSION ".v")
-                          
+             
              (define vocab-path (build-path (path-only/same local-policy-filename) 
                                             (string-append (symbol->string 'my-theory-name) s-VOCAB-EXTENSION)))           
              
@@ -945,31 +926,31 @@
              
              (define my-t-or-v                 
                (call-with-input-file
-                    vocab-path
-                  (lambda (in-port) 
-                    (port-count-lines! in-port)
-                    (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
-                    ; Keep as syntax here, so the PolicyVocab macro gets the right location info
-                    ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))
+                   vocab-path
+                 (lambda (in-port) 
+                   (port-count-lines! in-port)
+                   (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
+                   ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                   ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                   (eval the-vocab-syntax margrave-policy-vocab-namespace))))
              
              ; Allow users to provide just a vocab with no theory.
              (define my-thy
                (if (m-vocabulary? my-t-or-v)
                    (m-theory (m-vocabulary-name my-t-or-v) empty my-t-or-v empty)
                    my-t-or-v))
-                                                           
+             
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span))) 
-    
+             
              ; !!! TODO: these fields of the m-policy structure need to be populated still
              (define rules-list empty)
              (define vardec-list empty)
              (define rcomb-desc "")
              (define target-fmla 'true)
              
-;;             (printf "~v~n" my-commands)
+             ;;             (printf "~v~n" my-commands)
              
              (m-policy local-policy-id                          
                        vocab-path
@@ -980,10 +961,10 @@
                        rcomb-desc
                        target-fmla)))))]
     
-         
-            
+    
+    
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
-                            #f #f (list stx))]
+                             #f #f (list stx))]
     [(_ x) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
                                #f #f (list stx))]
     [(_ x y) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (e.g. Policy mypolicy uses myvocabulary ...)" 
@@ -993,55 +974,60 @@
                      (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
                                          #f #f (list stx))]))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Inefficient, but works -- compute transitive closure of sort hierarchy.
 (define/contract (m-type-child-names/trans voc sname)
   [m-vocabulary? string? . -> . (listof string?)]
   (define child-names (m-type-child-names sname))
-  (define child-types (map (lambda (n) (m-vocabulary-name->type voc n))
+  (define child-types (map (lambda (n) (hash-ref (m-vocabulary-types voc) n))
                            child-names))
   (append child-names 
           (map m-type-child-names/trans child-types)))
 
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; What is the sort of this term? If the term is not well-sorted, throw a suitable error.
 (define/contract (m-term->sort/err voc term env)
   [m-vocabulary? any/c hash? . -> . (or/c symbol? boolean?)]
   (match term
     [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
          (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
-     (define mysort (m-vocabulary-function->result voc funcid))
-     (define myarity (m-vocabulary-function->arity voc funcid))
-     (define the-decls (zip terms myarity))
-     (foreach (lambda (p) 
-                (define p-term (first p))
-                (define p-sort (second p))             
-                (unless (member? (m-term->sort/err voc p-term env)
-                                 (m-type-child-names/trans voc p-sort))
-                  (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
-              the-decls)               
-     ; subterms are OK, so the result will have sort of f's result.
-     mysort]
+     (unless (hash-has-key? (m-vocabulary-functions voc) funcid)
+       (margrave-error "The function symbol was not declared in the vocabulary context" term))   
+     (define thefunc (hash-ref (m-vocabulary-functions voc) funcid))     
+     (define pairs-to-check (zip terms (m-function-arity thefunc)))
+     (for-each (lambda (p) 
+                 (define-values (p-term p-sort) (values (first p) (second p)))
+                 (unless (member? (m-term->sort/err voc p-term env)
+                                  (m-type-child-names/trans voc p-sort))
+                   (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
+               pairs-to-check)                    
+     (m-function-result thefunc)]
     [(? valid-constant? cid) 
-     (define mysort (m-vocabulary-constant->sort cid))
-     (if mysort mysort
-         (margrave-error "The constant symbol was not declared in the vocabulary context"))]
+     (unless (hash-has-key? (m-vocabulary-constants voc) cid)
+       (margrave-error "The constant symbol was not declared in the vocabulary context" term))     
+     (m-constant-type (hash-ref (m-vocabulary-constants voc) cid))]
     [(? valid-variable? vid) 
-     (define mysort (hash-ref env term))
-     (if mysort
-         mysort
-         (margrave-error "The variable was not declared in the vocabulary context"))]
+     (unless (hash-has-key? env term)
+       (margrave-error "The variable was not declared in the vocabulary context" term))
+     (hash-ref env term)]
     [else (margrave-error "This term was not well-sorted" term)]))    
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Get a cached policy by ID. If no such policy exists, throw a suitable error.
+(define (get-cached-policy/err pid)
+  #f)
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; If the formula is not well-sorted, throw a suitable error.
 (define/contract (m-formula-is-well-sorted/err voc fmla env)
   [any/c hash? . -> . boolean?]      
-    
+  
   ; Check to see if term <tname> can "fit" as sort <sname>
   (define/contract (internal-correct tname sname)
     [string? string? . -> . boolean?]
-    (member? (m-term->sort tname) (m-type-child-names/trans voc sname)))
+    (member? (m-term->sort/err tname) (m-type-child-names/trans voc sname)))
   
   ; Handle case: (isa x A true)
   (define (internal-correct/isa vname sname)
@@ -1049,8 +1035,10 @@
   
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)
-    (define my-arity (m-predicate-arity (m-vocabulary-name->predicate voc edbname)))
-    (define the-decls (zip list-of-vars my-arity))
+    (unless (hash-has-key? (m-vocabulary-predicates voc) edbname)
+      (margrave-error "The predicate was not defined in the vocabulary context" fmla))
+    (define mypred (hash-ref (m-vocabulary-predicates voc) edbname))    
+    (define the-decls (zip list-of-vars (m-predicate-arity mypred)))
     (andmap (lambda (p) (internal-correct (first p) (second p))) the-decls))
   
   ; Handle case: ( (polname idbname) x y z)
@@ -1090,7 +1078,7 @@
     [(or `(not ,arg)
          (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'not)) ,arg))
      (m-formula-is-well-sorted/err arg)]   
-
+    
     [(or `(forall ,vname ,sname ,subfmla) 
          (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'forall)) ,vname ,sname ,subfmla))
      (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)] 
@@ -1104,7 +1092,7 @@
     [(or `(isa ,vname ,sname ,subfmla) 
          (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'isa)) ,vname ,sname ,subfmla))
      (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
-  
+    
     ; (idb term0 terms ...)
     [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
          (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))       
