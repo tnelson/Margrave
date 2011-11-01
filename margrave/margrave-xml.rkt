@@ -1293,8 +1293,7 @@
   (xml-make-command "ADD" (list (xml-make-vocab-identifier vocab-id) 
                                 (xml-make-function-decl (m-function-name afunc)
                                                         (xml-make-relations-list (append (m-function-arity afunc)
-                                                                                         (list (m-function-result afunc))))))))
-
+                                                                                         (list (m-function-result afunc))))))))  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (check-true (equal?
@@ -1421,7 +1420,7 @@
     [else (margrave-error "Incorrect formula expression" sexpr)]))
 
   
-; Avoid duplicate code. Defer to m-formula->xml
+; Avoid duplicate code. Defer to m-formula->xexpr
 (define (m-formula? sexpr)
   (with-handlers ([(lambda (e) (exn:fail:syntax? e))
                    (lambda (e) #f)]

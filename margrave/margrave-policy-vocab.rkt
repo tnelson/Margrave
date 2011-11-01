@@ -21,12 +21,14 @@
  racket/match
  (file "margrave-xml.rkt")
  (file "helpers.rkt")
+ (file "polvochelpers.rkt") 
  racket/list
  racket/contract
  xml
  (only-in srfi/1 zip)
  (for-syntax (only-in srfi/13 string-contains)             
              (file "helpers.rkt")                     
+             (file "polvochelpers.rkt")                     
              (file "margrave-xml.rkt")
              xml
              racket/list
@@ -44,14 +46,7 @@
          
          ; for reflection, errors, etc
          cached-policies         
-         cached-theories
-         
-         ; for use outside this module 
-         (struct-out m-policy)
-         (struct-out m-theory)
-         (struct-out m-vocabulary)
-         (struct-out m-rule)
-         (struct-out m-vardec))
+         cached-theories)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -166,12 +161,12 @@
 ; ... :- (p x) (r y)
 ; instead of
 ; ... :- (and (p x) (r y))
-(define-for-syntax (handle-formula-list syn)
-  (define fmla-list (syntax->list syn))
-  (cond
-    [(> (length fmla-list) 1)
-     (xml-make-and* (map m-formula->xexpr fmla-list))]
-    [else (m-formula->xexpr (first fmla-list))]))
+;(define-for-syntax (handle-formula-list syn)
+;  (define fmla-list (syntax->list syn))
+;  (cond
+;    [(> (length fmla-list) 1)
+;     (quasisyntax/loc syn (and #,@fmla-list))]
+;    [else syn]))
 
 (define-for-syntax (handle-combine comb)
   (syntax-case comb [fa over]         
@@ -181,65 +176,6 @@
     [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
 
 
-;****************************************************************
-; Structs used to store information about policies, theories, etc.
-; This data is also stored on the Java side, but we duplicate it
-; here in order to produce helpful error messages and facilitate
-; reflection. (E.g. "What sorts are available in theory X?")
-
-(define-struct/contract m-vocabulary  
-  ([name string?]
-   [xml (listof xexpr?)]
-   [types (hash/c string? m-type?)] 
-   [predicates (hash/c string? m-predicate?)] 
-   [constants (hash/c string? m-constant?)] 
-   [functions (hash/c string? m-function?)])
-  #:transparent)
-
-(define-struct/contract m-theory
-  ([name string?]
-   [axioms-xml (listof xexpr?)]
-   [vocab m-vocabulary?]   
-   [axioms (listof m-axiom?)])
-  #:transparent)
-
-(define-struct/contract m-vardec
-  ([vname string?]
-   [vtype string?])
-  #:transparent)
-
-(define-struct/contract m-rule
-  ([rname string?]
-   [rdecision string?]
-   [headvars (listof string?)]
-   [rbody (listof m-formula?)])
-  #:transparent)
-
-
-(define-struct/contract m-policy
-  ([id string?]
-   [theory-path path?]
-   [xml (listof xexpr?)]
-   [theory m-theory?]   
-   [vardecs (hash/c string? m-vardec?)]
-   [rules (hash/c string? m-rule?)]
-   [rcomb string?]
-   [target m-formula?]
-   [idbs (hash/c string? m-predicate?)])
-  #:transparent)
-
-;(define-struct/contract m-policyset
-;  ([id string?]
-;   [xml (listof xexpr?)]
-;   ;[theory m-theory?]
-;   [vocabulary m-vocabulary?]
-;   [vardecs (listof m-vardec?)]
-;   [rules (listof m-rule?)]
-;   [rcomb string?])
-;  #:transparent)
-
-
-;(resolve-m-types (list (m-type "A" empty) (m-type "A" (list "B" "C")) (m-type "C" (list "D" "E"))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -590,6 +526,7 @@
          (andmap is-valid-type? type-syn-list))
        
        
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Predicates
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -698,18 +635,7 @@
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
-       ; Java will handle creation of the object if the identifier hasn't been seen before.
-       
-       ; Convert from actual structs to syntax constructing the same struct.
-       (define/contract (repackage-transparent-struct the-struct)
-         [struct? . -> . syntax?]
-         (define struct-list (vector->list (struct->vector the-struct)))
-         (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
-         (define (safe-param x)
-           (if (list? x)
-               #`'#,x
-               x))  
-         #`(#,struct-name #,@(map safe-param (rest struct-list))))
+       ; Java will handle creation of the object if the identifier hasn't been seen before.       
        
        ;;;;;;;;; Final Syntax ;;;;;;;;;
        (with-syntax ([vocab-name-string vocab-name-string]
@@ -772,7 +698,7 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Variables
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       (define variables-result
+       (define variables-result-list
          (if (empty? the-variables-clauses)
              empty
              (let ()    
@@ -784,9 +710,7 @@
                    [(Variable lowid capid)                                         
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
-                    `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
-                                                   ',(xml-make-variable-declaration (symbol->string (syntax->datum #'lowid))
-                                                                                    (symbol->string (syntax->datum #'capid)))))]
+                    (m-vardec (->string #'lowid) (->string #'capid))]
                    [(Variable lowid capid)                                         
                     (not (capitalized-id-syn? #'capid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's type must be capitalized." #f #f (list a-var-dec))]
@@ -798,7 +722,13 @@
                    [_ (raise-syntax-error 'Policy "Invalid variable declaration. Expected (Variable varname Typename)" #f #f (list a-var-dec))]))
                
                (map handle-variable the-variables))))
+              
        
+       ; vardec-hash
+       (define (vars-aggregator ele sofar)
+         (hash-set sofar (m-vardec-name ele) ele))
+       (define vardec-hash (foldl vars-aggregator (make-immutable-hash '()) variables-result-list))                    
+
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
@@ -824,7 +754,7 @@
        ; Rules
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define rules-result
+       (define rules-result-list
          (if (empty? the-rules-clauses)
              empty
              (let ()    
@@ -834,15 +764,31 @@
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
                    [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                         
-                    
-                    `(xml-make-command "ADD" (list (xml-make-policy-identifier local-policy-id) 
-                                                   ',(xml-make-rule (syntax->datum #'rulename)
-                                                                    (xml-make-decision-type (syntax->datum #'decision)
-                                                                                            (syntax->datum #'(rvar ...)))
-                                                                    (xml-make-target (handle-formula-list #'(fmla0 fmla ...))))))]
+                                        
+                    (m-rule (->string #'rulename)
+                            (->string #'decision)
+                            (map ->string (syntax->list #'(rvar ...)))
+                            (syntax->list #'(fmla0 fmla ...)))]
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                
                (map handle-rule the-rules))))
+       
+       (define (rules-aggregator ele sofar)
+         (hash-set sofar (m-rule-name ele) ele))
+       (define rules-hash (foldl rules-aggregator (make-immutable-hash '()) rules-result-list))
+
+       (define (internal-get-variable-sort varid)
+         (unless (hash-has-key? vardec-hash varid)
+           (margrave-error "Variable was not declared" varid))
+         (m-vardec-type (hash-ref vardec-hash varid)))
+       
+       (define (idb-aggregator ele sofar) 
+         (define idbarity (map internal-get-variable-sort (m-rule-headvars ele)))
+         (when (and (hash-has-key? sofar (m-rule-decision ele))
+                    (not (equal? idbarity (hash-ref sofar (m-rule-decision ele)))))
+           (margrave-error "The rule used a decision that was used previously, but with a different free variable arity" ele))                         
+         (hash-set sofar (m-rule-decision ele) idbarity))        
+       (define idbs-hash (foldl idb-aggregator (make-immutable-hash '()) rules-result-list))              
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
@@ -880,29 +826,21 @@
        (define prepare-result 
          (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
        
-       ; Only know filename and policy id at *runtime*
+       ; Only know filename and policy id at *runtime*                    
        
-       
-       ;(printf "~v~n~v~n~v~n~v~n~v~n~v~n"
-       ;        create-result 
-       ;        variables-result
-       ;        target-result
-       ;        rcomb-result
-       ;        rules-result
-       ;        prepare-result)
-       
-       ; can't `', or we get ,'((xml-make-command ...
        ; need ,(list (xml-make-command ...
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
        ; (create must come first; prepare last)
-       (with-syntax ([my-commands `(list ,@(append create-result 
-                                                   variables-result
+       (with-syntax ([some-commands `(list ,@(append create-result                                                    
                                                    target-result
-                                                   rcomb-result
-                                                   rules-result
+                                                   rcomb-result                                                   
                                                    prepare-result))]
                      [my-theory-name my-theory-name-sym]
+                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct ele))) (hash-values rules-hash))))]
+                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct ele))) (hash-values vardec-hash))))]
+                     
+                     [idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key (hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -945,22 +883,23 @@
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span))) 
              
-             ; !!! TODO: these fields of the m-policy structure need to be populated still
-             (define rules-list empty)
-             (define vardec-list empty)
+             ; !!! TODO: these fields of the m-policy structure need to be populated still             
              (define rcomb-desc "")
-             (define target-fmla 'true)
-             
-             ;;             (printf "~v~n" my-commands)
-             
-             (m-policy local-policy-id                          
-                       vocab-path
-                       my-commands
-                       my-thy ; an m-theory struct
-                       vardec-list
-                       rules-list
-                       rcomb-desc
-                       target-fmla)))))]
+             (define target-fmla 'true)   
+                                
+             (m-policy local-policy-id ; [id string?]                      
+                       vocab-path ; [theory-path path?]
+                       ; [xml (listof xexpr?)]
+                       (append (map (lambda (ele) (m-vardec->cmd local-policy-id ele)) (hash-values vardec-hash))
+                               (map (lambda (ele) (m-rule->cmd local-policy-id ele)) (hash-values rules-hash))
+                        some-commands)
+                       my-thy ; [theory m-theory?]  
+                       vardec-hash ; [vardecs (hash/c string? m-vardec?)]
+                       rules-hash ; [rules (hash/c string? m-rule?)]
+                       rcomb-desc ; [rcomb string?]
+                       target-fmla ; [target m-formula?]
+                       idbs-hash ;  [idbs (hash/c string? m-predicate?)]
+                       )))))]
     
     
     
@@ -1023,7 +962,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; If the formula is not well-sorted, throw a suitable error.
 (define/contract (m-formula-is-well-sorted/err voc fmla env)
-  [any/c hash? . -> . boolean?]      
+  [m-vocabulary? any/c hash? . -> . boolean?]      
   
   ; Check to see if term <tname> can "fit" as sort <sname>
   (define/contract (internal-correct tname sname)
@@ -1048,7 +987,8 @@
   (define (internal-correct/idb list-of-vars pol-id-list idbname)
     (when (empty? pol-id-list) #f)
     (define this-policy (get-cached-policy/err (first pol-id-list)))
-    (define my-arity (m-policy-idbname->arity this-policy idbname))
+    ;(define my-arity (m-policy-idbname->arity this-policy idbname))
+    (define my-arity '()) ; placeholder TODO
     (define pairs-to-check (zip list-of-vars my-arity))
     (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
   
@@ -1062,7 +1002,7 @@
     
     [(or `(= ,t1 ,t2)
          (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'=)) ,t1 ,t2))
-     (and (m-term->sort t1) (m-term->sort t2))]
+     (and (m-term->sort/err t1) (m-term->sort/err t2))]
     
     [(or `(and ,@(list args ...))
          (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'and)) ,@(list args ...)))

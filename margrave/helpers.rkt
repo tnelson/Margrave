@@ -3,6 +3,10 @@
 (require srfi/13                  
          syntax/readerr
          rackunit
+         ;racket/contract
+         ;racket/list
+         ;racket/path
+         ;racket/match
          xml)
 
 (provide (all-defined-out))
@@ -366,4 +370,3 @@
 ; Sanitize output. Don't report list contents.
 (define (member? ele lst)
   (if (member ele lst) #t #f))
-
