@@ -221,10 +221,11 @@
    [theory-path path?]
    [xml (listof xexpr?)]
    [theory m-theory?]   
-   [vardecs (listof m-vardec?)]
-   [rules (listof m-rule?)]
+   [vardecs (hash/c string? m-vardec?)]
+   [rules (hash/c string? m-rule?)]
    [rcomb string?]
-   [target m-formula?])
+   [target m-formula?]
+   [idbs (hash/c string? m-predicate?)])
   #:transparent)
 
 ;(define-struct/contract m-policyset
@@ -1015,9 +1016,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Get a cached policy by ID. If no such policy exists, throw a suitable error.
 (define (get-cached-policy/err pid)
-  #f)
-
-
+  (unless (hash-has-key? cached-policies pid)
+    (margrave-error "No such policy" pid))
+  (hash-ref cached-policies pid))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; If the formula is not well-sorted, throw a suitable error.
@@ -1038,8 +1039,8 @@
     (unless (hash-has-key? (m-vocabulary-predicates voc) edbname)
       (margrave-error "The predicate was not defined in the vocabulary context" fmla))
     (define mypred (hash-ref (m-vocabulary-predicates voc) edbname))    
-    (define the-decls (zip list-of-vars (m-predicate-arity mypred)))
-    (andmap (lambda (p) (internal-correct (first p) (second p))) the-decls))
+    (define pairs-to-check (zip list-of-vars (m-predicate-arity mypred)))
+    (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
   
   ; Handle case: ( (polname idbname) x y z)
   ; todo for now: only support single element in polidlist
@@ -1048,8 +1049,8 @@
     (when (empty? pol-id-list) #f)
     (define this-policy (get-cached-policy/err (first pol-id-list)))
     (define my-arity (m-policy-idbname->arity this-policy idbname))
-    (define the-decls (zip list-of-vars my-arity))
-    (andmap (lambda (p) (internal-correct (first p) (second p))) the-decls))
+    (define pairs-to-check (zip list-of-vars my-arity))
+    (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
   
   (match fmla
     [(or 'true
