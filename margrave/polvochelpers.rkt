@@ -20,7 +20,10 @@
 (require
  xml
  "margrave-xml.rkt"
- "helpers.rkt")
+ "helpers.rkt"
+ 
+ (for-template racket/base
+               "helpers.rkt"))
  
 (provide
  (all-defined-out))
@@ -108,6 +111,6 @@
   (define (safe-param x)
     (if (list? x)
         #`'#,x
-        x))  
-  (quasisyntax (#,struct-name #,@(map safe-param (rest struct-list)))))  
+        x))    
+  (quasisyntax (#,struct-name #,@(map safe-param (rest struct-list)))))    
 

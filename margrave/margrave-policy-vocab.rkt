@@ -26,6 +26,7 @@
  racket/contract
  xml
  (only-in srfi/1 zip)
+ 
  (for-syntax (only-in srfi/13 string-contains)             
              "helpers.rkt"
              "polvochelpers.rkt"
@@ -80,16 +81,6 @@
 (define local-policy-filename ".")
 
 ;****************************************************************
-
-(define-for-syntax (repackage-transparent-struct-loc the-struct)    
-  (define struct-list (vector->list (struct->vector the-struct)))
-  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))
-  (define (safe-param x)
-    (if (list? x)
-        #`'#,x
-        x))  
-  #`(#,struct-name #,@(map safe-param (rest struct-list))))
-
 
 ; policy-file-name policy-id [optional syntax] -> list
 ; The order of the children in their lists respects dependency: children-of-children appear before children, etc.
@@ -650,9 +641,9 @@
        (with-syntax ([vocab-name-string vocab-name-string]
                      [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
                      [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct ele))) (hash-values types-result))))]
-                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct-loc ele))) (hash-values predicates-result))))]
-                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct-loc ele))) (hash-values constants-result))))]
-                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct-loc ele))) (hash-values functions-result))))])     
+                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct ele))) (hash-values predicates-result))))]
+                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct ele))) (hash-values constants-result))))]
+                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct ele))) (hash-values functions-result))))])     
          
          (syntax/loc stx (m-vocabulary vocab-name-string 
                                        'xml-list
@@ -846,8 +837,8 @@
                                                    rcomb-result                                                   
                                                    prepare-result))]
                      [my-theory-name my-theory-name-sym]
-                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct-loc ele))) (hash-values rules-hash))))]
-                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct-loc ele))) (hash-values vardec-hash))))]
+                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct ele))) (hash-values rules-hash))))]
+                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct ele))) (hash-values vardec-hash))))]
                      
                      [idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key (hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
                      
@@ -1080,4 +1071,6 @@
 ;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))
 ;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)
 
-; (eval '(Theory mythy (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))) (Axioms (partial-function func))))
+; Theory mythy (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))) (Axioms (partial-function f1)))
+
+;(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y)))
