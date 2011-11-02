@@ -210,7 +210,7 @@
   ([name string?]
    [child-names (listof string?)])
   #:transparent)
-
+ 
 (define-struct/contract m-predicate
   ([name string?]
    [arity (listof string?)])

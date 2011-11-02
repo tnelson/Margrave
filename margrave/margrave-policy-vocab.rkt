@@ -17,19 +17,19 @@
 
 #lang racket/base
 
-(require 
+(require
  racket/match
- (file "margrave-xml.rkt")
- (file "helpers.rkt")
- (file "polvochelpers.rkt") 
+ "margrave-xml.rkt"
+ "helpers.rkt"
+ "polvochelpers.rkt"
  racket/list
  racket/contract
  xml
  (only-in srfi/1 zip)
  (for-syntax (only-in srfi/13 string-contains)             
-             (file "helpers.rkt")                     
-             (file "polvochelpers.rkt")
-             (file "margrave-xml.rkt")
+             "helpers.rkt"
+             "polvochelpers.rkt"
+             "margrave-xml.rkt"
              xml
              racket/list
              racket/match
@@ -644,13 +644,12 @@
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
-       ; Java will handle creation of the object if the identifier hasn't been seen before.                     
-       (printf "~v~n" #'m-type)
+       ; Java will handle creation of the object if the identifier hasn't been seen before.                            
        
        ;;;;;;;;; Final Syntax ;;;;;;;;;
        (with-syntax ([vocab-name-string vocab-name-string]
                      [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
-                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct-loc ele))) (hash-values types-result))))]
+                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct ele))) (hash-values types-result))))]
                      [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct-loc ele))) (hash-values predicates-result))))]
                      [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct-loc ele))) (hash-values constants-result))))]
                      [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct-loc ele))) (hash-values functions-result))))])     
