@@ -20,10 +20,7 @@
 (require
  xml
  "margrave-xml.rkt"
- "helpers.rkt"
- 
- (for-template racket/base
-               "helpers.rkt"))
+ "helpers.rkt")
  
 (provide
  (all-defined-out))
@@ -103,14 +100,33 @@
                                                                (m-vardec-type adec)))))
                                                                                     
 
-; Convert from actual structs to syntax constructing the same struct.
-(define/contract (repackage-transparent-struct the-struct)
-  [struct? . -> . syntax?]
+; Convert from actual structs to a list describing it. This is needed because
+; a struct defined at phase 0 is DIFFERENT from a struct defined at phase 1.
+; e.g. at phase 0, (m-type? an-m-type-from-phase-1) will be #f
+(define/contract (disassemble-transparent-struct the-struct)
+  [struct? . -> . list?]
   (define struct-list (vector->list (struct->vector the-struct)))
-  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))  
-  (define (safe-param x)
-    (if (list? x)
-        #`'#,x
-        x))    
-  (quasisyntax (#,struct-name #,@(map safe-param (rest struct-list)))))    
+  (define struct-name (string->symbol (substring (symbol->string (first struct-list)) 7)))    
+  `(,struct-name ,@(rest struct-list)))
 
+(define/contract (reassemble-margrave-struct the-list)
+  [list? . -> . struct?]  
+  (match the-list
+    [`(m-type ,@(list args ...)) (apply m-type args)]
+    [`(m-predicate ,@(list args ...)) (apply m-predicate args)]
+    [`(m-constant ,@(list args ...)) (apply m-constant args)]
+    [`(m-function ,@(list args ...)) (apply m-function args)]
+    [`(m-rule ,@(list args ...)) (apply m-rule args)]
+    [`(m-vardec ,@(list args ...)) (apply m-vardec args)]
+    [`(m-vocabulary ,@(list args ...)) (apply m-vocabulary args)]
+    [`(m-theory ,@(list args ...)) (apply m-theory args)]
+    [`(m-policy ,@(list args ...)) (apply m-policy args)]
+    [else (margrave-error "Internal error: bad argument to reassemble-margrave-struct" the-list)]))
+
+; given a hash of id->disassembled entries, return the same hash with the values reassembled
+(define/contract (assemble-struct-hash dhash)
+  [hash? . -> . hash?]    
+  (define reassembled-pairs (map (lambda (key) 
+                                   (list key (reassemble-margrave-struct (hash-ref dhash key)))) 
+                                 (hash-keys dhash))) 
+  (apply hash (apply append reassembled-pairs)))

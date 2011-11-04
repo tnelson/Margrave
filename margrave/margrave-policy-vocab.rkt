@@ -636,21 +636,25 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.                            
-       
+              
        ;;;;;;;;; Final Syntax ;;;;;;;;;
        (with-syntax ([vocab-name-string vocab-name-string]
                      [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
-                     [types-result #`(hash #,@(flatten (map (lambda (ele) (list (m-type-name ele) (repackage-transparent-struct ele))) (hash-values types-result))))]
-                     [predicates-result #`(hash #,@(flatten (map(lambda (ele) (list (m-predicate-name ele) (repackage-transparent-struct ele))) (hash-values predicates-result))))]
-                     [constants-result #`(hash #,@(flatten (map (lambda (ele) (list (m-constant-name ele) (repackage-transparent-struct ele))) (hash-values constants-result))))]
-                     [functions-result #`(hash #,@(flatten (map (lambda (ele) (list (m-function-name ele) (repackage-transparent-struct ele))) (hash-values functions-result))))])     
+                     [types-disassembled-hash
+                      #`(hash #,@(apply append (map (lambda (ele) (list (m-type-name ele) `',(disassemble-transparent-struct ele))) (hash-values types-result))))]
+                     [predicates-disassembled-hash
+                      #`(hash #,@(apply append (map (lambda (ele) (list (m-predicate-name ele) `',(disassemble-transparent-struct ele))) (hash-values predicates-result))))]
+                     [constants-disassembled-hash
+                      #`(hash #,@(apply append (map (lambda (ele) (list (m-constant-name ele) `',(disassemble-transparent-struct ele))) (hash-values constants-result))))]
+                     [functions-disassembled-hash
+                      #`(hash #,@(apply append (map (lambda (ele) (list (m-function-name ele) `',(disassemble-transparent-struct ele))) (hash-values functions-result))))])     
          
          (syntax/loc stx (m-vocabulary vocab-name-string 
                                        'xml-list
-                                       types-result
-                                       predicates-result
-                                       constants-result
-                                       functions-result)))))))
+                                       (assemble-struct-hash types-disassembled-hash)
+                                       (assemble-struct-hash predicates-disassembled-hash)
+                                       (assemble-struct-hash constants-disassembled-hash)
+                                       (assemble-struct-hash functions-disassembled-hash))))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -837,10 +841,10 @@
                                                    rcomb-result                                                   
                                                    prepare-result))]
                      [my-theory-name my-theory-name-sym]
-                     [rules-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-rule-name ele) (repackage-transparent-struct ele))) (hash-values rules-hash))))]
-                     [vardec-hash #`(hash #,@(flatten (map (lambda (ele) (list (m-vardec-name ele) (repackage-transparent-struct ele))) (hash-values vardec-hash))))]
+                     [disassembled-rules-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-rule-name ele) `',(disassemble-transparent-struct ele))) (hash-values rules-hash))))]
+                     [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]
                      
-                     [idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key (hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
+                     [disassembled-idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key `',(hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -886,7 +890,12 @@
              ; !!! TODO: these fields of the m-policy structure need to be populated still             
              (define rcomb-desc "")
              (define target-fmla 'true)   
-                                
+                         
+             
+             (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))
+             (define rules-hash (assemble-struct-hash disassembled-rules-hash))
+             (define idbs-hash (assemble-struct-hash disassembled-idbs-hash))
+             
              (m-policy local-policy-id ; [id string?]                      
                        vocab-path ; [theory-path path?]
                        ; [xml (listof xexpr?)]
