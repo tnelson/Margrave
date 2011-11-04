@@ -822,13 +822,12 @@
        ; Create and Prepare
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
-       (define create-result (list `(xml-make-command "CREATE POLICY LEAF" 
-                                                      (list (xml-make-policy-identifier local-policy-id)
-                                                            (xml-make-vocab-identifier ,my-theory-name-str)))))   
+       (define create-xexpr `(xml-make-command "CREATE POLICY LEAF" 
+                                                (list (xml-make-policy-identifier local-policy-id)
+                                                      (xml-make-vocab-identifier ,my-theory-name-str))))
        
-       
-       (define prepare-result 
-         (list `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id)))))
+       (define prepare-xexpr 
+         `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))
        
        ; Only know filename and policy id at *runtime*                    
        
@@ -836,15 +835,14 @@
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
        ; (create must come first; prepare last)
-       (with-syntax ([some-commands `(list ,@(append create-result                                                    
-                                                   target-result
-                                                   rcomb-result                                                   
-                                                   prepare-result))]
+       (with-syntax ([start-commands `(list ,create-xexpr)]
+                     [end-commands `(list ,@(append target-result
+                                                    rcomb-result                                                   
+                                                    (list prepare-xexpr)))]
                      [my-theory-name my-theory-name-sym]
                      [disassembled-rules-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-rule-name ele) `',(disassemble-transparent-struct ele))) (hash-values rules-hash))))]
-                     [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]
-                     
-                     [disassembled-idbs-hash #`(hash #,@(apply append (map (lambda (key) (list key `',(hash-ref idbs-hash key))) (hash-keys idbs-hash))))]
+                     [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]                     
+                     [idbs-hash idbs-hash]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -892,22 +890,22 @@
              (define target-fmla 'true)   
                          
              
-             (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))
-             (define rules-hash (assemble-struct-hash disassembled-rules-hash))
-             (define idbs-hash (assemble-struct-hash disassembled-idbs-hash))
+             (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
+             (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
              
              (m-policy local-policy-id ; [id string?]                      
                        vocab-path ; [theory-path path?]
                        ; [xml (listof xexpr?)]
-                       (append (map (lambda (ele) (m-vardec->cmd local-policy-id ele)) (hash-values vardec-hash))
+                       (append start-commands
+                               (map (lambda (ele) (m-vardec->cmd local-policy-id ele)) (hash-values vardec-hash))
                                (map (lambda (ele) (m-rule->cmd local-policy-id ele)) (hash-values rules-hash))
-                        some-commands)
+                               end-commands)
                        my-thy ; [theory m-theory?]  
                        vardec-hash ; [vardecs (hash/c string? m-vardec?)]
                        rules-hash ; [rules (hash/c string? m-rule?)]
                        rcomb-desc ; [rcomb string?]
                        target-fmla ; [target m-formula?]
-                       idbs-hash ;  [idbs (hash/c string? m-predicate?)]
+                       idbs-hash ;  [idbs (hash/c string? (listof string?))]
                        )))))]
     
     

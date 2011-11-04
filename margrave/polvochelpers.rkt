@@ -70,7 +70,7 @@
    [rules (hash/c string? m-rule?)]
    [rcomb string?]
    [target m-formula?]
-   [idbs (hash/c string? m-predicate?)])
+   [idbs (hash/c string? (listof string?))])
   #:transparent)
 
 ;(define-struct/contract m-policyset
@@ -90,7 +90,7 @@
                                 (xml-make-rule (m-rule-name arule)
                                                (xml-make-decision-type (m-rule-decision arule)
                                                                        (m-rule-headvars arule))
-                                               (m-rule-rbody arule)))))
+                                               (xml-make-and* (map m-formula->xexpr (m-rule-rbody arule)))))))
 
 (define/contract 
   (m-vardec->cmd policyid adec)  
