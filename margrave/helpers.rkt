@@ -173,18 +173,62 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; This section made by Tim with help from Danny Yoo
+; Extend Racket's pattern matcher to recognize lists of syntaxes.
 
-;; This extends Racket's pattern matcher to recognize lists of syntaxes.
-(define-match-expander syntax-list-quasi 
+(define-match-expander syntax-list
   (lambda (stx)
     (syntax-case stx ()
       [(_ elts ...)
        #'(? (lambda (x) (and (syntax? x)
                              (list? (syntax->list x))))
             (app syntax->list
-                 ; swap these two lines to turn syntax-list-quasi into syntax-list
-                 ;(list elts ...)))])))
+                 (list elts ...)))])))
+
+; WARNING: 
+; Can't just use list because the "maybe syntax" part affects only the outer part of the syntax object.
+;(match #'((R p) a b c)
+;    [(syntax-list-quasi ,(syntax-list a ...) ,@(list b ...)) (list a b)]
+;    [else #f])
+; WORKS
+; (match #'((R p) a b c)
+;    [(syntax-list-quasi ,(list a ...) ,@(list b ...)) (list a b)]
+;    [else #f])
+; DOES NOT
+; to cover both, need to invoke maybe-syntax-list-quasi internally. e.g.
+; (maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list a ...)) ,@(list b ...))
+; to capture the ((Polname Idbname) v1 v2 v3) forms.
+
+
+(define-match-expander syntax-list-quasi
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ elts ...)
+       #'(? (lambda (x) (and (syntax? x)
+                             (list? (syntax->list x))))
+            (app syntax->list
                  `(elts ...)))])))
+
+; Use to make case statements over s-expressions prettier. 
+; See match functions for m-formulas for examples.
+(define-match-expander m-op-case
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ opid elts ...)
+       #'(or `(opid ,@(list elts ...)) 
+             (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'opid)) ,@(list elts ...)))])))
+
+(define-match-expander maybe-syntax-list-quasi
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ elts ...)
+       #'(or `(elts ...) (syntax-list-quasi elts ...))])))
+
+; use (maybe-identifier id), not (maybe-identifier 'id)
+(define-match-expander maybe-identifier
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ elt)
+       #'(or 'elt (? (make-keyword-predicate/nobind #'elt)))])))
 
 ; Use this match pattern for actual identifiers that can have bindings in Racket.
 (define (make-keyword-predicate keyword)

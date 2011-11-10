@@ -24,6 +24,8 @@
  "polvochelpers.rkt"
  racket/list
  racket/contract
+ racket/set
+ rackunit
  xml
  (only-in srfi/1 zip)
  
@@ -960,6 +962,46 @@
     [else (margrave-error "This term was not well-sorted" term)]))    
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Gather the set of policy references used in this formula
+(define/contract (gather-policy-references fmla)
+  [m-formula? . -> . set?]
+  (match fmla
+    [(maybe-identifier true)
+     (set)]        
+    [(maybe-identifier false)
+     (set)]            
+    [(m-op-case = t1 t2)
+     (set)]    
+    [(m-op-case and args ...)
+     (apply set-union (map gather-policy-references args))]    
+    [(m-op-case or args ...)
+     (apply set-union (map gather-policy-references args))]
+    [(m-op-case implies arg1 arg2)
+     (apply set-union (gather-policy-references arg1) (gather-policy-references arg2))]  
+    [(m-op-case iff arg1 arg2)
+     (apply set-union (gather-policy-references arg1) (gather-policy-references arg2))]   
+    [(m-op-case not arg)
+     (gather-policy-references arg)]       
+    [(m-op-case forall vname sname subfmla)
+     (gather-policy-references fmla)]     
+    [(m-op-case exists vname sname subfmla)
+     (gather-policy-references fmla)]               
+    [(m-op-case isa vname sname subfmla)
+     (gather-policy-references subfmla)]     
+    
+    ; IDB: gather policy ids used!
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
+     (set (list pids))]     
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (set)]         
+    [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
+
+(check-true (set-empty? (gather-policy-references '(and (= x y) (r x y z)))))
+(check-false (set-empty? (gather-policy-references '(or false ((MyPolicy permit) x y z)))))
+(check-true (equal? 2 (set-count (gather-policy-references '(or ((MyOtherPolicy deny) z y x) ((MyPolicy permit) x y z))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Get a cached policy by ID. If no such policy exists, throw a suitable error.
 (define (get-cached-policy/err pid)
   (unless (hash-has-key? cached-policies pid)
@@ -994,60 +1036,47 @@
   (define (internal-correct/idb list-of-vars pol-id-list idbname)
     (when (empty? pol-id-list) #f)
     (define this-policy (get-cached-policy/err (first pol-id-list)))
-    ;(define my-arity (m-policy-idbname->arity this-policy idbname))
-    (define my-arity '()) ; placeholder TODO
+    (define the-idbs (m-policy-idbs this-policy))
+    (unless (hash-has-key? the-idbs idbname)
+      (margrave-error (format "Policy ~v did not contain ~v" pol-id-list idbname)))              
+    (define my-arity (hash-ref the-idbs idbname))
     (define pairs-to-check (zip list-of-vars my-arity))
     (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
   
   (match fmla
-    [(or 'true
-         (? (make-keyword-predicate/nobind #'true)))
+    [(maybe-identifier true)
      #t]        
-    [(or 'false
-         (? (make-keyword-predicate/nobind #'false)))
+    [(maybe-identifier false)
      #t]        
     
-    [(or `(= ,t1 ,t2)
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'=)) ,t1 ,t2))
+    [(m-op-case = t1 t2)
      (and (m-term->sort/err t1) (m-term->sort/err t2))]
     
-    [(or `(and ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'and)) ,@(list args ...)))
+    [(m-op-case and args ...)
      (andmap m-formula-is-well-sorted/err args)]    
-    [(or `(or ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'or)) ,@(list args ...)))
-     (andmap m-formula-is-well-sorted/err args)]    
-    [(or `(implies ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'implies)) ,arg1 ,arg2))
+    [(m-op-case or args ...)
+     (andmap m-formula-is-well-sorted/err args)]
+    [(m-op-case implies arg1 arg2)
      (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
-    [(or `(iff ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'iff)) ,arg1 ,arg2))
+    [(m-op-case iff arg1 arg2)
      (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
-    [(or `(not ,arg)
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'not)) ,arg))
+    [(m-op-case not arg)
      (m-formula-is-well-sorted/err arg)]   
     
-    [(or `(forall ,vname ,sname ,subfmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'forall)) ,vname ,sname ,subfmla))
-     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)] 
-    
-    [(or `(exists ,vname ,sname ,subfmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'exists)) ,vname ,sname ,subfmla))
-     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]           
-    
+    [(m-op-case forall vname sname subfmla)
+     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
+    [(m-op-case exists vname sname subfmla)
+     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]               
     ; If (isa x A alpha) is sugar for (exists y A (and (= x y) alpha[x -> y]))
     ; the sort of x must be _replaced_, not augmented, by the new sort.
-    [(or `(isa ,vname ,sname ,subfmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'isa)) ,vname ,sname ,subfmla))
+    [(m-op-case isa vname sname subfmla)
      (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
     
-    ; (idb term0 terms ...)
-    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
-         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))       
+    ; (idb term0 terms ...)    
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
      (internal-correct/idb (cons term0 terms) pids idbname)] 
     
-    [(or `(,dbname ,term0 ,@(list terms ...)) 
-         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (cond
        [(and (valid-sort? dbname) 
              (empty? terms)

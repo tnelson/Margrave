@@ -1341,52 +1341,38 @@
 (define/contract (m-formula->xexpr sexpr #:syntax [src #f])
   [any/c . -> . xexpr?]      
   (match sexpr 
-    [(or 'true
-         (? (make-keyword-predicate/nobind #'true)))
-     (xml-make-true-condition)]    
-    
-    [(or 'false
-         (? (make-keyword-predicate/nobind #'false)))
+    [(maybe-identifier true)
+     (xml-make-true-condition)]        
+    [(maybe-identifier false)
      (xml-make-false-condition)]
         
-    [(or `(= ,t1 ,t2)
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'=)) ,t1 ,t2))
-     (xml-make-equals-formula (m-term->xexpr t1) (m-term->xexpr t2))]
-    
-    [(or `(and ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'and)) ,@(list args ...)))
-     (xml-make-and* (map m-formula->xexpr args))]
-    
-    [(or `(or ,@(list args ...))
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'or)) ,@(list args ...)))
+    [(m-op-case = t1 t2)
+     (xml-make-equals-formula (m-term->xexpr t1) (m-term->xexpr t2))]    
+    [(m-op-case and args ...)
+     (xml-make-and* (map m-formula->xexpr args))]    
+    [(m-op-case or args ...)
      (xml-make-or* (map m-formula->xexpr args))]
     
-    [(or `(implies ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'implies)) ,arg1 ,arg2))
+    [(m-op-case implies arg1 arg2)
      (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
 
-    [(or `(iff ,arg1 ,arg2) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'iff)) ,arg1 ,arg2))
+    [(m-op-case iff arg1 arg2)
      (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
 
-    [(or `(not ,arg)
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'not)) ,arg))
+    [(m-op-case not arg)
      (xml-make-not (m-formula->xexpr arg))]   
 
-    [(or `(forall ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'forall)) ,vname ,sname ,fmla))
+    [(m-op-case forall vname sname fmla)
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-forall vname sname (m-formula->xexpr fmla))] 
 
-    [(or `(exists ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'exists)) ,vname ,sname ,fmla))
+    [(m-op-case exists vname sname fmla)
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-exists vname sname (m-formula->xexpr fmla))]           
     
-    [(or `(isa ,vname ,sname ,fmla) 
-         (syntax-list-quasi ,(? (make-keyword-predicate/nobind #'isa)) ,vname ,sname ,fmla))
+    [(m-op-case isa vname sname fmla)
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-isa-formula vname sname (m-formula->xexpr fmla))]     
@@ -1397,14 +1383,12 @@
     ;                          (map m-term->xexpr/down (cons term0 terms)))]    
 
   
-    [(or `(,(list pids ... idbname) ,term0 ,@(list terms ...))
-         (syntax-list-quasi ,(list pids ... idbname) ,term0 ,@(list terms ...)))  
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))    
      (valid-predicate?/err idbname)
      (xml-make-atomic-formula (append pids (list idbname))
                               (map m-term->xexpr (cons term0 terms)))]
   
-    [(or `(,dbname ,term0 ,@(list terms ...)) 
-         (syntax-list-quasi ,dbname ,term0 ,@(list terms ...)))
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (valid-sort-or-predicate?/err dbname)
      (cond
        [(and (valid-sort? dbname) 
@@ -1443,6 +1427,7 @@
 (check-true (m-formula? #'false))
 (check-false (m-formula? #'(or (= x y) (A x 1))))
 (check-true (m-formula? '((mypolicyname permit) s a r)))
+(check-true (m-formula? #'((mypolicyname permit) s a r)))
 (check-true (m-formula? '(aRelation s x)))
 (check-false (m-formula? '((mypolicyname permit) 1 2 3)))
 (check-false (m-formula? '(S x y)))
