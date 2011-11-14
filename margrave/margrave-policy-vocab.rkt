@@ -49,7 +49,9 @@
          
          ; for reflection, errors, etc
          cached-policies         
-         cached-theories)
+         cached-theories
+         
+         (all-from-out "polvochelpers.rkt"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -98,14 +100,11 @@
   ; (2) the command syntax that started evaluation (for nice error highlighting)
   
   ; Policy ID needs to be known at compile time, not runtime, since it's used by the command XML
-  (parameterize ([read-case-sensitive #t])
-    
+  (parameterize ([read-case-sensitive #t])            
     (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
     (port-count-lines! file-port)    
     (define the-policy-syntax (read-syntax fn file-port))   
-    
-    ;(printf "evaluate-policy: ~a~n" the-policy-syntax)
-    
+        
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
     (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))           
     
