@@ -242,80 +242,6 @@ abstract class AbstractCacheAllCollector<T> extends AbstractCollector<T> {
 	}
 }
 
-class NonWFFCheckV extends AbstractDetector
-{
-	// Return true if formula is not well-sorted
-	// Needs to be given sorts for free variables, of course. 
-	
-	// This is the environment. Will be altered as we pass through quantifiers (and back up). 
-	private Map<Variable, Expression> fmlaVarSorts = new HashMap<Variable, Expression>();
-	
-	public void addFreeVar(Variable v, Expression ex)
-	{
-		fmlaVarSorts.put(v, ex);
-	}
-	
-	public NonWFFCheckV()
-	{
-		super(new HashSet<Node>());
-	}
-
-	public Boolean visit(QuantifiedFormula qf) 
-	{
-		// Keep a record of what we changed in the environment. (Maintained in stack!)
-		Map<Variable, Expression> restoreOld = new HashMap<Variable, Expression>();
-		// Protect against one quantifier binding the same var twice without initial binding.
-		Set<Variable> wasFree = new HashSet<Variable>();
-		
-		// Doesn't matter what kind of quantifier. Just the binding matters.		
-		for(Decl d: qf.decls())
-		{
-			if(!wasFree.contains(d.variable()) && fmlaVarSorts.containsKey(d.variable()))
-				restoreOld.put(d.variable(), fmlaVarSorts.get(d.variable()));
-			else
-				wasFree.add(d.variable());
-			
-			fmlaVarSorts.put(d.variable(), d.expression());
-		}
-		
-		boolean result = qf.formula().accept(this);
-
-		for(Decl d: qf.decls())
-		{
-			if(wasFree.contains(d.variable()))
-				fmlaVarSorts.remove(d.variable());
-			else if(restoreOld.containsKey(d.variable()))
-				fmlaVarSorts.put(d.variable(), restoreOld.get(d.variable()));
-		}		
-		
-		return result;
-	}
-	
-	public Boolean visit(ComparisonFormula cf)
-	{
-		Boolean cached = lookup(cf);
-		if (cached != null)
-			return cached;
-
-		// All EQUALS atomic formulas are well-sorted.
-		
-		if(cf.op().equals(ExprCompOperator.SUBSET))
-		{
-			// May be a sort membership assertion or a predicate.
-			// May be any arity!
-			
-		//cf.left();
-		//cf.right();
-		
-		}
-		
-		
-		
-		return cache(cf, false);
-	}
-
-}
-
 class FindClosureUseV extends AbstractCacheAllDetector
 {
 	public FindClosureUseV() {
@@ -334,7 +260,6 @@ class FindClosureUseV extends AbstractCacheAllDetector
 		return cache(ue, false);
 	}
 }
-
 
 
 class FormulaFullMeasurementV extends AbstractDetector {
@@ -746,31 +671,6 @@ class ReplaceComparisonFormulasV extends AbstractCacheAllReplacer
 	
 }
 
-/**
- * Visitor to detect use of transitive closure within a formula. (This is used
- * in query optimization.)
- *
- * @author tn
- *
- */
-class FindClosureUseV extends AbstractCacheAllDetector
-{
-	public FindClosureUseV() {
-		super(new HashSet<Node>());
-	}
-
-	public Boolean visit(UnaryExpression ue) 
-	{
-		Boolean cached = lookup(ue);
-		if (cached != null)
-			return cached;
-
-		if (ue.op().equals(ExprOperator.CLOSURE)
-				|| ue.op().equals(ExprOperator.REFLEXIVE_CLOSURE))
-			return cache(ue, true);
-		return cache(ue, false);
-	}
-}
 
 class ContainsQuantifiersCheckV extends AbstractCacheAllDetector {
 	public ContainsQuantifiersCheckV() {

@@ -21,7 +21,9 @@
 
 package edu.wpi.margrave;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import kodkod.ast.*;
@@ -33,18 +35,24 @@ public class MConstraints
 	// So we can validate type names, etc.
 	MVocab vocab;
 
-	Set<String> setsSingleton;
-	Set<String> setsAtMostOne;
-	Set<String> setsNonempty;
+	// sorts only
+	Set<String> setsAbstract = new HashSet<String>();
+	
+	// Either predicates OR sorts
+	Set<String> setsSingleton = new HashSet<String>();
+	Set<String> setsAtMostOne = new HashSet<String>();
+	Set<String> setsNonempty = new HashSet<String>();
 
 	// Relations constrained to be functions
-	HashSet<String> funcTotal;
-	HashSet<String> funcPartial;
+	Set<String> funcTotal = new HashSet<String>();
+	Set<String> funcPartial = new HashSet<String>();
 	
 	// Relations constrained to be total, but not functional
-	HashSet<String> relTotal;
-
-	Set<String> setsAbstract;
+	Set<String> relTotal = new HashSet<String>();
+ 
+	// only predicates allowed
+	Set<List<String>> setsDisjoint = new HashSet<List<String>>();	
+	Set<List<String>> setsSubset = new HashSet<List<String>>();
 
 	// Custom constraints not supported in any way but to say "this must be satisfied."
 	// In string format so that a policy's assumptions can contain IDB references.
@@ -55,16 +63,6 @@ public class MConstraints
 	public MConstraints(MVocab voc)
 	{		
 		vocab = voc;
-
-		setsSingleton = new HashSet<String>();
-		setsNonempty = new HashSet<String>();
-		setsAtMostOne = new HashSet<String>();
-		setsAbstract = new HashSet<String>();
-
-		funcTotal = new HashSet<String>();
-		funcPartial = new HashSet<String>();
-		relTotal = new HashSet<String>();		
-
 		otherConstraintStrings = new HashSet<String>();
 	}
 
@@ -76,18 +74,6 @@ public class MConstraints
 	public void printConstraints()
 	{
 		MEnvironment.errorWriter.println("<Placeholder>");
-	}
-
-	public void addConstraintAbstractAll(String d)
-	throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
-
-		MSort parent = vocab.getSort(d);
-		for(MSort child : parent.subsorts)
-			addConstraintAbstract(child.name);
 	}
 
 	public void addConstraintAbstract(String d)
@@ -102,40 +88,54 @@ public class MConstraints
 
 	public void addConstraintNonempty(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+		if(!vocab.isSort(d) && !vocab.isPredicate(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is neither a type nor a predicate.");
 
 		setsNonempty.add(d);
 	}
 
-
 	public void addConstraintSingleton(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+		if(!vocab.isSort(d) && !vocab.isPredicate(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is neither a type nor a predicate.");
 
 		setsSingleton.add(d);
 	}
 
 	public void addConstraintAtMostOne(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+		if(!vocab.isSort(d) && !vocab.isPredicate(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is neither a type nor a predicate.");
 
 		setsAtMostOne.add(d);
 	}
 
-	public void addConstraintAtMostOneAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	public void addConstraintDisjoint(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
-		if(!vocab.isSort(d))
-			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+		if(!vocab.isPredicate(d1))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d1+" is not a predicate.");
+		if(!vocab.isPredicate(d2))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d2+" is not a predicate.");
 
-		MSort parent = vocab.getSort(d);
-
-		for(MSort t : parent.subsorts)
-			setsAtMostOne.add(t.name);
+		List<String> lst = new ArrayList<String>(2);
+		lst.add(d1); lst.add(d2);
+		setsDisjoint.add(lst);
 	}
+	
+	public void addConstraintSubset(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		if(!vocab.isPredicate(d1))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d1+" is not a predicate.");
+		if(!vocab.isPredicate(d2))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d2+" is not a predicate.");
 
+		List<String> lst = new ArrayList<String>(2);
+		lst.add(d1); lst.add(d2);
+		setsSubset.add(lst);
+	}
+	
+	/////////////////////////////////////////////////////////////////
+	
 	public void addConstraintPartialFunction(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// Relation d is a partial function. The LHS of the function restriction is the first lhs_size subrelations.
@@ -153,6 +153,8 @@ public class MConstraints
 		// Relation d is a TOTAL relation. 		
 		relTotal.add(d);
 	}
+	
+	/////////////////////////////////////////////////////////////////
 	
 	// "All" constraints can be applied to types, and influence the SUBtypes of that type
     // For instance, (singleton-all Action) means that each subtype of Action gets exactly one
@@ -189,14 +191,34 @@ public class MConstraints
 			addConstraintNonempty(d);
 	}
 
+	public void addConstraintAtMostOneAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		if(!vocab.isSort(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+
+		MSort parent = vocab.getSort(d);
+
+		for(MSort t : parent.subsorts)
+			setsAtMostOne.add(t.name);
+	}
+
+	public void addConstraintAbstractAll(String d)
+	throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+
+		if(!vocab.isSort(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. Unknown type: "+d);
+
+		MSort parent = vocab.getSort(d);
+		for(MSort child : parent.subsorts)
+			addConstraintAbstract(child.name);
+	}
+	
 	Set<Formula> getConstraintFormulas()
 	throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
 	{
 		return getConstraintFormulas(null);
-	}
-
-	
-	
+	}		
 	Set<Formula> getConstraintFormulas(MIDBCollection idbContext)
 	throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
 	{
@@ -227,10 +249,6 @@ public class MConstraints
 
 		for(String r : setsAtMostOne)
 		{
-			// No more than one atom in this relation.
-			// This is "safe" w/r/t HU terms because this could be simulated with a universal w/o
-			// existentials in scope.
-
 			results.add(MFormulaManager.makeMultiplicity(vocab.getRelation(r), Multiplicity.LONE));
 		}
 
@@ -238,15 +256,25 @@ public class MConstraints
 		{
 			results.add(MFormulaManager.makeMultiplicity(vocab.getRelation(r), Multiplicity.ONE));
 		}
-
+		
 		for(String r : setsNonempty)
 		{
 			results.add(MFormulaManager.makeMultiplicity(vocab.getRelation(r), Multiplicity.SOME));
 		}
+		
+		for(List<String> lst : setsDisjoint)
+		{
+			assert(lst.size() == 2);
+			Expression theIntersection = MFormulaManager.makeIntersection(vocab.getRelation(lst.get(0)), vocab.getRelation(lst.get(1)));
+			results.add(MFormulaManager.makeMultiplicity(theIntersection, Multiplicity.NO));
+		}
 
-		// Moved subset constraints to Fixed (just another part of the poset for sort ordering,
-		// and thus included in the sig).
-
+		for(List<String> lst : setsSubset)
+		{
+			assert(lst.size() == 2);
+			results.add(MFormulaManager.makeAtom(vocab.getRelation(lst.get(0)), vocab.getRelation(lst.get(1))));
+		}
+		
 		// Constrain total and partial functions to be such
 		for(String r : funcPartial)
 		{

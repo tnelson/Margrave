@@ -1606,6 +1606,36 @@ public class MEnvironment
 		}
 	}
 
+	public static Document addConstraintDisjoint(String vname, String s1, String s2) 
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintDisjoint(s1, s2);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
+	public static Document addConstraintSubset(String vname, String s1, String s2) 
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintSubset(s1, s2);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addConstraintSingletonAll(String vname, String s)
 	{
 

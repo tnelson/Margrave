@@ -597,8 +597,13 @@ public class MVocab {
 		} catch (Exception E) {
 			return false;
 		}
-
 	}
+
+	boolean isPredicate(String n) 
+	{
+		return predicates.containsKey(n);
+	}
+
 	
 	/**
 	 * Does not call validateIdentifier before checking, but much faster.

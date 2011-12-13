@@ -538,6 +538,9 @@ public class MFormulaManager
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> existsFormulas;
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> forallFormulas;	
 	
+	// Intersection expressions: key is always a 2-element list of Expression.
+	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Expression> intersectExpressions;
+	
 	/**
 	 * Initializes the Formula Manager: all caches are emptied.
 	 */
@@ -555,6 +558,7 @@ public class MFormulaManager
 		noMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		someMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
+		intersectExpressions = new MWeakValueHashMap< MWeakArrayVector<Expression>, Expression>();
 		
 		declNodes = new MWeakValueHashMap<MWeakArrayVector<Expression>, Decl>();
 		existsFormulas = new MWeakValueHashMap< MWeakArrayVector<Node>, Formula>();
@@ -584,7 +588,8 @@ public class MFormulaManager
 		theResult.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"); theResult.append(MEnvironment.eol);
 		theResult.append("Formula Manager statistics:"); theResult.append(MEnvironment.eol);
 		theResult.append("Variables: "+vars.size()); theResult.append(MEnvironment.eol);
-		theResult.append("Expression Tuples: "+exprTuples.size()); theResult.append(MEnvironment.eol);				           
+		theResult.append("Expression Tuples: "+exprTuples.size()); theResult.append(MEnvironment.eol);
+		theResult.append("Intersections: "+intersectExpressions.size()); theResult.append(MEnvironment.eol);	
 		theResult.append("Relations: "+relations.size()); theResult.append(MEnvironment.eol);
 		theResult.append("Decls: "+declNodes.size()); theResult.append(MEnvironment.eol);
 		
@@ -632,12 +637,13 @@ public class MFormulaManager
         andFormulas.countReclaimed +
         orFormulas.countReclaimed +
         forallFormulas.countReclaimed +
-        existsFormulas.countReclaimed;
+        existsFormulas.countReclaimed +
+        intersectExpressions.countReclaimed;
 		
 		theResult.append("\nTotal references (Formulas, Variables, Decls, etc.) reclaimed over the life of this Manager: "+lReclaimed); theResult.append(MEnvironment.eol);
 		
 		theResult.append("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"); theResult.append(MEnvironment.eol);
-		MCommunicator.writeToLog("\nOk at this point");
+		MCommunicator.writeToLog("\ngetStatisticsString() call complete. Returning result.\n");
 		
 		return theResult.toString();
 	}
@@ -662,6 +668,7 @@ public class MFormulaManager
 		declNodes.size();
 		forallFormulas.size();
 		existsFormulas.size();
+		intersectExpressions.size();
 	}
 	
 	static Formula makeMultiplicity(Expression e, Multiplicity m)
@@ -781,7 +788,7 @@ public class MFormulaManager
 		relations.put(name+":"+arity, newRel);
 		return newRel;		
 	}
-
+	
 	// Called by replacement visitor
 	static Expression substituteVarTuple(Expression expr, HashMap<Variable, Expression> termpairs)
 	throws MGEManagerException
@@ -865,6 +872,7 @@ public class MFormulaManager
 		return newTuple;
 	}
 
+	
 	static Expression makeVarTupleV(List<Variable> vars)
 	throws MGEManagerException
 	{
@@ -907,6 +915,25 @@ public class MFormulaManager
 		{
 			throw new MGEManagerException("Margrave encountered an error when trying to express that the variable "+v+" had the type " +expr+ ". ");
 		}	
+	}
+	
+	static Expression makeIntersection(Relation r1, Relation r2)
+	{
+		if(!hasBeenInitialized)
+			initialize();	
+		
+		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(2);
+		key.set(0, r1);
+		key.set(1, r2);
+		
+		Expression cachedValue = intersectExpressions.get(key); 
+		if(cachedValue != null)
+			return cachedValue;
+		
+		Expression e = r1.intersection(r2);
+		intersectExpressions.put(key, e);
+		return e;		
+		
 	}
 	
 	static Formula makeForAll(Formula f, Decls d)
@@ -1548,6 +1575,7 @@ public class MFormulaManager
 		                   oneMultiplicities.size();
 		
 		theResult.setAttribute("multiplicity", String.valueOf(iTotalMultip));
+		theResult.setAttribute("intersections", String.valueOf(intersectExpressions.size()));
 		theResult.setAttribute("atoms", String.valueOf(atomFormulas.size()));
 		theResult.setAttribute("negations", String.valueOf(negFormulas.size()));
 		theResult.setAttribute("conjunctions", String.valueOf(andFormulas.size()));
@@ -1596,7 +1624,8 @@ public class MFormulaManager
 	       andFormulas.countReclaimed +
 	       orFormulas.countReclaimed +
 	       forallFormulas.countReclaimed +
-	       existsFormulas.countReclaimed;
+	       existsFormulas.countReclaimed +
+	       intersectExpressions.countReclaimed;
 			
 		theResult.setAttribute("total-reclaimed", String.valueOf(lReclaimed));		
 			

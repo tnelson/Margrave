@@ -599,7 +599,6 @@ public class MCommunicator
 				List<String> relations = getRelationsList(constraintNode); 
 				String firstRelation = relations.get(0);
 
-
 				if (constraintType.equalsIgnoreCase("SINGLETON")) {
 					return MEnvironment.addConstraintSingleton(vname, firstRelation);
 				}
@@ -608,6 +607,16 @@ public class MCommunicator
 				}
 				else if (constraintType.equalsIgnoreCase("ATMOSTONE")) {
 					return MEnvironment.addConstraintAtMostOne(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("DISJOINT")) {
+					assert(relations.size() == 2);
+					String secondRelation = relations.get(1);
+					return MEnvironment.addConstraintDisjoint(vname, firstRelation, secondRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("SUBSET")) {
+					assert(relations.size() == 2);
+					String secondRelation = relations.get(1);
+					return MEnvironment.addConstraintSubset(vname, firstRelation, secondRelation);
 				}
 				else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
 					return MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
@@ -1118,15 +1127,14 @@ public class MCommunicator
         	//	writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
 
         	if (name.equalsIgnoreCase("AND"))
-        	{        		        		
+        	{        		        	
+        		assert(getElementChildren(n).size() == 2);
         		return exploreHelper(childNodes.get(0)).and(exploreHelper(childNodes.get(1)));
         	}
         	else if (name.equalsIgnoreCase("OR")) 
         	{
-        		List<Node> cList = getElementChildren(n);
-        		Node n1 = cList.get(0);
-        		Node n2 = cList.get(1);
-        		return exploreHelper(n1).or(exploreHelper(n2));
+        		assert(getElementChildren(n).size() == 2);
+        		return exploreHelper(childNodes.get(0)).or(exploreHelper(childNodes.get(1)));
         	}
         	else if (name.equalsIgnoreCase("IMPLIES"))
         	{
@@ -1158,6 +1166,7 @@ public class MCommunicator
         		return handleEqualsFormula(n);        		
         	}
         	else if (name.equalsIgnoreCase("IFF")) {
+        		assert(getElementChildren(n).size() == 2);
         		return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
         	}
         	else if (name.equalsIgnoreCase("NOT")) {
@@ -1191,6 +1200,10 @@ public class MCommunicator
         	else if(name.equalsIgnoreCase("TRUE"))
         	{
         		return new MExploreCondition(true);
+        	}
+        	else if(name.equalsIgnoreCase("FALSE"))
+        	{
+        		return new MExploreCondition(false);
         	}
         	
         	throw new MUserException("exploreHelper was unable to match node type: "+name);
