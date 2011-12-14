@@ -561,7 +561,7 @@ public class MQuery extends MIDBCollection
 		// TODO
 		
 		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
-		
+				
 		// Flag pathological cases invalid (univ size 0 for instance)
 		validateSortCeilings(result);
 		

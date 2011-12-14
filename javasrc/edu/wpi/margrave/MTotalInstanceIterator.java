@@ -31,6 +31,20 @@ import kodkod.engine.Solution;
 import kodkod.engine.Solver;
 import kodkod.instance.*;
 
+class KodkodContext
+{
+	Formula fmla;	
+	Bounds bounds;
+	
+	KodkodContext(Formula fmla, Bounds bounds)
+	{
+		this.fmla = fmla;
+		this.bounds = bounds;
+	}
+			
+}
+
+
 class MSolutionInstance
 {
 	private Instance instance;
@@ -99,15 +113,8 @@ public class MTotalInstanceIterator extends MInstanceIterator
 	{
 		super(qr);
 		
-		// Wrap Kodkod's iterator.
-			 
-		LinkedList<String> atoms = new LinkedList<String>();
-		for(int ii=0;ii<qr.getCeilingUsed();ii++)
-		{
-			atoms.add("Atom"+ii);			
-		}
-		
-		kodkodIterator = doBoundsAndKodKod(new Universe(atoms), qr.qryFormulaWithAxioms);
+		// Wrap Kodkod's iterator.			 		
+		kodkodIterator = doBoundsAndKodKod(qr.qryFormulaWithAxioms);
 	}
 	
 	protected void prepareNext()
@@ -154,12 +161,12 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		   return true;
 		return false;
 	}
-	
-	private Iterator<Solution> doBoundsAndKodKod(Universe u, Formula f)
+		
+	private Iterator<Solution> doBoundsAndKodKod(Formula f)
 	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
 	{				
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
-		long start = mxBean.getCurrentThreadCpuTime();	
+		long start = mxBean.getCurrentThreadCpuTime();			
 		
 		// Pass to KodKod for satsolving
 		Solver qrySolver = new Solver();	
@@ -168,15 +175,13 @@ public class MTotalInstanceIterator extends MInstanceIterator
 
 		qrySolver.options().setSolver(fromContext.forQuery.mySATFactory);
 		qrySolver.options().setSymmetryBreaking(fromContext.forQuery.mySB);
-					
-		Bounds qryBounds = new Bounds(u);
-		f = makeConservativeBounds(u, f, qryBounds);
-				
+							
+		KodkodContext context = makeConservativeBounds(f);
+						
 		if(fromContext.forQuery.debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) to create bounds and finalize IDB collections: " + (mxBean.getCurrentThreadCpuTime()-start)/1000000);
 		
-		Iterator<Solution> sols = qrySolver.solveAll(f, qryBounds);
-		
+		Iterator<Solution> sols = qrySolver.solveAll(context.fmla, context.bounds);		
 		return sols; 		
 	}
 	

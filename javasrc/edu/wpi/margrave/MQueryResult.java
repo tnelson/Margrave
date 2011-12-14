@@ -35,7 +35,7 @@ import kodkod.instance.TupleSet;
 import kodkod.instance.Universe;
 import kodkod.util.ints.IntSet;
 
-class MCNFSpyQueryResult extends MQueryResult
+/*class MCNFSpyQueryResult extends MQueryResult
 {
 	List<Integer> trivialTrue = new ArrayList<Integer>();
 	List<Integer> trivialFalse = new ArrayList<Integer>();
@@ -89,10 +89,14 @@ class MCNFSpyQueryResult extends MQueryResult
 		return result;
 	}
 
+	///////////////// **
+	// TODO iSize is the old way to do it. need to re-do this code. Do not call!
+	///////////////// **
 	
 	void createCNFFor(Formula f, int iSize)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName, TrivialFormulaException
 	{
+				
 		LinkedList<String> atoms = new LinkedList<String>();
 		for(int ii=0;ii<iSize;ii++)			
 			atoms.add("Atom"+ii);		
@@ -150,7 +154,7 @@ class MCNFSpyQueryResult extends MQueryResult
 		
 	}
 
-}
+}*/
 
 
 public abstract class MQueryResult
@@ -169,9 +173,21 @@ public abstract class MQueryResult
 		this.fromContext = fromContext;		
 	}
 	
-	protected Formula makeConservativeBounds(Universe u, Formula f, Bounds qryBounds)
+	protected KodkodContext makeConservativeBounds(Formula f)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{
+		
+		// Create the appropriate number of atoms to use for our universe
+		LinkedList<String> atoms = new LinkedList<String>();
+		for(int ii=0;ii<fromContext.getCeilingUsed();ii++)
+		{
+			atoms.add("Atom"+ii);			
+		}
+		Universe u = new Universe(atoms);
+		Bounds qryBounds = new Bounds(u);
+
+		////////////////////////////////////////////////////////////
+		
 		// Create bounds on relations 
 		TupleFactory factory = u.factory();
 				
@@ -349,21 +365,68 @@ public abstract class MQueryResult
 		} // end of if including idbs in output								
 		// ****************************************
 
+				
+		KodkodContext foo = makeBounds(f);
+		System.err.println("***********************************\n\n"+foo);
 		
-		
-		return f;
+		return new KodkodContext(f, qryBounds);
 	} // end makeConservativeBounds
-
-	protected TupleSet makeSortLowerBound(TupleFactory factory, MSort t)
-	{
-		TupleSet myBounds = factory.allOf(1); // dummy value
-		return myBounds;
+	
+	
+	/////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////
+	
+	protected void makeSortLowerBound(MSort t, Map<Relation, Set<String>> lowerBounds)
+	{					
+		 // TODO
 	}
-	protected TupleSet makeSortUpperBound(TupleFactory factory, MSort t)
+	protected void makeSortUpperBound(MSort t, Map<Relation, Set<String>> upperBounds, Set<String> atomSet)
 	{
-		TupleSet myBounds = factory.allOf(1); // dummy value
-		return myBounds;		
-	}
+		// fromContext.ceilingsToUse contains UPPER BOUND sizes for each sort.			
+		
+		if(!upperBounds.containsKey(t.rel))
+			upperBounds.put(t.rel, new HashSet<String>());
+		
+		int numNeeded = fromContext.ceilingsToUse.get(t.name).intValue();
+		
+		if(t.subsorts.size() == 0)
+		{
+			// Base case. Build atoms.
+			
+			System.err.println("base case: "+numNeeded);
+			
+			for(int ii=1;ii<=numNeeded;ii++)
+			{
+				String theAtom = t.name+"#"+ii;
+				upperBounds.get(t.rel).add(theAtom);
+				atomSet.add(theAtom);
+			}
+		}
+		else
+		{
+			// Recursive case. Call for children. 
+			for(MSort childt : t.subsorts)
+			{
+				makeSortUpperBound(childt, upperBounds, atomSet);
+				upperBounds.get(t.rel).addAll(upperBounds.get(childt.rel));
+			}
+			
+			// Do we need to add more atoms that are NOT in the children?
+			int haveCurrently = upperBounds.get(t.rel).size();
+			for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
+			{
+				String theAtom = t.name+"#"+ii;
+				upperBounds.get(t.rel).add(theAtom);
+				atomSet.add(theAtom);
+				Set<MSort> propagateTo = fromContext.forQuery.vocab.buildSubSortSet(t);
+				for(MSort dt : propagateTo)
+				{
+					upperBounds.get(dt.rel).add(theAtom);
+				}				
+			}
+		}	// end recursive case		
+	} // end method
+	
 	protected TupleSet makePredicateUpperBound(TupleFactory factory, Bounds qryBounds, MPredicate p)
 	{
 		boolean first = true;
@@ -385,20 +448,42 @@ public abstract class MQueryResult
 
 
 	
-	protected Formula makeBounds(Universe u, Formula f, Bounds qryBounds)
+	protected KodkodContext makeBounds(Formula f)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// Create bounds on relations 
-		TupleFactory factory = u.factory();
-				
-		MCommunicator.writeToLog("\nCreating bounds for universe "+u+"...");
+	{		
+		
+		
+		
+		// Create bounds on relations 						
+		MCommunicator.writeToLog("\nCreating bounds ...");
+		
+		Map<Relation, Set<String>> sortUpperBounds = new HashMap<Relation, Set<String>>();
+		Map<Relation, Set<String>> sortLowerBounds = new HashMap<Relation, Set<String>>();
+		Set<String> atomSet = new HashSet<String>();
 		
 		// Bound the type predicates
 		// makeSortLowerBound and makeSortUpperBound will walk the sort tree and
-		// automatically assign bounds for the subsorts!
+		// automatically assign bounds for the subsorts! But if we want to name
+		// atoms the way Alloy does, we have to create sets of atoms BEFORE the universe
+		// and hence before the Bounds object. So build some maps.
 		for(MSort t : fromContext.forQuery.vocab.getTopLevelSorts())
 		{					
-			qryBounds.bound(t.rel, makeSortLowerBound(factory, t), makeSortUpperBound(factory, t));
+			makeSortUpperBound(t, sortUpperBounds, atomSet); 
+			makeSortLowerBound(t, sortLowerBounds);						
+		}
+		
+		System.err.println(sortUpperBounds);
+		System.err.println(this.fromContext.getCeilingUsed());
+		System.err.println(this.fromContext.ceilingsToUse);
+		
+		Universe u = new Universe(atomSet);
+		TupleFactory factory = u.factory();
+		Bounds qryBounds = new Bounds(u);
+		
+		// Formally bound the sorts
+		for(MSort t : fromContext.forQuery.vocab.sorts.values())
+		{					
+			qryBounds.bound(t.rel, factory.setOf(sortUpperBounds.get(t.rel)), factory.setOf(sortLowerBounds.get(t.rel)));
 		}
 		
 		// Non-sort predicates
@@ -591,9 +676,8 @@ public abstract class MQueryResult
 		} // end of if including idbs in output								
 		// ****************************************
 
-		
-		
-		return f;
+				
+		return new KodkodContext(f, qryBounds);
 	} // end makeBounds()
 
 }
@@ -917,11 +1001,11 @@ class MPreparedQueryContext
 		return new MPartialInstanceIterator(this);
 	}*/
 
-	public MRealizedFormulaFinder getRealizedFormulaFinder() 
+	/*public MRealizedFormulaFinder getRealizedFormulaFinder() 
 	throws MUserException
 	{
 		return new MRealizedFormulaFinder(this);
-	}
+	}*/
 
 	/*public MUnrealizedFormulaFinder getUnrealizedFormulaFinder() 
 	throws MUserException

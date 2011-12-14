@@ -457,6 +457,7 @@ public class MEnvironment
 	public static final String sFailure = "failure";
 	public static final String sCommand = "command";
 	public static final String sConstraint = "constraint";
+	public static final String sUnsupported = "unsupported in this version";
 	
 	public static final String sShow = "show";
 	public static final String sNext = "next";
@@ -923,11 +924,15 @@ public class MEnvironment
 		return envIterators.get(id);
 	}*/
 	
+	
 	public static Document showRealized(String id,
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MBaseException
 	{
-		MPreparedQueryContext aResult = getQueryResult(id);
+		
+		return errorResponse(sUnsupported, sCommand, id);
+		
+		/*MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
 				
@@ -956,7 +961,7 @@ public class MEnvironment
 		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
-		}
+		}*/
 	}
 
 	public static Document showNextCollapse(Integer id) 
