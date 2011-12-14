@@ -90,7 +90,7 @@ class SigFunction
 		if(arity.size() < 1)
 			result = name + ": " + sort;
 		else
-			result = name + arity + ": "+ sort;
+			result = name +": " +arity + " -> "+ sort;
 		
 		if(fromSortAsPredicate)
 		{
@@ -242,8 +242,8 @@ public class FormulaSigInfo
 				// Sorts-as-predicates handling
 				// Extract a SAP coercion from a ComparisonFormula
 				// e.g. (x in A)
-				// or ( f(c) in A )
-												
+				// or ( f(c) in A )											
+				
 				if(! (comp.right() instanceof LeafExpression))
 				{
 					error = true;
@@ -269,7 +269,8 @@ public class FormulaSigInfo
 					newfunc.variableCause = (Variable) comp.left(); // store the variable involved
 					
 					Set<SigFunction> result = new HashSet<SigFunction>();
-					result.add(newfunc);  
+					result.add(newfunc);									
+				
 					return cache(comp, result);
 				}
 				
@@ -836,13 +837,14 @@ public class FormulaSigInfo
 		// supersAndCoercionsFromTC. NewDisj already does it.
 		
 		findFinitarySortsNewDisj();
+				
 		msFinitary = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;
 		//mCycFinitary = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 		
 		// Finally, calculate bounds for finitary sorts
 		startTime = mxBean.getCurrentThreadCpuTime();
 		//startMegacycles = qs.getCpuTimeInMegaCycles();
-		calculateBounds();
+		calculateBounds();		
 		msBounds = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;	
 		//mCycBounds = (qs.getCpuTimeInMegaCycles() - startMegacycles);
 	}
@@ -1477,7 +1479,9 @@ public class FormulaSigInfo
 				LeafExpression fromSort = intToSort.get(col);
 				
 				if(blueM[row][col] == SortEdge.BLUE)
+				{					
 					supersAndCoercionsFromTC.get(fromSort).add(toSort);
+				}
 			}
 		}
 		
@@ -1654,12 +1658,18 @@ public class FormulaSigInfo
 			for(SigFunction sc : sapConstants)
 				if(sc.funcCause.equals(c) && finitarySorts.contains(sc.sort))
 					toPopulate.add(sc.sort);
+				
+			// GLOBALS are applied below by supersAndCoercionsFromTC. Not needed here.
 			
 			// GLOBAL SAP coercions (from SAP functions)
-			for(SigFunction sf : sapFunctions)
-				if(sf.funcCause == null) // coercion not specific to a skolem function
-					if(sf.arity.get(0).equals(c.sort) && finitarySorts.contains(sf.sort))
-						toPopulate.add(sf.sort);
+			//for(SigFunction sf : sapFunctions)
+			//{
+			//	System.out.println(sf + " ... "+sf.funcCause);
+			//	System.out.println(c.sort);
+			//	if(sf.funcCause == null) // coercion not specific to a skolem function
+			//		if(sf.arity.get(0).equals(c.sort) && finitarySorts.contains(sf.sort))
+			//			toPopulate.add(sf.sort);
+			//}
 
 			// only one actual element bound to this constant
 			totalTerms = totalTerms.add(BigInteger.ONE);
@@ -1678,7 +1688,7 @@ public class FormulaSigInfo
 				totals[0][sortsInOrder.get(pop).intValue()] =
 					totals[0][sortsInOrder.get(pop).intValue()].add(BigInteger.ONE);
 				//MEnvironment.writeErrLine("Populated: "+pop);
-							
+										
 				for(LeafExpression r : supersAndCoercionsFromTC.get(pop))
 				{
 					if(r == pop) continue; // trivial case, ignore
@@ -2410,6 +2420,11 @@ public class FormulaSigInfo
 		
 		result.put("", getTermCount());
 		return result;
+	}
+	
+	Set<SigFunction> getSAPFunctions()
+	{
+		return new HashSet<SigFunction>(sapFunctions);
 	}
 	
 }

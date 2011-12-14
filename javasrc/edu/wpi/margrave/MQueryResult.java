@@ -17,6 +17,7 @@ import org.sat4j.specs.ISolver;
 import kodkod.ast.Decl;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
+import kodkod.ast.LeafExpression;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
 import kodkod.engine.Solver;
@@ -409,6 +410,7 @@ public abstract class MQueryResult
 	protected void makeSortLowerBound(MSort t, Map<Relation, Set<String>> lowerBounds)
 	{					
 		 // TODO
+		// Does kodkod populate lowers for non-exact sigs?
 	}
 	protected void makeSortUpperBound(MSort t, Map<Relation, Set<String>> upperBounds, Set<String> atomSet)
 	{
@@ -440,8 +442,16 @@ public abstract class MQueryResult
 			// UNDER THE ASSUMPTION THAT THE SORT ORDERING IS A TREE
 			// AND INCOMPARABLE SORTS MUST BE DISJOINT
 			// ...it is safe to do this:
-			// propagate along Skolem coercions
-			// TODO
+			// propagate along Skolem coercions. (don't need to iterate w/ <= if tree)									
+			for(SigFunction f : fromContext.herbrandBounds.getSAPFunctions())
+			{			
+				assert(f.arity.size() > 0);
+				LeafExpression src = f.arity.get(0);
+				LeafExpression dest = f.sort;
+				assert(src instanceof Relation);
+				assert(dest instanceof Relation);				
+				upperBounds.get(dest).addAll(upperBounds.get(src));
+			}
 			
 			// Do we need to add more atoms that are NOT in the children?
 			int haveCurrently = upperBounds.get(t.rel).size();
@@ -986,8 +996,7 @@ class MPreparedQueryContext
 	Map<String, Integer> ceilingsToUse;
 	Map<String, Integer> ceilingsSufficient;
 	FormulaSigInfo herbrandBounds;
-	
-	
+		
 	public long msQueryCreationTime;
 	public long msQueryRunTime;
 	public long msQueryTuplingTime;
@@ -1005,7 +1014,7 @@ class MPreparedQueryContext
 		return -1;
 	}
 	public int getCeilingComputed()
-	{
+	{		
 		if(ceilingsSufficient.containsKey(""))
 			return ceilingsSufficient.get("");
 		return -1;
@@ -1018,6 +1027,8 @@ class MPreparedQueryContext
 		// Used to print intelligently		
 		forQuery = q;
 
+		this.herbrandBounds = herbrandBounds;
+		
 		// How big did our analysis say the HB term universe could be?	
 		ceilingsSufficient = herbrandBounds.getCountMapping();			
 				

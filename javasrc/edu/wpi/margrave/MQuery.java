@@ -912,8 +912,8 @@ public class MQuery extends MIDBCollection
 				sort1.some()).and(sort2.some());
 		test6 = new MQuery(f, env);
 		if (test6.runQuery().getCeilingComputed() != 4)
-			MEnvironment.writeErrLine("Test 6b failed!");
-
+			MEnvironment.writeErrLine("Test 6b failed!");		
+		
 		// f:1->2c. g:2a->2b. x:1
 		// g is unproductive. only 2 terms
 		f = x.eq(y).forSome(x.oneOf(sort2c)).forAll(y.oneOf(sort1)).and(
@@ -1124,12 +1124,6 @@ public class MQuery extends MIDBCollection
 		if (test7.runQuery().getCeilingComputed() != 3)
 			MEnvironment.writeErrLine("Test 8a failed!");
 
-		// But add 2axx subset of 2bxx, and they must be disjoint.
-
-		// THIS INDUCES A SORT-AS-PREDICATE in current query code.
-		// oh -- (R in P) rather than (X in P)
-		// TODO need to change MFormulaManager 
-		//env.axioms.addConstraintSubset("sort2axx", "sort2bxx");
 
 		f = Formula.TRUE.forSome(x.oneOf(sort2axx)).forAll(y.oneOf(sort2cx))
 				.and(sort2cx.some());
@@ -1191,8 +1185,8 @@ public class MQuery extends MIDBCollection
 				z.in(sort2).forSome(z.oneOf(sort1)));
 		MQuery test9 = new MQuery(f, env);
 		if (test9.runQuery().getCeilingComputed() != 2)
-			MEnvironment.writeErrLine("Test 9a failed!");
-
+			MEnvironment.writeErrLine("Test 9a failed!");		
+		
 		// Same thing, using subsorts (this is really the same test as 9a,
 		// actually?)
 		// something in 1a that is in 1b too; and f:1b->1c.
@@ -1202,6 +1196,22 @@ public class MQuery extends MIDBCollection
 		if (test9.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 9b failed!");
 
+		// Test sapFunctions distinct from sapConstants
+		// Only one constant (z in sort2). It gets locally coerced to sort1. 
+		// And there's a global coercion from sort1 to sort1a.
+		// Since we are aware of disjointness, needs to be sort1a and not, say, sort3 (due to disj <-> incomparable)
+		Formula f1 = y.in(sort1a).forAll(y.oneOf(sort1));
+		f2 = z.in(sort1).forSome(z.oneOf(sort2));
+		f = f1.and(f2);
+		test9 = new MQuery(f, env);
+		MPreparedQueryContext result = test9.runQuery();
+		if (result.getCeilingComputed() != 1 ||
+				result.ceilingsSufficient.get("Sort1a").intValue() != 1 ||
+				result.herbrandBounds.getSAPFunctions().size() != 1)
+			MEnvironment.writeErrLine("Test 9c failed!");
+		result.getTotalIterator().hasNext();		
+		
+		
 		MEnvironment.writeErrLine("----- End MQuery Tests -----");
 
 		/*
