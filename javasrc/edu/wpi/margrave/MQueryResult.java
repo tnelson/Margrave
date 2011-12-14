@@ -369,7 +369,9 @@ public abstract class MQueryResult
 
 				
 		KodkodContext foo = makeBounds(f);
-		System.err.println("***********************************\n\n"+foo);
+		
+		if(fromContext.forQuery.debug_verbosity > 1)			
+			MEnvironment.writeOutLine("Kodkod Context Produced:\n"+foo);
 		
 		return new KodkodContext(f, qryBounds);
 	} // end makeConservativeBounds

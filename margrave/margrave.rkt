@@ -446,7 +446,7 @@ gmarceau
   (m-let qryid sexpr-vars sexpr-fmla #:under [under-list empty])
   [->* (string? list? (or/c symbol? list?))
        (#:under list?)
-       boolean?]
+       (or/c void? boolean?)]
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
 
@@ -470,7 +470,8 @@ gmarceau
   ;(printf "~a~n" the-xml)
     
   (define xml-response (send-and-receive-xml the-xml))  
-  (equal? "explore-result" (get-response-type xml-response)))
+  (unless (equal? "explore-result" (get-response-type xml-response))
+    #f))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

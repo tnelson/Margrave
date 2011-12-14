@@ -1384,7 +1384,9 @@
 
   
     [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))    
-     (valid-predicate?/err idbname)
+     ;(valid-predicate?/err idbname)
+     ; the above check prevents reference to prior queries when the prior query name is capitalized.
+     ;; TODO finalize lexical spec
      (xml-make-atomic-formula (append pids (list idbname))
                               (map m-term->xexpr (cons term0 terms)))]
   
