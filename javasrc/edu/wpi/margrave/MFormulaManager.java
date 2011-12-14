@@ -790,7 +790,7 @@ public class MFormulaManager
 	}
 	
 	// Called by replacement visitor
-	static Expression substituteVarTuple(Expression expr, HashMap<Variable, Expression> termpairs)
+	static Expression substituteVarTuple(Expression expr, Map<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
 		// Do the substitution recursively
@@ -1630,6 +1630,18 @@ public class MFormulaManager
 		theResult.setAttribute("total-reclaimed", String.valueOf(lReclaimed));		
 			
 		return theResult;		
+	}
+
+	public static Variable makeFreshVariable() 
+	{
+		// Create a variable that is guaranteed never to have been used before.
+		long idx = vars.countReclaimed + vars.size();
+		String key = "fresh"+idx;
+		Variable result = Variable.unary(key);
+		
+		assert(vars.get(key) == null);
+		vars.put(key, result);
+		return result;
 	}
 }
 

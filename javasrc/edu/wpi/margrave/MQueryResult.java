@@ -31,6 +31,7 @@ import kodkod.engine.satlab.SATSolver;
 import kodkod.instance.Bounds;
 import kodkod.instance.Instance;
 import kodkod.instance.TupleFactory;
+import kodkod.instance.TupleSet;
 import kodkod.instance.Universe;
 import kodkod.util.ints.IntSet;
 
@@ -105,7 +106,7 @@ class MCNFSpyQueryResult extends MQueryResult
 		qrySolver.options().setSolver(spyFactory);
 		
 		Bounds qryBounds = new Bounds(u);
-		f = makeBounds(u, f, qryBounds);		
+		f = makeConservativeBounds(u, f, qryBounds);		
 		
 		// Kodkod Skolemizes, which means the bounds we have at this point
 		// get augmented. If we want to give variable bindings (and we do!) 
@@ -168,7 +169,7 @@ public abstract class MQueryResult
 		this.fromContext = fromContext;		
 	}
 	
-	protected Formula makeBounds(Universe u, Formula f, Bounds qryBounds)
+	protected Formula makeConservativeBounds(Universe u, Formula f, Bounds qryBounds)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		// Create bounds on relations 
@@ -351,9 +352,254 @@ public abstract class MQueryResult
 		
 		
 		return f;
+	} // end makeConservativeBounds
+
+	protected TupleSet makeSortLowerBound(TupleFactory factory, MSort t)
+	{
+		TupleSet myBounds = factory.allOf(1); // dummy value
+		return myBounds;
+	}
+	protected TupleSet makeSortUpperBound(TupleFactory factory, MSort t)
+	{
+		TupleSet myBounds = factory.allOf(1); // dummy value
+		return myBounds;		
+	}
+	protected TupleSet makePredicateUpperBound(TupleFactory factory, Bounds qryBounds, MPredicate p)
+	{
+		boolean first = true;
+		TupleSet myBounds = factory.allOf(p.type.size()); // dummy value
+		for(MSort t : p.type)
+		{			
+			if(first)
+			{
+				myBounds = qryBounds.upperBound(t.rel);
+			}
+			else
+			{
+				myBounds = myBounds.product(qryBounds.upperBound(t.rel));
+			}
+		}
+		
+		return myBounds;		
 	}
 
+
+	
+	protected Formula makeBounds(Universe u, Formula f, Bounds qryBounds)
+	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		// Create bounds on relations 
+		TupleFactory factory = u.factory();
+				
+		MCommunicator.writeToLog("\nCreating bounds for universe "+u+"...");
+		
+		// Bound the type predicates
+		// makeSortLowerBound and makeSortUpperBound will walk the sort tree and
+		// automatically assign bounds for the subsorts!
+		for(MSort t : fromContext.forQuery.vocab.getTopLevelSorts())
+		{					
+			qryBounds.bound(t.rel, makeSortLowerBound(factory, t), makeSortUpperBound(factory, t));
+		}
+		
+		// Non-sort predicates
+		for(MPredicate p : fromContext.forQuery.vocab.predicates.values())
+			qryBounds.bound(p.rel, makePredicateUpperBound(factory, qryBounds, p));				
+
+		// constants
+		for(MConstant c : fromContext.forQuery.vocab.constants.values())
+			qryBounds.bound(c.rel, makePredicateUpperBound(factory, qryBounds, c));
+
+		// functions
+		for(MFunction fn : fromContext.forQuery.vocab.functions.values())
+			qryBounds.bound(fn.rel, makePredicateUpperBound(factory, qryBounds, fn));				
+
+		
+		// ****************************************
+		// Bound IDBs that we want to output
+		// ****************************************
+		
+		// Are we including non-decision IDBs in the calculation? If not, and this isn't one, ignore.		
+		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
+		{						
+			// Re-use cached work whenever possible.
+			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = 
+				new HashMap<MIDBCollection, RelationAndTermReplacementV>();
+			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
+			Set<Formula> impSet = new HashSet<Formula>();
+			
+			//MEnvironment.errorStream.println(fromContext.forQuery.idbNamesToOutput);
+			MCommunicator.writeToLog("\nThere are IDBs to axiomatize.");
+			
+			// Decisions, Rule Applicability, etc. (IDBs at policy level)
+			for(MIDBCollection idbs : fromContext.forQuery.myIDBCollections.values())
+			{			
+				// What is this policy publishing?
+			 
+				for(String idbname : idbs.idbKeys())
+				{						
+					//MEnvironment.errorStream.println(idbs.name+MEnvironment.sIDBSeparator+idbname);							
+					
+					// Is this an idb to be published? If not, skip it.
+					if(!fromContext.forQuery.getIDBNamesToOutput().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
+					{						
+						continue;
+					}
+					
+					MCommunicator.writeToLog("\nAxiomatizing IDB: "+idbname);													
+					
+					Formula idbFormula = idbs.getIDB(idbname);
+					
+					//MEnvironment.errorStream.println("++ " +idbs.name+MEnvironment.sIDBSeparator+idbname);
+					//MEnvironment.errorStream.println(idbFormula.hashCode());
+					
+					// At this point, idbFormula is using object references from the Policy instead
+					// of the proper vocabulary, which would lead to unbound relation exceptions if 
+					// we did not do this:
+					
+					/// !!! TODO is this even needed anymore?
+					
+					RelationAndTermReplacementV vis;
+					if(initialVisitors.containsKey(idbs))
+						vis = initialVisitors.get(idbs);
+					else
+					{
+						vis = MIDBCollection.getReplacementVisitor(idbs.vocab, fromContext.forQuery.vocab);
+						initialVisitors.put(idbs, vis);
+					}
+					
+					idbFormula = idbFormula.accept(vis);
+									
+					// What temporary variables did the policy refer to?
+					// (Order doesn't really matter here, since it's all flat universal quantifiers)
+					// Some confusion in naming if someone sees the formula, but not really a difference.
+					Set<Variable> freeVars = idbFormula.accept(freeVarCollector);
+									
+					// What is the arity of the relation?
+					int idbArity = freeVars.size();					
+					
+					// Zero arity means either always true or always false... 
+					// Would be nice to support but KodKod doesn't allow nullary relations
+					if(idbArity < 1)
+					{
+						// Get around it by using the full arity of the LHS relation:
+						idbArity = idbs.varOrderings.get(idbname).size();
+						freeVars = new HashSet<Variable>(); // adding is unsupported in prior instance
+						for(Variable v : idbs.varOrderings.get(idbname))
+							freeVars.add(v);
+					}				
+					
+					// TODO some of that up there is not needed in this new bounding function. TN 12/11
+					
+					boolean first = true;
+					TupleSet myBounds = factory.allOf(idbArity); // dummy value
+					for(Variable v : idbs.varOrderings.get(idbname))
+					{
+						Expression e = idbs.varSorts.get(v);
+						assert(e instanceof Relation);
+						Relation r = (Relation)e;
+						if(first)
+						{
+							myBounds = qryBounds.upperBound(r);
+						}
+						else
+						{
+							myBounds = myBounds.product(qryBounds.upperBound(r));
+						}
+					}
+					
+					
+					
+					// Create a temporary relation 
+					// (If tupled, attach the indexing -- uglier but desirable for correctness checking.)
+					Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);		
+					
+					// And bound it.
+					qryBounds.bound(therel, myBounds);			
+									
+					///////////////////////////////////////////////////////
+					// Get proper ordering of freeVars
+					
+					List<String> actualVarNameOrder = new ArrayList<String>(idbArity);												
+					List<Variable> expectedVars = idbs.varOrderings.get(idbname);
+					for(Variable v : expectedVars)
+					{
+						// Does this expected variable actually appear, free, in the IDB?
+						if(freeVars.contains(v))
+							actualVarNameOrder.add(v.name());
+					}
+					if(idbArity != actualVarNameOrder.size())
+						throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
+					Expression tup = MFormulaManager.makeExprTuple(actualVarNameOrder);										
+					
+					////////////////////////////////////////////////////////////
+					// The relation holds IF AND ONLY IF its idb formula is true									
+					////////////////////////////////////////////////////////////
+					
+					// Restrict the IDB Formulas to use the proper types for their free variables.
+					// TODO: when we fix bounds, this will no longer be necessary
+					Set<Formula> properTypes = new HashSet<Formula>();					
+					for(Variable var : freeVars)
+					{ 	
+						// Do I know a sort for this variable?						
+						
+						if(idbs.varSorts.containsKey(var))
+						{
+							Formula atom = MFormulaManager.makeAtom(var, idbs.varSorts.get(var));
+							properTypes.add(atom);
+						}
+					}
+				
+
+					Formula atom2 = MFormulaManager.makeAtom(tup, therel);
+					Formula atom2a = MFormulaManager.makeAnd(idbFormula, MFormulaManager.makeConjunction(properTypes));					
+					Formula imp = MFormulaManager.makeIFF(atom2, atom2a);
+									
+					// Order doesn't matter
+					String prettyVarTuple = "";
+					for(Variable var : freeVars)
+					{
+						if(prettyVarTuple.length() > 0 )
+							prettyVarTuple = var.name()+" "+prettyVarTuple;
+						else
+							prettyVarTuple = var.name();
+						
+						Decl theDecl = MFormulaManager.makeOneOfDecl(var, Expression.UNIV);
+						imp = MFormulaManager.makeForAll(imp, theDecl);
+					}							
+					
+					// May have many idbs, so don't just do .makeAnd over and over.
+					// Save in a set and make one Conjunction NaryFormula.
+					
+					impSet.add(imp);
+					//MEnvironment.errorStream.println(imp);
+					
+					// ****
+					// We only quantify vars that actually matter, EVEN IF the idb definition itself
+					// includes more. This means that later on we need to label the output properly.
+					idbToTup.put(therel.name(), prettyVarTuple);
+					
+				} // end for each idb in idbset
+			} // end for each idbset						
+			
+			if(fromContext.forQuery.debug_verbosity > 1)
+			{
+				MEnvironment.writeOutLine("DEBUG: IDB output bi-implications created. There were "+impSet.size()+" of them.");
+			}
+			
+			impSet.add(f); // f and imp1 and imp2 and ...
+			f = MFormulaManager.makeConjunction(impSet);
+		} // end of if including idbs in output								
+		// ****************************************
+
+		
+		
+		return f;
+	} // end makeBounds()
+
 }
+
+
+
 
 class MIntArrayWrapper
 {

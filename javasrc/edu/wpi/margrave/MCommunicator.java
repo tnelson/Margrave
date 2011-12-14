@@ -1115,6 +1115,8 @@ public class MCommunicator
         //Expects the node one down from condition node
         private static MExploreCondition exploreHelper(Node n) throws MUserException, MGEManagerException, MGEUnknownIdentifier
         {
+        	assert(n != null);
+        	
         	List<Node> childNodes = getElementChildren(n);
 
         	String name = n.getNodeName();
@@ -1155,11 +1157,30 @@ public class MCommunicator
         		
         		Variable theVar = MFormulaManager.makeVariable(varname);
         		Relation theRel = MFormulaManager.makeRelation(typename, 1);
-        		Formula fmla = MFormulaManager.makeAtom(theVar, theRel);
-        		        
-        		writeToLog("\nNew Explore condition (ISA): "+fmla);
         		
-        		return new MExploreCondition(fmla, theRel, theVar);
+        		assert(childNodes.size() < 2);
+        		
+        		MExploreCondition internalFmlaC;
+        		MExploreCondition  newFmlaC;
+        		if(childNodes.size() == 0)
+        		{
+        			// If no fmla passed, this is a sort-as-predicate. Just checking whether the var is in the sort.
+        			internalFmlaC = new MExploreCondition(true);
+        			newFmlaC = internalFmlaC;
+        		}
+        		else
+        		{
+        			// Otherwise, we are really downcasting.
+            		Node internalFmlaNode = childNodes.get(0);
+        			internalFmlaC = exploreHelper(internalFmlaNode);
+        			newFmlaC = internalFmlaC.isaSubstitution(theVar, theRel);
+        		}
+        		
+        		        
+        		writeToLog("\nFormula helper (ISA) got "+theVar+", "+theRel+ ", "+internalFmlaC);
+        		writeToLog("\n  Substituted to: "+newFmlaC);
+        		
+        		return newFmlaC;
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
         	{        		
@@ -1656,7 +1677,9 @@ public class MCommunicator
 "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
 "<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
-"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+"<OR> <ISA var=\"x\" sort=\"U\" /> <ISA var=\"x\" sort=\"U\"> " +
+                                    "<EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS></ISA></OR>" +
+"</AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 
 // aQuery unsat since publish gives us types of x, y that don't fit the query. 		
@@ -1670,13 +1693,12 @@ public class MCommunicator
 		
 // aQuery2 sat
 		
-
-		String aTupledQuery = 
-			"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
-			"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
-			"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
-			"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
-			"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH><TUPLING /></EXPLORE></MARGRAVE-COMMAND> ";
+		//String aTupledQuery = 
+		//	"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
+		//	"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
+		//	"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
+		//	"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
+		//	"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH><TUPLING /></EXPLORE></MARGRAVE-COMMAND> ";
 		
 		
 		/*handleXMLCommand(testInfo);
@@ -1738,7 +1760,7 @@ public class MCommunicator
 		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
 
 		
-		handleXMLCommand(aTupledQuery);
+		//handleXMLCommand(aTupledQuery);
 		
 		handleXMLCommand(aShowT);
 		

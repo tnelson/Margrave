@@ -170,7 +170,7 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		qrySolver.options().setSymmetryBreaking(fromContext.forQuery.mySB);
 					
 		Bounds qryBounds = new Bounds(u);
-		f = makeBounds(u, f, qryBounds);
+		f = makeConservativeBounds(u, f, qryBounds);
 				
 		if(fromContext.forQuery.debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) to create bounds and finalize IDB collections: " + (mxBean.getCurrentThreadCpuTime()-start)/1000000);

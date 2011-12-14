@@ -119,254 +119,9 @@ class MExploreCondition
 	
 	// Terms seen
 	Set<MTerm> terms = new HashSet<MTerm>();
-	
-	// **************************************************************
-	// **************************************************************
-	
-	/* Often want to build a query condition formula without first knowing 
-	 * the vocabulary the query operates under. This can cause a problem
-	 * for de-sugaring certain special syntax. 
-	 * 
-	 * Kodkod will not allow us to subclass Formula, Expression, or ComparisonFormula.
-	 * Therefore, we leave "placeholders" in the condition formula for late evaluation
-	 * when the vocabulary is known.
-	 */ 
-	Set<Formula> eqPlaceholders = new HashSet<Formula>();
-	//Set<Expression> exprPlaceholders = new HashSet<Expression>();
-	
-	// Remember what we decided were true placeholders, so MQuery won't
-	// think they are real free variables.
-	//Set<Variable> knownPlaceholders = new HashSet<Variable>();
-	
-	/*void resolvePlaceholders(MVocab vocab)
-	throws MUserException, MGEManagerException
-	{
-		// When the vocabulary is known, turn the placeholders into real Nodes.
 		
-		Map<Node, Node> replacementMap = new HashMap<Node, Node>();
-		
-		for(Formula eqf : eqPlaceholders)
-		{
-			MCommunicator.writeToLog("\nHandling placeholder: "+eqf);
-			
-			ComparisonFormula comparison = (ComparisonFormula) eqf;
-			Expression lhs = comparison.left();
-			Expression rhs = comparison.right();
-			
-			// Validate
-			if(!(lhs instanceof Variable))
-				throw new MUserException("Could not understand the LHS of equality: "+comparison);			
-			if(!(rhs instanceof Variable))
-				throw new MUserException("Could not understand the RHS of equality: "+comparison);
-
-			Variable lhv = (Variable) lhs;
-			Variable rhv = (Variable) rhs;			
-			MSort lsort = vocab.fastGetSort(lhv.name());
-			MSort rsort = vocab.fastGetSort(rhv.name());
-			
-			// Neither is a sort ~~ variable equality:  X = Y
-			if(lsort == null && rsort == null)
-				continue;
-			
-			// Don't allow sort = sort			
-			if(lsort != null && rsort != null)
-				throw new MUserException("Both sides of the equality "+comparison + " were sort symbols. Could not resolve the equality.");
-
-			MSort thesort;
-			Variable thevar;
-			Variable theplaceholder;
-			
-			if(lsort != null)
-			{
-				thesort = lsort;
-				theplaceholder = lhv;
-				thevar = rhv;
-			}
-			else // only remaining option is rsort != null
-			{
-				thesort = rsort;
-				theplaceholder = rhv;
-				thevar = lhv;
-			}
-			
-			// Require at most one elements in the sort
-			if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
-			   !vocab.axioms.setsSingleton.contains(thesort.name))
-				throw new MUserException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
-						
-			// If we got this far, we know that this equality needs to be re-written to A(x)
-			Formula newFormula = MFormulaManager.makeAtom(thevar, thesort.rel);
-
-			MCommunicator.writeToLog("\n   "+eqf+ " should become: "+newFormula);
-			
-			knownPlaceholders.add(theplaceholder);
-			replacementMap.put(eqf, newFormula);			
-			
-		} // end for each eqPlaceholder
-		
-		
-		// Now perform the replacement(s)
-		
-		ReplaceComparisonFormulasV theVisitor = new ReplaceComparisonFormulasV(replacementMap);		
-		fmla = fmla.accept(theVisitor);		
-	}	*/
-	
-	/*public static void resolveMapPlaceholders(MVocab vocab,
-			Map<String, Set<List<String>>> themap) throws MUserException
-	{		
-		if(themap == null)
-			return;
-		if(!themap.containsKey("="))
-			return;
-		
-		MCommunicator.writeToLog("\nHandling placeholders in map: "+themap);
-		
-			for(List<String> varindexing : themap.get("="))
-			{
-				// Only deal with |2| indexings
-				if(varindexing.size() == 2)
-				{
-					String left = varindexing.get(0);
-					String right = varindexing.get(1);
-					MSort lsort = vocab.fastGetSort(left);
-					MSort rsort = vocab.fastGetSort(right);
-					
-					// Neither is a sort ~~ variable equality:  X = Y
-					if(lsort == null && rsort == null)
-						continue;
-					
-					// Don't allow sort = sort			
-					if(lsort != null && rsort != null)
-						throw new MUserException("Both sides of the equality "+left+"="+right+" were sort symbols. Could not resolve the equality.");
-
-					MSort thesort;
-					String thevar;
-					
-					if(lsort != null)
-					{
-						thesort = lsort;
-						thevar = right;
-					}
-					else // only remaining option is rsort != null
-					{
-						thesort = rsort;
-						thevar = left;
-					}
-					
-					// Require at most one elements in the sort
-					if(!vocab.axioms.setsAtMostOne.contains(thesort.name) &&
-					   !vocab.axioms.setsSingleton.contains(thesort.name))
-						throw new MUserException("Sort "+thesort.name+" was not constrained to be atmostone or singleton; cannot treat it like a constant.");
-								
-					// If we got this far, we know that this equality needs to be re-written to A(x)
-					if(!themap.containsKey(thesort.name))
-						themap.put(thesort.name, new HashSet<List<String>>());
-					List<String> singletonlist = new ArrayList<String>(1);
-					
-					singletonlist.add(thevar);
-					themap.get(thesort.name).add(singletonlist);
-					
-					MCommunicator.writeToLog("\n   ="+left+","+right+" changed to: "+thesort+"("+thevar+")");					
-				}
-				
-			}
-			
-			// Remove the special entry
-			themap.remove("=");
-		
-	}*/
-	
 	// **************************************************************	
 	
-	/*
-	public void inferFromInclude(MVocab uber,
-			Map<String, Set<List<String>>> includeMap) throws MGEUnknownIdentifier
-	{
-		for(String key : includeMap.keySet())
-		{
-			// Seeing a sort gives you nothing for sure
-			if(uber.fastIsSort(key))
-				continue;
-			
-			MCommunicator.writeToLog("\ninferFromInclude: "+key+" was not a sort.");
-			
-			boolean bIsIDB = false;
-			Relation predrel = null;
-			MIDBCollection pol = null;
-			if(uber.predicates.containsKey(key))
-			{
-				bIsIDB = false;
-				predrel = uber.predicates.get(key).rel;
-				MCommunicator.writeToLog("\ninferFromInclude: "+key+" was a predicate: "+predrel);
-			}
-			else
-			{
-				bIsIDB = true;
-				
-				String collname; 
-				
-				// view or policy IDB?
-				int colonpos = key.indexOf(":"); 
-				if(colonpos < 0)
-				{
-					// view
-					collname = key;
-					pol = MEnvironment.getPolicyOrView(collname);
-					MCommunicator.writeToLog("\ninferFromInclude: "+key+" was a saved query with name = "+collname);
-
-				}
-				else
-				{
-					// policy idb
-					collname = key.substring(0, colonpos);
-					pol = MEnvironment.getPolicyOrView(collname);
-					MCommunicator.writeToLog("\ninferFromInclude: "+key+" was an IDB in collection: "+pol+"; coll name = "+collname);					
-				}
-				
-				if(pol == null)
-				{
-					// Invalid collection name
-					throw new MGEUnknownIdentifier("Could not find a policy or saved query named: "+collname);
-				}
-			}
-			
-			
-			for(List<String> varnamevector : includeMap.get(key))
-			{
-				List<Variable> varvector = vectorize(varnamevector);
-			
-				// Initialize assertion pools for this vector IF NEEDED
-				// (may have seen the vector already, after all)
-				initAssertionsForVectorIfNeeded(varvector);
-				
-				if(!bIsIDB)
-					inferredSorts.get(varvector).add(new MVariableVectorAssertion(true, predrel));
-				else
-				{
-					// This constructor means a set of atomic necessary assertions:	
-					int iIndex = 0;
-					for(Variable v : varvector)
-					{			
-						List<Variable> thisVar = new ArrayList<Variable>();
-						thisVar.add(v);	// lists with equal elements are equal.	
-						
-						initAssertionsForVectorIfNeeded(thisVar);
-						
-						Variable oldVar = pol.varOrdering.get(iIndex);
-						iIndex ++;
-						
-						//MEnvironment.errorStream.println(oldVar);
-						//MEnvironment.errorStream.println(pol.varSorts);
-						//MEnvironment.errorStream.println(assertAtomicNecessary.get(thisVar));
-						
-						inferredSorts.get(thisVar).add(new MVariableVectorAssertion(true, pol.varSorts.get(oldVar)));	
-					}
-				}
-			}
-		}
-	}
-	*/
-
 	
 	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
 	{
@@ -410,24 +165,7 @@ class MExploreCondition
 		terms.add(t1);
 		terms.add(t2);
 	}
-	
-	// Atomic EDB formulas: made(vec)
-	/*MExploreCondition(Formula f, Relation made, List<String> varnamevector)
-	{
-		fmla = f;
-		madeEDBs.add(made);
 		
-		List<Variable> varvector = vectorize(varnamevector);
-	
-		
-		// Initialize assertion pools for this vector IF NEEDED
-		// (may have seen the vector already, after all)
-		initAssertionsForVectorIfNeeded(varvector);
-		
-		// This constructor means an atomic necessary assertion:
-		assertAtomicNecessary.get(varvector).add(new MVariableVectorAssertion(true, made));				
-	}*/
-	
 	MExploreCondition(Formula f, Relation made, List<MTerm> vec)
 	{
 		fmla = f;
@@ -450,36 +188,24 @@ class MExploreCondition
 		madeEDBs.add(madeSort);
 	}
 	
-	// Atomic IDB Formulas pol.idbname(vec)
-	/*MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<String> varnamevector)
+	MExploreCondition isaSubstitution(Variable v, Relation r)
 	{
-		fmla = f;
-		seenIDBs.add(pol);
+		// We have (isa x A alpha(x)). alpha(x) may not be well-sorted!
+		// Want to convert to
+		// \exists y^A (x = y) and alpha(y).
 		
-		List<Variable> varvector = vectorize(varnamevector);		
+		Map<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+		Variable freshVar = MFormulaManager.makeFreshVariable();
+		toReplace.put(v, freshVar);
+		Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+		Formula eqFmla = MFormulaManager.makeEqAtom(v, freshVar);
+		Formula innerFmla = MFormulaManager.makeAnd(eqFmla, subsFmla);
+		Decl decl = MFormulaManager.makeOneOfDecl(freshVar, r); // x acts as type A inside		
+		fmla = MFormulaManager.makeExists(innerFmla, decl);
+		madeEDBs.add(r);	
+		return this;
+	}
 		
-		// Initialize assertion pools for this vector
-						
-		// This constructor means a set of atomic necessary assertions:	
-		int iIndex = 0;
-		for(Variable v : varvector)
-		{			
-			List<Variable> thisVar = new ArrayList<Variable>();
-			thisVar.add(v);	// lists with equal elements are equal.	
-			
-			initAssertionsForVectorIfNeeded(thisVar);
-			
-			Variable oldVar = pol.varOrderings.get(idbname).get(iIndex);
-			iIndex ++;
-			
-			//MEnvironment.errorStream.println(oldVar);
-			//MEnvironment.errorStream.println(pol.varSorts);
-			//MEnvironment.errorStream.println(assertAtomicNecessary.get(thisVar));
-			
-			assertAtomicNecessary.get(thisVar).add(new MVariableVectorAssertion(true, pol.varSorts.get(oldVar)));	
-		}
-	}*/
-	
 	List<Variable> vectorize(List<String> namevector)
 	{
 		List<Variable> result = new ArrayList<Variable>(namevector.size());
@@ -488,6 +214,11 @@ class MExploreCondition
 			result.add(MFormulaManager.makeVariable(s));
 		
 		return result;
+	}
+	
+	public String toString()
+	{
+		return "Condition: "+fmla.toString();
 	}
 	
 	MExploreCondition not()	
@@ -529,7 +260,6 @@ class MExploreCondition
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		doAssertAnd(oth);
 				
@@ -564,7 +294,6 @@ class MExploreCondition
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		doAssertOr(oth);
 		
@@ -637,7 +366,6 @@ class MExploreCondition
 		fmla = MFormulaManager.makeImplication(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		// a -> b
 		// is equivalent to
@@ -653,7 +381,6 @@ class MExploreCondition
 		fmla = MFormulaManager.makeIFF(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);	
 		madeEDBs.addAll(oth.madeEDBs);	
-		eqPlaceholders.addAll(oth.eqPlaceholders);
 		
 		// No assertions survive.
 		clearAssertions();

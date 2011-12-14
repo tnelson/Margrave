@@ -445,13 +445,13 @@ class FormulaMeasurementV extends AbstractCacheAllDetector {
  */
 class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 {
-	private HashMap<Relation, Relation> relpairs;
-	private HashMap<Variable, Expression> termpairs;
+	private Map<Relation, Relation> relpairs;
+	private Map<Variable, Expression> termpairs;
 
 	private boolean no_change;
 
-	public RelationAndTermReplacementV(HashMap<Relation, Relation> pps,
-			HashMap<Variable, Expression> vps)
+	public RelationAndTermReplacementV(Map<Relation, Relation> pps,
+			Map<Variable, Expression> vps)
 	{
 		super(new HashSet<Node>());
 
