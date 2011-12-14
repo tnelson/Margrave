@@ -90,7 +90,7 @@
                                 (xml-make-rule (m-rule-name arule)
                                                (xml-make-decision-type (m-rule-decision arule)
                                                                        (m-rule-headvars arule))
-                                               (xml-make-and* (map m-formula->xexpr (m-rule-rbody arule)))))))
+                                               (xml-make-target (xml-make-and* (map m-formula->xexpr (m-rule-rbody arule))))))))
 
 (define/contract 
   (m-vardec->cmd policyid adec)  

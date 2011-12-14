@@ -7,8 +7,14 @@
                        #:margrave-path "M:\\RktMargrave\\margrave")
 ;(m-load-policy "mypol" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
 (m-load-policy "mypol1" "M:\\RktMargrave\\margrave\\examples\\conference1.p")
-;(mtext "let Q1[s : Subject] be exists a:Action (exists r:Resource (mypol.permit(s, a, r)))")
-;(m-is-poss? "Q1")
+
+(m-let "Q1" '([s Subject] [a Action] [r Resource]) 
+       '(and ([mypol1 permit] s a r) (ReadPaper a)))   
+(m-is-poss? "Q1")
+
+(m-let "Q2" '([s Subject]) 
+       '(exists a Action (exists r Resource ([mypol1 permit] s a r))))
+(m-is-poss? "Q2")
 
 
 ;(m-load-policy "Mypol" "*margrave*/examples/conference1.p")

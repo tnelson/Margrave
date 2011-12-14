@@ -503,8 +503,9 @@ public class MCommunicator
         					List<String> varOrdering = new ArrayList<String>();        						
         					varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
 
-        					// Target fmla
-        					Node targetNode = getChildNode(ruleNode, "TARGET");        					
+        					// Target fmla        					
+        					Node targetNode = getChildNode(ruleNode, "TARGET");
+        					assert(targetNode != null);
         					MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
         					Formula target = targetCondition.fmla;
 
