@@ -42,6 +42,10 @@ class KodkodContext
 		this.bounds = bounds;
 	}
 			
+	public String toString()
+	{
+		return "KodkodContext: "+fmla.toString()+"\n"+bounds.toString();
+	}
 }
 
 

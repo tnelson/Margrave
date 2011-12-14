@@ -30,6 +30,7 @@ import kodkod.engine.satlab.SATFactory;
 import kodkod.engine.satlab.SATSolver;
 import kodkod.instance.Bounds;
 import kodkod.instance.Instance;
+import kodkod.instance.Tuple;
 import kodkod.instance.TupleFactory;
 import kodkod.instance.TupleSet;
 import kodkod.instance.Universe;
@@ -375,6 +376,35 @@ public abstract class MQueryResult
 	
 	/////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////
+	protected void handleExtraDueToUNIV(Map<Relation, Set<String>> sortUpperBounds,  Set<String> atomSet)
+	{
+		// What if we have |UNIV| = 3, but everything else was -1? Happens when we have to
+		// defer to defaults because we can't generate bounds for the query.
+		
+		int haveCurrently = atomSet.size();
+		int numNeeded = fromContext.ceilingsToUse.get("").intValue();		
+		for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
+		{
+			String theAtom = "UNIV#"+ii;			
+			atomSet.add(theAtom);			
+			// Propagate to ALL SORTS.			
+			for(MSort dt : fromContext.forQuery.vocab.sorts.values())
+			{
+				sortUpperBounds.get(dt.rel).add(theAtom);
+			}						
+		}
+	}
+	
+	protected TupleSet wrapAsTuples(TupleFactory factory, Set<String> atoms)
+	{
+		if(atoms.size() == 0)
+			return factory.noneOf(1);
+		
+		Set<Tuple> result = new HashSet<Tuple>();
+		for(String s : atoms)
+			result.add(factory.tuple(s));
+		return factory.setOf(result);
+	}
 	
 	protected void makeSortLowerBound(MSort t, Map<Relation, Set<String>> lowerBounds)
 	{					
@@ -383,18 +413,13 @@ public abstract class MQueryResult
 	protected void makeSortUpperBound(MSort t, Map<Relation, Set<String>> upperBounds, Set<String> atomSet)
 	{
 		// fromContext.ceilingsToUse contains UPPER BOUND sizes for each sort.			
-		
-		if(!upperBounds.containsKey(t.rel))
-			upperBounds.put(t.rel, new HashSet<String>());
-		
+				
 		int numNeeded = fromContext.ceilingsToUse.get(t.name).intValue();
 		
 		if(t.subsorts.size() == 0)
 		{
 			// Base case. Build atoms.
-			
-			System.err.println("base case: "+numNeeded);
-			
+						
 			for(int ii=1;ii<=numNeeded;ii++)
 			{
 				String theAtom = t.name+"#"+ii;
@@ -410,6 +435,10 @@ public abstract class MQueryResult
 				makeSortUpperBound(childt, upperBounds, atomSet);
 				upperBounds.get(t.rel).addAll(upperBounds.get(childt.rel));
 			}
+			
+			// Call for sorts with ...
+			// risk of cycle here. e.g. abstractness will have one.
+			// TODO need to account for children-wrt-skolem coercions
 			
 			// Do we need to add more atoms that are NOT in the children?
 			int haveCurrently = upperBounds.get(t.rel).size();
@@ -429,6 +458,7 @@ public abstract class MQueryResult
 	
 	protected TupleSet makePredicateUpperBound(TupleFactory factory, Bounds qryBounds, MPredicate p)
 	{
+		//System.err.println(p);		
 		boolean first = true;
 		TupleSet myBounds = factory.allOf(p.type.size()); // dummy value
 		for(MSort t : p.type)
@@ -436,12 +466,13 @@ public abstract class MQueryResult
 			if(first)
 			{
 				myBounds = qryBounds.upperBound(t.rel);
+				first = false;
 			}
 			else
 			{
 				myBounds = myBounds.product(qryBounds.upperBound(t.rel));
 			}
-		}
+		}		
 		
 		return myBounds;		
 	}
@@ -451,15 +482,19 @@ public abstract class MQueryResult
 	protected KodkodContext makeBounds(Formula f)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{		
-		
-		
-		
 		// Create bounds on relations 						
 		MCommunicator.writeToLog("\nCreating bounds ...");
 		
 		Map<Relation, Set<String>> sortUpperBounds = new HashMap<Relation, Set<String>>();
 		Map<Relation, Set<String>> sortLowerBounds = new HashMap<Relation, Set<String>>();
 		Set<String> atomSet = new HashSet<String>();
+		
+		// Initialize
+		for(MSort t : fromContext.forQuery.vocab.sorts.values())
+		{
+			sortLowerBounds.put(t.rel, new HashSet<String>());
+			sortUpperBounds.put(t.rel, new HashSet<String>());
+		}
 		
 		// Bound the type predicates
 		// makeSortLowerBound and makeSortUpperBound will walk the sort tree and
@@ -471,19 +506,23 @@ public abstract class MQueryResult
 			makeSortUpperBound(t, sortUpperBounds, atomSet); 
 			makeSortLowerBound(t, sortLowerBounds);						
 		}
+				
+		// Now suppose UNIV has more than the sum of its children.
+		// This happens if, e.g., all sorts are infinitary and we just use default.
+		handleExtraDueToUNIV(sortUpperBounds, atomSet);
 		
-		System.err.println(sortUpperBounds);
-		System.err.println(this.fromContext.getCeilingUsed());
-		System.err.println(this.fromContext.ceilingsToUse);
-		
+		// Create the universe!
 		Universe u = new Universe(atomSet);
 		TupleFactory factory = u.factory();
 		Bounds qryBounds = new Bounds(u);
 		
-		// Formally bound the sorts
+		// Declare our pre-created sort bounds to Kodkod 
 		for(MSort t : fromContext.forQuery.vocab.sorts.values())
 		{					
-			qryBounds.bound(t.rel, factory.setOf(sortUpperBounds.get(t.rel)), factory.setOf(sortLowerBounds.get(t.rel)));
+			// Takes collection<Tuple>, not collection<String>
+			TupleSet upperBound = wrapAsTuples(factory, sortUpperBounds.get(t.rel));
+			TupleSet lowerBound = wrapAsTuples(factory, sortLowerBounds.get(t.rel));
+			qryBounds.bound(t.rel, lowerBound, upperBound);
 		}
 		
 		// Non-sort predicates
