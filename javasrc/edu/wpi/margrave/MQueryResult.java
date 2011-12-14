@@ -409,8 +409,10 @@ public abstract class MQueryResult
 	
 	protected void makeSortLowerBound(MSort t, Map<Relation, Set<String>> lowerBounds)
 	{					
-		 // TODO
-		// Does kodkod populate lowers for non-exact sigs?
+		// TODO
+		// We do not have exact sig boundries, so no lower-bounds for now.
+		// (We say |A| <= k, not |A| == k. If we were exact, could follow Alloy's example for them.)
+		
 	}
 	protected void makeSortUpperBound(MSort t, Map<Relation, Set<String>> upperBounds, Set<String> atomSet)
 	{
