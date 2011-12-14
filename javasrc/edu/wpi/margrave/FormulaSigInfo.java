@@ -695,6 +695,11 @@ public class FormulaSigInfo
 				fmla, sap, htmlOutput, new HashMap<LeafExpression, Set<LeafExpression>>(), termTypes);
 	}
 	
+	FormulaSigInfo()
+	{
+		// ERROR CASE
+	}
+	
 	FormulaSigInfo(Set<LeafExpression> sorts, 
 			Map<LeafExpression, Set<LeafExpression>> supersorts,
 			Map<LeafExpression, List<LeafExpression>> predicates, 
@@ -2407,5 +2412,16 @@ public class FormulaSigInfo
 		return result;
 	}
 	
+}
+
+class InvalidFormulaSigInfo extends FormulaSigInfo
+{
+	int reason;
+	
+	InvalidFormulaSigInfo(int reason)
+	throws MUserException
+	{		
+		this.reason = reason;
+	}
 }
 

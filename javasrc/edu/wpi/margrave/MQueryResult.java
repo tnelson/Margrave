@@ -436,9 +436,12 @@ public abstract class MQueryResult
 				upperBounds.get(t.rel).addAll(upperBounds.get(childt.rel));
 			}
 			
-			// Call for sorts with ...
-			// risk of cycle here. e.g. abstractness will have one.
-			// TODO need to account for children-wrt-skolem coercions
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// UNDER THE ASSUMPTION THAT THE SORT ORDERING IS A TREE
+			// AND INCOMPARABLE SORTS MUST BE DISJOINT
+			// ...it is safe to do this:
+			// propagate along Skolem coercions
+			// TODO
 			
 			// Do we need to add more atoms that are NOT in the children?
 			int haveCurrently = upperBounds.get(t.rel).size();
@@ -982,6 +985,8 @@ class MPreparedQueryContext
 	// "" is the name for the union of all sorts.
 	Map<String, Integer> ceilingsToUse;
 	Map<String, Integer> ceilingsSufficient;
+	FormulaSigInfo herbrandBounds;
+	
 	
 	public long msQueryCreationTime;
 	public long msQueryRunTime;
@@ -1007,18 +1012,19 @@ class MPreparedQueryContext
 	}
 	
 	protected MPreparedQueryContext(MQuery q, Formula qfwa, 
-			Map<String, Integer> ceilingsToUse, Map<String, Integer> ceilingsSufficient, 
+			FormulaSigInfo herbrandBounds,
 			long timeCreateObject, long timeRunQuery, long timeTupling)
 	{
 		// Used to print intelligently		
 		forQuery = q;
-	
-		// How big a universe did we check up to?
-		this.ceilingsToUse = ceilingsToUse;
-	
-		// How big did our analysis say the HB term universe could be?
-		this.ceilingsSufficient = ceilingsSufficient;
 
+		// How big did our analysis say the HB term universe could be?	
+		ceilingsSufficient = herbrandBounds.getCountMapping();			
+				
+		// How big a universe did we check up to?
+		ceilingsToUse = resolveSortCeilings(ceilingsSufficient);
+				
+		// The query formula
 		qryFormulaWithAxioms = qfwa;
 	
 		// How long did Margrave take to create the query object?
@@ -1027,6 +1033,87 @@ class MPreparedQueryContext
 		msQueryTuplingTime = timeTupling;
 	}
 	
+	/**
+	 * Our term-counting algorithm has given us ceilings on all sorts (-1 for infinity).
+	 * The user has also given us ceilings. We need to reconcile our bounds with the user's.
+	 * 
+	 * We may also have to sanity-check the user-provided bounds. For instance, if B < A
+	 * and user(A) = 2 and user(B) = 3, we need to resolve the mis-match.
+	 * 
+	 * @param sortCeilings
+	 * @return Ceilings, filtered to respect what the user wants.
+	 */
+	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> sortCeilings)
+	{
+		//Map<String, Integer> result = new HashMap<String, Integer>();
+		
+		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
+		//                has been given a bound, the bounds of its parent and of any other
+		//                extensions of the same parent can be determined."
+		
+		// TODO For now, we have a very simple subset of that functionality from Alloy.
+		// 
+		
+		// User bounds are in:
+		// MEnvironment.sortCeilings 
+		// not guaranteed to be complete (may not contain a bound for many sorts)
+		
+		// Calculate bounds for each top-level sort separately, then populate universe's bound. (Key="")		
+				
+		
+		// For each top level sort: 
+		//   User < Calc --> Use user-provided bounds at top level. DO NOT create special atoms at lower levels. Analysis may be incomplete. 
+		//   Calc < User --> 
+		
+		
+		// (1) If user has provided a size for a sort, USE IT
+		
+		// (2) If user has NOT provided a ceiling, and we can't calculate one (or calculated is above last resort)
+		// then use last resort (MEnvironment.topSortCeilingOfLastResort)
+		
+		// (3) Otherwise, use our calculate sizes
+		
+		
+		// TN note: Alloy is much more sophisticated about user bounds.
+								
+		
+		// Commented out 6/11: now PER SORT
+		// If the user has provided a ceiling (i.e., sizeCeiling != -1)
+		// use that ALWAYS.
+		//if(userSizeCeiling != -1)
+		//	maxSizeToCheck = userSizeCeiling;
+		// If the user hasn't provided a ceiling and Margrave can't calculate one, use a magic number
+		// Also, don't go above 6 without user permission!
+		//else if(totalHerbrandMax <= 0 || totalHerbrandMax > ceilingOfLastResort)
+		//	maxSizeToCheck = ceilingOfLastResort;
+		//else
+		//	maxSizeToCheck = totalHerbrandMax;
+		//MEnvironment.writeOutLine("User provided ceiling: "+userSizeCeiling+", Margrave calculated: "+totalHerbrandMax+", using: "+maxSizeToCheck);
+
+		// TODO
+				
+		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
+				
+		// If we have an empty universe, invalidate the results and use 
+		// user-supplied ceiling, just as if there was an infinite universe.
+		if(!result.containsKey("") ||
+				result.get("").intValue() == 0)
+		{
+			for(String sortName : result.keySet())
+			{
+				result.put(sortName, -1);
+			}
+		}
+		
+		// Apply defaults if needed
+		if(result.get("").intValue() < 1)
+			result.put("", MEnvironment.topSortCeilingOfLastResort);
+		
+		return result;
+		
+		
+	}
+
 	
 	public MTotalInstanceIterator getTotalIterator() 
 	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName

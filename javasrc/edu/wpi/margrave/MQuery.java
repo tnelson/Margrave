@@ -245,16 +245,16 @@ public class MQuery extends MIDBCollection
 	 * " was not multi-covered by "+coveredby); return false; }
 	 */
 
-	protected Map<String, Integer> getHerbrandUniverseCeilingFor(
+	protected FormulaSigInfo getHerbrandUniverseCeilingFor(
 			Formula queryAndQueryAxioms,
 			boolean prenexExistential) throws MGEUnknownIdentifier,
-			MGEBadIdentifierName {
+			MGEBadIdentifierName
+	{
+		if(queryAndQueryAxioms.accept(new FindClosureUseV()))
+			return new InvalidFormulaSigInfo(1);
+		
 		ThreadMXBean mxBean = ManagementFactory.getThreadMXBean();
 		long startTime = mxBean.getCurrentThreadCpuTime();
-
-		// Reject transitive closure
-		if (queryAndQueryAxioms.accept(new FindClosureUseV()))
-			return new HashMap<String, Integer>();
 
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) to check for closure: "
@@ -370,13 +370,13 @@ public class MQuery extends MIDBCollection
 				info.printInfo();
 			}
 
-			return info.getCountMapping();
+			return info;
 		} catch (MUnsupportedFormulaException E) {
 			// unsupported
-			return new HashMap<String, Integer>();
+			return new InvalidFormulaSigInfo(2);
 		} catch (MNotASortException E) {
 			// unsupported
-			return new HashMap<String, Integer>();
+			return new InvalidFormulaSigInfo(3);
 		}
 
 	}
@@ -408,29 +408,18 @@ public class MQuery extends MIDBCollection
 							+ (mxBean.getCurrentThreadCpuTime() - localStartTime)
 							/ 1000000);
 		localStartTime = mxBean.getCurrentThreadCpuTime();
-
-		Map<String, Integer> sufficientSortCeilings = new HashMap<String, Integer>();
+		if (debug_verbosity >= 2)
+			MEnvironment.writeOutLine("DEBUG: Getting HU Ceiling. ");
+			
+		///////////////////////////////////////
+		PrenexCheckV pren = new PrenexCheckV();
+		boolean prenexExistential = myQueryFormula.accept(pren);			
+		// Run FormulaSigInfo, counting sort ceilings
+		FormulaSigInfo herbrandBounds = getHerbrandUniverseCeilingFor(
+				MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
+				prenexExistential);				
+		///////////////////////////////////////
 		
-		// If this is a tupled query, we know size = 1.
-		// This is NECESSARY since MInternalTupledQuery.runQuery() just invokes this parent method.
-		//if (this instanceof MInternalTupledQuery) {
-		//	// Limit the size of the universe to 1
-		//	sufficientSortCeilings.put("", 1);
-		//}
-		//else {
-			if (debug_verbosity >= 2)
-				MEnvironment.writeOutLine("DEBUG: Getting HU Ceiling. ");
-			
-			PrenexCheckV pren = new PrenexCheckV();
-			boolean prenexExistential = myQueryFormula.accept(pren);
-			
-			// Run FormulaSigInfo, counting sort ceilings
-			sufficientSortCeilings = getHerbrandUniverseCeilingFor(
-					MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
-					prenexExistential);
-			
-		//}
-
 		if (debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) in getHerbrandUniverseCeilingFor block: "
 							+ (mxBean.getCurrentThreadCpuTime() - localStartTime)
@@ -471,109 +460,12 @@ public class MQuery extends MIDBCollection
 					+ "ms, pre-Kodkod query processing time: " + cputime
 					+ "ms.");
 		}
-
-		// Resolve computed values with user-provided values (and defaults if needed)
-		Map<String, Integer> useTheseSortCeilings = resolveSortCeilings(sufficientSortCeilings);
 		
-		return new MPreparedQueryContext(this, queryWithAxioms, 
-				useTheseSortCeilings,
-				sufficientSortCeilings, msPreprocessingTime,
-				cputime, 0);
+		return new MPreparedQueryContext(this, queryWithAxioms, herbrandBounds,
+				 msPreprocessingTime, cputime, 0);
 
 	}
-
-	private void validateSortCeilings(Map<String, Integer> sufficientSortCeilings) 
-	{
-		// If we have an empty universe, invalidate the results and use 
-		// user-supplied ceiling, just as if there was an infinite universe.
-		if(!sufficientSortCeilings.containsKey("") ||
-			sufficientSortCeilings.get("").intValue() == 0)
-		{
-			for(String sortName : sufficientSortCeilings.keySet())
-			{
-				sufficientSortCeilings.put(sortName, -1);
-			}
-		}
-		
-	}
-
-	/**
-	 * Our term-counting algorithm has given us ceilings on all sorts (-1 for infinity).
-	 * The user has also given us ceilings. We need to reconcile our bounds with the user's.
-	 * 
-	 * We may also have to sanity-check the user-provided bounds. For instance, if B < A
-	 * and user(A) = 2 and user(B) = 3, we need to resolve the mis-match.
-	 * 
-	 * @param sortCeilings
-	 * @return Ceilings, filtered to respect what the user wants.
-	 */
-	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> sortCeilings)
-	{
-		//Map<String, Integer> result = new HashMap<String, Integer>();
-		
-		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
-		//                has been given a bound, the bounds of its parent and of any other
-		//                extensions of the same parent can be determined."
-		
-		// TODO For now, we have a very simple subset of that functionality from Alloy.
-		// 
-		
-		// User bounds are in:
-		// MEnvironment.sortCeilings 
-		// not guaranteed to be complete (may not contain a bound for many sorts)
-		
-		// Calculate bounds for each top-level sort separately, then populate universe's bound. (Key="")		
-				
-		
-		// For each top level sort: 
-		//   User < Calc --> Use user-provided bounds at top level. DO NOT create special atoms at lower levels. Analysis may be incomplete. 
-		//   Calc < User --> 
-		
-		
-		// (1) If user has provided a size for a sort, USE IT
-		
-		// (2) If user has NOT provided a ceiling, and we can't calculate one (or calculated is above last resort)
-		// then use last resort (MEnvironment.topSortCeilingOfLastResort)
-		
-		// (3) Otherwise, use our calculate sizes
-		
-		
-		// TN note: Alloy is much more sophisticated about user bounds.
-		
-		
-		
-		
-		
-		
-		// Commented out 6/11: now PER SORT
-		// If the user has provided a ceiling (i.e., sizeCeiling != -1)
-		// use that ALWAYS.
-		//if(userSizeCeiling != -1)
-		//	maxSizeToCheck = userSizeCeiling;
-		// If the user hasn't provided a ceiling and Margrave can't calculate one, use a magic number
-		// Also, don't go above 6 without user permission!
-		//else if(totalHerbrandMax <= 0 || totalHerbrandMax > ceilingOfLastResort)
-		//	maxSizeToCheck = ceilingOfLastResort;
-		//else
-		//	maxSizeToCheck = totalHerbrandMax;
-		//MEnvironment.writeOutLine("User provided ceiling: "+userSizeCeiling+", Margrave calculated: "+totalHerbrandMax+", using: "+maxSizeToCheck);
-
-		// TODO
-		
-		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
-				
-		// Flag pathological cases invalid (univ size 0 for instance)
-		validateSortCeilings(result);
-		
-		// Apply defaults if needed
-		if(result.get("").intValue() < 1)
-			result.put("", MEnvironment.topSortCeilingOfLastResort);
-		
-		return result;
-		
-		
-	}
-
+	
 	boolean myIDBCollectionsContainWithDot(String k)
 	{		
 		// Dot is a special character; remember to escape it.
