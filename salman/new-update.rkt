@@ -25,11 +25,34 @@
                    ; All permissions are one of the constants
                    (forall ap Permission (or (= ap 'grade) (= ap 'teach) (= ap 'enterLab) (= ap 'takeExam) (= ap 'submitPaper)))
                    
+                   ; All are disjoint
+                   (not (= 'tim 'kathi))
+                   (not (= 'tim 'salman))
+                   (not (= 'kathi 'salman))
+                   (not (= 'professor 'student))
+                   (not (= 'professor 'ta))
+                   (not (= 'professor 'ra))
+                   (not (= 'student 'ta))
+                   (not (= 'student 'ra))
+                   (not (= 'ta 'ra))
+                   (not (= 'grade 'teach))
+                   (not (= 'grade 'enterLab))
+                   (not (= 'grade 'takeExam))
+                   (not (= 'grade 'submitPaper))
+                   (not (= 'teach 'enterLab))
+                   (not (= 'teach 'takeExam))
+                   (not (= 'teach 'submitPaper))
+                   (not (= 'enterLab 'takeExam))
+                   (not (= 'enterLab 'submitPaper))                   
+                   (not (= 'takeExam 'submitPaper))
+
+                   
                    ; ^^^ TODO note to self: Seems to be possible optimization here? Could have a (all-are-constants Sortname) constraint in axioms.
+                   ; TODO also: should be able to do better lower-bounds here. (if two terms are necessarily !=, can add them both. Beyond just caused by disj.)
                    
                    ; Before and After policies both permit!
                    ([after permit] u p)
-                   ([before permit] u p)   
+                   (not ([before permit] u p))
                    
                    ; Roles and permissions (and negations)
                    (hadRole 'kathi 'professor)
@@ -43,7 +66,8 @@
                    (not (hadRole 'salman 'professor))
                    (not (hadRole 'kathi 'ta))
                    (not (hadRole 'kathi 'ra))
-                   (not (hadRole 'kathi 'student))
+                   (not (hadRole 'kathi 'student)) 
+                   
                    (hadPermission 'professor 'submitPaper)
                    (hadPermission 'professor 'grade)
                    (hadPermission 'professor 'teach)
@@ -65,7 +89,7 @@
                    (not (hadPermission 'ra 'teach))
                    (not (hadPermission 'ra 'takeExam))
                    
-                   ; permissions are EXACTLY THE SAME in new policy
+                   ; role permissions are EXACTLY THE SAME in new policy
                    (forall rx Role 
                            (forall px Permission 
                                    (iff (hadPermission rx px) 
@@ -74,11 +98,11 @@
                    ; ^^^ TODO: axiom for subset constraints on _predicates_. will eliminate this forall.
                    
                     ;permits are EXACTLY THE SAME in new policy except Tim Grading.
-                   (forall ux User 
-                           (forall px Permission 
-                                   (or (and (= ux 'tim) (= px 'grade))                                       
-                                       (iff ([before permit] ux px) 
-                                            ([after permit] ux px)))))
+                   ;(forall ux User 
+                   ;        (forall px Permission 
+                   ;                (or (and (= ux 'tim) (= px 'grade))                                       
+                   ;                    (iff ([before permit] ux px) 
+                   ;                         ([after permit] ux px)))))
                    
                    ; ^^^ note: this statement induces 2 Skolem functions from (User x Permission) -> Role
                    ; because each policy's permit fmla has 1 existential in it...

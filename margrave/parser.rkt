@@ -374,8 +374,8 @@ Margrave did not understand the condition or options given around \"~a\"."
         (explore-modifier
          [(UNDER list-of-policies) (build-so (list 'UNDER $2) 1 2)]         
          
-         ;[(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
-         [(TUPLING) (build-so (list 'TUPLING) 1 1)]
+         [(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
+         ;[(TUPLING) (build-so (list 'TUPLING) 1 1)]
          [(DEBUG <natural>) (build-so (list 'DEBUG $2) 1 2)]
          [(CEILING <natural>) (build-so (list 'CEILING $2) 1 2)])
         

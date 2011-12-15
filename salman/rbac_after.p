@@ -5,5 +5,5 @@
         (Rules 
          
          (AfterPermission = (permit u p) :- (exists r Role 
-                                                    (and (hadRole u r) (hadPermission r p)))))
+                                                    (and (hasRole u r) (hasPermission r p)))))
         (RComb (over permit deny)))
