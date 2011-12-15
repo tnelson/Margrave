@@ -2,15 +2,15 @@
 
 (require "../../margrave.rkt")
 
-;(start-margrave-engine #:margrave-params '("-log"))
 ;(start-margrave-engine #:margrave-params '("-log")
-;                       #:margrave-path "M:\\RktMargrave\\margrave")
+;                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave"
+;                       #:jvm-params '("-Xmx512m"))
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave"
+                       #:margrave-path "M:\\RktMargrave\\margrave"
                        #:jvm-params '("-Xmx512m"))
 
-(m-load-policy "mypol" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\benchmark\\benchmark.p")
-;(m-load-policy "mypol1" "M:\\RktMargrave\\margrave\\examples\\benchmark\\benchmark.p")
+;(m-load-policy "mypol" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\benchmark\\benchmark.p")
+(m-load-policy "mypol" "M:\\RktMargrave\\margrave\\examples\\benchmark\\benchmark.p")
 
 (time (m-let "Q" '([x1 T1] [x2 T2] [x3 T3] [x4 T4]) 
                    '([mypol permit] x1 x2 x3 x4)))   

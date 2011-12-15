@@ -71,22 +71,46 @@
                                    (iff (hadPermission rx px) 
                                         (hasPermission rx px))))
                    
-                   ; permits are EXACTLY THE SAME in new policy except Tim Grading.
+                   ; ^^^ TODO: axiom for subset constraints on _predicates_. will eliminate this forall.
+                   
+                    ;permits are EXACTLY THE SAME in new policy except Tim Grading.
                    (forall ux User 
                            (forall px Permission 
                                    (or (and (= ux 'tim) (= px 'grade))                                       
                                        (iff ([before permit] ux px) 
                                             ([after permit] ux px)))))
+                   
+                   ; ^^^ note: this statement induces 2 Skolem functions from (User x Permission) -> Role
+                   ; because each policy's permit fmla has 1 existential in it...
                    ))
 
 
         
 (time (m-let "Q" '([u User] [p Permission]) 
-                   qrysexpr))   
-;(time (m-let "Q" '([u User] [p Permission]) 
-;                   qrysexpr
-;                   #:debug 2))   
+                   qrysexpr
+                   #:debug 2))   
+(time (m-is-poss? "Q"))
+
+;(time (m-let "QMinimalComb" '([u User] [p Permission]) 
+;             '(and ([before permit] u p)
+;                   ([after permit] u p))))
+
+;(define num-iterations 20)
+;(define timers
+;  (for/list ([i (build-list num-iterations add1)])
+;    (define-values (result1 t1a t1b t1c) (time-apply m-let 
+;                                                     (list (string-append "Q" (number->string i))
+;                                                           '([u User] [p Permission])  
+;                                                           qrysexpr)))
+;    (define-values (result2 t2a t2b t2c) (time-apply m-is-poss? (list (string-append "Q" (number->string i)))))
+;    (list t1b t2b)))
+
+;(define let-timers (map first timers))
+;(define poss-timers (map second timers))
+;(define let-time-avg (/ (apply + let-timers) num-iterations))
+;(define poss-time-avg (/ (apply + poss-timers) num-iterations))
+
+;let-time-avg
+;poss-time-avg
 
 
-(time (m-is-poss? "Q"))
-(time (m-is-poss? "Q"))
