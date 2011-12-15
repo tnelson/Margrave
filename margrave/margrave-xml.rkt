@@ -337,7 +337,8 @@
             (write "Margrave could not calculate a size ceiling for this query.\n")            
             (write (format "Margrave computed that ~a would be a sufficient size ceiling.\n" computed-max)))
 
-        (if (< user-provided-max-num 0)
+        ; Check for #f (means null returned for max size)
+        (if (or (not user-provided-max-num) (< user-provided-max-num 0))
             (write (format "No ceiling explicitly provided. Used size ceiling: ~a.~n" used-max))
             (write (format "Size ceiling manually given: ~a. Used size ceiling: ~a.~n"
                            user-provided-max

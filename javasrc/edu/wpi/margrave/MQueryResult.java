@@ -367,11 +367,10 @@ public abstract class MQueryResult
 		} // end of if including idbs in output								
 		// ****************************************
 
-				
-		KodkodContext foo = makeBounds(f);
-		
-		if(fromContext.forQuery.debug_verbosity > 1)			
-			MEnvironment.writeOutLine("Kodkod Context Produced:\n"+foo);
+		// Testing code: to remove
+		//KodkodContext foo = makeBounds(f);		
+		//if(fromContext.forQuery.debug_verbosity > 1)			
+		//	MEnvironment.writeOutLine("Kodkod Context Produced:\n"+foo);
 		
 		return new KodkodContext(f, qryBounds);
 	} // end makeConservativeBounds
@@ -733,6 +732,10 @@ public abstract class MQueryResult
 		// ****************************************
 
 				
+	
+		if(fromContext.forQuery.debug_verbosity > 1)			
+			MEnvironment.writeOutLine("Bounds Produced:\n"+qryBounds);
+		
 		return new KodkodContext(f, qryBounds);
 	} // end makeBounds()
 
