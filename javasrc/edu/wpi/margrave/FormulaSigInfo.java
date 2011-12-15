@@ -108,6 +108,9 @@ class SigFunction
 		SigFunction result = new SigFunction(this.name, this.sort, this.noCondition);
 		result.arity = new ArrayList<LeafExpression>(this.arity); 
 		result.fromSortAsPredicate = this.fromSortAsPredicate;
+		
+		MCommunicator.writeToLog("\nCloning a pre-existing SigFunction: "+name);
+		
 		return result;
 	}
 	
@@ -118,7 +121,7 @@ class SigFunction
 		this.sort = r;
 		this.noCondition = noCondition;
 		
-		//MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);		
+		MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);		
 	}
 	
 }
@@ -264,7 +267,7 @@ public class FormulaSigInfo
 						return cache(comp, new HashSet<SigFunction>());
 					
 					// The caller will decide what to do
-					SigFunction newfunc = new SigFunction("SAP_VR_"+comp.toString(), rel, false);
+					SigFunction newfunc = new SigFunction("SAP_VR_"+comp.toString()+getUniqueSuffix(), rel, false);
 					newfunc.fromSortAsPredicate = true;
 					newfunc.variableCause = (Variable) comp.left(); // store the variable involved
 					
@@ -286,7 +289,7 @@ public class FormulaSigInfo
 				// Create a func for this SAP.
 				LeafExpression theSort = termTypes.get(comp.left());
 				// System.err.println(theSort);
-				SigFunction newfunc = new SigFunction("SAP_TERMR_"+comp.toString(), rel, false);
+				SigFunction newfunc = new SigFunction("SAP_TERMR_"+comp.toString()+getUniqueSuffix(), rel, false);
 				newfunc.fromSortAsPredicate = true;
 				newfunc.variableCause = null; 
 				newfunc.theCause = comp.left();
@@ -352,7 +355,7 @@ public class FormulaSigInfo
 				// Predicate may be bigger than unary.
 				for(LeafExpression asort : predicates.get(r))
 				{
-					SigFunction f = new SigFunction(name, asort, isSing);
+					SigFunction f = new SigFunction(name+getUniqueSuffix(), asort, isSing);
 					result.add(f);
 				}
 					
@@ -361,7 +364,7 @@ public class FormulaSigInfo
 			else if(sorts.contains(r))
 			{
 				// copy constructor: make sure to use a different list object than what's passed.
-				SigFunction f = new SigFunction(name, r, isSing);
+				SigFunction f = new SigFunction(name+getUniqueSuffix(), r, isSing);
 				result.add(f);				
 			}
 			else if(termTypes.containsKey(r))
@@ -369,7 +372,7 @@ public class FormulaSigInfo
 				// constant, etc.
 				// cannot be isSing because c.one() and c2.one() indicate different terms
 				LeafExpression theTypeRel = termTypes.get(r);
-				SigFunction f = new SigFunction(name, theTypeRel, false);
+				SigFunction f = new SigFunction(name+getUniqueSuffix(), theTypeRel, false);
 				result.add(f);
 			}
 			else
@@ -469,8 +472,9 @@ public class FormulaSigInfo
 						return new HashSet<SigFunction>();						
 					}
 					
-					// New induced Skolem function! (At this point, it's a constant; arity added later.)
-					SigFunction f = new SigFunction(d.variable().toString(), 
+					// New induced Skolem function! (At this point, it's a constant; 
+					//  arity will be added later as we pass back up through the scope of universals, if any.)
+					SigFunction f = new SigFunction(d.variable().toString()+getUniqueSuffix(), 
 							(LeafExpression)d.expression(), false);
 					thesefuncs.add(f);
 					
@@ -655,6 +659,14 @@ public class FormulaSigInfo
 		new HashMap<LeafExpression, BigInteger>();
 	
 	private BigInteger totalTerms = BigInteger.ZERO;
+	
+	private int uniqueFuncSuffix = 0;
+	
+	String getUniqueSuffix()
+	{
+		return "_unique"+String.valueOf(uniqueFuncSuffix++);			
+	
+	}
 	
 	// ------------- Constructor and helpers ----------------
 		

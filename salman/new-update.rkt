@@ -50,7 +50,7 @@
                    ; ^^^ TODO note to self: Seems to be possible optimization here? Could have a (all-are-constants Sortname) constraint in axioms.
                    ; TODO also: should be able to do better lower-bounds here. (if two terms are necessarily !=, can add them both. Beyond just caused by disj.)
                    
-                   ; Before and After policies both permit!
+                   ; Wasn't permitted before but is permitted now.
                    ([after permit] u p)
                    (not ([before permit] u p))
                    
@@ -89,6 +89,9 @@
                    (not (hadPermission 'ra 'teach))
                    (not (hadPermission 'ra 'takeExam))
                    
+                   (= u 'tim)
+                   (= p 'grade)
+                   
                    ; role permissions are EXACTLY THE SAME in new policy
                    (forall rx Role 
                            (forall px Permission 
@@ -98,11 +101,13 @@
                    ; ^^^ TODO: axiom for subset constraints on _predicates_. will eliminate this forall.
                    
                     ;permits are EXACTLY THE SAME in new policy except Tim Grading.
-                   ;(forall ux User 
-                   ;        (forall px Permission 
-                   ;                (or (and (= ux 'tim) (= px 'grade))                                       
-                   ;                    (iff ([before permit] ux px) 
-                   ;                         ([after permit] ux px)))))
+                   (forall uy User 
+                           (forall py Permission 
+                                   (implies (or (not (= uy 'tim)) 
+                                                (not (= py 'grade))) 
+                                            (iff 
+                                             ([after permit] uy py)
+                                             ([before permit] uy py) ))))
                    
                    ; ^^^ note: this statement induces 2 Skolem functions from (User x Permission) -> Role
                    ; because each policy's permit fmla has 1 existential in it...
