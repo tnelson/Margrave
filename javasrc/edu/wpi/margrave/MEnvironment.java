@@ -843,6 +843,9 @@ public class MEnvironment
 		theElement.setAttribute("name", "");
 		
 		Element sortsElement = xmldoc.createElementNS(null, "SORTS");
+		Element constantsElement = xmldoc.createElementNS(null, "CONSTANTS");
+		Element functionsElement = xmldoc.createElementNS(null, "FUNCTIONS");
+		Element predicatesElement = xmldoc.createElementNS(null, "PREDICATES");
 		Element axiomsElement = xmldoc.createElementNS(null, "AXIOMS");
 		
 		// List each sort with its subsorts
@@ -861,6 +864,31 @@ public class MEnvironment
 				}
 		}
 		
+		for(MConstant c : voc.constants.values())
+		{
+			Element constantElement = xmldoc.createElementNS(null, "CONSTANT");
+			constantElement.setAttribute("name", c.name);				
+			constantElement.setAttribute("type", c.type.toString());
+			constantsElement.appendChild(constantElement);					
+		}
+		
+		for(MFunction f : voc.functions.values())
+		{
+			Element functionElement = xmldoc.createElementNS(null, "FUNCTION");
+			functionElement.setAttribute("name", f.name);				
+			functionElement.setAttribute("type", f.type.toString());
+			functionElement.setAttribute("arity", f.arity.toString());
+			functionElement.setAttribute("result", f.result.toString());
+			functionsElement.appendChild(functionElement);					
+		}
+		for(MPredicate p : voc.predicates.values())
+		{
+			Element predicateElement = xmldoc.createElementNS(null, "PREDICATE");
+			predicateElement.setAttribute("name", p.name);				
+			predicateElement.setAttribute("type", p.type.toString());
+			predicatesElement.appendChild(predicateElement);					
+		}
+		
 		// AXIOMS
 		// TODO more axioms
 		
@@ -868,7 +896,10 @@ public class MEnvironment
 		
 		
 		theElement.appendChild(sortsElement);
-		theElement.appendChild(axiomsElement);
+		theElement.appendChild(constantsElement);
+		theElement.appendChild(functionsElement);
+		theElement.appendChild(predicatesElement);
+		theElement.appendChild(axiomsElement);		
 		xmldoc.getDocumentElement().appendChild(theElement);		
 		return xmldoc;
 	}
@@ -1422,6 +1453,7 @@ public class MEnvironment
 			Relation rel = MFormulaManager.makeRelation(sname, 1);
 			MConstant theConst = new MConstant(sname, rel, theSort);
 			voc.constants.put(sname, theConst);
+			MEnvironment.writeToLog("\nAdded constant to vocab "+vname+". "+sname+": "+theSort+" (Rel hash = "+rel.hashCode()+")");
 			return successResponse();
 		} 
 		catch (MBaseException e)

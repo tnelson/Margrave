@@ -547,7 +547,10 @@ public abstract class MQueryResult
 
 		// constants
 		for(MConstant c : fromContext.forQuery.vocab.constants.values())
+		{
+			MEnvironment.writeToLog("\n  Bounding constant: "+c);
 			qryBounds.bound(c.rel, makePredicateUpperBound(factory, qryBounds, c));
+		}
 
 		// functions
 		for(MFunction fn : fromContext.forQuery.vocab.functions.values())

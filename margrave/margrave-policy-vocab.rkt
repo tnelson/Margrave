@@ -769,7 +769,7 @@
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
                    [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                         
-                                        
+                            
                     (m-rule (->string #'rulename)
                             (->string #'decision)
                             (map ->string (syntax->list #'(rvar ...)))

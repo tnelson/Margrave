@@ -220,7 +220,10 @@ public class MCommunicator
         	{
         		String type = getNodeAttribute(margraveCommandNode, "type");
         		writeToLog("  At command node. Type attribute was: " + type + "\n");
-            	
+        		if(type == null)
+        			return MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sCommand, "<null command type>");
+        		
+        		
         		if(type.equalsIgnoreCase("SET"))
         		{
         			Node setNode = getChildNode(margraveCommandNode, "SET");

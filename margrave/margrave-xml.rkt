@@ -1332,10 +1332,17 @@
          (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
      (xml-make-function-term (->string funcid) 
                              (map m-term->xexpr terms))]
-    [(? valid-constant? cid) (xml-make-constant-term (->string sexpr))]
+    ; Will be '(quote constid). Grab SECOND in that pair.
+    [(? valid-constant? cid) (xml-make-constant-term (->string (extract-constant-id sexpr)))]
     [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
     [else (margrave-error "Incorrect term expression" sexpr)]))    
   
+(define (extract-constant-id sexpr)
+  (cond [(and (syntax? sexpr) (not (identifier? sexpr)))
+         (second (syntax->list sexpr))]
+        [(list? sexpr)
+         (second sexpr)]))
+
 ; Note some clauses have extra calls to validity checker functions.
 ; These special functions will throw appropriate errors for invalid 
 ; syntax, instead of just returning #f.
@@ -1456,49 +1463,40 @@
   (if (m-formula? axiom)
       (m-formula->xexpr axiom)
       (match axiom
-        [(or `(atmostone-all ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'atmostone-all) ,id))
+        [(m-op-case atmostone-all id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'ATMOSTONE-ALL (list id))]
         
-        [(or `(atmostone ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'atmostone) ,id))
+        [(m-op-case atmostone id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'ATMOSTONE (list id))]
         
-        [(or `(singleton-all ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'singleton-all) ,id))
+        [(m-op-case singleton-all id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'SINGLETON-ALL (list id))]
         
-        [(or `(singleton ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'singleton) ,id))
+        [(m-op-case singleton id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'SINGLETON (list id))]
         
-        [(or `(nonempty-all ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'nonempty-all) ,id))
+        [(m-op-case nonempty-all id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'NONEMPTY-ALL (list id))]
         
-        [(or `(nonempty ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'nonempty) ,id))
+        [(m-op-case nonempty id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'NONEMPTY (list id))]     
         
-        [(or `(abstract ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'abstract) ,id))
+        [(m-op-case abstract id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'ABSTRACT (list id))]
         
-        [(or `(partial-function ,id)
-             (syntax-list-quasi (make-keyword-predicate/nobind #'partial-function) ,id))
+        [(m-op-case partial-function id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'PARTIAL-FUNCTION (list id))]       
 
         ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
-        [(or `(subset ,id1 ,id2) 
-             (syntax-list-quasi (make-keyword-predicate/nobind #'subset) ,id1 ,id2))
+        [(m-op-case subset id1 id2)
          (valid-predicate?/err id1)
          (valid-predicate?/err id2)
          (xml-make-subset id1 id2)]
