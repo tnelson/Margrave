@@ -105,27 +105,26 @@ class SigFunction
 	
 	public SigFunction safeClone(String addToID)
 	{
-		SigFunction result = new SigFunction(this.name+addToID, this.sort, this.noCondition);
+		SigFunction result = new SigFunction(this.name+addToID, this.sort, this.noCondition, this.fromSortAsPredicate, this.variableCause);
 		result.arity = new ArrayList<LeafExpression>(this.arity); 
-		result.fromSortAsPredicate = this.fromSortAsPredicate;
 		result.funcCause = this.funcCause;
-		result.noCondition = this.noCondition;
-		result.theCause = this.theCause;
-		result.variableCause = this.variableCause;
+		result.theCause = this.theCause;		
 		
 		MCommunicator.writeToLog("\nCloning a pre-existing SigFunction: "+name);
 		
 		return result;
 	}
 	
-	SigFunction(String n, LeafExpression r, boolean noCondition)
+	SigFunction(String n, LeafExpression r, boolean noCondition, boolean fromSortAsPredicate, Variable variableCause)
 	{
 		this.name = n;
 		this.arity = new ArrayList<LeafExpression>();
 		this.sort = r;
 		this.noCondition = noCondition;
-		
-		MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition);		
+		this.fromSortAsPredicate = fromSortAsPredicate;
+		this.variableCause = variableCause; 
+		MCommunicator.writeToLog("\nCreating new SigFunction: name="+n+", leafexpr="+r+", nocond="+noCondition+
+				", fromsap="+fromSortAsPredicate+", variableCause="+variableCause);		
 	}
 	
 }
@@ -271,10 +270,8 @@ public class FormulaSigInfo
 						return cache(comp, new HashSet<SigFunction>());
 					
 					// The caller will decide what to do
-					SigFunction newfunc = new SigFunction("SAP_VR_"+comp.toString()+getUniqueSuffix(), rel, false);
-					newfunc.fromSortAsPredicate = true;
-					newfunc.variableCause = (Variable) comp.left(); // store the variable involved
-					
+					SigFunction newfunc = new SigFunction("SAP_VR_"+comp.toString()+getUniqueSuffix(), rel, false, true, (Variable) comp.left());										
+										
 					Set<SigFunction> result = new HashSet<SigFunction>();
 					result.add(newfunc);									
 				
@@ -289,17 +286,18 @@ public class FormulaSigInfo
 					return cache(comp, new HashSet<SigFunction>()); // fail
 				}
 								
+				// Now suppose the trigger is a complex term, not a variable. 
+				// For instance: (forall x A (forsome y B (C (f x y))))
+				// The conservative option is to make a GLOBAL coercion no matter what. 
 				
 				// Create a func for this SAP.
 				LeafExpression theSort = termTypes.get(comp.left());
 				// System.err.println(theSort);
-				SigFunction newfunc = new SigFunction("SAP_TERMR_"+comp.toString()+getUniqueSuffix(), rel, false);
-				newfunc.fromSortAsPredicate = true;
-				newfunc.variableCause = null; 
+				SigFunction newfunc = new SigFunction("SAP_TERMR_"+comp.toString()+getUniqueSuffix(), rel, false, true, null);
 				newfunc.theCause = comp.left();
 				newfunc.funcCause = null; // global!
 				newfunc.arity.add(theSort);
-				
+								
 				Set<SigFunction> result = new HashSet<SigFunction>();
 				result.add(newfunc);  
 				return cache(comp, result);
@@ -359,7 +357,7 @@ public class FormulaSigInfo
 				// Predicate may be bigger than unary.
 				for(LeafExpression asort : predicates.get(r))
 				{
-					SigFunction f = new SigFunction(name+getUniqueSuffix(), asort, isSing);
+					SigFunction f = new SigFunction(name+getUniqueSuffix(), asort, isSing, false, null);										
 					result.add(f);
 				}
 					
@@ -368,7 +366,7 @@ public class FormulaSigInfo
 			else if(sorts.contains(r))
 			{
 				// copy constructor: make sure to use a different list object than what's passed.
-				SigFunction f = new SigFunction(name+getUniqueSuffix(), r, isSing);
+				SigFunction f = new SigFunction(name+getUniqueSuffix(), r, isSing, false, null);
 				result.add(f);				
 			}
 			else if(termTypes.containsKey(r))
@@ -376,7 +374,7 @@ public class FormulaSigInfo
 				// constant, etc.
 				// cannot be isSing because c.one() and c2.one() indicate different terms
 				LeafExpression theTypeRel = termTypes.get(r);
-				SigFunction f = new SigFunction(name+getUniqueSuffix(), theTypeRel, false);
+				SigFunction f = new SigFunction(name+getUniqueSuffix(), theTypeRel, false, false, null);
 				result.add(f);
 			}
 			else
@@ -494,8 +492,9 @@ public class FormulaSigInfo
 					
 					// New induced Skolem function! (At this point, it's a constant; 
 					//  arity will be added later as we pass back up through the scope of universals, if any.)
+					// OPT Note: assumes NEVER a sap if the existential is explicit. Future optimization possible, here.
 					SigFunction f = new SigFunction(d.variable().toString()+getUniqueSuffix(), 
-							(LeafExpression)d.expression(), false);
+							(LeafExpression)d.expression(), false, false, d.variable());
 					thesefuncs.add(f);
 					
 					// SAP handling: Is this quantified variable the "cause" of a SAP function?
@@ -688,7 +687,7 @@ public class FormulaSigInfo
 	
 	String getUniqueSuffix()
 	{
-		return "_unique"+String.valueOf(uniqueFuncSuffix++);			
+		return "_"+String.valueOf(uniqueFuncSuffix++);			
 	
 	}
 	
@@ -833,6 +832,8 @@ public class FormulaSigInfo
 					subsorts.get(parent).add(sub);
 		}		
 		
+		MCommunicator.writeToLog("\nInitializing FormulaSigInfo. #sorts="+sorts.size());
+		
 		//long startMegacycles;
 		long startTime;
 		
@@ -883,8 +884,21 @@ public class FormulaSigInfo
 		calculateBounds();		
 		msBounds = (mxBean.getCurrentThreadCpuTime() - startTime) / 1000000;	
 		//mCycBounds = (qs.getCpuTimeInMegaCycles() - startMegacycles);
+		
+		MCommunicator.writeToLog("\nFinished initializing FormulaSigInfo. #sorts="+sorts.size());
 	}
 	
+	public String toString()
+	{
+		StringBuffer result = new StringBuffer();
+		result.append("FormulaSigInfo:\n");
+		result.append("Sorts: "+sorts+"\n");
+		result.append("Predicates: "+predicates+"\n");
+		result.append("SAP Functions: "+getSAPFunctions()+"\n");
+		result.append("Skolem Functions: "+getSkolemFunctions()+"\n");
+		result.append("Skolem Constants: "+getSkolemConstants()+"\n");
+		return result.toString();
+	}
 	
 	private void validateFunction(SigFunction f, String appearedAs)
 	throws MNotASortException
@@ -941,6 +955,11 @@ public class FormulaSigInfo
 				skolemFunctions.add(f);
 		}
 		
+		//MCommunicator.writeToLog("\nFormulaSigInfo: Gathered Skolem and SAP functions:");
+		//MCommunicator.writeToLog("\nSkolem Functions"+skolemFunctions);
+		//MCommunicator.writeToLog("\nSkolem Constants"+skolemConstants);
+		//MCommunicator.writeToLog("\nSAP Functions"+sapFunctions);
+		
 		// Optimization:
 		// Remove "no condition" constants covered by others.
 		// (e.g., suppose "exists x^A and some A" -- don't need
@@ -958,6 +977,13 @@ public class FormulaSigInfo
 				{
 					// Found a different constant of same (or super-) sort
 					// which is not currently flagged for removal by this loop
+					
+					if(!supersorts.containsKey(c.sort))
+						throw new MNotASortException(c.sort.name());
+					if(!supersorts.containsKey(otherc.sort))
+						throw new MNotASortException(otherc.sort.name());
+
+					
 					if(c != otherc && otherc.arity.size() == 0 && !toRemove.contains(otherc) &&
 							(c.sort == otherc.sort || supersorts.get(otherc.sort).contains(c.sort)))
 					{
@@ -1219,7 +1245,27 @@ public class FormulaSigInfo
 		}				
 	}
 	
-	enum SortEdge { NONE, BLUE, RED, REDBLUE, BLUERED};
+	enum SortEdge { 		
+		BLUE (1), 
+		RED (2), 
+		REDBLUE (4), 
+		BLUERED (8);
+		
+		// TODO: may need blueredblue?
+		
+		private final int bitvalue;
+		
+		SortEdge(int bitvalue)
+		{
+			this.bitvalue = bitvalue;
+		}
+		
+		boolean isIn(int arg)
+		{
+			// Is the correct bit flipped?
+			return (arg & bitvalue) != 0;
+		}
+	};
 	
 	private boolean oneDirectionDisjCheck(Set<LeafExpression> superA, Set<LeafExpression> superB)
 	{					
@@ -1321,7 +1367,7 @@ public class FormulaSigInfo
 
 	}
 	
-	private void warshall(SortEdge[][] matrix, SortEdge filled, int max, Map<Integer, LeafExpression> intToSort)
+	private void booleanWarshall(boolean[][] matrix, boolean requireNotDisj, int max, Map<Integer, LeafExpression> intToSort)
 	{
 		for(int kk=0;kk<max;kk++)
 		{
@@ -1333,13 +1379,13 @@ public class FormulaSigInfo
 						MEnvironment.writeErrLine("Trying to extend "+ii+" to "+jj+" via "+kk+"; was "+matrix[ii][jj]);											
 
 					// Do we have a blue edge from i->k and k->j, and i is not disjoint from j?
-					if(matrix[ii][kk] == filled && matrix[kk][jj] == filled)
+					if(matrix[ii][kk] && matrix[kk][jj])
 					{
 						// Blue requires not disj
-                       if(filled == SortEdge.BLUE && !areDisj(intToSort.get(ii), intToSort.get(jj)))                    	   
-                    	   matrix[ii][jj] = filled;
-                       else if(filled != SortEdge.BLUE)
-                    	   matrix[ii][jj] = filled;
+                       if(requireNotDisj && !areDisj(intToSort.get(ii), intToSort.get(jj)))                    	   
+                    	   matrix[ii][jj] = true;
+                       else if(!requireNotDisj)
+                    	   matrix[ii][jj] = true;
 					}
 					else if(enableDebug)						
 						MEnvironment.writeErrLine("   NO CHANGE");
@@ -1398,27 +1444,44 @@ public class FormulaSigInfo
 				return SortEdge.RED;	
 		}
 		
-		return SortEdge.NONE;
+		return null;
 	}
 	
-	Set<SortEdge> combineColorSets(Set<SortEdge> first, Set<SortEdge> second)
-	{	
-		Set<SortEdge> result = new HashSet<SortEdge>();
-		for(SortEdge e1 : first)
+	int combineColorSets(int first, int second, int result)
+	{							
+		// Add new combinations where possible.			
+		if(first == 0 || second == 0)
+			return result; // nothing new to add
+		
+		// Option 1: loop by SortEdges twice, combine if they exist, 
+		// and add if anything new to add.
+		for(SortEdge e1 : SortEdge.values())
 		{
-			for(SortEdge e2 : second)
+			if(e1.isIn(first))
 			{
-				SortEdge combination = combineColors(e1, e2);
-				if(combination != SortEdge.NONE)
-					result.add(combination);
+				for(SortEdge e2 : SortEdge.values())
+				{
+					if(e2.isIn(second))
+					{
+						SortEdge combination = combineColors(e1, e2);
+						if(combination != null && !combination.isIn(result))
+							result += combination.bitvalue;
+					}
+				}
 			}
 		}
+		
+		// Option 2: notice that there are only 4 possible edge types in result.
+		// TODO !!!
+		
 		return result;
 	}
 	
 	private void findFinitarySortsNewDisj()
 	{
 		int max = sorts.size();	
+
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Starting findFinitarySortsNewDisj.");
 		
 		// Fix an ordering of the sorts
 		// Make the ordering deterministic (by alphabetic order)
@@ -1445,10 +1508,12 @@ public class FormulaSigInfo
 		// uses only coercions to travel from src to dest, without crossing
 		// any disjointness boundries.
 		
-		SortEdge[][] blueM = new SortEdge[max][max];				
+		final boolean[][] blueM = new boolean[max][max];				
 		for(int ii=0;ii<max;ii++)
 			for(int jj=0;jj<max;jj++)			
-				blueM[ii][jj] = SortEdge.NONE;	
+				blueM[ii][jj] = false;	
+		
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with initialization.");
 		
 		// Subsorts
 		for(LeafExpression curr : sortedSorts)
@@ -1463,12 +1528,14 @@ public class FormulaSigInfo
 				
 				if(enableDebug)
 					MEnvironment.writeErrLine("Sort "+curr+" had subsort "+sub+". areTheyDisj="+areTheyDisj);
-				
-				
+								
 				if(!areTheyDisj) 
-					blueM[src][dest] = SortEdge.BLUE;
+					blueM[src][dest] = true;
 			}			
 		}
+		
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with adding subsort relation to blue array.");
+		
 		// coercions due to SAP functions (global and local)
 		for(SigFunction f : productiveSAPFunctions)
 		{
@@ -1479,16 +1546,21 @@ public class FormulaSigInfo
 				int dest = sortToInt.get(arg);
 
 				if(!areDisj(f.sort, arg)) 
-					blueM[src][dest] = SortEdge.BLUE;
+					blueM[src][dest] = true;
 			}				
 		}	
 		
+		// TODO ^^ should this be global only? Seems so.
+		
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with adding SAP coercions to blue array.");
 
 		if(enableDebug)
-			printMatrix(blueM, max);
-		warshall(blueM, SortEdge.BLUE, max, intToSort);									
+			printBooleanMatrix(blueM, max);
+		booleanWarshall(blueM, true, max, intToSort);									
 		if(enableDebug)
-			printMatrix(blueM, max);
+			printBooleanMatrix(blueM, max);
+				
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with Warshall on blue array.");
 		
 		// This blue-TC is exactly what should go in
 		// supersAndCoercionsFromTC for use in counter.
@@ -1504,7 +1576,7 @@ public class FormulaSigInfo
 				if(row==col) continue; // don't self-propagate				
 				LeafExpression fromSort = intToSort.get(col);
 				
-				if(blueM[row][col] == SortEdge.BLUE)
+				if(blueM[row][col])
 				{					
 					supersAndCoercionsFromTC.get(fromSort).add(toSort);
 				}
@@ -1516,10 +1588,10 @@ public class FormulaSigInfo
 		//////////////////////////////////////////////////////////////
 		// Then build the set of valid red pairs. A valid red pair uses
 		// only real functions, and can span disjointness boundries.
-		SortEdge[][] redM = new SortEdge[max][max];				
+		final boolean[][] redM = new boolean[max][max];				
 		for(int ii=0;ii<max;ii++)
 			for(int jj=0;jj<max;jj++)			
-				redM[ii][jj] = SortEdge.NONE;	
+				redM[ii][jj] = false;	
 									
 		// f, g, etc.
 		for(SigFunction f : productiveFunctions)	
@@ -1529,15 +1601,17 @@ public class FormulaSigInfo
 				//MCommunicator.writeToLog("\nFUNC: "+f.sort+" -> "+arg);
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
-				redM[src][dest] = SortEdge.RED;
+				redM[src][dest] = true;
 			}
 		}
 		
 		if(enableDebug)
-			printMatrix(redM, max);	
-		warshall(redM, SortEdge.RED, max, intToSort);											
+			printBooleanMatrix(redM, max);	
+		booleanWarshall(redM, false, max, intToSort);											
 		if(enableDebug)
-			printMatrix(redM, max);
+			printBooleanMatrix(redM, max);
+		
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with Warshall on red array.");
 		
 		/////////////////////////////////////////
 		
@@ -1549,22 +1623,19 @@ public class FormulaSigInfo
 		// Need to collect SETS of those, and propagate with union as our "min"
 		// and path concatenation as our "+".
 		
-		// No generics with arrays
-		Set[][] validM = new Set[max][max];				
+		final int[][] validM = new int[max][max];				
 		for(int ii=0;ii<max;ii++)
 			for(int jj=0;jj<max;jj++)
-			{
-				validM[ii][jj] = new HashSet<SortEdge>();
-							
-				if(redM[ii][jj] == SortEdge.RED)
-					validM[ii][jj].add(SortEdge.RED);
+			{										
+				if(redM[ii][jj])
+					validM[ii][jj] += SortEdge.RED.bitvalue;
 				
-				if(blueM[ii][jj] == SortEdge.BLUE)
-					validM[ii][jj].add(SortEdge.BLUE);
+				if(blueM[ii][jj])
+					validM[ii][jj] += SortEdge.BLUE.bitvalue;
 			}
 		
-		if(enableDebug)
-			printSetMatrix(validM, max);
+		//if(enableDebug)
+		//	printSetMatrix(validM, max);
 		
 		// Modified Warshall
 		for(int kk=0;kk<max;kk++)
@@ -1575,17 +1646,26 @@ public class FormulaSigInfo
 				{
 					// Warshall with UNION for min and color concat. for +
 					// M(i, j) = UNION {M(i, j) , M(i, k) ~+ M(k, j) } 					
-					Set<SortEdge> combined = combineColorSets(validM[ii][kk], validM[kk][jj]);
-					if(validM[ii][jj].addAll(combined))
-						if(enableDebug)
-							MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
+					//final Set<SortEdge> combined = combineColorSets(validM[ii][kk], validM[kk][jj]);
+					//System.err.println("Combined: "+validM[ii][kk]+" and "+validM[kk][jj]);					
+					//System.err.println("ii, jj Was: "+validM[ii][jj]);
+
+					// Keep old trues, don't overwrite!
+					validM[ii][jj] = combineColorSets(validM[ii][kk], validM[kk][jj], validM[ii][jj]);					
+					
+					//System.err.println("ii, jj Is now: "+validM[ii][jj]);
+					//if(validM[ii][jj].addAll(combined))
+					//	if(enableDebug)
+					//		MEnvironment.writeErrLine("Changed: "+intToSort.get(ii)+","+intToSort.get(jj)+" to "+validM[ii][jj]+" via "+intToSort.get(kk));
 				}				
 			}
 		}
 				
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with blue/red Warshall.");
+		
 		// debug only
-		if(enableDebug)
-			printSetMatrix(validM, max);
+		//if(enableDebug)
+		//	printSetMatrix(validM, max);
 		
 		
 		for(SigFunction f : productiveFunctions)	
@@ -1595,15 +1675,15 @@ public class FormulaSigInfo
 				int src = sortToInt.get(f.sort);
 				int dest = sortToInt.get(arg);
 				
-				// Does this shadow-function sit on a cycle? (path from dest to src)
-				if(!validM[dest][src].isEmpty())
+				// Does this productive shadow-function sit on a cycle? (path from dest to src)
+				if(validM[dest][src] > 0)
 				{
 					//MCommunicator.writeToLog("\nTAINTED CYCLE: Function "+f+"("+src+","+dest+").");
 					
 					// tainted cycle! Everything reachable from dest is infinitary.
 					for(int option=0;option<max;option++)
 					{
-						if(!validM[option][dest].isEmpty())
+						if(validM[option][dest] > 0)
 						{							
 							LeafExpression infSort = intToSort.get(option);							
 							finitarySorts.remove(infSort);
@@ -1614,7 +1694,9 @@ public class FormulaSigInfo
 					//MCommunicator.writeToLog("\nFunction "+f+"("+src+","+dest+") did not have a path from dest to src.");
 				
 			}
-		}			
+		}	
+		
+		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with function!");
 	}
 
 	private void calculateBounds()
@@ -2482,11 +2564,23 @@ public class FormulaSigInfo
 class InvalidFormulaSigInfo extends FormulaSigInfo
 {
 	int reason;
+	String explanation = "";
+	
+	public String toString()
+	{
+		return "InvalidFormulaSigInfo: failed for reason code: "+reason+". "+explanation;
+		
+	}
 	
 	InvalidFormulaSigInfo(int reason)
-	throws MUserException
 	{		
 		this.reason = reason;
+	}
+	
+	InvalidFormulaSigInfo(int reason, String explanation)
+	{		
+		this.reason = reason;
+		this.explanation = explanation;
 	}
 }
 

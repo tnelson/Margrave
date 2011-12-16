@@ -190,19 +190,31 @@ class MExploreCondition
 	
 	MExploreCondition isaSubstitution(Variable v, Relation r)
 	{
-		// We have (isa x A alpha(x)). alpha(x) may not be well-sorted!
-		// Want to convert to
-		// \exists y^A (x = y) and alpha(y).
+		// First: Is this ExploreCondition TRUE?
+		// If so, encode via sort-as-predicate so FormulaSigInfo can extract the correct information.
+		// TODO: Later on, change extraction process to include the below.
 		
-		Map<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
-		Variable freshVar = MFormulaManager.makeFreshVariable();
-		toReplace.put(v, freshVar);
-		Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
-		Formula eqFmla = MFormulaManager.makeEqAtom(v, freshVar);
-		Formula innerFmla = MFormulaManager.makeAnd(eqFmla, subsFmla);
-		Decl decl = MFormulaManager.makeOneOfDecl(freshVar, r); // x acts as type A inside		
-		fmla = MFormulaManager.makeExists(innerFmla, decl);
-		madeEDBs.add(r);	
+		if(fmla.equals(Formula.TRUE))
+		{
+			fmla = MFormulaManager.makeAtom(v, r);
+		}
+		else
+		{
+			// We have (isa x A alpha(x)). alpha(x) may not be well-sorted!
+			// Want to convert to
+			// \exists y^A (x = y) and alpha(y).
+		
+			Map<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+			Variable freshVar = MFormulaManager.makeFreshVariable();
+			toReplace.put(v, freshVar);
+			Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+			Formula eqFmla = MFormulaManager.makeEqAtom(v, freshVar);
+			Formula innerFmla = MFormulaManager.makeAnd(eqFmla, subsFmla);
+			Decl decl = MFormulaManager.makeOneOfDecl(freshVar, r); // x acts as type A inside		
+			fmla = MFormulaManager.makeExists(innerFmla, decl);
+			madeEDBs.add(r);
+		}
+		
 		return this;
 	}
 		

@@ -1458,6 +1458,9 @@
 (check-false (m-term? #'(f x (g x z) 'c 2)))
 (check-false (m-term? #'('c x (g x z) 'c 2)))
 
+(define (make-axiom-command vocab axiom)
+  (define vocab-xexpr (xml-make-vocab-identifier vocab))
+  (xml-make-command "ADD" (list vocab-xexpr (m-axiom->xexpr axiom))))
 
 (define (m-axiom->xexpr axiom)         
   (if (m-formula? axiom)

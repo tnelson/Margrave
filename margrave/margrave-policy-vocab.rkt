@@ -403,10 +403,10 @@
        (define the-vocab-syntax #'myvocab)                    
        
        (define the-axioms-clauses (syntax-e #'(myaxioms ...)))              
-       (define axioms-xml (map m-axiom->xexpr the-axioms-clauses))
+       (define axioms-xml (map (lambda (axiom) (make-axiom-command (->string #'theoryname) axiom)) the-axioms-clauses))
        
        (with-syntax ([axioms-xml axioms-xml]
-                     [theory-name (->string 'theoryname)]                     
+                     [theory-name (->string #'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
                      [the-axioms-list the-axioms-clauses])                                               
          (syntax/loc stx (m-theory theory-name 'axioms-xml the-vocab-syntax 'the-axioms-list)))))))

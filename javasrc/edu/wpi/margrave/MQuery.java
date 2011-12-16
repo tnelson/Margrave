@@ -369,14 +369,14 @@ public class MQuery extends MIDBCollection
 
 				info.printInfo();
 			}
-
+			
 			return info;
 		} catch (MUnsupportedFormulaException E) {
 			// unsupported
 			return new InvalidFormulaSigInfo(2);
 		} catch (MNotASortException E) {
 			// unsupported
-			return new InvalidFormulaSigInfo(3);
+			return new InvalidFormulaSigInfo(3, E.getLocalizedMessage());
 		}
 
 	}
@@ -460,6 +460,8 @@ public class MQuery extends MIDBCollection
 					+ "ms, pre-Kodkod query processing time: " + cputime
 					+ "ms.");
 		}
+		
+		MCommunicator.writeToLog("\nComputed Bounds:\n"+herbrandBounds);
 		
 		return new MPreparedQueryContext(this, queryWithAxioms, herbrandBounds,
 				 msPreprocessingTime, cputime, 0);
@@ -1401,18 +1403,19 @@ public class MQuery extends MIDBCollection
 		MCommunicator.writeToLog("freeVars = "+freeVarsUnsorted+"\n");
 		MCommunicator.writeToLog("\n\n");
 		
-		// FIRST: Published vars
+		// FIRST: Published vars (vars declared free in the query statement)
 		for (String vname : publish)
 		{
 			Variable v = MFormulaManager.makeVariable(vname);
 			varOrdering.add(v);
 			
+			// TN 12/16/11: Removed. Under new query language, all free vars are listed, but they need not be used.
 			// Make sure that this variable actually appears in the query.
 			// Throw an exception if it is garbage.
-			if(!freeVarsUnsorted.contains(v))
-			{
-				throw new MGEUnknownIdentifier("The variable "+v+" appeared in the query's free variable list, did not appear in the condition.");
-			}
+			//if(!freeVarsUnsorted.contains(v))
+			//{
+			//	throw new MGEUnknownIdentifier("The variable "+v+" appeared in the query's free variable list, did not appear in the condition.");
+			//}
 			
 			Expression theSort = uber.getSort(sortsForPublish.get(vname)).rel;
 			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
