@@ -7,11 +7,14 @@
 (require "../margrave/margrave.rkt")
 
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "M:\\RktMargrave\\margrave"
+                       ;#:margrave-path "M:\\RktMargrave\\margrave"
+                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave"
                        #:jvm-params '("-Xmx512m"))
 
-(m-load-policy "before" "M:\\RktMargrave\\salman\\rbac_before.p")
-(m-load-policy "after" "M:\\RktMargrave\\salman\\rbac_after.p")
+;(m-load-policy "before" "M:\\RktMargrave\\salman\\rbac_before.p")
+;(m-load-policy "after" "M:\\RktMargrave\\salman\\rbac_after.p")
+(m-load-policy "before" "F:\\msysgit\\git\\margrave\\salman\\rbac_before.p")
+(m-load-policy "after" "F:\\msysgit\\git\\margrave\\salman\\rbac_after.p")
 
 ; The query is the conjunction of a bunch of conditions:
 (define qrysexpr '(and 

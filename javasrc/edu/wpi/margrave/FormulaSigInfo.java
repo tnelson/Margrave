@@ -50,15 +50,12 @@ class SigFunction
 	String name;		
 	List<LeafExpression> arity = new ArrayList<LeafExpression>();
 	LeafExpression sort;
-
 	
 	// Does this function in fact have no conditions?
 	// e.g. "\exists x^A ." 
 	// Used to optimize counting: If another function of the
 	// same arity and sort exists, no need to consider this one.
-	boolean noCondition = false;
-	
-	
+	boolean noCondition = false;	
 	
 	// Was this function induced by a sort symbol appearing as a
 	// predicate? (e.g., \forall x^A B(x) where A and B are sorts,
@@ -70,6 +67,9 @@ class SigFunction
 	// if x is eventually existentially quantified, will be the function 
 	// induced by that quantifier.
 	SigFunction funcCause = null;
+	
+	// A LOCAL SAP is one where the variable is existentially quantified.
+	// A GLOBAL SAP is one where the variable is universally quantified.
 	
 	public String getID()
 	{
@@ -103,11 +103,15 @@ class SigFunction
 		return result;
 	}
 	
-	public SigFunction safeClone()
+	public SigFunction safeClone(String addToID)
 	{
-		SigFunction result = new SigFunction(this.name, this.sort, this.noCondition);
+		SigFunction result = new SigFunction(this.name+addToID, this.sort, this.noCondition);
 		result.arity = new ArrayList<LeafExpression>(this.arity); 
 		result.fromSortAsPredicate = this.fromSortAsPredicate;
+		result.funcCause = this.funcCause;
+		result.noCondition = this.noCondition;
+		result.theCause = this.theCause;
+		result.variableCause = this.variableCause;
 		
 		MCommunicator.writeToLog("\nCloning a pre-existing SigFunction: "+name);
 		
@@ -403,6 +407,14 @@ public class FormulaSigInfo
 				// Walk the AST.
 				Set<SigFunction> temp = within.accept(this);
 
+				// We cache results of walking subtrees. Consider
+				// (and (forall y (exists x (P x))) (exists x (P x)))
+				// If we walk the RHS first, the universal LHS case will 
+				// increase the arity of BOTH Skolem functions. Avoid that.
+				Set<SigFunction> clonedtemp = new HashSet<SigFunction>();
+				for(SigFunction f : temp)
+					clonedtemp.add(f.safeClone(""));
+				
 				for(Decl d : q.decls())
 				{
 					// If not a LeafExpression, not supported.
@@ -419,9 +431,10 @@ public class FormulaSigInfo
 						error_condition += " Decl "+d+" did not use the ONE multiplicity. Only singleton variables are supported.";
 						return new HashSet<SigFunction>();						
 					}
-					
-					for(SigFunction f : temp)
-					{
+										
+														
+					for(SigFunction f : clonedtemp)
+					{						
 						if(!f.fromSortAsPredicate)
 							f.arity.add((LeafExpression) d.expression());
 						else
@@ -429,17 +442,24 @@ public class FormulaSigInfo
 							// Special handling for SAP functions. 
 							// GLOBAL coercions: Only collect the first universal.
 							// LOCAL: treat as normal
-							if(f.arity.size() == 0) // always collect first universal
+							
+							// That seems wrong. SAPs should always be unary.
+							
+							// This is a GLOBAL coercion on this variable.
+							if(f.funcCause == null && d.variable().equals(f.variableCause))
 								f.arity.add((LeafExpression) d.expression());
-							else if(f.funcCause != null) // local
-								f.arity.add((LeafExpression) d.expression());
+														
+							//if(f.arity.size() == 0) // always collect first universal
+							//	f.arity.add((LeafExpression) d.expression());
+							//else if(f.funcCause != null) // local
+							//	f.arity.add((LeafExpression) d.expression());
 						}
 					}
 						
 				}
 				
 							
-				return cache(q, temp);
+				return cache(q, clonedtemp);
 			}
 			else
 			{
@@ -485,8 +505,14 @@ public class FormulaSigInfo
 						if(!sap.fromSortAsPredicate)
 							continue;
 						
-						if(d.variable().equals(sap.variableCause))
-							sap.funcCause = f;
+						// This must be a LOCAL SAP, because its trigger variable was this
+						// existential. Only take the innermost one! Don't overwrite if
+						// the variable is originally used higher up.
+						if(sap.funcCause == null && d.variable().equals(sap.variableCause))
+						{
+							sap.funcCause = f;							
+							sap.arity.add((LeafExpression) d.expression());
+						}
 					}
 					
 					
@@ -524,7 +550,7 @@ public class FormulaSigInfo
 				{																	
 					for(SigFunction dopple : intersection)
 						if(!dopple.fromSortAsPredicate) // SAP is the identity
-							result.add(dopple.safeClone());
+							result.add(dopple.safeClone("+"));
 				}
 				
 				result.addAll(newfuncs);
@@ -545,6 +571,9 @@ public class FormulaSigInfo
 			// existential QuantifiedFormula object, but we need them 
 			// induce separate functions. Hence the "safe cloning" below. 
 								
+			// But note: it's vital that we take differences in arity seriously!
+
+			
 			if(cache.containsKey(bf))
 				return lookup(bf);
 			cached.add(bf);
@@ -565,7 +594,7 @@ public class FormulaSigInfo
 				for(SigFunction dupe : overlaps)			
 				{
 					if(!dupe.fromSortAsPredicate) // SAP is the identity
-						result.add(dupe.safeClone());
+						result.add(dupe.safeClone("+"));
 				}
 			}
 			
@@ -636,12 +665,7 @@ public class FormulaSigInfo
 	
 	// Set of all Skolem SAP functions within fmla
 	private Set<SigFunction> sapFunctions = 
-		new HashSet<SigFunction>();
-	// Set of all Skolem SAP constants within fmla
-	private Set<SigFunction> sapConstants = 
-		new HashSet<SigFunction>();
-	
-	
+		new HashSet<SigFunction>();		
 	
 	// Set of all the Skolem functions which can be used to build
 	// terms over the Skolem signature (not SAP, though)
@@ -892,14 +916,8 @@ public class FormulaSigInfo
 		
 		for(SigFunction f : results)
 			if(f.fromSortAsPredicate)
-			{
-				if(f.arity.size() == 0)
-					sapConstants.add(f);
-				else
-					sapFunctions.add(f);
-			}
-			
-		results.removeAll(sapConstants);
+				sapFunctions.add(f);
+					
 		results.removeAll(sapFunctions);
 		
 		if(sap.equals(EnumSAPHandling.sapThrowException))
@@ -909,7 +927,6 @@ public class FormulaSigInfo
 		}
 		else if(sap.equals(EnumSAPHandling.sapIgnore))
 		{
-			sapConstants.clear();
 			sapFunctions.clear();
 		}
 		// Otherwise, keep and deal with in term counting
@@ -981,9 +998,6 @@ public class FormulaSigInfo
 			if(!units.contains(c.sort))
 				units.add(c.sort);
 		for(SigFunction c : originalConstants)
-			if(!units.contains(c.sort))
-				units.add(c.sort);
-		for(SigFunction c : sapConstants)
 			if(!units.contains(c.sort))
 				units.add(c.sort);
 		
@@ -1665,12 +1679,13 @@ public class FormulaSigInfo
 			if(finitarySorts.contains(c.sort))
 				toPopulate.add(c.sort);
 			
-			// LOCAL SAP coercions (from SAP constants)
+			// LOCAL SAP coercions 
 			// not true coercions, just statements that "c" may also be a B as well as an A.
-			for(SigFunction sc : sapConstants)
-				if(sc.funcCause.equals(c) && finitarySorts.contains(sc.sort))
-					toPopulate.add(sc.sort);
-				
+			for(SigFunction sf : sapFunctions)
+				if(sf.funcCause != null) // locals only
+					if(sf.funcCause.equals(c) && finitarySorts.contains(sf.sort))
+						toPopulate.add(sf.sort);
+									
 			// GLOBALS are applied below by supersAndCoercionsFromTC. Not needed here.
 			
 			// GLOBAL SAP coercions (from SAP functions)
@@ -1688,10 +1703,10 @@ public class FormulaSigInfo
 			
 			// Remember where we have incremented the counter for this constant.
 			// Don't double-count!
-			Set<LeafExpression> countedIn = new HashSet<LeafExpression>();
+			Set<LeafExpression> countedIn = new HashSet<LeafExpression>();						
 			
 			for(LeafExpression pop : toPopulate)
-			{
+			{						
 				// don't duplicate
 				if(countedIn.contains(pop))
 					continue;
@@ -2058,7 +2073,7 @@ public class FormulaSigInfo
 		Formula fmla20 = y.in(C).forSome(y.oneOf(B)).forAll(x.oneOf(A)).and(A.some());        
 		FormulaSigInfo test20 = new FormulaSigInfo(sorts2, order2, predicates, emptyFunctions, emptyConstants, fmla20, EnumSAPHandling.sapKeep, termTypes);
 		if(test20.getTermCount() != 2 || test20.getTermCount(B) != 2 || test20.getTermCount(C) != 2 || test20.getTermCount(A) != 1)
-			MEnvironment.errorWriter.println("FormulaSigInfo test case 20 failed.");	
+			MEnvironment.errorWriter.println("FormulaSigInfo test case 20 failed.");					
 		
 		// test local SAP coercions have same arity as the real function they come from
 		Formula fmla21 = z.in(A).forSome(z.oneOf(C)).forAll(y.oneOf(B)).forAll(x.oneOf(A)).and(B.some());        
@@ -2069,7 +2084,7 @@ public class FormulaSigInfo
 		// both funcs are useless (A is empty unless f can produce a term, but f needs something from A.)
 		if(test21.productiveFunctions.size() != 0 || test21.productiveSAPFunctions.size() != 0)
 			MEnvironment.errorWriter.println("FormulaSigInfo test case 21(a) failed.");
-	
+		
 		
 		// test no doublecounting.
 		// Say forall x^B, C(x) or A(x).
@@ -2294,7 +2309,7 @@ public class FormulaSigInfo
 		
 		StringBuffer result = new StringBuffer();
 		
-		if(sapConstants.size() > 0 || sapFunctions.size() > 0)
+		if(sapFunctions.size() > 0)
 		{
 			result.append(boldOn+"A sort symbol occured as a predicate. Setting for Sort-as-predicate handling was:" + boldOff+eol);
 			if(sap.equals(EnumSAPHandling.sapKeep))
@@ -2312,13 +2327,6 @@ public class FormulaSigInfo
 		for(SigFunction c : originalConstants)
 			result.append("  "+ c.toPrettyString() + ""+eol);
 		
-		if(sapConstants.size() > 0)
-		{
-			result.append(boldOn+"Coercions applied to individual constants due to sorts-as-predicates:"+boldOff+eol);
-			for(SigFunction sc : sapConstants)
-				result.append("  "+ sc.toPrettyString() + ""+eol);
-		}
-
 		result.append(""+eol);
 		
 		result.append(boldOn+"Functions (both original and Skolem): "+boldOff+eol);
@@ -2434,10 +2442,40 @@ public class FormulaSigInfo
 		return result;
 	}
 	
+	Set<SigFunction> getLocalSAPFunctions()
+	{
+		Set<SigFunction> result = new HashSet<SigFunction>();
+		for(SigFunction f : sapFunctions)
+			if(f.funcCause != null)
+				result.add(f);
+		return result;
+	}
+
+	Set<SigFunction> getGlobalSAPFunctions()
+	{
+		Set<SigFunction> result = new HashSet<SigFunction>();
+		for(SigFunction f : sapFunctions)
+			if(f.funcCause == null)
+				result.add(f);
+		return result;
+
+	}
+
 	Set<SigFunction> getSAPFunctions()
 	{
 		return new HashSet<SigFunction>(sapFunctions);
 	}
+	
+	Set<SigFunction> getSkolemFunctions()
+	{
+		return new HashSet<SigFunction>(skolemFunctions);
+	}
+
+	Set<SigFunction> getSkolemConstants()
+	{
+		return new HashSet<SigFunction>(skolemConstants);
+	}
+
 	
 }
 

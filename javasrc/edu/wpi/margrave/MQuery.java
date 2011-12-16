@@ -1172,6 +1172,9 @@ public class MQuery extends MIDBCollection
 		sort1a = env.getRelation("Sort1a");
 		Relation sort1b = env.getRelation("Sort1b");
 		Relation sort1c = env.getRelation("Sort1c");
+		
+		env.addPredicate("P", "Sort1");
+		Relation P = env.getRelation("P");
 
 		// OLD approach to sorts-as-predicates was:
 		// f: 2->3. EXISTS c: sort1 AND sort2. (treats as two different
@@ -1185,7 +1188,7 @@ public class MQuery extends MIDBCollection
 				z.in(sort2).forSome(z.oneOf(sort1)));
 		MQuery test9 = new MQuery(f, env);
 		if (test9.runQuery().getCeilingComputed() != 2)
-			MEnvironment.writeErrLine("Test 9a failed!");		
+			MEnvironment.writeErrLine("Test 9a failed!");			
 		
 		// Same thing, using subsorts (this is really the same test as 9a,
 		// actually?)
@@ -1196,7 +1199,6 @@ public class MQuery extends MIDBCollection
 		if (test9.runQuery().getCeilingComputed() != 2)
 			MEnvironment.writeErrLine("Test 9b failed!");
 
-		// Test sapFunctions distinct from sapConstants
 		// Only one constant (z in sort2). It gets locally coerced to sort1. 
 		// And there's a global coercion from sort1 to sort1a.
 		// Since we are aware of disjointness, needs to be sort1a and not, say, sort3 (due to disj <-> incomparable)
@@ -1207,9 +1209,24 @@ public class MQuery extends MIDBCollection
 		MPreparedQueryContext result = test9.runQuery();
 		if (result.getCeilingComputed() != 1 ||
 				result.ceilingsSufficient.get("Sort1a").intValue() != 1 ||
-				result.herbrandBounds.getSAPFunctions().size() != 1)
+				result.herbrandBounds.getGlobalSAPFunctions().size() != 1 ||
+				result.herbrandBounds.getLocalSAPFunctions().size() != 1)
 			MEnvironment.writeErrLine("Test 9c failed!");
 		result.getTotalIterator().hasNext();		
+				
+		// (and (forall y (exists x (P x))) (exists x (P x)))
+		// If RHS is evaluated first, don't end up with
+		// 2 functions instead of 1 function and 1 constant.
+		// (See FormulaSigInfo.java:WalkAST:visit(QuantifiedFormula q))
+		f1 = x.in(P).forSome(x.oneOf(sort1));
+		f2 = f1.forAll(y.oneOf(sort1));
+		f = f2.and(f1); // VITAL that this is f2, not restating f2
+		test9 = new MQuery(f, env);
+		result = test9.runQuery();
+		if (result.herbrandBounds.getSkolemFunctions().size() != 1 ||
+				result.herbrandBounds.getSkolemConstants().size() != 1)
+			MEnvironment.writeErrLine("Test 9d failed!");
+		
 		
 		
 		MEnvironment.writeErrLine("----- End MQuery Tests -----");
