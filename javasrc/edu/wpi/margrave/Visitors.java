@@ -588,7 +588,8 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		}
 	}
 
-	public Expression visit(Variable var) {
+	public Expression visit(Variable var) 
+	{		
 		if (cache.containsKey(var))
 			return lookup(var);
 		cached.add(var);

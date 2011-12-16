@@ -793,14 +793,22 @@ public class MFormulaManager
 	static Expression substituteVarTuple(Expression expr, Map<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
+		MCommunicator.writeToLog("\nIn MFormulaManager.substituteVarTuple, expr="+expr+"; termpairs="+termpairs);
+		
 		// Do the substitution recursively
 		if(expr instanceof Variable)
 		{
 			Variable v = (Variable) expr;
 			if(termpairs.containsKey(v))
+			{
+				MCommunicator.writeToLog("\n  Found Variable="+v+". Returning: "+termpairs.get(v));
 				return termpairs.get(v);
+			}
 			else
+			{
+				MCommunicator.writeToLog("\n  Found Variable="+v+". No entry for this variable, so making no change.");
 				return v;
+			}
 		}
 		else if(expr instanceof NaryExpression)
 		{
@@ -821,8 +829,8 @@ public class MFormulaManager
 
 			List<Expression> theExpr = new ArrayList<Expression>();
 			
-			theExpr.add(be.left());
-			theExpr.add(be.right());
+			theExpr.add(substituteVarTuple(be.left(), termpairs));
+			theExpr.add(substituteVarTuple(be.right(), termpairs));
 			
 			if(ExprOperator.PRODUCT.equals(be.op()))
 				return MFormulaManager.makeExprTupleE(theExpr);

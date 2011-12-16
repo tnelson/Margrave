@@ -57,19 +57,21 @@
                    ([after permit] u p)
                    (not ([before permit] u p))
                    
-                   ; Roles and permissions (and negations)
-                   (hadRole 'kathi 'professor)
+                   ; Roles and permissions (and negations)                   
                    (hadRole 'salman 'student)
                    (hadRole 'salman 'ta)
                    (hadRole 'salman 'ra)
+                   (not (hadRole 'salman 'professor))
+                   
                    (hadRole 'tim 'student)                       
                    (hadRole 'tim 'ra)       
                    (not (hadRole 'tim 'professor))
-                   (not (hadRole 'tim 'ta))
-                   (not (hadRole 'salman 'professor))
+                   (not (hadRole 'tim 'ta))   
+                   
+                   (hadRole 'kathi 'professor)
                    (not (hadRole 'kathi 'ta))
                    (not (hadRole 'kathi 'ra))
-                   (not (hadRole 'kathi 'student)) 
+                   (not (hadRole 'kathi 'student))                   
                    
                    (hadPermission 'professor 'submitPaper)
                    (hadPermission 'professor 'grade)
@@ -94,7 +96,7 @@
                    
                    (= u 'tim)
                    (= p 'grade)
-                   
+                                      
                    ; role permissions are EXACTLY THE SAME in new policy
                    (forall rx Role 
                            (forall px Permission 
@@ -103,15 +105,14 @@
                    
                    ; ^^^ TODO: axiom for subset constraints on _predicates_. will eliminate this forall.
                    
-                    ;permits are EXACTLY THE SAME in new policy except Tim Grading.
+                    ;permits are EXACTLY THE SAME in new policy except: (Tim, Grading), which can change.  
                    (forall uy User 
                            (forall py Permission 
                                    (implies (or (not (= uy 'tim)) 
                                                 (not (= py 'grade))) 
-                                            (iff 
-                                             ([after permit] uy py)
-                                             ([before permit] uy py) ))))
-                   
+                                            (iff
+                                             ([before permit] uy py)
+                                             ([after permit] uy py) ))))
                    ; ^^^ note: this statement induces 2 Skolem functions from (User x Permission) -> Role
                    ; because each policy's permit fmla has 1 existential in it...
                    ))
