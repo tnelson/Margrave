@@ -38,9 +38,13 @@
          run-java-test-cases
          mtext
          pause-for-user
+         
          m-load-policy
          m-let
          m-is-poss?
+         m-show
+         m-get
+         
          send-and-receive-xml
          load-xacml-policy
          load-sqs-policy
@@ -432,11 +436,33 @@ gmarceau
   (m-is-poss? qryid)
   [-> string? boolean?]
   (when (engine-needs-starting?)
-    (raise-user-error "The Java engine is not started. Unable to load policy."))
+    (raise-user-error "The Java engine is not started."))
 
   (define the-xml (xml-make-is-possible-command qryid))
   (define xml-response (send-and-receive-xml the-xml)) 
   (xml-bool-response->bool xml-response))
+
+(define/contract
+  (m-show qryid)
+  [-> string? string?]
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started."))
+  
+  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid))
+  (define xml-response (send-and-receive-xml the-xml))
+  
+  (pretty-print-model (document-element xml-response)))
+
+(define/contract
+  (m-get qryid)
+  [-> string? m-scenario?]
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started."))
+  
+  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid))
+  (define xml-response (send-and-receive-xml the-xml))
+  
+  (xml->scenario (document-element xml-response)))
 
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))        

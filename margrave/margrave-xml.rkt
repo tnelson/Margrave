@@ -113,32 +113,70 @@
 ;(define predicate-hash (make-hash))
 
 
+(define/contract (xml->scenario xml-response)
+  (element? . -> . m-scenario?)
+  
+  (define model-element (get-child-element xml-response 'MODEL))
+  (define relation-elements (get-child-elements model-element 'RELATION))
+  (define universe-element (get-child-element model-element 'UNIVERSE))
+  (define model-size (string->number (get-attribute-value model-element 'size)))
+  (define annotation-elements (get-child-elements model-element 'ANNOTATION))
+  (define statistics-element (get-child-element xml-response 'STATISTICS))
+  
+  (define mutable-atoms-hash (make-hash))
+  
+  (define (handle-atom ele)
+    (define atom-element-name (pcdata-string (first (element-content ele))))
+    (hash-set! mutable-atoms-hash atom-element-name #t)
+    atom-element-name)
+  
+  (define (handle-tuple ele)
+    (define atoms-elements (get-child-elements ele 'ATOM))
+    (map handle-atom atoms-elements))
+  
+  (define (handle-relation ele)
+    (define tuple-elements (get-child-elements ele 'TUPLE))
+    (define relation-is-sort (equal? "sort" (get-attribute-value ele 'type)))
+    (define relation-arity (string->number (get-attribute-value ele 'arity)))
+    (define relation-name  (get-attribute-value ele 'name))   
+    (m-relation relation-name 
+                (cond [relation-is-sort 'sort]
+                      [(equal? (string-ref relation-name 0) #\$) 'skolem]
+                      [else 'relation])
+                (map handle-tuple tuple-elements)))
+    
+  (define (handle-statistics ele)
+    (define computed-max (get-attribute-value ele 'computed-max-size))
+    (define user-provided-max (get-attribute-value ele 'user-max-size))
+    (define used-max (get-attribute-value ele 'max-size))
+    (define computed-max-num (string->number computed-max))
+    (define user-provided-max-num (string->number user-provided-max))
+    (define used-max-num (string->number used-max))    
+    (m-statistics computed-max-num user-provided-max-num used-max-num))
+  
+  (define (handle-annotation ele)
+    (define the-annotation (pcdata-string (first (element-content ele))))
+    the-annotation)
+  
+  (define the-relations (map handle-relation relation-elements))
+  (define the-sorts (filter (lambda (rel) (equal? 'sort (m-relation-reltype rel))) the-relations))
+  (define the-skolems (filter (lambda (rel) (equal? 'skolem (m-relation-reltype rel))) the-relations))
+  (define the-others (filter (lambda (rel) (equal? 'relation (m-relation-reltype rel))) the-relations))
+  
+  (m-scenario model-size 
+              (hash-keys mutable-atoms-hash)
+              the-sorts
+              the-skolems
+              the-others
+              (handle-statistics statistics-element) 
+              (map handle-annotation annotation-elements)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; In progress: convert XML representation of scenario
-; to something easier to work with.
-(define-struct/contract m-relation
-  ([name string?]
-   [contents (listof (listof string?))]))
-
-(define-struct/contract m-scenario
-  ([size number?]
-   [elements (listof string?)]
-   [relations (listof m-relation?)]
-   [annotations (listof string?)]
-   ;[ (listof string?)]
-   ))
-
-(define/contract 
-  (xml-response->m-scenario doc)
-  [-> document? m-scenario?]
-  #f)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 ;This function goes through the xml and updates atom-hash and predicate-hash
 ;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
+; !!! TODO: update this function to re-use xml->scenario instead of duplicating code
 (define (pretty-print-model xml-response)
   (let* ([atom-hash (make-hash)]
          [predicate-hash (make-hash)]
@@ -352,6 +390,7 @@
                (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, set the CEILING parameter.\n" used-max-num))])
         
         (get-output-string string-buffer)))))
+
 
 ;************ Pretty Print Info *******************
 

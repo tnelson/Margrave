@@ -272,6 +272,32 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Helper struct for scenarios. For now, atoms are strings.
+
+(define-struct/contract m-relation
+  ([name string?]   
+   [reltype symbol?]
+   [tuples (listof (listof string?))])
+  #:transparent)
+
+(define-struct/contract m-statistics
+  ([computed-max (or/c number? false?)]
+   [user-provided-max (or/c number? false?)]
+   [used-max (or/c number? false?)])
+  #:transparent)
+
+(define-struct/contract m-scenario
+  ([size integer?]
+   [atoms (listof string?)]
+   [sorts (listof m-relation?)]
+   [skolems (listof m-relation?)]
+   [relations (listof m-relation?)]
+   [statistics m-statistics?]
+   [annotations (listof string?)])
+  #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define reserved-words

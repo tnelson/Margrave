@@ -120,9 +120,9 @@
 
         
 (time (m-let "Q" '([u User] [p Permission]) 
-                   qrysexpr
-                   #:debug 2))   
+                   qrysexpr))   
 (time (m-is-poss? "Q"))
+(time (m-get "Q"))
 
 ;(time (m-let "QMinimalComb" '([u User] [p Permission]) 
 ;             '(and ([before permit] u p)
