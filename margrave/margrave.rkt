@@ -443,23 +443,31 @@ gmarceau
   (xml-bool-response->bool xml-response))
 
 (define/contract
-  (m-show qryid)
-  [-> string? string?]
+  (m-show qryid #:include [include-list empty])
+  [->* [string?]
+       [#:include (listof m-formula?)]
+       string?]
+  
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started."))
   
-  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid))
+  (define include-xml (xml-make-include (map m-formula->xexpr include-list)))
+  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid (list include-xml)))  
   (define xml-response (send-and-receive-xml the-xml))
   
   (pretty-print-model (document-element xml-response)))
 
 (define/contract
-  (m-get qryid)
-  [-> string? m-scenario?]
+  (m-get qryid #:include [include-list empty])
+  [->* [string?]
+       [#:include (listof m-formula?)]
+       m-scenario?]
+
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started."))
   
-  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid))
+  (define include-xml (xml-make-include (map m-formula->xexpr include-list)))
+  (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid (list include-xml)))
   (define xml-response (send-and-receive-xml the-xml))
   
   (xml->scenario (document-element xml-response)))
@@ -703,3 +711,6 @@ gmarceau
 ;  (printf "defvec: ~a ~a ~n" vecid contents)
   (hash-set! custom-vector-environment vecid contents)
   (format "Custom vector <~a> defined." vecid))
+
+(define foo (parse-and-compile "SHOW ALL Q INCLUDE r(x)"))
+(define bar (eval foo the-margrave-namespace))

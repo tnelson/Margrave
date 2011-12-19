@@ -311,13 +311,15 @@ Margrave did not understand the condition or options given around \"~a\"."
         ; prevents ambiguity resulting from just taking what's in the policy file
         
         ;**************************************************
-        (m-command
+        (m-command         
          
+         ; SHOWING models
+         [(SHOW ALL any-id show-arg-list) (build-so (list 'SHOWALL $3 $4) 1 4)]         
+         [(SHOW any-id show-arg-list) (build-so (list 'SHOW $2 $3) 1 3)]
          
-         ; ALL
-         [(SHOW ALL any-id) (build-so (list 'SHOWALL $3) 1 3)]
+         [(SHOW ALL any-id) (build-so (list 'SHOWALL $3 empty) 1 3)]         
+         [(SHOW any-id) (build-so (list 'SHOW $2 empty) 1 2)]         
          
-         [(SHOW any-id) (build-so (list 'SHOW $2) 1 2)]
          
          [(RESET any-id) (build-so (list 'RESET $2) 1 2)]
          
@@ -336,9 +338,16 @@ Margrave did not understand the condition or options given around \"~a\"."
           (build-so (list 'SHOWUNREALIZED $3 $4 $7) 1 7)]     
                   
          ;IS POSSIBLE?
-         [(ISPOSSQ any-id) (build-so (list 'IS-POSSIBLE? $2) 1 2)]         
-         
+         [(ISPOSSQ any-id) (build-so (list 'IS-POSSIBLE? $2) 1 2)]                  
          )    
+        
+        (show-arg-list
+         [(show-arg) (list $1)]
+         [(show-arg-list show-arg) (append $1 (list $2))])
+
+        (show-arg
+         [(INCLUDE atomic-formula-list)
+          (build-so (append (list 'INCLUDE) $2) 1 2)])         
         
         ;**************************************************
         ;**************************************************
@@ -374,7 +383,7 @@ Margrave did not understand the condition or options given around \"~a\"."
         (explore-modifier
          [(UNDER list-of-policies) (build-so (list 'UNDER $2) 1 2)]         
          
-         [(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
+         ;[(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
          ;[(TUPLING) (build-so (list 'TUPLING) 1 1)]
          [(DEBUG <natural>) (build-so (list 'DEBUG $2) 1 2)]
          [(CEILING <natural>) (build-so (list 'CEILING $2) 1 2)])

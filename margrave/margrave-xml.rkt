@@ -1038,7 +1038,13 @@
   `(CONSTRAINT ((type ,(->string constraint-type))) ,(xml-make-relations-list list-of-relations)))
 
 (define (xml-make-subset parent child)
-  `(CONSTRAINT ((type ,"SUBSET")) ,parent ,child))
+  `(CONSTRAINT ((type "SUBSET")) ,parent ,child))
+
+(define (xml-make-constants-neq const1 const2)
+  `(CONSTRAINT ((type "CONSTANTS-NEQ")) ,const1 ,const2))
+
+(define (xml-make-custom-fmla-constraint fmlaxexpr)
+  `(CONSTRAINT ((type "FORMULA")) ,fmlaxexpr))
 
 ;(define (xml-make-rename id1 id2)
 ;  `(RENAME ((id1 ,id1) (id2 ,id2))))
@@ -1086,14 +1092,14 @@
 (define (xml-make-id-element id)  
   `(ID ((id ,(->string id)))))
 
-(define (xml-make-get type id)
-  `(SHOW (,type (id ,id))))
+(define (xml-make-get type id options)
+  `(SHOW (,type (id ,id)) ,@options))
 
 (define (xml-make-reset id)
   `(RESET ((id,id))))
 
-(define (xml-make-get-command type id)
-  (xml-make-command "SHOW" (list (xml-make-get type id))))
+(define (xml-make-get-command type id options)
+  (xml-make-command "SHOW" (list (xml-make-get type id options))))
 
 (define (xml-make-reset-command id)
   (xml-make-command "RESET" (list (xml-make-reset id))))
@@ -1120,7 +1126,7 @@
   (xml-make-command "IS-GUARANTEED" (list (xml-make-is-guaranteed id))))
 
 (define (xml-make-include list-of-atomic-formulas)
-  `(IDBOUTPUT ,@list-of-atomic-formulas))
+  `(INCLUDE ,@list-of-atomic-formulas))
 
 (define (xml-make-show-realized-command id childlist)
   (xml-make-command "SHOW" (list `(SHOW ((type "REALIZED") (id ,id)) ,@childlist))))
@@ -1503,28 +1509,25 @@
 
 (define (m-axiom->xexpr axiom)         
   (if (m-formula? axiom)
-      (m-formula->xexpr axiom)
+      (xml-make-custom-fmla-constraint (m-formula->xexpr axiom))
       (match axiom
         [(m-op-case atmostone-all id)
          (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'ATMOSTONE-ALL (list id))]
-        
+         (xml-make-constraint 'ATMOSTONE-ALL (list id))]        
         [(m-op-case atmostone id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'ATMOSTONE (list id))]
         
         [(m-op-case singleton-all id)
          (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'SINGLETON-ALL (list id))]
-        
+         (xml-make-constraint 'SINGLETON-ALL (list id))]        
         [(m-op-case singleton id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'SINGLETON (list id))]
         
         [(m-op-case nonempty-all id)
          (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'NONEMPTY-ALL (list id))]
-        
+         (xml-make-constraint 'NONEMPTY-ALL (list id))]        
         [(m-op-case nonempty id)
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'NONEMPTY (list id))]     
@@ -1537,15 +1540,23 @@
          (valid-sort-or-predicate?/err id)
          (xml-make-constraint 'PARTIAL-FUNCTION (list id))]       
 
-        ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy.)
+        ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy innately.)
         [(m-op-case subset id1 id2)
          (valid-predicate?/err id1)
          (valid-predicate?/err id2)
          (xml-make-subset id1 id2)]
         
-        ; "Can overlap?" This one wouldn't be equiv. to a formula, but rather a flag to the engine...
-        ;[`(allow-overlap ,id1 ,id2) #t]
-        ; How else can we flag non-disjointness? Shared subsort is silly and possibly confusing.
+        ; (constants-cover S) --- Everything in S must be equal to one of the constants of sort S (or subsort S' of S)
+        [(m-op-case constants-cover id) 
+         (xml-make-constraint 'CONSTANTS-COVER (list id))]
+        
+        ; (constants-neq 'c 'd) --- c and d never denote the same element
+        [(m-op-case constants-neq id1 id2) 
+         (xml-make-constants-neq id1 id2)]
+        
+        ; (constants-neq-all S) --- All constants of sort S are pairwise non-equal in all models.
+        [(m-op-case constants-neq-all id) 
+         (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]
         
         [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)])))
 

@@ -292,14 +292,14 @@
     ; SHOW by itself means "give me the next model on the iterator"
     ; create the iterator if still uncreated. So "NEXT", not "ONE".
     [(equal? first-datum 'SHOW)
-     (define query-id (if (equal? 1 (length interns))
-                          ""
-                          (symbol->string (syntax->datum (second interns)))))
+     (define query-id (symbol->string (syntax->datum (second interns))))
+     (define options (map helper-syn->xml (syntax-e (third interns))))
      
      `(lambda () (pretty-print-response-xml 
                   (send-and-receive-xml
                    (xml-make-get-command (xml-make-type "NEXT") 
-                                         ,query-id) #:syntax  #',syn)))]
+                                         ,query-id
+                                         (list ,@options)) #:syntax  #',syn)))]
     
     [(equal? first-datum 'RESET)
      (define query-id (symbol->string (syntax->datum (second interns))))
@@ -308,10 +308,9 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     ; ALL is treated specially:
     [(equal? first-datum 'SHOWALL)
-     (define query-id (if (equal? 1 (length interns))
-                          ""
-                          (symbol->string (syntax->datum (second interns)))))
-     (make-show-all query-id syn)]
+     (define query-id (symbol->string (syntax->datum (second interns))))
+     (define options (map helper-syn->xml (syntax-e (third interns))))
+     (make-show-all query-id options syn)]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
     ;[(equal? first-datum 'GETALL)
@@ -363,9 +362,9 @@
   `(list ,@list-of-func-syntax))
 
 ; Show-all is based on get-all
-(define (make-show-all explore-id syn)
+(define (make-show-all explore-id options syn)
   `(lambda () (let* ([string-buffer (open-output-string)]
-                     [the-generator-func ,(make-get-all explore-id syn)]
+                     [the-generator-func ,(make-get-all explore-id options syn)]
                      [the-generator (the-generator-func)])
                 
                 ; iterate over results of the generator.
@@ -384,18 +383,18 @@
 
 ; GET ALL returns a generator for all the models
 ; using 2nd form of let and being tail-recursive
-(define (make-get-all explore-id syn)
+(define (make-get-all explore-id options syn)
   `(lambda () 
      (generator ()  
                 (let loop-func ([is-first #t])
                   (if (equal? is-first #f)
                       (begin
-                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn))
+                        (yield (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id (list ,@options) ) #:syntax  #',syn))
                         (loop-func #f))
                       (begin
                         (yield (begin
                                  (send-and-receive-xml (xml-make-reset-command ,explore-id) #:syntax  #',syn)
-                                 (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id) #:syntax  #',syn)))  
+                                 (send-and-receive-xml (xml-make-get-command `(type "NEXT") ,explore-id (list ,@options)) #:syntax  #',syn)))  
                         (loop-func #f)))))))
 
 ; This is the *symbol* 'send-and-receive-xml, not the function
