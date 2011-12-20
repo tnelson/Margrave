@@ -123,6 +123,7 @@
                    qrysexpr))   
 (time (m-is-poss? "Q"))
 (time (m-get "Q"))
+(time (m-get "Q" #:include '( ([before permit] u p) ([after permit] u p))))
 
 ;(time (m-let "QMinimalComb" '([u User] [p Permission]) 
 ;             '(and ([before permit] u p)

@@ -1411,6 +1411,51 @@ public class MEnvironment
 		}
 	}
 	
+	public static Document addConstraintConstantsCover(String vname, String s)
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintConstantsCover(s);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
+	public static Document addConstraintConstantsNeqAll(String vname, String s)
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintConstantsNeqAll(s);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
+	public static Document addConstraintConstantsNeq(String vname, String s1, String s2) 
+	{
+
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintConstantsNeq(s1, s2);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addConstraintSingletonAll(String vname, String s)
 	{
 

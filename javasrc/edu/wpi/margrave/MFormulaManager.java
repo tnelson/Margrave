@@ -539,7 +539,10 @@ public class MFormulaManager
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> forallFormulas;	
 	
 	// Intersection expressions: key is always a 2-element list of Expression.
+	// TODO: s/b a set
 	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Expression> intersectExpressions;
+	
+	private static MWeakValueHashMap< MSetWrapper<Expression>, Expression> unionExpressions;
 	
 	/**
 	 * Initializes the Formula Manager: all caches are emptied.
@@ -559,6 +562,7 @@ public class MFormulaManager
 		someMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
 		intersectExpressions = new MWeakValueHashMap< MWeakArrayVector<Expression>, Expression>();
+		unionExpressions = new MWeakValueHashMap< MSetWrapper<Expression>, Expression>();
 		
 		declNodes = new MWeakValueHashMap<MWeakArrayVector<Expression>, Decl>();
 		existsFormulas = new MWeakValueHashMap< MWeakArrayVector<Node>, Formula>();
@@ -638,7 +642,8 @@ public class MFormulaManager
         orFormulas.countReclaimed +
         forallFormulas.countReclaimed +
         existsFormulas.countReclaimed +
-        intersectExpressions.countReclaimed;
+        intersectExpressions.countReclaimed +
+        unionExpressions.countReclaimed;
 		
 		theResult.append("\nTotal references (Formulas, Variables, Decls, etc.) reclaimed over the life of this Manager: "+lReclaimed); theResult.append(MEnvironment.eol);
 		
@@ -669,6 +674,7 @@ public class MFormulaManager
 		forallFormulas.size();
 		existsFormulas.size();
 		intersectExpressions.size();
+		unionExpressions.size();
 	}
 	
 	static Formula makeMultiplicity(Expression e, Multiplicity m)
@@ -925,6 +931,30 @@ public class MFormulaManager
 		}	
 	}
 	
+	static Expression makeUnion(Set<Expression> expressions)
+	{
+		if(!hasBeenInitialized)
+			initialize();	
+		
+		final Set<Expression> weakSetNotYetKey = Collections.newSetFromMap(
+		        new WeakHashMap<Expression, Boolean>());
+		for(Expression e : expressions)
+		{
+			weakSetNotYetKey.add(e);
+		}
+		
+		// wrap the set to prevent hashCode clobbering by the GC
+		final MSetWrapper<Expression> key = new MSetWrapper<Expression>(weakSetNotYetKey);
+							
+		Expression cachedValue = intersectExpressions.get(key); 
+		if(cachedValue != null)
+			return cachedValue;
+
+		Expression theUnion = Expression.union(expressions);				
+		unionExpressions.put(key, theUnion);
+		return theUnion;		 
+	}
+	
 	static Expression makeIntersection(Relation r1, Relation r2)
 	{
 		if(!hasBeenInitialized)
@@ -940,8 +970,7 @@ public class MFormulaManager
 		
 		Expression e = r1.intersection(r2);
 		intersectExpressions.put(key, e);
-		return e;		
-		
+		return e;				
 	}
 	
 	static Formula makeForAll(Formula f, Decls d)
@@ -1584,6 +1613,7 @@ public class MFormulaManager
 		
 		theResult.setAttribute("multiplicity", String.valueOf(iTotalMultip));
 		theResult.setAttribute("intersections", String.valueOf(intersectExpressions.size()));
+		theResult.setAttribute("unions", String.valueOf(unionExpressions.size()));
 		theResult.setAttribute("atoms", String.valueOf(atomFormulas.size()));
 		theResult.setAttribute("negations", String.valueOf(negFormulas.size()));
 		theResult.setAttribute("conjunctions", String.valueOf(andFormulas.size()));
@@ -1633,7 +1663,8 @@ public class MFormulaManager
 	       orFormulas.countReclaimed +
 	       forallFormulas.countReclaimed +
 	       existsFormulas.countReclaimed +
-	       intersectExpressions.countReclaimed;
+	       intersectExpressions.countReclaimed+
+	       unionExpressions.countReclaimed;
 			
 		theResult.setAttribute("total-reclaimed", String.valueOf(lReclaimed));		
 			
@@ -1651,6 +1682,7 @@ public class MFormulaManager
 		vars.put(key, result);
 		return result;
 	}
+
 }
 
 

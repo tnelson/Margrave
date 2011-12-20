@@ -360,18 +360,20 @@ public class MCommunicator
         			writeToLog("In show");
         			String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "SHOW", "id");
 
+        			Node showNode = getChildNode(margraveCommandNode, "SHOW");
+        			
         			writeToLog("\nshowtype: " + showType + "\n");
         			if (showType.equalsIgnoreCase("ONE"))
         			{
-        				writeToLog("In Show One");
+        				writeToLog("\nIn SHOW ONE:");
 
-        				Node includeNode = getIdbNode(margraveCommandNode);        					
+        				Node includeNode = getIncludeNode(showNode);        					
         				List<Node> idbChildNodes = getElementChildren(includeNode);    						
         				HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
 
         				try
         				{
-        					writeToLog("In Show One");
+        					writeToLog("\n  id was: "+id+"; includeMap was: "+includeMap+"; idbChildNodes had this many elements: "+idbChildNodes.size());
         					theResponse = MEnvironment.getFirstModel(id, includeMap);
         				} catch (MBaseException e) {
         					theResponse = MEnvironment.exceptionResponse(e);						
@@ -379,13 +381,15 @@ public class MCommunicator
         			}
         			else if (showType.equalsIgnoreCase("NEXT"))
         			{
-
-        				Node includeNode = getIdbNode(margraveCommandNode);        					
-        				List<Node> idbChildNodes = getElementChildren(includeNode);    						
+        				writeToLog("\nIn SHOW NEXT:");
+        				
+        				Node includeNode = getIncludeNode(showNode);
+        				List<Node> idbChildNodes = getElementChildren(includeNode);          				
         				HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
 
         				try
         				{
+        					writeToLog("\n  id was: "+id+"; includeMap was: "+includeMap+"; idbChildNodes had this many elements: "+idbChildNodes.size());
         					theResponse = MEnvironment.getNextModel(id, includeMap);
         				} catch (MBaseException e) {
         					theResponse = MEnvironment.exceptionResponse(e);						
@@ -404,8 +408,7 @@ public class MCommunicator
         				else {
         					popId = getUnpopulatedId(margraveCommandNode); // command
         				}
-
-        				Node showNode = getChildNode(margraveCommandNode, "SHOW");
+        				
         				Node forCasesNode = getForCasesNode(showNode);
         				List<Node> atomicFormulaNodes = getElementChildren(showNode);
 
@@ -622,6 +625,17 @@ public class MCommunicator
 					String secondRelation = relations.get(1);
 					return MEnvironment.addConstraintSubset(vname, firstRelation, secondRelation);
 				}
+				else if (constraintType.equalsIgnoreCase("CONSTANTS-NEQ")) {
+					assert(relations.size() == 2);
+					String secondRelation = relations.get(1);
+					return MEnvironment.addConstraintConstantsNeq(vname, firstRelation, secondRelation);
+				}		
+				else if (constraintType.equalsIgnoreCase("CONSTANTS-COVER")) {
+					return MEnvironment.addConstraintConstantsCover(vname, firstRelation);
+				}
+				else if (constraintType.equalsIgnoreCase("CONSTANTS-NEQ-ALL")) {
+					return MEnvironment.addConstraintConstantsNeqAll(vname, firstRelation);
+				}				
 				else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
 					return MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
 				}
@@ -701,7 +715,7 @@ public class MCommunicator
 					// Now called INCLUDE, and 
 					// used to alert tupling that there are EDB indexings it needs
 					// to include, even if they don't appear.
-					Node idbOutputNode = getIdbNode(n);
+					Node includeNode = getIncludeNode(n);
 
 					if (underNode != null)
 					{ 
@@ -723,8 +737,8 @@ public class MCommunicator
 						}
 
 					}
-					if (idbOutputNode != null) {
-						List<Node> idbChildNodes = getElementChildren(idbOutputNode);	        						
+					if (includeNode != null) {
+						List<Node> idbChildNodes = getElementChildren(includeNode);	        						
 						idbOut = atomicFormulasToHashmap(idbChildNodes);
 					}
 					if (tuplingNode != null) { //For now if the node exists just set tupling to true
@@ -951,8 +965,8 @@ public class MCommunicator
 		public static Node getPublishNode(Node n) {
 			return getChildNode(n, "PUBLISH");
 		}
-		public static Node getIdbNode(Node n) {
-			return getChildNode(n, "IDBOUTPUT");
+		public static Node getIncludeNode(Node n) {
+			return getChildNode(n, "INCLUDE");
 		}
 		public static Node getTuplingNode(Node n) {
 			return getChildNode(n, "TUPLING");
@@ -1602,7 +1616,7 @@ public class MCommunicator
     	return transformXMLToString(theResponse).getBytes(); 
      }
 	
-	private static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<MTerm> newterms)
+	protected static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<MTerm> newterms)
 	throws MUserException, MGEUnknownIdentifier
 	{		
 		// Replace expressions (here, variables) with other expressions

@@ -54,6 +54,15 @@ public class MConstraints
 	Set<List<String>> setsDisjoint = new HashSet<List<String>>();	
 	Set<List<String>> setsSubset = new HashSet<List<String>>();
 
+	// These sorts are entirely covered by the elements denoted by constants of that sort (or subsorts):
+	Set<String> setsConstantsCover = new HashSet<String>();
+
+	// Constants of type T are all pairwise disjoint.
+	Set<String> setsConstantsNeqAll = new HashSet<String>();
+	
+	// These pairs of constants are non-equal.
+	Set<List<String>> constantsNeq = new HashSet<List<String>>();
+	
 	// Custom constraints not supported in any way but to say "this must be satisfied."
 	// In string format so that a policy's assumptions can contain IDB references.
 	// (Yes this is inefficient, but the user may add more rules later which could change the formulas.)
@@ -121,6 +130,35 @@ public class MConstraints
 		lst.add(d1); lst.add(d2);
 		setsDisjoint.add(lst);
 	}
+	
+	public void addConstraintConstantsNeq(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		if(!vocab.constants.containsKey(d1))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d1+" is not a constant symbol.");
+		if(!vocab.constants.containsKey(d2))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d2+" is not a constant symbol.");
+
+		List<String> lst = new ArrayList<String>(2);
+		lst.add(d1); lst.add(d2);
+		constantsNeq.add(lst);
+	}
+	
+	public void addConstraintConstantsNeqAll(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		if(!vocab.isSort(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is not a type.");
+
+		setsConstantsNeqAll.add(d);
+	}
+
+	public void addConstraintConstantsCover(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		if(!vocab.isSort(d))
+			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is not a type.");
+
+		setsConstantsCover.add(d);
+	}
+
 	
 	public void addConstraintSubset(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -256,6 +294,34 @@ public class MConstraints
 		{
 			results.add(MFormulaManager.makeMultiplicity(vocab.getRelation(r), Multiplicity.ONE));
 		}
+		
+		for(String r : setsConstantsCover)
+		{
+			Set<Expression> theConstantRels = new HashSet<Expression>();
+			Relation theSortRelation =  vocab.getRelation(r);
+			for(MConstant c : vocab.constants.values())
+			{
+				if(c.type.get(0).rel.equals(theSortRelation))
+						theConstantRels.add(c.rel);
+			}
+			Expression theUnion = MFormulaManager.makeUnion(theConstantRels);
+			Formula theFmla = MFormulaManager.makeEqAtom(theUnion, theSortRelation); 
+			results.add(theFmla);			
+		}
+		for(String r : setsConstantsNeqAll)
+		{
+			// TODO: setsConstantsNeqAll	
+			MEnvironment.writeErrLine("The constraint type CONSTANT-NEQ-ALL is not yet supported. Passing over it for type: "+r);
+		}
+		for(List<String> lst : constantsNeq)
+		{
+			String c1name = lst.get(0);
+			String c2name = lst.get(1);			
+			results.add(MFormulaManager.makeMultiplicity(MFormulaManager.makeIntersection(vocab.constants.get(c1name).rel, 
+					                                                                      vocab.constants.get(c2name).rel), 
+					                                     Multiplicity.NO));
+		}
+		
 		
 		for(String r : setsNonempty)
 		{

@@ -27,6 +27,8 @@ import java.util.*;
 
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
+import kodkod.ast.Variable;
+import kodkod.engine.Evaluator;
 import kodkod.engine.Solution;
 import kodkod.engine.Solver;
 import kodkod.instance.*;
@@ -226,13 +228,153 @@ abstract class MInstanceIterator extends MQueryResult
 		// hasNext prepares the next solution (if any exists)
 		if(!hasNext())
 			throw new MGENoMoreSolutions("No more solutions exist for the query.");
-						
+										
 		// Make room for the next solution to come.
-		MSolutionInstance result = the_next;
+		MSolutionInstance result = the_next;				
 		the_next = null;
+				
+		// Add INCLUDE facts:
+		for(String relName : fromContext.includeMap.keySet())
+		{
+			for(List<MTerm> args : fromContext.includeMap.get(relName))
+			{
+				// This instance should be modifiable. So pass back INCLUDE facts as facts in relations.
+				// (This way is far more structured than, say, a string annotation.) 
+				MCommunicator.writeToLog("\n Adding INCLUDE fact (or negated fact) for "+relName+args);
+
+				Relation theRelation = MFormulaManager.makeRelation(relName, args.size());				
+				// What does this tuple map to in the model?
+				TupleFactory factory = result.getFacts().universe().factory();
+				Tuple theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));												
+				TupleSet theTupleSet = factory.noneOf(args.size());
+				
+				// Is it in the relation? First check to see if this is an EDB relation:
+				boolean bIsInRelation = false;
+				if(result.getFacts().relations().contains(theRelation))
+				{					
+					bIsInRelation = result.getFacts().relationTuples().get(theRelation).contains(theTuple);
+				}
+				else
+				{
+					// Need to get the fmla for that relation and evaluate it in the model.
+					Evaluator theEvaluator = new Evaluator(result.getFacts());
+					
+					// Is this a saved query or a policy IDB? (For now... dot.)
+					String[] theSplit = relName.split(MEnvironment.sIDBSeparatorRegExp);	
+					
+					MCommunicator.writeToLog("\nTrying to INCLUDE; relation was not an EDB. Split was: "+Arrays.toString(theSplit));
+					
+					if(theSplit.length == 1)
+					{
+						MIDBCollection pol = MEnvironment.getPolicyOrView(relName);
+						Formula idbf = MEnvironment.getOnlyIDB(relName);
+						if(pol == null || idbf == null)
+							throw new MUserException("Margrave could not find a saved query named: "+relName);
+						idbf = MCommunicator.performSubstitution(relName, pol, idbf, args);
+						bIsInRelation = theEvaluator.evaluate(idbf);
+					}
+					else
+					{
+						// not saved query, must be a policy idb
+						String collName = theSplit[0];
+						String relationName = theSplit[1];
+						MIDBCollection pol = MEnvironment.getPolicyOrView(collName);
+						if(pol == null)
+							throw new MUserException("Unknown policy: "+collName);
+																	
+						// throws exception rather than returning null
+						Formula idbf = MCommunicator.validateDBIdentifier(collName, relationName);						
+						idbf = MCommunicator.performSubstitution(relationName, pol, idbf, args);
+						
+						// TODO problem: variables will be unbound... and want to use the same vars (so can't just blindly forSome() ...)
+						
+						bIsInRelation = theEvaluator.evaluate(idbf);
+					}
+															
+				}
+				
+				if(bIsInRelation)
+				{
+					theTupleSet.add(theTuple);
+				}
+				result.getFacts().add(theRelation, theTupleSet);
+			}
+		}
+		
 		return result;
 	}
 	
+	Object termToAtom(MTerm aterm, Instance model)
+	{
+		// What atom does <aterm> denote in <model>?
+		// Recur for nested terms.
+		
+		if(aterm instanceof MConstantTerm)
+		{
+			MConstantTerm aconstantterm = (MConstantTerm) aterm;			
+			Relation r = (Relation) aconstantterm.expr;
+			if(!model.contains(r))
+				throw new MUserException("Margrave tried and failed to find what the term "+aterm+
+						" denoted in instance: "+model+".\nModel did not contain a relation for the outermost part of the term.");
+			
+			TupleSet theTuples = model.relationTuples().get(r);
+			if(theTuples.isEmpty())
+				throw new MUserException("Margrave tried and failed to find what the term "+aterm+
+						" denoted in instance: "+model+".\nModel did not contain an atom for the term.");
+			
+			Tuple theTuple = theTuples.iterator().next();
+			return theTuple.atom(0);
+		}
+		if(aterm instanceof MVariableTerm)
+		{
+			MVariableTerm avariableterm = (MVariableTerm) aterm;	
+			// Do NOT do 
+			// Relation r = MFormulaManager.makeRelation("$"+avariableterm.variableName, 1); // assume skolemized
+			// because **Kodkod** produces the Skolem relation, and does not go through MFormulaManager. Instead:
+			Relation r = null;
+			for(Relation potentialr : model.relations())
+			{
+				// Yes, this is slow. Maybe a better way?
+				if(potentialr.name().equals("$"+avariableterm.variableName))
+				{
+					r = potentialr;
+					break;
+				}
+			}
+			if(r == null)
+				throw new MUserException("Margrave tried and failed to find what the term "+aterm+
+						" denoted in instance: "+model+".\nModel did not contain a relation for the outermost part of the term.");
+			
+			TupleSet theTuples = model.relationTuples().get(r);
+			if(theTuples.isEmpty())
+				throw new MUserException("Margrave tried and failed to find what the term "+aterm+
+						" denoted in instance: "+model+".\nModel did not contain an atom for the term.");
+			
+			Tuple theTuple = theTuples.iterator().next();
+			return theTuple.atom(0);
+		}
+		else
+		{
+			throw new MUserException("INCLUDE is not yet supported for formulas that contain complex terms.");
+			
+			/*MFunctionTerm afunctionterm = (MFunctionTerm)aterm;			
+			Relation r = (Relation) afunctionterm.expr;
+			
+			for(MTerm subterm : afunctionterm.subTerms)
+			{
+				
+			}*/						
+		}
+	}
+	
+	List<Object> termsToAtoms(List<MTerm> terms, Instance model)
+	{
+		List<Object> atoms = new ArrayList<Object>(terms.size());		
+		for(MTerm aterm : terms)
+			atoms.add(termToAtom(aterm, model));
+		return atoms;
+	}
+ 	
 	/*public boolean warn_user()
 	{
 		// Warn the user if there is an inf. herbrand univ, OR if the user has overridden a finite one.
