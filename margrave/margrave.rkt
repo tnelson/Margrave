@@ -337,55 +337,56 @@ gmarceau
 ; m
 ; xexpr, func -> document or #f
 ; Sends the given XML to java. Returns #f if the engine has not been started.
-; Uses *buffered* string ports to avoid overhead due to excessive concatenation.
 ; Optional response handler func may change the result XML, throw exceptions, etc.
 (define (send-and-receive-xml cmd-xexpr 
                               #:handler [response-handler-func default-response-handler]
                               #:syntax [src-syntax #f])
   
-  (define cmd (xexpr->string cmd-xexpr))
-  
   (cond [(not java-process-list)                
          (raise-user-error "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.")
-         #f]
-        
+         #f]        
         [else
          
-         ; DEBUG: Comment out to disable printing XML commands as they are sent
-         ;(printf "M SENDING XML: ~a;~n" cmd)
+         ; DEBUG: Comment out to disable printing XML commands as they are sent         
+        ; (printf "M SENDING XML: ~a;~n" (xexpr->string cmd-xexpr))         
+         
+         (define cmd-string (xexpr->string cmd-xexpr))
          
          ; Send the command XML (DO NOT COMMENT THIS OUT)
          ; ******************************************
-         (display (string-append cmd ";") output-port)
-         (flush-output output-port)        
+         ;(write-bytes-avail cmd-xexpr output-port)
+         (copy-port (open-input-string cmd-string) output-port)
+         (copy-port (open-input-string ";") output-port)
+         ;(flush-output output-port)        
          ; ******************************************
          
-         ; Now deal with the result.
-         (define command-buffer (open-output-string))
+         (define (read-until-nul pt)
+           (define achar (read-char pt))
+           (cond
+             [(not (char-ready? pt)) #f]
+             [(equal? achar #\nul) #t]
+             [else (read-until-nul pt)]))
          
-         (define (fetch-result)
-           (let ([next-char (read-char input-port)])                      
-             (cond 
-               ; End of command's response.
-               [(equal? next-char #\nul) #t]
-               
-               ; port closed
-               [(equal? next-char eof) #f]
-               
-               ; In progress. Keep reading.  
-               [else                                   
-                (write-string (string next-char) command-buffer)                                                                  
-                (fetch-result)]))) 
-         
-         ; Populate the buffered ports                        
-         ; Handle the results
-         
-         (define port-status (fetch-result))
-         (cond [(equal? port-status #t)
+         ; If the input port (stdout from engine) is closed or uninitialized, don't try to send.
+         (cond [(or (false? input-port) (port-closed? input-port))
                 
-                ; port is still open, but received the reply
-                (define result (get-output-string command-buffer))
-                (define result-xml (read-xml (open-input-string result)))
+                (printf "The Margrave engine closed before it could be sent a command.")      
+                 
+                 ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
+                 ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
+                 ;           spamming with "The engine is not started..."
+                 ;(cleanup-margrave-engine)
+                                          
+                #f]
+               [else
+                
+                ; port is still open!             
+                (define result-xml (read-xml/document input-port))
+                
+                ;(printf "~v~n" result-xml)                
+                ;(printf "~v~n" (read-until-nul input-port))
+                (read-until-nul input-port)
+                
                 (define extra-err-data (get-response-extra-err result-xml))
                 (define extra-out-data (get-response-extra-out result-xml))
                 
@@ -401,19 +402,7 @@ gmarceau
                   
                   ; Parse the reply and return the document struct
                   ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
-                  (response-handler-func src-syntax result-xml))]
-                
-               ; Got eof, the port has been closed.
-               [else
-                
-                (printf "Margrave engine has closed. EOF reached. No document to return.")      
-                 
-                 ; !!! TODO: Throw exception here. Should stop even in the middle of a load-policy.
-                 ; !!! TODO: Once that is done, it'l be safe to call cleanup below. (Right now, it's
-                 ;           spamming with "The engine is not started..."
-                 ;(cleanup-margrave-engine)
-                 
-                  #f])]))
+                  (response-handler-func src-syntax result-xml))])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -429,8 +418,8 @@ gmarceau
                           (path->string fn)
                           fn)
                       #'fn))
-  (define load-func (eval func-sexpr the-margrave-namespace))
-  (load-func))
+  (define load-func (time (eval func-sexpr the-margrave-namespace)))
+  (time (load-func)))
 
 (define/contract
   (m-is-poss? qryid)
