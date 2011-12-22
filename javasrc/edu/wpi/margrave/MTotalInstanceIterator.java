@@ -25,6 +25,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 
+import kodkod.ast.Decls;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
@@ -271,6 +272,7 @@ abstract class MInstanceIterator extends MQueryResult
 						if(pol == null || idbf == null)
 							throw new MUserException("Margrave could not find a saved query named: "+relName);
 						idbf = MCommunicator.performSubstitution(relName, pol, idbf, args);
+						idbf = addFreeVarsForInclude(idbf, result.getFacts());
 						bIsInRelation = theEvaluator.evaluate(idbf);
 					}
 					else
@@ -285,9 +287,7 @@ abstract class MInstanceIterator extends MQueryResult
 						// throws exception rather than returning null
 						Formula idbf = MCommunicator.validateDBIdentifier(collName, relationName);						
 						idbf = MCommunicator.performSubstitution(relationName, pol, idbf, args);
-						
-						// TODO problem: variables will be unbound... and want to use the same vars (so can't just blindly forSome() ...)
-						
+						idbf = addFreeVarsForInclude(idbf, result.getFacts());						
 						bIsInRelation = theEvaluator.evaluate(idbf);
 					}
 															
@@ -304,10 +304,42 @@ abstract class MInstanceIterator extends MQueryResult
 		return result;
 	}
 	
+	Relation getVariableRelationFromModel(Instance model, String name)
+	{
+		String lookFor = "$"+name;
+		for(Relation r : model.relations())
+		{
+			if(r.name().equals(lookFor))
+				return r;			
+		}
+		
+		throw new MUserException("Margrave tried and failed to find the Skolem relation for variable "+name+
+					" denoted in instance: "+model+".");
+
+	}
+	
+	Formula addFreeVarsForInclude(Formula fmla, Instance model)
+	{
+		final Set<Variable> freeVars = fmla.accept(new FreeVariableCollectionV());
+		Formula newFmla = fmla;
+		
+		for(Variable v : freeVars)
+		{
+			Relation skolemVRelation = getVariableRelationFromModel(model, v.name());
+			
+			Decls theDecl = MFormulaManager.makeOneOfDecl(v, skolemVRelation);
+			newFmla = MFormulaManager.makeExists(newFmla, theDecl);
+		}
+		
+		return newFmla;
+	}
+	
 	Object termToAtom(MTerm aterm, Instance model)
 	{
 		// What atom does <aterm> denote in <model>?
 		// Recur for nested terms.
+		
+		Evaluator theEvaluator = new Evaluator(model);
 		
 		if(aterm instanceof MConstantTerm)
 		{
@@ -331,19 +363,14 @@ abstract class MInstanceIterator extends MQueryResult
 			// Do NOT do 
 			// Relation r = MFormulaManager.makeRelation("$"+avariableterm.variableName, 1); // assume skolemized
 			// because **Kodkod** produces the Skolem relation, and does not go through MFormulaManager. Instead:
-			Relation r = null;
-			for(Relation potentialr : model.relations())
-			{
-				// Yes, this is slow. Maybe a better way?
-				if(potentialr.name().equals("$"+avariableterm.variableName))
-				{
-					r = potentialr;
-					break;
-				}
-			}
-			if(r == null)
-				throw new MUserException("Margrave tried and failed to find what the term "+aterm+
-						" denoted in instance: "+model+".\nModel did not contain a relation for the outermost part of the term.");
+			
+			// Also cannot do
+			//TupleSet theTuples = theEvaluator.evaluate(avariableterm.expr);
+			// because Skolemization replaces the original relation...
+
+			
+			Relation r = getVariableRelationFromModel(model, avariableterm.variableName);
+			
 			
 			TupleSet theTuples = model.relationTuples().get(r);
 			if(theTuples.isEmpty())
@@ -355,15 +382,13 @@ abstract class MInstanceIterator extends MQueryResult
 		}
 		else
 		{
-			throw new MUserException("INCLUDE is not yet supported for formulas that contain complex terms.");
+//			throw new MUserException("INCLUDE is not yet supported for formulas that contain complex terms.");
 			
-			/*MFunctionTerm afunctionterm = (MFunctionTerm)aterm;			
-			Relation r = (Relation) afunctionterm.expr;
-			
-			for(MTerm subterm : afunctionterm.subTerms)
-			{
-				
-			}*/						
+			MFunctionTerm afunctionterm = (MFunctionTerm)aterm;
+			TupleSet theTuples = theEvaluator.evaluate(afunctionterm.expr);
+					
+			Tuple theTuple = theTuples.iterator().next();
+			return theTuple.atom(0);			
 		}
 	}
 	

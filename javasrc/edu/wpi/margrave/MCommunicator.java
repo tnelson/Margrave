@@ -22,6 +22,7 @@ package edu.wpi.margrave;
 import kodkod.ast.*;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -68,7 +69,6 @@ public class MCommunicator
 	static final char semicolon = ';';
 	
 	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
-	static final char cEOF = (char)0;
 	
 	static String sLogFileName = "margrave-log.txt";
 	static BufferedWriter outLog = null; 
@@ -107,34 +107,90 @@ public class MCommunicator
 		initializeLog();
 		writeToLog("\n\n");
 		
-
+		while(true)
+		{
+			// Block until a command is received, handle it, and then return the result.
+			handleXMLCommand(in);
+		} // end loop while(true)
 		
-		readCommands();
-
 		// outLog will be closed as it goes out of scope
 	}
 
-        public static void handleXMLCommand(String command)
-        {        	
-            DocumentBuilder docBuilder = null;
-            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            try {
-                docBuilder = docFactory.newDocumentBuilder();
-            } catch (ParserConfigurationException ex) {
-                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
+	public static void handleXMLCommand(String str)
+	{
+		// For test cases only!
+		InputStream theInput = new ByteArrayInputStream(str.getBytes());
+		handleXMLCommand(theInput);
+	}
+	
+	public static void handleXMLCommand(InputStream commandStream)
+	{        	
+		DocumentBuilder docBuilder = null;
+		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+		try
+		{
+			docBuilder = docFactory.newDocumentBuilder();
+		}
+		catch (ParserConfigurationException ex)
+		{
+			Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+			writeToLog("\nParserConfigurationException at beginning of handleXMLCommand: "+ex.getLocalizedMessage());
+			writeToLog("\nTerminating engine...");
+			System.exit(200);
+        }	
+            	
             // Save this command for use in exception messages
-    		MEnvironment.lastCommandReceived = command.trim();    		
+    		//MEnvironment.lastCommandReceived = command.trim();    		
             
-            Document doc = null;
+            Document doc = null;            
 
             try {
-                doc = docBuilder.parse(new InputSource(new StringReader(command)));
-            } catch (SAXException ex) {
+               // doc = docBuilder.parse(new InputSource(new StringReader(command)));            	
+            	writeToLog("========================================\n========================================\n");
+            	writeToLog("\n"+commandStream.available());
+            	
+            	StringBuffer inputStringBuffer = new StringBuffer();            	
+            	while(true)
+            	{
+            		// if available=0; we want to block. But don't want to allocate too much room:
+            		if(commandStream.available() < 1)
+            		{
+            			int b = commandStream.read();
+            			inputStringBuffer.append((char) b);
+            			//writeToLog("\nString: "+inputStringBuffer.toString()); 
+            		}
+            		else
+            		{
+                		byte[] inputBytes = new byte[commandStream.available()];         
+                		int bytesRead = commandStream.read(inputBytes);                 		
+                		inputStringBuffer.append(new String(inputBytes).trim());            		
+                		//writeToLog("\nString: "+inputStringBuffer.toString());            		         		            			
+            		}            		
+            		
+            		String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";            		
+            		if(inputStringBuffer.toString().endsWith(sMargraveCommandEnding))
+            			break;
+            	}
+            	
+            	String cmdString = inputStringBuffer.toString();
+            	//writeToLog("\nDONE! String: "+cmdString);
+            	
+            	doc = docBuilder.parse(new InputSource(new StringReader(cmdString)));
+            	
+            	//doc = docBuilder.parse(commandStream);            	
+            	//doc = docBuilder.parse(new InputSource(commandStream));
+   				writeToLog((new Date()).toString());
+   				writeToLog("\nExecuting command: " + transformXMLString(doc) + "\n");   					   				            	
+            } 
+            catch (SAXException ex) 
+            {
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
+                writeToLog("\nSAXException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
+            }
+            catch (IOException ex)
+            {
                 Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+                writeToLog("\nIOException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
             }
             
             Document theResponse;
@@ -142,9 +198,9 @@ public class MCommunicator
             {
                 // protect against getFirstChild() call            
                 if(doc != null)
-                	theResponse = xmlHelper(doc.getFirstChild(), command);
+                	theResponse = xmlHelper(doc.getFirstChild(), "");
                 else
-                	theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, MEnvironment.sCommand, command);
+                	theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, MEnvironment.sCommand, "");
             }
             catch(Exception e)
             {
@@ -1484,7 +1540,7 @@ public class MCommunicator
     	 catch (IOException e)
     	 {
     		 // Couldn't initialize log. try to report back to Racket.
-   	      out.println(makeDetailedError("\nError initializing log file: "+ e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")")+cEOF);
+   	      out.println(makeDetailedError("\nError initializing log file: "+ e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")"));
    	      out.flush();
    	      System.exit(3);
     	 }
@@ -1511,46 +1567,7 @@ public class MCommunicator
     	     System.exit(3);
     	 }
      }
-     
-     protected static void readCommands()
-     {
-    	   StringBuffer theCommand = new StringBuffer();
-   		try
-   		{
-   			while(true)
-   			{
-   				int theChar = in.read();
-   				if(theChar == semicolon)
-   				{
-   					writeToLog("========================================\n========================================\n");
-   					writeToLog((new Date()).toString());
-   					writeToLog("\nExecuting command: " + theCommand.toString() + "\n");
-   					
-   					
-   					// deal with the command (including returning the result)
-   					handleXMLCommand(theCommand.toString());
-
-   					theCommand = new StringBuffer();
-   				}
-   				else if(theChar == -1)
-   				{
-   					// 	keep waiting for a semicolon. the command is still coming.
-   				}
-   				else
-   				{
-   					// Need to cast, because otherwise it will append the integer as a string.
-   					theCommand.append((char)theChar);
-   				}
-   			} // end loop while(true)
-   		}
-   		catch(IOException e)
-   		{
-   			out.println(setupError+cEOF);
-   			out.flush();
-   			// don't need to flush System.err since we never use it anymore.
-   		}
-     }
-          
+               
      
      protected static String transformXMLString(Document theResponse) 
      {
@@ -1569,7 +1586,7 @@ public class MCommunicator
 			
 			
 			String xmlString = result.getWriter().toString();
-			xmlString += cEOF;
+			//xmlString += cEOF;
 			return xmlString;
 		}
 		catch(Exception e)
@@ -1577,7 +1594,8 @@ public class MCommunicator
 			// Will hit this if theResponse is null.	
 			// don't do this. would go through System.err
 			//e.printStackTrace();
-			return (makeDetailedError(e.getLocalizedMessage())+cEOF);
+			//return (makeDetailedError(e.getLocalizedMessage())+cEOF);
+			return (makeDetailedError(e.getLocalizedMessage()));
 		}
 	}
      
@@ -1598,7 +1616,6 @@ public class MCommunicator
 			
 			
 			String xmlString = result.getWriter().toString();
-			xmlString += cEOF;
 			return xmlString;
     	 }
 		catch(Exception e)
@@ -1606,7 +1623,7 @@ public class MCommunicator
 			// Will hit this if theResponse is null.	
 			// don't do this. would go through System.err
 			//e.printStackTrace();
-			return (makeDetailedError(e.getLocalizedMessage())+cEOF);
+			return (makeDetailedError(e.getLocalizedMessage()));
 		}
     	 
      }

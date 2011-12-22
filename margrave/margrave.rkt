@@ -346,27 +346,16 @@ gmarceau
          (raise-user-error "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.")
          #f]        
         [else
-         
-         ; DEBUG: Comment out to disable printing XML commands as they are sent         
-        ; (printf "M SENDING XML: ~a;~n" (xexpr->string cmd-xexpr))         
-         
+                  
          (define cmd-string (xexpr->string cmd-xexpr))
          
          ; Send the command XML (DO NOT COMMENT THIS OUT)
          ; ******************************************
          ;(write-bytes-avail cmd-xexpr output-port)
          (copy-port (open-input-string cmd-string) output-port)
-         (copy-port (open-input-string ";") output-port)
-         ;(flush-output output-port)        
+        ; (printf "Sent XML to engine: ~a~n" cmd-string)           
          ; ******************************************
-         
-         (define (read-until-nul pt)
-           (define achar (read-char pt))
-           (cond
-             [(not (char-ready? pt)) #f]
-             [(equal? achar #\nul) #t]
-             [else (read-until-nul pt)]))
-         
+                  
          ; If the input port (stdout from engine) is closed or uninitialized, don't try to send.
          (cond [(or (false? input-port) (port-closed? input-port))
                 
@@ -384,8 +373,6 @@ gmarceau
                 (define result-xml (read-xml/document input-port))
                 
                 ;(printf "~v~n" result-xml)                
-                ;(printf "~v~n" (read-until-nul input-port))
-                (read-until-nul input-port)
                 
                 (define extra-err-data (get-response-extra-err result-xml))
                 (define extra-out-data (get-response-extra-out result-xml))
@@ -396,13 +383,9 @@ gmarceau
                 (when (> (string-length extra-err-data) 0)
                   (printf "~n~nErrors from Java engine:~n ~a~n" extra-err-data))
                 
-                (begin
-                  ; DEBUG: Comment out this line to stop printing the XML
-                  ;(printf "~a~n" result)                    
-                  
-                  ; Parse the reply and return the document struct
-                  ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
-                  (response-handler-func src-syntax result-xml))])]))
+                ; Parse the reply and return the document struct
+                ; Pass to handler first to see if any special handling is needed (e.g. throwing errors)
+                (response-handler-func src-syntax result-xml)])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
