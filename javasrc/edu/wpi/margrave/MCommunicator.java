@@ -760,18 +760,17 @@ public class MCommunicator
 					HashMap<String, Set<List<MTerm>>> idbOut = new HashMap<String, Set<List<MTerm>>>();
 					Boolean tupling = false;
 					Integer debugLevel = 0;
-					Integer ceilingLevel = -1; 
 
 					Node underNode = getUnderNode(n);
 					Node publishNode = getPublishNode(n);
-					Node tuplingNode = getTuplingNode(n);
+					//Node tuplingNode = getTuplingNode(n);
 					Node debugNode = getDebugNode(n);
-					Node ceilingNode = getCeilingNode(n);
+					Node ceilingsNode = getCeilingsNode(n);
 
 					// Now called INCLUDE, and 
 					// used to alert tupling that there are EDB indexings it needs
 					// to include, even if they don't appear.
-					Node includeNode = getIncludeNode(n);
+					//Node includeNode = getIncludeNode(n);
 
 					if (underNode != null)
 					{ 
@@ -793,22 +792,40 @@ public class MCommunicator
 						}
 
 					}
-					if (includeNode != null) {
-						List<Node> idbChildNodes = getElementChildren(includeNode);	        						
-						idbOut = atomicFormulasToHashmap(idbChildNodes);
-					}
-					if (tuplingNode != null) { //For now if the node exists just set tupling to true
-						tupling = true;
-					}
+					//if (includeNode != null) {
+					//	List<Node> idbChildNodes = getElementChildren(includeNode);	        						
+					//	idbOut = atomicFormulasToHashmap(idbChildNodes);
+					//}
+					//if (tuplingNode != null) { //For now if the node exists just set tupling to true
+					//	tupling = true;
+					//}
 					if (debugNode != null) {
 						debugLevel = Integer.parseInt(getDebugLevel(debugNode));
 					}
-					if (ceilingNode != null) {
-						ceilingLevel = Integer.parseInt(getCeilingLevel(ceilingNode));
+					
+					Map<String, Integer> ceilingMap = new HashMap<String, Integer>();
+					if (ceilingsNode != null) 
+					{
+	        			List<Node> ceilingNodes = getElementChildren(ceilingsNode);
+						
+	        			for(Node ceil : ceilingNodes)
+	        			{
+	        				// LOCAL ceilings (for this query only)
+	        	        	String sortname = getNodeAttribute(ceil, "sort");
+	        	        	String ceiling = getNodeAttribute(ceil, "value");
+	        	        	writeToLog("\nCEILING: "+sortname+" is "+ceiling);
+	        	        	
+		        			try
+	        				{		        	        			        				
+	        					int intValue = Integer.parseInt(ceiling);	        					
+	            				ceilingMap.put(sortname, intValue);
+	        				}
+	        				catch(NumberFormatException e)
+	        				{
+	        					return MEnvironment.errorResponse(MEnvironment.sNotDocument, "Not an integer", ceiling);
+	        				}        					        				
+	        			}
 					}
-
-					writeToLog("\nUsing Ceiling Level: " + ceilingLevel + " and DebugLevel: " + debugLevel + "\n");
-
 
 					// Exception will be thrown and caught by caller to return an EXCEPTION element.
 					result = MQuery.createFromExplore(
@@ -816,7 +833,7 @@ public class MCommunicator
 							exploreCondition.addSeenIDBCollections(under), 
 							publ,
 							publSorts,
-							idbOut, tupling, debugLevel, ceilingLevel);
+							idbOut, tupling, debugLevel, ceilingMap);
 
 
 					writeToLog("AT END OF EXPLORE");
@@ -1030,8 +1047,8 @@ public class MCommunicator
 		public static Node getDebugNode(Node n) {
 			return getChildNode(n, "DEBUG");
         }
-		public static Node getCeilingNode(Node n) {
-			return getChildNode(n, "CEILING");
+		public static Node getCeilingsNode(Node n) {
+			return getChildNode(n, "CEILINGS");
 		}
         
 	

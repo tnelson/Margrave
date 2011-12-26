@@ -96,6 +96,8 @@ public class MQuery extends MIDBCollection
 	// switch to MiniSAT.
 	static SATFactory defaultSATFactory = SATFactory.DefaultSAT4J;
 
+	protected Map<String, Integer> localCeilings = new HashMap<String, Integer>();
+	
 	public void printSettings()
 	{
 		// Print out the current settings for this query.
@@ -1268,7 +1270,7 @@ public class MQuery extends MIDBCollection
 			List<String> publish,
 			Map<String, String> sortsForPublish,
 			Map<String, Set<List<MTerm>>> includeMap,
-			Boolean bTupling, Integer iDebugLevel, Integer iCeiling)
+			Boolean bTupling, Integer iDebugLevel, Map<String, Integer> localCeilings)
 			throws MUserException
 			{
 
@@ -1545,6 +1547,9 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeToLog("\nQuery condition saw term: "+t.toString());
 			result.vocab.exprToTerm.put(t.expr, t);
 		}
+		
+		// Populate local ceilings
+		result.localCeilings = localCeilings;
 		
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 

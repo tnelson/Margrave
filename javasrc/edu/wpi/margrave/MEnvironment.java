@@ -491,7 +491,7 @@ public class MEnvironment
 	static String lastCommandReceived = "";
 
 	// Global sort ceilings set by user
-	static Map<String, Integer> sortCeilings = new HashMap<String, Integer>(); 
+	static Map<String, Integer> globalUserSortCeilings = new HashMap<String, Integer>(); 
 	
 	// If both term-counting and user fail to provide a size ceiling
 	// mimic Alloy
@@ -1041,8 +1041,8 @@ public class MEnvironment
 			//outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
-				return setResponse(outsets.get(""));
-			return mapResponse(outsets);
+				return setResponse("unrealized", outsets.get(""));
+			return mapResponse("unrealized", outsets);
 			
 		}
 		catch (MBaseException e)
@@ -1850,16 +1850,22 @@ public class MEnvironment
 
 	private static Element makeStatisticsElement(Document xmldoc, MPreparedQueryContext theResult, String id)
 	{
-		Element statsElement = xmldoc.createElementNS(null, "STATISTICS");;		
+		Element statsElement = xmldoc.createElementNS(null, "STATISTICS");	
 		
 		// Report the size ceiling (calculated and user-provided) so a warning
 		// can be given if need be.
 		statsElement.setAttribute("max-size", String.valueOf(theResult.getCeilingUsed()));
-		statsElement.setAttribute("user-max-size", String.valueOf(MEnvironment.sortCeilings.get("")));
+		statsElement.setAttribute("user-max-size", String.valueOf(MEnvironment.globalUserSortCeilings.get("")));
 		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.getCeilingComputed()));
-		statsElement.setAttribute("result-id", String.valueOf(id));
+		statsElement.setAttribute("result-id", String.valueOf(id));		
+		
+		Element warnings = setElement("warnings", theResult.warnings, xmldoc);
+		
+		Element usedSizesElement = mapElement("used", theResult.ceilingsToUse, xmldoc);		
+		statsElement.appendChild(usedSizesElement);
 		return statsElement;
 	}
+	
 	
 	private static Document successResponse()
 	{
@@ -2101,7 +2107,7 @@ public class MEnvironment
 		xmldoc.getDocumentElement().appendChild(modelElement);
 		
 		Element statsElement = makeStatisticsElement(xmldoc, mQueryResult, id);		
-		xmldoc.getDocumentElement().appendChild(statsElement);		
+		xmldoc.getDocumentElement().appendChild(statsElement);					
 		
 		return xmldoc;
 	}
@@ -2130,12 +2136,11 @@ public class MEnvironment
 		return xmldoc;
 	}
 	
-	private static Document setResponse(Set<String> set)
+	private static Element setElement(String setname, Set<?> set, Document xmldoc)
 	{
-		Document xmldoc = makeInitialResponse("set");
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element setElement = xmldoc.createElementNS(null, "SET");
 		setElement.setAttribute("size", String.valueOf(set.size()));
+		setElement.setAttribute("name", setname);
 		
 		for(Object obj : set)
 		{
@@ -2146,17 +2151,24 @@ public class MEnvironment
 			objElement.appendChild(xmldoc.createTextNode(obj.toString()));
 			setElement.appendChild(objElement);			
 		}
+		return setElement;
+	}
+	
+	private static Document setResponse(String setname, Set<String> set)
+	{
+		Document xmldoc = makeInitialResponse("set");
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
+		Element setElement = setElement(setname, set, xmldoc);
 		
 		xmldoc.getDocumentElement().appendChild(setElement);		
 		return xmldoc;
 	}
-
-	private static Document mapResponse(Map<String, Set<String>> outsets)
+	
+	private static Element mapElement(String mapname, Map<?, ?> outsets, Document xmldoc)
 	{
-		Document xmldoc = makeInitialResponse("map");
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element mapElement = xmldoc.createElementNS(null, "MAP");
-				
+		mapElement.setAttribute("name", mapname);
+		
 		for(Object key : outsets.keySet())
 		{
 			Element entryElement = xmldoc.createElementNS(null, "ENTRY");
@@ -2164,17 +2176,36 @@ public class MEnvironment
 			entryElement.setAttribute("key", key.toString());
 			
 			// WORRY some info lost in the toString calls here.
-			for(Object obj : outsets.get(key))
+			Object value = outsets.get(key);
+			if(value instanceof Set)
+			{
+				for(Object obj : (Set<?>) value)
+				{
+					Element valueElement = xmldoc.createElementNS(null, "VALUE");	
+					valueElement.setAttribute("type", obj.getClass().getCanonicalName());
+					valueElement.appendChild(xmldoc.createTextNode(obj.toString()));
+					entryElement.appendChild(valueElement);
+				}
+			}
+			else
 			{
 				Element valueElement = xmldoc.createElementNS(null, "VALUE");	
-				valueElement.setAttribute("type", obj.getClass().getCanonicalName());
-				valueElement.appendChild(xmldoc.createTextNode(obj.toString()));
+				valueElement.setAttribute("type", value.getClass().getCanonicalName());
+				valueElement.appendChild(xmldoc.createTextNode(value.toString()));
 				entryElement.appendChild(valueElement);
 			}
 			
 			mapElement.appendChild(entryElement);			
 		}
+		return mapElement;
+	}
+	
+	private static Document mapResponse(String mapname, Map<?, ?> outsets)
+	{
+		Document xmldoc = makeInitialResponse("map");
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		
+		Element mapElement = mapElement(mapname, outsets, xmldoc);
 		
 		xmldoc.getDocumentElement().appendChild(mapElement);		
 		return xmldoc;
@@ -2270,7 +2301,7 @@ public class MEnvironment
 		
 	}
 	public static Document setSortCeiling(String sortName, int value) {
-		sortCeilings.put(sortName, value);
+		globalUserSortCeilings.put(sortName, value);
 		return successResponse();
 	}
 	

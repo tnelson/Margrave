@@ -168,7 +168,7 @@ public abstract class MQueryResult
 	protected MPreparedQueryContext fromContext;
 	
 	// Used in output to help display the vectors for idbs
-	Map<String, String> idbToTup = new HashMap<String, String>();
+	Map<String, String> idbToTup = new HashMap<String, String>();	
 	
 	MQueryResult(MPreparedQueryContext fromContext)
 	{
@@ -421,7 +421,7 @@ public abstract class MQueryResult
 				
 		int numNeeded = fromContext.ceilingsToUse.get(t.name).intValue();
 		
-		if(t.subsorts.size() == 0)
+		if(t.subsorts.size() <= 0)
 		{
 			// Base case. Build atoms.
 						
@@ -440,7 +440,21 @@ public abstract class MQueryResult
 				makeSortUpperBound(childt, upperBounds, atomSet);
 				upperBounds.get(t.rel).addAll(upperBounds.get(childt.rel));
 			}
-			
+
+			// Do we need to add more atoms that are NOT in the children?
+			int haveCurrently = upperBounds.get(t.rel).size();
+			for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
+			{
+				String theAtom = t.name+"#"+ii;
+				upperBounds.get(t.rel).add(theAtom);
+				atomSet.add(theAtom);
+				Set<MSort> propagateTo = fromContext.forQuery.vocab.buildSubSortSet(t);
+				for(MSort dt : propagateTo)
+				{
+					upperBounds.get(dt.rel).add(theAtom);
+				}				
+			}
+						
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			// UNDER THE ASSUMPTION THAT THE SORT ORDERING IS A TREE
 			// AND INCOMPARABLE SORTS MUST BE DISJOINT
@@ -456,19 +470,18 @@ public abstract class MQueryResult
 				upperBounds.get(dest).addAll(upperBounds.get(src));
 			}
 			
-			// Do we need to add more atoms that are NOT in the children?
-			int haveCurrently = upperBounds.get(t.rel).size();
-			for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
+			// If any child* has size -1, its upper bound must contain the upper bound of this type
+			// (Since we've already resolved user bounds + computed bounds, -1 means don't know what to do.
+			//  Use defaults, etc)
+			for(MSort childt : fromContext.forQuery.vocab.buildSubSortSet(t))
 			{
-				String theAtom = t.name+"#"+ii;
-				upperBounds.get(t.rel).add(theAtom);
-				atomSet.add(theAtom);
-				Set<MSort> propagateTo = fromContext.forQuery.vocab.buildSubSortSet(t);
-				for(MSort dt : propagateTo)
+				int childnum = fromContext.ceilingsToUse.get(childt.name);
+				if(childnum == -1)
 				{
-					upperBounds.get(dt.rel).add(theAtom);
-				}				
+					upperBounds.get(childt.name).addAll(upperBounds.get(t.name));
+				}
 			}
+			
 		}	// end recursive case		
 	} // end method
 	
@@ -1015,6 +1028,8 @@ class MPreparedQueryContext
 	
 	MQuery forQuery;
 	
+	public Set<String> warnings = new HashSet<String>();
+	
 	Map<String, Set<List<MTerm>>> includeMap = new HashMap<String, Set<List<MTerm>>>();
 	
 	public int getCeilingUsed()
@@ -1061,59 +1076,28 @@ class MPreparedQueryContext
 	 * We may also have to sanity-check the user-provided bounds. For instance, if B < A
 	 * and user(A) = 2 and user(B) = 3, we need to resolve the mis-match.
 	 * 
-	 * @param sortCeilings
+	 * @param computedSortCeilings
 	 * @return Ceilings, filtered to respect what the user wants.
 	 */
-	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> sortCeilings)
-	{
-		//Map<String, Integer> result = new HashMap<String, Integer>();
+	private Map<String, Integer> resolveSortCeilings(Map<String, Integer> computedSortCeilings)
+	{		
+		Map<String, Integer> userSortCeilings = new HashMap<String, Integer>(MEnvironment.globalUserSortCeilings);
+		for(String sname : forQuery.localCeilings.keySet())
+		{
+			// local ceilings over-rule global ceilings
+			userSortCeilings.put(sname, forQuery.localCeilings.get(sname));
+		}
 		
 		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
 		//                has been given a bound, the bounds of its parent and of any other
 		//                extensions of the same parent can be determined."
-		
-		// TODO For now, we have a very simple subset of that functionality from Alloy.
-		// 
-		
-		// User bounds are in:
+				
+		// User-provided bounds are in:
 		// MEnvironment.sortCeilings 
 		// not guaranteed to be complete (may not contain a bound for many sorts)
-		
-		// Calculate bounds for each top-level sort separately, then populate universe's bound. (Key="")		
-				
-		
-		// For each top level sort: 
-		//   User < Calc --> Use user-provided bounds at top level. DO NOT create special atoms at lower levels. Analysis may be incomplete. 
-		//   Calc < User --> 
-		
-		
-		// (1) If user has provided a size for a sort, USE IT
-		
-		// (2) If user has NOT provided a ceiling, and we can't calculate one (or calculated is above last resort)
-		// then use last resort (MEnvironment.topSortCeilingOfLastResort)
-		
-		// (3) Otherwise, use our calculate sizes
-		
-		
-		// TN note: Alloy is much more sophisticated about user bounds.
-								
-		
-		// Commented out 6/11: now PER SORT
-		// If the user has provided a ceiling (i.e., sizeCeiling != -1)
-		// use that ALWAYS.
-		//if(userSizeCeiling != -1)
-		//	maxSizeToCheck = userSizeCeiling;
-		// If the user hasn't provided a ceiling and Margrave can't calculate one, use a magic number
-		// Also, don't go above 6 without user permission!
-		//else if(totalHerbrandMax <= 0 || totalHerbrandMax > ceilingOfLastResort)
-		//	maxSizeToCheck = ceilingOfLastResort;
-		//else
-		//	maxSizeToCheck = totalHerbrandMax;
-		//MEnvironment.writeOutLine("User provided ceiling: "+userSizeCeiling+", Margrave calculated: "+totalHerbrandMax+", using: "+maxSizeToCheck);
-
-		// TODO
-				
-		Map<String, Integer> result = new HashMap<String, Integer>(sortCeilings);
+	
+		// Start w/ computed values
+		Map<String, Integer> result = new HashMap<String, Integer>(computedSortCeilings);			
 				
 		// If we have an empty universe, invalidate the results and use 
 		// user-supplied ceiling, just as if there was an infinite universe.
@@ -1126,10 +1110,80 @@ class MPreparedQueryContext
 			}
 		}
 		
+		// -1 means "no bound given by anybody; propagate from supersorts."
+		
+		// Reconcile w/ user:
+		// User given, Alg > -1
+		//   If User => Alg, just set it. Will create extra in the appropriate sort.
+		//   If User < Alg, set it. Set all this sort's children to -1. ACTIVATE WARNING. 
+		// User given, Alg = -1
+		//   Use user's bound. For all children, if user didn't give a bound, set to -1
+		//   and will propagate down. ACTIVATE WARNING.
+		// User NOT given, Alg > -1
+		//   Use generated bound.
+		// User NOT given, Alg = -1
+		//   Leave as -1, and bounds creation will propagate down. ACTIVATE WARNING.
+
+		Set<MSort> todo = new HashSet<MSort>(forQuery.vocab.sorts.values());
+		for(MSort s : todo)
+		{
+			if(userSortCeilings.containsKey(s.name)) // User given!
+			{
+				if(computedSortCeilings.get(s.name) == -1) // alg = -1
+				{
+					result.put(s.name, userSortCeilings.get(s.name));					
+					warnings.add("Margrave could not compute sufficient bounds for type "+s.name+
+							". Using user-provided bound of "+userSortCeilings.get(s.name)+".");
+					for(MSort child : forQuery.vocab.buildSubSortSet(s))
+					{
+						// set-all-descends-to-neg1-if-user-didnt-give.
+						todo.remove(child);
+						if(userSortCeilings.containsKey(child.name))
+							result.put(child.name, userSortCeilings.get(child.name));
+						else
+							result.put(child.name, -1);
+					}
+				}
+				else if(computedSortCeilings.get(s.name) <= userSortCeilings.get(s.name))
+				{
+					result.put(s.name, userSortCeilings.get(s.name));
+				}
+				else // computed > userceiling
+				{
+					result.put(s.name, userSortCeilings.get(s.name));
+					warnings.add("Margrave guarantees that "+computedSortCeilings.get(s.name)+
+							" is a suffient bound for type "+s.name+
+							". Instead it is using the user-provided bound of "+
+							userSortCeilings.get(s.name)+", which is smaller.");
+					for(MSort child : forQuery.vocab.buildSubSortSet(s))
+					{
+						// set-all-descends-to-neg1-if-user-didnt-give.
+						todo.remove(child);
+						if(userSortCeilings.containsKey(child.name))
+							result.put(child.name, userSortCeilings.get(child.name));
+						else
+							result.put(child.name, -1);
+					}
+				}
+			}
+			else // user not given!
+			{
+				if(computedSortCeilings.get(s.name) == -1)
+				{
+					// Leave as -1.
+					warnings.add("Margrave could not compute sufficient bounds for type "+s.name+" and none were provided.");
+				}
+				else
+				{
+					// use computed bound
+				}
+			}
+		}
+		
 		// Apply defaults if needed
 		if(result.get("").intValue() < 1)
-			result.put("", MEnvironment.topSortCeilingOfLastResort);
-		
+			result.put("", MEnvironment.topSortCeilingOfLastResort);		
+					
 		return result;
 		
 		
