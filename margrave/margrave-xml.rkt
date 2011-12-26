@@ -1137,14 +1137,21 @@
 (define (xml-make-forcases the-cases)
   `(FORCASES ,@the-cases))
 
-(define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
-  `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
+;(define (xml-make-tupling) ;Just defaults to true, if you don't want tupling don't include
+;  `(TUPLING ((value "true")))) ;Value isn't actually used right now. Perhaps useless?
 
 (define (xml-make-debug debug-level)
   `(DEBUG ((debug-level ,(->string debug-level)))))
 
-(define (xml-make-ceiling ceiling-level)
-  `(CEILING ((ceiling-level ,(->string ceiling-level)))))
+(define (xml-make-ceilings list-of-ceiling-elements)
+  `(CEILINGS ,@list-of-ceiling-elements))
+
+(define (xml-make-a-ceiling sort-name ceiling-level)
+  `(CEILING ((sort ,(->string sort-name)) 
+             (value ,(->string ceiling-level)))))
+
+(define (xml-make-a-ceiling-from-pair ceil-pair)
+  (xml-make-a-ceiling (first ceil-pair) (second ceil-pair)))
 
 ;Atomic Formulas
 (define (xml-make-equals-formula t1 t2)

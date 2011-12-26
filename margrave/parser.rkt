@@ -386,7 +386,11 @@ Margrave did not understand the condition or options given around \"~a\"."
          ;[(INCLUDE atomic-formula-list) (build-so (append (list 'INCLUDE) $2) 1 2)]
          ;[(TUPLING) (build-so (list 'TUPLING) 1 1)]
          [(DEBUG <natural>) (build-so (list 'DEBUG $2) 1 2)]
-         [(CEILING <natural>) (build-so (list 'CEILING $2) 1 2)])
+         [(CEILING list-of-ceilings) (build-so (list 'CEILINGS $2) 1 2)])
+        
+        (list-of-ceilings
+         [(<natural> <capitalized-id>) (list (list $1 $2))]
+         [(list-of-ceilings COMMA <natural> <capitalized-id>) (append $1 (list (list $3 $4)))])
         
         (explore-modifiers-list
          [(explore-modifier) (list $1)]
@@ -501,3 +505,4 @@ Margrave did not understand the condition or options given around \"~a\"."
   ((parse "test param to parse-s") (lambda () (lex in))))
 
 ; (test-parse-s "let F[x: A, y : B, z:C] be P1.P2.f(x, y) and not bar(z);")
+; (test-parse-s "let F[x: A, y : B, z:C] be P1.P2.f(x, y) and not bar(z) ceiling 5 A, 6 B;")

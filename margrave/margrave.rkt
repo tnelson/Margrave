@@ -449,7 +449,7 @@ gmarceau
 ; sexpr-vars can be empty, but must be given.
 
 (define/contract
-  (m-let qryid sexpr-vars sexpr-fmla #:under [under-list empty] #:debug [debug-level 0])
+  (m-let qryid sexpr-vars sexpr-fmla #:under [under-list empty] #:debug [debug-level 0] #:ceiling [ceilings-list empty])
   [->* (string? list? (or/c symbol? list?))
        (#:under list? #:debug integer?)       
        (or/c void? boolean?)]
@@ -462,10 +462,11 @@ gmarceau
 
   (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
   (define query-condition-xml (m-formula->xexpr sexpr-fmla))  
-  
+    
   (define query-options (list
                          (xml-make-under under-list)
-                         (xml-make-debug debug-level)))
+                         (xml-make-debug debug-level)
+                         (xml-make-ceilings (map xml-make-a-ceiling ceilings-list))))
   
   (define the-xml
      (xml-make-explore-command 
@@ -575,14 +576,6 @@ gmarceau
       (display (string-append desc ": Passed."))
       (display (string-append desc ": FAILED!")))
   (newline))
-
-; !!! Not provided. Should it be? Can get count at size via COUNT... - TN
-;(define (test-model desc qry size exp_sols exp_ceiling)
-;  (if (->boolean 
-;       (m (string-append "RUN TEST CASE " qry " " size " " exp_sols " " exp_ceiling)))
-;      (display (string-append desc ": Passed."))
-;      (display (string-append desc ": FAILED!")))
-;  (newline))
 
 ; read from stderr until nothing is left. This WILL block.
 (define (flush-error error-buffer target-port) 

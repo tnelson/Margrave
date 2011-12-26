@@ -540,10 +540,8 @@
     
     [(equal? first-datum 'TUPLING)
      `(xml-make-tupling)]
-    [(equal? first-datum 'CEILING)
-     `(xml-make-ceiling ,(if (< 1 (length interns))
-                             (syntax->string (second interns))
-                             "-1"))]
+    [(equal? first-datum 'CEILINGS)
+     `(xml-make-ceilings '( ,@(map xml-make-a-ceiling-from-pair (syntax->datum (second interns)))))]
     [(equal? first-datum 'DEBUG)
      `(xml-make-debug ,(syntax->string (second interns)))]
     [(equal? first-datum 'UNDER)
