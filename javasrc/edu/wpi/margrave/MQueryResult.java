@@ -384,7 +384,7 @@ public abstract class MQueryResult
 		// defer to defaults because we can't generate bounds for the query.
 		
 		int haveCurrently = atomSet.size();
-		int numNeeded = fromContext.ceilingsToUse.get("").intValue();		
+		int numNeeded = fromContext.ceilingsToUse.get(MEnvironment.sUnivSortName).intValue();		
 		for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
 		{
 			String theAtom = "UNIV#"+ii;			
@@ -478,6 +478,7 @@ public abstract class MQueryResult
 				int childnum = fromContext.ceilingsToUse.get(childt.name);
 				if(childnum == -1)
 				{
+					MCommunicator.writeToLog("\nChild "+childt+" had -1 as ceiling to use. Propagating upper bounds from "+t);
 					upperBounds.get(childt.name).addAll(upperBounds.get(t.name));
 				}
 			}
@@ -575,7 +576,7 @@ public abstract class MQueryResult
 		// ****************************************
 		
 		// Are we including non-decision IDBs in the calculation? If not, and this isn't one, ignore.		
-		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
+	/*	if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
 			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = 
@@ -746,13 +747,16 @@ public abstract class MQueryResult
 			f = MFormulaManager.makeConjunction(impSet);
 		} // end of if including idbs in output								
 		// ****************************************
-
+*/
 				
 	
 		if(fromContext.forQuery.debug_verbosity > 1)			
 			MEnvironment.writeOutLine("Bounds Produced:\n"+qryBounds);
 		
-		return new KodkodContext(f, qryBounds);
+		KodkodContext result = new KodkodContext(f, qryBounds); 
+		MCommunicator.writeToLog("\nBounds produced. Returning new context: "+result);
+		
+		return result;
 	} // end makeBounds()
 
 }
@@ -1015,7 +1019,6 @@ class SkolemReporter implements Reporter
 class MPreparedQueryContext
 {
 	// Sort Name ---> Ceiling
-	// "" is the name for the union of all sorts.
 	Map<String, Integer> ceilingsToUse;
 	Map<String, Integer> ceilingsSufficient;
 	FormulaSigInfo herbrandBounds;
@@ -1034,14 +1037,14 @@ class MPreparedQueryContext
 	
 	public int getCeilingUsed()
 	{
-		if(ceilingsToUse.containsKey(""))
-			return ceilingsToUse.get("");
+		if(ceilingsToUse.containsKey(MEnvironment.sUnivSortName))
+			return ceilingsToUse.get(MEnvironment.sUnivSortName);
 		return -1;
 	}
 	public int getCeilingComputed()
 	{		
-		if(ceilingsSufficient.containsKey(""))
-			return ceilingsSufficient.get("");
+		if(ceilingsSufficient.containsKey(MEnvironment.sUnivSortName))
+			return ceilingsSufficient.get(MEnvironment.sUnivSortName);
 		return -1;
 	}
 	
@@ -1086,7 +1089,9 @@ class MPreparedQueryContext
 		{
 			// local ceilings over-rule global ceilings
 			userSortCeilings.put(sname, forQuery.localCeilings.get(sname));
-		}
+		}		
+		
+		MCommunicator.writeToLog("\nIn resolveSortCeilings. userSortCeilings="+userSortCeilings+" and computedSortCeilings="+computedSortCeilings);
 		
 		// ALLOY (p128): "You can give bounds on... ... so long as whenever a signature
 		//                has been given a bound, the bounds of its parent and of any other
@@ -1101,8 +1106,8 @@ class MPreparedQueryContext
 				
 		// If we have an empty universe, invalidate the results and use 
 		// user-supplied ceiling, just as if there was an infinite universe.
-		if(!result.containsKey("") ||
-				result.get("").intValue() == 0)
+		if(!result.containsKey(MEnvironment.sUnivSortName) ||
+				result.get(MEnvironment.sUnivSortName).intValue() <= 0)
 		{
 			for(String sortName : result.keySet())
 			{
@@ -1124,9 +1129,19 @@ class MPreparedQueryContext
 		// User NOT given, Alg = -1
 		//   Leave as -1, and bounds creation will propagate down. ACTIVATE WARNING.
 
-		Set<MSort> todo = new HashSet<MSort>(forQuery.vocab.sorts.values());
-		for(MSort s : todo)
+		List<MSort> todo = new ArrayList<MSort>(forQuery.vocab.sorts.values());
+		
+		// Fake "sort" for UNIV. We MUST resolve user and computed bounds for overall universe.
+		MSort univ = new MSort("univ");
+		univ.subsorts.addAll(forQuery.vocab.sorts.values());
+		todo.add(univ);
+		
+		while(todo.size() > 0)
 		{
+			MSort s = todo.get(0);
+			todo.remove(0);
+			MCommunicator.writeToLog("\nResolving for sort="+s);
+			
 			if(userSortCeilings.containsKey(s.name)) // User given!
 			{
 				if(computedSortCeilings.get(s.name) == -1) // alg = -1
@@ -1155,15 +1170,16 @@ class MPreparedQueryContext
 							" is a suffient bound for type "+s.name+
 							". Instead it is using the user-provided bound of "+
 							userSortCeilings.get(s.name)+", which is smaller.");
-					for(MSort child : forQuery.vocab.buildSubSortSet(s))
-					{
-						// set-all-descends-to-neg1-if-user-didnt-give.
-						todo.remove(child);
-						if(userSortCeilings.containsKey(child.name))
-							result.put(child.name, userSortCeilings.get(child.name));
-						else
-							result.put(child.name, -1);
-					}
+					
+					//for(MSort child : forQuery.vocab.buildSubSortSet(s))
+					//{
+					//	// set-all-descends-to-neg1-if-user-didnt-give.
+					//	todo.remove(child);
+					//	if(userSortCeilings.containsKey(child.name))
+					//		result.put(child.name, userSortCeilings.get(child.name));
+					//	else
+					//		result.put(child.name, -1);
+					//}
 				}
 			}
 			else // user not given!
@@ -1181,9 +1197,10 @@ class MPreparedQueryContext
 		}
 		
 		// Apply defaults if needed
-		if(result.get("").intValue() < 1)
-			result.put("", MEnvironment.topSortCeilingOfLastResort);		
+		if(result.get(MEnvironment.sUnivSortName).intValue() < 1)
+			result.put(MEnvironment.sUnivSortName, MEnvironment.topSortCeilingOfLastResort);		
 					
+		MCommunicator.writeToLog("\nresolveSortCeilings done. Returning "+result);
 		return result;
 		
 		

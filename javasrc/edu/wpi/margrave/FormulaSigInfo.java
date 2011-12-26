@@ -2520,7 +2520,7 @@ public class FormulaSigInfo
 			result.put(e.toString(), getTermCount(e));
 		}
 		
-		result.put("", getTermCount());
+		result.put(MEnvironment.sUnivSortName, getTermCount());
 		return result;
 	}
 	

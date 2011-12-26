@@ -125,6 +125,22 @@
 (time (m-get "Q"))
 (time (m-get "Q" #:include '( ([before permit] u p) ([after permit] u p))))
 
+(time (m-let "Q3" '([u User] [p Permission]) 
+                   qrysexpr
+                   #:ceiling '([Role 4]
+                               [User 3]
+                               [univ 12]))) 
+(time (m-get "Q3"))
+
+; This will NOT override the computed univ bound. Need to provide explicitly as above.
+;(time (m-let "Q2" '([u User] [p Permission]) 
+;                   qrysexpr
+;                   #:ceiling '([Role 4]
+;                               [User 3]))) 
+;(time (m-get "Q2"))
+
+
+
 ;(time (m-let "QMinimalComb" '([u User] [p Permission]) 
 ;             '(and ([before permit] u p)
 ;                   ([after permit] u p))))

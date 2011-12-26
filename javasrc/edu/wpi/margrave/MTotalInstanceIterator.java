@@ -185,7 +185,7 @@ public class MTotalInstanceIterator extends MInstanceIterator
 							
 		//KodkodContext context = makeConservativeBounds(f);
 		KodkodContext context = makeBounds(f);
-						
+		
 		if(fromContext.forQuery.debug_verbosity >= 2)
 			MEnvironment.writeOutLine("DEBUG: Time (ms) to create bounds and finalize IDB collections: " + (mxBean.getCurrentThreadCpuTime()-start)/1000000);
 		

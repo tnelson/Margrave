@@ -470,6 +470,7 @@ public class MEnvironment
 	public static final String sCommand = "command";
 	public static final String sConstraint = "constraint";
 	public static final String sUnsupported = "unsupported in this version";
+	public static final String sUnivSortName = "univ";
 	
 	public static final String sShow = "show";
 	public static final String sNext = "next";

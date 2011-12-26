@@ -451,7 +451,7 @@ gmarceau
 (define/contract
   (m-let qryid sexpr-vars sexpr-fmla #:under [under-list empty] #:debug [debug-level 0] #:ceiling [ceilings-list empty])
   [->* (string? list? (or/c symbol? list?))
-       (#:under list? #:debug integer?)       
+       (#:under list? #:debug integer? #:ceiling list?)       
        (or/c void? boolean?)]
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
@@ -466,7 +466,7 @@ gmarceau
   (define query-options (list
                          (xml-make-under under-list)
                          (xml-make-debug debug-level)
-                         (xml-make-ceilings (map xml-make-a-ceiling ceilings-list))))
+                         (xml-make-ceilings (map xml-make-a-ceiling-from-pair ceilings-list))))
   
   (define the-xml
      (xml-make-explore-command 
