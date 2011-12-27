@@ -929,17 +929,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Inefficient, but works -- compute transitive closure of sort hierarchy.
-(define/contract (m-type-child-names/trans voc sname)
+(define/contract (m-type-child-names/rtrans voc sname)
   [m-vocabulary? (or/c symbol? string?) . -> . (listof string?)]
   (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
-    (margrave-error (format "Unknown type ~v in vocabulary ~v." (->string sname) voc)))
+    (margrave-error (format "Unknown type ~v in vocabulary ~v." (->string sname) voc) sname))
   (define the-type (hash-ref (m-vocabulary-types voc) (->string sname)))
-  (define child-names (m-type-child-names the-type))
-  (define child-types (map (lambda (n) (hash-ref (m-vocabulary-types voc) n))
-                           child-names))
-  (append child-names 
-          (map (lambda (childname) (m-type-child-names/trans voc childname)) child-types)))
-
+  (define child-names (m-type-child-names the-type)) 
+  ;(printf "child-names: ~v~n" child-names)
+  (define result (append (list sname) ; *reflexive* transitive closure
+                         ; do not include child-names explicitly; the map below will add them
+                         (flatten 
+                          (map (lambda (childname) (m-type-child-names/rtrans voc childname)) child-names))))
+  ;(printf "result: ~v~n" result)
+  (remove-duplicates result))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; What is the sort of this term? If the term is not well-sorted, throw a suitable error.
 (define/contract (m-term->sort/err voc term env)
@@ -954,7 +957,7 @@
      (for-each (lambda (p) 
                  (define-values (p-term p-sort) (values (first p) (second p)))
                  (unless (member? (m-term->sort/err voc p-term env)
-                                  (m-type-child-names/trans voc p-sort))
+                                  (m-type-child-names/rtrans voc p-sort))
                    (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
                pairs-to-check)                    
      (m-function-result thefunc)]
@@ -1032,11 +1035,17 @@
     
   ; Check to see if term <tname> can "fit" as sort <sname>
   (define/contract (internal-correct tname sname)
-    [any/c string? . -> . boolean?]    
-    (member? (m-term->sort/err voc tname env) (m-type-child-names/trans voc sname)))
+    [any/c string? . -> . boolean?]        
+    (define valid-sort-names (m-type-child-names/rtrans voc sname))
+    (define term-sort-str (->string (m-term->sort/err voc tname env)))
+    ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname valid-sort-names term-sort-str (member? term-sort-str valid-sort-names))
+    (unless (member? term-sort-str valid-sort-names)
+      (margrave-error (format "This formula was not well-sorted. The term was of type ~v, but expected to be of type ~v" tname term-sort-str sname) tname))
+    #t)
   
   ; Handle case: (isa x A true)
-  (define (internal-correct/isa vname sname)
+  (define/contract (internal-correct/isa vname sname)
+    [any/c string? . -> . boolean?]  
     (internal-correct vname sname))
   
   ; Handle case: (edbname x y z)
@@ -1059,9 +1068,11 @@
     (unless (hash-has-key? the-idbs idbname)
       (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname the-idbs) idbname))
     (define my-arity (hash-ref the-idbs idbname)) ; these will be strings
-    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string 
-    (printf "ptc: ~v~n" pairs-to-check)
-    (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
+    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string     
+    ;(printf "pairs to check: ~v~n" pairs-to-check)
+    (andmap (lambda (p) 
+              ;(printf "lambda: ~v~n" p)
+              (internal-correct (first p) (second p))) pairs-to-check))
   
   (match fmla
     [(maybe-identifier true)
@@ -1101,8 +1112,8 @@
        [(and (valid-sort? dbname) 
              (empty? terms)
              (valid-variable? term0))
-        (internal-correct/isa term0 dbname)] ; sugar for (isa x A true)      
-       [else (internal-correct/edb (cons term0 terms) dbname)])] ; (edb term0 terms ...)
+        (internal-correct/isa term0 (->string dbname))] ; sugar for (isa x A true)      
+       [else (internal-correct/edb (cons term0 terms) (->string dbname))])] ; (edb term0 terms ...)
     
     [else (margrave-error "This formula was not well-sorted" fmla) ]))
 
