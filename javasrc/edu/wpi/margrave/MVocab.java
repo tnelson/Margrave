@@ -557,6 +557,20 @@ public class MVocab {
 		}
 	}
 
+	Set<MConstant> getConstantsWithLocalSort(MSort s)
+	{
+		Set<MConstant> result = new HashSet<MConstant>();
+		
+		for(MConstant c : constants.values())
+		{
+			if(c.type.get(0).equals(s))
+				result.add(c);
+		}
+		
+		return result;
+	}
+	
+	
 	MSort getSort(String n) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{ 
 		if (sorts.containsKey(n))

@@ -55,6 +55,12 @@
        '([Q1] s a r))   
 (m-is-poss? "Q7") 
 
+; abstractness, under. should be false!
+(m-let "Q8" '([r Resource]) 
+       '(and (not (Paper r)) (not (Review r)) (not (TechReport r)))
+       #:under '("mypol1"))
+(m-is-poss? "Q8") ; false, Resource is abstract
+
 
 ;let Q3[s : Subject, a: Action, r : Resource] be Q(s, a, f(r));
 ;

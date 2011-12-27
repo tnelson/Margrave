@@ -465,9 +465,9 @@ gmarceau
 
   (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
   (define query-condition-xml (m-formula->xexpr sexpr-fmla))  
-    
+  (define processed-under-list (map (compose xml-make-policy-identifier ->string) under-list))
   (define query-options (list
-                         (xml-make-under under-list)
+                         (xml-make-under processed-under-list)
                          (xml-make-debug debug-level)
                          (xml-make-ceilings (map xml-make-a-ceiling-from-pair ceilings-list))))
   

@@ -266,19 +266,28 @@ public class MConstraints
 		{
 			MSort theSort = vocab.getSort(r);
 			
-			// Do nothing if this sort has no children
-			if(theSort.subsorts.size() < 1)
+			// Get the constants with local sort = theSort.
+			Set<MConstant> localConstants = vocab.getConstantsWithLocalSort(theSort);
+			
+			// Do nothing if this sort has no children and no constants
+			if((theSort.subsorts.size() + localConstants.size()) < 1)
 				continue;
 			
+			// Now, construct the formula. Everything in theSort is in the union of child sorts and local constants.
 			Variable theVar = MFormulaManager.makeVariable("abst_"+r);
 			Decl theDecl = MFormulaManager.makeOneOfDecl(theVar, theSort.rel);
 			Set<Formula> subDisj = new HashSet<Formula>();
+			
 			for(MSort theChild : theSort.subsorts)
 			{
 				Formula theFormula = MFormulaManager.makeAtom(theVar, theChild.rel);
 				subDisj.add(theFormula);
 			}
-
+			for(MConstant theConst : localConstants)
+			{
+				Formula theFormula = MFormulaManager.makeAtom(theVar, theConst.rel);
+				subDisj.add(theFormula);
+			}
 
 			Formula abstractFormula = MFormulaManager.makeForAll(MFormulaManager.makeDisjunction(subDisj), theDecl);
 			results.add(abstractFormula);
