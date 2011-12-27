@@ -1040,13 +1040,15 @@
     (define term-sort-str (->string (m-term->sort/err voc tname env)))
     ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname valid-sort-names term-sort-str (member? term-sort-str valid-sort-names))
     (unless (member? term-sort-str valid-sort-names)
-      (margrave-error (format "This formula was not well-sorted. The term was of type ~v, but expected to be of type ~v" tname term-sort-str sname) tname))
+      (margrave-error (format "This formula was not well-sorted. The term was of type ~v, but expected to be of type ~v" term-sort-str sname) tname))
     #t)
   
   ; Handle case: (isa x A true)
-  (define/contract (internal-correct/isa vname sname)
+  (define/contract (internal-correct/isa-sugar vname sname)
     [any/c string? . -> . boolean?]  
-    (internal-correct vname sname))
+    ; sugary isa formulas are always well-sorted.
+    ;(internal-correct vname sname)
+    #t)
   
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)
@@ -1112,7 +1114,7 @@
        [(and (valid-sort? dbname) 
              (empty? terms)
              (valid-variable? term0))
-        (internal-correct/isa term0 (->string dbname))] ; sugar for (isa x A true)      
+        (internal-correct/isa-sugar term0 (->string dbname))] ; sugar for (isa x A true)      
        [else (internal-correct/edb (cons term0 terms) (->string dbname))])] ; (edb term0 terms ...)
     
     [else (margrave-error "This formula was not well-sorted" fmla) ]))

@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../margrave.rkt")
+(require "../margrave.rkt"
+         rackunit)
 
 (start-margrave-engine #:margrave-params '("-log")
                        #:margrave-path "F:\\msysgit\\git\\margrave\\margrave")
@@ -14,9 +15,11 @@
        '(and ([mypol1 permit] s a r) (ReadPaper a)))   
 (m-is-poss? "Q1")
 
-; error!
-(m-let "Qx1" '([s Subject] [a Action] [r Resource]) 
-       '(and ([mypol1 permit] s r r) (ReadPaper a)))   
+; error! "r" used as the wrong sort.
+(check-exn 
+ exn:fail? 
+ (lambda () (m-let "Qx1" '([s Subject] [a Action] [r Resource]) 
+                   '(and ([mypol1 permit] s r r) (ReadPaper a)))))
 
 ; exists
 (m-let "Q2" '([s Subject]) 
