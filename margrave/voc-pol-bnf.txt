@@ -1,9 +1,10 @@
-BNF for vocab and policy syntax follow. Note that we've broken out policy sets from policies. They serve very
-different purposes, so they should be distinct syntactic elements.
+BNF for vocab and policy syntax follow. Note that we've broken out policy sets from policies!
 
 We use identifiers that start with lowercase letters (<low-id>) for: variables, predicates, functions. 
-Identifiers that begin with a capital letter (<cap-id>) are Sorts. 
-The terminal <id> represents any identifier, regardless of case.
+Identifiers that begin with a capital letter (<cap-id>) are Sorts. Identifiers that begin with a single quote
+are <const-id>. 
+
+The terminal <id> represents any (unquoted) identifier, regardless of case.
 
 Non-terminals wrapped in [] denote optional parameters.
 
@@ -22,27 +23,27 @@ Non-terminals wrapped in [] denote optional parameters.
 
 <LIST-OF-TYPE-DECLS> ::= <TYPE> | <TYPE>, <LIST-OF-TYPE-DECLS>
 
-<TYPE> ::= "(" "Type" <cap-id> ")" | "(" "Type" <cap-id> ">" <LIST-OF-TYPES> ")"
+<TYPE> ::= <cap-id> | "(" <cap-id> ">" <LIST-OF-TYPES> ")"
 
 // Note that LIST-OF-TYPE-DECLS is different from LIST-OF-TYPES
-//   one denotes (Type ...) (Type ...), the other A B C ...
+//   one denotes "A B (C > D)", the other "A B C"
 
 <LIST-OF-TYPES> ::= <cap-id> | <cap-id> <LIST-OF-TYPES>
 
-// (Predicate R A B C) means R: A x B x C
-// (no colon because it's annoying to filter the token R: etc.)
+// (R A B C) means R: A x B x C
+// no colon.
 
 <PREDS-CLAUSE> ::= "(" "Predicates" <LIST-OF-PREDS> ")"
 <LIST-OF-PREDS> ::= <PRED> | <PRED> <LIST-OF-PREDS>
-<PRED> ::= "(" "Predicate" <low-id> <LIST-OF-TYPES>  ")"
+<PRED> ::= "(" <low-id> <LIST-OF-TYPES>  ")"
 
 <CONSTANTS-CLAUSE> ::= "(" "Constants" <LIST-OF-CONSTS> ")"
 <LIST-OF-CONSTS> ::= <CONST> | <CONST> <LIST-OF-CONSTS>
-<CONST> ::= "(" "Constant" <low-id> <cap-id>  ")"
+<CONST> ::= "(" <const-id> <cap-id>  ")"
 
 <FUNCTIONS-CLAUSE> ::= "(" "Functions" <LIST-OF-FUNCS> ")"
 <LIST-OF-FUNCS> ::= <FUNC> | <FUNC> <LIST-OF-FUNCS>
-<FUNC> ::= "(" "Function" <low-id> <LIST-OF-TYPES>  ")"
+<FUNC> ::= "(" <low-id> <LIST-OF-TYPES>  ")"
 
 
 /////////////////////////////////////////////////////////////////////
@@ -70,7 +71,7 @@ Non-terminals wrapped in [] denote optional parameters.
 
 <VARIABLES-CLAUSE> ::= "(" "Variables" <LIST-OF-VARIABLE-DECLS> ")"
 <LIST-OF-VARIABLE-DECLS> ::= <VARDEC> | <VARDEC> <LIST-OF-VARIABLE-DECLS>
-<VARDEC> ::= "(" "Variable" <low-id> <cap-id>  ")"
+<VARDEC> ::= "(" <low-id> <cap-id>  ")"
 
 <RULES-CLAUSE> ::= "(" "Rules" <LIST-OF-RULES> ")"
 <LIST-OF-RULES> ::= <RULE> | <RULE> <LIST-OF-RULES>
@@ -106,8 +107,8 @@ Non-terminals wrapped in [] denote optional parameters.
 // 'c to denote constant
 // term must be well formed
 
-<TERM> ::= <low-id> |
-          "'" <low-id> |
+<TERM> ::= 
+          <const-id> |
           "(" <low-id> <LIST-OF-TERMS> ")"
 
 <RCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
@@ -125,6 +126,7 @@ Non-terminals wrapped in [] denote optional parameters.
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
+// POLICYSET SYNTAX IS PROVISIONAL! Not yet in! 
 
 <POLICYSET> ::=  "(" "PolicySet"
     		[<TARGET-CLAUSE>]

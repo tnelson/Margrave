@@ -1,7 +1,7 @@
 (Policy uses rbac        
         (Variables
-         (Variable u User)
-         (Variable p Permission))
+         (u User)
+         (p Permission))
         (Rules 
 	  (BeforePermission = (permit u p) :- (exists oldrole Role 
                                                       (and (hadRole u oldrole) (hadPermission oldrole p))))

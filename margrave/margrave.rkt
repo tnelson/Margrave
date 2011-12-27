@@ -344,7 +344,10 @@ gmarceau
   
   (cond [(not java-process-list)                
          (raise-user-error "Could not send Margrave command because engine was not started. Call the start-margrave-engine function first.")
-         #f]        
+         #f]  
+        [(port-closed? output-port)
+         (raise-user-error "Could not send Margrave command. The port to the Java engine was closed. Please restart Margrave.")
+         #f]
         [else
                   
          (define cmd-string (xexpr->string cmd-xexpr))
@@ -401,8 +404,8 @@ gmarceau
                           (path->string fn)
                           fn)
                       #'fn))
-  (define load-func (time (eval func-sexpr the-margrave-namespace)))
-  (time (load-func)))
+  (define load-func (eval func-sexpr the-margrave-namespace))
+  (load-func))
 
 (define/contract
   (m-is-poss? qryid)

@@ -460,24 +460,24 @@
        
        ; Returns a pair (name cmd)
        (define (handle-type a-type)         
-         (syntax-case a-type [Type >]     
+         (syntax-case a-type [>]                           
+           ; (T > A B C)
+           [(t > subt ...) (and (capitalized-id-syn? #'t)
+                                (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
+                           (m-type (symbol->string (syntax->datum #'t))
+                                   (map (compose symbol->string syntax->datum) (syntax-e #'(subt ...))))] 
+           [(t > subt ...) (not 
+                            (and (capitalized-id-syn? #'t)
+                                 (all-are-syn? #'(subt ...) capitalized-id-syn?)))
+                           (raise-syntax-error
+                            'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
-           ; (Type T)
-           [(Type t) (capitalized-id-syn? #'t)
-                     (m-type (symbol->string (syntax->datum #'t)) empty)]  
-           
-           [(Type t) (not (capitalized-id-syn? #'t))
-                     (raise-syntax-error 'Vocab err-invalid-type-decl-case #f #f (list a-type))] 
-           ; (Type T > A B C)
-           [(Type t > subt ...) (and (capitalized-id-syn? #'t)
-                                     (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
-                                (m-type (symbol->string (syntax->datum #'t))
-                                        (map (compose symbol->string syntax->datum) (syntax-e #'(subt ...))))] 
-           [(Type t > subt ...) (not 
-                                 (and (capitalized-id-syn? #'t)
-                                      (all-are-syn? #'(subt ...) capitalized-id-syn?)))
-                                (raise-syntax-error
-                                 'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
+           ; T (check for this AFTER the subtype declarations above, or the final "t" will match them.)
+           [t (capitalized-id-syn? #'t)
+              (m-type (symbol->string (syntax->datum #'t)) empty)]             
+           [t (not (capitalized-id-syn? #'t))
+              (raise-syntax-error 'Vocab err-invalid-type-decl-case #f #f (list a-type))] 
+
            
            [_ (raise-syntax-error 'Vocab err-invalid-type-decl #f #f (list a-type))]))
        
@@ -541,9 +541,9 @@
                (define the-predicates (rest (syntax-e the-predicates-clause)))                                        
                
                (define (handle-predicate pred)
-                 ; No colon. Just (Predicate predname A B C)
+                 ; No colon. Just (predname A B C)
                  (syntax-case pred []                   
-                   [(Predicate pname prel0 prel ...) (and (lower-id-syn? #'pname)
+                   [(pname prel0 prel ...) (and (lower-id-syn? #'pname)
                                                           (each-type-in-list-is-valid? #'(prel0 prel ...)))  
                                                      (m-predicate (symbol->string (syntax->datum #'pname))
                                                                   (map syntax->string (syntax->list #'(prel0 prel ...))))] 
@@ -575,16 +575,16 @@
                (define the-constants (rest (syntax-e the-constants-clause)))                                
                
                (define (handle-constant const)
-                 ; No colon. Just (Constant 'a A)
-                 (syntax-case const [Constant]                    
-                   [(Constant 'cname crel) (and (lower-id-syn? (syntax cname))
+                 ; No colon. Just ('a A)
+                 (syntax-case const []                    
+                   [('cname crel) (and (lower-id-syn? (syntax cname))
                                                 (is-valid-type? (syntax crel)))  
                                            (m-constant (syntax->string #'cname)
                                                        (syntax->string #'crel))] 
                    
-                   [(Constant 'cname crel) (not (lower-id-syn? (syntax cname)))
+                   [('cname crel) (not (lower-id-syn? (syntax cname)))
                                            (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
-                   [(constant cname crel) (raise-syntax-error `Vocab "Invalid constant name. Constant names must be preceded with a single quote. For instance: (Constant 'c A)" #f #f (list const) )]
+                   [(cname crel) (raise-syntax-error `Vocab "Invalid constant name. Constant names must be preceded with a single quote. For instance: (Constant 'c A)" #f #f (list const) )]
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]))
                
@@ -611,16 +611,16 @@
                (define the-functions (rest (syntax-e the-functions-clause)))                                
                
                (define (handle-function func)
-                 ; No colon. Just (function a A B)
-                 (syntax-case func [Function]                   
-                   [(Function fname frel0 frel ...) (and (lower-id-syn? #'fname)
-                                                         (each-type-in-list-is-valid? #'(frel0 frel ...))) 
-                                                    (let ()
-                                                      (define args (map symbol->string (syntax->datum #'(frel0 frel ...))))
-                                                      (define arity (take args (- (length args) 1)))
-                                                      (define result (last args))
-                                                      (define funcname (syntax->string #'fname))
-                                                      (m-function funcname arity result))] 
+                 ; No colon. Just (f A B)
+                 (syntax-case func []                   
+                   [(fname frel0 frel ...) (and (lower-id-syn? #'fname)
+                                                (each-type-in-list-is-valid? #'(frel0 frel ...))) 
+                                           (let ()
+                                             (define args (map symbol->string (syntax->datum #'(frel0 frel ...))))
+                                             (define arity (take args (- (length args) 1)))
+                                             (define result (last args))
+                                             (define funcname (syntax->string #'fname))
+                                             (m-function funcname arity result))] 
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-function #f #f (list func) )]))
                
@@ -711,16 +711,16 @@
                (define the-variables (rest (syntax-e the-variables-clause)))
                
                (define (handle-variable a-var-dec)
-                 (syntax-case a-var-dec [Variable]
-                   [(Variable lowid capid)                                         
+                 (syntax-case a-var-dec []
+                   [(lowid capid)                                         
                     (and (capitalized-id-syn? #'capid)
                          (lower-id-syn? #'lowid))
                     (m-vardec (->string #'lowid) (->string #'capid))]
-                   [(Variable lowid capid)                                         
+                   [(lowid capid)                                         
                     (not (capitalized-id-syn? #'capid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's type must be capitalized." #f #f (list a-var-dec))]
                    
-                   [(Variable lowid capid)                                         
+                   [(lowid capid)                                         
                     (not (lower-id-syn? #'lowid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's name must begin with a lowercase letter." #f #f (list a-var-dec))]
                    

@@ -1,27 +1,21 @@
-(Vocab Conference
-             (Types
-              (Type Subject > Author Reviewer)
-              (Type Author > LBAuthorReviewer)
-              
-              ;; Allow reviewers to be authors
-              (Type Reviewer > LBAuthorReviewer)
-              
-              (Type Action > SubmitPaper ReadPaper SubmitReview)
-              (Type Resource > Paper Review))
-             (Predicates
-              (Predicate conflicted Reviewer Paper)
-              (Predicate assigned Reviewer Paper))
-             (Constants (Constant 'c Resource))
-             (Functions (Function f Resource Resource)))
-
-	      
-
-
-	      ; Weed out vacuous solutions: Require there to be some Subject and some Resource.
-;              (nonempty Subject)
-;              (nonempty Resource)))
-
-	      ; Specify that there is no S, A, or R outside our declared subtypes;
-	      ;(abstract Subject)
-	      ;(abstract Action)
-              ;(abstract Resource)
+(Theory Conference
+        (Vocab Conference
+               (Types
+                Subject                            
+                (Action > SubmitPaper ReadPaper SubmitReview)
+                (Resource > Paper Review TechReport))
+               (Predicates
+                
+                (conflicted Subject Paper)
+                (assigned Subject Paper)
+                
+                ; Author and reviewer can overlap when declared as predicates
+                (author Subject)
+                (reviewer Subject))
+               
+               (Constants ('margravepaper Paper))
+               (Functions (techreportfor Paper TechReport)))
+        (Axioms 
+         ;(abstract Subject)
+         (abstract Action)
+         (abstract Resource)))        	    	     

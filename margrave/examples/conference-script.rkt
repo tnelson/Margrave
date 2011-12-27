@@ -2,11 +2,12 @@
 
 (require "../margrave.rkt")
 
-;(start-margrave-engine #:margrave-params '("-log"))
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "M:\\RktMargrave\\margrave")
-;(m-load-policy "mypol" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
-(m-load-policy "mypol1" "M:\\RktMargrave\\margrave\\examples\\conference1.p")
+                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave")
+;(start-margrave-engine #:margrave-params '("-log")
+;                       #:margrave-path "M:\\RktMargrave\\margrave")
+(m-load-policy "mypol1" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
+;(m-load-policy "mypol1" "M:\\RktMargrave\\margrave\\examples\\conference1.p")
 
 ; basic
 (m-let "Q1" '([s Subject] [a Action] [r Resource]) 
@@ -30,7 +31,7 @@
 
 ; non (true) isa
 (m-let "Q5" '([s Subject] [a Action] [r Resource]) 
-       '(and ([mypol1 permit] s a r) (isa r Subject (Author r))))   
+       '(and ([mypol1 permit] s a r) (isa r Subject (author r))))   
 (m-is-poss? "Q5") ; false since Subject disj. Resource
 
 ; non (true) isa #2

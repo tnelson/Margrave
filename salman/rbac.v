@@ -1,33 +1,36 @@
 (Theory rbac 
         (Vocab rbac
                (Types
-                (Type User)
-                (Type Role)
-                (Type Permission))
+                User
+                Role
+                Permission
+                ; Test for subtype declarations
+                (Refreshment > Food Beverage))
                
                (Predicates
-                (Predicate hadRole User Role)
-                (Predicate hasRole User Role)
-                (Predicate hadPermission Role Permission)
-                (Predicate hasPermission Role Permission))
+                (hadRole User Role)
+                (hasRole User Role)
+                (hadPermission Role Permission)
+                (hasPermission Role Permission))
                
                (Constants 
-                (Constant 'tim User)
-                (Constant 'kathi User)
-                (Constant 'salman User)
-                (Constant 'submitPaper Permission)
-                (Constant 'teach Permission)
-                (Constant 'enterLab Permission)
-                (Constant 'grade Permission)
-                (Constant 'takeExam Permission)
-                (Constant 'professor Role)
-                (Constant 'student Role)
-                (Constant 'ta Role)
-                (Constant 'ra Role)))
+                ('tim User)
+                ('kathi User)
+                ('salman User)
+                ('submitPaper Permission)
+                ('teach Permission)
+                ('enterLab Permission)
+                ('grade Permission)
+                ('takeExam Permission)
+                ('professor Role)
+                ('student Role)
+                ('ta Role)
+                ('ra Role)))
         
         (Axioms 
                ; TODO: java support for custom axioms, e.g.
          ;          (forall arole Role (or (= arole 'professor) (= arole 'student) (= arole 'ta) (= arole 'ra)))
+         
          ;(singleton-all User)
          ;(atmostone-all Role)
          ;(atmostone-all Permission)
