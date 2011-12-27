@@ -442,3 +442,23 @@
 ; Sanitize output. Don't report list contents.
 (define (member? ele lst)
   (if (member ele lst) #t #f))
+
+; TODO Should be re-written functionally
+; always returns an immutable hash.
+(define/contract (hash-union/overlap h1 h2 overlap-error-msg)
+  [hash? hash? string? . -> . (and/c hash? (not/c immutable?))]
+  (define result (hash-copy h1))
+  (for ([key (hash-keys h2)])
+    (cond
+      [(not (hash-has-key? result key)) (hash-set! result key (hash-ref h2 key))]
+      [(equal? (hash-ref h1 key) (hash-ref h2 key)) void]
+      [else (raise-user-error overlap-error-msg)]))
+  result)
+
+(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash "B" 3) "oops")
+                    (hash-copy (hash "A" 2 "B" 3 "C" 4))))
+(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash ) "oops")
+                    (hash-copy (hash "A" 2 "B" 3 "C" 4))))
+(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash "B" 3 "D" 5) "oops")
+                    (hash-copy (hash "A" 2 "B" 3 "C" 4 "D" 5))))
+

@@ -51,6 +51,11 @@
          cached-policies         
          cached-theories
          
+         m-formula-is-well-sorted?
+         m-formula-is-well-sorted?/err
+         get-uber-vocab-for-formula 
+         combine-vocabs
+         
          (all-from-out "polvochelpers.rkt"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -925,12 +930,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Inefficient, but works -- compute transitive closure of sort hierarchy.
 (define/contract (m-type-child-names/trans voc sname)
-  [m-vocabulary? string? . -> . (listof string?)]
-  (define child-names (m-type-child-names sname))
+  [m-vocabulary? (or/c symbol? string?) . -> . (listof string?)]
+  (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
+    (margrave-error (format "Unknown type ~v in vocabulary ~v." (->string sname) voc)))
+  (define the-type (hash-ref (m-vocabulary-types voc) (->string sname)))
+  (define child-names (m-type-child-names the-type))
   (define child-types (map (lambda (n) (hash-ref (m-vocabulary-types voc) n))
                            child-names))
   (append child-names 
-          (map m-type-child-names/trans child-types)))
+          (map (lambda (childname) (m-type-child-names/trans voc childname)) child-types)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; What is the sort of this term? If the term is not well-sorted, throw a suitable error.
@@ -956,9 +964,9 @@
      (m-constant-type (hash-ref (m-vocabulary-constants voc) cid))]
     [(? valid-variable? vid) 
      (unless (hash-has-key? env term)
-       (margrave-error "The variable was not declared in the vocabulary context" term))
+       (margrave-error (format "The variable was not declared in the environment (~v)" env) term))     
      (hash-ref env term)]
-    [else (margrave-error "This term was not well-sorted" term)]))    
+    [else (margrave-error (format "The term ~v was not well-sorted. Environment was: ~v." term env) term)]))    
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -983,15 +991,17 @@
     [(m-op-case not arg)
      (gather-policy-references arg)]       
     [(m-op-case forall vname sname subfmla)
-     (gather-policy-references fmla)]     
+     (gather-policy-references subfmla)]     
     [(m-op-case exists vname sname subfmla)
-     (gather-policy-references fmla)]               
+     (gather-policy-references subfmla)]               
     [(m-op-case isa vname sname subfmla)
      (gather-policy-references subfmla)]     
     
     ; IDB: gather policy ids used!
+    ;[(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
+    ; (set (list pids))]     
     [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
-     (set (list pids))]     
+     (list->set pids)]     
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (set)]         
     [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
@@ -1002,20 +1012,28 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Get a cached policy by ID. If no such policy exists, throw a suitable error.
-(define (get-cached-policy/err pid)
-  (unless (hash-has-key? cached-policies pid)
+(define (get-cached-policy/err pid)  
+  (unless (hash-has-key? cached-policies (->string pid))
     (margrave-error "No such policy" pid))
-  (hash-ref cached-policies pid))
+  (hash-ref cached-policies (->string pid)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Avoid duplicate code. Defer to m-formula-is-well-sorted/err
+(define (m-formula-is-well-sorted? voc sexpr env)
+  (with-handlers ([(lambda (e) (exn:fail:syntax? e))
+                   (lambda (e) #f)]
+                  [(lambda (e) (exn:fail:user? e))
+                   (lambda (e) #f)])
+    (m-formula-is-well-sorted?/err sexpr)))
+
 ; If the formula is not well-sorted, throw a suitable error.
-(define/contract (m-formula-is-well-sorted/err voc fmla env)
+(define/contract (m-formula-is-well-sorted?/err voc fmla env)
   [m-vocabulary? any/c hash? . -> . boolean?]      
-  
+    
   ; Check to see if term <tname> can "fit" as sort <sname>
   (define/contract (internal-correct tname sname)
-    [string? string? . -> . boolean?]
-    (member? (m-term->sort/err tname) (m-type-child-names/trans voc sname)))
+    [any/c string? . -> . boolean?]    
+    (member? (m-term->sort/err voc tname env) (m-type-child-names/trans voc sname)))
   
   ; Handle case: (isa x A true)
   (define (internal-correct/isa vname sname)
@@ -1032,14 +1050,17 @@
   ; Handle case: ( (polname idbname) x y z)
   ; todo for now: only support single element in polidlist
   ; need to access cached policies
-  (define (internal-correct/idb list-of-vars pol-id-list idbname)
-    (when (empty? pol-id-list) #f)
+  (define (internal-correct/idb list-of-vars pol-id-list idbname-pre)
+    (define idbname (->string idbname-pre))    
+    (when (empty? pol-id-list) 
+      #f)
     (define this-policy (get-cached-policy/err (first pol-id-list)))
     (define the-idbs (m-policy-idbs this-policy))
     (unless (hash-has-key? the-idbs idbname)
-      (margrave-error (format "Policy ~v did not contain ~v" pol-id-list idbname)))              
-    (define my-arity (hash-ref the-idbs idbname))
-    (define pairs-to-check (zip list-of-vars my-arity))
+      (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname the-idbs) idbname))
+    (define my-arity (hash-ref the-idbs idbname)) ; these will be strings
+    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string 
+    (printf "ptc: ~v~n" pairs-to-check)
     (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
   
   (match fmla
@@ -1049,27 +1070,27 @@
      #t]        
     
     [(m-op-case = t1 t2)
-     (and (m-term->sort/err t1) (m-term->sort/err t2))]
+     (and (m-term->sort/err voc t1 env) (m-term->sort/err voc t2 env))]
     
     [(m-op-case and args ...)
-     (andmap m-formula-is-well-sorted/err args)]    
+     (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]    
     [(m-op-case or args ...)
-     (andmap m-formula-is-well-sorted/err args)]
+     (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]
     [(m-op-case implies arg1 arg2)
-     (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
+     (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
     [(m-op-case iff arg1 arg2)
-     (and (m-formula-is-well-sorted/err arg1) (m-formula-is-well-sorted/err arg2))]   
+     (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
     [(m-op-case not arg)
-     (m-formula-is-well-sorted/err arg)]   
+     (m-formula-is-well-sorted?/err voc arg env)]   
     
     [(m-op-case forall vname sname subfmla)
-     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
     [(m-op-case exists vname sname subfmla)
-     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]               
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]  
     ; If (isa x A alpha) is sugar for (exists y A (and (= x y) alpha[x -> y]))
     ; the sort of x must be _replaced_, not augmented, by the new sort.
     [(m-op-case isa vname sname subfmla)
-     (m-formula-is-well-sorted/err (hash-set env vname sname) subfmla)]     
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
     
     ; (idb term0 terms ...)    
     [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
@@ -1085,6 +1106,62 @@
     
     [else (margrave-error "This formula was not well-sorted" fmla) ]))
 
+(define/contract (union-types-hashes h1 h2)
+  [hash? hash? . -> . (and/c hash? (not/c immutable?))]
+  (define result (hash-copy h1))
+  (for ([key (hash-keys h2)])
+    (cond
+      [(not (hash-has-key? result key)) (hash-set! result key (hash-ref h2 key))]
+      [else 
+       (define type1 (hash-ref h1 key))
+       (define type2 (hash-ref h2 key))
+       (hash-set! result key (m-type key (remove-duplicates (append (m-type-child-names type1)
+                                                                    (m-type-child-names type2)))))]))   
+  result)
+
+(define/contract (combine-vocabs v1 v2)
+  [m-vocabulary? m-vocabulary? . -> . m-vocabulary?]
+  (define new-name (string-append (m-vocabulary-name v1) "+" (m-vocabulary-name v2)))
+  
+  ; Should never be used...
+  (define new-xml empty)
+  
+  ; can't use hash-union since we want to allow (and check) overlaps
+  (define new-types (union-types-hashes (m-vocabulary-types v1) (m-vocabulary-types v2)))
+  (define new-predicates (hash-union/overlap (m-vocabulary-predicates v1) (m-vocabulary-predicates v2) "Predicates did not match"))
+  (define new-constants (hash-union/overlap (m-vocabulary-constants v1) (m-vocabulary-constants v2) "Constants did not match"))
+  (define new-functions (hash-union/overlap (m-vocabulary-functions v1) (m-vocabulary-functions v2) "Functions did not match"))
+  
+  (m-vocabulary new-name new-xml new-types new-predicates new-constants new-functions))
+
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" empty (hash) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" empty (make-hash) (make-hash) (make-hash) (make-hash))))
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash "A" (m-type "A" empty)) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" empty (hash "A" (m-type "A" empty)) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" '() (make-hash `(("A" ,@(m-type "A" '())))) (make-hash) (make-hash) (make-hash))))
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash "A" (m-type "A" '("B"))) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" empty (hash "A" (m-type "A" '("C"))) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" '() (make-hash `(("A" ,@(m-type "A" '("B" "C"))))) (make-hash) (make-hash) (make-hash))))
+
+; not enough -- type hierarchy must be preserved!
+
+(define/contract (policy-name->m-vocab pname)
+  [(or/c symbol? string?) . -> . m-vocabulary?]
+  (define pname-str (->string pname))
+  (unless (hash-has-key? cached-policies pname-str)
+    (margrave-error "Unknown policy identifier" pname))
+  (define the-policy (hash-ref cached-policies pname-str))
+  (m-theory-vocab (m-policy-theory the-policy)))
+
+(define/contract (get-uber-vocab-for-formula fmla)
+  [m-formula? . -> . m-vocabulary?]  
+  (define used-policy-ids (gather-policy-references fmla))
+  (define voc-list (set-map used-policy-ids policy-name->m-vocab))
+  (define f (first voc-list))
+  (define r (rest voc-list))
+  (foldl combine-vocabs f r))
+  
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

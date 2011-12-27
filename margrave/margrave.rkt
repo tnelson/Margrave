@@ -56,7 +56,6 @@
          response->string
          get-qualified-rule-list
          get-rule-list
-         time-since-last
          make-applies-list
          make-matches-list
          
@@ -470,6 +469,10 @@ gmarceau
                          (xml-make-under processed-under-list)
                          (xml-make-debug debug-level)
                          (xml-make-ceilings (map xml-make-a-ceiling-from-pair ceilings-list))))
+    
+  ; Flatten is safe because sexpr-vars is a list of 2-element lists of symbols
+  (define vars-environment (apply hash (flatten sexpr-vars)))  
+  (m-formula-is-well-sorted?/err (get-uber-vocab-for-formula sexpr-fmla) sexpr-fmla vars-environment)
   
   (define the-xml
      (xml-make-explore-command 
@@ -568,14 +571,14 @@ gmarceau
 ; (This doesn't consider whether an overlap is possible, just the rule-ordering
 ;  given by combining algs.) Names are qualified with policyname:.
 ; Only works for Leaves, not Sets.
-(define (rule-idbs-with-higher-priority pol rulename)
-  (mtext (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
+;(define (rule-idbs-with-higher-priority pol rulename)
+;  (mtext (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
 
 ; **************************************************************
 ; Test case procedures
 
 (define (test desc s1 s2)
-  (if (eqv? s1 s2)
+  (if (equal? s1 s2)
       (display (string-append desc ": Passed."))
       (display (string-append desc ": FAILED!")))
   (newline))
@@ -636,18 +639,6 @@ gmarceau
 ; ********************************************************
 ; Helper functions
 ; ********************************************************
-
-; Easy timer function
-; Initial value
-(define tick-tock #f)
-(define (time-since-last)
-  (if (eq? tick-tock #f) ; gmarceau
-      (begin 
-        (set! tick-tock (current-inexact-milliseconds))
-        #f)
-      (let ([ms-to-return (- (current-inexact-milliseconds) tick-tock)]) 
-        (set! tick-tock (current-inexact-milliseconds))
-        ms-to-return)))
 
 ; -------------------------
 (define (resolve-custom-vector-y polid vecid vector-syntax)
