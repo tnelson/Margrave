@@ -87,8 +87,6 @@ public class MQuery extends MIDBCollection
 	// that the arity matches the desired IDB name.
 	protected HashMap<String, Set<List<String>>> idbsToAddInFormula = new HashMap<String, Set<List<String>>>();
 
-	// time spent before query creation
-	protected long msPreprocessingTime = -1;
 
 	// The default default is SAT4j, for compatibility.
 	// For performance (or if using large queries, for which SAT4j can run out
@@ -458,15 +456,12 @@ public class MQuery extends MIDBCollection
 			//MEnvironment.writeOutLine("DEBUG: Manager statistics: ");
 			//MFormulaManager.printStatistics();
 			MEnvironment.writeOutLine("Returning Solutions object; time so far:");
-			MEnvironment.writeOutLine("Preprocessing: " + msPreprocessingTime
-					+ "ms, pre-Kodkod query processing time: " + cputime
-					+ "ms.");
+			MEnvironment.writeOutLine("Preprocessing: " + cputime+ "ms.");
 		}
 		
 		MCommunicator.writeToLog("\nComputed Bounds:\n"+herbrandBounds);
 		
-		return new MPreparedQueryContext(this, queryWithAxioms, herbrandBounds,
-				 msPreprocessingTime, cputime, 0);
+		return new MPreparedQueryContext(this, queryWithAxioms, herbrandBounds, cputime);
 
 	}
 	

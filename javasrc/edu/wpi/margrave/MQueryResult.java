@@ -1024,8 +1024,7 @@ class MPreparedQueryContext
 	FormulaSigInfo herbrandBounds;
 		
 	public long msQueryCreationTime;
-	public long msQueryRunTime;
-	public long msQueryTuplingTime;
+	public long msQueryKodkodTime;
 	
 	Formula qryFormulaWithAxioms;
 	
@@ -1050,7 +1049,7 @@ class MPreparedQueryContext
 	
 	protected MPreparedQueryContext(MQuery q, Formula qfwa, 
 			FormulaSigInfo herbrandBounds,
-			long timeCreateObject, long timeRunQuery, long timeTupling)
+			long timePreprocessing)
 	{
 		// Used to print intelligently		
 		forQuery = q;
@@ -1067,9 +1066,10 @@ class MPreparedQueryContext
 		qryFormulaWithAxioms = qfwa;
 	
 		// How long did Margrave take to create the query object?
-		msQueryCreationTime = timeCreateObject;
-		msQueryRunTime = timeRunQuery;
-		msQueryTuplingTime = timeTupling;
+		msQueryCreationTime = timePreprocessing;
+		
+		// Time to run so far. (Will add to this when invoking Kodkod)
+		msQueryKodkodTime = 0;
 	}
 	
 	/**

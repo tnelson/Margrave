@@ -541,7 +541,11 @@
     [(equal? first-datum 'TUPLING)
      `(xml-make-tupling)]
     [(equal? first-datum 'CEILINGS)
-     `(xml-make-ceilings '( ,@(map xml-make-a-ceiling-from-pair (syntax->datum (second interns)))))]
+     ; Ceiling syntax for #lang margrave and m-let are ***REVERSED***:
+     ; [Role 5]
+     ; vs.
+     ; CEILING 5 Role
+     `(xml-make-ceilings '( ,@(map (compose xml-make-a-ceiling-from-pair reverse) (syntax->datum (second interns)))))]
     [(equal? first-datum 'DEBUG)
      `(xml-make-debug ,(syntax->string (second interns)))]
     [(equal? first-datum 'UNDER)

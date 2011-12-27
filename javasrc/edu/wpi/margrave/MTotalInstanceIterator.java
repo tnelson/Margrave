@@ -137,20 +137,20 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		
 		Solution sol = kodkodIterator.next(); 
 
-		// Count the time reported in the FIRST reply from each size
+		// Count the time reported in the FIRST reply (may be unsatisfiable)
 		if(firstSolution)
 		{
-			// Can't trust these values, Kodkod is not reporting accurately.
 			msKodkodSolveTime += sol.stats().solvingTime();
 			msKodkodTransTime += sol.stats().translationTime();
+			fromContext.msQueryKodkodTime = msKodkodSolveTime + msKodkodTransTime;
+			firstSolution = false;
 			
 			if(fromContext.forQuery.debug_verbosity > 1)
 			{
-				MEnvironment.writeOutLine("DEBUG: Beginning a new Kodkod solution iterator. Translation time for this iterator was: " + sol.stats().translationTime());
-				MEnvironment.writeOutLine("       TOTAL translation time so far for this query: ");
-			}
-			
-			firstSolution = false;
+				MEnvironment.writeOutLine("DEBUG: Beginning a new Kodkod solution iterator.\nTranslation time for this iterator was: " + 
+						sol.stats().translationTime()+"\nSolving time for this iterator was: "+sol.stats().solvingTime());
+				MCommunicator.writeToLog("\nprepareNext asked Kodkod for a solution. Kodkod time was: "+fromContext.msQueryKodkodTime);
+			}			
 		}
 
 		
@@ -409,11 +409,6 @@ abstract class MInstanceIterator extends MQueryResult
 		return false;
 	}	*/
 
-	
-	public long getQueryTuplingTime()
-	{
-		return fromContext.msQueryTuplingTime;		
-	}
 	
 	
 	private String varToRelName(List<Relation> relList, HashMap<Relation, List<Tuple>>tupMap, int iVar)

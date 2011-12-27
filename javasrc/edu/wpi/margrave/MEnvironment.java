@@ -1855,15 +1855,20 @@ public class MEnvironment
 		
 		// Report the size ceiling (calculated and user-provided) so a warning
 		// can be given if need be.
-		statsElement.setAttribute("max-size", String.valueOf(theResult.getCeilingUsed()));
-		statsElement.setAttribute("user-max-size", String.valueOf(MEnvironment.globalUserSortCeilings.get("")));
+		statsElement.setAttribute("max-size", String.valueOf(theResult.getCeilingUsed()));		
+		statsElement.setAttribute("user-max-size", String.valueOf(theResult.ceilingsToUse.get(MEnvironment.sUnivSortName)));
 		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.getCeilingComputed()));
 		statsElement.setAttribute("result-id", String.valueOf(id));		
+		statsElement.setAttribute("query-creation-ms", String.valueOf(theResult.msQueryCreationTime));
+		statsElement.setAttribute("query-run-ms", String.valueOf(theResult.msQueryKodkodTime));
 		
-		Element warnings = setElement("warnings", theResult.warnings, xmldoc);
+		Element warningsElement = setElement("warnings", theResult.warnings, xmldoc);		
+		Element usedSizesElement = mapElement("used", theResult.ceilingsToUse, xmldoc);
 		
-		Element usedSizesElement = mapElement("used", theResult.ceilingsToUse, xmldoc);		
+		
+		
 		statsElement.appendChild(usedSizesElement);
+		statsElement.appendChild(warningsElement);
 		return statsElement;
 	}
 	

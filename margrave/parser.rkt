@@ -390,7 +390,9 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (list-of-ceilings
          [(<natural> <capitalized-id>) (list (list $1 $2))]
-         [(list-of-ceilings COMMA <natural> <capitalized-id>) (append $1 (list (list $3 $4)))])
+         ; need to allow more than <capitalized-id> since special sort name "univ" is lowercase
+         ; don't want to make "univ" a keyword, though.
+         [(list-of-ceilings COMMA <natural> any-id) (append $1 (list (list $3 $4)))])
         
         (explore-modifiers-list
          [(explore-modifier) (list $1)]

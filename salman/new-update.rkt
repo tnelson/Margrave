@@ -129,8 +129,13 @@
                    qrysexpr
                    #:ceiling '([Role 4]
                                [User 3]
-                               [univ 12]))) 
+                               [univ 12])
+                   #:debug 2)) 
 (time (m-get "Q3"))
+
+; Test #lang margrave
+(mtext "LET Q4[u : User, p: Permission] BE before.permit(u, p) CEILING 3 User, 5 Permission, 4 Role, 12 univ")
+(mtext "show Q4")
 
 ; This will NOT override the computed univ bound. Need to provide explicitly as above.
 ;(time (m-let "Q2" '([u User] [p Permission]) 
