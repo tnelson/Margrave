@@ -152,7 +152,14 @@
     (define computed-max-num (string->number computed-max))
     (define user-provided-max-num (string->number user-provided-max))
     (define used-max-num (string->number used-max))    
-    (m-statistics computed-max-num user-provided-max-num used-max-num))
+    
+    (define warnings-element (get-child-element ele 'WARNINGS))
+    (define used-element (get-child-element ele 'USED))
+    
+    (define warnings (xml-set-element->list warnings-element))
+    (define used (flatten-singleton-string-lists-in-map (xml-map-element->map used-element)))
+    
+    (m-statistics computed-max-num user-provided-max-num used-max-num warnings used))
   
   (define (handle-annotation ele)
     (define the-annotation (pcdata-string (first (element-content ele))))
@@ -171,6 +178,15 @@
               (handle-statistics statistics-element) 
               (map handle-annotation annotation-elements)))
 
+(define (flatten-singleton-string-lists-in-map thehash)  
+  (for/hash ([key (hash-keys thehash)])
+    (define valuelist (hash-ref thehash key))
+    (if (and (equal? (length valuelist) 1)
+             (string? (first valuelist)))           
+        (values key (string->number (first valuelist)))
+        ; default to not changing the values
+        (values key valuelist))))
+; (flatten-singleton-string-lists-in-map (hash "A" '("1") "B" '("2" "3") "C" '() "D" '(5)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
@@ -355,41 +371,31 @@
         result
         (first result))))
 
+(define (element-has-children-named element name-symb-or-str)
+  (not (empty? (get-child-elements element name-symb-or-str))))
+
 (define (get-pc-data elem)
   (pcdata-string (first (element-content elem))))
 
-(define (print-statistics stat-element) ;stat xml is the statistics element
-  (let* ((string-buffer (open-output-string)))
-    (local ((define (write s)
-              (write-string s string-buffer)))
-      ;(write "\nSTATISTICS: \n")
-      (write (format "~n"))
-      (let* ([computed-max (get-attribute-value stat-element 'computed-max-size)]
-             [user-provided-max (get-attribute-value stat-element 'user-max-size)]
-             [used-max (get-attribute-value stat-element 'max-size)]
-             [computed-max-num (string->number computed-max)]
-             [user-provided-max-num (string->number user-provided-max)]
-             [used-max-num (string->number used-max)])
-        
-        (if (<= computed-max-num 0)
-            (write "Margrave could not calculate a size ceiling for this query.\n")            
-            (write (format "Margrave computed that ~a would be a sufficient size ceiling.\n" computed-max)))
-
-        ; Check for #f (means null returned for max size)
-        (if (or (not user-provided-max-num) (< user-provided-max-num 0))
-            (write (format "No ceiling explicitly provided. Used size ceiling: ~a.~n" used-max))
-            (write (format "Size ceiling manually given: ~a. Used size ceiling: ~a.~n"
-                           user-provided-max
-                           used-max)))
-        
-        ;(write (format "Used size ceiling: ~a\n" used-max))
-        
-        (cond [(< computed-max-num 0)
-               (write "WARNING:  Margrave could not calculate a sufficient ceiling size. Completeness is not guaranteed! You may need to check for larger scenarios.\n")]
-              [(< used-max-num computed-max-num)
-               (write (format "WARNING: Margrave will not check over ceiling size ~a without your permission. To increase the scenario size, set the CEILING parameter.\n" used-max-num))])
-        
-        (get-output-string string-buffer)))))
+(define (print-statistics stat-element) 
+  (define string-buffer (open-output-string))
+  (define (write s)
+    (write-string s string-buffer))
+  
+  (define computed-max (get-attribute-value stat-element 'computed-max-size))
+  (define user-provided-max (get-attribute-value stat-element 'user-max-size))
+  (define used-max (get-attribute-value stat-element 'max-size))
+  (define computed-max-num (string->number computed-max))
+  (define user-provided-max-num (string->number user-provided-max))
+  (define used-max-num (string->number used-max))
+  (define warnings-element (get-child-element stat-element 'WARNINGS))
+  (define used-element (get-child-element stat-element 'USED))
+  
+  (when (element-has-children-named warnings-element 'ITEM)    
+    (write "WARNING: Margrave may not be able to guarantee completeness:\n")            
+    (write (format "~a~n" (xml-set-element->list warnings-element))))
+  
+  (get-output-string string-buffer))
 
 
 ;************ Pretty Print Info *******************
@@ -482,12 +488,15 @@
 
 ; XML <MARGRAVE-RESPONSE type="set">  --> list
 (define (xml-set-response->list response-element-or-document)
-  (let* ([response-element (maybe-document->element response-element-or-document)]
-         [set-element (get-child-element response-element 'SET)]
-         [item-elements (get-child-elements set-element 'ITEM)])
-    (map (lambda (item-element)             
-           (pcdata-string (first (element-content item-element))))
-         item-elements)))
+  (define response-element (maybe-document->element response-element-or-document))
+  (define set-element (get-child-element response-element 'SET))
+  (xml-set-element->list set-element))
+
+(define (xml-set-element->list set-element)
+  (define item-elements (get-child-elements set-element 'ITEM))
+  (map (lambda (item-element)             
+         (pcdata-string (first (element-content item-element))))
+       item-elements))
 
 ; XML --> string
 ; Extracts the extra output info from the response. This element contains
@@ -545,21 +554,25 @@
 ; XML <MARGRAVE-RESPONSE type="map">  --> hash table
 ; the MAP element maps each key to a set of values
 (define (xml-map-response->map response-element-or-document)
-  (let* ([response-element (maybe-document->element response-element-or-document)]
-         [map-element (get-child-element response-element 'MAP)]
-         [entry-elements (get-child-elements map-element 'ENTRY)]
-         [mut-hashtable (make-hash)])
-    ; For each entry
-    (for-each (lambda (entry-element)
-                (let ([entry-key (get-attribute-value entry-element 'key)]
-                      [entry-values (get-child-elements entry-element 'value)])    ; 
-                  (hash-set! mut-hashtable
-                             entry-key
-                             ; for each value
-                             (map (lambda (val) (pcdata-string (first (element-content val))))
-                                  entry-values))))
-              entry-elements)
-    mut-hashtable))
+  (define response-element (maybe-document->element response-element-or-document))
+  (define map-element (get-child-element response-element 'MAP))  
+  (xml-map-element->map map-element))
+
+(define (xml-map-element->map map-element)
+  (define entry-elements (get-child-elements map-element 'ENTRY))
+  (define mut-hashtable (make-hash))
+    
+  (define (process-entry entry-element)
+    (define entry-key (get-attribute-value entry-element 'key))
+    (define entry-values (get-child-elements entry-element 'value))
+    (define value-list (map (lambda (val) (pcdata-string (first (element-content val))))
+                            entry-values))
+    (hash-set! mut-hashtable
+               entry-key                              
+               value-list))
+  
+  (for-each process-entry entry-elements)
+  mut-hashtable)
 
 ; XML <MARGRAVE-RESPONSE type="map">  --> string
 (define (pretty-print-map-xml element)

@@ -284,7 +284,9 @@
 (define-struct/contract m-statistics
   ([computed-max (or/c number? false?)]
    [user-provided-max (or/c number? false?)]
-   [used-max (or/c number? false?)])
+   [used-max (or/c number? false?)]
+   [warnings (listof string?)]
+   [used hash?])
   #:transparent)
 
 (define-struct/contract m-scenario

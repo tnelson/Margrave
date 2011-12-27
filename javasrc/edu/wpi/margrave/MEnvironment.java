@@ -1042,7 +1042,7 @@ public class MEnvironment
 			//outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
-				return setResponse("unrealized", outsets.get(""));
+				return setResponse(outsets.get(""));
 			return mapResponse("unrealized", outsets);
 			
 		}
@@ -1862,8 +1862,8 @@ public class MEnvironment
 		statsElement.setAttribute("query-creation-ms", String.valueOf(theResult.msQueryCreationTime));
 		statsElement.setAttribute("query-run-ms", String.valueOf(theResult.msQueryKodkodTime));
 		
-		Element warningsElement = setElement("warnings", theResult.warnings, xmldoc);		
-		Element usedSizesElement = mapElement("used", theResult.ceilingsToUse, xmldoc);
+		Element warningsElement = setElement("WARNINGS", theResult.warnings, xmldoc);		
+		Element usedSizesElement = mapElement("USED", theResult.ceilingsToUse, xmldoc);
 		
 		
 		
@@ -2144,9 +2144,8 @@ public class MEnvironment
 	
 	private static Element setElement(String setname, Set<?> set, Document xmldoc)
 	{
-		Element setElement = xmldoc.createElementNS(null, "SET");
+		Element setElement = xmldoc.createElementNS(null, setname);
 		setElement.setAttribute("size", String.valueOf(set.size()));
-		setElement.setAttribute("name", setname);
 		
 		for(Object obj : set)
 		{
@@ -2160,11 +2159,11 @@ public class MEnvironment
 		return setElement;
 	}
 	
-	private static Document setResponse(String setname, Set<String> set)
+	private static Document setResponse(Set<String> set)
 	{
 		Document xmldoc = makeInitialResponse("set");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
-		Element setElement = setElement(setname, set, xmldoc);
+		Element setElement = setElement("SET", set, xmldoc);
 		
 		xmldoc.getDocumentElement().appendChild(setElement);		
 		return xmldoc;
@@ -2172,8 +2171,7 @@ public class MEnvironment
 	
 	private static Element mapElement(String mapname, Map<?, ?> outsets, Document xmldoc)
 	{
-		Element mapElement = xmldoc.createElementNS(null, "MAP");
-		mapElement.setAttribute("name", mapname);
+		Element mapElement = xmldoc.createElementNS(null, mapname);		
 		
 		for(Object key : outsets.keySet())
 		{
@@ -2211,7 +2209,7 @@ public class MEnvironment
 		Document xmldoc = makeInitialResponse("map");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		
-		Element mapElement = mapElement(mapname, outsets, xmldoc);
+		Element mapElement = mapElement("MAP", outsets, xmldoc);
 		
 		xmldoc.getDocumentElement().appendChild(mapElement);		
 		return xmldoc;
