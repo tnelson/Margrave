@@ -41,6 +41,12 @@
    [functions (hash/c string? m-function?)])
   #:transparent)
 
+(define-struct/contract m-prior-query
+  ([id string?]   
+   [vocab m-vocabulary?]   
+   [idbs (hash/c string? (listof string?))])
+  #:transparent)
+
 (define-struct/contract m-theory
   ([name string?]
    [axioms-xml (listof xexpr?)]

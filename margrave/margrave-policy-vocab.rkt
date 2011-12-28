@@ -51,6 +51,9 @@
          cached-policies         
          cached-theories
          
+         ; used by compiler and margrave modules
+         cached-prior-queries
+         
          m-formula-is-well-sorted?
          m-formula-is-well-sorted?/err
          get-uber-vocab-for-formula 
@@ -62,6 +65,8 @@
 (define cached-policies (make-hash))
 (define cached-vocabularies (make-hash))
 (define cached-theories (make-hash))
+
+(define cached-prior-queries (make-hash))
 
 ; We use eval to load policies and vocabularies, and the call is in the definitions window.
 ; Thus we need to provide a namespace for eval, or it won't know what to do with the Policy
@@ -1004,7 +1009,7 @@
     ;[(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
     ; (set (list pids))]     
     [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
-     (list->set pids)]     
+     (list->set pids)] ; will be empty set if saved-query IDB  
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (set)]         
     [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
@@ -1013,12 +1018,53 @@
 (check-false (set-empty? (gather-policy-references '(or false ((MyPolicy permit) x y z)))))
 (check-true (equal? 2 (set-count (gather-policy-references '(or ((MyOtherPolicy deny) z y x) ((MyPolicy permit) x y z))))))
 
+; Gather the set of prior query references used in this formula
+(define/contract (gather-query-references fmla)
+  [m-formula? . -> . set?]
+  (match fmla
+    [(maybe-identifier true)
+     (set)]        
+    [(maybe-identifier false)
+     (set)]            
+    [(m-op-case = t1 t2)
+     (set)]    
+    [(m-op-case and args ...)
+     (apply set-union (map gather-query-references args))]    
+    [(m-op-case or args ...)
+     (apply set-union (map gather-query-references args))]
+    [(m-op-case implies arg1 arg2)
+     (apply set-union (gather-query-references arg1) (gather-query-references arg2))]  
+    [(m-op-case iff arg1 arg2)
+     (apply set-union (gather-query-references arg1) (gather-query-references arg2))]   
+    [(m-op-case not arg)
+     (gather-query-references arg)]       
+    [(m-op-case forall vname sname subfmla)
+     (gather-query-references subfmla)]     
+    [(m-op-case exists vname sname subfmla)
+     (gather-query-references subfmla)]               
+    [(m-op-case isa vname sname subfmla)
+     (gather-query-references subfmla)]     
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
+     (if (empty? pids)
+         (set idbname)
+         (set))]     
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (set)]         
+    [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Get a cached policy by ID. If no such policy exists, throw a suitable error.
 (define (get-cached-policy/err pid)  
   (unless (hash-has-key? cached-policies (->string pid))
     (margrave-error "No such policy" pid))
   (hash-ref cached-policies (->string pid)))
+; same for cached prior query
+(define (get-prior-query/err qid)  
+  (unless (hash-has-key? cached-prior-queries (->string qid))
+    (margrave-error "No prior query saved under that name" qid))
+  (hash-ref cached-prior-queries (->string qid)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Avoid duplicate code. Defer to m-formula-is-well-sorted/err
@@ -1062,20 +1108,31 @@
   ; todo for now: only support single element in polidlist
   ; need to access cached policies
   (define (internal-correct/idb list-of-vars pol-id-list idbname-pre)
-    (define idbname (->string idbname-pre))    
-    (when (empty? pol-id-list) 
-      #f)
-    (define this-policy (get-cached-policy/err (first pol-id-list)))
-    (define the-idbs (m-policy-idbs this-policy))
-    (unless (hash-has-key? the-idbs idbname)
-      (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname the-idbs) idbname))
+    (define idbname (->string idbname-pre))
+    ;(printf "internal-correct/idb: ~v ~v ~v~n" list-of-vars pol-id-list idbname-pre)
+    (define the-idbs 
+      (cond 
+      [(empty? pol-id-list) 
+       ; saved-query IDB
+       (define this-prior-query (get-prior-query/err idbname))
+       (unless (hash-has-key? (m-prior-query-idbs this-prior-query) idbname)
+         (margrave-error (format "Saved query ~v did not contain the IDB ~v. It contained: ~v" idbname idbname (m-prior-query-idbs this-prior-query)) idbname))
+       (m-prior-query-idbs this-prior-query)]
+      [else
+       ; policy IDB
+       (define this-policy (get-cached-policy/err (first pol-id-list)))
+       (unless (hash-has-key? (m-policy-idbs this-policy) idbname)
+         (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname (m-policy-idbs this-policy)) idbname))
+       (m-policy-idbs this-policy)]))        
+    ;(printf "the idbs ~v~n" the-idbs)
+    
     (define my-arity (hash-ref the-idbs idbname)) ; these will be strings
-    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string     
-    ;(printf "pairs to check: ~v~n" pairs-to-check)
-    (andmap (lambda (p) 
-              ;(printf "lambda: ~v~n" p)
+    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string            
+    (andmap (lambda (p)                  
               (internal-correct (first p) (second p))) pairs-to-check))
-  
+    
+    
+  ; Checking starts here:
   (match fmla
     [(maybe-identifier true)
      #t]        
@@ -1157,8 +1214,9 @@
                                     (m-vocabulary "v2" empty (hash "A" (m-type "A" '("C"))) (hash) (hash) (hash)))
                     (m-vocabulary "v1+v2" '() (make-hash `(("A" ,@(m-type "A" '("B" "C"))))) (make-hash) (make-hash) (make-hash))))
 
-; not enough -- type hierarchy must be preserved!
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Functions that grab the appropriate m-vocabulary from the cache
+; One accepts saved query identifiers, the other accepts policy identifiers.
 (define/contract (policy-name->m-vocab pname)
   [(or/c symbol? string?) . -> . m-vocabulary?]
   (define pname-str (->string pname))
@@ -1167,10 +1225,28 @@
   (define the-policy (hash-ref cached-policies pname-str))
   (m-theory-vocab (m-policy-theory the-policy)))
 
+(define/contract (prior-query-name->m-vocab qname)
+  [(or/c symbol? string?) . -> . m-vocabulary?]
+  (define qname-str (->string qname))
+  (unless (hash-has-key? cached-prior-queries qname-str)
+    (margrave-error "Unknown prior query identifier" qname))
+  (m-prior-query-vocab (hash-ref cached-prior-queries qname-str)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Given a formula, compute its vocabulary context
+; take policy references _and_ references to prior queries into account.
+; This function makes 2 separate passes, for simplicity
 (define/contract (get-uber-vocab-for-formula fmla)
   [m-formula? . -> . m-vocabulary?]  
   (define used-policy-ids (gather-policy-references fmla))
-  (define voc-list (set-map used-policy-ids policy-name->m-vocab))
+  (define used-query-ids (gather-query-references fmla))
+  ;(printf "used: ~v ~v~n" used-policy-ids used-query-ids)
+  (define voc-list (remove-duplicates
+                    (append (set-map used-policy-ids policy-name->m-vocab)
+                            (set-map used-query-ids prior-query-name->m-vocab))))
+  (when (empty? voc-list)
+    (margrave-error "The formula contained no vocabulary references. Please use the #:under clause." fmla))
+  
   (define f (first voc-list))
   (define r (rest voc-list))
   (foldl combine-vocabs f r))

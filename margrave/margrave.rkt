@@ -74,7 +74,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-alpha")
+(define margrave-version "3.1-internal-122811")
 
 ;****************************************************************
 ;;Java Connection
@@ -458,11 +458,14 @@ gmarceau
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
 
-  (define (handle-var-dec-sexpr sexpr)  
+  (when (hash-has-key? cached-prior-queries qryid)
+    (raise-user-error (format "Unable to create query. The query name ~v is already in use." qryid)))
+  
+  (define (handle-var-dec-sexpr->xexpr sexpr)  
     (xml-make-variable-declaration (symbol->string (first sexpr))
                                    (symbol->string (second sexpr))))
 
-  (define free-vars-xml (map handle-var-dec-sexpr sexpr-vars))
+  (define free-vars-xml (map handle-var-dec-sexpr->xexpr sexpr-vars))
   (define query-condition-xml (m-formula->xexpr sexpr-fmla))  
   (define processed-under-list (map (compose xml-make-policy-identifier ->string) under-list))
   (define query-options (list
@@ -471,8 +474,14 @@ gmarceau
                          (xml-make-ceilings (map xml-make-a-ceiling-from-pair ceilings-list))))
     
   ; Flatten is safe because sexpr-vars is a list of 2-element lists of symbols
-  (define vars-environment (apply hash (flatten sexpr-vars)))  
-  (m-formula-is-well-sorted?/err (get-uber-vocab-for-formula sexpr-fmla) sexpr-fmla vars-environment)
+  (define vars-environment (apply hash (flatten sexpr-vars)))
+  
+  (define uber-vocab (get-uber-vocab-for-formula sexpr-fmla))
+  (define idb-arity (map (lambda (decl) (->string (second decl))) sexpr-vars))  
+  (hash-set! cached-prior-queries qryid (m-prior-query qryid uber-vocab (hash qryid idb-arity)))  
+  ;(printf "hash: ~v ~v~n" qryid (hash-ref cached-prior-queries qryid))
+  
+  (m-formula-is-well-sorted?/err uber-vocab sexpr-fmla vars-environment)
   
   (define the-xml
      (xml-make-explore-command 

@@ -200,6 +200,14 @@
      (define free-var-vector (helper-syn->xml (third interns)))
      (define query-condition (helper-syn->xml (fourth interns))) 
      (define query-options (map helper-syn->xml (syntax-e (fifth interns))))
+      
+     ; Don't allow re-binding of query identifiers
+     (when (hash-has-key? cached-prior-queries query-id)
+       (raise-user-error (format "Unable to create query. The query name ~v is already in use." query-id)))
+      
+     ; TODO well-sortedness check for these queries. Need to translate to m-formula struct and use m-let's approach
+     ;(hash-set! prior-query-vocabs query-id (m-prior-query query-id uber-vocab (hash qryid idb-arity)))
+     
      
     ; (printf "Fmla binding:~a~n~n~a~n~a~n~a~n~a~n~n" interns query-id free-var-vector query-condition query-options)
      
