@@ -60,7 +60,7 @@
 ;let Q7[s : Subject, a: Action, r : Resource] be Q1(s, a, r);
 (m-let "Q7" '([s Subject] [a Action] [r Resource]) 
        '([Q1] s a r))   
-(m-is-poss? "Q7") 
+(m-is-poss? "Q7") ; true
 
 ; abstractness, under. should be false!
 (m-let "Q8" '([r Resource]) 

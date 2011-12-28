@@ -476,7 +476,7 @@ gmarceau
   ; Flatten is safe because sexpr-vars is a list of 2-element lists of symbols
   (define vars-environment (apply hash (flatten sexpr-vars)))
   
-  (define uber-vocab (get-uber-vocab-for-formula sexpr-fmla))
+  (define uber-vocab (get-uber-vocab-for-formula sexpr-fmla #:under under-list))
   (define idb-arity (map (lambda (decl) (->string (second decl))) sexpr-vars))  
   (hash-set! cached-prior-queries qryid (m-prior-query qryid uber-vocab (hash qryid idb-arity)))  
   ;(printf "hash: ~v ~v~n" qryid (hash-ref cached-prior-queries qryid))

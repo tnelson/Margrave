@@ -1236,14 +1236,18 @@
 ; Given a formula, compute its vocabulary context
 ; take policy references _and_ references to prior queries into account.
 ; This function makes 2 separate passes, for simplicity
-(define/contract (get-uber-vocab-for-formula fmla)
-  [m-formula? . -> . m-vocabulary?]  
-  (define used-policy-ids (gather-policy-references fmla))
+(define/contract (get-uber-vocab-for-formula fmla #:under [under-list empty])
+  [->* (m-formula?)
+       (#:under list?)
+       m-vocabulary?]
+  (define used-policy-ids (gather-policy-references fmla))                                                     
   (define used-query-ids (gather-query-references fmla))
+  
   ;(printf "used: ~v ~v~n" used-policy-ids used-query-ids)
   (define voc-list (remove-duplicates
                     (append (set-map used-policy-ids policy-name->m-vocab)
-                            (set-map used-query-ids prior-query-name->m-vocab))))
+                            (set-map used-query-ids prior-query-name->m-vocab)
+                            (map policy-name->m-vocab under-list))))
   (when (empty? voc-list)
     (margrave-error "The formula contained no vocabulary references. Please use the #:under clause." fmla))
   
