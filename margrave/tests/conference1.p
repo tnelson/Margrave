@@ -1,11 +1,11 @@
-(Policy ConferencePolicy1 uses conferencepolicy
-        (Target )
+(Policy uses Conference
+        (Variables 
+         (s Subject)
+         (a Action)
+         (r Resource))
         (Rules 
-  	  (PaperNoConflict = (Permit s a r) :- (!Conflicted s r) (ReadPaper a) (Paper r))
-	  (PaperAssigned = (Permit s a r) :- (Assigned s r) (ReadPaper a) (Paper r))
-	  (PaperConflict = (Deny s a r) :- (Conflicted s r) (ReadPaper a) (Paper r))
-        )
-        (RComb FAC)
-        (PComb FAC)
-	(Children ))
+  	  (PaperNoConflict = (permit s a r) :- (and (not (conflicted s r)) (ReadPaper a) (Paper r)))
+	  (PaperAssigned = (permit s a r) :- (and (assigned s r) (ReadPaper a) (Paper r)))
+	  (PaperConflict = (deny s a r) :- (and (conflicted s r) (ReadPaper a) (Paper r))))
+        (RComb (fa permit deny)))
 
