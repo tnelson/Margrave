@@ -965,11 +965,12 @@
                                   (m-type-child-names/rtrans voc p-sort))
                    (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
                pairs-to-check)                    
-     (m-function-result thefunc)]
+     (string->symbol (m-function-result thefunc))]
     [(? valid-constant? cid) 
-     (unless (hash-has-key? (m-vocabulary-constants voc) cid)
-       (margrave-error "The constant symbol was not declared in the vocabulary context" term))     
-     (m-constant-type (hash-ref (m-vocabulary-constants voc) cid))]
+     (define unquoted-id-str (->string (extract-constant-id cid)))     
+     (unless (hash-has-key? (m-vocabulary-constants voc) unquoted-id-str)
+       (margrave-error "The constant symbol was not declared in the query's vocabulary context" term))     
+     (string->symbol (m-constant-type (hash-ref (m-vocabulary-constants voc) unquoted-id-str)))]
     [(? valid-variable? vid) 
      (unless (hash-has-key? env term)
        (margrave-error (format "The variable was not declared in the environment (~v)" env) term))     
@@ -1140,7 +1141,9 @@
      #t]        
     
     [(m-op-case = t1 t2)
-     (and (m-term->sort/err voc t1 env) (m-term->sort/err voc t2 env))]
+     (m-term->sort/err voc t1 env) 
+     (m-term->sort/err voc t2 env)
+     #t]
     
     [(m-op-case and args ...)
      (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]    

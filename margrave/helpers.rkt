@@ -462,3 +462,12 @@
 (check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash "B" 3 "D" 5) "oops")
                     (hash-copy (hash "A" 2 "B" 3 "C" 4 "D" 5))))
 
+; Since constants have the form 'x  ---- (quote x)
+; We really have ''x (quote 'x) when working with them.
+(define (extract-constant-id sexpr)
+  (cond [(and (syntax? sexpr) (not (identifier? sexpr)))
+         (second (syntax->list sexpr))]
+        [(list? sexpr)
+         (second sexpr)]
+        [else sexpr]))
+

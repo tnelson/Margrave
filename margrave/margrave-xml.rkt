@@ -1401,12 +1401,6 @@
     [(? valid-constant? cid) (xml-make-constant-term (->string (extract-constant-id sexpr)))]
     [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
     [else (margrave-error "Incorrect term expression" sexpr)]))    
-  
-(define (extract-constant-id sexpr)
-  (cond [(and (syntax? sexpr) (not (identifier? sexpr)))
-         (second (syntax->list sexpr))]
-        [(list? sexpr)
-         (second sexpr)]))
 
 ; Note some clauses have extra calls to validity checker functions.
 ; These special functions will throw appropriate errors for invalid 
