@@ -350,7 +350,14 @@ gmarceau
          #f]
         [else
                   
-         (define cmd-string (xexpr->string cmd-xexpr))
+                           
+         ; TODO: Java expects a fully-terminated <MARGRAVE-COMMAND> element. That is, it _MUST_ see
+         ; </MARGRAVE-COMMAND> at the end of each command. This is a kludge that should be fixed, but 
+         ; for now add an empty child element to force the correct termination. 
+         ; ****** DO NOT REMOVE THIS ******
+         (define cmd-xexpr-with-safety `(MARGRAVE-COMMAND ,(second cmd-xexpr) ,@(rest (rest cmd-xexpr)) (EMPTY ())))
+         
+         (define cmd-string (xexpr->string cmd-xexpr-with-safety))
          
          ; Send the command XML (DO NOT COMMENT THIS OUT)
          ; ******************************************

@@ -118,3 +118,6 @@
 ;is poss? Q8;
 ;
 ;let Q9[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and s : Resource;
+
+; Test that the engine can be stopped
+(check-true (stop-margrave-engine))
