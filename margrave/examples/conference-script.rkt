@@ -24,27 +24,28 @@
 ; exists
 (m-let "Q2" '([s Subject]) 
        '(exists a Action (exists r Resource ([mypol1 permit] s a r))))
-(m-is-poss? "Q2")
+(check-true (m-is-poss? "Q2"))
 
 ; forall
 (m-let "Q3" '([s Subject]) 
-       '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
-(m-is-poss? "Q3")
+       '(exists a Action (forall r Resource ([mypol1 permit] s a r)))
+       #:debug 3)
+(check-true (m-is-poss? "Q3"))
 
 ; isa test (true)
 (m-let "Q4" '([s Subject] [a Action] [r Resource]) 
        '(and ([mypol1 permit] s a r) (isa a ReadPaper true)))   
-(m-is-poss? "Q4")
+(check-true (m-is-poss? "Q4"))
 
 ; non (true) isa
 (m-let "Q5" '([s Subject] [a Action] [r Resource]) 
        '(and ([mypol1 permit] s a r) (isa r Subject (author r))))   
-(m-is-poss? "Q5") ; false since Subject disj. Resource
+(check-false (m-is-poss? "Q5")) ; false since Subject disj. Resource
 
 ; non (true) isa #2
 (m-let "Q6" '([s Subject] [a Action] [r Resource]) 
        '(and ([mypol1 permit] s a r) (isa r Resource (Paper r))))   
-(m-is-poss? "Q6") ; true, the isa is trivial
+(check-true (m-is-poss? "Q6")) ; true, the isa is trivial
 
 ; NOTE: Names are coming out weird because we have downcasting in the
 ; policy. We're creating Paper#1, Paper#2, Paper#3 instead of Resource#1, etc.
@@ -60,13 +61,34 @@
 ;let Q7[s : Subject, a: Action, r : Resource] be Q1(s, a, r);
 (m-let "Q7" '([s Subject] [a Action] [r Resource]) 
        '([Q1] s a r))   
-(m-is-poss? "Q7") ; true
+(check-true (m-is-poss? "Q7")) ; true
+
+; Prior queries + #:include in show
+(m-get "Q7" #:include '(([mypol1 permit] s a r)))
+
+
+; function in query + #:include; lower level sort as type for free var.
+(m-let "Q8" '([s Subject] [a Action] [r Paper]) 
+       '(and ([mypol1 permit] s a r) 
+             (= (techreportfor r) (techreportfor r))))   
+(m-get "Q8" #:include '(([mypol1 permit] s a r)))
+
+(check-exn 
+ exn:fail? 
+ (lambda () (m-let "Qx8" '([s Subject] [a Action] [r Resource]) 
+                   '(and ([mypol1 permit] s a r) 
+                         (= (functionthatdoesntexist r) (functionthatdoesntexist r))))))
+
+
 
 ; abstractness, under. should be false!
-(m-let "Q8" '([r Resource]) 
+(m-let "Q9" '([r Resource]) 
        '(and (not (Paper r)) (not (Review r)) (not (TechReport r)))
        #:under '("mypol1"))
-(m-is-poss? "Q8") ; false, Resource is abstract
+(check-false (m-is-poss? "Q9")) ; false, Resource is abstract
+
+
+
 
 
 ;let Q3[s : Subject, a: Action, r : Resource] be Q(s, a, f(r));

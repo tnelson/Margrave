@@ -955,15 +955,19 @@
   (match term
     [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
          (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
-     (unless (hash-has-key? (m-vocabulary-functions voc) funcid)
-       (margrave-error "The function symbol was not declared in the vocabulary context" term))   
-     (define thefunc (hash-ref (m-vocabulary-functions voc) funcid))     
+     (define id-str (->string funcid))
+     (unless (hash-has-key? (m-vocabulary-functions voc) id-str)
+       (margrave-error (format "The function symbol ~v was not declared in the vocabulary context. Declared functions were: ~v"
+                               id-str (hash-keys (m-vocabulary-functions voc))) term))   
+     (define thefunc (hash-ref (m-vocabulary-functions voc) id-str))     
      (define pairs-to-check (zip terms (m-function-arity thefunc)))
      (for-each (lambda (p) 
                  (define-values (p-term p-sort) (values (first p) (second p)))
-                 (unless (member? (m-term->sort/err voc p-term env)
-                                  (m-type-child-names/rtrans voc p-sort))
-                   (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v" p-term term ) term)))
+                 (define expected-sorts (m-type-child-names/rtrans voc p-sort))
+                 (define term-sort-str (->string (m-term->sort/err voc p-term env)))
+                 (unless (member? term-sort-str expected-sorts)
+                   (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v. The subterm had sort ~v; expected one of these sorts: ~v" 
+                                           p-term term term-sort-str expected-sorts) term)))
                pairs-to-check)                    
      (string->symbol (m-function-result thefunc))]
     [(? valid-constant? cid) 
