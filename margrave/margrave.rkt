@@ -435,7 +435,7 @@ gmarceau
   (m-get qryid #:include [include-list empty])
   [->* [string?]
        [#:include (listof m-formula?)]
-       m-scenario?]
+       (or/c m-unsat? m-scenario?)]
 
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started."))

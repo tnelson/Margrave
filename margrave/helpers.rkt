@@ -299,6 +299,10 @@
    [annotations (listof string?)])
   #:transparent)
 
+(define-struct/contract m-unsat
+  ([statistics m-statistics?])
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

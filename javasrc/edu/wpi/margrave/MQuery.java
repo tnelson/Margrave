@@ -349,8 +349,9 @@ public class MQuery extends MIDBCollection
 
 		try {
 			FormulaSigInfo.EnumSAPHandling sap = FormulaSigInfo.EnumSAPHandling.sapKeep;
-			if (prenexExistential)
-				sap = FormulaSigInfo.EnumSAPHandling.sapIgnore;
+			// No longer safe to ignore SAP coercions if prenex existential. 
+			// We generate per-sort bounds, and need to propagate atoms in upper-bounds
+			// with respect to SAP coercions.
 
 			FormulaSigInfo info = new FormulaSigInfo(sorts, supersorts,
 					predicates, new HashSet<SigFunction>(),

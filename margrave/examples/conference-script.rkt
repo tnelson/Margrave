@@ -12,8 +12,11 @@
 
 ; basic
 (m-let "Q1" '([s Subject] [a Action] [r Resource]) 
-       '(and ([mypol1 permit] s a r) (ReadPaper a)))   
+       '(and ([mypol1 permit] s a r) (ReadPaper a)))      
 (m-is-poss? "Q1")
+(m-get "Q1")
+(printf "~n~n~n")
+
 
 ; error! "r" used as the wrong sort.
 (check-exn 
@@ -28,8 +31,7 @@
 
 ; forall
 (m-let "Q3" '([s Subject]) 
-       '(exists a Action (forall r Resource ([mypol1 permit] s a r)))
-       #:debug 3)
+       '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
 (check-true (m-is-poss? "Q3"))
 
 ; isa test (true)

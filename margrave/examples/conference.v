@@ -13,7 +13,7 @@
                 (author Subject)
                 (reviewer Subject))
                
-               (Constants ('margravepaper Paper))
+               ;(Constants ('margravepaper Paper))
                (Functions (techreportfor Paper TechReport)))
         (Axioms 
          ;(abstract Subject)

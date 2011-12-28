@@ -249,7 +249,7 @@ public class FormulaSigInfo
 				// Extract a SAP coercion from a ComparisonFormula
 				// e.g. (x in A)
 				// or ( f(c) in A )											
-				
+								
 				if(! (comp.right() instanceof LeafExpression))
 				{
 					error = true;
@@ -258,7 +258,11 @@ public class FormulaSigInfo
 				}
 				
 				LeafExpression rel = (LeafExpression) comp.right();
-								
+				
+				//MCommunicator.writeToLog("\n FSI walking formula found SUBSET leaf: "+comp);
+				//MCommunicator.writeToLog("\n In sorts="+sorts.contains(rel)+"; left var="+(comp.left() instanceof Variable)+" saphandling="+sap);
+
+				
 				// Not a sort? Not a sort-as-pred!
 				if(!sorts.contains(rel))
 					return cache(comp, new HashSet<SigFunction>());
