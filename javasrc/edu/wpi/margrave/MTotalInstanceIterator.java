@@ -237,13 +237,25 @@ abstract class MInstanceIterator extends MQueryResult
 		// Add INCLUDE facts:
 		for(String relName : fromContext.includeMap.keySet())
 		{
+			// Check NOW, because we will be adding the relation later on! Need to do this
+			// before we pass into inner loop.
+			if(fromContext.includeMap.get(relName).size() < 1)
+				continue;
+			Relation theRelation = null;
+			boolean isEDB = false;
+			for(List<MTerm> args : fromContext.includeMap.get(relName))
+			{
+				theRelation = MFormulaManager.makeRelation(relName, args.size());
+				isEDB = result.getFacts().relations().contains(theRelation);	
+				break;
+			}
+						
 			for(List<MTerm> args : fromContext.includeMap.get(relName))
 			{
 				// This instance should be modifiable. So pass back INCLUDE facts as facts in relations.
 				// (This way is far more structured than, say, a string annotation.) 
-				MCommunicator.writeToLog("\n Adding INCLUDE fact (or negated fact) for "+relName+args);
-
-				Relation theRelation = MFormulaManager.makeRelation(relName, args.size());				
+				MCommunicator.writeToLog("\n\n Checking INCLUDE for "+relName+args);						
+								
 				// What does this tuple map to in the model?
 				TupleFactory factory = result.getFacts().universe().factory();
 				Tuple theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));												
@@ -251,8 +263,9 @@ abstract class MInstanceIterator extends MQueryResult
 				
 				// Is it in the relation? First check to see if this is an EDB relation:
 				boolean bIsInRelation = false;
-				if(result.getFacts().relations().contains(theRelation))
-				{					
+				if(isEDB)
+				{				
+					// TODO Seems silly to support EDBs at all... they will be included anyway.
 					bIsInRelation = result.getFacts().relationTuples().get(theRelation).contains(theTuple);
 				}
 				else
@@ -296,8 +309,22 @@ abstract class MInstanceIterator extends MQueryResult
 				if(bIsInRelation)
 				{
 					theTupleSet.add(theTuple);
+					// Instance .add: "Maps the given relation to the given tuple set."
+					// So .add is really .set. Need to include what's already there.
+					TupleSet alreadyIn = result.getFacts().tuples(theRelation);
+					if(alreadyIn != null)
+					{
+						// Check above because if this is the first tuple to add, we won't have added the IDB relation to the instance yet.
+						theTupleSet.addAll(alreadyIn);
+					}
+					result.getFacts().add(theRelation, theTupleSet);	
+					MCommunicator.writeToLog("\n The atomic formula was TRUE. Adding to relation.");
+					MCommunicator.writeToLog("\nThere are now "+result.getFacts().relationTuples().get(theRelation).size()+" tuples in the relation.");
 				}
-				result.getFacts().add(theRelation, theTupleSet);
+				else
+				{
+					MCommunicator.writeToLog("\n NOT true.");
+				}						
 			}
 		}
 		

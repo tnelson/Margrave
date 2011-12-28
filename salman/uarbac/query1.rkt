@@ -48,4 +48,4 @@
 (m-get "Q"
        #:include '(([uarbac permit] u p c)
                    ([uarbac permit] 'tim p c)
-                   ([uarbac permit] 'kathi 'lecture 'cs2102)))
+                   ([uarbac permit] 'kathi 'lecture 'course)))
