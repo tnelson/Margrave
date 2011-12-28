@@ -49,3 +49,6 @@
        #:include '(([uarbac permit] u p c)
                    ([uarbac permit] 'tim p c)
                    ([uarbac permit] 'kathi 'lecture 'course)))
+
+; To pretty-print, use m-show:
+(display (m-show "Q"))

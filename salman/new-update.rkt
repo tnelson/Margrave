@@ -118,19 +118,25 @@
                    ))
 
 
-        
+; Create the query above with ID="Q"
+; Wrapping the m-let in the time function prints performance info.
 (time (m-let "Q" '([u User] [p Permission]) 
                    qrysexpr))   
+; Is the query satisfiable?
 (time (m-is-poss? "Q"))
+; Get an actual solution.
 (time (m-get "Q"))
+; Reset the iterator, start at the beginning of the solution list again.
+(time (m-reset "Q"))
+; Get an actual solution that includes whether <u, p> is permitted before and after.
 (time (m-get "Q" #:include '( ([before permit] u p) ([after permit] u p))))
 
+; Create the same query, but bound the ceiling.
 (time (m-let "Q3" '([u User] [p Permission]) 
                    qrysexpr
                    #:ceiling '([Role 4]
                                [User 3]
-                               [univ 12])
-                   #:debug 2)) 
+                               [univ 12]))) 
 (time (m-get "Q3"))
 
 ; Test #lang margrave

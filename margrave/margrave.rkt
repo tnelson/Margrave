@@ -44,6 +44,7 @@
          m-is-poss?
          m-show
          m-get
+         m-reset
          
          send-and-receive-xml
          load-xacml-policy
@@ -430,6 +431,16 @@ gmarceau
   (define xml-response (send-and-receive-xml the-xml))
   
   (pretty-print-model (document-element xml-response)))
+
+(define/contract 
+  (m-reset qryid)
+  [string? . -> . (or/c void? boolean?)]  
+  
+  (define the-xml (xml-make-reset-command qryid))  
+  (printf "~a~n" the-xml)    
+  (define xml-response (send-and-receive-xml the-xml))  
+  (unless (equal? "success" (get-response-type xml-response))
+    #f))
 
 (define/contract
   (m-get qryid #:include [include-list empty])

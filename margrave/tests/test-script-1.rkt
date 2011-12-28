@@ -7,8 +7,8 @@
                        #:margrave-path "F:\\msysgit\\git\\margrave\\margrave")
 ;(start-margrave-engine #:margrave-params '("-log")
 ;                       #:margrave-path "M:\\RktMargrave\\margrave")
-(m-load-policy "mypol1" "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference1.p")
-;(m-load-policy "mypol1" "M:\\RktMargrave\\margrave\\examples\\conference1.p")
+(m-load-policy "mypol1" "conference1.p")
+(m-load-policy "mypol2" "conference2.p")
 
 ; basic
 (m-let "Q1" '([s Subject] [a Action] [r Resource]) 
@@ -31,6 +31,10 @@
        '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
 (check-false (m-is-poss? "Q3")) ; false because Resource can't be empty; we have a constant in it.
 
+; forall (w/o constant)
+(m-let "Q3a" '([s Subject]) 
+       '(exists a Action (forall r Resource ([mypol2 permit] s a r))))
+(check-true (m-is-poss? "Q3a")) ; true because of vacuous (Resource) satisfiability
 
 ; isa test (true)
 (m-let "Q4" '([s Subject] [a Action] [r Resource]) 

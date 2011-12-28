@@ -400,6 +400,10 @@
     (write "WARNING: Margrave may not be able to guarantee completeness:\n")            
     (write (format "~a~n" (xml-set-element->list warnings-element))))
   
+  (define used-hashtable (xml-map-element->map used-element))
+  (write "Used these upper-bounds on sort sizes:\n")
+  (write (pretty-print-hashtable used-hashtable))
+  
   (get-output-string string-buffer))
 
 
@@ -590,9 +594,10 @@
   (let* ([string-buffer (open-output-string)])
     (local ((define (write s)
               (write-string s string-buffer))) 
-      (write "{\n")
+      (write "{ ")
+      ; string-fold would be better here, and avoid the extra "," at end
       (hash-for-each thetable
-                     (lambda (k v) (write (string-append k " -> " (fold-append-with-separator v ", ") "\n"))))
+                     (lambda (k v) (write (string-append k " -> " (fold-append-with-separator v ", ") ", "))))
       (write "}\n")
       (get-output-string string-buffer))))
 

@@ -998,9 +998,9 @@
     [(m-op-case or args ...)
      (apply set-union (map gather-policy-references args))]
     [(m-op-case implies arg1 arg2)
-     (apply set-union (gather-policy-references arg1) (gather-policy-references arg2))]  
+     (set-union (gather-policy-references arg1) (gather-policy-references arg2))]  
     [(m-op-case iff arg1 arg2)
-     (apply set-union (gather-policy-references arg1) (gather-policy-references arg2))]   
+     (set-union (gather-policy-references arg1) (gather-policy-references arg2))]   
     [(m-op-case not arg)
      (gather-policy-references arg)]       
     [(m-op-case forall vname sname subfmla)
@@ -1038,9 +1038,9 @@
     [(m-op-case or args ...)
      (apply set-union (map gather-query-references args))]
     [(m-op-case implies arg1 arg2)
-     (apply set-union (gather-query-references arg1) (gather-query-references arg2))]  
+     (set-union (gather-query-references arg1) (gather-query-references arg2))]  
     [(m-op-case iff arg1 arg2)
-     (apply set-union (gather-query-references arg1) (gather-query-references arg2))]   
+     (set-union (gather-query-references arg1) (gather-query-references arg2))]   
     [(m-op-case not arg)
      (gather-query-references arg)]       
     [(m-op-case forall vname sname subfmla)
