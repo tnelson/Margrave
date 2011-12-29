@@ -437,7 +437,8 @@ gmarceau
   (define the-xml (xml-make-get-command (xml-make-type "NEXT") qryid (list include-xml)))  
   (define xml-response (send-and-receive-xml the-xml))
   
-  (pretty-print-model (document-element xml-response)))
+  ; May be unsat, so don't just call pretty-print-model
+  (pretty-print-response-xml (document-element xml-response)))
 
 (define/contract 
   (m-reset qryid)

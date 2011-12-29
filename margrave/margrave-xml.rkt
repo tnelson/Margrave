@@ -198,106 +198,109 @@
 ;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
 ; !!! TODO: update this function to re-use xml->scenario instead of duplicating code
 (define (pretty-print-model xml-response)
-  (let* ([atom-hash (make-hash)]
-         [predicate-hash (make-hash)]
-         [model-element (get-child-element xml-response 'MODEL)]
-         [relation-elements (get-child-elements model-element 'RELATION)]
-         [universe-element (get-child-element model-element 'UNIVERSE)]         
-         [model-size (get-attribute-value model-element 'size)] 
-         [annotation-elements (get-child-elements model-element 'ANNOTATION)]
-         [statistics-element (get-child-element xml-response 'STATISTICS)]         
-         [string-buffer (open-output-string)]) 
+  (define atom-hash (make-hash))
+  (define predicate-hash (make-hash))
+  (define model-element (get-child-element xml-response 'MODEL))
+  (define relation-elements (get-child-elements model-element 'RELATION))
+  (define universe-element (get-child-element model-element 'UNIVERSE))
+  
+  ; Is this unsat or a model?
+  
+  (define model-size (get-attribute-value model-element 'size))
+  (define annotation-elements (get-child-elements model-element 'ANNOTATION))
+  (define statistics-element (get-child-element xml-response 'STATISTICS))
+  (define string-buffer (open-output-string)) 
+  
+  (define (write s)
+    (write-string s string-buffer)) 
+  
+  ; Initialize the atom hash with everything in UNIVERSE
+  ; Initial display name is equal to atom-name    
+  (for-each (lambda (an-atom-element)
+              (let ([atom-name (pcdata-string (first (element-content an-atom-element)))])
+                (hash-set! atom-hash atom-name (make-atom atom-name atom-name empty))))
+            (get-child-elements universe-element 'atom))
+  
+  ; go through the XML and update the 2 hashes. Then afterwards print them out.
+          
+  (define (handle-relation relation)                   
+    (define relation-arity (string->number (get-attribute-value relation 'arity)))
+    (define relation-name  (get-attribute-value relation 'name))
+    (define relation-is-sort (equal? "sort" (get-attribute-value relation 'type)))
     
-    ; Initialize the atom hash with everything in UNIVERSE
-    ; Initial display name is equal to atom-name    
-    (for-each (lambda (an-atom-element)
-                (let ([atom-name (pcdata-string (first (element-content an-atom-element)))])
-                  (hash-set! atom-hash atom-name (make-atom atom-name atom-name empty))))
-              (get-child-elements universe-element 'atom))
+    ;if the relation (predicate) doesn't exist in the hash yet, create it
+    (when (not (hash-ref predicate-hash relation-name #f))
+      (hash-set! predicate-hash relation-name 
+                 (make-predicate relation-name relation-arity empty (or relation-is-sort
+                                                                        (equal? (string-ref relation-name 0) #\$)))))
     
-    ; go through the XML and update the 2 hashes. Then afterwards print them out.
-    (local ((define (write s)
-              (write-string s string-buffer))
-            
-            (define (handle-relation relation)                   
-              (let* ([relation-arity (string->number (get-attribute-value relation 'arity))]
-                     [relation-name  (get-attribute-value relation 'name)]
-                     [relation-is-sort (equal? "sort" (get-attribute-value relation 'type))])
-                (begin
-                  
-                  ;if the relation (predicate) doesn't exist in the hash yet, create it
-                  (when (not (hash-ref predicate-hash relation-name #f))
-                    (hash-set! predicate-hash relation-name (make-predicate relation-name relation-arity empty (or relation-is-sort
-                                                                                                                   (equal? (string-ref relation-name 0) #\$)))))
-                  
-                  (let* ([predicate-struct (hash-ref predicate-hash relation-name)] ;should definitely exist, since we just created it if it didn't
-                         [tuple-elements (get-child-elements relation 'TUPLE)]) 
-                    
-                    (local [; Insert a tuple into the current relation
-                            (define (insert-tuple tuple-element)
-                              (when (or (not relation-is-sort)
-                                        (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
-                                (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
-                                                                                      (predicate-list-of-tuples predicate-struct)))))
-                            ; Produce a tuple (list of atom structs) from XML
-                            (define (parse-tuple-contents atom-elements)
-                              (if (empty? atom-elements)
-                                  '()
-                                  (let* ([an-atom-element (first atom-elements)]
-                                         [atom-element-name (pcdata-string (first (element-content an-atom-element)))])                                                                    
-                                    (begin   
-                                      
-                                      ; to be removed
-                                      ;if the atom doesn't exist in the hash yet, create it
-                                      ; (regardless of whether this relation is to be printed)
-                                     ; (when (not (hash-ref atom-hash atom-name #f))
-                                     ;   (hash-set! atom-hash atom-name (make-atom atom-name empty)))
-                                      
-                                      ; Get the atom struct for this atom
-                                      ;should definitely exist, since we just created it if it didn't
-                                      (let ([atom-struct (hash-ref atom-hash atom-element-name)]) 
-                                        
-                                        ; If this is a $var relation, change displayed name for the atom
-                                        ; otherwise, add to the appropriate relation                                       
-                                        (if (equal? (string-ref relation-name 0) #\$)
-                                            (if (equal? (atom-name atom-struct)
-                                                        (atom-display-name atom-struct))                                                
-                                                (set-atom-display-name! atom-struct (substring relation-name 1))
-                                                (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
-                                                                                           "="
-                                                                                           (substring relation-name 1))))
-                                            
-                                            ; Not a $var. Is it a sort or predicate?
-                                            (if (= relation-arity 1) 
-                                                
-                                                ; Sort (tuple is unary)                                                  
-                                                (begin                                                   
-                                                  ; Note that this atom belongs to this sort
-                                                  (when relation-is-sort
-                                                    (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))                             
-                                                  ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
-                                                  (list atom-struct)) 
-                                                
-                                                
-                                                ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
-                                                (cons atom-struct (parse-tuple-contents (rest atom-elements) )))))))))]
-                      
-                      (for-each insert-tuple tuple-elements)))))))
-      
-      (begin
-        (for-each handle-relation relation-elements)
-        (write (string-from-hash atom-hash predicate-hash model-size))
-        (when (> (length annotation-elements) 0)
-          (write "\n    -> Also:\n"))
-        (print-annotations string-buffer annotation-elements)
-        (when (not (equal? empty statistics-element))
-          (write (print-statistics statistics-element)))
-        (write "********************************************************")
-        
-        
-        ; Debugging (let the caller decide whether to print or not)
-        ;(display (get-output-string string-buffer))
-        (get-output-string string-buffer)))))
+    (define predicate-struct (hash-ref predicate-hash relation-name)) ;should definitely exist, since we just created it if it didn't
+    (define tuple-elements (get-child-elements relation 'TUPLE))
+    
+    
+    (define (insert-tuple tuple-element) ; Insert a tuple into the current relation
+      (when (or (not relation-is-sort)
+                (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
+        (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
+                                                              (predicate-list-of-tuples predicate-struct)))))
+    
+    ; Produce a tuple (list of atom structs) from XML
+    (define (parse-tuple-contents atom-elements)
+      (cond [(empty? atom-elements) '()]
+            [else
+             (define an-atom-element (first atom-elements))
+             (define atom-element-name (pcdata-string (first (element-content an-atom-element))))
+             
+             ; to be removed
+             ;if the atom doesn't exist in the hash yet, create it
+             ; (regardless of whether this relation is to be printed)
+             ; (when (not (hash-ref atom-hash atom-name #f))
+             ;   (hash-set! atom-hash atom-name (make-atom atom-name empty)))
+             
+             ; Get the atom struct for this atom
+             ;should definitely exist, since we just created it if it didn't
+             (define atom-struct (hash-ref atom-hash atom-element-name)) 
+             
+             ; If this is a $var relation, change displayed name for the atom
+             ; otherwise, add to the appropriate relation                                       
+             (if (equal? (string-ref relation-name 0) #\$)
+                 (if (equal? (atom-name atom-struct)
+                             (atom-display-name atom-struct))                                                
+                     (set-atom-display-name! atom-struct (substring relation-name 1))
+                     (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
+                                                                        "="
+                                                                        (substring relation-name 1))))                 
+                 ; Not a $var. Is it a sort or predicate?
+                 (if (= relation-arity 1) 
+                     
+                     ; Sort (tuple is unary)                                                  
+                     (begin                                                   
+                       ; Note that this atom belongs to this sort
+                       (when relation-is-sort
+                         (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))                             
+                       ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
+                       (list atom-struct)) 
+                                          
+                     ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
+                     (cons atom-struct (parse-tuple-contents (rest atom-elements) ))))]))
+    
+    (for-each insert-tuple tuple-elements))
+  ; handle-relation ends here
+  
+  (begin
+    (for-each handle-relation relation-elements)
+    (write (string-from-hash atom-hash predicate-hash model-size))
+    (when (> (length annotation-elements) 0)
+      (write "\n    -> Also:\n"))
+    (print-annotations string-buffer annotation-elements)
+    (when (not (equal? empty statistics-element))
+      (write (print-statistics statistics-element)))
+    (write "********************************************************")
+    
+    
+    ; Debugging (let the caller decide whether to print or not)
+    ;(display (get-output-string string-buffer))
+    (get-output-string string-buffer)))
 
 (define (print-annotations buffer list-of-annot)
   (for-each (lambda (annotation-element)
