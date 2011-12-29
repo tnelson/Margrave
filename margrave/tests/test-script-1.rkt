@@ -25,11 +25,13 @@
 (m-let "Q2" '([s Subject]) 
        '(exists a Action (exists r Resource ([mypol1 permit] s a r))))
 (check-true (m-is-poss? "Q2"))
+(check-true (string? (m-show "Q2"))) ; show for a model
 
 ; forall
 (m-let "Q3" '([s Subject]) 
        '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
 (check-false (m-is-poss? "Q3")) ; false because Resource can't be empty; we have a constant in it.
+(check-true (string? (m-show "Q3"))) ; show for unsat
 
 ; forall (w/o constant)
 (m-let "Q3a" '([s Subject]) 
