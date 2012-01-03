@@ -1529,7 +1529,7 @@ public class MQuery extends MIDBCollection
 			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
 			result.varSorts.put(v, theSort);
 		}
-		result.putIDB(queryID, idbFormula);
+		result.putIDB(queryID, idbFormula, varOrdering);
 		
 		
 		MEnvironment.setLast(result);

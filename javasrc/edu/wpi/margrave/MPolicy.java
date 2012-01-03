@@ -58,6 +58,8 @@ class MRule
 	// ids of predicates this rule refers to. Get from MExploreCondition
 	Set<String> involvesPredicates = new HashSet<String>();
 	
+	List<Variable> ruleVarOrdering = new ArrayList<Variable>();
+	
 	MRule()
 	{
 		
@@ -106,10 +108,15 @@ abstract class MIDBCollection
 			return idbs.get(idbname);
 		return Formula.FALSE;
 	}
-	void putIDB(String idbname, Formula val)
+	void putIDB(String idbname, Formula val, List<Variable> varOrdering)
 	{
 		idbs.put(idbname, val);
+		if(varOrdering == null)
+			throw new MUserException("Internal Margrave error: putIDB given null for varOrdering.");
+		varOrderings.put(idbname, new ArrayList<Variable>(varOrdering));
+		//System.err.println(idbname+":"+varOrdering);
 	}
+	
 	boolean containsIDB(String idbname)
 	{
 		return idbs.containsKey(idbname);
@@ -1008,18 +1015,18 @@ class MXACMLPolicyFinderModule extends PolicyFinderModule
 }
 
 //Used for tupling
-class MInternalIDBCollection extends MIDBCollection
-{
+//class MInternalIDBCollection extends MIDBCollection
+//{
+//	
+//	protected MInternalIDBCollection(String n, MVocab voc)
+//	{
+//		name = n;		
+//		vocab = voc;
+//	}
+//
+//	protected void addIDB(String idbname, Formula idb)
+//	{
+//		putIDB(idbname, idb);		
+//	}
 	
-	protected MInternalIDBCollection(String n, MVocab voc)
-	{
-		name = n;		
-		vocab = voc;
-	}
-
-	protected void addIDB(String idbname, Formula idb)
-	{
-		putIDB(idbname, idb);		
-	}
-	
-}
+//}

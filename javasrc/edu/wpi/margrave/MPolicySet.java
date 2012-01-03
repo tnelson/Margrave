@@ -163,16 +163,22 @@ public class MPolicySet extends MPolicy
 		}
 
 		// Decisions pre-combinators
+		Map<String, List<Variable>> varOrderingForThisDec = new HashMap<String, List<Variable>>();
 		Map<String, Formula> preComb = new HashMap<String, Formula>();
 		for(String dec : decisions)
 		{	
 			preComb.put(dec, Formula.FALSE);
+			varOrderingForThisDec.put(dec, new ArrayList<Variable>());
+			
 			for(MPolicy dc : children)
 			{
 				// Don't forget to include the child's target!
 				if(dc.containsIDB(dec))
+				{
 					preComb.put(dec, MFormulaManager.makeOr(preComb.get(dec), 
 							MFormulaManager.makeAnd(dc.getIDB(dec), dc.target)));
+					varOrderingForThisDec.put(dec, dc.varOrderings.get(dec));
+				}
 			}
 		}
 		
@@ -191,7 +197,7 @@ public class MPolicySet extends MPolicy
 		for(String dec : decisions)
 		{
 			// Construct this decision IDB.
-			//System.err.println("------\nConstructing decision: "+dec);
+			//System.err.println("------\nConstructing decision: "+dec);						
 			
 			// FIRST-APPLICABLE
 			if(pCombineFA.contains(dec))
@@ -229,10 +235,11 @@ public class MPolicySet extends MPolicy
 					
 					// Younger children must respect their elders.
 					// (Even if this child has no concept of this decision, if it "applies" (i.e., target matches) it overrules.)
-					negpriortargets.add(MFormulaManager.makeNegation(child.target));										
+					negpriortargets.add(MFormulaManager.makeNegation(child.target));								
+				
 				}
 					
-				putIDB(dec, MFormulaManager.makeDisjunction(thisdec));				
+				putIDB(dec, MFormulaManager.makeDisjunction(thisdec), varOrderingForThisDec.get(dec));				
 			}
 			
 			// OVERRIDES
@@ -243,12 +250,13 @@ public class MPolicySet extends MPolicy
 				// Here we have something similar: we can derive proto-decisions (just "matches")
 				// --- preComb
 				
-				putIDB(dec, preComb.get(dec));
+				putIDB(dec, preComb.get(dec), varOrderingForThisDec.get(dec));
 				for(String dOverrides : pCombineWhatOverrides.get(dec))
 				{
 					// If A > B, anytime A matches, B can't hold (even if A is itself overridden)
 					putIDB(dec, MFormulaManager.makeAnd(getIDB(dec), 
-							MFormulaManager.makeNegation(preComb.get(dOverrides))));
+							MFormulaManager.makeNegation(preComb.get(dOverrides))),
+							varOrderingForThisDec.get(dec));
 				}										
 				
 			}
@@ -263,10 +271,10 @@ public class MPolicySet extends MPolicy
 				for(MPolicy ch : children)
 				{
 					if(ch.containsIDB(dec))
-						childrenHave.add(ch.getIDB(dec));
+						childrenHave.add(ch.getIDB(dec));				
 				}
 				
-				putIDB(dec, MFormulaManager.makeDisjunction(childrenHave));
+				putIDB(dec, MFormulaManager.makeDisjunction(childrenHave), varOrderingForThisDec.get(dec));
 			}
 				
 		}

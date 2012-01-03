@@ -80,6 +80,12 @@
        '(and ([mypol1 permit] s a r) 
              (= (techreportfor r) (techreportfor r))))   
 (check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 permit] s a r)))))
+; check #:include for non-decision names
+(check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 papernoconflict_matches] s a r)))))
+(check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 paperassigned_applies] s a r)))))
+; check #:include for non-decision names vs. saved query prior
+; check #:include for non-decision names
+(check-false (m-unsat? (m-get "Q7" #:include '(([mypol1 papernoconflict_matches] s a r)))))
 
 (check-exn 
  exn:fail? 

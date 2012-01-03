@@ -778,8 +778,7 @@
                
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                         
-                            
+                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                                             
                     (m-rule (->string #'rulename)
                             (->string #'decision)
                             (map ->string (syntax->list #'(rvar ...)))
@@ -787,11 +786,16 @@
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                
                (map handle-rule the-rules))))
+              
        
        (define (rules-aggregator ele sofar)
          (hash-set sofar (m-rule-name ele) ele))
        (define rules-hash (foldl rules-aggregator (make-immutable-hash '()) rules-result-list))
 
+       ; Order matters! Make sure the order is preserved when passing XML to java. 
+       ; (The hash table has no concept of ordering on the entries, so keep the keys in order.)
+       (define rule-names (map m-rule-name rules-result-list))
+       
        (define (internal-get-variable-sort varid)
          (unless (hash-has-key? vardec-hash varid)
            (margrave-error "Variable was not declared" varid))
@@ -840,7 +844,7 @@
        (define prepare-xexpr 
          `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))
        
-       ; Only know filename and policy id at *runtime*                    
+       ; Only know filename and policy id at *runtime*                                         
        
        ; need ,(list (xml-make-command ...
        ; so do `(list ,@( ...))
@@ -852,7 +856,8 @@
                                                     (list prepare-xexpr)))]
                      [my-theory-name my-theory-name-sym]
                      [disassembled-rules-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-rule-name ele) `',(disassemble-transparent-struct ele))) (hash-values rules-hash))))]
-                     [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]                     
+                     [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]
+                     [rule-names rule-names]
                      [idbs-hash idbs-hash]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
@@ -898,8 +903,7 @@
              
              ; !!! TODO: these fields of the m-policy structure need to be populated still             
              (define rcomb-desc "")
-             (define target-fmla 'true)   
-                         
+             (define target-fmla 'true)                                                      
              
              (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
@@ -907,9 +911,10 @@
              (m-policy local-policy-id ; [id string?]                      
                        vocab-path ; [theory-path path?]
                        ; [xml (listof xexpr?)]
-                       (append start-commands
+                       (append start-commands                               
                                (map (lambda (ele) (m-vardec->cmd local-policy-id ele)) (hash-values vardec-hash))
-                               (map (lambda (ele) (m-rule->cmd local-policy-id ele)) (hash-values rules-hash))
+                               ; make sure to PRESERVE ORDER on the rules. Order shouldn't matter for variable declarations.
+                               (map (lambda (aname) (m-rule->cmd local-policy-id (hash-ref rules-hash aname))) 'rule-names)
                                end-commands)
                        my-thy ; [theory m-theory?]  
                        vardec-hash ; [vardecs (hash/c string? m-vardec?)]

@@ -378,7 +378,7 @@ public class MPolicyLeaf extends MPolicy
 				Relation targetRel = MFormulaManager.makeRelation(aPred, varOrderings.get(aPred).size());
 				List<Variable> targetVars = varOrderings.get(aPred);
 				MIDBReplacementV vis = new MIDBReplacementV(targetRel, targetVars, subIdbFormula);
-				putIDB(dec, fullFormula.accept(vis));																			
+				putIDB(dec, fullFormula.accept(vis), varOrderings.get(dec));																			
 			}
 		}
 		
@@ -391,7 +391,7 @@ public class MPolicyLeaf extends MPolicy
 		addRule(rulename, decision, freeVarOrdering, aTarget, aCondition, null);
 	}
 	
-	public void addRule(String rulename, String decision, List<String> freeVarOrdering, 
+	public void addRule(String rulename, String decision, List<String> ruleVarNameOrdering, 
 			Formula aTarget, Formula aCondition, MExploreCondition helper)
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
 	{	
@@ -406,19 +406,18 @@ public class MPolicyLeaf extends MPolicy
 		/////////////////////////////////////////////////////////////
 		// Variable ordering on this rule from the rule head; 
 		// e.g. (permit s a r) :- ...
-		List<Variable> ruleFreeVars = new ArrayList<Variable>();
-		for(String vname : freeVarOrdering)
+		List<Variable> ruleVarOrdering = new ArrayList<Variable>();
+		for(String vname : ruleVarNameOrdering)
 		{
-			ruleFreeVars.add(MFormulaManager.makeVariable(vname));
+			ruleVarOrdering.add(MFormulaManager.makeVariable(vname));
 		}
 		
 		/////////////////////////////////////////////////////////////
-		if(!idbKeys().contains(decision))
+		if(!idbKeys().contains(decision)) // add the DECISION'S IDB
 		{
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
 			// (Sorts of all these variables should be known already.)			
-			putIDB(decision, Formula.FALSE);
-			this.varOrderings.put(decision, ruleFreeVars);	
+			putIDB(decision, Formula.FALSE, ruleVarOrdering);			
 			
 			// Add the decision to the list as well
 			decisions.add(decision);
@@ -431,7 +430,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		// order-independent
 		Set<Variable> expectedSet = new HashSet<Variable>(expectedIDBFreeVars);
-		Set<Variable> thisSet = new HashSet<Variable>(ruleFreeVars);
+		Set<Variable> thisSet = new HashSet<Variable>(ruleVarOrdering);
 		
 		if(!expectedSet.equals(thisSet))
 		{
@@ -440,7 +439,7 @@ public class MPolicyLeaf extends MPolicy
 			int ii = 0;
 			for(Variable v1 : expectedIDBFreeVars)
 			{
-				Variable v2 = ruleFreeVars.get(ii);
+				Variable v2 = ruleVarOrdering.get(ii);
 				if(!v1.equals(v2))
 				{
 					hashStr += "Mismatch between var "+v1.toString()+" (hash="+v1.hashCode()+") and var "+
@@ -454,7 +453,7 @@ public class MPolicyLeaf extends MPolicy
 			
 			
 			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
-					"First was: "+expectedIDBFreeVars+"; second was: "+ruleFreeVars+". Hashes were: \n"+hashStr);
+					"First was: "+expectedIDBFreeVars+"; second was: "+ruleVarOrdering+". Hashes were: \n"+hashStr);
 
 		}			
 		
@@ -467,6 +466,7 @@ public class MPolicyLeaf extends MPolicy
 		MRule newrule = new MRule();
 		newrule.setDecision(decision);
 		newrule.name = rulename;	
+		newrule.ruleVarOrdering = ruleVarOrdering;
 		newrule.target = aTarget;
 		newrule.condition = aCondition;
 				
@@ -654,7 +654,7 @@ public class MPolicyLeaf extends MPolicy
 		for(MRule r : rules)
 		{
 			String decName = r.name+"_matches";
-			putIDB(decName, r.target_and_condition);			
+			putIDB(decName, r.target_and_condition, r.ruleVarOrdering);			
 			decisionUsesPredicates.put(decName, r.involvesPredicates);
 		}
 		
@@ -682,7 +682,7 @@ public class MPolicyLeaf extends MPolicy
 			}
 			String decName = r.name+"_applies";
 			decisionUsesPredicates.put(decName, usesPreds);
-			putIDB(decName, MFormulaManager.makeConjunction(rFmlas));
+			putIDB(decName, MFormulaManager.makeConjunction(rFmlas), r.ruleVarOrdering);
 		}
 
 		
@@ -726,7 +726,7 @@ public class MPolicyLeaf extends MPolicy
 			MEnvironment.writeToLog("\n  IDB_FA: "+IDB_FA);
 			MEnvironment.writeToLog("\n  decFmla: "+decFmla);
 			MEnvironment.writeToLog("\n  Uses Predicates:"+decisionUsesPredicates.get(decName));
-			putIDB(decName, decFmla);
+			putIDB(decName, decFmla, varOrderings.get(decName));
 		}
 					
 		
@@ -735,7 +735,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		for(String idbname : idbKeys())
 		{			
-			putIDB(idbname, MFormulaManager.makeAnd(getIDB(idbname), target));		
+			putIDB(idbname, MFormulaManager.makeAnd(getIDB(idbname), target), varOrderings.get(idbname));		
 		}
 		
 	} // end doCombineRules
