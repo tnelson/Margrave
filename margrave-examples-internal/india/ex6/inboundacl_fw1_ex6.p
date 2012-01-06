@@ -27,7 +27,7 @@
 
 
          (Rule6 = (accept interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw1dmz interf) (= 'fw2static_mgr ipsrc) (= 'port80 portdest) (= 'outsideips ipdest) (= 'tcp pro))
+                (= 'fw1dmz interf) (= 'fw2static_mgr ipsrc) (= 'port80 portdest) (OutsideIPs ipdest) (= 'tcp pro))
          
          (Rule7 = (deny interf ipsrc ipdest portsrc portdest pro) :-
                 true) )

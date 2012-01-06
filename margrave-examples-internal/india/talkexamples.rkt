@@ -14,9 +14,6 @@
 (m-load-policy "natfw2" "inboundnat_fw2.p")
 (m-load-policy "aclfw1new" "inboundacl_fw1_new.p")
 (m-load-policy "aclfw2new" "inboundacl_fw2_new.p")
-(m-load-policy "aclfw1ex6" "ex6/inboundacl_fw1_ex6.p")
-(m-load-policy "aclfw2ex6" "ex6/inboundacl_fw2_ex6.p")
-(m-load-policy "natfw2ex6" "ex6/inboundnat_fw2_ex6.p")
 
 ; ************************************************************
 ; Example 1: "Is it possible for the firewall(s) to drop packets
@@ -138,164 +135,173 @@
 ; interf: 'fw2int 
 
 
-;; **************************************************
-;; Example 5: verifying the new property
-;; after SECOND new policy
-;; **************************************************
-;
-;
-;(define example5 
-;"(forsome interf Interface
-;(forsome ipsrc IPAddress
-;(forsome ipdest IPAddress
-;(forsome portsrc Port
-;(forsome portdest Port
-;(forsome pro Protocol
-;(forsome tempnatsrc IPAddress
-;(forsome interminterface Interface
-;(and
-;  (fw2int interf)
-;  (fw1dmz interminterface)
-;  
-;  (port80 portdest)
-;  (tcp pro)
-;  (outsideips ipdest)
-;
-;  (or
-;      (and
-;        (not (managerpc ipsrc))
-;        (InboundACL_FW2_New:Accept interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;        (InboundNAT_FW2:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;        (InboundACL_FW1_New:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;      )
-;  
-;      (and
-;        (managerpc ipsrc)
-;        (or
-;           (InboundACL_FW2_New:Deny interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;
-;           (and
-;              (InboundNAT_FW2:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;              (InboundACL_FW1_New:Deny interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;            )
-;         )
-;       )
-;   )
-;)))))))))")
-;
-;
-;(define qry5 (query-policies expolicies example5))
-;;(set-tupling qry5 #t)
-;(set-size-ceiling qry5 8)
-;
-;;(set-debug-level qry5 3)
-;(display "QUERY 5:") (newline)
-;(pretty-print-results qry5)
-;
-;
-;
-;
-;
-;; ************************************************************
-;; Example 4: "Now that we fixed the bug, what changed?"
-;; ************************************************************
-;
-;; NOT a full change-impact. Shorter due to what we changed and
-;; the topology.
-;
-;
-;(define example4
-;"(forsome interf Interface
-;(forsome ipsrc IPAddress
-;(forsome ipdest IPAddress
-;(forsome portsrc Port
-;(forsome portdest Port
-;(forsome pro Protocol
-;(forsome tempnatsrc IPAddress
-;(forsome interminterface Interface
-;(and
-;  (fw2int interf)
-;  (fw1dmz interminterface)
-;
-;  (InboundACL_FW2:Accept interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;  (InboundNAT_FW2:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;
-;  (or
-;      (and
-;        (not (InboundACL_FW1:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc))
-;        
-;        (InboundACL_FW1_New:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;      )
-;
-;      (and
-;        (not (InboundACL_FW1_New:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc))
-;        
-;        (InboundACL_FW1:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;      )
-;  )
-;)))))))))")
-;
-;
-;
-;
-;
-;
-;(define qry4 (query-policies expolicies example4))
-;
-;; odd answer from tupling. is this the = bug? TODO
-;(set-tupling qry4 #t)
-;(set-size-ceiling qry4 8)
-;;(set-debug-level qry4 3)
-;(display "QUERY 4:") (newline)
-;(pretty-print-results qry4)
-;;(pretty-print-results-condensed qry4)                        
-;
+; ************************************************************
+; Example 4: "Now that we fixed the bug, what changed?"
+; ************************************************************
+
+; NOT a full change-impact. Shorter due to what we changed and
+; the topology. We only altered ONE policy and ONE interface.
+
+
+(m-let "Example4" '([interf Interface] 
+                    [ipsrc IPAddress]
+                    [ipdest IPAddress]
+                    [portsrc Port]
+                    [portdest Port]
+                    [pro Protocol]
+                    [tempnatsrc IPAddress]
+                    [interminterface Interface])
+'(and
+  ; Packet coming from fw1dmz via fw2int, passed and translated by fw2:
+  (= 'fw2int interf)
+  (= 'fw1dmz interminterface)    
+  ([aclfw2 accept] interf ipsrc ipdest portsrc portdest pro)
+  ([natfw2 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+  
+  ; Ask for scenarios for everyone else, not just the manager
+  (not (= 'managerpc ipsrc))
+  
+  ; Gain or loss of access vs. new policy
+  (or
+      (and
+        (not ([aclfw1 accept] interminterface tempnatsrc ipdest portsrc portdest pro))        
+        ([aclfw1new accept] interminterface tempnatsrc ipdest portsrc portdest pro))
+      (and
+        (not ([aclfw1new accept] interminterface tempnatsrc ipdest portsrc portdest pro))        
+        ([aclfw1 accept] interminterface tempnatsrc ipdest portsrc portdest pro)))))
+
+
+(printf "~n----------------------------------~nExample 4 results:~n----------------------------------~n~n")
+(display (m-show "Example4"))
+
+
+
+; **************************************************
+; Example 5: verifying the new property
+; after SECOND new policy
+; **************************************************
+
+; Two possible kinds of bad behavior to look for:
+         
+; (a) non-manager is allowed access
+(m-let "Example5a" '([interf Interface] 
+                     [ipsrc IPAddress]
+                     [ipdest IPAddress]
+                     [portsrc Port]
+                     [portdest Port]
+                     [pro Protocol]
+                     [tempnatsrc IPAddress]
+                     [interminterface Interface])
+       '(and
+         ; General conditions
+         (= 'fw2int interf)
+         (= 'fw1dmz interminterface)  
+         (= 'port80 portdest)
+         (= 'tcp pro)
+         (OutsideIPs ipdest)         
+                   
+         ; Not the manager, and gets through
+         (not (= 'managerpc ipsrc))
+         ([aclfw2new accept] interf ipsrc ipdest portsrc portdest pro)
+         ([natfw2 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+         ([aclfw1new accept] interminterface tempnatsrc ipdest portsrc portdest pro)))
+
+; (b) The manager is being denied access to the web
+(m-let "Example5b" '([interf Interface] 
+                     [ipsrc IPAddress]
+                     [ipdest IPAddress]
+                     [portsrc Port]
+                     [portdest Port]
+                     [pro Protocol]
+                     [tempnatsrc IPAddress]
+                     [interminterface Interface])
+       '(and      
+         ; General conditions
+         (= 'fw2int interf)
+         (= 'fw1dmz interminterface)  
+         (= 'port80 portdest)
+         (= 'tcp pro)
+         (OutsideIPs ipdest) 
+         
+         ; Manager, and denied.
+         (= 'managerpc ipsrc)
+         (or
+          ; denied at FW2
+          ([aclfw2new deny] interf ipsrc ipdest portsrc portdest pro)            
+          ; or denied at FW1
+          (and
+           ([natfw2 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+           ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro)))))
+
+  
+  
+(printf "~n----------------------------------~nExample 5 results:~n----------------------------------~n~n")
+(m-is-poss? "Example5a")
+(m-is-poss? "Example5b")
+; ^^^ both return #f
+ 
+
 ;; ********************************************************
 ;; Example 6
+;; Re-run query 5, but with the 3rd policy specs ("rbac" via nat)
 ;; ********************************************************
-;
-;(define example6
-;"(forsome interf Interface
-;(forsome ipsrc IPAddress
-;(forsome ipdest IPAddress
-;(forsome portsrc Port
-;(forsome portdest Port
-;(forsome pro Protocol
-;(forsome tempnatsrc IPAddress
-;(forsome interminterface Interface
-;(and
-;  (fw2int interf)
-;  (fw1dmz interminterface)
-;
-;  (port80 portdest)
-;  (tcp pro)
-;  (outsideips ipdest)
-;
-;  (or
-;      (and
-;        (not (managerpc ipsrc))
-;        (InboundACL_FW2_Ex6:Accept interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;        (InboundNAT_FW2_Ex6:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;        (InboundACL_FW1_Ex6:Accept interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;      )
-;
-;      (and
-;        (managerpc ipsrc)
-;        (or
-;           (InboundACL_FW2_Ex6:Deny interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;
-;           (and
-;              (InboundNAT_FW2_Ex6:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;              (InboundACL_FW1_Ex6:Deny interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;            )
-;         )
-;       )
-;   )
-;)))))))))")
-;
-;(define qry6 (query-policies expolicies example6))
-;
-;(set-tupling qry6 #t)
-;(display "QUERY 6:") (newline)
-;(pretty-print-results qry6)
-;
+
+(m-load-policy "aclfw1ex6" "ex6/inboundacl_fw1_ex6.p")
+(m-load-policy "aclfw2ex6" "ex6/inboundacl_fw2_ex6.p")
+(m-load-policy "natfw2ex6" "ex6/inboundnat_fw2_ex6.p")
+
+; (a) non-manager is allowed access
+(m-let "Example6a" '([interf Interface] 
+                     [ipsrc IPAddress]
+                     [ipdest IPAddress]
+                     [portsrc Port]
+                     [portdest Port]
+                     [pro Protocol]
+                     [tempnatsrc IPAddress]
+                     [interminterface Interface])
+       '(and
+         ; General conditions
+         (= 'fw2int interf)
+         (= 'fw1dmz interminterface)  
+         (= 'port80 portdest)
+         (= 'tcp pro)
+         (OutsideIPs ipdest)         
+                   
+         ; Not the manager, and gets through
+         (not (= 'managerpc ipsrc))
+         ([aclfw2ex6 accept] interf ipsrc ipdest portsrc portdest pro)
+         ([natfw2ex6 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+         ([aclfw1ex6 accept] interminterface tempnatsrc ipdest portsrc portdest pro)))
+
+; (b) The manager is being denied access to the web
+(m-let "Example6b" '([interf Interface] 
+                     [ipsrc IPAddress]
+                     [ipdest IPAddress]
+                     [portsrc Port]
+                     [portdest Port]
+                     [pro Protocol]
+                     [tempnatsrc IPAddress]
+                     [interminterface Interface])
+       '(and      
+         ; General conditions
+         (= 'fw2int interf)
+         (= 'fw1dmz interminterface)  
+         (= 'port80 portdest)
+         (= 'tcp pro)
+         (OutsideIPs ipdest) 
+         
+         ; Manager, and denied.
+         (= 'managerpc ipsrc)
+         (or
+          ; denied at FW2
+          ([aclfw2ex6 deny] interf ipsrc ipdest portsrc portdest pro)            
+          ; or denied at FW1
+          (and
+           ([natfw2ex6 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+           ([aclfw1ex6 deny] interminterface tempnatsrc ipdest portsrc portdest pro)))))
+
+(printf "~n----------------------------------~nExample 6 results:~n----------------------------------~n~n")
+(m-is-poss? "Example6a")
+(m-is-poss? "Example6b")
+; ^^^ both return #f
+
