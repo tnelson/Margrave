@@ -1604,6 +1604,29 @@ public class MVocab {
 			uber.axioms.addConstraintAbstract(con);
 		}
 		
+		for (String con : axioms.setsConstantsNeqAll) 
+			uber.axioms.addConstraintConstantsNeqAll(con);		
+		for (String con : other.axioms.setsConstantsNeqAll) 
+			uber.axioms.addConstraintConstantsNeqAll(con);
+	
+		for (List<String> con : axioms.constantsNeq)
+		{
+			assert(con.size() == 2);
+			uber.axioms.addConstraintConstantsNeq(con.get(0), con.get(1));
+		}
+		for (List<String> con : other.axioms.constantsNeq)
+		{
+			assert(con.size() == 2);
+			uber.axioms.addConstraintConstantsNeq(con.get(0), con.get(1));
+		}
+		
+		for (String con : axioms.setsConstantsCover) 
+			uber.axioms.addConstraintConstantsCover(con);		
+		for (String con : other.axioms.setsConstantsCover) 
+			uber.axioms.addConstraintConstantsCover(con);
+
+		
+		
 		for (String con : axioms.funcPartial) {
 			if (shared.contains(con))
 				if (!other.axioms.funcPartial.contains(con))

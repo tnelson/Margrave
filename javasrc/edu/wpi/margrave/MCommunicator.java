@@ -167,8 +167,9 @@ public class MCommunicator
                 		//writeToLog("\nString: "+inputStringBuffer.toString());            		         		            			
             		}            		
             		
-            		String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";            		
-            		if(inputStringBuffer.toString().endsWith(sMargraveCommandEnding))
+            		String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";
+            		String bufferStr = inputStringBuffer.toString();
+            		if(bufferStr.endsWith(sMargraveCommandEnding))
             			break;
             	}
             	
@@ -690,6 +691,7 @@ public class MCommunicator
 					return MEnvironment.addConstraintConstantsCover(vname, firstRelation);
 				}
 				else if (constraintType.equalsIgnoreCase("CONSTANTS-NEQ-ALL")) {
+					MCommunicator.writeToLog("\nAdding constraint constants-neq-all: "+firstRelation);
 					return MEnvironment.addConstraintConstantsNeqAll(vname, firstRelation);
 				}				
 				else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {

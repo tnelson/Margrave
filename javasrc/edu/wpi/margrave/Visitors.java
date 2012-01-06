@@ -526,27 +526,28 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 			return lookup(comp);
 		cached.add(comp);
 
-		if (ExprCompOperator.EQUALS.equals(comp.op())) {
-			// We require LEFT and RIGHT to both be Variables.
-			// Therefore we directly invoke the formula manager here, and don't
-			// need to do
-			// anything special.
-
+		if (ExprCompOperator.EQUALS.equals(comp.op())) 		
+		{
+			// EQUALITY
+			
 			Expression newlhs = comp.left().accept(this);
 			Expression newrhs = comp.right().accept(this);
+			
+			// REQUIRE that both sides of an equality be either a relation or a variable
+			
+			if (!(newlhs instanceof Relation || newlhs instanceof Variable))
+				MEnvironment.writeErrLine("WARNING: substitution found an equality involving a non-variable, non-relation expression: "+newlhs);
+			
+			if(!(newrhs instanceof Relation || newrhs instanceof Variable))
+				MEnvironment.writeErrLine("WARNING: substitution found an equality involving a non-variable, non-relation expression: "+newrhs);
 
-			if (!(newlhs instanceof Variable && newrhs instanceof Variable)) {
-				MEnvironment.writeErrLine("Warning: ComparisonFormula with EQUALS operator with non-Variable children visited: "
-								+ comp);
-				return cache(comp, newlhs.eq(newrhs));
-			}
-
-			try {
-				return cache(comp, MFormulaManager.makeEqAtom(
-						(Variable) newlhs, (Variable) newrhs));
+			try 
+			{
+				return cache(comp, MFormulaManager.makeEqAtom(newlhs, newrhs));
 			} catch (MGEManagerException e) {
-				MEnvironment.writeErrLine(e);
-				return cache(comp, newlhs.eq(newrhs));
+				MEnvironment.writeErrLine(e);				
+				System.exit(101);
+				return Formula.TRUE;
 			}
 
 		} else {

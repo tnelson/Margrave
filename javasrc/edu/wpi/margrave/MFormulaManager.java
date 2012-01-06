@@ -955,7 +955,7 @@ public class MFormulaManager
 		return theUnion;		 
 	}
 	
-	static Expression makeIntersection(Relation r1, Relation r2)
+	static Expression makeIntersection(Expression r1, Expression r2)
 	{
 		if(!hasBeenInitialized)
 			initialize();	

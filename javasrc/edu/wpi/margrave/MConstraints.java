@@ -148,7 +148,7 @@ public class MConstraints
 		if(!vocab.isSort(d))
 			throw new MGEUnknownIdentifier("Could not add constraint. "+d+" is not a type.");
 
-		setsConstantsNeqAll.add(d);
+		setsConstantsNeqAll.add(d);		
 	}
 
 	public void addConstraintConstantsCover(String d) throws MGEUnknownIdentifier, MGEBadIdentifierName
@@ -317,10 +317,36 @@ public class MConstraints
 			Formula theFmla = MFormulaManager.makeEqAtom(theUnion, theSortRelation); 
 			results.add(theFmla);			
 		}
+				
 		for(String r : setsConstantsNeqAll)
 		{
-			// TODO: setsConstantsNeqAll	
-			MEnvironment.writeErrLine("The constraint type CONSTANT-NEQ-ALL is not yet supported. Passing over it for type: "+r);
+			Relation theSortRelation =  vocab.getRelation(r);
+								
+			// Every constant in theSortRelation...
+			for(MConstant c1 : vocab.constants.values())
+			{
+				if(!c1.type.get(0).rel.equals(theSortRelation))
+					continue;
+				
+				Set<Expression> theOtherRels = new HashSet<Expression>();				
+				for(MConstant c2 : vocab.constants.values())
+				{
+					if(!c2.type.get(0).rel.equals(theSortRelation))
+						continue;
+					if(c1.equals(c2))
+						continue;
+															
+					theOtherRels.add(c2.rel);
+				}
+				
+				// Issue an axiom saying that c1 is disjoint from the union of all c2s.
+				Expression theOtherRelsUnion = MFormulaManager.makeUnion(theOtherRels);
+				Expression theIntersection = MFormulaManager.makeIntersection(c1.rel, theOtherRelsUnion);
+				Formula fmla = MFormulaManager.makeMultiplicity(theIntersection, Multiplicity.NO);
+				results.add(fmla);
+				MCommunicator.writeToLog("\nMConstraints asserting formula: "+fmla);
+			}
+						
 		}
 		for(List<String> lst : constantsNeq)
 		{
