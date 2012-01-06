@@ -61,7 +61,7 @@
        )
 
 
-(printf "~n----------------------------------~nQuery 1 results:~n----------------------------------~n~n")
+(printf "~n----------------------------------~nExample 1 results:~n----------------------------------~n~n")
 (display (m-show "Example1"))
 
 
@@ -72,9 +72,16 @@
 ; Example 2: "How is it the case that this packet could be dropped?"
 ; ************************************************************
 
-(printf "~n----------------------------------~n~n")
+(printf "~n----------------------------------~nExample 2 results:~n----------------------------------~n~n")
 (display (m-show "Example1" #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro) 
-                                        ([aclfw1 deny] interf tempnatsrc ipdest portsrc portdest pro))))
+                                        ([aclfw1 deny] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule1_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule2_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule3_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule4_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule5_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule6_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                        ([aclfw1 rule7_applies] interf tempnatsrc ipdest portsrc portdest pro))))
 
 
 
@@ -84,43 +91,53 @@
 ; Example 3: Testing original property after first change
 ; *************************************************
 
+(m-let "Example3" '([interf Interface] 
+                    [ipsrc IPAddress]
+                    [ipdest IPAddress]
+                    [portsrc Port]
+                    [portdest Port]
+                    [pro Protocol]
+                    [tempnatsrc IPAddress]
+                    [interminterface Interface])
+       '(and 
+         (= 'fw2int interf)
+         (= 'fw1dmz interminterface)         
+         (OtherPorts portsrc)
+         (= 'managerpc ipsrc)
+         (= 'port80 portdest)
+         (= 'tcp pro)
+         (OutsideIPs ipdest)
+         
+         (not (= ipdest ipsrc))
+         (not (= portsrc portdest))
+         
+         ; Bind the result of NAT at FW2 to tempnatsrc
+         ([natfw2 translate] interf ipsrc ipdest portsrc portdest pro tempnatsrc)
+         
+         ; Two places the packet could be denied. One pre-NAT, one post-NAT.
+         (or
+          ([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
+          ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro))))
 
-;(define example3
-;"(forsome interf Interface
-;(forsome ipsrc IPAddress
-;(forsome ipdest IPAddress
-;(forsome portsrc Port
-;(forsome portdest Port
-;(forsome pro Protocol
-;(forsome tempnatsrc IPAddress
-;(forsome interminterface Interface
-;(and
-;  (fw2int interf)
-;  (fw1dmz interminterface)
-;
-;  (otherports portsrc)
-;  (managerpc ipsrc)
-;  (port80 portdest)
-;  (tcp pro)
-;  (outsideips ipdest)
-;
-;  (or
-;     (InboundACL_FW2:Deny interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;
-;     (and
-;        (InboundNAT_FW2:Translate interf ipsrc ipdest portsrc portdest pro tempnatsrc)
-;        (InboundACL_FW1_New:Deny interminterface tempnatsrc ipdest portsrc portdest pro tempnatsrc)
-;      )
-;   )
-;)))))))))")
-;
-;
-;(define qry3 (query-policies expolicies example3))
-;;(set-tupling qry1 #t)
-;(set-size-ceiling qry3 8)
-;(display "QUERY 3:") (newline)
-;(pretty-print-results qry3)
-;
+
+(printf "~n----------------------------------~nExample 3 results:~n----------------------------------~n~n")
+(display (m-show "Example3"))
+
+(m-reset "Example3")
+(m-get "Example3"
+       #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
+                   ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro)
+                   ([aclfw1new rule6_matches] interminterface tempnatsrc ipdest portsrc portdest pro)
+                   ([aclfw1new rule6_applies] interminterface tempnatsrc ipdest portsrc portdest pro)))
+
+
+
+; !!! TODO: m-show should be specifying to constants, not just sorts now. e.g. 
+; interf: Interface 
+; should be
+; interf: 'fw2int 
+
+
 ;; **************************************************
 ;; Example 5: verifying the new property
 ;; after SECOND new policy

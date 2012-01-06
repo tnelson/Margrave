@@ -42,5 +42,5 @@
                 true) )
 
         ; Firewall policy: first rule applicable takes effect.
-        (RComb (fa permit deny)))
+        (RComb (fa accept deny)))
 

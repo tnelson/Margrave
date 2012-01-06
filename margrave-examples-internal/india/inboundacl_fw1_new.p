@@ -39,11 +39,11 @@
 
          ; bug "fix"
          ; employeePC packet will already have been subjected to NAT by FW2.
-         (Rule6 = (accept interf ipsrc ipdest portsrc portdest pro) :-
+         (rule6 = (accept interf ipsrc ipdest portsrc portdest pro) :-
                 (= 'fw1dmz interf) (= 'fw2static ipsrc) (= 'port80 portdest) (OutsideIPs ipdest) (= 'tcp pro))
          
          (Rule7 = (deny interf ipsrc ipdest portsrc portdest pro) :- true) )
 
         ; Firewall policy: first rule applicable takes effect.
-        (RComb (fa permit deny)))
+        (RComb (fa accept deny)))
 

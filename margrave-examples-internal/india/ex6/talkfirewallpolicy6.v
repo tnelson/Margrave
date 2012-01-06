@@ -3,14 +3,14 @@
         (Vocab talkfirewallpolicy6
                
                (Constants
-                ('employeepc IPAddress)
-                ('managerpc IPAddress)
-                ('contractorpc IPAddress)
-                ('webserver IPAddress)
-                ('mailserver IPAddress)
-                ('fw2static_con IPAddress)        
-                ('fw2static_emp IPAddress)
-                ('fw2static_mgr IPAddress)
+                ('employeepc InternalIPs)
+                ('managerpc InternalIPs)
+                ('contractorpc InternalIPs)
+                ('webserver InternalIPs)
+                ('mailserver InternalIPs)                 
+                ('fw2static_con InternalIPs)        
+                ('fw2static_emp InternalIPs)
+                ('fw2static_mgr InternalIPs)
                 
                 ('port21 Port) 
                 ('port23 Port)
@@ -28,7 +28,7 @@
                 ('fw1ext Interface))
                
                (Types
-                (IPAddress > OutsideIPs BlacklistedIPs)        
+                (IPAddress > InternalIPs OutsideIPs BlacklistedIPs)        
                 (Port > OtherPorts)
                 Protocol              
                 Interface)
@@ -38,8 +38,19 @@
          ; A port that isn't one of the constants must be in other ports.
          (abstract Port)
          
+         ; There are no other interfaces than those named.
+         (abstract Interface)
+         
+         ; IPs must be internal, external, or blacklisted.
+         (abstract IPAddress)
+         ; the constants given are the only internal IP addresses used
+         (abstract InternalIPs)
+         
+         ; Everything is either tcp or udp 
+         (abstract Protocol)
+         
          ; These constants are distinct:
-         (constants-neq-all IPAddress)
+         (constants-neq-all InternalIPs) ; <-- NOT IPAddress. Only looks for constants declared with this type.
          (constants-neq-all Port)
          (constants-neq-all Protocol)
          (constants-neq-all Interface)))
