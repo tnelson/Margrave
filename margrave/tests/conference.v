@@ -1,5 +1,5 @@
-(Theory Conference
-        (Vocab Conference
+(Theory conference
+        (Vocab conference
                (Types
                 Subject                            
                 (Action > SubmitPaper ReadPaper SubmitReview)

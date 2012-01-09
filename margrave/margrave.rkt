@@ -75,7 +75,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-122811")
+(define margrave-version "3.1-internal-010912")
 
 ;****************************************************************
 ;;Java Connection

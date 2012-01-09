@@ -66,18 +66,6 @@
    [rbody (listof m-formula?)])
   #:transparent)
 
-(define-struct/contract m-policy-set
-  ([id string?]
-   [theory-path path?]
-   [xml (listof xexpr?)]
-   [theory m-theory?]   
-   [vardecs (hash/c string? m-vardec?)]
-   [children (hash/c string? m-policy?)]
-   [pcomb string?]
-   [target m-formula?]
-   [idbs (hash/c string? (listof string?))])
-  #:transparent)
-
 (define-struct/contract m-policy
   ([id string?]
    [theory-path path?]
@@ -90,15 +78,17 @@
    [idbs (hash/c string? (listof string?))])
   #:transparent)
 
-;(define-struct/contract m-policyset
-;  ([id string?]
-;   [xml (listof xexpr?)]
-;   ;[theory m-theory?]
-;   [vocabulary m-vocabulary?]
-;   [vardecs (listof m-vardec?)]
-;   [rules (listof m-rule?)]
-;   [rcomb string?])
-;  #:transparent)
+(define-struct/contract m-policy-set
+  ([id string?]
+   [theory-path path?]
+   [xml (listof xexpr?)]
+   [theory m-theory?]   
+   [vardecs (hash/c string? m-vardec?)]
+   [children (hash/c string? m-policy?)]
+   [pcomb string?]
+   [target m-formula?]
+   [idbs (hash/c string? (listof string?))])
+  #:transparent)
 
 (define/contract 
   (m-rule->cmd policyid arule)  

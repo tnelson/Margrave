@@ -1,4 +1,4 @@
-(Policy uses Conference
+(Policy uses conference
         (Variables 
          (s Subject)
          (a Action)

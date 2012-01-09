@@ -1,5 +1,5 @@
-(Theory Conferencenoconstant
-        (Vocab Conferencenoconstant
+(Theory conferencenoconstant
+        (Vocab conferencenoconstant
                (Types
                 Subject                            
                 (Action > SubmitPaper ReadPaper SubmitReview)

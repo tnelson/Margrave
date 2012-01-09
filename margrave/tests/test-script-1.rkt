@@ -4,9 +4,7 @@
          rackunit)
 
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave")
-;(start-margrave-engine #:margrave-params '("-log")
-;                       #:margrave-path "M:\\RktMargrave\\margrave")
+                       #:margrave-path "../")
 (m-load-policy "mypol1" "conference1.p")
 (m-load-policy "mypol2" "conference2.p")
 

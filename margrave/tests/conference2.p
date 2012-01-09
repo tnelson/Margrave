@@ -1,4 +1,4 @@
-(Policy uses Conferencenoconstant
+(Policy uses conferencenoconstant
         (Variables 
          (s Subject)
          (a Action)
