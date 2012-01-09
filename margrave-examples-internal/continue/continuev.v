@@ -92,8 +92,7 @@
          
          (abstract Resource)                           
          (abstract PaperPhase)                           
-         (abstract ConferencePhase)
-                  
+         (abstract ConferencePhase)                  
          (abstract Action)         
          
          ; Every paper has an author

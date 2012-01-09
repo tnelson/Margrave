@@ -207,7 +207,7 @@ public class MJavaTests
 		 */
 	}
 	
-	public static void testSAT()
+/*	public static void testSAT()
 	{
 		// "Hello World" for MaxSAT
 		// 1 or (2 and !3)
@@ -475,12 +475,11 @@ public class MJavaTests
 		
 		
 		
-		/*
-		 * The proposal is: add extra props for each potential variable equality. Put a high cost on primary vars; low cost on var equality.
-		 * 
-		 * 
-		 */
-		
+		//
+		 // The proposal is: add extra props for each potential variable equality. Put a high cost on primary vars; low cost on var equality.
+		  
+		  
+		 		
 		// TODO: test Opt adapter instead of the above.
 		
 		
@@ -488,7 +487,7 @@ public class MJavaTests
 		
 		// test cardinality constraints
 		
-	}
+	}*/
 
 }
 

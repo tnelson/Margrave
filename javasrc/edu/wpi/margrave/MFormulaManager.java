@@ -496,15 +496,15 @@ public class MFormulaManager
 	// Only one relation for each name
 	private static MWeakValueHashMap< String, Relation> relations;
 	
+		
+	// Caches after this point use AST objects as keys, so *keys* must be stored weakly as well:
+	
+	
 	// Variable tuples: (x, y, z) ... to be tested for membership in Relations
 	// Lists and Sets (BUT NOT ARRAYS!)
 	// will consider different instances containing the same strings to be "equal":
-	private static MWeakValueHashMap< List<Expression>, Expression> exprTuples;
+	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Expression> exprTuples;
 
-	
-	
-	// Caches after this point use AST objects as keys, so *keys* must be stored weakly as well:
-	
 	
 	// Atoms: (x, y) in R
 	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Formula> atomFormulas;
@@ -539,10 +539,11 @@ public class MFormulaManager
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> forallFormulas;	
 	
 	// Intersection expressions: key is always a 2-element list of Expression.
-	// TODO: s/b a set
 	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Expression> intersectExpressions;
 	
 	private static MWeakValueHashMap< MSetWrapper<Expression>, Expression> unionExpressions;
+	
+	private static MWeakValueHashMap<MWeakArrayVector<Expression>, Expression> joinExpressions;
 	
 	/**
 	 * Initializes the Formula Manager: all caches are emptied.
@@ -551,7 +552,7 @@ public class MFormulaManager
 	{								
 		vars = new MWeakValueHashMap<String, Variable>();
 		relations = new MWeakValueHashMap<String, Relation>();
-		exprTuples = new MWeakValueHashMap< List<Expression>, Expression>();
+		exprTuples = new MWeakValueHashMap< MWeakArrayVector<Expression>, Expression>();
 		atomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
 		negFormulas = new MWeakValueHashMap< MSetWrapper<Formula>, Formula>();
 		andFormulas = new MWeakValueHashMap< MSetWrapper<Formula>, Formula>();
@@ -563,6 +564,7 @@ public class MFormulaManager
 		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
 		intersectExpressions = new MWeakValueHashMap< MWeakArrayVector<Expression>, Expression>();
 		unionExpressions = new MWeakValueHashMap< MSetWrapper<Expression>, Expression>();
+		joinExpressions = new MWeakValueHashMap<MWeakArrayVector<Expression>, Expression>();
 		
 		declNodes = new MWeakValueHashMap<MWeakArrayVector<Expression>, Decl>();
 		existsFormulas = new MWeakValueHashMap< MWeakArrayVector<Node>, Formula>();
@@ -643,7 +645,8 @@ public class MFormulaManager
         forallFormulas.countReclaimed +
         existsFormulas.countReclaimed +
         intersectExpressions.countReclaimed +
-        unionExpressions.countReclaimed;
+        unionExpressions.countReclaimed +
+        joinExpressions.countReclaimed;
 		
 		theResult.append("\nTotal references (Formulas, Variables, Decls, etc.) reclaimed over the life of this Manager: "+lReclaimed); theResult.append(MEnvironment.eol);
 		
@@ -675,6 +678,7 @@ public class MFormulaManager
 		existsFormulas.size();
 		intersectExpressions.size();
 		unionExpressions.size();
+		joinExpressions.size();
 	}
 	
 	static Formula makeMultiplicity(Expression e, Multiplicity m)
@@ -796,55 +800,62 @@ public class MFormulaManager
 	}
 	
 	// Called by replacement visitor
-	static Expression substituteVarTuple(Expression expr, Map<Variable, Expression> termpairs)
+	static Expression substituteExprTuple(Expression expr, Map<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
 		MCommunicator.writeToLog("\nIn MFormulaManager.substituteVarTuple, expr="+expr+"; termpairs="+termpairs);
 		
+		
 		// Do the substitution recursively
 		if(expr instanceof Variable)
 		{
-			Variable v = (Variable) expr;
-			if(termpairs.containsKey(v))
+			if(termpairs.containsKey(expr))
 			{
-				MCommunicator.writeToLog("\n  Found Variable="+v+". Returning: "+termpairs.get(v));
-				return termpairs.get(v);
+				MCommunicator.writeToLog("\n  Found Variable "+expr+". Returning: "+termpairs.get(expr));
+				return termpairs.get(expr);
 			}
 			else
 			{
-				MCommunicator.writeToLog("\n  Found Variable="+v+". No entry for this variable, so making no change.");
-				return v;
+				MCommunicator.writeToLog("\n  Found Variable="+expr+". No entry for this variable, so making no change.");
+				return expr;
 			}
 		}
 		else if(expr instanceof NaryExpression)
 		{
 			NaryExpression ne = (NaryExpression) expr;
-			List<Expression> theExpr = new ArrayList<Expression>();
+			List<Expression> theExprs = new ArrayList<Expression>();
 			
 			for(int ii=0;ii<ne.size();ii++)
-				theExpr.add(substituteVarTuple(ne.child(ii), termpairs));
+				theExprs.add(substituteExprTuple(ne.child(ii), termpairs));
 			
 			if(ExprOperator.PRODUCT.equals(ne.op()))
-				return MFormulaManager.makeExprTupleE(theExpr);
-			else
-				throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+ne.op());			
+				return MFormulaManager.makeExprTupleE(theExprs);
+			if(ExprOperator.JOIN.equals(ne.op()))
+				return MFormulaManager.makeJoinE(theExprs);
+			
+			throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+ne.op());			
 		}
 		else if(expr instanceof BinaryExpression)
 		{
 			BinaryExpression be = (BinaryExpression) expr;
 
-			List<Expression> theExpr = new ArrayList<Expression>();
+			List<Expression> theSubExprs = new ArrayList<Expression>();
 			
-			theExpr.add(substituteVarTuple(be.left(), termpairs));
-			theExpr.add(substituteVarTuple(be.right(), termpairs));
+			theSubExprs.add(substituteExprTuple(be.left(), termpairs));
+			theSubExprs.add(substituteExprTuple(be.right(), termpairs));
 			
 			if(ExprOperator.PRODUCT.equals(be.op()))
-				return MFormulaManager.makeExprTupleE(theExpr);
-			else
-				throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+be.op());						
+				return MFormulaManager.makeExprTupleE(theSubExprs);
+			if(ExprOperator.JOIN.equals(be.op())) // where is the join being done in fmlamgr? 
+				return MFormulaManager.makeJoinE(theSubExprs);
+			
+			throw new MGEManagerException("substituteVarTuple: Unsupported operator: "+be.op());						
 		}
 		else
-			throw new MGEManagerException("substituteVarTuple: Unsupported expression type: "+expr.getClass());
+		{
+			// For a Relation, no change (can't substitute it to anything else)
+			return expr;
+		}
 					
 	}
 
@@ -882,10 +893,37 @@ public class MFormulaManager
 						
 		Expression newTuple = Expression.product(exprs);
 		
-		exprTuples.put(exprs, newTuple);
+		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(exprs.size());
+		for(int ii=0;ii<exprs.size();ii++)
+			key.set(ii, exprs.get(ii));
+		
+		exprTuples.put(key, newTuple);
 		return newTuple;
 	}
 
+	
+	static Expression makeJoinE(List<Expression> exprs)
+	throws MGEManagerException
+	{
+		if(!hasBeenInitialized)
+			initialize();		
+		
+		if(exprs.size() < 1)
+			throw new MGEManagerException("makeJoinE called with empty list.");		
+		
+		Expression cachedValue = joinExpressions.get(exprs); 
+		if(cachedValue != null)
+			return cachedValue;			
+							
+		Expression newJoin = Expression.compose(ExprOperator.JOIN, exprs);
+		
+		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(exprs.size());
+		for(int ii=0;ii<exprs.size();ii++)
+			key.set(ii, exprs.get(ii));
+		
+		joinExpressions.put(key, newJoin);
+		return newJoin;
+	}
 	
 	static Expression makeVarTupleV(List<Variable> vars)
 	throws MGEManagerException
@@ -1586,6 +1624,10 @@ public class MFormulaManager
 		someMultiplicities.clear();
 		equalityAtomFormulas.clear();
 		
+		unionExpressions.clear();
+		intersectExpressions.clear();
+		joinExpressions.clear();
+		
 		declNodes.clear();
 		existsFormulas.clear();
 		forallFormulas.clear();
@@ -1664,7 +1706,8 @@ public class MFormulaManager
 	       forallFormulas.countReclaimed +
 	       existsFormulas.countReclaimed +
 	       intersectExpressions.countReclaimed+
-	       unionExpressions.countReclaimed;
+	       unionExpressions.countReclaimed +
+	       joinExpressions.countReclaimed;
 			
 		theResult.setAttribute("total-reclaimed", String.valueOf(lReclaimed));		
 			

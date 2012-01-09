@@ -19,6 +19,7 @@
 
 package edu.wpi.margrave;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,7 +76,7 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 	public Formula visit(BinaryFormula binFormula) {
 		if (cache.containsKey(binFormula))
 			return lookup(binFormula);
-
+		
 		// We want to cache this formula
 		cached.add(binFormula);
 
@@ -533,14 +534,9 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 			Expression newlhs = comp.left().accept(this);
 			Expression newrhs = comp.right().accept(this);
 			
-			// REQUIRE that both sides of an equality be either a relation or a variable
+			// No longer require that both sides of an equality be either a relation or a variable;
+			// could have complex terms of type Expression, but not LeafExpression.
 			
-			if (!(newlhs instanceof Relation || newlhs instanceof Variable))
-				MEnvironment.writeErrLine("WARNING: substitution found an equality involving a non-variable, non-relation expression: "+newlhs);
-			
-			if(!(newrhs instanceof Relation || newrhs instanceof Variable))
-				MEnvironment.writeErrLine("WARNING: substitution found an equality involving a non-variable, non-relation expression: "+newrhs);
-
 			try 
 			{
 				return cache(comp, MFormulaManager.makeEqAtom(newlhs, newrhs));
@@ -566,14 +562,14 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 				// We have a var tuple? Replace vars AS NEEDED!
 				if (comp.left() instanceof BinaryExpression ||
 						comp.left() instanceof NaryExpression)
-					newlhs = MFormulaManager.substituteVarTuple(comp.left(), termpairs);
+					newlhs = MFormulaManager.substituteExprTuple(comp.left(), termpairs);
 								
 				else
 					newlhs = comp.left().accept(this);
 
 				if(comp.right() instanceof BinaryExpression ||
 						comp.right() instanceof NaryExpression)
-					newrhs = MFormulaManager.substituteVarTuple(comp.right(), termpairs);
+					newrhs = MFormulaManager.substituteExprTuple(comp.right(), termpairs);
 				else
 					newrhs = comp.right().accept(this);
 
@@ -602,10 +598,11 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 			return cache(var, var);
 	}
 
-	private static void runUnitTest(RelationAndTermReplacementV vrepl,
-			Formula pre, Formula post) {
+	private static void runUnitTest(String name, RelationAndTermReplacementV vrepl,
+			Formula pre, Formula post)
+	{			
 		if (!pre.accept(vrepl).toString().equals(post.toString()))
-			MEnvironment.writeErrLine("Error: Expected " + post.toString() + ", got: "
+			MEnvironment.writeErrLine("Error in test "+name+": Expected " + post.toString() + ", got: "
 					+ pre.accept(vrepl).toString());
 	}
 
@@ -627,7 +624,7 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		RelationAndTermReplacementV v = new RelationAndTermReplacementV(
 				rtestset, vtestset);
 
-		runUnitTest(v, R.no(), P.no());
+		runUnitTest("1", v, R.no(), P.no());
 
 		Formula oldf = R.intersection(Q).union(P).some();
 		oldf.accept(v);
@@ -635,43 +632,67 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 				R.intersection(Q).union(P).some().toString()))
 			MEnvironment.writeErrLine("Error in RelationReplacementV test case: visitor is overwriting old reference.");
 
-		runUnitTest(v, x.eq(y), y.eq(y));
+		runUnitTest("2", v, x.eq(y), y.eq(y));
 
 		oldf = x.eq(y);
 		oldf.accept(v);
 		if (!oldf.toString().equals("(x = y)"))
 			MEnvironment.writeErrLine("Error in VariableReplacementV test case: visitor is overwriting old reference.");
 
+		
+		///////////////////
+		
+		Relation c = MFormulaManager.makeRelation("c", 1);
+		Relation d = MFormulaManager.makeRelation("d", 1);		
+		Relation Connected = MFormulaManager.makeRelation("Connected", 2);
+
+		////////////////////////
+		// Pre-existing constants -- ok?		
+		Formula testConstants = MFormulaManager.makeAtom(c, R);		
+		vtestset.clear();
+		rtestset.clear();
+		vtestset.put(x, c);
+		runUnitTest("3", new RelationAndTermReplacementV(rtestset, vtestset), testConstants, MFormulaManager.makeAtom(c, R));
+		
+		////////////////////////
+		// Corner case: auto-dropping of un-necessary conjuncts
+		Formula testConstants2 = MFormulaManager.makeAnd(MFormulaManager.makeAtom(x, R),
+				                                         MFormulaManager.makeAtom(c, R));		
+		// This is correct because the subs. result would be (x in C) and (x in C) == (x in C)
+		runUnitTest("4", new RelationAndTermReplacementV(rtestset, vtestset), testConstants2, MFormulaManager.makeAtom(c, R));
+		
+		////////////////////////
+		// Test with binary (trigger MFormulaManager.substituteVarTuple)
+		List<Expression> tuple1 = new ArrayList<Expression>(2);
+		tuple1.add(x); tuple1.add(c);
+		Formula testConstants3 = MFormulaManager.makeAtom(MFormulaManager.makeExprTupleE(tuple1), Connected);		
+		runUnitTest("5", new RelationAndTermReplacementV(rtestset, vtestset), 
+				    testConstants3, 
+				    MFormulaManager.makeAtom(c.product(c), Connected));
+		
+		////////////////////////		
+		// Test with FUNCTIONS (which are represented as joins)
+		Relation f = MFormulaManager.makeRelation("f", 2);
+		tuple1.clear();
+		tuple1.add(f.join(x));
+		tuple1.add(f.join(y));
+		Formula testConstants4 = MFormulaManager.makeAtom(MFormulaManager.makeExprTupleE(tuple1), Connected);		
+		runUnitTest("6", new RelationAndTermReplacementV(rtestset, vtestset), 
+				    testConstants4, 
+				    MFormulaManager.makeAtom(f.join(c).product(f.join(y)), Connected));		
+		
+		////////////////////////
+		// Test equality with functions
+		Formula testConstants5 = MFormulaManager.makeEqAtom(f.join(x), c);		
+		runUnitTest("7", new RelationAndTermReplacementV(rtestset, vtestset), 
+				    testConstants5, 
+				    MFormulaManager.makeEqAtom(f.join(c), c));		
+		
+		
 		MEnvironment.writeErrLine("----- End RelationReplacementV Tests -----");
 	}
 }
 
-class ReplaceComparisonFormulasV extends AbstractCacheAllReplacer
-{
-	Map<Node, Node> toReplace;
-	
-	ReplaceComparisonFormulasV(Map<Node, Node> toReplace)
-	{
-		super(new HashSet<Node>());
-		this.toReplace = toReplace;
-	}
-	
-	public Formula visit(ComparisonFormula comp)
-	{
-		if (cache.containsKey(comp))
-			return lookup(comp);
-		cached.add(comp);
-		
-		if(toReplace.containsKey(comp))
-		{
-			return (Formula) cache(comp, toReplace.get(comp));
-		}
-		
-		return cache(comp, comp);
-	}
-	
-	
-}
 
 
 class ContainsQuantifiersCheckV extends AbstractCacheAllDetector {
@@ -828,357 +849,6 @@ class PrenexCheckV extends AbstractCacheAllDetector {
 		cached.add(cf);
 		return cache(cf, true);
 	}
-}
-
-class MatrixTuplingV extends AbstractCacheAllReplacer
-{
-	// Visitor to translate a formula to its tupled analogue.
-	// (No axioms are added, caller is responsible for adding
-	//  the necessary tupling axioms.)
-
-	// pre-tupling vocabulary
-	public MVocab oldvocab;
-	
-	// New vocabulary. Visitor will add new sorts as needed.
-	// Same sort structure as before duplicated (at most) pren.qCount times.
-	// E.g., where A < B before, now A_1 < B_1, A_2 < B_2, and so on.
-	public MVocab newvocab;
-	
-	// The new variable (usually "z")
-	public Variable newvar;
-	
-	// Set of equality predicates that we created
-	public Set<String> equalAxiomsNeeded;
-
-	// Used privately to get information about this formula's prefix
-	protected PrenexCheckV pv;
-
-	// Store that (e.g.) P became P_1, P_2, and P_4, R became R_2,3,5, etc.
-	// Applies for BOTH sorts and ordindary predicates
-	private HashMap<String, Set<String>> cachePredicateToIndexings = new HashMap<String, Set<String>>();
-
-	// ii -> { old pred names we tupled with index ii }
-	// In case the indexing is >1-ary, ii is the string "i_1, ..., i_n"
-	// e.g. R_1,2,3 induces "1,2,3" ---> { R, <and possibly others>}
-	private HashMap<String, Set<String>> cacheIndexingToPredicates = new HashMap<String, Set<String>>();
-
-	// Given a single index string, returns the tupled predicates that use
-	// that index somewhere in their indexing.
-	// Used in equality axiom generation for >1-ary predicates
-	private HashMap<String, Set<String>> cacheNewRelationsUsingIndex = new HashMap<String, Set<String>>();
-	
-	Set<String> getIndexingToPredicates(String indexing)
-	{
-		Set<String> result = cacheIndexingToPredicates.get(indexing);
-		if(result != null)
-			return result;
-		return new HashSet<String>();
-	}
-
-	Set<String> getNewRelationsUsingIndex(String indexing)
-	{
-		Set<String> result = cacheNewRelationsUsingIndex.get(indexing);
-		if(result != null)
-			return result;
-		return new HashSet<String>();
-	}
-	
-	Set<String> getPredicateToIndexings(String indexing)
-	{
-		Set<String> result = cachePredicateToIndexings.get(indexing);
-		if(result != null)
-			return result;
-		return new HashSet<String>();
-	}
-
-	String getCacheStringForDebug()
-	{
-		return "  Indexing to Predicates: "+cacheIndexingToPredicates + MEnvironment.eol +
-		"  Predicate to Indexings: "+cachePredicateToIndexings +MEnvironment.eol +
-		"  Index to Used: "+cacheNewRelationsUsingIndex +MEnvironment.eol;
-	}
-	
-	MatrixTuplingV(PrenexCheckV pren, MVocab old) 
-	throws MGEBadIdentifierName // should never occur, but just in case
-	{
-		super(new HashSet<Node>());
-
-		oldvocab = old;
-		newvocab = new MVocab();
-		newvar = MFormulaManager.makeVariable("z");
-		equalAxiomsNeeded = new HashSet<String>();
-
-		/////////////////////////////////////////////////////////
-		// CREATE *single* top-level sort. 
-		try
-		{
-			newvocab.makeThisTheTopLevelSort(pren.tupleTypeName);
-		} catch (MGEBadIdentifierName e) {
-			throw new MGEBadIdentifierName(
-					"Tupling error: Unable to create unified top-level sort: "
-							+ pren.tupleTypeName);
-		}			
-
-		
-		
-		// FOR NOW, all equality predicates. 
-		// OPT: no need to model i=j if their sorts are always disjoint
-		for (int ileft = 1; ileft <= pren.qCount; ileft++)
-			for (int iright = ileft + 1; iright <= pren.qCount; iright++)
-			{
-				String name = "=_" + ileft + "," + iright;
-				equalAxiomsNeeded.add(name);
-				newvocab.addPredicate(name, pren.tupleTypeName);
-			}
-
-		
-		// Since we tuple any arity predicate, cannot initialize cacheIndexingToPredicates
-		// for each index. Instead, check on use below.
-
-		
-		pv = pren;
-		
-		// New top-level sort is created AFTER this visitor runs.
-		// Not elegant, but avoids problem of A < B < C
-		
-	}
-
-	Formula tuplingFail(Formula fmla, String msg)
-	{
-		throw new MGETuplingFailure(msg + " fmla: "+fmla);
-		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		//MEnvironment.writeErrLine(msg);
-		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		//System.exit(2);
-		//return fmla; // don't know what to do
-	}
-	
-	void tuplingFail(String msg)
-	{
-		throw new MGETuplingFailure(msg);
-		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		//MEnvironment.writeErrLine(msg);
-		//MEnvironment.writeErrLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		//System.exit(2);		
-	}	
-	
-	public Formula visit(ComparisonFormula cf)
-	{
-		if (cache.containsKey(cf))
-			return lookup(cf);
-
-		Formula newf;
-
-		// EQUAL: var1 = var2.
-		if (cf.op().equals(ExprCompOperator.EQUALS)) 
-		{
-			if (!(cf.left() instanceof Variable) || !(cf.right() instanceof Variable))
-			{
-				return tuplingFail(cf, "Comparison: " + cf + " must be over variables.");	
-			}
-
-			int leftidx = pv.indexing.get(cf.left());
-			int rightidx = pv.indexing.get(cf.right());
-
-			// Have we already seen these, just in reverse order? (Equality is
-			// symmetric; don't create an =21 predicate when we've already seen 
-			// and created =12.)
-			String reverse_predname = "=_" + rightidx + "," + leftidx;
-			if (equalAxiomsNeeded.contains(reverse_predname)) {
-				// Swap!
-				int temp = leftidx;
-				leftidx = rightidx;
-				rightidx = temp;
-			}
-
-			// Add a new =_{ij} predicate
-			String predname = "=_" + leftidx + "," + rightidx;
-
-			// Add equality axioms for this new predicate -- AFTER all
-			// the new predicates are generated!
-			// [[[ Already added in constructor, but it's a set so leaving in - TN]]]
-			equalAxiomsNeeded.add(predname);
-
-			// Add the new equality predicate =_i,j
-			try 
-			{
-				newvocab.addPredicate(predname, pv.tupleTypeName);																	
-			} catch (MGEBadIdentifierName e) 
-			{
-				return tuplingFail(cf, e.getLocalizedMessage());
-			}
-
-			// Construct =_i,j(z) and return it instead of x_i=x_j
-			try 
-			{
-				Relation newrel = newvocab.getRelation(predname);
-				newf = MFormulaManager.makeAtom(newvar, newrel);
-
-				cached.add(cf);
-				return cache(cf, newf);
-			} catch (Exception e) {
-				return tuplingFail(cf, e.getLocalizedMessage());
-			}
-		}
-
-		// SUBSET: (var1 X ... X varN) in Relation
-		else if (cf.op().equals(ExprCompOperator.SUBSET)) {
-
-			if (!(cf.right() instanceof Relation))
-			{
-				return tuplingFail(cf, "Comparison: " + cf + " must be vs. a Relation.");
-			}
-
-			// DFS of left hand side (like in well-sortedness test) to get
-			// indexing
-
-			String suffix;
-			if (cf.left() instanceof Variable)
-				suffix = "_" + pv.indexing.get(cf.left());
-			else if (cf.left() instanceof BinaryExpression)
-				suffix = "_" + MVocab.constructIndexing((BinaryExpression) cf.left(), pv.indexing);
-			else if(cf.left() instanceof NaryExpression)
-				suffix = "_" + MVocab.constructIndexing(cf.left(), pv.indexing);
-			else {
-				return tuplingFail(cf, "Comparison: " + cf + " -- improper LHS.");
-			}
-
-			// Make sure we were able to create the indexing.
-			if (suffix.equals("_null")) {
-				return tuplingFail(cf, "Bad indexing for " + cf.left());
-			}
-
-			// New indexed predicate name
-			String oldpredname = cf.right().toString();
-			String newpredname = oldpredname + suffix;
-
-			try
-			{
-
-				// Is this a predicate or a sort? If a sort, does it have a
-				// parent?
-				boolean isSort = oldvocab.fastIsSort(oldpredname);
-				if (!isSort)
-				{
-					// This is a predicate
-					newvocab.addPredicate(newpredname, pv.tupleTypeName);
-					addToCaches(oldpredname, suffix, newpredname);
-				} 
-				else
-				{
-					addSortWithSupers(newvocab, oldvocab, oldpredname, suffix);
-					// addToMap called by addSortWithSupers, no need to call here
-				}
-
-				Relation newrel = newvocab.getRelation(newpredname);
-				newf = MFormulaManager.makeAtom(newvar, newrel);
-
-				cached.add(cf);
-				return cache(cf, newf);
-
-			} catch (Exception e) {
-				return tuplingFail(cf, e.getLocalizedMessage());
-			}
-
-		}
-
-		// for new features
-		MEnvironment.writeErrLine("Comparison: " + cf + "; unrecognized operator.");
-		throw new MGETuplingFailure("Comparison: " + cf + "; unrecognized operator.");	
-	}
-
-	void addToCaches(String oldname, String suffix, String newToAdd)
-	{
-		// ----------------------------------------------------------
-		// Cache ->
-		if (!cachePredicateToIndexings.containsKey(oldname))
-			cachePredicateToIndexings.put(oldname, new HashSet<String>());
-		cachePredicateToIndexings.get(oldname).add(newToAdd);
-
-		// ----------------------------------------------------------
-		// Cache <-
-		String indexing = suffix.substring(1); // remove the underscore
-
-		if (!cacheIndexingToPredicates.containsKey(indexing))
-			cacheIndexingToPredicates.put(indexing, new HashSet<String>());
-
-		cacheIndexingToPredicates.get(indexing).add(oldname);
-		
-		// ----------------------------------------------------------
-		// idx -> uses idx cache
-		String[] indices = indexing.split(",");
-		
-		for(String idx : indices)
-		{
-			if (!cacheNewRelationsUsingIndex.containsKey(idx))
-				cacheNewRelationsUsingIndex.put(idx, new HashSet<String>());
-			
-			cacheNewRelationsUsingIndex.get(idx).add(newToAdd);
-		}
-		
-		
-	}
-	
-	void addSortWithSupers(MVocab newvocab, MVocab oldvocab,
-			String oldpredname, String suffix)
-	throws MGEUnknownIdentifier, MGEBadIdentifierName 
-	{
-		
-		// What if A < B < C, and A_1 is what we've found?
-		// Create both B_1 and C_1
-		// (IP Addr > Range > Single IP. -- play nice with tuple axioms)
-
-		MSort oldsort = oldvocab.getSort(oldpredname);
-		if (oldsort.parents.size() > 0)
-		{
-			// Add parent's parents (if any) recursively
-			for(MSort aParent : oldsort.parents)
-			{
-				addSortWithSupers(newvocab, oldvocab, aParent.name, suffix);
-
-				newvocab.addSubSort(aParent.name + suffix, 
-						oldpredname + suffix);
-				addToCaches(oldpredname, suffix, oldpredname + suffix);
-			}
-		} 
-		else 
-		{
-			newvocab.addSort(oldpredname + suffix);
-			addToCaches(oldpredname, suffix, oldpredname + suffix);
-		}
-	}
-
-	public void forceIncludeEDB(String edbname, List<String> indexingVars)
-	{
-		// Numeric indexing (convert var names to indices)
-		String numIndexing = MVocab.constructIndexing(indexingVars, pv.indexing);
-		String suffix = "_" + numIndexing;
-		String newpredname = edbname + suffix;
-		
-		
-		// Is this a predicate or a sort? If a sort, does it have a parent?
-		boolean isSort = oldvocab.fastIsSort(edbname);
-		
-		try
-		{
-			if (!isSort)
-			{
-				// This is a predicate
-				newvocab.addPredicate(newpredname, pv.tupleTypeName);
-				addToCaches(edbname, suffix, newpredname);
-			} 
-			else
-			{
-				addSortWithSupers(newvocab, oldvocab, edbname, suffix);
-				// addToMap called by addSortWithSupers, no need to call here
-			}
-		}
-		catch (Exception e) 
-		{
-			tuplingFail(e.getLocalizedMessage());
-		}
-	}
-
 }
 
 /**
