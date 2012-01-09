@@ -81,7 +81,7 @@
          (rule729 = (permit s a r) :- (Conference r) (= 'advancePhase a) (= 'cBidding (conferencePhase r))
                   (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
                                        (not (= (paperPhase p) 'pBidding))))
-                  (forall u User (implies (User u)
+                  (forall u User (implies (reviewer u)
                                           (exists p Paper (bid u p)))))   
          
          
@@ -159,31 +159,44 @@
          ;;	}
          
          ;768
-         (rule768 = (permit s a r) :- (user r) (= 'addReviewer a) (admin s))
-         (rule768failed = (deny s a r) :- (user r) (= 'addReviewer a))
+         (rule768 = (permit s a r) :- (User r) (= 'addReviewer a) (admin s))
+         (rule768failed = (deny s a r) :- (User r) (= 'addReviewer a))
          
          ;;	resource in User and action in ModifyUserJob implies {
          ;;		subject in cc.admins
          ;;	}
          
          ; 771
+         (rule771 = (permit s a r) :- (User r) (= 'modifyUserJob a) (admin s))
+         (rule771failed = (deny s a r) :- (User r) (= 'modifyUserJob a))
+         
          
          ;;	resource in User and action in RemoveUser implies {
          ;;		subject in cc.admins
          ;;	}
          
          ; 774
+         (rule774 = (permit s a r) :- (User r) (= 'removeUser a) (admin s))
+         (rule774failed = (deny s a r) :- (User r) (= 'removeUser a))
+         
          ;;	resource in Conference and action in BecomeAuthor implies {
          ;;		subject not in cc.authors
          ;;		and cc.phase in Submission
          ;;	}
          
          ; 777
+         (rule777 = (permit s a r) :- (Conference r) (= 'becomeAuthor a) 
+                  (not (author s)) (= 'cSubmission (conferencePhase r)))
+         (rule777failed = (deny s a r) :- (Conference r) (= 'becomeAuthor a))         
+         
+         
          ;;	resource in Conference and action in MakeSubmission implies {
          ;;		subject in cc.authors
          ;;		and cc.phase in Submission
          ;;	}
-         
+         (rule781 = (permit s a r) :- (Conference r) (= 'makeSubmission a) 
+                  (author s) (= 'cSubmission (conferencePhase r)))
+         (rule781failed = (deny s a r) :- (Conference r) (= 'makeSubmission a))    
          
          ; 781
          ;;	resource in Paper and action in ModifySubmission implies {
@@ -199,6 +212,16 @@
          ;;	}
          
          ; 785
+         (rule785a = (permit s a r) :- (Paper r) (= 'modifySubmission a) 
+                  (admin s))
+         (rule785b = (permit s a r) :- (Paper r) (= 'modifySubmission a) 
+                  (= 'pSubmission (paperPhase r)) (author s) (authorOf r s))
+         (rule785c = (permit s a r) :- (Paper r) (= 'modifySubmission a) 
+                  (= 'pNotification (paperPhase r)) (author s) (authorOf r s))                  
+         (rule785failed = (deny s a r) :- (Paper r) (= 'modifySubmission a))    
+                  
+         
+         
          ;;	resource in Paper and action in WriteReview implies {
          ;;		resource.pphase in PReviewing and
          ;;		subject in cc.reviewers and
@@ -206,6 +229,9 @@
          ;;	}
          
          ; 796
+         (rule796 = (permit s a r) :- (Paper r) (= 'writeReview a) 
+                   (= 'pReviewing (paperPhase r)) (reviewer s) (assignedTo r s))                  
+         (rule796failed = (deny s a r) :- (Paper r) (= 'writeReview a))   
          
          ;;	resource in User and action in ModifyUserInfo implies {
          ;;		(subject in cc.admins)
@@ -213,6 +239,13 @@
          ;;	}
          
          ; 801
+         (rule801a = (permit s a r) :- (User r) (= 'modifyUserInfo a) 
+                   (admin s))
+         (rule801b = (permit s a r) :- (User r) (= 'modifyUserInfo a) 
+                   (= s r))         
+         (rule801failed = (deny s a r) :- (User r) (= 'modifyUserInfo a))  
+         
+         
          ;;	resource in User and action = ModifyUserPassword implies {
          ;;		(subject in cc.admins)
          ;;		|| 
@@ -220,6 +253,13 @@
          ;;	}
          
          ; 805
+         (rule805a = (permit s a r) :- (User r) (= 'modifyUserPassword a) 
+                   (admin s))
+         (rule805b = (permit s a r) :- (User r) (= 'modifyUserPassword a) 
+                   (= s r))         
+         (rule805failed = (deny s a r) :- (User r) (= 'modifyUserPassword a))  
+         
+         
          ;;	resource in Paper and action in PaperBid implies {
          ;;		resource.pphase in PBidding
          ;;		and subject in cc.reviewers
@@ -227,12 +267,22 @@
          ;;	}
          
          ; 810
+         (rule810 = (permit s a r) :- (Paper r) (= 'paperBid a) 
+                   (= 'pBidding (paperPhase r)) (reviewer s) (not (conflicted s r)))         
+         (rule810failed = (deny s a r) :- (Paper r) (= 'paperBid a) )  
+         
          ;;	resource in Paper and action in PaperConflict implies {
          ;;		resource.pphase in PBidding
          ;;		and subject in cc.reviewers
          ;;	}
          
          ; 815
+         (rule815 = (permit s a r) :- (Paper r) (= 'paperConflict a) 
+                   (= 'pBidding (paperPhase r)) (reviewer s))         
+         (rule815failed = (deny s a r) :- (Paper r) (= 'paperConflict a) )  
+         
+         
+         
          ;;	resource in User and action in PaperAssign implies {
          ;;		resource.pphase in PAssignment
          ;;		and subject in cc.admins
@@ -240,6 +290,10 @@
          ;;	}
          
          ;819
+         (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
+                   (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
+         (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
+         
          
          ;;	resource in Paper and action in PaperDecide implies {
          ;;		resource.pphase in PDiscussion
@@ -247,8 +301,12 @@
          ;;	}
          ;;}
          
-         ; 824
+         ; 824         
+         (rule819 = (permit s a r) :- (Paper r) (= 'paperDecide a) 
+                   (= 'pDiscussion (paperPhase r)) (admin s))         
+         (rule819failed = (deny s a r) :- (Paper r) (= 'paperDecide a))  
          
-         
+         ; Final rule is TRUE because the Alloy policy was phrased as a series of implications.
+         ; Want to preserve: anything that doesn't match an implication's antecedent is permitted.
          (ruleFinal = (permit s a r) :- true))
         (RComb (fa permit deny)))

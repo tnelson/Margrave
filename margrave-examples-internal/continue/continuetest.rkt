@@ -1,6 +1,7 @@
 #lang racket
 
-(require margrave)
+(require margrave
+         rackunit)
 
 (start-margrave-engine #:margrave-params '("-log"))
 
@@ -10,9 +11,14 @@
               [a Action]
               [r Object])
        '([continue permit] s a r))
-(m-get "Q1")
+(check-true (m-scenario? (m-get "Q1")))
 
-
+(m-let "Q2" '([s User]
+              [a Action]
+              [r Object])
+       '(and ([continue permit] s a r)
+             (not ([continue permit] s a r))))
+(check-true (m-unsat? (m-get "Q2")))
 
 ;#lang margrave
 ;
