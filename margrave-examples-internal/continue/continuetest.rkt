@@ -1,9 +1,10 @@
 #lang racket
 
-(require margrave
+(require "../../margrave/margrave.rkt"
          rackunit)
 
-(start-margrave-engine #:margrave-params '("-log"))
+(start-margrave-engine #:margrave-params '("-log")
+                       #:margrave-path "../../margrave")
 
 (m-load-policy "continue" "continuep.p")
 

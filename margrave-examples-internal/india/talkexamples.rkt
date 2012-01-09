@@ -1,11 +1,11 @@
 #lang racket
 
 ;(require margrave)
-(require (file "F:\\msysgit\\git\\margrave\\margrave\\margrave.rkt"))
+(require "../../margrave/margrave.rkt")
 
 ; Start the engine
 (start-margrave-engine #:margrave-params '( "-log" )
-                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave")
+                       #:margrave-path "../../margrave")
 
 ; Our policies:
 (m-load-policy "aclfw1" "inboundacl_fw1.p")
