@@ -66,6 +66,17 @@
    [rbody (listof m-formula?)])
   #:transparent)
 
+(define-struct/contract m-policy-set
+  ([id string?]
+   [theory-path path?]
+   [xml (listof xexpr?)]
+   [theory m-theory?]   
+   [vardecs (hash/c string? m-vardec?)]
+   [children (hash/c string? m-policy?)]
+   [pcomb string?]
+   [target m-formula?]
+   [idbs (hash/c string? (listof string?))])
+  #:transparent)
 
 (define-struct/contract m-policy
   ([id string?]
