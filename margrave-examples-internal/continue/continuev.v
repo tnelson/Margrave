@@ -51,9 +51,7 @@
                (Types                
                 Action                 
                 (Object > User Resource)
-                (Resource > Paper ConferenceInfo Review)                
-                User
-                Conference
+                (Resource > Paper ConferenceInfo Review Conference)  
                 ConferencePhase
                 PaperPhase
                 Decision)
@@ -83,12 +81,11 @@
          ; Object is either a User or a Resource
          (abstract Object)
          
-         ; There is some administrator
-         ;(nonempty Admin)
+         ; There is some administrator (constraint on _predicate_)
+         (nonempty admin)
                   
-         ; admins cannot be authors              
-         ; !!! exception
-         ;(disjoint admin author)
+         ; admins cannot be authors                       
+         (disjoint admin author)
          
          (abstract Resource)                           
          (abstract PaperPhase)                           
@@ -96,14 +93,13 @@
          (abstract Action)         
          
          ; Every paper has an author
-         ; But papers can have more than one author (so not functional)
-         ; !!! exception
-         ;(total-relation authorOf)       
+         ; But papers can have more than one author (so not functional)         
+         (total-relation authorOf)       
          
          ; Not everyone submits a review, and may be an early phase
          ; but at most one review
          ; !!! exception
-         ;(partial-function reviewOn)
+         (partial-function reviewOn)
          
                
                ; ASSUMPTIONS 

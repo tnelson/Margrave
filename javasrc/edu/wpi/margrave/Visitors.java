@@ -882,13 +882,17 @@ class FreeVariableCollectionV extends AbstractCacheAllCollector<Variable> {
 		cached.add(qf);
 
 		// What free variables appear inside this quantifier?
-		Set<Variable> tempset = qf.formula().accept(this);
+		// Re-create the set because we may get an immutable singleton back, and we remove from it below.
+		Set<Variable> tempset = new HashSet<Variable>(qf.formula().accept(this));
 
 		// These variables are quantified in this scope.
 		// (Don't worry about re-quantification later, since Kodkod won't run
 		// vs. such a formula.)
 		for (Decl d : qf.decls())
+		{
+			
 			tempset.remove(d.variable());
+		}
 
 		return cache(qf, tempset);
 	}

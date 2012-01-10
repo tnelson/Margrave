@@ -322,6 +322,8 @@ public class MQuery extends MIDBCollection
 			disjointness.put(s.rel, theDisjs);
 		}
 		
+		//MCommunicator.writeToLog("\nDisjointness = "+disjointness);
+		
 		for (String pname : vocab.predicates.keySet())
 		{
 			// What sort is this predicate?

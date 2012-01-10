@@ -826,15 +826,51 @@ public class FormulaSigInfo
 		{
 			subsorts.put(parent, new HashSet<LeafExpression>());
 			
-			// correct potential lack in supersorts
+			// correct potential lack in supersorts and disjointness
 			if(!supersorts.containsKey(parent))
 				supersorts.put(parent, new HashSet<LeafExpression>());
+			if(!disjointConstraints.containsKey(parent))
+				disjointConstraints.put(parent, new HashSet<LeafExpression>());
 			
 			// Subsorts for this parent
 			for(LeafExpression sub : supersorts.keySet())
 				if(supersorts.get(sub).contains(parent))
 					subsorts.get(parent).add(sub);
 		}		
+				
+		
+		// Propagate disjointness from children of disjoints. MQuery passes only *concise* disjointness constraints.
+		//  A > B, A > C, B > D; MQuery will say that D's disjs include C, but it will only say that C's disjs include B (because D is a subsort of B)
+		for(LeafExpression asort : sorts)
+		{						
+			//MCommunicator.writeToLog("\nDisj for sort "+asort+" = "+disjointConstraints.get(asort));
+			
+			// If a supersort of mine is disjoint from something, so am i
+			// supersorts is transitive
+			for(LeafExpression asupersort : supersorts.get(asort))
+			{
+				//MCommunicator.writeToLog("\n  Checking supersort "+asupersort);
+				Set<LeafExpression> superdisjs = disjointConstraints.get(asupersort);				
+				disjointConstraints.get(asort).addAll(superdisjs);								
+			}
+			
+			// If I am disjoint from a supersort of something, I am disjoint from that something.
+			Set<LeafExpression> toadd = new HashSet<LeafExpression>();
+			for(LeafExpression adisj : disjointConstraints.get(asort))
+			{
+				//MCommunicator.writeToLog("\n  Checking disjoint "+adisj+" for subsorts");
+				Set<LeafExpression> disjsubs = subsorts.get(adisj);				
+				toadd.addAll(disjsubs);
+			}
+			disjointConstraints.get(asort).addAll(toadd);	
+			
+			
+			//MCommunicator.writeToLog("\nDisj for sort "+asort+" = "+disjointConstraints.get(asort));
+			
+			
+		}
+		
+		
 		
 		MCommunicator.writeToLog("\nInitializing FormulaSigInfo. #sorts="+sorts.size());
 		
@@ -1378,18 +1414,23 @@ public class FormulaSigInfo
 			for(int ii=0;ii<max;ii++)
 			{
 				for(int jj=0;jj<max;jj++)
-				{
+				{					
 					if(enableDebug)
-						MEnvironment.writeErrLine("Trying to extend "+ii+" to "+jj+" via "+kk+"; was "+matrix[ii][jj]);											
+						MEnvironment.writeErrLine("Trying to extend "+ii+":"+intToSort.get(ii)+" to "+jj+":"+intToSort.get(jj)+" via "+kk+":"+intToSort.get(kk)+"; was "+matrix[ii][jj]);											
 
+					// Blue requires not disj
+					if(requireNotDisj && areDisj(intToSort.get(ii), intToSort.get(jj)))
+					{
+						if(enableDebug)
+							MEnvironment.writeErrLine("Ignoring -- the two sorts are axiomatically disjoint.");
+						continue;
+					}
+
+					
 					// Do we have a blue edge from i->k and k->j, and i is not disjoint from j?
 					if(matrix[ii][kk] && matrix[kk][jj])
 					{
-						// Blue requires not disj
-                       if(requireNotDisj && !areDisj(intToSort.get(ii), intToSort.get(jj)))                    	   
-                    	   matrix[ii][jj] = true;
-                       else if(!requireNotDisj)
-                    	   matrix[ii][jj] = true;
+                   	   matrix[ii][jj] = true;
 					}
 					else if(enableDebug)						
 						MEnvironment.writeErrLine("   NO CHANGE");

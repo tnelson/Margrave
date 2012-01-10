@@ -479,7 +479,7 @@ public abstract class MQueryResult
 				if(childnum == -1)
 				{
 					MCommunicator.writeToLog("\nChild "+childt+" had -1 as ceiling to use. Propagating upper bounds from "+t);
-					upperBounds.get(childt.name).addAll(upperBounds.get(t.name));
+					upperBounds.get(childt.rel).addAll(upperBounds.get(t.rel));
 				}
 			}
 			

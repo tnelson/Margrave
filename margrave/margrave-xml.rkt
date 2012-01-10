@@ -1052,31 +1052,14 @@
 (define (xml-make-type-with-subs tname clist)
   `(SORT-WITH-CHILDREN ((name ,(->string tname))) ,@(map xml-make-sort clist)))
 
-
-
 (define (xml-make-request-var rvname rvsort)
   `(REQUESTVAR ((name ,(->string rvname)) (sort ,(->string rvsort)))))
-
-;(define (xml-make-other-var ovname ovsort)
-;  `(OTHERVAR ((name ,ovname) (sort ,ovsort))))
 
 (define (xml-make-constraint constraint-type list-of-relations)
   `(CONSTRAINT ((type ,(->string constraint-type))) ,(xml-make-relations-list list-of-relations)))
 
-(define (xml-make-subset parent child)
-  `(CONSTRAINT ((type "SUBSET")) ,parent ,child))
-
-(define (xml-make-constants-neq const1 const2)
-  `(CONSTRAINT ((type "CONSTANTS-NEQ")) ,const1 ,const2))
-
 (define (xml-make-custom-fmla-constraint fmlaxexpr)
   `(CONSTRAINT ((type "FORMULA")) ,fmlaxexpr))
-
-;(define (xml-make-rename id1 id2)
-;  `(RENAME ((id1 ,id1) (id2 ,id2))))
-;
-;(define (xml-make-rename-command id1 id2)
-;  (xml-make-command "RENAME" (list (xml-make-rename id1 id2))))
 
 (define (xml-make-count id)
   `(COUNT ((id ,(->string id)))))
@@ -1534,58 +1517,88 @@
   (define vocab-xexpr (xml-make-vocab-identifier vocab))
   (xml-make-command "ADD" (list vocab-xexpr (m-axiom->xexpr axiom))))
 
-(define (m-axiom->xexpr axiom)         
-  (if (m-formula? axiom)
-      (xml-make-custom-fmla-constraint (m-formula->xexpr axiom))
-      (match axiom
-        [(m-op-case atmostone-all id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'ATMOSTONE-ALL (list id))]        
-        [(m-op-case atmostone id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'ATMOSTONE (list id))]
-        
-        [(m-op-case singleton-all id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'SINGLETON-ALL (list id))]        
-        [(m-op-case singleton id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'SINGLETON (list id))]
-        
-        [(m-op-case nonempty-all id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'NONEMPTY-ALL (list id))]        
-        [(m-op-case nonempty id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'NONEMPTY (list id))]     
-        
-        [(m-op-case abstract id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'ABSTRACT (list id))]
-        
-        [(m-op-case partial-function id)
-         (valid-sort-or-predicate?/err id)
-         (xml-make-constraint 'PARTIAL-FUNCTION (list id))]       
+(define (m-axiom->xexpr axiom)           
+  (match axiom
+    [(m-op-case atmostone-all id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'ATMOSTONE-ALL (list id))]        
+    [(m-op-case atmostone id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'ATMOSTONE (list id))]
+    
+    [(m-op-case singleton-all id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'SINGLETON-ALL (list id))]        
+    [(m-op-case singleton id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'SINGLETON (list id))]
+    
+    [(m-op-case nonempty-all id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'NONEMPTY-ALL (list id))]        
+    [(m-op-case nonempty id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'NONEMPTY (list id))]     
+    
+    [(m-op-case abstract id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'ABSTRACT (list id))]
+    
+    [(m-op-case partial-function id)
+     (valid-sort-or-predicate?/err id)
+     (xml-make-constraint 'PARTIAL-FUNCTION (list id))]       
+    
+    [(m-op-case total-relation id)
+     (valid-predicate?/err id)
+     (xml-make-constraint 'TOTAL-RELATION (list id))]  
+    
+    
+    ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy innately.)
+    ; parent child
+    [(m-op-case subset id1 id2)
+     (valid-predicate?/err id1)
+     (valid-predicate?/err id2)
+     `(CONSTRAINT ((type "SUBSET")) ,id1 ,id2)]
+    
+    ; (constants-cover S) --- Everything in S must be equal to one of the constants of sort S (or subsort S' of S)
+    [(m-op-case constants-cover id) 
+     (xml-make-constraint 'CONSTANTS-COVER (list id))]
+    
+    ; (constants-neq 'c 'd) --- c and d never denote the same element
+    [(m-op-case constants-neq id1 id2) 
+     `(CONSTRAINT ((type "CONSTANTS-NEQ")) ,(xml-make-relations-list (list (extract-constant-id id1) (extract-constant-id id2))))]
+    
+    
+    [(m-op-case disjoint pred1 pred2) 
+     (valid-predicate?/err pred1)
+     (valid-predicate?/err pred2)
+     `(CONSTRAINT ((type "DISJOINT")) ,(xml-make-relations-list (list pred1 pred2)))]
+    
+    ; (constants-neq-all S) --- All constants of sort S are pairwise non-equal in all models.
+    [(m-op-case constants-neq-all id) 
+     (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]
 
-        ; Should allow this to be NON-SORT EDBs of comparable arities only. (Sorts have the hierarchy innately.)
-        [(m-op-case subset id1 id2)
-         (valid-predicate?/err id1)
-         (valid-predicate?/err id2)
-         (xml-make-subset id1 id2)]
-        
-        ; (constants-cover S) --- Everything in S must be equal to one of the constants of sort S (or subsort S' of S)
-        [(m-op-case constants-cover id) 
-         (xml-make-constraint 'CONSTANTS-COVER (list id))]
-        
-        ; (constants-neq 'c 'd) --- c and d never denote the same element
-        [(m-op-case constants-neq id1 id2) 
-         (xml-make-constants-neq id1 id2)]
-        
-        ; (constants-neq-all S) --- All constants of sort S are pairwise non-equal in all models.
-        [(m-op-case constants-neq-all id) 
-         (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]
-        
-        [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)])))
+    [(m-op-case formula fmla)
+     (unless (m-formula? fmla)
+       (margrave-error "The formula axiom did not contain a valid formula." axiom))
+     (xml-make-custom-fmla-constraint (m-formula->xexpr fmla))]
+    
+    [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)]))
+  
+
+
+(check-true (equal? (m-axiom->xexpr '(constants-neq-all A)) '(CONSTRAINT ((type "CONSTANTS-NEQ-ALL")) (RELATIONS (RELATION ((name "A")))))))
+(check-true (equal? (m-axiom->xexpr '(constants-neq 'a 'b)) '(CONSTRAINT ((type "CONSTANTS-NEQ")) (RELATIONS (RELATION ((name "a"))) (RELATION ((name "b")))))))
+(check-true (equal? (m-axiom->xexpr '(disjoint preda predb)) '(CONSTRAINT ((type "DISJOINT")) (RELATIONS (RELATION ((name "preda"))) (RELATION ((name "predb")))))))
+(check-true (equal? (m-axiom->xexpr '(formula (foo x y z))) 
+                    '(CONSTRAINT ((type "FORMULA")) (ATOMIC-FORMULA (RELATION-NAME (ID ((id "foo")))) (TERMS (VARIABLE-TERM ((id "x"))) (VARIABLE-TERM ((id "y"))) (VARIABLE-TERM ((id "z"))))))))
+(check-true (equal? (m-axiom->xexpr '(constants-neq-all ASort))
+                    '(CONSTRAINT ((type "CONSTANTS-NEQ-ALL")) (RELATIONS (RELATION ((name "ASort")))))))
+(check-true (equal? (m-axiom->xexpr '(partial-function foo)) '(CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "foo")))))))
+(check-true (equal? (m-axiom->xexpr '(total-relation foo)) '(CONSTRAINT ((type "TOTAL-RELATION")) (RELATIONS (RELATION ((name "foo")))))))
+;(check-true (equal? ))
+
+
 
 (define (m-axiom? sexpr)
   (with-handlers ([(lambda (e) (exn:fail:syntax? e))
