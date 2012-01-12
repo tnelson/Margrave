@@ -20,12 +20,12 @@
                         (externalAtTime (requestAtTime req)))))
          
          ;(*) Only Mr Manager can nominate the machine to serve as the external web server
-         (rule1 = (permit req) :-
+         (rule3 = (permit req) :-
                 (RSetExternal req)
                 (= (requestUser req) 'mrManager))
          
-         ; TN: Of course, all of these actions have side effects in the future,
-         ; which are given in the vocabulary.
+          ;TN: Of course, all of these actions have side effects in the future,
+          ;which are given in the vocabulary.
          
-         (ruleOtherwise = (deny req) :- true))
+         (ruleOtherwise = (deny req) :- true))        
         (RComb (fa permit deny)))

@@ -24,6 +24,8 @@ package edu.wpi.margrave;
 import java.io.*;
 import java.util.*;
 
+import javax.swing.event.ListSelectionEvent;
+
 import kodkod.ast.*;
 import kodkod.ast.operator.ExprOperator;
 import kodkod.ast.operator.Multiplicity;
@@ -128,14 +130,20 @@ class MFunctionTerm extends MTerm
 		
 		this.expr = funcRel;
 		
+		// Beware ordering here:
+		// f(x, y) =  y.(x.F)  		
 		for(MTerm child : subTerms)			
 		{
 			this.seenRelations.addAll(child.seenRelations);
 			this.seenVariables.addAll(child.seenVariables);
 			
-			// TODO is this in the right order? 
-			this.expr = this.expr.join(child.expr);
-		}				
+			// Join two at a time.
+			List<Expression> joinList = new ArrayList<Expression>(2);
+			joinList.add(child.expr);
+			joinList.add(this.expr);
+			this.expr = MFormulaManager.makeJoinE(joinList);			
+			//this.expr = child.expr.join(this.expr);
+		}			
 	}
 	
 	public String toString()
@@ -1025,23 +1033,27 @@ public class MVocab {
 		List<Variable> tuple2vars = new ArrayList<Variable>();
 		Expression tuple1 = Expression.NONE; // (x, y, ..., z, r_1)
 		Expression tuple2 = Expression.NONE; // (x, y, ..., z, r_2)
+				
 		
-		int x_counter = r.arity() - 1; 
-		
-		while(x_counter > 0)
+		int x_counter = 1;	
+		for(MSort argtype : thePred.type)
 		{
+			// Don't include the last component.
+			if(x_counter == r.arity())
+				break;
+			
 			Variable tempvar = MFormulaManager.makeVariable(r.name() + "_"
 					+ type + "_" + x_counter);
 			
 			// "forall xi^Ai"
-			quants.add(MFormulaManager.makeOneOfDecl(tempvar, thePred.type.get(x_counter-1).rel));
+			quants.add(MFormulaManager.makeOneOfDecl(tempvar, argtype.rel));
 			
 			tuple1vars.add(tempvar);
 			tuple2vars.add(tempvar);
-			
-			x_counter--;
-		}
 
+			x_counter++;			
+		}
+		
 		Variable fc1 = MFormulaManager.makeVariable(r.name()+"FC1");
 		Variable fc2 = MFormulaManager.makeVariable(r.name()+"FC2");
 		tuple1vars.add(fc1);
@@ -1097,7 +1109,9 @@ public class MVocab {
 			throw new MGEUnknownIdentifier("Unknown functional/relational constraint type: "+type);
 		}
 		 
-		// now close the foralls on the outside		
+		// now close the foralls on the outside
+		// reverse to nest them in the correct order. (no real impact here, but easier to read if needed)
+		Collections.reverse(quants);
 		for(Decl d : quants)
 		{
 			f = MFormulaManager.makeForAll(f, d);

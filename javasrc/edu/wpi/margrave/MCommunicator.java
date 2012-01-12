@@ -1262,7 +1262,7 @@ public class MCommunicator
         		Node internalTermWrapNode = getChildNode(n, "TERM");
         		        		
         		MExploreCondition internalFmlaC;
-        		MExploreCondition  newFmlaC;
+        		MExploreCondition newFmlaC;
 
         		// If no fmla passed, this is a sort-as-predicate. Just checking whether the var is in the sort.
         		if(internalFmlaWrapNode == null)

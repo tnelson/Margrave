@@ -11,15 +11,17 @@
 
 (m-load-policy "pa-state" "pa-state.p")
 
-(m-let "Q1" '([req Request])
-       '([pa-state permit] req)
+(m-let "Q1" '()
+       'true
+       #:under '("pa-state")
        #:ceiling '([Server 2]
-                    [Time 5]
-                    [Request 5]
-                    [Port 2]
-                    [User 3]
-                    [univ 20]))
+                   [Time 6]
+                   [Request 5]
+                   [Port 2]
+                   [User 3]
+                   [univ 18]))
 (m-get "Q1")
+;(m-is-poss? "Q1")
 
 ; To move to test cases: forbid this use of isa.
 ;(m-let "Q1" '([req Request])
