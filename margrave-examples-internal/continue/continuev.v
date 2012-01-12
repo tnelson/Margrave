@@ -102,13 +102,16 @@
          (partial-function reviewOn)
          
                
-               ; ASSUMPTIONS 
-               ; Use in eval: assumption, not axiom. Relates to system guarantees
+         ; ASSUMPTIONS                   
+         ; (1) AssignedTo is disjoint from Conflict
+         ;    "No reviewer can be assigned to papers they are conflicted on."
+         (disjoint assignedTo conflicted)
                
-               ; (1) AssignedTo is disjoint from Conflict
-               ;    "No reviewer can be assigned to papers they are conflicted on."
-               ; (disjoint assignedTo conflicted)
-               ; (2) ReviewOn implies AssignedTo
-               ;    "Nobody can submit a review on something they are not assigned to." 
-               ; (subset reviewOn assignedTo)  ; check order!
+         ; (2) ReviewOn implies AssignedTo
+         ;    "Nobody can submit a review on something they are not assigned to."                
+         (formula (forall ux User
+                          (forall px Paper
+                                  (forall rx Review 
+                                          (implies (reviewOn ux px ux)
+                                                   (assignedTo ux px))))))
          ))   

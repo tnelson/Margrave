@@ -11,9 +11,26 @@
 (m-let "Q1" '([s User]
               [a Action]
               [r Object])
-       '([continue permit] s a r) #:debug 3)
+       '([continue permit] s a r)
+       #:ceiling '([univ 9]
+                   [User 1]
+                   [Action 1]
+                   [Paper 1]
+                   [Review 1]
+                   [Decision 1]
+                   [Conference 1]
+                   [ConferencePhase 1]
+                   [PaperPhase 1]
+                   [ConferenceInfo 1]))
 (check-true (m-scenario? (m-get "Q1")))
 (m-get "Q1")
+
+;(m-let "QTest" '()
+;       'true
+;       #:under '("continue"))
+;(m-get "QTest")
+
+
 ;(m-let "Q2" '([s User]
 ;              [a Action]
 ;              [r Object])
