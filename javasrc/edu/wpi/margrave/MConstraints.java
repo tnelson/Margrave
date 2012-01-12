@@ -67,17 +67,11 @@ public class MConstraints
 	// In string format so that a policy's assumptions can contain IDB references.
 	// (Yes this is inefficient, but the user may add more rules later which could change the formulas.)
 
-	Set<String> otherConstraintStrings;
+	Set<Formula> otherAxioms = new HashSet<Formula>();
 
 	public MConstraints(MVocab voc)
 	{		
 		vocab = voc;
-		otherConstraintStrings = new HashSet<String>();
-	}
-
-	public void addOtherConstraint(String con)
-	{
-		otherConstraintStrings.add(con);
 	}
 
 	public void printConstraints()
@@ -171,6 +165,15 @@ public class MConstraints
 		lst.add(d1); lst.add(d2);
 		setsSubset.add(lst);
 	}
+
+	public void addConstraintFormula(Formula f) throws MGEUnknownIdentifier, MGEBadIdentifierName
+	{
+		// Arbitrary CLOSED formula.
+		if(f.accept(new FreeVariableCollectionV()).size() > 0)
+			throw new MUserException("Axiom was not a closed formula: "+f);
+		otherAxioms.add(f);
+	}
+
 	
 	/////////////////////////////////////////////////////////////////
 	
@@ -392,14 +395,11 @@ public class MConstraints
 			results.add(vocab.makeFunctionalFormula(vocab.predicates.get(r), "R"));
 		}
 
-		// Finally, other constraint strings. These need to be parsed.
-		// "Other constraints" are arbitrarily complex constraints that the user
-		// has provided in the Margrave query language.
-
-		//HashMap<String, MIDBCollection> hmpol = new HashMap<String, MIDBCollection>();
-		//if(idbContext != null)
-	//		hmpol.put(idbContext.name, idbContext);
-
+		// Other constraints:
+		for(Formula f : otherAxioms)
+		{
+			results.add(f);
+		}
 
 		
 		// 4/11 disabled for now

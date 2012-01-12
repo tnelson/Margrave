@@ -996,15 +996,8 @@ public class MVocab {
 		}
 		
 		
-		
 		// User-defined axioms -- things like "lone R", "A disjoint B", etc.
 		results.addAll(axioms.getConstraintFormulas());
-
-		// This restriction is necessary because other constraint strings may
-		// reference IDBs and such.
-		if (axioms.otherConstraintStrings.size() > 0)
-			throw new MGEBadQueryString(
-					"Axioms may not contain `other constraint' strings.");
 
 		return results;
 	}
@@ -1625,8 +1618,11 @@ public class MVocab {
 		for (String con : other.axioms.setsConstantsCover) 
 			uber.axioms.addConstraintConstantsCover(con);
 
-		
-		
+		for (Formula f : axioms.otherAxioms) 
+			uber.axioms.addConstraintFormula(f);		
+		for (Formula f : other.axioms.otherAxioms) 
+			uber.axioms.addConstraintFormula(f);
+					
 		for (String con : axioms.funcPartial) {
 			if (shared.contains(con))
 				if (!other.axioms.funcPartial.contains(con))

@@ -441,7 +441,7 @@
                                                         [(Predicates apreddec ...) 'predicates] 
                                                         [(Constants aconstdec ...) 'constants] 
                                                         [(Functions afuncdec ...) 'functions] 
-                                                        [_ #f]))                                        
+                                                        [_ 'other]))                                        
                                         (syntax->list #'(clauses ...))
                                         #:init-keys '(types predicates constants functions)))
        
@@ -454,6 +454,9 @@
        (define the-predicates-clauses (hash-ref clause-table 'predicates))
        (define the-constants-clauses (hash-ref clause-table 'constants))
        (define the-functions-clauses (hash-ref clause-table 'functions))
+              
+       (when (hash-has-key? clause-table 'other)
+         (margrave-error "Invalid clauses in vocabulary declaration"  (hash-ref clause-table 'other)))
        
        (assert-one-clause stx the-types-clauses "Types")
        (assert-lone-clause stx the-predicates-clauses "Predicates")
@@ -643,7 +646,7 @@
        (define functions-cmds (if (empty? functions-result)
                                   empty
                                   (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result-list)))       
-       
+              
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.                            

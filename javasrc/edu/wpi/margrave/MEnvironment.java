@@ -182,13 +182,13 @@ class MExploreCondition
 		for(MTerm t : vec)
 			terms.add(t);
 	}
-	MExploreCondition(Formula f, Relation madeSort, Variable v)
+	MExploreCondition(Formula f, Relation madeSort)
 	{
 		fmla = f;
 		madeEDBs.add(madeSort);
 	}
 	
-	MExploreCondition isaSubstitution(Variable v, Relation r)
+	MExploreCondition isaSubstitution(Expression expr, Relation r)
 	{
 		// First: Is this ExploreCondition TRUE?
 		// If so, encode via sort-as-predicate so FormulaSigInfo can extract the correct information.
@@ -196,10 +196,14 @@ class MExploreCondition
 		
 		if(fmla.equals(Formula.TRUE))
 		{
-			fmla = MFormulaManager.makeAtom(v, r);
+			fmla = MFormulaManager.makeAtom(expr, r);
 		}
 		else
 		{
+			if(!(expr instanceof Variable))
+				throw new MUserException("Unsupported Functionality: ISA with non-trivial formula must be downcasting a variable term. The term given was not a variable: "+expr);				
+			Variable v = (Variable)expr;
+			
 			// We have (isa x A alpha(x)). alpha(x) may not be well-sorted!
 			// Want to convert to
 			// \exists y^A (x = y) and alpha(y).
@@ -1264,6 +1268,20 @@ public class MEnvironment
 		}
 	}
 
+	public static Document addConstraintFormula(String vname, Formula f)
+	{
+		MVocab voc = makeNewVocabIfNeeded(vname);
+		try 
+		{
+			voc.axioms.addConstraintFormula(f);
+			return successResponse();
+		} 
+		catch (MBaseException e)
+		{
+			return exceptionResponse(e);
+		}
+	}
+	
 	public static Document addConstraintAbstractAll(String vname, String s)
 	{
 		MVocab voc = makeNewVocabIfNeeded(vname);

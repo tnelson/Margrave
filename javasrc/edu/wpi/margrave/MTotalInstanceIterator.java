@@ -32,6 +32,7 @@ import kodkod.ast.Variable;
 import kodkod.engine.Evaluator;
 import kodkod.engine.Solution;
 import kodkod.engine.Solver;
+import kodkod.engine.fol2sat.UnboundLeafException;
 import kodkod.instance.*;
 
 class KodkodContext
@@ -134,8 +135,16 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		// raise an exception if we do not check for this.)
 		if(!kodkodIterator.hasNext())
 			return;
-		
-		Solution sol = kodkodIterator.next(); 
+	
+		Solution sol;
+		try
+		{
+			sol = kodkodIterator.next();
+		}
+		catch(UnboundLeafException e)
+		{
+			throw new MUserException("Unknown relation, type, or constant.\n"+e.getMessage());
+		}
 
 		// Count the time reported in the FIRST reply (may be unsatisfiable)
 		if(firstSolution)

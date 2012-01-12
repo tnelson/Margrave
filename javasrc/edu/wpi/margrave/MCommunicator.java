@@ -659,8 +659,17 @@ public class MCommunicator
 
 				String constraintType = getConstraintType(constraintNode);
 
+				// FORMULA is special.
+				if(constraintType.equalsIgnoreCase("FORMULA"))
+				{
+					return MEnvironment.addConstraintFormula(vname, 
+							exploreHelper(constraintNode.getFirstChild()).fmla);
+				}
+				
 
-				List<String> relations = getRelationsList(constraintNode); 
+				List<String> relations = getRelationsList(constraintNode);
+				
+				assert(relations != null);
 				String firstRelation = relations.get(0);
 
 				if (constraintType.equalsIgnoreCase("SINGLETON")) {
@@ -1244,33 +1253,27 @@ public class MCommunicator
         		return antecedentFmla.implies(consequentFmla);
         	}
         	else if(name.equalsIgnoreCase("ISA"))
-        	{
-        		String varname = getAttributeOfChildNodeOrNode(n, "ISA", "var");
-        		String typename = getAttributeOfChildNodeOrNode(n, "ISA", "sort");
-        		
-        		Variable theVar = MFormulaManager.makeVariable(varname);
+        	{        		        		
+        		String typename = getAttributeOfChildNodeOrNode(n, "ISA", "sort");        		        		
         		Relation theRel = MFormulaManager.makeRelation(typename, 1);
-        		
-        		assert(childNodes.size() < 2);
-        		
+
+        		// These may be null
+        		Node internalFmlaWrapNode = getChildNode(n, "FORMULA");
+        		Node internalTermWrapNode = getChildNode(n, "TERM");
+        		        		
         		MExploreCondition internalFmlaC;
         		MExploreCondition  newFmlaC;
-        		if(childNodes.size() == 0)
-        		{
-        			// If no fmla passed, this is a sort-as-predicate. Just checking whether the var is in the sort.
+
+        		// If no fmla passed, this is a sort-as-predicate. Just checking whether the var is in the sort.
+        		if(internalFmlaWrapNode == null)
         			internalFmlaC = new MExploreCondition(true);
-        			newFmlaC = internalFmlaC;
-        		}
-        		else
-        		{
-        			// Otherwise, we are really downcasting.
-            		Node internalFmlaNode = childNodes.get(0);
-        			internalFmlaC = exploreHelper(internalFmlaNode);
-        			newFmlaC = internalFmlaC.isaSubstitution(theVar, theRel);
-        		}
+        		else        			
+            		internalFmlaC = exploreHelper(internalFmlaWrapNode.getFirstChild());
         		
-        		        
-        		writeToLog("\nFormula helper (ISA) got "+theVar+", "+theRel+ ", "+internalFmlaC);
+        		MTerm theTerm = termHelper(internalTermWrapNode.getFirstChild());        		
+       			newFmlaC = internalFmlaC.isaSubstitution(theTerm.expr, theRel);        		
+        		        		        
+        		writeToLog("\nFormula helper (ISA) got "+theTerm+" : "+theRel+" | "+internalFmlaC);
         		writeToLog("\n  Substituted to: "+newFmlaC);
         		
         		return newFmlaC;

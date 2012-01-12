@@ -1166,8 +1166,9 @@
 (define (xml-make-equals-formula t1 t2)
   `(EQUALS ,t1 ,t2))
 
-(define (xml-make-isa-formula v s f)
-  `(ISA ((var ,(->string v)) (sort ,(->string s))) ,f))
+(define (xml-make-isa-formula term s f)
+  ;`(ISA ((var ,(->string v)) (sort ,(->string s))) ,f))
+  `(ISA ((sort ,(->string s))) (TERM ,term) (FORMULA ,f)))
 
 (define (xml-make-variable-declaration v s)
   `(VARIABLE-DECLARATION ((sort ,(->string s)) (varname ,(->string v)))))
@@ -1435,10 +1436,9 @@
      (valid-sort?/err sname)
      (xml-make-exists vname sname (m-formula->xexpr fmla))]           
     
-    [(m-op-case isa vname sname fmla)
-     (valid-variable?/err vname)
+    [(m-op-case isa t sname fmla)     
      (valid-sort?/err sname)
-     (xml-make-isa-formula vname sname (m-formula->xexpr fmla))]     
+     (xml-make-isa-formula (m-term->xexpr t) sname (m-formula->xexpr fmla))]     
  
      ; For backward compatability:
     ;[`(,(? dotted-id? dottedname) ,term0 ,@(list terms ...)) 
@@ -1457,12 +1457,10 @@
      (valid-sort-or-predicate?/err dbname)
      (cond
        [(and (valid-sort? dbname) 
-             (empty? terms)
-             (valid-variable? term0))
-        (xml-make-isa-formula term0 dbname (xml-make-true-condition))]
-       [(and (valid-sort? dbname) (or (not (empty? terms))
-                                      (not (valid-variable? term0))))
-        (margrave-error "Atomic formulas (S x), where S is a sort name, must contain only a single variable in the x position" sexpr)]
+             (empty? terms)) ; only one term!             
+        (xml-make-isa-formula (m-term->xexpr term0) dbname (xml-make-true-condition))]
+       [(valid-sort? dbname) 
+        (margrave-error "Atomic formulas (S t), where S is a sort name, must contain only a single term t." sexpr)]
        
        [else (xml-make-atomic-formula (list dbname)
                                       (map m-term->xexpr (cons term0 terms)))])]
@@ -1496,8 +1494,13 @@
 (check-true (m-formula? '(aRelation s x)))
 (check-false (m-formula? '((mypolicyname permit) 1 2 3)))
 (check-false (m-formula? '(S x y)))
-(check-false (m-formula? '(S 'c)))
+(check-false (m-formula? '(S )))
 (check-true (m-formula? '(S x)))
+(check-true (m-formula? '(S 'c)))
+(check-true (m-formula? '(S (f 'c x y))))
+(check-true (equal? 
+             (m-formula->xexpr '(S (f 'c x y)))
+             '(ISA ((sort "S")) (TERM (FUNCTION-TERM ((func "f")) (CONSTANT-TERM ((id "c"))) (VARIABLE-TERM ((id "x"))) (VARIABLE-TERM ((id "y"))))) (FORMULA (TRUE)))))
 ; ^^^ More cases go here. Not fully covered!
 
 ; Avoid duplicate code. Defer to m-term->xml
@@ -1579,8 +1582,9 @@
      (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]
 
     [(m-op-case formula fmla)
-     (unless (m-formula? fmla)
-       (margrave-error "The formula axiom did not contain a valid formula." axiom))
+     ; Allow m-formula->xexpr to give a more detailed error.
+     ;(unless (m-formula? fmla)
+     ;  (margrave-error "The formula axiom did not contain a valid formula." axiom))
      (xml-make-custom-fmla-constraint (m-formula->xexpr fmla))]
     
     [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)]))
