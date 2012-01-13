@@ -164,6 +164,7 @@ class MExploreCondition
 		
 		terms.add(t1);
 		terms.add(t2);
+		//MCommunicator.writeToLog("\n(new condition =) TERMS: "+terms);
 	}
 		
 	MExploreCondition(Formula f, Relation made, List<MTerm> vec)
@@ -173,6 +174,7 @@ class MExploreCondition
 		
 		for(MTerm t : vec)
 			terms.add(t);
+		//MCommunicator.writeToLog("\n(new condition edb) TERMS: "+terms);
 	}
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
 	{
@@ -181,6 +183,7 @@ class MExploreCondition
 		
 		for(MTerm t : vec)
 			terms.add(t);
+		//MCommunicator.writeToLog("\n(new condition idb) TERMS: "+terms);
 	}
 	MExploreCondition(Formula f, Relation madeSort)
 	{
@@ -219,6 +222,7 @@ class MExploreCondition
 			madeEDBs.add(r);
 		}
 		
+		//MCommunicator.writeToLog("\n(isa) TERMS: "+terms);
 		return this;
 	}
 		
@@ -234,7 +238,7 @@ class MExploreCondition
 	
 	public String toString()
 	{
-		return "Condition: "+fmla.toString();
+		return "Condition: "+fmla.toString()+"\nTerms: "+terms;
 	}
 	
 	MExploreCondition not()	
@@ -242,6 +246,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeNegation(fmla);				
 		
 		doAssertNot();
+		//MCommunicator.writeToLog("\n(not) TERMS: "+terms);
 		
 		return this;
 	}
@@ -276,9 +281,12 @@ class MExploreCondition
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
+		terms.addAll(oth.terms);
 		
 		doAssertAnd(oth);
 				
+		//MCommunicator.writeToLog("\n(and) TERMS: "+terms);
+		
 		return this;
 	}
 
@@ -289,7 +297,7 @@ class MExploreCondition
 		
 		// Catch unknown sort
 		madeEDBs.add(theSort);
-		
+		//MCommunicator.writeToLog("\n(exists) TERMS: "+terms);
 		return this;
 	}
 
@@ -300,7 +308,7 @@ class MExploreCondition
 		
 		// Catch unknown sort
 		madeEDBs.add(theSort);
-		
+		//MCommunicator.writeToLog("\n(forall) TERMS: "+terms);
 		return this;
 	}
 
@@ -310,9 +318,10 @@ class MExploreCondition
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
+		terms.addAll(oth.terms);
 		
 		doAssertOr(oth);
-		
+		//MCommunicator.writeToLog("\n(or) TERMS: "+terms);
 		return this;
 	}
 
@@ -382,13 +391,14 @@ class MExploreCondition
 		fmla = MFormulaManager.makeImplication(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
+		terms.addAll(oth.terms);
 		
 		// a -> b
 		// is equivalent to
 		// !a or b
 		doAssertNot();
 		doAssertOr(oth);
-		
+		//MCommunicator.writeToLog("\n(implies) TERMS: "+terms);
 		return this;
 	}
 
@@ -397,10 +407,11 @@ class MExploreCondition
 		fmla = MFormulaManager.makeIFF(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);	
 		madeEDBs.addAll(oth.madeEDBs);	
+		terms.addAll(oth.terms);
 		
 		// No assertions survive.
 		clearAssertions();
-						
+		//MCommunicator.writeToLog("\n(iff) TERMS: "+terms);		
 		return this;
 	}
 

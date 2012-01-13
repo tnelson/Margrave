@@ -14,7 +14,6 @@
 ;
 ;    You should have received a copy of the GNU Lesser General Public License
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
-
 #lang racket
 
 (require xml
@@ -1443,21 +1442,17 @@
     
     [(m-op-case isa t sname fmla)     
      (valid-sort?/err sname)
-     (xml-make-isa-formula (m-term->xexpr t) sname (m-formula->xexpr fmla))]     
- 
-     ; For backward compatability:
-    ;[`(,(? dotted-id? dottedname) ,term0 ,@(list terms ...)) 
-    ; (xml-make-atomic-formula (handle-dotted-pred dottedname)
-    ;                          (map m-term->xexpr/down (cons term0 terms)))]    
-
+     (xml-make-isa-formula (m-term->xexpr t) sname (m-formula->xexpr fmla))]      
   
-    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))    
+    ; Don't require vars.
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))    
      ;(valid-predicate?/err idbname)
      ; the above check prevents reference to prior queries when the prior query name is capitalized.
-     ;; TODO finalize lexical spec
+     ;; TODO finalize lexical spec     
      (xml-make-atomic-formula (append pids (list idbname))
-                              (map m-term->xexpr (cons term0 terms)))]
-  
+                              (map m-term->xexpr terms))]
+
+    
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (valid-sort-or-predicate?/err dbname)
      (cond

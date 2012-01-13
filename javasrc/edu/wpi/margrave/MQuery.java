@@ -273,7 +273,7 @@ public class MQuery extends MIDBCollection
 		Map<LeafExpression, Set<LeafExpression>> disjointness = new HashMap<LeafExpression, Set<LeafExpression>>();
 		
 		Map<Expression, LeafExpression> termTypes = new HashMap<Expression, LeafExpression>();
-		
+				
 		// All terms seen by the vocabulary so far
 		for(Expression expr : vocab.exprToTerm.keySet())
 		{
@@ -290,6 +290,7 @@ public class MQuery extends MIDBCollection
 				termTypes.put(expr, theConst.type.get(0).rel);
 			}
 		}
+				
 		
 		// And constants (which may not have been mentioned, but will be!)
 		for(MConstant c : vocab.constants.values())

@@ -993,7 +993,7 @@
 
 ; Gather the set of policy references used in this formula
 (define/contract (gather-policy-references fmla)
-  [m-formula? . -> . set?]
+  [m-formula? . -> . set?]    
   (match fmla
     [(maybe-identifier true)
      (set)]        
@@ -1019,9 +1019,7 @@
      (gather-policy-references subfmla)]     
     
     ; IDB: gather policy ids used!
-    ;[(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
-    ; (set (list pids))]     
-    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
      (list->set pids)] ; will be empty set if saved-query IDB  
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (set)]         
@@ -1057,13 +1055,13 @@
      (gather-query-references subfmla)]               
     [(m-op-case isa vname sname subfmla)
      (gather-query-references subfmla)]     
-    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
      (if (empty? pids)
          (set idbname)
          (set))]     
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (set)]         
-    [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
+    [else (margrave-error "Invalid formula given to gather-query-references" fmla)]))
 
 
 
@@ -1178,14 +1176,13 @@
      (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
     
     ; (idb term0 terms ...)    
-    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,term0 ,@(list terms ...))
-     (internal-correct/idb (cons term0 terms) pids idbname)] 
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
+     (internal-correct/idb terms pids idbname)] 
     
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (cond
        [(and (valid-sort? dbname) 
-             (empty? terms)
-             (valid-variable? term0))
+             (empty? terms))
         (internal-correct/isa-sugar term0 (->string dbname))] ; sugar for (isa x A true)      
        [else (internal-correct/edb (cons term0 terms) (->string dbname))])] ; (edb term0 terms ...)
     

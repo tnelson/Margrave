@@ -763,7 +763,7 @@ public class MCommunicator
 					if (exploreCondition == null)
 						MEnvironment.errorWriter.println("explore condition is null!");
 					MQuery result = null;
-
+					
 					//Default Values                                     					
 					List<MIDBCollection> under = new LinkedList<MIDBCollection>();
 					List<String> publ = new ArrayList<String>();
@@ -1437,6 +1437,10 @@ public class MCommunicator
 			// Substitute variables in policy's IDB for terms in query
 			writeToLog("\nNon-view IDB before substitution: "+idbf);
 			idbf = performSubstitution(relationName, pol, idbf, terms);
+			
+			MCommunicator.writeToLog("\nSAW TERMS: "+terms);
+			
+
 			
 			writeToLog("\nNew Explore condition (non-view IDB): "+idbf);
 			return new MExploreCondition(idbf, pol, relationName, terms);

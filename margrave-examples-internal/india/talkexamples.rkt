@@ -120,18 +120,6 @@
 (printf "~n----------------------------------~nExample 3 results:~n----------------------------------~n~n")
 (display (m-show "Example3"))
 
-;(m-reset "Example3")
-;(m-get "Example3"
-;       #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
-;                   ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro)
-;                   ([aclfw1new rule6_matches] interminterface tempnatsrc ipdest portsrc portdest pro)
-;                   ([aclfw1new rule6_applies] interminterface tempnatsrc ipdest portsrc portdest pro)))
-
-
-; !!! TODO: m-show should be specifying to constants, not just sorts now. e.g. 
-; interf: Interface 
-; should be
-; interf: 'fw2int 
 
 
 ; ************************************************************

@@ -42,7 +42,9 @@
                 ; Set port requests have a port, too.
                 (requestUser Request User)
                 (requestServer Request Server)
-                (requestPort RSetPort Port))
+                ;(requestPort RSetPort Port)
+                (requestPort Request Port)
+                )
                  
                
                 (Types                 
@@ -77,25 +79,7 @@
          (formula (= (nextTime 'state1) 'state2))
          (formula (= (nextTime 'state2) 'state3))
          (formula (= (nextTime 'state3) 'state4))
-         (formula (= (nextTime 'state4) 'end))         
+         (formula (= (nextTime 'state4) 'end))                           
          
-         ; !!! TODO: need to make it so only permitted actions are included here below!
-         
-         ; If a 'setExternal action is permitted at time t, the next state respects the action.
-         (formula (forall t ReqTime (and 
-                                      
-                                     (implies (RSetPort (requestAtTime t))
-                                              (= (portAtTime (nextTime t) 
-                                                             (requestServer (requestAtTime t)))
-                                                 (requestPort (requestAtTime t))))
-                          
-                                     (implies (RSetExternal (requestAtTime t))
-                                              (= (externalAtTime (nextTime t))
-                                                 (requestServer (requestAtTime t)))))))
-         
-         ; ^^^ !!! TODO: This may not be well-sorted...
-         ; since the isa's scope doesn't extend to the consequent. May need to change.
-         
-         ; ^^^ !!! TODO: (isa t Type) only takes variables t. Need to expand to take terms.
-         
+         ; Additional axioms go in the query!
          )) 
