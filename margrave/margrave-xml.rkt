@@ -93,6 +93,7 @@
 
 
 ;****************************************************************
+;****************************************************************
 ;;Pretty Printing returned XML
 
 ;name is the name of the atom, such as "s" or "r" (doesn't include the $),
@@ -101,10 +102,10 @@
 (define-struct atom (name 
                      display-name 
                      list-of-types                     
-                     ) #:mutable)
+                     ) #:mutable #:transparent)
 
 ;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable)
+(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable #:transparent)
 
 ;Maps strings (such as "s") to their corresponding atoms
 ;(define atom-hash (make-hash))
@@ -227,19 +228,21 @@
     (define relation-arity (string->number (get-attribute-value relation 'arity)))
     (define relation-name  (get-attribute-value relation 'name))
     (define relation-is-sort (equal? "sort" (get-attribute-value relation 'type)))
+    (define relation-is-constant (equal? "constant" (get-attribute-value relation 'type)))
     
     ;if the relation (predicate) doesn't exist in the hash yet, create it
     (when (not (hash-ref predicate-hash relation-name #f))
       (hash-set! predicate-hash relation-name 
                  (make-predicate relation-name relation-arity empty (or relation-is-sort
-                                                                        (equal? (string-ref relation-name 0) #\$)))))
-    
-    (define predicate-struct (hash-ref predicate-hash relation-name)) ;should definitely exist, since we just created it if it didn't
+                                                                        relation-is-constant
+                                                                        (equal? (string-ref relation-name 0) #\$)))))    
+    (define predicate-struct (hash-ref predicate-hash relation-name)) 
     (define tuple-elements (get-child-elements relation 'TUPLE))
     
-    
-    (define (insert-tuple tuple-element) ; Insert a tuple into the current relation
-      (when (or (not relation-is-sort)
+    ; Insert a tuple into the current relation
+    (define (insert-tuple tuple-element) 
+      (when (or relation-is-constant
+                (and (not relation-is-sort) (not relation-is-constant))
                 (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
         (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
                                                               (predicate-list-of-tuples predicate-struct)))))
@@ -250,39 +253,41 @@
             [else
              (define an-atom-element (first atom-elements))
              (define atom-element-name (pcdata-string (first (element-content an-atom-element))))
-             
-             ; to be removed
-             ;if the atom doesn't exist in the hash yet, create it
-             ; (regardless of whether this relation is to be printed)
-             ; (when (not (hash-ref atom-hash atom-name #f))
-             ;   (hash-set! atom-hash atom-name (make-atom atom-name empty)))
-             
-             ; Get the atom struct for this atom
-             ;should definitely exist, since we just created it if it didn't
+                          
+             ; Get the atom struct for this atom                         
              (define atom-struct (hash-ref atom-hash atom-element-name)) 
              
              ; If this is a $var relation, change displayed name for the atom
              ; otherwise, add to the appropriate relation                                       
-             (if (equal? (string-ref relation-name 0) #\$)
-                 (if (equal? (atom-name atom-struct)
-                             (atom-display-name atom-struct))                                                
-                     (set-atom-display-name! atom-struct (substring relation-name 1))
-                     (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
-                                                                        "="
-                                                                        (substring relation-name 1))))                 
-                 ; Not a $var. Is it a sort or predicate?
-                 (if (= relation-arity 1) 
-                     
-                     ; Sort (tuple is unary)                                                  
-                     (begin                                                   
-                       ; Note that this atom belongs to this sort
-                       (when relation-is-sort
-                         (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))                             
-                       ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
-                       (list atom-struct)) 
+             ; note: comment out the relation-is-constant block to move constants to appear with the least specific sorts instead of with vars
+             (cond [relation-is-constant 
+                    (if (equal? (atom-name atom-struct)
+                                (atom-display-name atom-struct))                                                
+                        (set-atom-display-name! atom-struct relation-name)
+                        (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
+                                                                           "="
+                                                                           relation-name )))]
+                   [(equal? (string-ref relation-name 0) #\$)                    
+                    (if (equal? (atom-name atom-struct)
+                                (atom-display-name atom-struct))                                                
+                        (set-atom-display-name! atom-struct (substring relation-name 1))
+                        (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
+                                                                           "="
+                                                                           (substring relation-name 1))))]
+                   ; Not a $var. Is it a sort or predicate?
+                   [(= relation-arity 1)                         
+                    ; Sort or unary predicate       
+                    
+                    ; Note that this atom belongs to this sort/constant
+                    (when (or relation-is-sort relation-is-constant)
+                      (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))
+                    
+                    ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
+                    (list atom-struct)] 
                                           
-                     ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
-                     (cons atom-struct (parse-tuple-contents (rest atom-elements) ))))]))
+                   ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
+                   [else (cons atom-struct (parse-tuple-contents (rest atom-elements) ))])]))
+    ; ^^^ end of parse-tuple-contents
     
     (for-each insert-tuple tuple-elements))
   ; handle-relation ends here
@@ -294,7 +299,7 @@
       (write "\n    -> Also:\n"))
     (print-annotations string-buffer annotation-elements)
     (when (not (equal? empty statistics-element))
-      (write (print-statistics statistics-element)))
+      (write (print-statistics statistics-element)))    
     (write "********************************************************")
     
     

@@ -2088,6 +2088,10 @@ public class MEnvironment
 				relationElement.setAttribute("type", "sort");
 				theSort = theVocab.fastGetSort(r.name());
 			}
+			else if(theVocab.constants.containsKey(r.name()))
+			{
+				relationElement.setAttribute("type", "constant");
+			}
 			else
 			{
 				relationElement.setAttribute("type", "predicate");

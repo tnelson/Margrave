@@ -1,7 +1,8 @@
 #lang racket
 
 ;(require margrave)
-(require "../../margrave/margrave.rkt")
+(require "../../margrave/margrave.rkt"
+         rackunit)
 
 ; Start the engine
 (start-margrave-engine #:margrave-params '( "-log" )
@@ -24,9 +25,6 @@
 ; can be dropped if:
 ; (1) Internal FW rejects it, or
 ; (2) External FW rejects it (after it is modified by internal FW's NAT)
-
-
-; !!! TODO: deal with: "Warning: ComparisonFormula with EQUALS operator with non-Variable children visited: (fw2static = newip) "
 
 (m-let "Example1" '([interf Interface] 
                     [ipsrc IPAddress]
@@ -59,6 +57,7 @@
 
 
 (printf "~n----------------------------------~nExample 1 results:~n----------------------------------~n~n")
+(check-true (m-is-poss? "Example1"))
 (display (m-show "Example1"))
 
 
@@ -116,17 +115,17 @@
           ([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
           ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro))))
 
+(check-false (m-is-poss? "Example3"))
 
 (printf "~n----------------------------------~nExample 3 results:~n----------------------------------~n~n")
 (display (m-show "Example3"))
 
-(m-reset "Example3")
-(m-get "Example3"
-       #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
-                   ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro)
-                   ([aclfw1new rule6_matches] interminterface tempnatsrc ipdest portsrc portdest pro)
-                   ([aclfw1new rule6_applies] interminterface tempnatsrc ipdest portsrc portdest pro)))
-
+;(m-reset "Example3")
+;(m-get "Example3"
+;       #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
+;                   ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro)
+;                   ([aclfw1new rule6_matches] interminterface tempnatsrc ipdest portsrc portdest pro)
+;                   ([aclfw1new rule6_applies] interminterface tempnatsrc ipdest portsrc portdest pro)))
 
 
 ; !!! TODO: m-show should be specifying to constants, not just sorts now. e.g. 
@@ -170,6 +169,7 @@
         (not ([aclfw1new accept] interminterface tempnatsrc ipdest portsrc portdest pro))        
         ([aclfw1 accept] interminterface tempnatsrc ipdest portsrc portdest pro)))))
 
+(check-true (m-is-poss? "Example4"))
 
 (printf "~n----------------------------------~nExample 4 results:~n----------------------------------~n~n")
 (display (m-show "Example4"))
@@ -236,8 +236,12 @@
   
   
 (printf "~n----------------------------------~nExample 5 results:~n----------------------------------~n~n")
+(check-false (m-is-poss? "Example5a"))
+(check-false (m-is-poss? "Example5b"))
+
 (m-is-poss? "Example5a")
 (m-is-poss? "Example5b")
+
 ; ^^^ both return #f
  
 
@@ -301,6 +305,9 @@
            ([aclfw1ex6 deny] interminterface tempnatsrc ipdest portsrc portdest pro)))))
 
 (printf "~n----------------------------------~nExample 6 results:~n----------------------------------~n~n")
+(check-false (m-is-poss? "Example6a"))
+(check-false (m-is-poss? "Example6b"))
+
 (m-is-poss? "Example6a")
 (m-is-poss? "Example6b")
 ; ^^^ both return #f
