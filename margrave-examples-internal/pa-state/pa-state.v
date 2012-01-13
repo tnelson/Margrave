@@ -42,10 +42,9 @@
                 ; Set port requests have a port, too.
                 (requestUser Request User)
                 (requestServer Request Server)
-                ;(requestPort RSetPort Port)
+                ;(requestPort RSetPort Port) ; made all Requests instead of just RSetPort for well-sortedness
                 (requestPort Request Port)
-                )
-                 
+                )                 
                
                 (Types                 
                  User                
@@ -61,6 +60,10 @@
                  ))
                                                                      
         (Axioms
+         ; TODO Note: No way to say abstract w/o constants... 
+         ; (that is, if something has both subsorts and constants, that it's covered by the subsorts alone)
+         ; abstract implies both
+         
          (abstract Request)
          (abstract Port)
          (abstract Server)
