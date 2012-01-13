@@ -1682,6 +1682,19 @@ public class MVocab {
 			uber.axioms.addConstraintTotalRelation(con);
 		}
 		
+		/////////////////////////////////////
+		// Finally, make sure that the term types known by both vocabs are shared by the uber-vocab:
+		for(Expression e : exprToTerm.keySet())
+		{
+			uber.exprToTerm.put(e, exprToTerm.get(e));
+		}
+		for(Expression e: other.exprToTerm.keySet())
+		{
+			uber.exprToTerm.put(e, other.exprToTerm.get(e));
+		}
+		
+		
+		
 		return uber;
 	}
 	

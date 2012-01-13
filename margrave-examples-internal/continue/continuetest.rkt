@@ -46,20 +46,6 @@
 ;       #:debug 3)
 ;(m-get "Q2")
 
-;#lang margrave
-;
-;LOAD POLICY continuep.p;
-;EXPLORE continuep:permit(s,a,r);
-;SHOW ONE;
-;
-;
-;// For type inference testing (doesn't work yet)
-;EXPLORE authorOf(x, y) under continuep;
-;is possible?;  
-;// should be true, is false
-;EXPLORE authorOf(x, y) under continuep ceiling 4;
-;is possible?;
-
 
 
 
