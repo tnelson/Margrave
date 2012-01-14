@@ -118,7 +118,7 @@ class MExploreCondition
 		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
 	
 	// Terms seen
-	Set<MTerm> terms = new HashSet<MTerm>();
+	Map<Expression, MTerm> termMap = new HashMap<Expression, MTerm>();
 		
 	// **************************************************************	
 	
@@ -162,8 +162,8 @@ class MExploreCondition
 		//if(isPlaceholder)
 		//	eqPlaceholders.add(fmla);
 		
-		terms.add(t1);
-		terms.add(t2);
+		termMap.put(t1.expr, t1);
+		termMap.put(t2.expr, t2);
 		//MCommunicator.writeToLog("\n(new condition =) TERMS: "+terms);
 	}
 		
@@ -173,7 +173,7 @@ class MExploreCondition
 		madeEDBs.add(made);
 		
 		for(MTerm t : vec)
-			terms.add(t);
+			termMap.put(t.expr, t);
 		//MCommunicator.writeToLog("\n(new condition edb) TERMS: "+terms);
 	}
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
@@ -182,7 +182,7 @@ class MExploreCondition
 		seenIDBCollections.add(pol);
 		
 		for(MTerm t : vec)
-			terms.add(t);
+			termMap.put(t.expr, t);
 		//MCommunicator.writeToLog("\n(new condition idb) TERMS: "+terms);
 	}
 	MExploreCondition(Formula f, Relation madeSort)
@@ -214,7 +214,7 @@ class MExploreCondition
 			Map<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
 			Variable freshVar = MFormulaManager.makeFreshVariable();
 			toReplace.put(v, freshVar);
-			Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+			Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace, termMap));		
 			Formula eqFmla = MFormulaManager.makeEqAtom(v, freshVar);
 			Formula innerFmla = MFormulaManager.makeAnd(eqFmla, subsFmla);
 			Decl decl = MFormulaManager.makeOneOfDecl(freshVar, r); // x acts as type A inside		
@@ -238,7 +238,7 @@ class MExploreCondition
 	
 	public String toString()
 	{
-		return "Condition: "+fmla.toString()+"\nTerms: "+terms;
+		return "Condition: "+fmla.toString()+"\nTerms: "+termMap;
 	}
 	
 	MExploreCondition not()	
@@ -281,7 +281,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeAnd(fmla, oth.fmla);						
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		terms.addAll(oth.terms);
+		termMap.putAll(oth.termMap);
 		
 		doAssertAnd(oth);
 				
@@ -318,7 +318,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeOr(fmla, oth.fmla);			
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		terms.addAll(oth.terms);
+		termMap.putAll(oth.termMap);
 		
 		doAssertOr(oth);
 		//MCommunicator.writeToLog("\n(or) TERMS: "+terms);
@@ -391,7 +391,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeImplication(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);
 		madeEDBs.addAll(oth.madeEDBs);
-		terms.addAll(oth.terms);
+		termMap.putAll(oth.termMap);
 		
 		// a -> b
 		// is equivalent to
@@ -407,7 +407,7 @@ class MExploreCondition
 		fmla = MFormulaManager.makeIFF(fmla, oth.fmla);
 		seenIDBCollections.addAll(oth.seenIDBCollections);	
 		madeEDBs.addAll(oth.madeEDBs);	
-		terms.addAll(oth.terms);
+		termMap.putAll(oth.termMap);
 		
 		// No assertions survive.
 		clearAssertions();
@@ -1597,7 +1597,7 @@ public class MEnvironment
 		MPolicyLeaf pol = (MPolicyLeaf) coll;
 		
 		// Vocab needs to know about terms mentioned in this rule.
-		for(MTerm t : helper.terms) 
+		for(MTerm t : helper.termMap.values()) 
 		{
 			writeToLog("\nRule "+rname+" saw term: "+t.toString());
 			pol.vocab.exprToTerm.put(t.expr, t);
@@ -2281,7 +2281,7 @@ public class MEnvironment
 			ii ++;	
 		}
 
-		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));		
+		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace, coll.vocab.exprToTerm));		
 	}
 	
 	

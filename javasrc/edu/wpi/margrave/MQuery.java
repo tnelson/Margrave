@@ -1371,7 +1371,7 @@ public class MQuery extends MIDBCollection
 			MEnvironment.outWriter.println("DEBUG: Query Formula = "+ qryFormula);
 			MEnvironment.outWriter.println("DEBUG: MPC made EDBs: "+mpc.madeEDBs);
 			MEnvironment.outWriter.println("DEBUG: MPC saw IDB Collections: "+mpc.seenIDBCollections);
-			MEnvironment.outWriter.println("DEBUG: MPC terms: "+mpc.terms);
+			MEnvironment.outWriter.println("DEBUG: MPC terms: "+mpc.termMap);
 		}
 		
 		Set<Variable> freeVarsUnsorted = qryFormula.accept(new FreeVariableCollectionV());		
@@ -1540,8 +1540,8 @@ public class MQuery extends MIDBCollection
 		result.name = queryID; // used for saving query result, query knows its own ID
 		
 		// Populate exprToTerm
-		MEnvironment.writeToLog("\nQuery created with ID "+queryID+". Terms were: "+mpc.terms);
-		for(MTerm t : mpc.terms)
+		MEnvironment.writeToLog("\nQuery created with ID "+queryID+". Terms were: "+mpc.termMap);
+		for(MTerm t : mpc.termMap.values())
 		{
 			MEnvironment.writeToLog("\nQuery condition saw term: "+t.toString());
 			result.vocab.exprToTerm.put(t.expr, t);

@@ -166,7 +166,7 @@ abstract class MIDBCollection
 		
 		// NOTE APRIL 2011: no more request/other vars declared at the vocab level. so no need to replace vars here anymore
 		
-		return new RelationAndTermReplacementV(relpairs, varpairs);
+		return new RelationAndTermReplacementV(relpairs, varpairs, vocab.exprToTerm);
 	}	
 	
 	void initIDBs()

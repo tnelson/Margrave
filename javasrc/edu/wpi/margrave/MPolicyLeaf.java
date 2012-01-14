@@ -320,6 +320,8 @@ public class MPolicyLeaf extends MPolicy
 	{
 		MEnvironment.writeToLog("MPolicyLeaf.doSubstituteIDBs() ...");
 		
+		// Handle rules that refer to IDBs in a stratified manner.
+		
 		/////////////////////////////////////////////////////////////
 		// (1) topologically sort decisions using decisionUsesPredicates 
 		List<String> sortedDecisions = new ArrayList<String>(decisions.size());
@@ -377,7 +379,7 @@ public class MPolicyLeaf extends MPolicy
 				Formula subIdbFormula = getIDB(aPred); 
 				Relation targetRel = MFormulaManager.makeRelation(aPred, varOrderings.get(aPred).size());
 				List<Variable> targetVars = varOrderings.get(aPred);
-				MIDBReplacementV vis = new MIDBReplacementV(targetRel, targetVars, subIdbFormula);
+				MIDBReplacementV vis = new MIDBReplacementV(targetRel, targetVars, subIdbFormula, vocab.exprToTerm);
 				putIDB(dec, fullFormula.accept(vis), varOrderings.get(dec));																			
 			}
 		}

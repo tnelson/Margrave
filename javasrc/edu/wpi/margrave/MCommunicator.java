@@ -1276,6 +1276,10 @@ public class MCommunicator
         		writeToLog("\nFormula helper (ISA) got "+theTerm+" : "+theRel+" | "+internalFmlaC);
         		writeToLog("\n  Substituted to: "+newFmlaC);
         		
+        		// The term in the ISA _must_ be added to the context, since it isn't necessarily 
+        		// part of the formula condition. (For instance, TRUE isas)
+        		newFmlaC.termMap.put(theTerm.expr, theTerm);
+        		
         		return newFmlaC;
         	}
         	else if(name.equalsIgnoreCase("EQUALS"))
@@ -1738,8 +1742,8 @@ public class MCommunicator
 "<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
 "<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
-"<OR> <ISA var=\"x\" sort=\"U\" /> <ISA var=\"x\" sort=\"U\"> " +
-                                    "<EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS></ISA></OR>" +
+"<OR> <ISA sort=\"U\"><TERM><VARIABLE-TERM id=\"x\" /></TERM></ISA> <ISA sort=\"U\"><TERM><VARIABLE-TERM id=\"x\" /></TERM></ISA> " +
+                                    "<EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS></OR>" +
 "</AND></OR></CONDITION>" +
 "<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 
@@ -1754,22 +1758,6 @@ public class MCommunicator
 		
 // aQuery2 sat
 		
-		//String aTupledQuery = 
-		//	"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"MyTupledQry\"><CONDITION><OR>" +
-		//	"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /> <VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA>" +
-		//	"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
-		//	"<ISA var=\"x\" sort=\"U\" /></AND></OR></CONDITION>" +
-		//	"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH><TUPLING /></EXPLORE></MARGRAVE-COMMAND> ";
-		
-		
-		/*handleXMLCommand(testInfo);
-		handleXMLCommand(testInfoWithID);
-		handleXMLCommand(reset);
-		handleXMLCommand(show);
-		handleXMLCommand(count);
-		handleXMLCommand(isposs);*/
-		
-		//handleXMLCommand(showUnrealizedForCases);
 		
 		List<String> creationCommands = new ArrayList<String>();
 		
@@ -1784,7 +1772,7 @@ public class MCommunicator
 		
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><POLICY-IDENTIFIER pname=\"P\" /><RULE name=\"Rule1\"><DECISION-TYPE type=\"permit\"><ID id=\"x\" /><ID id=\"y\" /></DECISION-TYPE>" +
 				"<TARGET><AND><ATOMIC-FORMULA><RELATION-NAME><ID id=\"r\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"x\" /></TERMS></ATOMIC-FORMULA>" +
-				"<ISA var=\"y\" sort=\"B\" />"+
+				"<ISA sort=\"B\" > <TERM><VARIABLE-TERM id=\"x\" /></TERM></ISA>"+
 				"</AND></TARGET></RULE></MARGRAVE-COMMAND>");
 		
 		// FA {Permit, Deny}, but CallPolice overrides both.
@@ -1806,8 +1794,6 @@ public class MCommunicator
 		String aShow2 = 
 			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry2\" /></MARGRAVE-COMMAND>";		
 		String aReset = "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>";
-		String aShowT = 
-			"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"MyTupledQry\" /></MARGRAVE-COMMAND>";
 
 		handleXMLCommand(aQuery);
 		handleXMLCommand(aShow); // results in a model xml response (or unsat)
@@ -1820,10 +1806,6 @@ public class MCommunicator
 		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
 		handleXMLCommand(aShow2); // results in a model xml response (or unsat)
 
-		
-		//handleXMLCommand(aTupledQuery);
-		
-		handleXMLCommand(aShowT);
 		
 		MEnvironment.debug();
 		

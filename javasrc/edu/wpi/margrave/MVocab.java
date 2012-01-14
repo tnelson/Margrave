@@ -112,6 +112,85 @@ abstract class MTerm
 	abstract public String toString();
 	abstract public boolean equals(Object other);
 	abstract public int hashCode();
+	
+	static public MTerm makeTermFromExpression(Expression e)
+	{
+		if(e instanceof Variable)
+		{
+			// This is a variable term
+			return new MVariableTerm(((Variable) e).name());			
+		}
+		if(e instanceof Relation)
+		{
+			// This is a constant term if seen where we expect a term (rather than a function rel)
+			return new MConstantTerm(((Relation) e).name());
+		}
+		if(e instanceof BinaryExpression)
+		{
+			// This will be a function term.
+			
+			BinaryExpression bine = (BinaryExpression) e;
+			if(!(ExprOperator.JOIN.equals(bine.op())))
+				throw new MUserException("makeTermFromExpression: Expression should be join. Instead, got:"+e);
+			
+			// If we have a relation on the RHS, then it is the func ID, and the LHS must be a term: (t . F) ~= f(t)
+			if(bine.right() instanceof Relation)
+			{			
+				Relation r = (Relation) bine.right();
+				MTerm sub = makeTermFromExpression(bine.left());
+				List<MTerm> subs = new ArrayList<MTerm>();
+				subs.add(sub);
+				return new MFunctionTerm(r.name(), subs);
+			}
+			
+			// Expect a BinaryExpression or a 2-element NaryExpression in RHS
+			//Expression rhlhs;
+			//Expression rhrhs;
+			ExprOperator op;
+			
+			// Otherwise, this had BETTER have a join on the RHS, denoting the (smaller) function term.
+			// t1 . (t2 . F)) = f(t1, t2)
+			if(bine.right() instanceof BinaryExpression)
+			{
+				//rhlhs = ((BinaryExpression)bine.right()).left();
+				//rhrhs = ((BinaryExpression)bine.right()).right();	
+				op = ((BinaryExpression)bine.right()).op();
+			}
+			else if(bine.right() instanceof NaryExpression)
+			{
+				NaryExpression naryrhs = (NaryExpression) bine.right();
+				if(naryrhs.size() != 2)
+					throw new MUserException("makeTermFromExpression: NaryExpression had size != 2: "+e);
+				//rhlhs = naryrhs.child(0);
+				//rhrhs = naryrhs.child(1);
+				op = naryrhs.op();
+			}
+			else
+				throw new MUserException("makeTermFromExpression: RHS was not a Relation, BinaryExpression, or NaryExpression:"+e);
+							
+			// And it had better be a JOIN:
+			if(!ExprOperator.JOIN.equals(op))
+				throw new MUserException("makeTermFromExpression: RHS was BinaryExpression but not a JOIN:"+e);			
+			
+			MTerm smallerFunc = makeTermFromExpression(bine.right());
+			// RHS had better give us a function term:
+			if(!(smallerFunc instanceof MFunctionTerm))
+				throw new MUserException("makeTermFromExpression: RHS did not result in a MFunctionTerm:"+e);
+						
+			// Need to extend by the term in the LHS. For instance, consider:
+			// (y.(c.G)).(x.F) = f(x, g(c, y))
+			// RHS will give us the term f(x). We need to extend it by the term g(c, y).
+			MTerm extension = makeTermFromExpression(bine.left());
+		
+			return new MFunctionTerm((MFunctionTerm)smallerFunc, extension);
+			
+		}
+		if(e instanceof NaryExpression)
+		{			
+			throw new MUserException("makeTermFromExpression got NaryExpression when all function invocations should be chained BinaryExpressions:"+e);		
+		}
+		throw new MUserException("makeTermFromExpression got unsupported Expression:"+e);
+	}
 }
 
 class MFunctionTerm extends MTerm
@@ -119,11 +198,20 @@ class MFunctionTerm extends MTerm
 	String funcName;
 	List<MTerm> subTerms;
 	
-	MFunctionTerm(String funcName, List<MTerm> subTerms)
+	MFunctionTerm(MFunctionTerm smallerFunc, MTerm extension)
 	{
-		this.funcName = funcName;
-		this.subTerms = subTerms;
+		// Create the term that extends smallerFunc by extension. E.g:
+		// f(x) g(y) ---> f(x, g(y))
 		
+		this.funcName = smallerFunc.funcName;
+		this.subTerms = new ArrayList<MTerm>(smallerFunc.subTerms); // copy! caller may re-use
+		this.subTerms.add(extension);
+		
+		init();
+	}
+	
+	private void init()
+	{
 		// Room for each subterm, plus one
 		Relation funcRel = MFormulaManager.makeRelation(funcName, subTerms.size()+1);
 		this.seenRelations.add(funcRel);
@@ -144,6 +232,15 @@ class MFunctionTerm extends MTerm
 			this.expr = MFormulaManager.makeJoinE(joinList);			
 			//this.expr = child.expr.join(this.expr);
 		}			
+
+	}
+	
+	MFunctionTerm(String funcName, List<MTerm> subTerms)
+	{
+		this.funcName = funcName;
+		this.subTerms = new ArrayList<MTerm>(subTerms); // copy! caller may re-use
+		
+		init();
 	}
 	
 	public String toString()
@@ -1139,21 +1236,6 @@ public class MVocab {
 		return false;
 	}
 
-/*	public static String constructAdornment(BinaryExpression be,
-			HashMap<Variable, String> sortenv)
-	{
-		List<String> lst = inorderTraversalOfVariableProduct(be, null, sortenv);
-		if (lst.size() < 1)
-			return "";
-
-		String result = lst.get(0);
-		for (int ii = 1; ii < lst.size(); ii++)
-			result += " " + lst.get(ii);
-
-		return result;
-	}
-*/
-	
 	// Called by MatrixTuplingV
 	public static String constructIndexing(Expression be,
 			HashMap<Variable, Integer> indexing) {
@@ -1182,12 +1264,6 @@ public class MVocab {
 		}
 		return result.toString();
 	}	
-
-/*	public static List<String> constructVarNameList(Expression be) 
-	{
-		return inorderTraversalOfVariableProduct(be, null, null);
-	}
-*/
 	
 	// OPT Variant on inorderTraversalOfVariableProduct below.
 	// Duplicate code but sufficient complex that I've just
@@ -1897,6 +1973,35 @@ public class MVocab {
 		
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////
+		
+		// Test makeTermFromExpression and function term's extension constructor
+		MTerm constant = MTerm.makeTermFromExpression(MFormulaManager.makeRelation("c", 1));
+		MTerm variable = MTerm.makeTermFromExpression(MFormulaManager.makeVariable("x"));
+		List<MTerm> lst = new ArrayList<MTerm>();
+		lst.add(constant);
+		MFunctionTerm functerm1 = new MFunctionTerm("f", lst);
+		lst.add(variable);
+		MFunctionTerm functerm2 = new MFunctionTerm("f", lst);
+		MFunctionTerm functerm2a = new MFunctionTerm(functerm1, variable); // extension
+		
+		if(!functerm2.equals(functerm2a))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 5: FAILED!");
+		}
+		if(!functerm2.equals(MTerm.makeTermFromExpression(functerm2.expr)))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 6: FAILED!");
+		}	
+		
+		lst.clear();		
+		lst.add(functerm2);
+		lst.add(constant);
+		MFunctionTerm functerm3 = new MFunctionTerm("g", lst);		
+		if(!functerm3.equals(MTerm.makeTermFromExpression(functerm3.expr)))
+		{
+			MEnvironment.errorWriter.println("********** MVocab test 7: FAILED!");
+		}	
+		
 		
 		
 		MEnvironment.writeErrLine("----- End MVocab Tests -----");	

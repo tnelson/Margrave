@@ -538,11 +538,9 @@ public class MFormulaManager
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> existsFormulas;
 	private static MWeakValueHashMap< MWeakArrayVector<Node>, Formula> forallFormulas;	
 	
-	// Intersection expressions: key is always a 2-element list of Expression.
-	private static MWeakValueHashMap< MWeakArrayVector<Expression>, Expression> intersectExpressions;
-	
-	private static MWeakValueHashMap< MSetWrapper<Expression>, Expression> unionExpressions;
-	
+	// Expression constructors: intersect, union, join. (Product is above.)
+	private static MWeakValueHashMap< MSetWrapper<Expression>, Expression> intersectExpressions;	
+	private static MWeakValueHashMap< MSetWrapper<Expression>, Expression> unionExpressions;	
 	private static MWeakValueHashMap<MWeakArrayVector<Expression>, Expression> joinExpressions;
 	
 	/**
@@ -562,7 +560,7 @@ public class MFormulaManager
 		noMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		someMultiplicities = new MWeakValueHashMap< MSetWrapper<Expression>, Formula >();
 		equalityAtomFormulas = new MWeakValueHashMap< MWeakArrayVector<Expression>, Formula>();
-		intersectExpressions = new MWeakValueHashMap< MWeakArrayVector<Expression>, Expression>();
+		intersectExpressions = new MWeakValueHashMap< MSetWrapper<Expression>, Expression>();
 		unionExpressions = new MWeakValueHashMap< MSetWrapper<Expression>, Expression>();
 		joinExpressions = new MWeakValueHashMap<MWeakArrayVector<Expression>, Expression>();
 		
@@ -803,10 +801,10 @@ public class MFormulaManager
 	static Expression substituteExprTuple(Expression expr, Map<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
-		MCommunicator.writeToLog("\nIn MFormulaManager.substituteVarTuple, expr="+expr+"; termpairs="+termpairs);
+		MCommunicator.writeToLog("\nIn MFormulaManager.substituteExprTuple, expr="+expr+"; termpairs="+termpairs);
 		
 		
-		// Do the substitution recursively
+		// Do the substitution recursively. Can't substitute out a constant, so base case is Variable only
 		if(expr instanceof Variable)
 		{
 			if(termpairs.containsKey(expr))
@@ -969,7 +967,49 @@ public class MFormulaManager
 		}	
 	}
 	
+	static Expression makeUnion(List<Expression> expressions)
+	{
+		return makeUnion(new HashSet<Expression>(expressions));
+	}
+	
 	static Expression makeUnion(Set<Expression> expressions)
+	{
+		if(!hasBeenInitialized)
+			initialize();	
+		
+		final Set<Expression> weakSetNotYetKey = Collections.newSetFromMap(
+		        new WeakHashMap<Expression, Boolean>());
+		for(Expression e : expressions)
+		{
+			weakSetNotYetKey.add(e);
+		}
+		
+		// wrap the set to prevent hashCode clobbering by the GC
+		final MSetWrapper<Expression> key = new MSetWrapper<Expression>(weakSetNotYetKey);
+							
+		Expression cachedValue = unionExpressions.get(key); 
+		if(cachedValue != null)
+			return cachedValue;
+
+		Expression theUnion = Expression.union(expressions);				
+		unionExpressions.put(key, theUnion);
+		return theUnion;		 
+	}
+	
+	static Expression makeIntersection(Expression e1, Expression e2)
+	{
+		Set<Expression> args = new HashSet<Expression>(2);
+		args.add(e1);
+		args.add(e2);
+		return makeIntersection(args);
+	}
+	
+	static Expression makeIntersection(List<Expression> expressions)
+	{
+		return makeIntersection(new HashSet<Expression>(expressions));
+	}	
+	
+	static Expression makeIntersection(Set<Expression> expressions)
 	{
 		if(!hasBeenInitialized)
 			initialize();	
@@ -987,26 +1027,8 @@ public class MFormulaManager
 		Expression cachedValue = intersectExpressions.get(key); 
 		if(cachedValue != null)
 			return cachedValue;
-
-		Expression theUnion = Expression.union(expressions);				
-		unionExpressions.put(key, theUnion);
-		return theUnion;		 
-	}
-	
-	static Expression makeIntersection(Expression r1, Expression r2)
-	{
-		if(!hasBeenInitialized)
-			initialize();	
 		
-		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(2);
-		key.set(0, r1);
-		key.set(1, r2);
-		
-		Expression cachedValue = intersectExpressions.get(key); 
-		if(cachedValue != null)
-			return cachedValue;
-		
-		Expression e = r1.intersection(r2);
+		Expression e = Expression.intersection(expressions);
 		intersectExpressions.put(key, e);
 		return e;				
 	}

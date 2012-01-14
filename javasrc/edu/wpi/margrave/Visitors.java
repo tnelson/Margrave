@@ -53,8 +53,11 @@ import kodkod.ast.visitor.AbstractVoidVisitor;
 // Kodkod's AbstractReplacer doesn't cache ANYTHING by default, and we would rather it cached everything.
 // I have not added all possible node types yet, but the big ones are here...
 
-abstract class AbstractCacheAllReplacer extends AbstractReplacer {
-
+abstract class AbstractCacheAllReplacer extends AbstractReplacer
+{	
+	// Store the meaning of new term expressions
+	Map<Expression, MTerm> termMap = new HashMap<Expression, MTerm>();
+	
 	AbstractCacheAllReplacer(HashSet<Node> beginCached) {
 		super(beginCached);
 	}
@@ -137,14 +140,93 @@ abstract class AbstractCacheAllReplacer extends AbstractReplacer {
 		for (Formula f : nFormula)
 			newformulas.add(f.accept(this));
 
-		try {
-			return cache(nFormula, MFormulaManager.makeComposition(nFormula
-					.op(), newformulas));
-		} catch (MGEManagerException e) {
-			MEnvironment.writeErrLine(e.getLocalizedMessage());
-			return cache(nFormula, Formula.compose(nFormula.op(), newformulas));
-		}
+		return cache(nFormula, MFormulaManager.makeComposition(nFormula.op(), newformulas));
 	}
+	
+	public Expression visit(NaryExpression expr)
+	{
+		if(cache.containsKey(expr))
+			return lookup(expr);
+		
+		cached.add(expr);
+		
+		List<Expression> newsubs = new ArrayList<Expression>();
+		for(Expression sub : expr)
+		{
+			newsubs.add(sub.accept(this));
+		}
+		
+		Expression result;
+		
+		if(ExprOperator.JOIN.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeJoinE(newsubs));
+		else if(ExprOperator.PRODUCT.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeExprTupleE(newsubs));
+		else if(ExprOperator.INTERSECTION.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeIntersection(newsubs));
+		else if(ExprOperator.UNION.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeUnion(newsubs));	
+		else
+		{
+			// TODO no support for difference, etc. 		
+			throw new MUserException("AbstractCacheAllReplacer saw expression with unsupported operator: "+expr);
+		}
+		
+		// Do we have a term map?
+		// Did we actually change the expression?
+		// Is this complex expression a term? (IFF it's a join)
+		if(termMap != null && expr != result && ExprOperator.JOIN.equals(expr.op()))
+		{
+			MCommunicator.writeToLog("\nReplacing NaryExpression and had a new term: "+result+" with old: "+expr);
+			// Need to let the context map the new term from it's Expression		
+			MTerm oldTerm = termMap.get(expr);
+			termMap.put(result, MTerm.makeTermFromExpression(result));				
+		}
+		
+		return result;
+	}
+	
+	public Expression visit(BinaryExpression expr)
+	{
+		if(cache.containsKey(expr))
+			return lookup(expr);
+		
+		cached.add(expr);
+		
+		List<Expression> newsubs = new ArrayList<Expression>(2);
+		newsubs.add(expr.left().accept(this));
+		newsubs.add(expr.right().accept(this));
+		
+		Expression result;
+		
+		if(ExprOperator.JOIN.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeJoinE(newsubs));
+		else if(ExprOperator.PRODUCT.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeExprTupleE(newsubs));
+		else if(ExprOperator.INTERSECTION.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeIntersection(newsubs));
+		else if(ExprOperator.UNION.equals(expr.op()))
+			result = cache(expr, MFormulaManager.makeUnion(newsubs));	
+		else
+		{
+			// TODO no support for difference, etc. 		
+			throw new MUserException("AbstractCacheAllReplacer saw expression with unsupported operator: "+expr);
+		}		
+		
+		// Do we have a term map?
+		// Did we actually change the expression?
+		// Is this complex expression a term? (IFF it's a join)
+		if(termMap != null && expr != result && ExprOperator.JOIN.equals(expr.op()))
+		{
+			// Need to let the context map the new term from it's Expression	
+			MCommunicator.writeToLog("\nReplacing NaryExpression and had a new term: "+result+" with old: "+expr);
+			MTerm oldTerm = termMap.get(expr);
+			termMap.put(result, MTerm.makeTermFromExpression(result));				
+		}
+
+		return result;
+	}
+	
 }
 
 abstract class AbstractCacheAllDetector extends AbstractDetector
@@ -448,19 +530,22 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 {
 	private Map<Relation, Relation> relpairs;
 	private Map<Variable, Expression> termpairs;
-
 	private boolean no_change;
-
+	
 	public RelationAndTermReplacementV(Map<Relation, Relation> pps,
-			Map<Variable, Expression> vps)
+			Map<Variable, Expression> vps, Map<Expression, MTerm> termMap)
 	{
 		super(new HashSet<Node>());
+		
+		this.termMap = termMap;
+		if(this.termMap == null)
+			this.termMap = new HashMap<Expression, MTerm>();
 
 		// Replace P with Q in the pair.
-		relpairs = pps;
+		this.relpairs = pps;
 
 		// Replace x with t in the pair.
-		termpairs = vps;
+		this.termpairs = vps;
 
 		// Only visit if there is SOMETHING different
 		no_change = true;
@@ -511,7 +596,14 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 
 		// Perform the replacement here, if needed.
 		if (relpairs.containsKey(therel))
-			return cache(therel, relpairs.get(therel));
+		{
+			Expression newrel = relpairs.get(therel);	
+			
+			// No clue if this is a constant term or not... but should be harmless to create a term for it?			
+			termMap.put(newrel, MTerm.makeTermFromExpression(newrel));
+			MCommunicator.writeToLog("\nRelationAndTermReplacementV: visited Relation and replaced. New="+newrel+" Old="+therel);
+			return cache(therel, newrel);
+		}
 		else
 			return cache(therel, therel);
 	}
@@ -530,21 +622,14 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		if (ExprCompOperator.EQUALS.equals(comp.op())) 		
 		{
 			// EQUALITY
-			
+			// newly created terms will be collected here:
 			Expression newlhs = comp.left().accept(this);
 			Expression newrhs = comp.right().accept(this);
 			
 			// No longer require that both sides of an equality be either a relation or a variable;
 			// could have complex terms of type Expression, but not LeafExpression.
 			
-			try 
-			{
-				return cache(comp, MFormulaManager.makeEqAtom(newlhs, newrhs));
-			} catch (MGEManagerException e) {
-				MEnvironment.writeErrLine(e);				
-				System.exit(101);
-				return Formula.TRUE;
-			}
+			return cache(comp, MFormulaManager.makeEqAtom(newlhs, newrhs));
 
 		} else {
 			// IN (SUBSET)
@@ -558,30 +643,24 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 
 			
 			
-			try {
+			// TODO do we need substituteExprTuple anymore???
+			// Updated visitor seems to do everything it does?
+			
 				// We have a var tuple? Replace vars AS NEEDED!
-				if (comp.left() instanceof BinaryExpression ||
-						comp.left() instanceof NaryExpression)
-					newlhs = MFormulaManager.substituteExprTuple(comp.left(), termpairs);
-								
-				else
+			//	if (comp.left() instanceof BinaryExpression ||
+			//			comp.left() instanceof NaryExpression)
+			//		newlhs = MFormulaManager.substituteExprTuple(comp.left(), termpairs);
+			//					
+			//	else
 					newlhs = comp.left().accept(this);
 
-				if(comp.right() instanceof BinaryExpression ||
-						comp.right() instanceof NaryExpression)
-					newrhs = MFormulaManager.substituteExprTuple(comp.right(), termpairs);
-				else
+			//	if(comp.right() instanceof BinaryExpression ||
+			//			comp.right() instanceof NaryExpression)
+			//		newrhs = MFormulaManager.substituteExprTuple(comp.right(), termpairs);
+			//	else
 					newrhs = comp.right().accept(this);
 
-				return cache(comp, MFormulaManager.makeAtom(newlhs, newrhs));
-			} catch (MGEManagerException e) {
-				MEnvironment.writeErrLine(e);
-
-				newlhs = comp.left().accept(this);
-				newrhs = comp.right().accept(this);
-				return cache(comp, newlhs.in(newrhs));
-			}
-
+			return cache(comp, MFormulaManager.makeAtom(newlhs, newrhs));			
 		}
 	}
 
@@ -590,10 +669,15 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		if (cache.containsKey(var))
 			return lookup(var);
 		cached.add(var);
-
+		
 		// Perform the variable replacement here, if needed.
 		if (termpairs.containsKey(var))
-			return cache(var, termpairs.get(var));
+		{
+			Expression newvar = termpairs.get(var);			
+			termMap.put(newvar, MTerm.makeTermFromExpression(newvar));
+			MCommunicator.writeToLog("\nRelationAndTermReplacementV: visited Variable and replaced. New="+newvar+" Old="+var);
+			return cache(var, newvar);
+		}
 		else
 			return cache(var, var);
 	}
@@ -621,8 +705,7 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		Variable y = MFormulaManager.makeVariable("y");
 		vtestset.put(x, y);
 
-		RelationAndTermReplacementV v = new RelationAndTermReplacementV(
-				rtestset, vtestset);
+		RelationAndTermReplacementV v = new RelationAndTermReplacementV(rtestset, vtestset, null);
 
 		runUnitTest("1", v, R.no(), P.no());
 
@@ -652,41 +735,42 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		vtestset.clear();
 		rtestset.clear();
 		vtestset.put(x, c);
-		runUnitTest("3", new RelationAndTermReplacementV(rtestset, vtestset), testConstants, MFormulaManager.makeAtom(c, R));
+		runUnitTest("3", new RelationAndTermReplacementV(rtestset, vtestset, null), testConstants, MFormulaManager.makeAtom(c, R));
 		
 		////////////////////////
 		// Corner case: auto-dropping of un-necessary conjuncts
 		Formula testConstants2 = MFormulaManager.makeAnd(MFormulaManager.makeAtom(x, R),
 				                                         MFormulaManager.makeAtom(c, R));		
 		// This is correct because the subs. result would be (x in C) and (x in C) == (x in C)
-		runUnitTest("4", new RelationAndTermReplacementV(rtestset, vtestset), testConstants2, MFormulaManager.makeAtom(c, R));
+		runUnitTest("4", new RelationAndTermReplacementV(rtestset, vtestset, null), testConstants2, MFormulaManager.makeAtom(c, R));
 		
 		////////////////////////
 		// Test with binary (trigger MFormulaManager.substituteVarTuple)
 		List<Expression> tuple1 = new ArrayList<Expression>(2);
 		tuple1.add(x); tuple1.add(c);
 		Formula testConstants3 = MFormulaManager.makeAtom(MFormulaManager.makeExprTupleE(tuple1), Connected);		
-		runUnitTest("5", new RelationAndTermReplacementV(rtestset, vtestset), 
+		runUnitTest("5", new RelationAndTermReplacementV(rtestset, vtestset, null), 
 				    testConstants3, 
 				    MFormulaManager.makeAtom(c.product(c), Connected));
 		
 		////////////////////////		
 		// Test with FUNCTIONS (which are represented as joins)
+		// Remember ORDERING: f(x, y) ~= y.(x.f)
 		Relation f = MFormulaManager.makeRelation("f", 2);
 		tuple1.clear();
-		tuple1.add(f.join(x));
-		tuple1.add(f.join(y));
+		tuple1.add(x.join(f));
+		tuple1.add(y.join(f));
 		Formula testConstants4 = MFormulaManager.makeAtom(MFormulaManager.makeExprTupleE(tuple1), Connected);		
-		runUnitTest("6", new RelationAndTermReplacementV(rtestset, vtestset), 
+		runUnitTest("6", new RelationAndTermReplacementV(rtestset, vtestset, null), 
 				    testConstants4, 
-				    MFormulaManager.makeAtom(f.join(c).product(f.join(y)), Connected));		
+				    MFormulaManager.makeAtom(c.join(f).product(y.join(f)), Connected));		
 		
 		////////////////////////
 		// Test equality with functions
-		Formula testConstants5 = MFormulaManager.makeEqAtom(f.join(x), c);		
-		runUnitTest("7", new RelationAndTermReplacementV(rtestset, vtestset), 
+		Formula testConstants5 = MFormulaManager.makeEqAtom(x.join(f), c);		
+		runUnitTest("7", new RelationAndTermReplacementV(rtestset, vtestset, null), 
 				    testConstants5, 
-				    MFormulaManager.makeEqAtom(f.join(c), c));		
+				    MFormulaManager.makeEqAtom(c.join(f), c));		
 		
 		
 		MEnvironment.writeErrLine("----- End RelationReplacementV Tests -----");
@@ -929,9 +1013,11 @@ class MIDBReplacementV extends AbstractCacheAllReplacer
 	List<Variable> varVector;
 	Formula idbFormula;
 	
-	MIDBReplacementV(Expression rhsTarget, List<Variable> varVector, Formula idbFormula)
+	MIDBReplacementV(Expression rhsTarget, List<Variable> varVector, Formula idbFormula, Map<Expression, MTerm> theMap)
 	{		
 		super(new HashSet<Node>());
+		
+		this.termMap = theMap;
 		
 		this.rhsTarget = rhsTarget;
 		this.varVector = varVector;
@@ -975,7 +1061,7 @@ class MIDBReplacementV extends AbstractCacheAllReplacer
 			ii ++;	
 		}
 
-		Formula newComp = idbFormula.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace));	
+		Formula newComp = idbFormula.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace, termMap));	
 		
 		cached.add(newComp);
 		return cache(comp, newComp);

@@ -58,7 +58,7 @@
 
 (printf "~n----------------------------------~nExample 1 results:~n----------------------------------~n~n")
 (check-true (m-is-poss? "Example1"))
-(display (m-show "Example1"))
+;(display (m-show "Example1"))
 
 
 
@@ -69,15 +69,15 @@
 ; ************************************************************
 
 (printf "~n----------------------------------~nExample 2 results:~n----------------------------------~n~n")
-(display (m-show "Example1" #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro) 
-                                        ([aclfw1 deny] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule1_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule2_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule3_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule4_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule5_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule6_applies] interf tempnatsrc ipdest portsrc portdest pro)
-                                        ([aclfw1 rule7_applies] interf tempnatsrc ipdest portsrc portdest pro))))
+(check-not-exn (lambda () (m-show "Example1" #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro) 
+                                                         ([aclfw1 deny] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule1_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule2_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule3_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule4_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule5_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule6_applies] interf tempnatsrc ipdest portsrc portdest pro)
+                                                         ([aclfw1 rule7_applies] interf tempnatsrc ipdest portsrc portdest pro)))))
 
 
 
@@ -115,10 +115,9 @@
           ([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro)                               
           ([aclfw1new deny] interminterface tempnatsrc ipdest portsrc portdest pro))))
 
-(check-false (m-is-poss? "Example3"))
-
 (printf "~n----------------------------------~nExample 3 results:~n----------------------------------~n~n")
-(display (m-show "Example3"))
+(check-false (m-is-poss? "Example3"))
+;(display (m-show "Example3"))
 
 
 
@@ -157,10 +156,10 @@
         (not ([aclfw1new accept] interminterface tempnatsrc ipdest portsrc portdest pro))        
         ([aclfw1 accept] interminterface tempnatsrc ipdest portsrc portdest pro)))))
 
-(check-true (m-is-poss? "Example4"))
 
 (printf "~n----------------------------------~nExample 4 results:~n----------------------------------~n~n")
-(display (m-show "Example4"))
+(check-true (m-is-poss? "Example4"))
+;(display (m-show "Example4"))
 
 
 
@@ -227,8 +226,8 @@
 (check-false (m-is-poss? "Example5a"))
 (check-false (m-is-poss? "Example5b"))
 
-(m-is-poss? "Example5a")
-(m-is-poss? "Example5b")
+;(m-is-poss? "Example5a")
+;(m-is-poss? "Example5b")
 
 ; ^^^ both return #f
  
@@ -296,7 +295,7 @@
 (check-false (m-is-poss? "Example6a"))
 (check-false (m-is-poss? "Example6b"))
 
-(m-is-poss? "Example6a")
-(m-is-poss? "Example6b")
+;(m-is-poss? "Example6a")
+;(m-is-poss? "Example6b")
 ; ^^^ both return #f
 
