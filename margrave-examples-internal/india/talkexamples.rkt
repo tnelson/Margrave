@@ -295,6 +295,12 @@
 (check-false (m-is-poss? "Example6a"))
 (check-false (m-is-poss? "Example6b"))
 
+
+(m-let "Exampleisa1" '([ipdest Interface] 
+                     [ipsrc IPAddress])
+       '(isa ipdest Port true)
+       #:under '("aclfw1ex6"))
+
 ;(m-is-poss? "Example6a")
 ;(m-is-poss? "Example6b")
 ; ^^^ both return #f

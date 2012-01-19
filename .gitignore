@@ -1,0 +1,5 @@
+*~
+*.bak
+margrave/bin/edu/wpi/margrave/margrave-log.txt
+margrave/compiled/
+.metadata/
