@@ -3,8 +3,7 @@
 
 
 (Theory pa-state
-        (Vocab pa-state
-               
+        (Vocab pa-state               
                (Constants                
                 ('mrSecurity User)
                 ('mrAdmin User)
@@ -15,6 +14,34 @@
                 ('state2 ReqTime)
                 ('state3 ReqTime)
                 ('state4 ReqTime)
+                
+                ;('state5 ReqTime)
+                ;('state6 ReqTime)
+                ;('state7 ReqTime)
+                ;('state8 ReqTime)
+                ;('state9 ReqTime)                
+                ;('state10 ReqTime)
+                ;('state11 ReqTime)
+                ;('state12 ReqTime)
+                ;('state13 ReqTime)
+                ;('state14 ReqTime)
+                ;('state15 ReqTime)
+                ;('state16 ReqTime)
+                ;('state17 ReqTime)
+                ;('state18 ReqTime)
+                ;('state19 ReqTime)                
+                
+                ;('state20 ReqTime)
+                ;('state21 ReqTime)
+                ;('state22 ReqTime)
+                ;('state23 ReqTime)
+                ;('state24 ReqTime)
+                ;('state25 ReqTime)
+                ;('state26 ReqTime)
+                ;('state27 ReqTime)
+                ;('state28 ReqTime)
+                ;('state29 ReqTime)
+                
                 ('end EndTime)
                 
                 ('machine4 Server)
@@ -41,8 +68,10 @@
                 ; Each request has a user and a server.
                 ; Set port requests have a port, too.
                 (requestUser Request User)
-                (requestServer Request Server)
-                ;(requestPort RSetPort Port) ; made all Requests instead of just RSetPort for well-sortedness
+                (requestServer Request Server
+                               )
+                ;(requestPort RSetPort Port)                 
+                ; KLUDGE for well-sortedness. See .rkt file.
                 (requestPort Request Port)
                 )                 
                
@@ -54,8 +83,7 @@
                  ; Need a stopping-state where the axioms don't force ANOTHER state to exist.
                  (Time > ReqTime EndTime)
                  
-                 ; Need a "request", representing the unique request 
-                 ; appearing at each state. 
+                 ; Representing the unique request that appears at each state. 
                  (Request > RSetPort RSetExternal)
                  ))
                                                                      
@@ -80,9 +108,37 @@
          ; Time:
          (formula (= (nextTime 'state0) 'state1))
          (formula (= (nextTime 'state1) 'state2))
-         (formula (= (nextTime 'state2) 'state3))
+         (formula (= (nextTime 'state2) 'state3))                  
          (formula (= (nextTime 'state3) 'state4))
-         (formula (= (nextTime 'state4) 'end))                           
          
-         ; Additional axioms go in the query!
+        ; (formula (= (nextTime 'state4) 'state5))
+        ; (formula (= (nextTime 'state5) 'state6))
+        ; (formula (= (nextTime 'state6) 'state7))
+        ; (formula (= (nextTime 'state7) 'state8))
+        ; (formula (= (nextTime 'state8) 'state9))
+        ; (formula (= (nextTime 'state9) 'state10))
+        ; (formula (= (nextTime 'state10) 'state11))
+        ; (formula (= (nextTime 'state11) 'state12))
+        ; (formula (= (nextTime 'state12) 'state13))
+        ; (formula (= (nextTime 'state13) 'state14))
+        ; (formula (= (nextTime 'state14) 'state15))
+        ; (formula (= (nextTime 'state15) 'state16))
+        ; (formula (= (nextTime 'state16) 'state17))
+        ; (formula (= (nextTime 'state17) 'state18))
+        ; (formula (= (nextTime 'state18) 'state19))         
+        ; (formula (= (nextTime 'state19) 'state20))
+        ; (formula (= (nextTime 'state20) 'state21))
+        ; (formula (= (nextTime 'state21) 'state22))
+        ; (formula (= (nextTime 'state22) 'state23))
+        ; (formula (= (nextTime 'state23) 'state24))
+        ; (formula (= (nextTime 'state24) 'state25))
+        ; (formula (= (nextTime 'state25) 'state26))
+        ; (formula (= (nextTime 'state26) 'state27))
+        ; (formula (= (nextTime 'state27) 'state28))
+        ; (formula (= (nextTime 'state28) 'state29))
+        ; (formula (= (nextTime 'state29) 'end))
+         
+         ;(formula (= (nextTime 'state19) 'end))
+         
+         (formula (= (nextTime 'state4) 'end))                           
          )) 

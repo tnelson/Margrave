@@ -1,5 +1,32 @@
+# Metadata
+.metadata/
+
+# Backup files
 *~
 *.bak
+
+# The Margrave log file andcompiled Racket sources
 margrave/bin/edu/wpi/margrave/margrave-log.txt
 margrave/compiled/
-.metadata/
+compiled/
+
+# The IOS examples for LISA10 compiled IOS to .p/.v, but
+# the compilation is part of the example. Only include the
+# IOS source in git.
+IOS-example1/config/*.p
+IOS-example1/config/*.v
+IOS-example1/config-ack/*.p
+IOS-example1/config-ack/*.v
+IOS-example1/config-reflexive/*.p
+IOS-example1/config-reflexive/*.v
+IOS-example1/config-revised/*.p
+IOS-example1/config-revised/*.v
+IOS-example2/config/*.p
+IOS-example2/config/*.v
+IOS-example2/revised/*.p
+IOS-example2/revised/*.v
+IOS-example2/revised-address/*.p
+IOS-example2/revised-address/*.v
+margrave/examples/policies/ios-demo/initial/*.p
+margrave/examples/policies/ios-demo/initial/*.v
+
