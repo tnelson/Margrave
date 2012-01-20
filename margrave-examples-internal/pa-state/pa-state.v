@@ -56,7 +56,7 @@
                
                (Functions 
                 ; Final state has no successor
-                (nextTime ReqTime Time)
+                (nextTime ReqTime Time)               
                 
                 ; Final state has no request
                 (requestAtTime ReqTime Request)
@@ -75,6 +75,9 @@
                 (requestPort Request Port)
                 )                 
                
+               (Predicates                 
+                (before Time Time))
+               
                 (Types                 
                  User                
                  Server                 
@@ -90,7 +93,7 @@
         (Axioms
          ; TODO Note: No way to say abstract w/o constants... 
          ; (that is, if something has both subsorts and constants, that it's covered by the subsorts alone)
-         ; abstract implies both
+         ; abstract implies both                 
          
          (abstract Request)
          (abstract Port)
@@ -104,6 +107,26 @@
          (constants-neq-all User)
          (constants-neq-all Server)
          (constants-neq-all Port)
+         
+         ; < time
+         ; We have no transitive closure in Margrave, so we cannot define the transitive closure of nextTime. 
+         ; Instead, define manually for the 5 states:
+         (formula (and (before 'state0 'state1)
+                       (before 'state0 'state2)
+                       (before 'state0 'state3)
+                       (before 'state0 'state4)
+                       (before 'state0 'end)
+                       (before 'state1 'state2)
+                       (before 'state2 'state3)
+                       (before 'state3 'state4)
+                       (before 'state4 'end)
+                       (before 'state2 'state3)
+                       (before 'state2 'state4)
+                       (before 'state2 'end)                       
+                       (before 'state3 'state4)
+                       (before 'state3 'end)
+                       (before 'state4 'end)))
+         
          
          ; Time:
          (formula (= (nextTime 'state0) 'state1))

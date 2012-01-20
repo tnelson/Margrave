@@ -193,3 +193,42 @@
 ; > is no longer allowed to change it if he decides it is no longer appropriate.
 ; > Mr Security "approved" it in some sense, but he never set it explicitly for this
 ; > machine.
+
+; > the one we have been discussing above about the "provenance" of the
+; > information - you need to be able to reason about this in the same way
+; > that you reason about the values. 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Can we find the state where a value present at the end state first 
+; appeared? [Added "before" relation to support this. Since Margrave's
+; language is first-order, we have no way of creating such a relation
+; locally in this query. Had to state it manually since no trans clos.]  !!!
+(m-let "PA2-blame1" '([thestate ReqTime]
+                      [therequest Request]
+                      [theuser User])
+       '(and ([PA1])
+             (= theuser (requestUser (requestAtTime thestate)))             
+             (= therequest (requestAtTime thestate))
+             ; The request changed the port on the server that is external at 'end
+             (not (= (portAtTime thestate (externalAtTime 'end))
+                     (portAtTime 'end (externalAtTime 'end))))
+             ; All later requests do not change that port.
+             (forall t Time (implies
+                             (before thestate t)
+                             (= (portAtTime t (externalAtTime 'end))
+                                (portAtTime 'end (externalAtTime 'end))))))
+       #:ceiling '([Server 2]
+                   [Time 6]
+                   [Request 5]
+                   [Port 2]
+                   [User 3]
+                   [univ 18]))
+
+;(m-get "PA2-blame1")
+(display (m-show "PA2-blame1"))
+; ^^ This reveals that mrAdmin issued the request at state2 (time=3) that
+; changed the port on what would _EVENTUALLY_ (key word) be the external webserver.
+
