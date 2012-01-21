@@ -3,13 +3,19 @@
 (require srfi/13                  
          syntax/readerr
          rackunit
+         racket/serialize
          ;racket/contract
          ;racket/list
          ;racket/path
          ;racket/match
          xml)
 
-(provide (all-defined-out))
+; Scenario structs are provided via provide/contract
+(provide (except-out (all-defined-out)
+                     (struct-out m-scenario)
+                     (struct-out m-relation)
+                     (struct-out m-statistics)
+                     (struct-out m-unsat)))
 
 ; HELPERS
 
@@ -275,34 +281,40 @@
 
 ; Helper struct for scenarios. For now, atoms are strings.
 
-(define-struct/contract m-relation
-  ([name string?]   
-   [reltype symbol?]
-   [tuples (listof (listof string?))])
-  #:transparent)
+(serializable-struct m-relation
+  (name reltype tuples)
+  #:mutable #:transparent)
+(provide/contract (struct m-relation
+                    ([name string?]   
+                     [reltype symbol?]
+                     [tuples (listof (listof string?))])))
 
-(define-struct/contract m-statistics
-  ([computed-max (or/c number? false?)]
-   [user-provided-max (or/c number? false?)]
-   [used-max (or/c number? false?)]
-   [warnings (listof string?)]
-   [used hash?])
-  #:transparent)
+(serializable-struct m-statistics
+  (computed-max user-provided-max used-max warnings used)
+  #:mutable #:transparent)
+(provide/contract (struct m-statistics
+                    ([computed-max (or/c number? false?)]
+                     [user-provided-max (or/c number? false?)]
+                     [used-max (or/c number? false?)]
+                     [warnings (listof string?)]
+                     [used hash?]) ))
 
-(define-struct/contract m-scenario
-  ([size integer?]
-   [atoms (listof string?)]
-   [sorts (listof m-relation?)]
-   [skolems (listof m-relation?)]
-   [relations (listof m-relation?)]
-   [statistics m-statistics?]
-   [annotations (listof string?)])
-  #:transparent)
+(serializable-struct m-scenario
+  (size atoms sorts skolems relations statistics annotations)
+  #:mutable #:transparent)  
+(provide/contract (struct m-scenario 
+                    ([size integer?]
+                     [atoms (listof string?)]
+                     [sorts (listof m-relation?)]
+                     [skolems (listof m-relation?)]
+                     [relations (listof m-relation?)]
+                     [statistics m-statistics?]
+                     [annotations (listof string?)])))
 
-(define-struct/contract m-unsat
-  ([statistics m-statistics?])
-  #:transparent)
-
+(serializable-struct m-unsat
+  (statistics)
+  #:mutable #:transparent)
+(provide/contract (struct m-unsat ([statistics m-statistics?])))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
