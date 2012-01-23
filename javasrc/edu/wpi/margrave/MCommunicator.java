@@ -157,24 +157,29 @@ public class MCommunicator
             		{
             			int b = commandStream.read();
             			inputStringBuffer.append((char) b);
-            			//writeToLog("\nString: "+inputStringBuffer.toString()); 
+            			//writeToLog("\n(Blocked and then got) character: `"+(char)b+"`"); 
             		}
             		else
             		{
                 		byte[] inputBytes = new byte[commandStream.available()];         
-                		int bytesRead = commandStream.read(inputBytes);                 		
-                		inputStringBuffer.append(new String(inputBytes).trim());            		
-                		//writeToLog("\nString: "+inputStringBuffer.toString());            		         		            			
+                		int bytesRead = commandStream.read(inputBytes);    
+                		String block = new String(inputBytes);
+                		inputStringBuffer.append(block);            		
+                		//writeToLog("\n(Didn't block for) String: `"+block+"`");            		         		            			
             		}            		
             		
+            		// Bad kludge. Couldn't get proper XML parse function working, so
+            		// did this. Should re-write (preferably with correct XML handling functions!)
+            		// The trim() call below is especially egregious... - TN
+            		            		
             		String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";
-            		String bufferStr = inputStringBuffer.toString();
-            		if(bufferStr.endsWith(sMargraveCommandEnding))
+            		String bufferStr = inputStringBuffer.toString();            		
+            		if(bufferStr.trim().endsWith(sMargraveCommandEnding))
             			break;
             	}
             	
             	String cmdString = inputStringBuffer.toString();
-            	//writeToLog("\nDONE! String: "+cmdString);
+            	writeToLog("\n\n*********************************\nDONE! Received command: `"+cmdString+"`\n");
             	
             	doc = docBuilder.parse(new InputSource(new StringReader(cmdString)));
             	

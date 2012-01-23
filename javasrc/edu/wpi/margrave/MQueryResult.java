@@ -430,7 +430,9 @@ public abstract class MQueryResult
 				String theAtom = t.name+"#"+ii;
 				upperBounds.get(t.rel).add(theAtom);
 				atomSet.add(theAtom);
+				propagateNewAtomInUpperBounds(upperBounds, t, theAtom);
 			}
+									
 		}
 		else
 		{
@@ -447,28 +449,9 @@ public abstract class MQueryResult
 			{
 				String theAtom = t.name+"#"+ii;
 				upperBounds.get(t.rel).add(theAtom);
-				atomSet.add(theAtom);
-				Set<MSort> propagateTo = fromContext.forQuery.vocab.buildSubSortSet(t);
-				for(MSort dt : propagateTo)
-				{
-					upperBounds.get(dt.rel).add(theAtom);
-				}				
-			}
-						
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// UNDER THE ASSUMPTION THAT THE SORT ORDERING IS A TREE
-			// AND INCOMPARABLE SORTS MUST BE DISJOINT
-			// ...it is safe to do this:
-			// propagate along Skolem coercions. (don't need to iterate w/ <= if tree)									
-			for(SigFunction f : fromContext.herbrandBounds.getSAPFunctions())
-			{			
-				assert(f.arity.size() > 0);
-				LeafExpression src = f.arity.get(0);
-				LeafExpression dest = f.sort;
-				assert(src instanceof Relation);
-				assert(dest instanceof Relation);				
-				upperBounds.get(dest).addAll(upperBounds.get(src));
-			}
+				atomSet.add(theAtom);								
+				propagateNewAtomInUpperBounds(upperBounds, t, theAtom);				
+			}						
 			
 			// If any child* has size -1, its upper bound must contain the upper bound of this type
 			// (Since we've already resolved user bounds + computed bounds, -1 means don't know what to do.
@@ -485,6 +468,41 @@ public abstract class MQueryResult
 			
 		}	// end recursive case		
 	} // end method
+	
+	
+	protected void propagateNewAtomInUpperBounds(Map<Relation, Set<String>> upperBounds, MSort t, String theAtom)
+	{
+		// Step 1: Propagate to subsorts (if any). Since this atom was
+		// created locally for sort t, we need to allow it to inhabit t's children.
+		Set<MSort> propagateTo = fromContext.forQuery.vocab.buildSubSortSet(t);
+		for(MSort dt : propagateTo)
+		{
+			MCommunicator.writeToLog("\n !!! Bounds for "+t.rel+" propagating "+theAtom+" to subsort: "+dt);
+			upperBounds.get(dt.rel).add(theAtom);
+		}		
+		
+		// This step is un-necessary if incomparable sorts are disjoint.
+		// If the coercion goes UP the hierarchy, it is covered by the recursion in makeSortUpperBound.
+		// If the coercion goes DOWN the hierarchy, the block above covers it.
+		// If it goes ACROSS the hierarchy, it can't actually be used, since the two sorts are disjoint.
+		
+		// Step 2: Propagate the atom... 
+		// Ask FormulaSigInfo what sorts these atoms may get propagated to.
+		// If A can propagate to B via Skolem coercions, make sure our 
+		// UPPER bounds respect that.
+//		for(LeafExpression r : fromContext.herbrandBounds.sortsThisCanBeCoercedTo(t.rel))
+//		{
+//			if(!upperBounds.containsKey(r))
+//			{
+//				throw new MNotASortException("MQueryResult: LeafExpression "+r+" was not a sort relation.");
+//			}
+//			
+//			MCommunicator.writeToLog("\n!!! Bounds for "+t.rel+" appending to "+r);
+//			
+//			upperBounds.get(r).addAll(upperBounds.get(t.rel));
+//		}
+
+	}
 	
 	protected TupleSet makePredicateUpperBound(TupleFactory factory, Bounds qryBounds, MPredicate p)
 	{

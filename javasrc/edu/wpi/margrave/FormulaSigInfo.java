@@ -677,6 +677,13 @@ public class FormulaSigInfo
 	private Set<SigFunction> productiveSAPFunctions = 
 		new HashSet<SigFunction>();
 	
+	// Each LeafExpression is assigned exactly one integer for efficiency.
+	Map<LeafExpression, Integer> sortToInt = new HashMap<LeafExpression, Integer>();
+	Map<Integer, LeafExpression> intToSort = new HashMap<Integer, LeafExpression>();
+
+	// Stores the array of "blue" edges for use by Margrave. Populated below.
+	boolean[][] viableCoercionsArray;
+	int viableCoercionsArrayMax = 0;
 	
 	// Set of sorts which contain finitely many terms 
 	private Set<LeafExpression> finitarySorts = new HashSet<LeafExpression>();
@@ -1532,9 +1539,7 @@ public class FormulaSigInfo
 		// Make the ordering deterministic (by alphabetic order)
 		List<LeafExpression> sortedSorts = new ArrayList<LeafExpression>(sorts);
 		Collections.sort(sortedSorts, new MLeafExpressionComparator());
-		
-		Map<LeafExpression, Integer> sortToInt = new HashMap<LeafExpression, Integer>();
-		Map<Integer, LeafExpression> intToSort = new HashMap<Integer, LeafExpression>();		
+					
 		int iIndex = 0;
 		for(LeafExpression s : sortedSorts)
 		{
@@ -1547,7 +1552,8 @@ public class FormulaSigInfo
 			
 			iIndex++;
 		}
-				
+						
+		
 		//////////////////////////////////////////////////////////////
 		// Build set of valid blue (src,dest) pairs first. A valid blue pair
 		// uses only coercions to travel from src to dest, without crossing
@@ -1603,9 +1609,12 @@ public class FormulaSigInfo
 			printBooleanMatrix(blueM, max);
 		booleanWarshall(blueM, true, max, intToSort);									
 		if(enableDebug)
-			printBooleanMatrix(blueM, max);
-				
+			printBooleanMatrix(blueM, max);					
+		
 		MCommunicator.writeToLog("\n@"+System.currentTimeMillis()+": Done with Warshall on blue array.");
+		
+		viableCoercionsArray = blueM.clone();
+		viableCoercionsArrayMax = max;
 		
 		// This blue-TC is exactly what should go in
 		// supersAndCoercionsFromTC for use in counter.
@@ -2603,6 +2612,32 @@ public class FormulaSigInfo
 		return new HashSet<SigFunction>(skolemConstants);
 	}
 
+	Set<LeafExpression> sortsThisCanBeCoercedTo(Relation r)
+	{
+		// 	Map<LeafExpression, Integer> sortToInt = new HashMap<LeafExpression, Integer>();
+		// Map<Integer, LeafExpression> intToSort = new HashMap<Integer, LeafExpression>();
+		// viableCoercionsArray.
+		
+		Set<LeafExpression> result = new HashSet<LeafExpression>();
+		
+		if(!sortToInt.containsKey(r))
+			throw new MNotASortException ("FormulaSigInfo did not recognize the leaf expression: "+r);
+		if(viableCoercionsArrayMax < 1)
+			throw new MNotASortException ("FormulaSigInfo was not initialized when sortsThisCanBeCoercedTo was called.");
+		
+		int thisRelationInt = sortToInt.get(r);
+		for(int ii=0;ii<viableCoercionsArrayMax;ii++)
+		{
+			// The array is: Atoms can be coerced from ROW to COL.
+			if(viableCoercionsArray[thisRelationInt][ii])
+			{
+				result.add(intToSort.get(ii));
+			}								
+		}
+		
+		return result;
+	}
+	
 	
 }
 
