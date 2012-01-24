@@ -31,6 +31,7 @@
          (file "compiler.rkt")
          (file "margrave-policy-vocab.rkt")
          (file "helpers.rkt")
+         (file "polvochelpers.rkt")
          (file "margrave-xml.rkt"))
 
 (provide stop-margrave-engine
@@ -52,6 +53,7 @@
          
          (all-from-out (file "margrave-xml.rkt"))
          (all-from-out (file "helpers.rkt"))
+         (all-from-out (file "polvochelpers.rkt"))         
 
          display-response
          response->string

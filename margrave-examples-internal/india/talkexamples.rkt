@@ -60,7 +60,7 @@
 (check-true (m-is-poss? "Example1"))
 ;(display (m-show "Example1"))
 
-
+;(mtext "count Example1")
 
 
 

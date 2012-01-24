@@ -11,19 +11,24 @@
 (m-let "Q1" '([s User]
               [a Action]
               [r Object])
-       '([continue permit] s a r)
+       '(and ([continue permit] s a r)
+             (= 'advancePhase a)             
+             (isa r Conference (= (conferencePhase r) 'cDiscussion))
+             (exists p Paper true)
+             (forall u User (forall p Paper (not (conflicted u p))))
+             )
        #:ceiling '([univ 9]
-                   [User 1]
-                   [Action 1]
+                   [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
+                   [Action 16]
                    [Paper 1]
                    [Review 1]
                    [Decision 1]
                    [Conference 1]
-                   [ConferencePhase 1]
-                   [PaperPhase 1]
+                   [ConferencePhase 9]
+                   [PaperPhase 6]
                    [ConferenceInfo 1]))
 (check-true (m-scenario? (m-get "Q1")))
-(m-get "Q1")
+;(m-get "Q1")
 
 ;(m-let "QTest" '()
 ;       'true

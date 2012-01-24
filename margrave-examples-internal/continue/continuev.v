@@ -74,6 +74,19 @@
                )
         
         (Axioms
+         ; authorOf is really Paper x Author, etc.
+         ; TODO: Example of how messy the type system is forcing axioms to be...
+         (formula (forall p Paper (forall u User (implies (authorOf p u)
+                                                          (author u)))))         
+         (formula (forall u User (forall p Paper (implies (bid u p)
+                                                          (reviewer u)))))
+         (formula (forall u User (forall p Paper (implies (conflicted u p)
+                                                          (reviewer u)))))
+         (formula (forall u User (forall p Paper (implies (assignedTo u p)
+                                                          (reviewer u)))))
+         (formula (forall u User (forall p Paper (forall r Review (implies (reviewOn u p r)
+                                                                           (reviewer u))))))
+         
          ; Never more than one conference at a time
          ; (To allow >1, would need to add to the arities of the preds above)
          (atmostone Conference)
@@ -84,6 +97,11 @@
          ; There is some administrator (constraint on _predicate_)
          (nonempty admin)
                   
+         ; All constants different! 
+         (constants-neq-all PaperPhase)
+         (constants-neq-all ConferencePhase)
+         (constants-neq-all Action)
+         
          ; admins cannot be authors                       
          (disjoint admin author)
          
@@ -98,7 +116,6 @@
          
          ; Not everyone submits a review, and may be an early phase
          ; but at most one review
-         ; !!! exception
          (partial-function reviewOn)
          
                
