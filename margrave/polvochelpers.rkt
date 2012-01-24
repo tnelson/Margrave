@@ -217,7 +217,10 @@
           the-tuple))
 (check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '(x)))
 (check-false (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '('c)))
+(check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1" "Atom123") '(x)))
 (check-exn exn:fail? (lambda () (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '((f 'c)))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; filter-tuples: procedure scenario -> scenario
