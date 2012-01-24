@@ -240,6 +240,17 @@
 ; (m-scenario-sorts a-scenario)
 ; ==> '( (m-relation ...)  ... )
 
+; Terms are s-expressions that are one of:
+; (1) A variable x
+; (2) A constant 'c (note the extra single-quote in the s-expression)
+; (3) A function application (f t1 ... tk) where f is a valid function symbol and t1 ... tk are terms.
+
+; Example of use: 
+;(filter-tuples (lambda (atuple) 
+;                 (tuple-involves-terms dereference-term-test-scenario-1 
+;                                       atuple 
+;                                       '('c (f x) (g (f x) 'c))))
+;               dereference-term-test-scenario-1)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
