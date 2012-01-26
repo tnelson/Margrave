@@ -17,6 +17,7 @@
              (isa r Conference (= (conferencePhase r) 'cDiscussion))
              ; Force the assumption: If the conference is in discussion, so are all the papers.
              ; (This should be an axiom?)
+             ; Ahh -- these axioms were implicit in Alloy! Not so here...
              (forall p Paper (= (paperPhase p) 'pDiscussion))
              (exists p Paper true)
              (forall u User (forall p Paper (not (conflicted u p))))
@@ -25,7 +26,7 @@
                    [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
                    [Action 16]
                    [Paper 1]
-                   [Review 1]
+                   [Review 0]
                    [Decision 1]
                    [Conference 1]
                    [ConferencePhase 9]
