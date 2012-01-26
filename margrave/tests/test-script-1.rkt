@@ -30,6 +30,7 @@
        '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
 (check-false (m-is-poss? "Q3")) ; false because Resource can't be empty; we have a constant in it.
 (check-true (string? (m-show "Q3"))) ; show for unsat
+(check-true (equal? 0 (m-count-scenarios "Q3")))
 
 ; forall (w/o constant)
 (m-let "Q3a" '([s Subject]) 
@@ -99,31 +100,31 @@
        #:under '("mypol1"))
 (check-false (m-is-poss? "Q9")) ; false, Resource is abstract
 
+; m-count-scenarios returns #f if there are more scenarios than it can count.
+; So test it on a query with a smaller satisfying set.
+; Also test _matches and _applies for a policy rule
+(m-let "Qrestrictedsize" '([s Subject] [a Action] [r Resource]) 
+       '(and ([mypol2 permit] s a r)             
+             (ReadPaper a)
+             ([mypol2 paperAssigned_applies] s a r)
+             (not ([mypol2 paperNoConflict_matches] s a r))))
+(define num-scenarios (m-count-scenarios "Qrestrictedsize"))
+(check-true (and num-scenarios
+                 (> num-scenarios 0))) 
+
+; Another _matches and _applies test.
+; We don't need the prior query struct to store the matches/applies IDBs.
+(m-let "Q10" '([s Subject] [a Action] [r Resource]) 
+       '(and ([Q1] s a r)
+             ([mypol1 papernoconflict_applies] s a r)
+             (not ([mypol1 papernoconflict_matches] s a r))))
+(check-false (m-is-poss? "Q10")) ; false (can't apply without matching)
 
 
 
 
-;let Q3[s : Subject, a: Action, r : Resource] be Q(s, a, f(r));
-;
-;let Q4[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r)));
-;// !!! TODO : unbound leaf exception on show Q4. s/b better error. due to no sort A.
-;
-;let Q5[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r)));
-;count Q5;
-;show Q5;
-;is poss? Q5;
-;
-;// But that will have a lot of vacuous solutions. If no actions...
-;
-;let Q6[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r))) and exists anAction : Action (anAction = anAction);
-;count Q6;
-;let Q7[s : Subject, r : Resource] be forall a2 : Action (Q(s, a2, f(r)))  and exists anAction : Action (anAction = anAction) CEILING 4;
-;count Q7;
-;
-;let Q8[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and Mypol.deny(s,a,r);
-;is poss? Q8;
-;
-;let Q9[s : Subject ,a : Action,r : Resource] be Mypol.permit(s,a,r) and s : Resource;
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Test that the engine can be stopped
 (check-true (stop-margrave-engine))

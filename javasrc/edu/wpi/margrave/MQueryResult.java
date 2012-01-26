@@ -1252,12 +1252,6 @@ class MPreparedQueryContext
 	
 	public int countModels() 
 	{
-		return countModelsAtSize(0);
-	}
-	
-	
-	public int countModelsAtSize(Integer n)
-	{	
 		try
 		{
 			MInstanceIterator it = getTotalIterator();
@@ -1268,12 +1262,15 @@ class MPreparedQueryContext
 				try 
 				{ 
 					 Instance sol = it.next().getFacts();
-					 if(n< 1 || sol.universe().size() == n)
-						 count++;
+					 count++;
 				}
 				catch(MGENoMoreSolutions e)
 				{} 
 			
+				// There may be billions of scenarios.
+				// Don't make Margrave freeze by trying to count them all.
+				if(count > MEnvironment.scenarioCountingMax)
+					return -1;				
 			}
 			
 			return count;
@@ -1282,8 +1279,9 @@ class MPreparedQueryContext
 		{
 			return -1; // error
 		}		
-	}
 
+	}
+	
 	public boolean isSatisfiable()
 	throws MBaseException
 	{

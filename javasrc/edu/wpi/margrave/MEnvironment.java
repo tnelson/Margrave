@@ -517,6 +517,8 @@ public class MEnvironment
 	// top-level sort.
 	public static final int topSortCeilingOfLastResort = 3;
 
+	// If number of scenarios exceeds this, return -1 ("too many to count")
+	public static final int scenarioCountingMax = 1000;	
 	
 	// Functions to send immediately: don't run out of space. 
 	// Writing too much without flushing seems to interfere 
@@ -1077,7 +1079,7 @@ public class MEnvironment
 		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
-		return intResponse(aResult.countModelsAtSize(n));				
+		return intResponse(aResult.countModels());				
 	}
 
 	public static Document countModels(String id) throws MUserException
@@ -2092,7 +2094,7 @@ public class MEnvironment
 			relationElement.setAttribute("name", r.name());
 			relationElement.setAttribute("arity", String.valueOf(r.arity()));
 			
-			// Is this relation a sort or a predicate?
+			// Is this relation a sort, a predicate, a constant, etc.?
 			MSort theSort = null;
 			if(theVocab.isSort(r.name()))
 			{
@@ -2102,6 +2104,10 @@ public class MEnvironment
 			else if(theVocab.constants.containsKey(r.name()))
 			{
 				relationElement.setAttribute("type", "constant");
+			}
+			else if(theVocab.functions.containsKey(r.name()))
+			{
+				relationElement.setAttribute("type", "function");
 			}
 			else
 			{

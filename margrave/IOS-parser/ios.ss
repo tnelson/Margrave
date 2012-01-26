@@ -3499,22 +3499,23 @@
 ;; (listof rule%) -> (listof symbol)
 ;;   Constructs a policy vocabulary from a list of rules
 (define (vocabulary rules)
-  `(PolicyVocab IOS-vocab
-                (Types
-                 (Hostname : ,@(remove-duplicates
-                                (append*
-                                 (map (λ (rule)
-                                        (map (λ (name)
-                                               (send name text))
-                                      (send rule extract-atoms hostname%)))
-                                 rules))))
-                 (Interface : interf-drop (interf-real ,@(remove-duplicates
-                                                         (append*
-                                                          (map (λ (rule)
-                                                                 (map (λ (interf)
-                                                                        (send interf text))
-                                                                      (send rule extract-atoms interface%)))
-                                                               rules)))))
+  `(Vocab IOS-vocab
+          (Types
+           (Hostname > ,@(remove-duplicates
+                          (append*
+                           (map (λ (rule)
+                                  (map (λ (name)
+                                         (send name text))
+                                       (send rule extract-atoms hostname%)))
+                                rules))))
+           (Interface > Interf-drop Interf-real)
+           (Interf-real > ,@(remove-duplicates
+                             (append*
+                              (map (λ (rule)
+                                     (map (λ (interf)
+                                            (send interf text))
+                                          (send rule extract-atoms interface%)))
+                                   rules))))
                  
                  ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
                  ,(type-tree (value-tree rules

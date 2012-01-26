@@ -13,11 +13,15 @@
               [r Object])
        '(and ([continue permit] s a r)
              (= 'advancePhase a)             
+             ; In discussion phase
              (isa r Conference (= (conferencePhase r) 'cDiscussion))
+             ; Force the assumption: If the conference is in discussion, so are all the papers.
+             ; (This should be an axiom?)
+             (forall p Paper (= (paperPhase p) 'pDiscussion))
              (exists p Paper true)
              (forall u User (forall p Paper (not (conflicted u p))))
              )
-       #:ceiling '([univ 9]
+       #:ceiling '(;[univ 9]
                    [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
                    [Action 16]
                    [Paper 1]
@@ -26,7 +30,7 @@
                    [Conference 1]
                    [ConferencePhase 9]
                    [PaperPhase 6]
-                   [ConferenceInfo 1]))
+                   [ConferenceInfo 0]))
 (check-true (m-scenario? (m-get "Q1")))
 ;(m-get "Q1")
 

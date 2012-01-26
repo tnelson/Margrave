@@ -804,12 +804,16 @@
            (margrave-error "Variable was not declared" varid))
          (m-vardec-type (hash-ref vardec-hash varid)))
        
-       (define (idb-aggregator ele sofar) 
+       (define/contract (idb-aggregator ele sofar) 
+         [m-rule? hash? . -> . hash?]
          (define idbarity (map internal-get-variable-sort (m-rule-headvars ele)))
          (when (and (hash-has-key? sofar (m-rule-decision ele))
                     (not (equal? idbarity (hash-ref sofar (m-rule-decision ele)))))
            (margrave-error "The rule used a decision that was used previously, but with a different free variable arity" ele))                         
-         (hash-set sofar (m-rule-decision ele) idbarity))        
+         (define result1 (hash-set sofar (m-rule-decision ele) idbarity))
+         (define result2 (hash-set result1 (string-append (m-rule-name ele) "_applies") idbarity))
+         (define result3 (hash-set result2 (string-append (m-rule-name ele) "_matches") idbarity))
+         result3)        
        (define idbs-hash (foldl idb-aggregator (make-immutable-hash '()) rules-result-list))              
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

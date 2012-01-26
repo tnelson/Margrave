@@ -1,4 +1,4 @@
-;    Copyright (c) 2009-2010 Brown University and Worcester Polytechnic Institute.
+;    Copyright (c) 2009-2012 Brown University and Worcester Polytechnic Institute.
 ;    
 ;    This file is part of Margrave.
 
@@ -437,7 +437,8 @@
                  [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
                  [(equal? type "unsat") (pretty-print-unsat-xml the-response)]
                  [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
-                 [(equal? type "string") (pretty-print-string-xml the-response)]
+                ; [(equal? type "string") (pretty-print-string-xml the-response)]
+                  [(equal? type "string") (xml-string-response->string the-response)]
                  [(equal? type "set") (pretty-print-set-xml the-response)]
                  [(equal? type "list") (pretty-print-list-xml the-response)]
                  [(equal? type "map") (pretty-print-map-xml the-response)]
@@ -447,15 +448,15 @@
         
         [else the-response]))
 
-; element -> string
-(define (pretty-print-string-xml element)
-  (let* ((string-buffer (open-output-string))
-         (string-element (get-child-element element 'string)))
-    (local ((define (write s)
-              (write-string s string-buffer)))
-      (begin 
-        (write (get-attribute-value string-element 'value))
-        (get-output-string string-buffer)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; xml-string-response
+; Takes an engine reply containing a string and produces the string.
+(define/contract (xml-string-response->string xml-response)
+  [(or/c document? element?) . -> . string?]
+  (define response-element (maybe-document->element xml-response))
+  (define string-element (get-child-element response-element 'string))
+  (get-attribute-value string-element 'value))
+
 
 ; element -> string
 (define (pretty-print-boolean-xml element)

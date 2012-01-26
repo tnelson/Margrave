@@ -575,20 +575,26 @@ public class MQuery extends MIDBCollection
 	 * of solutions.
 	 *
 	 * @param expected_size
-	 * @param expected_sols
-	 * @param expected_hbu
+	 * @param expectedSolutionCount
+	 * @param expectedUnivCeiling
 	 * @return Whether the test case passed.
 	 * @throws MBaseException
 	 */
-	public boolean runTestCase(int expected_size, int expected_sols,
-			int expected_hbu) throws MBaseException
+	public boolean runTestCase(int expectedSolutionCount,
+			int expectedUnivCeiling) throws MBaseException
 	{
 		MPreparedQueryContext res = runQuery();
+		int count = res.countModels();
 
-		int count = res.countModelsAtSize(expected_size);
-
-		return (expected_sols == count)
-				&& (res.getCeilingUsed() == expected_hbu);
+		boolean result =  (expectedSolutionCount == count)
+				&& (res.getCeilingUsed() == expectedUnivCeiling);
+		
+		if(expectedSolutionCount != count)
+			MEnvironment.writeErrLine("\n***\nTest case failed: expected # solns: "+expectedSolutionCount+" but got "+count);
+		if(res.getCeilingUsed() != expectedUnivCeiling)
+			MEnvironment.writeErrLine("\n***\nTest case failed: expected |univ| = "+expectedUnivCeiling+" but got "+res.getCeilingUsed() );
+		
+		return result;
 	}
 
 	
@@ -630,7 +636,7 @@ public class MQuery extends MIDBCollection
 		// unsure how to handle the case where HU = empty
 		Formula f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1));
 		MQuery test1 = new MQuery(f, env);
-		test1.runTestCase(1, 2, -1);
+		test1.runTestCase(8, MEnvironment.topSortCeilingOfLastResort);
 
 		// This IS a cycle.
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(

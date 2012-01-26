@@ -46,6 +46,7 @@
          m-show
          m-get
          m-reset
+         m-count-scenarios
          
          send-and-receive-xml
          load-xacml-policy
@@ -425,6 +426,19 @@ gmarceau
   (define the-xml (xml-make-is-possible-command qryid))
   (define xml-response (send-and-receive-xml the-xml)) 
   (xml-bool-response->bool xml-response))
+
+(define/contract
+  (m-count-scenarios qryid)
+  [-> string? (or/c number? #f)]
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started."))
+
+  (define the-xml (xml-make-count-command qryid))
+  (define xml-response (send-and-receive-xml the-xml)) 
+  (define result (string->number (xml-string-response->string xml-response)))
+  (cond [(> result -1) result]
+        [else #f]))
+
 
 (define/contract
   (m-show qryid #:include [include-list empty])
