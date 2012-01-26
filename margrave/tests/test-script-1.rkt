@@ -107,7 +107,8 @@
        '(and ([mypol2 permit] s a r)             
              (ReadPaper a)
              ([mypol2 paperAssigned_applies] s a r)
-             (not ([mypol2 paperNoConflict_matches] s a r))))
+             (not ([mypol2 paperNoConflict_matches] s a r))
+             (forall tr TechReport (forall tr2 TechReport (= tr tr2)))))
 (define num-scenarios (m-count-scenarios "Qrestrictedsize"))
 (check-true (and num-scenarios
                  (> num-scenarios 0))) 
@@ -120,11 +121,8 @@
              (not ([mypol1 papernoconflict_matches] s a r))))
 (check-false (m-is-poss? "Q10")) ; false (can't apply without matching)
 
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Test that the engine can be stopped
-(check-true (stop-margrave-engine))
+;(check-true (stop-margrave-engine))
