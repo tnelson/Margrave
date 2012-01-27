@@ -116,6 +116,22 @@
     [else (format "~a" arg)]))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; hashtable->string 
+; consumes a hash? and produces a string.
+(define/contract (pretty-print-hashtable thetable)
+  [hash? . -> . string?]
+  (define buffer (open-output-string))
+  (write-string "{ " buffer)
+  ; string-fold would be better here, and avoid the extra "," at end
+  (hash-for-each thetable
+                 (lambda (k v) (write-string 
+                                (string-append (->string k) 
+                                               " -> " 
+                                               (fold-append-with-separator (->string v) ", ") ", ") buffer)))
+  (write-string "}\n" buffer)
+  (get-output-string buffer))
+
 (define (wrap-list-parens lst)
   (fold-append-with-spaces (map (lambda (str) (string-append "(" str ")")) lst)))
 

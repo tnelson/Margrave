@@ -19,7 +19,10 @@
 (require xml
          "helpers.rkt"
          rackunit
-         (only-in srfi/13 string-contains))
+         (only-in srfi/13 
+                  string-contains
+                  string-drop
+                  string-take))
 
 (provide 
  (all-defined-out))
@@ -53,10 +56,15 @@
 
 ; Get the response type of a MARGRAVE-RESPONSE element:
 ; Document/#f -> String
-(define (get-response-type doc)
-  (if (equal? doc #f)
-      ""
-      (get-attribute-value (document-element doc) 'type)))
+(define/contract (get-response-type maybe-doc)
+  [(or/c document? element?) . -> . string?]
+  (define ele (cond [(document? maybe-doc)
+                     (document-element maybe-doc)]
+                    [(element? maybe-doc) maybe-doc]
+                    [else #f]))
+  (if ele      
+      (get-attribute-value ele 'type)
+      ""))
 
 
 ; Document -> Boolean
@@ -72,8 +80,6 @@
 (define (response-is-unsat? doc)
   (equal? (get-response-type doc)
           "unsat"))
-
-
 
 ; Fetch various error properties
 ; Document -> String
@@ -95,24 +101,10 @@
 ;****************************************************************
 ;;Pretty Printing returned XML
 
-;name is the name of the atom, such as "s" or "r" (doesn't include the $),
-; and list of types is a list of types (which are really predicates that
-; have only one atom in (predicate-list-of-atoms))
-(define-struct atom (name 
-                     display-name 
-                     list-of-types                     
-                     ) #:mutable #:transparent)
-
-;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable #:transparent)
-
-;Maps strings (such as "s") to their corresponding atoms
-;(define atom-hash (make-hash))
-
-;Maps name of predicates (strings) to their corresponding predicate structs
-;(define predicate-hash (make-hash))
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; xml->scenario consumes an xml element and produces an m-scenario 
+; struct OR an m-unsat struct. If the XML given did not contain
+; the proper sort of reply, this function returns #f.
 (define/contract (xml->scenario xml-response)
   (element? . -> . (or/c m-unsat? m-scenario?))
   
@@ -129,9 +121,15 @@
     (define used (flatten-singleton-string-lists-in-map (xml-map-element->map used-element)))    
     (m-statistics computed-max-num user-provided-max-num used-max-num warnings used))
   
+  ; Is this the right type of response?
+  (define response-type (get-response-type xml-response))    
   (define model-element (get-child-element xml-response 'MODEL))
   
-  (cond [(empty? model-element)
+  (cond [(and (not (equal? response-type "model"))
+              (not (equal? response-type "unsat")))
+         ; Invalid response type
+         #f]
+        [(empty? model-element)                  
          ; Unsatisfiable response!
          (define statistics-element (get-child-element xml-response 'STATISTICS))
          (m-unsat (handle-statistics statistics-element))]
@@ -156,11 +154,16 @@
          
          (define (handle-relation ele)
            (define tuple-elements (get-child-elements ele 'TUPLE))
-           (define relation-is-sort (equal? "sort" (get-attribute-value ele 'type)))
+           (define reltype (get-attribute-value ele 'type))
+           (define relation-is-sort (equal? "sort" reltype))
+           (define relation-is-constant (equal? "constant" reltype))
+           (define relation-is-function (equal? "function" reltype))
            (define relation-arity (string->number (get-attribute-value ele 'arity)))
            (define relation-name  (get-attribute-value ele 'name))   
            (m-relation relation-name 
                        (cond [relation-is-sort 'sort]
+                             [relation-is-constant 'constant]
+                             [relation-is-function 'function]
                              [(equal? (string-ref relation-name 0) #\$) 'skolem]
                              [else 'relation])
                        (map handle-tuple tuple-elements)))                    
@@ -172,7 +175,9 @@
          (define the-relations (map handle-relation relation-elements))
          (define the-sorts (filter (lambda (rel) (equal? 'sort (m-relation-reltype rel))) the-relations))
          (define the-skolems (filter (lambda (rel) (equal? 'skolem (m-relation-reltype rel))) the-relations))
-         (define the-others (filter (lambda (rel) (equal? 'relation (m-relation-reltype rel))) the-relations))
+         (define the-others (filter (lambda (rel) (or (equal? 'relation (m-relation-reltype rel))
+                                                      (equal? 'constant (m-relation-reltype rel))
+                                                      (equal? 'function (m-relation-reltype rel)))) the-relations))
          
          (m-scenario model-size 
                      (hash-keys mutable-atoms-hash)
@@ -192,6 +197,149 @@
         (values key valuelist))))
 ; (flatten-singleton-string-lists-in-map (hash "A" '("1") "B" '("2" "3") "C" '() "D" '(5)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;name is the name of the atom, such as "s" or "r" (doesn't include the $),
+; and list of types is a list of types (which are really predicates that
+; have only one atom in (predicate-list-of-atoms))
+(define-struct atom (name 
+                     display-name 
+                     list-of-types                     
+                     ) #:mutable #:transparent)
+
+;Note that a type is also a predicate, but with only one atom.
+(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; m-scenario->string
+; Consume an m-scenario and pretty-print it. 
+(define/contract (m-scenario->string a-scenario)
+  [m-scenario? . -> . string?]
+  (define buffer (open-output-string)) 
+  
+  ; Preamble
+  (write-string (string-append "********* SOLUTION FOUND at size = " 
+                               (number->string (m-scenario-size a-scenario))
+                               " ******************\n") buffer)
+         
+  (define const-relations (filter (lambda (rel) (equal? 'constant (m-relation-reltype rel))) (m-scenario-relations a-scenario)))
+  (define non-const-relations (filter (lambda (rel) (not (equal? 'constant (m-relation-reltype rel)))) (m-scenario-relations a-scenario)))
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Decide on a name for each atom. Is it bound to a constant, etc.?
+  (define atoms-with-names 
+    (foldl (lambda (e sofar) 
+             ; Remove Skolem prefix
+             (define cxname (cond [(equal? "$" (string-take (m-relation-name e) 1))
+                                   (string-drop (m-relation-name e) 1)]
+                                  [else (m-relation-name e)]))
+             ; Error if malformed relation
+             (unless (equal? 1 (length (m-relation-tuples e)))
+               (error 'm-scenario->string (format "The constant or variable relation ~v contained ~v tuples. Expected only a single tuple." cxname (length (m-relation-tuples e)))))
+             (define cxatom (first (first (m-relation-tuples e))))
+             (cond [(hash-has-key? sofar cxatom)
+                    (define sofar-name (hash-ref sofar cxatom))
+                    (hash-set sofar cxatom (string-append sofar-name "=" cxname))]
+                   [else (hash-set sofar cxatom cxname)]))
+           (make-immutable-hash '())
+           (append 
+            (m-scenario-skolems a-scenario)
+            const-relations)))  
+  
+  ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"
+  (define/contract (handle-atom-naming an-atom sofar)
+    [string? hash? . -> . hash?]
+     (cond [(hash-has-key? sofar an-atom) sofar]
+           [else (hash-set sofar an-atom an-atom)]))
+  (define/contract (handle-tuple-naming tup sofar)
+    [(listof string?) hash? . -> . hash?]
+    (foldl handle-atom-naming sofar tup))
+  (define atom-names (foldl (lambda (e sofar)
+                              (define the-tuples (m-relation-tuples e))
+                              (foldl handle-tuple-naming sofar the-tuples))
+                            atoms-with-names
+                            non-const-relations))
+  
+  ; All atoms should have been examined by now:
+  (define atoms (hash-keys atom-names))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; What sorts do each atom belong to?
+  ; atom-sorts is a hash from string? to (setof string?)
+  (define/contract (handle-atoms-sorting the-atoms sofar relname)
+    [(listof string?) hash? string? . -> . hash?]
+    (foldl (lambda (an-atom sofar-inner) 
+             (cond [(hash-has-key? sofar-inner an-atom)
+                    (hash-set sofar-inner an-atom (set-union (set relname) 
+                                                             (hash-ref sofar-inner an-atom)))]
+                   [else
+                    (hash-set sofar-inner an-atom (set relname))])) 
+           sofar
+           the-atoms))
+  (define atom-sorts (foldl (lambda (e sofar)
+                              (define the-tuples (m-relation-tuples e))
+                              (define relname (m-relation-name e))
+                              ; Sorts are all unary
+                              (define the-atoms (map first the-tuples))
+                              (handle-atoms-sorting the-atoms sofar relname))
+                            (make-immutable-hash '())
+                            (m-scenario-sorts a-scenario)))
+  
+  
+  ; TODO. Most specific! That info is lost when converting from XML...  
+  ; !!! TODO
+     
+  ; !!! TODO: Why not use functions, too? E.g. Identify Atom#12 as f(c) if it is such.
+  ; We already have a function to dereference terms...
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Print sort information for atoms
+  (define/contract (print-atom-sorts an-atom)
+    [string? . -> . any/c]
+    (write-string (hash-ref atom-names an-atom) buffer)
+    (write-string ": " buffer)
+    (define set-of-sorts (hash-ref atom-sorts an-atom))
+    (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
+    (write-string (string-join ordered-list-of-sorts ", ") buffer)
+    (write-string "\n" buffer))
+  (for-each print-atom-sorts (hash-keys atom-sorts))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Print non-sort, non-constant relation membership information for atoms  
+  (define/contract (print-tuple tup)
+    [(listof string?) . -> . any/c]
+    (write-string "<" buffer)
+    (define translated-atoms-list (map (lambda (a) (hash-ref atom-names a)) tup))    
+    (write-string (string-join translated-atoms-list ", ") buffer)
+    (write-string ">" buffer))
+  (define/contract (print-relation rel)
+    [m-relation? . -> . any/c]
+    (write-string (m-relation-name rel) buffer)
+    (write-string ": { " buffer)
+    (for-each print-tuple (m-relation-tuples rel))
+    (write-string " }\n" buffer))
+  (for-each print-relation non-const-relations)
+  
+  
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; End the scenario with annotations and statistics
+  (define annotations (m-scenario-annotations a-scenario))
+  (unless (empty? annotations)
+    (write-string "\n    -> The scenario also contained these annotations:\n" buffer)
+    (for-each (lambda (ann) (write-string (string-append ann "\n") buffer))
+              annotations))
+  
+  (define statistics (m-scenario-statistics a-scenario))
+  (unless (empty? (m-statistics-warnings statistics))   
+    (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
+    (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
+              (m-statistics-warnings statistics)))
+  
+  (write-string "Used these upper-bounds on sort sizes:\n" buffer)
+  (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)    
+  (write-string "********************************************************" buffer)
+      
+  (get-output-string buffer))
+
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
 ;This function goes through the xml and updates atom-hash and predicate-hash
@@ -595,21 +743,6 @@
 (define (pretty-print-map-xml element)
   (let ([the-hashtable (xml-map-response->map element)])
     (pretty-print-hashtable the-hashtable)))
-
-
-; hash table -> string
-(define (pretty-print-hashtable thetable)
-  (let* ([string-buffer (open-output-string)])
-    (local ((define (write s)
-              (write-string s string-buffer))) 
-      (write "{ ")
-      ; string-fold would be better here, and avoid the extra "," at end
-      (hash-for-each thetable
-                     (lambda (k v) (write (string-append k " -> " (fold-append-with-separator v ", ") ", "))))
-      (write "}\n")
-      (get-output-string string-buffer))))
-
-
 
 ; element -> string
 (define (pretty-print-unsat-xml element)
