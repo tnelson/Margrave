@@ -223,6 +223,8 @@
          
   (define const-relations (filter (lambda (rel) (equal? 'constant (m-relation-reltype rel))) (m-scenario-relations a-scenario)))
   (define non-const-relations (filter (lambda (rel) (not (equal? 'constant (m-relation-reltype rel)))) (m-scenario-relations a-scenario)))
+  (define ordered-non-const-relations (sort non-const-relations
+                                            (lambda (r1 r2) (string<=? (m-relation-name r1) (m-relation-name r2)))))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Decide on a name for each atom. Is it bound to a constant, etc.?
   (define atoms-with-names 
@@ -291,16 +293,43 @@
   ; We already have a function to dereference terms...
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; What atoms should be omitted?They must be
+  ; (1) denoted by a constant
+  ; (2) in only one sort (which must be the sort they were declared in!)
+  (define omit-atoms    
+    (foldl (lambda (rel sofar)
+             (define the-atom (first (first (m-relation-tuples rel))))
+             (define the-atom-sorts (hash-ref atom-sorts the-atom))
+             (cond [(equal? (set-count the-atom-sorts) 1) (set-union sofar (set the-atom))]
+                   [else sofar]))
+           (set )
+           const-relations))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Print sort information for atoms
+  ; unless the atom has been flagged for omission.
   (define/contract (print-atom-sorts an-atom)
     [string? . -> . any/c]
-    (write-string (hash-ref atom-names an-atom) buffer)
-    (write-string ": " buffer)
-    (define set-of-sorts (hash-ref atom-sorts an-atom))
-    (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
-    (write-string (string-join ordered-list-of-sorts ", ") buffer)
-    (write-string "\n" buffer))
-  (for-each print-atom-sorts (hash-keys atom-sorts))
+    (unless (set-member? omit-atoms an-atom)
+      (write-string (hash-ref atom-names an-atom) buffer)
+      (write-string ": " buffer)
+      (define set-of-sorts (hash-ref atom-sorts an-atom))
+      (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
+      (write-string (string-join ordered-list-of-sorts ", ") buffer)
+      (write-string "\n" buffer)))
+  ; sort alphabetically by displayed name, not actual atom string:
+  (for-each print-atom-sorts (sort (hash-keys atom-sorts) 
+                                   (lambda (a1 a2) (string<=? (hash-ref atom-names a1)
+                                                              (hash-ref atom-names a2)))))
+  (unless (set-empty? omit-atoms)
+    (define named-omit-atoms (map (lambda (a) (hash-ref atom-names a))
+                                  (set->list omit-atoms)))
+    (define sorted-named-omit-atoms (sort named-omit-atoms string<=?))
+    (define pretty-omit-atoms (string-join sorted-named-omit-atoms ", "))
+    (write-string "----------------------------------------\n" buffer)
+    (write-string (format "Omitted sorts for atoms denoted by constants that did not appear outside their native type:~n~a~n" pretty-omit-atoms) buffer))
+  
+  (write-string "----------------------------------------\n" buffer)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Print non-sort, non-constant relation membership information for atoms  
@@ -316,9 +345,9 @@
     (write-string ": { " buffer)
     (for-each print-tuple (m-relation-tuples rel))
     (write-string " }\n" buffer))
-  (for-each print-relation non-const-relations)
+  (for-each print-relation ordered-non-const-relations)
   
-  
+  (write-string "----------------------------------------\n" buffer)
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; End the scenario with annotations and statistics
@@ -332,7 +361,8 @@
   (unless (empty? (m-statistics-warnings statistics))   
     (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
     (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
-              (m-statistics-warnings statistics)))
+              (sort (m-statistics-warnings statistics)
+                    string<=?)))
   
   (write-string "Used these upper-bounds on sort sizes:\n" buffer)
   (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)    
