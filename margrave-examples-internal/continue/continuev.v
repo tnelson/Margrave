@@ -17,9 +17,7 @@
                 ('paperAssign Action)
                 ('paperDecide Action)
                 ('advancePhase Action)
-                ('editConferenceInfo Action)
-                
-                ; These phases could be unary predicates + custom axioms, right? would reduce # of atoms
+                ('editConferenceInfo Action)                                
                 
                 ; Each paper is in exactly one phase       
                 ('pSubmission PaperPhase)   

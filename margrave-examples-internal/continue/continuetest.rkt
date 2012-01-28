@@ -15,9 +15,7 @@
              (= 'advancePhase a)             
              ; In discussion phase
              (isa r Conference (= (conferencePhase r) 'cDiscussion))
-             ; Force the assumption: If the conference is in discussion, so are all the papers.
-             ; (This should be an axiom?)
-             ; Ahh -- these axioms were implicit in Alloy! Not so here...
+             ; Force state to comply in a stateless query:
              (forall p Paper (= (paperPhase p) 'pDiscussion))
              (exists p Paper true)
              (forall u User (forall p Paper (not (conflicted u p))))
@@ -34,28 +32,22 @@
                    [ConferenceInfo 0]))
 (check-true (m-scenario? (m-get "Q1")))
 ;(m-get "Q1")
-
-;(m-let "QTest" '()
-;       'true
-;       #:under '("continue"))
-;(m-get "QTest")
-
-
-;(m-let "Q2" '([s User]
-;              [a Action]
-;              [r Object])
-;       '(and ([continue permit] s a r)
-;             (not ([continue permit] s a r))))
-;(check-true (m-unsat? (m-get "Q2")))
-
-;(m-let "Q2" '([s User]
-;              [a Action]
-;              [r Object])
-;       'true
-;       #:under '( "continue")
-;       #:debug 3)
-;(m-get "Q2")
-
-
+(display (m-scenario->string 
+          (m-get "Q1" #:include '(([continue permit] s a r) 
+                                  ([continue rule755_applies] s a r)                                    
+                                  ([continue ruleFinal_applies] s a r)
+                                  ([continue ruleFinal_matches] s a r)
+                                  
+                                  ([continue rule709_applies] s a r)
+                                  ([continue rule713_applies] s a r)
+                                  ([continue rule717_applies] s a r)
+                                  ([continue rule707otherwise_applies] s a r)
+                                  ([continue rule725_applies] s a r)
+                                  ([continue rule729_applies] s a r)
+                                  ([continue rule740_applies] s a r)
+                                  ([continue rule747_applies] s a r)
+                                  ([continue rule755_applies] s a r)
+                                  ([continue rule725otherwise_applies] s a r)
+                                  ))))
 
 
