@@ -23,19 +23,28 @@
              
              ; All papers are past the Reviewing phase, into Notification
              (forall p Paper (= (paperPhase p) 'pNotification))
-             ; There is a paper that's been bid on.
-             (exists p Paper (exists u User (and (bid u p) (assignedTo u p))))
              
-             (forall u User (forall p Paper (not (conflicted u p))))
+             ; There is a SINGLE paper that's been bid on AND assigned, and has been reviewed.
+             ; Also the decision on that paper is not undecided.
+             ; And its authors aren't reviewers...
+             (exists p Paper (and (forall auth User (implies (authorOf p auth)
+                                                             (not (reviewer auth))))
+                                  (exists u User (exists rev Review (and (forall p2 Paper (= p p2))
+                                                                         (bid u p)         
+                                                                         (reviewOn u p rev)                                                                    
+                                                                         (not (= (decisionIs p) 'undecided))
+                                                                         )))))
+                          
+             
              )
       ; #:under '( "continue")
-       #:ceiling '([univ 36]                   
-                   [Object 5] ;<-- don't go above 5 unless "needed" by a subsort.
+       #:ceiling '([univ 38]                   
+                   [Object 6] ;<-- don't go above 5 unless "needed" by a subsort.
                    [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
                    [Action 16]
                    [Paper 1]
-                   [Review 0]
-                   [Decision 1]
+                   [Review 1]
+                   [Decision 2] ; <-- need to allow for a non-undecided decision
                    [Conference 1]
                    [ConferencePhase 9]
                    [PaperPhase 6]
@@ -61,5 +70,4 @@
 (display (m-scenario->string 
           (m-get "Q1" )))
 (display (m-count-scenarios "Q1"))
-
 

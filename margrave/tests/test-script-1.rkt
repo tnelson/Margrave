@@ -121,8 +121,27 @@
              (not ([mypol1 papernoconflict_matches] s a r))))
 (check-false (m-is-poss? "Q10")) ; false (can't apply without matching)
 
+; Make sure a policy can't declare the same rule twice.
 (check-exn exn:fail? 
            (lambda () (m-load-policy "loaderror1" "two-rules-with-same-name.p")))
+
+
+; Test partial functions
+(m-load-policy "PFunc" "partialfunction.p")
+; Functional:
+(m-let "PFQ1" '() 
+       '(exists t1 TechReport (exists t2 TechReport (exists p Paper (and
+                                                                     (techreportfor p t1)
+                                                                     (techreportfor p t2)
+                                                                     (not (= t1 t2))))))
+       #:under '("PFunc"))
+(check-false (m-is-poss? "PFQ1"))
+; Can be partial:
+(m-let "PFQ2" '() 
+       '(exists p Paper (forall tr TechReport (not (techreportfor p tr))))
+       #:under '("PFunc"))
+(check-true (m-is-poss? "PFQ2"))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

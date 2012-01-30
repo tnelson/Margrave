@@ -1182,14 +1182,15 @@ public class MVocab {
 		}
 		else if("P".equals(type))
 		{
-			// FORALL fc1 FORALL fc2 ( ((tuple1 in R) and (tuple2 in R)) iff fc1=fc2)
+			// FORALL fc1 FORALL fc2 ( fc1!=fc2 implies (!(tuple1 in R) or !(tuple2 in R)))
 			
-			pt1 = MFormulaManager.makeAtom(tuple1, r);
-			pt2 = MFormulaManager.makeAtom(tuple2, r);
+			Formula ante = MFormulaManager.makeNegation(MFormulaManager.makeEqAtom(fc1, fc2));
 			
-			f = MFormulaManager.makeAnd(pt1, pt2);
-			f = MFormulaManager.makeIFF(f, MFormulaManager.makeEqAtom(fc1, fc2));
-			
+			pt1 = MFormulaManager.makeNegation(MFormulaManager.makeAtom(tuple1, r));
+			pt2 = MFormulaManager.makeNegation(MFormulaManager.makeAtom(tuple2, r));
+			Formula conseq = MFormulaManager.makeOr(pt1, pt2);
+						
+			f = MFormulaManager.makeImplication(ante, conseq);			
 			f = MFormulaManager.makeForAll(f, dfc2);
 			f = MFormulaManager.makeForAll(f, dfc1);
 		}

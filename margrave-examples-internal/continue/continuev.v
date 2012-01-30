@@ -127,6 +127,15 @@
          (formula (forall ux User
                           (forall px Paper
                                   (forall rx Review 
-                                          (implies (reviewOn ux px ux)
+                                          (implies (reviewOn ux px rx)
                                                    (assignedTo ux px))))))
+         
+         ; (3) Added by Tim:
+         ; Authors who are reviewers are automatically conflicted
+         (formula (forall ux User 
+                          (forall px Paper (implies (and (authorOf px ux) (reviewer ux))
+                                                    (conflicted ux px)))))
+         
+         ; (Together (1) (2) and (3) prevent authors from reviewing their own paper.
+         
          ))   

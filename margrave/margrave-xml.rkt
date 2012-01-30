@@ -362,7 +362,7 @@
       (write-string "<" buffer)
       (define translated-atoms-list (map (lambda (a) (hash-ref atom-names a)) tup))    
       (write-string (string-join translated-atoms-list ", ") buffer)
-      (write-string ">" buffer))
+      (write-string "> " buffer))
     (define/contract (print-relation rel)
       [m-relation? . -> . any/c]
       (write-string (m-relation-name rel) buffer)

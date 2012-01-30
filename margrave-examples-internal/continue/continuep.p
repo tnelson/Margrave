@@ -67,6 +67,8 @@
          ;			all p : cc.papers |
          ;				p.pphase not in PSubmission
          ;		}
+         (rule725requireadmin = (deny s a r) :- (Conference r) (= 'advancePhase a) (not (admin s)))
+         
          (rule725 = (permit s a r) :- (Conference r) (= 'advancePhase a) (= 'cSubmission (conferencePhase r))
                   (forall p Paper (not (= (paperPhase p) 'pSubmission))))
          (rule725failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cSubmission (conferencePhase r)))
