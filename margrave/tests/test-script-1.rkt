@@ -121,8 +121,11 @@
              (not ([mypol1 papernoconflict_matches] s a r))))
 (check-false (m-is-poss? "Q10")) ; false (can't apply without matching)
 
+(check-exn exn:fail? 
+           (lambda () (m-load-policy "loaderror1" "two-rules-with-same-name.p")))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Test that the engine can be stopped
-;(check-true (stop-margrave-engine))
+(check-true (stop-margrave-engine))

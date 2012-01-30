@@ -167,7 +167,7 @@
                              [(equal? (string-ref relation-name 0) #\$) 'skolem]
                              [else 'relation])
                        (map handle-tuple tuple-elements)))                    
-  
+         
          (define (handle-annotation ele)
            (define the-annotation (pcdata-string (first (element-content ele))))
            the-annotation)
@@ -212,163 +212,184 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; m-scenario->string
 ; Consume an m-scenario and pretty-print it. 
-(define/contract (m-scenario->string a-scenario)
-  [m-scenario? . -> . string?]
+(define/contract (m-scenario->string a-response)
+  [(or/c m-unsat? m-scenario?) . -> . string?]
+  
   (define buffer (open-output-string)) 
+    
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (print-statistics statistics)
+    (unless (empty? (m-statistics-warnings statistics))   
+      (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
+      (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
+                (sort (m-statistics-warnings statistics)
+                      string<=?)))
+    
+    (write-string "Used these upper-bounds on sort sizes:\n" buffer)
+    (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer))
   
-  ; Preamble
-  (write-string (string-append "********* SOLUTION FOUND at size = " 
-                               (number->string (m-scenario-size a-scenario))
-                               " ******************\n") buffer)
-         
-  (define const-relations (filter (lambda (rel) (equal? 'constant (m-relation-reltype rel))) (m-scenario-relations a-scenario)))
-  (define non-const-relations (filter (lambda (rel) (not (equal? 'constant (m-relation-reltype rel)))) (m-scenario-relations a-scenario)))
-  (define ordered-non-const-relations (sort non-const-relations
-                                            (lambda (r1 r2) (string<=? (m-relation-name r1) (m-relation-name r2)))))
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Decide on a name for each atom. Is it bound to a constant, etc.?
-  (define atoms-with-names 
-    (foldl (lambda (e sofar) 
-             ; Remove Skolem prefix
-             (define cxname (cond [(equal? "$" (string-take (m-relation-name e) 1))
-                                   (string-drop (m-relation-name e) 1)]
-                                  [else (m-relation-name e)]))
-             ; Error if malformed relation
-             (unless (equal? 1 (length (m-relation-tuples e)))
-               (error 'm-scenario->string (format "The constant or variable relation ~v contained ~v tuples. Expected only a single tuple." cxname (length (m-relation-tuples e)))))
-             (define cxatom (first (first (m-relation-tuples e))))
-             (cond [(hash-has-key? sofar cxatom)
-                    (define sofar-name (hash-ref sofar cxatom))
-                    (hash-set sofar cxatom (string-append sofar-name "=" cxname))]
-                   [else (hash-set sofar cxatom cxname)]))
-           (make-immutable-hash '())
-           (append 
-            (m-scenario-skolems a-scenario)
-            const-relations)))  
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  (define/contract (internal-process-unsat an-unsat)
+    [m-unsat? . -> . string?]
+    ; Preamble
+    (write-string "************** NO MORE SOLUTIONS FOUND! ****************\n" buffer)
+    (print-statistics (m-unsat-statistics an-unsat))
+    (write-string "********************************************************\n" buffer)
+    (get-output-string buffer))
   
-  ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"
-  (define/contract (handle-atom-naming an-atom sofar)
-    [string? hash? . -> . hash?]
-     (cond [(hash-has-key? sofar an-atom) sofar]
-           [else (hash-set sofar an-atom an-atom)]))
-  (define/contract (handle-tuple-naming tup sofar)
-    [(listof string?) hash? . -> . hash?]
-    (foldl handle-atom-naming sofar tup))
-  (define atom-names (foldl (lambda (e sofar)
-                              (define the-tuples (m-relation-tuples e))
-                              (foldl handle-tuple-naming sofar the-tuples))
-                            atoms-with-names
-                            non-const-relations))
-  
-  ; All atoms should have been examined by now:
-  (define atoms (hash-keys atom-names))
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; What sorts do each atom belong to?
-  ; atom-sorts is a hash from string? to (setof string?)
-  (define/contract (handle-atoms-sorting the-atoms sofar relname)
-    [(listof string?) hash? string? . -> . hash?]
-    (foldl (lambda (an-atom sofar-inner) 
-             (cond [(hash-has-key? sofar-inner an-atom)
-                    (hash-set sofar-inner an-atom (set-union (set relname) 
-                                                             (hash-ref sofar-inner an-atom)))]
-                   [else
-                    (hash-set sofar-inner an-atom (set relname))])) 
-           sofar
-           the-atoms))
-  (define atom-sorts (foldl (lambda (e sofar)
-                              (define the-tuples (m-relation-tuples e))
-                              (define relname (m-relation-name e))
-                              ; Sorts are all unary
-                              (define the-atoms (map first the-tuples))
-                              (handle-atoms-sorting the-atoms sofar relname))
-                            (make-immutable-hash '())
-                            (m-scenario-sorts a-scenario)))
-  
-  
-  ; TODO. Most specific! That info is lost when converting from XML...  
-  ; !!! TODO
-     
-  ; !!! TODO: Why not use functions, too? E.g. Identify Atom#12 as f(c) if it is such.
-  ; We already have a function to dereference terms...
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; What atoms should be omitted?They must be
-  ; (1) denoted by a constant
-  ; (2) in only one sort (which must be the sort they were declared in!)
-  (define omit-atoms    
-    (foldl (lambda (rel sofar)
-             (define the-atom (first (first (m-relation-tuples rel))))
-             (define the-atom-sorts (hash-ref atom-sorts the-atom))
-             (cond [(equal? (set-count the-atom-sorts) 1) (set-union sofar (set the-atom))]
-                   [else sofar]))
-           (set )
-           const-relations))
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Print sort information for atoms
-  ; unless the atom has been flagged for omission.
-  (define/contract (print-atom-sorts an-atom)
-    [string? . -> . any/c]
-    (unless (set-member? omit-atoms an-atom)
-      (write-string (hash-ref atom-names an-atom) buffer)
-      (write-string ": " buffer)
-      (define set-of-sorts (hash-ref atom-sorts an-atom))
-      (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
-      (write-string (string-join ordered-list-of-sorts ", ") buffer)
-      (write-string "\n" buffer)))
-  ; sort alphabetically by displayed name, not actual atom string:
-  (for-each print-atom-sorts (sort (hash-keys atom-sorts) 
-                                   (lambda (a1 a2) (string<=? (hash-ref atom-names a1)
-                                                              (hash-ref atom-names a2)))))
-  (unless (set-empty? omit-atoms)
-    (define named-omit-atoms (map (lambda (a) (hash-ref atom-names a))
-                                  (set->list omit-atoms)))
-    (define sorted-named-omit-atoms (sort named-omit-atoms string<=?))
-    (define pretty-omit-atoms (string-join sorted-named-omit-atoms ", "))
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  (define/contract (internal-process-scenario a-scenario)
+    [m-scenario? . -> . string?]        
+    ; Preamble
+    (write-string (string-append "********* SOLUTION FOUND at size = " 
+                                 (number->string (m-scenario-size a-scenario))
+                                 " ******************\n") buffer)
+    
+    (define const-relations (filter (lambda (rel) (equal? 'constant (m-relation-reltype rel))) (m-scenario-relations a-scenario)))
+    (define non-const-relations (filter (lambda (rel) (not (equal? 'constant (m-relation-reltype rel)))) (m-scenario-relations a-scenario)))
+    (define ordered-non-const-relations (sort non-const-relations
+                                              (lambda (r1 r2) (string<=? (m-relation-name r1) (m-relation-name r2)))))
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; Decide on a name for each atom. Is it bound to a constant, etc.?
+    (define atoms-with-names 
+      (foldl (lambda (e sofar) 
+               ; Remove Skolem prefix
+               (define cxname (cond [(equal? "$" (string-take (m-relation-name e) 1))
+                                     (string-drop (m-relation-name e) 1)]
+                                    [else (m-relation-name e)]))
+               ; Error if malformed relation
+               (unless (equal? 1 (length (m-relation-tuples e)))
+                 (error 'm-scenario->string (format "The constant or variable relation ~v contained ~v tuples. Expected only a single tuple." cxname (length (m-relation-tuples e)))))
+               (define cxatom (first (first (m-relation-tuples e))))
+               (cond [(hash-has-key? sofar cxatom)
+                      (define sofar-name (hash-ref sofar cxatom))
+                      (hash-set sofar cxatom (string-append sofar-name "=" cxname))]
+                     [else (hash-set sofar cxatom cxname)]))
+             (make-immutable-hash '())
+             (append 
+              (m-scenario-skolems a-scenario)
+              const-relations)))  
+    
+    ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"
+    (define/contract (handle-atom-naming an-atom sofar)
+      [string? hash? . -> . hash?]
+      (cond [(hash-has-key? sofar an-atom) sofar]
+            [else (hash-set sofar an-atom an-atom)]))
+    (define/contract (handle-tuple-naming tup sofar)
+      [(listof string?) hash? . -> . hash?]
+      (foldl handle-atom-naming sofar tup))
+    (define atom-names (foldl (lambda (e sofar)
+                                (define the-tuples (m-relation-tuples e))
+                                (foldl handle-tuple-naming sofar the-tuples))
+                              atoms-with-names
+                              non-const-relations))
+    
+    ; All atoms should have been examined by now:
+    (define atoms (hash-keys atom-names))
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; What sorts do each atom belong to?
+    ; atom-sorts is a hash from string? to (setof string?)
+    (define/contract (handle-atoms-sorting the-atoms sofar relname)
+      [(listof string?) hash? string? . -> . hash?]
+      (foldl (lambda (an-atom sofar-inner) 
+               (cond [(hash-has-key? sofar-inner an-atom)
+                      (hash-set sofar-inner an-atom (set-union (set relname) 
+                                                               (hash-ref sofar-inner an-atom)))]
+                     [else
+                      (hash-set sofar-inner an-atom (set relname))])) 
+             sofar
+             the-atoms))
+    (define atom-sorts (foldl (lambda (e sofar)
+                                (define the-tuples (m-relation-tuples e))
+                                (define relname (m-relation-name e))
+                                ; Sorts are all unary
+                                (define the-atoms (map first the-tuples))
+                                (handle-atoms-sorting the-atoms sofar relname))
+                              (make-immutable-hash '())
+                              (m-scenario-sorts a-scenario)))
+    
+    
+    ; TODO. Most specific! That info is lost when converting from XML...  
+    ; !!! TODO
+    
+    ; !!! TODO: Why not use functions, too? E.g. Identify Atom#12 as f(c) if it is such.
+    ; We already have a function to dereference terms...
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; What atoms should be omitted?They must be
+    ; (1) denoted by a constant
+    ; (2) in only one sort (which must be the sort they were declared in!)
+    (define omit-atoms    
+      (foldl (lambda (rel sofar)
+               (define the-atom (first (first (m-relation-tuples rel))))
+               (define the-atom-sorts (hash-ref atom-sorts the-atom))
+               (cond [(equal? (set-count the-atom-sorts) 1) (set-union sofar (set the-atom))]
+                     [else sofar]))
+             (set )
+             const-relations))
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; Print sort information for atoms
+    ; unless the atom has been flagged for omission.
+    (define/contract (print-atom-sorts an-atom)
+      [string? . -> . any/c]
+      (unless (set-member? omit-atoms an-atom)
+        (write-string (hash-ref atom-names an-atom) buffer)
+        (write-string ": " buffer)
+        (define set-of-sorts (hash-ref atom-sorts an-atom))
+        (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
+        (write-string (string-join ordered-list-of-sorts ", ") buffer)
+        (write-string "\n" buffer)))
+    ; sort alphabetically by displayed name, not actual atom string:
+    (for-each print-atom-sorts (sort (hash-keys atom-sorts) 
+                                     (lambda (a1 a2) (string<=? (hash-ref atom-names a1)
+                                                                (hash-ref atom-names a2)))))
+    (unless (set-empty? omit-atoms)
+      (define named-omit-atoms (map (lambda (a) (hash-ref atom-names a))
+                                    (set->list omit-atoms)))
+      (define sorted-named-omit-atoms (sort named-omit-atoms string<=?))
+      (define pretty-omit-atoms (string-join sorted-named-omit-atoms ", "))
+      (write-string "----------------------------------------\n" buffer)
+      (write-string (format "Omitted sorts for atoms denoted by constants that did not appear outside their native type:~n~a~n" pretty-omit-atoms) buffer))
+    
     (write-string "----------------------------------------\n" buffer)
-    (write-string (format "Omitted sorts for atoms denoted by constants that did not appear outside their native type:~n~a~n" pretty-omit-atoms) buffer))
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; Print non-sort, non-constant relation membership information for atoms  
+    (define/contract (print-tuple tup)
+      [(listof string?) . -> . any/c]
+      (write-string "<" buffer)
+      (define translated-atoms-list (map (lambda (a) (hash-ref atom-names a)) tup))    
+      (write-string (string-join translated-atoms-list ", ") buffer)
+      (write-string ">" buffer))
+    (define/contract (print-relation rel)
+      [m-relation? . -> . any/c]
+      (write-string (m-relation-name rel) buffer)
+      (write-string ": { " buffer)
+      (for-each print-tuple (m-relation-tuples rel))
+      (write-string " }\n" buffer))
+    (for-each print-relation ordered-non-const-relations)
+    
+    (write-string "----------------------------------------\n" buffer)
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; End the scenario with annotations and statistics
+    (define annotations (m-scenario-annotations a-scenario))
+    (unless (empty? annotations)
+      (write-string "\n    -> The scenario also contained these annotations:\n" buffer)
+      (for-each (lambda (ann) (write-string (string-append ann "\n") buffer))
+                annotations))
+    
+    (print-statistics (m-scenario-statistics a-scenario))
+    
+    (write-string "********************************************************" buffer)        
+    (get-output-string buffer))
+  ; ^ End of internal func. to handle scenarios
   
-  (write-string "----------------------------------------\n" buffer)
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Print non-sort, non-constant relation membership information for atoms  
-  (define/contract (print-tuple tup)
-    [(listof string?) . -> . any/c]
-    (write-string "<" buffer)
-    (define translated-atoms-list (map (lambda (a) (hash-ref atom-names a)) tup))    
-    (write-string (string-join translated-atoms-list ", ") buffer)
-    (write-string ">" buffer))
-  (define/contract (print-relation rel)
-    [m-relation? . -> . any/c]
-    (write-string (m-relation-name rel) buffer)
-    (write-string ": { " buffer)
-    (for-each print-tuple (m-relation-tuples rel))
-    (write-string " }\n" buffer))
-  (for-each print-relation ordered-non-const-relations)
-  
-  (write-string "----------------------------------------\n" buffer)
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; End the scenario with annotations and statistics
-  (define annotations (m-scenario-annotations a-scenario))
-  (unless (empty? annotations)
-    (write-string "\n    -> The scenario also contained these annotations:\n" buffer)
-    (for-each (lambda (ann) (write-string (string-append ann "\n") buffer))
-              annotations))
-  
-  (define statistics (m-scenario-statistics a-scenario))
-  (unless (empty? (m-statistics-warnings statistics))   
-    (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
-    (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
-              (sort (m-statistics-warnings statistics)
-                    string<=?)))
-  
-  (write-string "Used these upper-bounds on sort sizes:\n" buffer)
-  (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)    
-  (write-string "********************************************************" buffer)
-      
-  (get-output-string buffer))
+  ; Is this input scenario or an unsatisfiable response?
+  (cond [(m-scenario? a-response) (internal-process-scenario a-response)]
+        [else (internal-process-unsat a-response)]))
 
 
 ;Takes a document with <MARGRAVE-RESPONSE> as its outer type
@@ -400,7 +421,7 @@
             (get-child-elements universe-element 'atom))
   
   ; go through the XML and update the 2 hashes. Then afterwards print them out.
-          
+  
   (define (handle-relation relation)                   
     (define relation-arity (string->number (get-attribute-value relation 'arity)))
     (define relation-name  (get-attribute-value relation 'name))
@@ -430,7 +451,7 @@
             [else
              (define an-atom-element (first atom-elements))
              (define atom-element-name (pcdata-string (first (element-content an-atom-element))))
-                          
+             
              ; Get the atom struct for this atom                         
              (define atom-struct (hash-ref atom-hash atom-element-name)) 
              
@@ -461,7 +482,7 @@
                     
                     ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
                     (list atom-struct)] 
-                                          
+                   
                    ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
                    [else (cons atom-struct (parse-tuple-contents (rest atom-elements) ))])]))
     ; ^^^ end of parse-tuple-contents
@@ -549,7 +570,7 @@
                                (element-content element))]
              [result (filter (lambda (element) (equal? name (string-downcase (symbol->string (element-name element)))))
                              elements)])
-       ; (printf "get-child-elements: ~a~n~a~n~a~n~a~n" name-symb-or-str name elements result)
+        ; (printf "get-child-elements: ~a~n~a~n~a~n~a~n" name-symb-or-str name elements result)
         result)))
 
 ;Pass name a symbol or a string, case doesn't matter
@@ -615,8 +636,8 @@
                  [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
                  [(equal? type "unsat") (pretty-print-unsat-xml the-response)]
                  [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
-                ; [(equal? type "string") (pretty-print-string-xml the-response)]
-                  [(equal? type "string") (xml-string-response->string the-response)]
+                 ; [(equal? type "string") (pretty-print-string-xml the-response)]
+                 [(equal? type "string") (xml-string-response->string the-response)]
                  [(equal? type "set") (pretty-print-set-xml the-response)]
                  [(equal? type "list") (pretty-print-list-xml the-response)]
                  [(equal? type "map") (pretty-print-map-xml the-response)]
@@ -756,7 +777,7 @@
 (define (xml-map-element->map map-element)
   (define entry-elements (get-child-elements map-element 'ENTRY))
   (define mut-hashtable (make-hash))
-    
+  
   (define (process-entry entry-element)
     (define entry-key (get-attribute-value entry-element 'key))
     (define entry-values (get-child-elements entry-element 'value))
@@ -1148,7 +1169,7 @@
   `(LOAD ((file-name ,(->string fn)) (schema-file-name ,(->string sfn)))))
 
 (define (xml-make-sqs-load fn)
-    `(LOAD ((file-name ,(->string fn)))))
+  `(LOAD ((file-name ,(->string fn)))))
 
 (define (xml-make-get-rules get-type polid decid-str)
   (if (not (equal? "" decid-str))
@@ -1171,7 +1192,7 @@
   `(PREDICATE ((name ,(->string pred-name)))))
 
 (define (xml-make-target formula)
-      `(TARGET ,formula))
+  `(TARGET ,formula))
 
 (define (xml-make-rule rule-name dtype rule-list)
   `(RULE ((name ,(->string rule-name))) ,dtype ,rule-list))
@@ -1378,7 +1399,7 @@
 ;  `(ATOMIC-FORMULA-N ((relation-name ,(->string relName))) ,xml-identifier-list))  
 
 ;(define (xml-make-atomic-formula-y collName relName xml-identifier-list)
-  ;(printf "~n~nY: ~a ~a ~n" collName relName)
+;(printf "~n~nY: ~a ~a ~n" collName relName)
 ;  (if (empty? xml-identifier-list)
 ;      `(ATOMIC-FORMULA-Y ((collection-name ,(->string collName)) (relation-name ,(->string relName))))
 ;      `(ATOMIC-FORMULA-Y ((collection-name ,(->string collName)) (relation-name ,(->string relName))) ,xml-identifier-list))) 
@@ -1469,7 +1490,7 @@
     [(= (length conjuncts) 2)
      (xml-make-and (first conjuncts) (second conjuncts))]
     [else (xml-make-and (first conjuncts) (xml-make-and* (rest conjuncts)))]))
-  
+
 (define (xml-make-or p1 p2)
   `(OR ,p1 ,p2))
 (define (xml-make-or* disjuncts)
@@ -1489,7 +1510,7 @@
 
 ;Takes a command type (string) and a list of children (x-exprs) and returns a margrave-command xexpr
 (define (xml-make-command command-type list-of-children)
-   `(MARGRAVE-COMMAND ((type ,command-type)) ,@list-of-children))
+  `(MARGRAVE-COMMAND ((type ,command-type)) ,@list-of-children))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1536,7 +1557,7 @@
              (m-predicate->cmd "vocab" (m-predicate "pname" '("A" "B" "C")))                    
              '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab")))
                                 (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
-                    
+
 
 ; Is this a dotted identifier? Must have a . somewhere.
 (define (dotted-id? sym)
@@ -1577,7 +1598,7 @@
      (xml-make-true-condition)]        
     [(maybe-identifier false)
      (xml-make-false-condition)]
-        
+    
     [(m-op-case = t1 t2)
      (xml-make-equals-formula (m-term->xexpr t1) (m-term->xexpr t2))]    
     [(m-op-case and args ...)
@@ -1587,18 +1608,18 @@
     
     [(m-op-case implies arg1 arg2)
      (xml-make-implies (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
-
+    
     [(m-op-case iff arg1 arg2)
      (xml-make-iff (m-formula->xexpr arg1) (m-formula->xexpr arg2))]   
-
+    
     [(m-op-case not arg)
      (xml-make-not (m-formula->xexpr arg))]   
-
+    
     [(m-op-case forall vname sname fmla)
      (valid-variable?/err vname)
      (valid-sort?/err sname)
      (xml-make-forall vname sname (m-formula->xexpr fmla))] 
-
+    
     [(m-op-case exists vname sname fmla)
      (valid-variable?/err vname)
      (valid-sort?/err sname)
@@ -1607,7 +1628,7 @@
     [(m-op-case isa t sname fmla)     
      (valid-sort?/err sname)
      (xml-make-isa-formula (m-term->xexpr t) sname (m-formula->xexpr fmla))]      
-  
+    
     ; Don't require vars.
     [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))    
      ;(valid-predicate?/err idbname)
@@ -1615,7 +1636,7 @@
      ;; TODO finalize lexical spec     
      (xml-make-atomic-formula (append pids (list idbname))
                               (map m-term->xexpr terms))]
-
+    
     
     [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
      (valid-sort-or-predicate?/err dbname)
@@ -1630,7 +1651,7 @@
                                       (map m-term->xexpr (cons term0 terms)))])]
     [else (margrave-error "Incorrect formula expression" sexpr)]))
 
-  
+
 ; Avoid duplicate code. Defer to m-formula->xexpr
 (define (m-formula? sexpr)
   (with-handlers ([(lambda (e) (exn:fail:syntax? e))
@@ -1744,7 +1765,7 @@
     ; (constants-neq-all S) --- All constants of sort S are pairwise non-equal in all models.
     [(m-op-case constants-neq-all id) 
      (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]
-
+    
     [(m-op-case formula fmla)
      ; Allow m-formula->xexpr to give a more detailed error.
      ;(unless (m-formula? fmla)
@@ -1752,7 +1773,7 @@
      (xml-make-custom-fmla-constraint (m-formula->xexpr fmla))]
     
     [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)]))
-  
+
 
 
 (check-true (equal? (m-axiom->xexpr '(constants-neq-all A)) '(CONSTRAINT ((type "CONSTANTS-NEQ-ALL")) (RELATIONS (RELATION ((name "A")))))))

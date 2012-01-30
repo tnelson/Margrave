@@ -2,7 +2,8 @@
 ; is true when the request is permitted. It uses implication, though,
 ; so the final catch-all policy is *permit*.  For the same reason, each
 ; block of rules has a final ``deny'' rule to represent that block's
-; implication failing.
+; implication failing. 
+; Note: this means we must use first-applicable, not permit-overrides.
 
 ; Rules are named after the approximate line number of the alloy model that they match
 
@@ -17,7 +18,7 @@
          (s User)
          (a Action)
          (r Object))
-        (Rules
+        (Rules                  
          
          ;; ADVANCE PAPER PHASE
          
@@ -29,6 +30,7 @@
          ;		}
          (rule709 = (permit s a r) :- (Paper r) (= 'advancePhase a) (= 'pAssignment (paperPhase r))
                   (admin s) (exists u User (assignedTo u r)))
+         (rule709failed = (deny s a r) :- (Paper r) (= 'advancePhase a) (= 'pAssignment (paperPhase r)))
          
          ;		resource.pphase in PReviewing implies {
          ;			one u : User, r : Review |
@@ -36,6 +38,7 @@
          ;		}
          (rule713 = (permit s a r) :- (Paper r) (= 'advancePhase a) (= 'pReviewing (paperPhase r))
                   (admin s) (exists u User (exists rev Review (reviewOn u r rev))))
+         (rule713failed = (deny s a r) :- (Paper r) (= 'advancePhase a) (= 'pReviewing (paperPhase r)))
          
          ;		resource.pphase in PDiscussion implies {
          ;			one d : cc.decisions |
@@ -46,6 +49,7 @@
          (rule717 = (permit s a r) :- (Paper r) (= 'advancePhase a) (= 'pDiscussion (paperPhase r))
                   (admin s) (exists d Decision (and (not (= 'undecided d)) 
                                                     (decisionIs r d))))
+         (rule717failed = (deny s a r) :- (Paper r) (= 'advancePhase a) (= 'pDiscussion (paperPhase r)))
          
          (rule707otherwise = (permit s a r) :- (Paper r) (= 'advancePhase a) 
                            (not (= 'pAssignment (paperPhase r))) (not (= 'pReviewing (paperPhase r))) (not (= 'pDiscussion (paperPhase r)))
@@ -64,7 +68,8 @@
          ;				p.pphase not in PSubmission
          ;		}
          (rule725 = (permit s a r) :- (Conference r) (= 'advancePhase a) (= 'cSubmission (conferencePhase r))
-                  (forall p Paper (= (paperPhase p) 'pSubmission)))   
+                  (forall p Paper (not (= (paperPhase p) 'pSubmission))))
+         (rule725failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cSubmission (conferencePhase r)))
          
          ;		cc.phase in Bidding implies {
          ;			// All papers after Bidding
@@ -82,7 +87,8 @@
                   (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
                                        (not (= (paperPhase p) 'pBidding))))
                   (forall u User (implies (reviewer u)
-                                          (exists p Paper (bid u p)))))   
+                                          (exists p Paper (bid u p)))))
+         (rule729failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cBidding (conferencePhase r)))
          
          
          ;		cc.phase in Assignment implies {
@@ -97,7 +103,7 @@
                   (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
                                        (not (= (paperPhase p) 'pBidding))
                                        (not (= (paperPhase p) 'pAssignment)))))
-         
+         (rule740failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cAssignment (conferencePhase r)))
          
          ;		cc.phase in Reviewing implies {
          ;			// All papers are reviewed
@@ -114,6 +120,7 @@
                                        (not (= (paperPhase p) 'pBidding))
                                        (not (= (paperPhase p) 'pAssignment))
                                        (not (= (paperPhase p) 'pReviewing)))))
+         (rule747failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cReviewing (conferencePhase r)))
          
          ;		cc.phase in Discussion implies {
          ;			// All papers have non-undecided decisions
@@ -132,12 +139,13 @@
                                        (not (= (paperPhase p) 'pAssignment))
                                        (not (= (paperPhase p) 'pReviewing))
                                        (not (= (paperPhase p) 'pDiscussion)))))
+         (rule755failed = (deny s a r) :- (Conference r) (= 'advancePhase a) (= 'cDiscussion (conferencePhase r)))
          
          (rule725otherwise = (permit s a r) :- (Conference r) (= 'advancePhase a) 
                            (not (= 'pSubmission (conferencePhase r))) (not (= 'pBidding (conferencePhase r)))
                            (not (= 'pAssignment (conferencePhase r))) (not (= 'pReviewing (conferencePhase r))) (not (= 'pDiscussion (conferencePhase r)))
                            (admin s))
-         (rule725failed = (deny s a r) :- (Conference r) (= 'advancePhase a) )
+         (rule725blockfailed = (deny s a r) :- (Conference r) (= 'advancePhase a) )
          
          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -302,11 +310,12 @@
          ;;}
          
          ; 824         
-         (rule819 = (permit s a r) :- (Paper r) (= 'paperDecide a) 
+         (rule824 = (permit s a r) :- (Paper r) (= 'paperDecide a) 
                    (= 'pDiscussion (paperPhase r)) (admin s))         
-         (rule819failed = (deny s a r) :- (Paper r) (= 'paperDecide a))  
+         (rule824failed = (deny s a r) :- (Paper r) (= 'paperDecide a))  
          
          ; Final rule is TRUE because the Alloy policy was phrased as a series of implications.
          ; Want to preserve: anything that doesn't match an implication's antecedent is permitted.
          (ruleFinal = (permit s a r) :- true))
-        (RComb (fa permit deny)))
+        (RComb ;(over permit deny)))
+         (fa permit deny)))

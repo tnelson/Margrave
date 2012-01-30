@@ -781,7 +781,8 @@
                
                (define (handle-rule a-rule)
                  (syntax-case a-rule [= :-]
-                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)                                                             
+                   [(rulename = (decision rvar ...) :- fmla0 fmla ...)
+                    ;(printf "Creating Rule: ~v with conditions: ~v~n" #'rulename (syntax->list #'(fmla0 fmla ...)))
                     (m-rule (->string #'rulename)
                             (->string #'decision)
                             (map ->string (syntax->list #'(rvar ...)))
@@ -792,9 +793,12 @@
               
        
        (define (rules-aggregator ele sofar)
+         (when (hash-has-key? sofar (m-rule-name ele))
+           (raise-syntax-error 'Policy (format "There were multiple rules named ~v. Rule names must be unique." (m-rule-name ele))))
          (hash-set sofar (m-rule-name ele) ele))
        (define rules-hash (foldl rules-aggregator (make-immutable-hash '()) rules-result-list))
 
+       
        ; Order matters! Make sure the order is preserved when passing XML to java. 
        ; (The hash table has no concept of ordering on the entries, so keep the keys in order.)
        (define rule-names (map m-rule-name rules-result-list))
