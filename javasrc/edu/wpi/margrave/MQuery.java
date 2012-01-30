@@ -67,9 +67,22 @@ public class MQuery extends MIDBCollection
 	 * breaking. Default is 20. Must be using a symmetric SAT Solver (Such as
 	 * MiniSAT) to use this.
 	 *
+	 * Quote from Kodkod docs:
+	 * Returns the 'amount' of symmetry breaking to perform. 
+	 * If a non-symmetric solver is chosen for this.solver, this value controls
+	 *  the maximum length of the generated lex-leader symmetry breaking predicate.
+	 *   If a symmetric solver is chosen, this value controls the amount of symmetry
+	 *    information to pass to the solver. (For example, if a formula has 10 
+	 *    relations on which symmetry can be broken, and the symmetryBreaking option
+	 *     is set to 5, then symmetry information will be computed for only 5 of 
+	 *     the 10 relations.) In general, the higher this value, the more symmetries 
+	 *     will be broken, and the faster the formula will be solved. But, setting 
+	 *     the value too high may have the opposite effect and slow down the solving. 
+	 *     The default value for this property is 20. 	 
+	 *
 	 * @see mySATFactory
 	 */
-	public int mySB;
+	public int mySB = 20;
 	
 	/**
 	 * 0: No debug output 1: Display statistics 2: Display statistics and query
@@ -106,6 +119,8 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeOutLine("SATFactory: SAT4j (Default)");
 
 		MEnvironment.writeOutLine("SB: " + mySB);
+		
+	
 	}
 
 	protected void init(Formula nFormula) {
@@ -636,8 +651,8 @@ public class MQuery extends MIDBCollection
 		// unsure how to handle the case where HU = empty
 		Formula f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1));
 		MQuery test1 = new MQuery(f, env);
-		test1.runTestCase(8, MEnvironment.topSortCeilingOfLastResort);
-
+		test1.runTestCase(4, MEnvironment.topSortCeilingOfLastResort);	
+		
 		// This IS a cycle.
 		f = x.eq(y).forSome(x.oneOf(sort1)).forAll(y.oneOf(sort1)).and(
 				sort1.some());

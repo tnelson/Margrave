@@ -26,11 +26,11 @@ package edu.wpi.margrave;
 import java.util.*;
 
 import org.sat4j.core.VecInt;
-import org.sat4j.maxsat.WeightedMaxSatDecorator;
+//import org.sat4j.maxsat.WeightedMaxSatDecorator;
 //import org.sat4j.minisat.SolverFactory;
 //import org.sat4j.opt.MaxSatDecorator;
-import org.sat4j.pb.IPBSolver;
-import org.sat4j.pb.OptToPBSATAdapter;
+//import org.sat4j.pb.IPBSolver;
+//import org.sat4j.pb.OptToPBSATAdapter;
 //import org.sat4j.pb.tools.XplainPB;
 import org.sat4j.specs.ContradictionException;
 import org.sat4j.specs.IConstr;
