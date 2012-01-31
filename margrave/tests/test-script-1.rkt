@@ -143,6 +143,79 @@
 (check-true (m-is-poss? "PFQ2"))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Make sure vocabulary-combination preserves constraints in theories.
+; (As a side effect: test all the constraint types.)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(m-load-policy "pol-manyconstraints" "manyconstraints.p") 
+
+(m-let "Qvocabcomboprior" '()
+       'true
+       #:under '("pol-manyconstraints"))
+
+; disjointness between predicates
+(m-let "Qvocabcombo1" '()
+       '(and ([Qvocabcomboprior] ) 
+             (exists x Object 
+                     (and (pred1 x) (pred2 x))))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo1"))
+
+; total-relation constraint sugar
+(m-let "Qvocabcombo2" '()
+       '(and ([Qvocabcomboprior] ) 
+             (exists x Object 
+                     (forall y Object
+                             (not (binarypred1 x y)))))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo2"))
+
+; abstract sort
+; (Note: constants are counted like subsorts for purposes of 
+; abstractness, hence the two equality checks.)
+(m-let "Qvocabcombo3" '()
+       '(and ([Qvocabcomboprior] ) 
+             (exists x Object 
+                     (and (not (Potato x))
+                          (not (Computer x))
+                          (not (Car x))
+                          (not (Emu x))
+                          (not (= x 'obj1))
+                          (not (= x 'obj2)))))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo3"))
+
+; Check atmostone, singleton, and nonempty
+(m-let "Qvocabcombo4" '()
+       '(and ([Qvocabcomboprior] ) 
+             (or
+              ; atmostone emu
+              (exists emu1 Emu (exists emu2 Emu (not (= emu1 emu2))))
+              ; nonempty car
+              (forall car Car (not (= car car)))
+              ; singleton potato
+              (exists p1 Potato (exists p2 Potato (not (= p1 p2))))
+              (forall p Potato (not (= p p)))
+             ))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo4"))
+
+; Check constants-neq-all
+(m-let "Qvocabcombo-cneqall" '()
+       '(and ([Qvocabcomboprior] ) 
+             (= 'obj1 'obj2))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo-cneqall"))
+
+; Check custom axiom (was: coco3 is empty)
+(m-let "Qvocabcombo-custom1" '()
+       '(and ([Qvocabcomboprior] ) 
+             (exists c Computer (coco3 c)))
+       #:under '("pol-manyconstraints"))
+(check-false (m-is-poss? "Qvocabcombo-custom1"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

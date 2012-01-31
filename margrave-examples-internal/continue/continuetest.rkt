@@ -8,6 +8,12 @@
 
 (m-load-policy "continue" "continuep.p")
 
+(m-let "Framing" '([a Action] [r Object])
+       '(implies (and (= 'advancePhase a)
+                      (isa r Conference (= (conferencePhase r) 'cDiscussion)))
+                 (forall p Paper (= (paperPhase p) 'pNotification)))
+       #:under '("continue") )
+
 (m-let "Q1" '([s User]
               [a Action]
               [r Object])
@@ -17,26 +23,25 @@
              ; of a Conference             
              ; in discussion phase
              (isa r Conference (= (conferencePhase r) 'cDiscussion))
-             
+                          
+             ([Framing] a r)
                           
              ; Force state to comply in a stateless query:
              
              ; All papers are past the Reviewing phase, into Notification
-             (forall p Paper (= (paperPhase p) 'pNotification))
+             ;(forall p Paper (= (paperPhase p) 'pNotification))
              
              ; There is a SINGLE paper that's been bid on AND assigned, and has been reviewed.
-             ; Also the decision on that paper is not undecided.
-             ; And its authors aren't reviewers...
-             (exists p Paper (and ;(forall auth User (implies (authorOf p auth)
-                                  ;                           (not (reviewer auth))))
-                                  (exists u User (exists rev Review (and (forall p2 Paper (= p p2))
+             ; Also the decision on that paper is not undecided.             
+             (exists p Paper (exists u User (exists rev Review (and (forall p2 Paper (= p p2))
                                                                          (bid u p)         
                                                                          (reviewOn u p rev)                                                                    
                                                                          (not (= (decisionIs p) 'undecided))
-                                                                         )))))
+                                                                         ))))
              
            ;  (forall u User (forall p Paper (not (conflicted u p))))
                           
+                                 
              
              )
       ; #:under '( "continue")

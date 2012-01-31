@@ -1709,6 +1709,13 @@ public class MVocab {
 		for (String con : other.axioms.setsConstantsCover) 
 			uber.axioms.addConstraintConstantsCover(con);
 
+		// Disjointness between predicates
+		for (List<String> disj : axioms.setsDisjoint) 
+			uber.axioms.addConstraintDisjoint(disj.get(0), disj.get(1));		
+		for (List<String> disj : other.axioms.setsDisjoint) 
+			uber.axioms.addConstraintDisjoint(disj.get(0), disj.get(1));
+		
+		
 		for (Formula f : axioms.otherAxioms) 
 			uber.axioms.addConstraintFormula(f);		
 		for (Formula f : other.axioms.otherAxioms) 
