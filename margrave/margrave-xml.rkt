@@ -270,22 +270,14 @@
               (m-scenario-skolems a-scenario)
               const-relations)))  
     
-    ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"
-    (define/contract (handle-atom-naming an-atom sofar)
-      [string? hash? . -> . hash?]
-      (cond [(hash-has-key? sofar an-atom) sofar]
-            [else (hash-set sofar an-atom an-atom)]))
-    (define/contract (handle-tuple-naming tup sofar)
-      [(listof string?) hash? . -> . hash?]
-      (foldl handle-atom-naming sofar tup))
-    (define atom-names (foldl (lambda (e sofar)
-                                (define the-tuples (m-relation-tuples e))
-                                (foldl handle-tuple-naming sofar the-tuples))
+    ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"    
+    (define atom-names (foldl (lambda (a sofar)
+                                (cond [(hash-has-key? sofar a) sofar]
+                                      [else (hash-set sofar a a)]))
                               atoms-with-names
-                              non-const-relations))
-    
-    ; All atoms should have been examined by now:
-    (define atoms (hash-keys atom-names))
+                              (m-scenario-atoms a-scenario)))        
+    (define atoms (m-scenario-atoms a-scenario))
+  
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; What sorts do each atom belong to?
@@ -383,7 +375,7 @@
     
     (print-statistics (m-scenario-statistics a-scenario))
     
-    (write-string "********************************************************" buffer)        
+    (write-string "********************************************************\n\n" buffer)        
     (get-output-string buffer))
   ; ^ End of internal func. to handle scenarios
   

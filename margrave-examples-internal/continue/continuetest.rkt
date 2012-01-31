@@ -27,19 +27,21 @@
              ; There is a SINGLE paper that's been bid on AND assigned, and has been reviewed.
              ; Also the decision on that paper is not undecided.
              ; And its authors aren't reviewers...
-             (exists p Paper (and (forall auth User (implies (authorOf p auth)
-                                                             (not (reviewer auth))))
+             (exists p Paper (and ;(forall auth User (implies (authorOf p auth)
+                                  ;                           (not (reviewer auth))))
                                   (exists u User (exists rev Review (and (forall p2 Paper (= p p2))
                                                                          (bid u p)         
                                                                          (reviewOn u p rev)                                                                    
                                                                          (not (= (decisionIs p) 'undecided))
                                                                          )))))
+             
+           ;  (forall u User (forall p Paper (not (conflicted u p))))
                           
              
              )
       ; #:under '( "continue")
-       #:ceiling '([univ 38]                   
-                   [Object 6] ;<-- don't go above 5 unless "needed" by a subsort.
+       #:ceiling '([univ 37]                   
+                   [Object 5] ;<-- don't go above 5 unless "needed" by a subsort.
                    [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
                    [Action 16]
                    [Paper 1]
