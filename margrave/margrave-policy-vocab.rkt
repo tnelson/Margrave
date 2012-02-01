@@ -987,13 +987,14 @@
                pairs-to-check)                    
      (string->symbol (m-function-result thefunc))]
     [(? valid-constant? cid) 
-     (define unquoted-id-str (->string (extract-constant-id cid)))     
+     (define unquoted-id (extract-constant-id cid))
+     (define unquoted-id-str (->string unquoted-id))     
      (unless (hash-has-key? (m-vocabulary-constants voc) unquoted-id-str)
-       (margrave-error "The constant symbol was not declared in the query's vocabulary context" term))     
+       (margrave-error "The constant symbol was not declared in the query's vocabulary context" unquoted-id))     
      (string->symbol (m-constant-type (hash-ref (m-vocabulary-constants voc) unquoted-id-str)))]
     [(? valid-variable? vid) 
      (unless (hash-has-key? env term)
-       (margrave-error (format "The variable was not declared in the environment (~v)" env) term))     
+       (margrave-error (format "The variable was not declared in the environment (~v)" env) vid))     
      (hash-ref env term)]
     [else (margrave-error (format "The term ~v was not well-sorted. Environment was: ~v." term env) term)]))    
 

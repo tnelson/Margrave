@@ -8,46 +8,111 @@
 
 (m-load-policy "continue" "continuep.p")
 
-(m-let "Framing" '([a Action] [r Object])
-       '(implies (and (= 'advancePhase a)
-                      (isa r Conference (= (conferencePhase r) 'cDiscussion)))
-                 (forall p Paper (= (paperPhase p) 'pNotification)))
-       #:under '("continue") )
-
+; Taken from the policy:
+(m-let "Framing" '()
+       ; Whatever phase the conference is in, its papers must reflect that.
+       '(and          
+         (forall p Paper 
+                 (and
+                  ; to move into reviewing phase, every paper has to have a user assigned to it.
+                  (implies (or (= (paperPhase p) 'pReviewing)
+                               (= (paperPhase p) 'pDiscussion)
+                               (= (paperPhase p) 'pNotification))
+                           (exists u User (assignedTo u p)))
+                  ; to move into the discussion phase, every paper needs to have at least one review
+                  (implies (or (= (paperPhase p) 'pDiscussion)
+                               (= (paperPhase p) 'pNotification))
+                           (exists u User (exists rev Review (reviewOn u p rev))))
+                  ; to move into the notification phase, a paper needs a decision.
+                  (implies (= (paperPhase p) 'pNotification)
+                           (exists d Decision (and (not (= 'undecided d)) 
+                                                   (= d (decisionIs p)))))))      
+         
+         ; (decisionIs p d)
+         ; ^^^ !!! TODO
+         ; This should give an error in the *POLICY*. Why didn't it?
+         
+         (forall conf Conference 
+                 (and  
+                  ; No papers if the conference is in pre-submission
+                  (implies (= (conferencePhase conf) 'cPreSubmission)
+                           (forall p Paper (not (= p p))))
+                  
+                  (implies (= (conferencePhase conf) 'cPublishing)
+                           (and
+                            ; condition for being past the bidding phase
+                            (forall u User (implies (reviewer u)
+                                                    (exists p Paper (bid u p))))
+                            
+                            ; papers meet the phase requirements: none of them lag behind
+                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+                                                 (not (= (paperPhase p) 'pBidding))
+                                                 (not (= (paperPhase p) 'pAssignment))
+                                                 (not (= (paperPhase p) 'pReviewing))
+                                                 (not (= (paperPhase p) 'pDiscussion))))))
+                  
+                  (implies (= (conferencePhase conf) 'cDiscussion)
+                           (and
+                            ; condition for being past the bidding phase
+                            (forall u User (implies (reviewer u)
+                                                    (exists p Paper (bid u p))))
+                            
+                            ; papers meet the phase requirements: none of them lag behind
+                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+                                                 (not (= (paperPhase p) 'pBidding))
+                                                 (not (= (paperPhase p) 'pAssignment))
+                                                 (not (= (paperPhase p) 'pReviewing))))))
+                  
+                  (implies (= (conferencePhase conf) 'cReviewing)
+                           (and 
+                            ; condition for being past the bidding phase
+                            (forall u User (implies (reviewer u)
+                                                    (exists p Paper (bid u p))))
+                            ; papers meet the phase requirements: none of them lag behind
+                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+                                                 (not (= (paperPhase p) 'pBidding))
+                                                 (not (= (paperPhase p) 'pAssignment))))))
+                  
+                  (implies (= (conferencePhase conf) 'cAssignment)
+                           (and 
+                           ; condition for being past the bidding phase
+                            (forall u User (implies (reviewer u)
+                                                    (exists p Paper (bid u p))))
+                            ; papers meet the phase requirements: none of them lag behind
+                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+                                                 (not (= (paperPhase p) 'pBidding))))))
+                  
+                  (implies (= (conferencePhase conf) 'cBidding)
+                           (forall p Paper (not (= (paperPhase p) 'pSubmission)))))))
+         #:under '("continue") )
+       
 (m-let "Q1" '([s User]
               [a Action]
               [r Object])
        '(and ([continue permit] s a r)
-             ; Advancing phase
-             (= 'advancePhase a)             
-             ; of a Conference             
-             ; in discussion phase
-             (isa r Conference (= (conferencePhase r) 'cDiscussion))
+             
+             ; paperBid has a negative condition. (Can't bid if conflicted.)
+             ; So it's a good start.
+             (not (admin s))
+             (reviewer s)
+             (Paper r)
+             (= a 'paperBid)
+             
+             ([Framing])
                           
-             ([Framing] a r)
-                          
-             ; Force state to comply in a stateless query:
+             ; In order for this to succeed, the PAPER has to be in the bidding phase. 
+             ; But the conference can be in any prior phase!
+               
              
-             ; All papers are past the Reviewing phase, into Notification
-             ;(forall p Paper (= (paperPhase p) 'pNotification))
-             
-             ; There is a SINGLE paper that's been bid on AND assigned, and has been reviewed.
-             ; Also the decision on that paper is not undecided.             
-             (exists p Paper (exists u User (exists rev Review (and (forall p2 Paper (= p p2))
-                                                                         (bid u p)         
-                                                                         (reviewOn u p rev)                                                                    
-                                                                         (not (= (decisionIs p) 'undecided))
-                                                                         ))))
-             
-           ;  (forall u User (forall p Paper (not (conflicted u p))))
-                          
-                                 
-             
+             ;(exists p Paper true )
+             (exists p Paper (exists u1 User (exists rev Review (reviewOn u1 p rev) )))
+             (exists conf Conference true)
              )
-      ; #:under '( "continue")
+       
+       ; !!! TODO. Observation: managing these is a PAIN.
        #:ceiling '([univ 37]                   
-                   [Object 5] ;<-- don't go above 5 unless "needed" by a subsort.
-                   [User 2] ; need >1 for admin plus an author. term counting normally takes care of this...
+                   [Object 6] ;<-- don't increase unless increasing subsort
+                   [User 3] ; an admin, an author, a reviewer (who isn't conflicted --> can't be the author)
                    [Action 16]
                    [Paper 1]
                    [Review 1]
@@ -57,24 +122,13 @@
                    [PaperPhase 6]
                    [ConferenceInfo 0]))
 ;(check-true (m-scenario? (m-get "Q1")))
-;(m-get "Q1")
-                     ; #:include '(([continue permit] s a r) 
-                     ;             ([continue rule755_applies] s a r)                                    
-                     ;             ([continue ruleFinal_applies] s a r)
-                     ;             ([continue ruleFinal_matches] s a r)
-                     ;             
-                     ;             ([continue rule709_applies] s a r)
-                     ;             ([continue rule713_applies] s a r)
-                      ;            ([continue rule717_applies] s a r)
-                     ;             ([continue rule707otherwise_applies] s a r)
-                     ;             ([continue rule725_applies] s a r)
-                     ;             ([continue rule729_applies] s a r)
-                     ;             ([continue rule740_applies] s a r)
-                     ;             ([continue rule747_applies] s a r)
-                     ;             ([continue rule755_applies] s a r)
-                     ;             ([continue rule725otherwise_applies] s a r)
-                     ;             )))
+(define result (m-get "Q1"
+                      #:include '(([continue rule810_matches] s a r)
+                                  ([continue rule810_applies] s a r))))
+
 (display (m-scenario->string 
-          (m-get "Q1" )))
+          result))
 (display (m-count-scenarios "Q1"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The "Simple sanity checks" from the Alloy spec are all stateful...

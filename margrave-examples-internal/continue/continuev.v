@@ -38,7 +38,7 @@
                 ('cReviewing ConferencePhase)                                             
                 ('cDiscussion ConferencePhase)                                             
                 ('cNotification ConferencePhase)                                             
-                ('cPublishing ConferencePhase)
+                ('cPublishing ConferencePhase)                                
                 )
                
                (Functions
@@ -137,5 +137,6 @@
                                                     (conflicted ux px)))))
          
          ; (Together (1) (2) and (3) prevent authors from reviewing their own paper.
+         
          
          ))   

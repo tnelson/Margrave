@@ -48,7 +48,7 @@
          ;	}
          (rule717 = (permit s a r) :- (Paper r) (= 'advancePhase a) (= 'pDiscussion (paperPhase r))
                   (admin s) (exists d Decision (and (not (= 'undecided d)) 
-                                                    (decisionIs r d))))
+                                                    (= d (decisionIs r)))))
          (rule717failed = (deny s a r) :- (Paper r) (= 'advancePhase a) (= 'pDiscussion (paperPhase r)))
          
          (rule707otherwise = (permit s a r) :- (Paper r) (= 'advancePhase a) 
