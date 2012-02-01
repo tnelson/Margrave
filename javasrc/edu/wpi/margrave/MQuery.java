@@ -109,6 +109,9 @@ public class MQuery extends MIDBCollection
 
 	protected Map<String, Integer> localCeilings = new HashMap<String, Integer>();
 	
+	// Set when query is created via explore:
+	private String queryID = "";
+	
 	public void printSettings()
 	{
 		// Print out the current settings for this query.
@@ -1548,6 +1551,9 @@ public class MQuery extends MIDBCollection
 
 		// Remember our varvector and the inferred sorts (use this query's ID for the idb name).
 		result.varOrderings.put(queryID, varOrdering);
+		
+		result.queryID = queryID;
+		
 		for (Variable v : varOrdering)
 		{
 			Expression theSort = uber.getSort(sortsForPublish.get(v.name())).rel;
@@ -1577,6 +1583,11 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
+	public String getQueryID()
+	{
+		return queryID; 					
+	}
+	
 	/*
 	static void handleSortAssertions(MVocab voc, MExploreCondition mpc,
 			Map<Variable, Expression> freeVars) throws MGEBadIdentifierName,

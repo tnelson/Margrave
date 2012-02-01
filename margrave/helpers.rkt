@@ -316,7 +316,7 @@
                      [used hash?]) ))
 
 (serializable-struct m-scenario
-  (size atoms sorts skolems relations statistics annotations)
+  (size atoms sorts skolems relations statistics annotations query-id)
   #:mutable #:transparent)  
 (provide/contract (struct m-scenario 
                     ([size integer?]
@@ -325,12 +325,14 @@
                      [skolems (listof m-relation?)]
                      [relations (listof m-relation?)]
                      [statistics m-statistics?]
-                     [annotations (listof string?)])))
+                     [annotations (listof string?)]
+                     [query-id string?])))
 
 (serializable-struct m-unsat
-  (statistics)
+  (statistics query-id)
   #:mutable #:transparent)
-(provide/contract (struct m-unsat ([statistics m-statistics?])))
+(provide/contract (struct m-unsat ([statistics m-statistics?]
+                                   [query-id string?])))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -21,7 +21,7 @@
  "margrave-xml.rkt"
  "helpers.rkt"
  rackunit)
- 
+
 (provide
  (all-defined-out))
 
@@ -105,7 +105,7 @@
   (xml-make-command "ADD" (list (xml-make-policy-identifier policyid) 
                                 (xml-make-variable-declaration (m-vardec-name adec)
                                                                (m-vardec-type adec)))))
-                                                                                    
+
 
 ; Convert from actual structs to a list describing it. This is needed because
 ; a struct defined at phase 0 is DIFFERENT from a struct defined at phase 1.
@@ -190,7 +190,8 @@
                                                 ("Atom#4" "Atom#5")))
                     (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))                    
               (m-statistics #f #f #f empty (hash))
-              empty))
+              empty
+              ""))
 (check-true (equal? (dereference-term dereference-term-test-scenario-1 'x) "Atom#1"))
 (check-true (equal? (dereference-term dereference-term-test-scenario-1 ''c) "Atom#2"))
 (check-true (equal? (dereference-term dereference-term-test-scenario-1 '(f x)) "Atom#3"))
@@ -214,7 +215,7 @@
   (define the-atoms (map (lambda (aterm) (dereference-term in-scenario aterm))
                          the-terms))  
   (ormap (lambda (anatom) (member? anatom the-atoms))
-          the-tuple))
+         the-tuple))
 (check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '(x)))
 (check-false (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '('c)))
 (check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1" "Atom123") '(x)))
@@ -231,77 +232,81 @@
    (m-scenario-size a-scenario)
    (m-scenario-atoms a-scenario)
    (map (lambda (item)
-	  (m-relation
-	   (m-relation-name item)
-	   (m-relation-reltype item)
-	   (filter filter-pred (m-relation-tuples item))))
-	  (m-scenario-sorts a-scenario))
+          (m-relation
+           (m-relation-name item)
+           (m-relation-reltype item)
+           (filter filter-pred (m-relation-tuples item))))
+        (m-scenario-sorts a-scenario))
    (map (lambda (item)
-	  (m-relation
-	   (m-relation-name item)
-	   (m-relation-reltype item)
-	   (filter filter-pred (m-relation-tuples item))))
-	  (m-scenario-skolems a-scenario))
+          (m-relation
+           (m-relation-name item)
+           (m-relation-reltype item)
+           (filter filter-pred (m-relation-tuples item))))
+        (m-scenario-skolems a-scenario))
    (map (lambda (item)
-	  (m-relation
-	   (m-relation-name item)
-	   (m-relation-reltype item)
-	   (filter filter-pred (m-relation-tuples item))))
-	  (m-scenario-relations a-scenario))
+          (m-relation
+           (m-relation-name item)
+           (m-relation-reltype item)
+           (filter filter-pred (m-relation-tuples item))))
+        (m-scenario-relations a-scenario))
    (m-scenario-statistics a-scenario)
-   (m-scenario-annotations a-scenario)))
+   (m-scenario-annotations a-scenario)
+   (m-scenario-query-id a-scenario)))
 
 ;;test-cases
 (check-true (equal? (filter-tuples (lambda (atuple)
-				     (tuple-involves-terms dereference-term-test-scenario-1 
-							   atuple
-							   '()))
-				   dereference-term-test-scenario-1)
-		    (m-scenario 5 
-				'("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-				(list (m-relation "ASort" 'sort '()))
-				(list (m-relation "$x" 'skolem '()) )
-				(list (m-relation "c" 'constant '())
-				      (m-relation "f" 'relation '())
-				      (m-relation "g" 'relation '()))                    
-				(m-statistics #f #f #f empty (hash))
-				empty)))
+                                     (tuple-involves-terms dereference-term-test-scenario-1 
+                                                           atuple
+                                                           '()))
+                                   dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '()))
+                                (list (m-relation "$x" 'skolem '()) )
+                                (list (m-relation "c" 'constant '())
+                                      (m-relation "f" 'relation '())
+                                      (m-relation "g" 'relation '()))                    
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 (check-true (equal? (filter-tuples (lambda (atuple)
-				     (tuple-involves-terms dereference-term-test-scenario-1 
-							   atuple
-							   '(x)))
-				   dereference-term-test-scenario-1)
-		    (m-scenario 5
-		     '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-		     (list (m-relation "ASort" 'sort '(("Atom#1"))))
-		     (list (m-relation "$x" 'skolem '(("Atom#1"))))
-		     (list
-		      (m-relation "c" 'constant '())
-		      (m-relation "f" 'relation '(("Atom#1" "Atom#3")))
-		      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-		     (m-statistics #f #f #f empty (hash))
-		     empty)))
+                                     (tuple-involves-terms dereference-term-test-scenario-1 
+                                                           atuple
+                                                           '(x)))
+                                   dereference-term-test-scenario-1)
+                    (m-scenario 5
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '(("Atom#1"))))
+                                (list (m-relation "$x" 'skolem '(("Atom#1"))))
+                                (list
+                                 (m-relation "c" 'constant '())
+                                 (m-relation "f" 'relation '(("Atom#1" "Atom#3")))
+                                 (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 (check-true (equal? (filter-tuples (lambda (atuple)
-				     (tuple-involves-terms dereference-term-test-scenario-1 
-							   atuple
-							   '('c x (g 'c x))))
-				   dereference-term-test-scenario-1)
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#4"))))
-              (list (m-relation "$x" 'skolem '(("Atom#1"))) )
-              (list (m-relation "c" 'constant '(("Atom#2")))
-                    (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                ("Atom#4" "Atom#5")))
-                    (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))                    
-              (m-statistics #f #f #f empty (hash))
-              empty)))
+                                     (tuple-involves-terms dereference-term-test-scenario-1 
+                                                           atuple
+                                                           '('c x (g 'c x))))
+                                   dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#4"))))
+                                (list (m-relation "$x" 'skolem '(("Atom#1"))) )
+                                (list (m-relation "c" 'constant '(("Atom#2")))
+                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
+                                                                  ("Atom#4" "Atom#5")))
+                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))                    
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; filter-relations: procedure scenario -> scenario
 ; Retains only the relations that filter-pred returns non-#f on.
 (define/contract (filter-relations filter-pred a-scenario)
   [(m-relation? . -> . boolean?) m-scenario? . -> . m-scenario?]
-
+  
   (m-scenario
    (m-scenario-size a-scenario)
    (m-scenario-atoms a-scenario)
@@ -309,54 +314,59 @@
    (filter filter-pred (m-scenario-skolems a-scenario))
    (filter filter-pred (m-scenario-relations a-scenario))
    (m-scenario-statistics a-scenario)
-   (m-scenario-annotations a-scenario)))
+   (m-scenario-annotations a-scenario)
+   (m-scenario-query-id a-scenario)))
 
 
 ;;test-cases
 (check-true (equal? (filter-relations (lambda (arelation)
-				     true)
-				   dereference-term-test-scenario-1)
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-              (list (m-relation "$x" 'skolem '(("Atom#1"))))
-              (list (m-relation "c" 'constant '(("Atom#2")))
-                    (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                ("Atom#4" "Atom#5")))
-                    (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-              (m-statistics #f #f #f empty (hash))
-              empty)))
+                                        true)
+                                      dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
+                                (list (m-relation "$x" 'skolem '(("Atom#1"))))
+                                (list (m-relation "c" 'constant '(("Atom#2")))
+                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
+                                                                  ("Atom#4" "Atom#5")))
+                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 (check-true (equal? (filter-relations (lambda (arelation)
-				     false)
-				   dereference-term-test-scenario-1)
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list )
-              (list )
-              (list )
-              (m-statistics #f #f #f empty (hash))
-              empty)))
+                                        false)
+                                      dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list )
+                                (list )
+                                (list )
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 (check-true (equal? (filter-relations (lambda (arelation)
-					(or (equal? (m-relation-reltype arelation) 'constant)
-					    (equal? (m-relation-reltype arelation) 'sort)))
-				   dereference-term-test-scenario-1)
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-              (list )
-              (list (m-relation "c" 'constant '(("Atom#2"))))
-              (m-statistics #f #f #f empty (hash))
-              empty)))
+                                        (or (equal? (m-relation-reltype arelation) 'constant)
+                                            (equal? (m-relation-reltype arelation) 'sort)))
+                                      dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
+                                (list )
+                                (list (m-relation "c" 'constant '(("Atom#2"))))
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))
 (check-true (equal? (filter-relations (lambda (arelation)
-				     (not (equal? (m-relation-name arelation) "$x")))
-				   dereference-term-test-scenario-1)
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-              (list )
-              (list (m-relation "c" 'constant '(("Atom#2")))
-                    (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                ("Atom#4" "Atom#5")))
-                    (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-              (m-statistics #f #f #f empty (hash))
-              empty)))
+                                        (not (equal? (m-relation-name arelation) "$x")))
+                                      dereference-term-test-scenario-1)
+                    (m-scenario 5 
+                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
+                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
+                                (list )
+                                (list (m-relation "c" 'constant '(("Atom#2")))
+                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
+                                                                  ("Atom#4" "Atom#5")))
+                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
+                                (m-statistics #f #f #f empty (hash))
+                                empty
+                                "")))

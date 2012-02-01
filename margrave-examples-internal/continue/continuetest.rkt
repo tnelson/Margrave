@@ -34,8 +34,9 @@
          
          (forall conf Conference 
                  (and  
-                  ; No papers if the conference is in pre-submission
-                  (implies (= (conferencePhase conf) 'cPreSubmission)
+                  ; No papers if the conference is in pre-submission or initialization
+                  (implies (or (= (conferencePhase conf) 'cPreSubmission)
+                               (= (conferencePhase conf) 'cInitialization))
                            (forall p Paper (not (= p p))))
                   
                   (implies (= (conferencePhase conf) 'cPublishing)
@@ -75,7 +76,7 @@
                   
                   (implies (= (conferencePhase conf) 'cAssignment)
                            (and 
-                           ; condition for being past the bidding phase
+                            ; condition for being past the bidding phase
                             (forall u User (implies (reviewer u)
                                                     (exists p Paper (bid u p))))
                             ; papers meet the phase requirements: none of them lag behind
@@ -84,30 +85,55 @@
                   
                   (implies (= (conferencePhase conf) 'cBidding)
                            (forall p Paper (not (= (paperPhase p) 'pSubmission)))))))
-         #:under '("continue") )
-       
+       #:under '("continue") )
+
 (m-let "Q1" '([s User]
               [a Action]
               [r Object])
-       '(and ([continue permit] s a r)
-             
-             ; paperBid has a negative condition. (Can't bid if conflicted.)
-             ; So it's a good start.
-             (not (admin s))
-             (reviewer s)
-             (Paper r)
-             (= a 'paperBid)
-             
-             ([Framing])
-                          
-             ; In order for this to succeed, the PAPER has to be in the bidding phase. 
-             ; But the conference can be in any prior phase!
-               
-             
-             ;(exists p Paper true )
-             (exists p Paper (exists u1 User (exists rev Review (reviewOn u1 p rev) )))
-             (exists conf Conference true)
-             )
+       '(and 
+         
+         ; The request is permitted         
+         ([continue permit] s a r)
+         
+         ; paperBid has a negative condition. (Can't bid if conflicted.)
+         ; So it's a good start.
+         ;; 12 solns: author who is also a reviewer trying to bid on something
+         ;; some of these have the author of p trying to bid on his/her own work!
+         (author s)
+                  
+         (reviewer s)
+         (Paper r)
+         (= a 'paperBid)
+         
+         ([Framing])
+         
+         ;;; axioms not in framing, tailored for THIS query to save time
+         ;;; also some restrictions on the query space to reduce # solns
+         ; no reviews yet, since we're still bidding
+         (forall p Paper (forall u User (forall rev Review (not (reviewOn u p rev)))))             
+         ; paper decisions still unfixed
+         (forall p Paper (= (decisionIs p) 'undecided))     
+         ; Nobody has been assigned yet (still bidding)
+         (forall p Paper (forall u User (not (assignedTo u p))))
+         
+         ; some paper has been submitted
+         (exists p Paper true )   
+         
+         ; the conference is in the bidding phase
+         (exists conf Conference (= 'cBidding (conferencePhase conf)))
+         
+         ; the admin is not conflicted on anything
+         ; the admin is not bidding on this paper
+         ; the admin is not a reviewer
+         (forall u User (forall p Paper (implies (admin u) 
+                                                 (and 
+                                                  (not (reviewer u))
+                                                  (not (bid u p))
+                                                  (not (conflicted u p))))))                                    
+         
+         ; This user doesn't already have a bid in on this paper
+         (isa r Paper (not (bid s r)))                  
+         )
        
        ; !!! TODO. Observation: managing these is a PAIN.
        #:ceiling '([univ 37]                   

@@ -131,8 +131,9 @@
          #f]
         [(empty? model-element)                  
          ; Unsatisfiable response!
-         (define statistics-element (get-child-element xml-response 'STATISTICS))
-         (m-unsat (handle-statistics statistics-element))]
+         (define statistics-element (get-child-element xml-response 'STATISTICS))         
+         (define query-id (get-attribute-value statistics-element 'query-id))
+         (m-unsat (handle-statistics statistics-element) query-id)]
         [else
          ; Satisfiable!           
          (define relation-elements (get-child-elements model-element 'RELATION))
@@ -140,6 +141,7 @@
          (define model-size (string->number (get-attribute-value model-element 'size)))
          (define annotation-elements (get-child-elements model-element 'ANNOTATION))
          (define statistics-element (get-child-element xml-response 'STATISTICS))
+         (define query-id (get-attribute-value statistics-element 'query-id))    
          
          (define mutable-atoms-hash (make-hash))
          
@@ -185,7 +187,8 @@
                      the-skolems
                      the-others
                      (handle-statistics statistics-element) 
-                     (map handle-annotation annotation-elements))]))
+                     (map handle-annotation annotation-elements)
+                     query-id)]))
 
 (define (flatten-singleton-string-lists-in-map thehash)  
   (for/hash ([key (hash-keys thehash)])
@@ -196,18 +199,6 @@
         ; default to not changing the values
         (values key valuelist))))
 ; (flatten-singleton-string-lists-in-map (hash "A" '("1") "B" '("2" "3") "C" '() "D" '(5)))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;name is the name of the atom, such as "s" or "r" (doesn't include the $),
-; and list of types is a list of types (which are really predicates that
-; have only one atom in (predicate-list-of-atoms))
-(define-struct atom (name 
-                     display-name 
-                     list-of-types                     
-                     ) #:mutable #:transparent)
-
-;Note that a type is also a predicate, but with only one atom.
-(define-struct predicate (name arity list-of-tuples is-sort-or-variable) #:mutable #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; m-scenario->string
@@ -384,163 +375,6 @@
         [else (internal-process-unsat a-response)]))
 
 
-;Takes a document with <MARGRAVE-RESPONSE> as its outer type
-;This function goes through the xml and updates atom-hash and predicate-hash
-;It then calls (string-from-hash) which creates a string based on atom-hash and predicate-hash
-; !!! TODO: update this function to re-use xml->scenario instead of duplicating code
-(define (pretty-print-model xml-response)
-  (define atom-hash (make-hash))
-  (define predicate-hash (make-hash))
-  (define model-element (get-child-element xml-response 'MODEL))
-  (define relation-elements (get-child-elements model-element 'RELATION))
-  (define universe-element (get-child-element model-element 'UNIVERSE))
-  
-  ; Is this unsat or a model?
-  
-  (define model-size (get-attribute-value model-element 'size))
-  (define annotation-elements (get-child-elements model-element 'ANNOTATION))
-  (define statistics-element (get-child-element xml-response 'STATISTICS))
-  (define string-buffer (open-output-string)) 
-  
-  (define (write s)
-    (write-string s string-buffer)) 
-  
-  ; Initialize the atom hash with everything in UNIVERSE
-  ; Initial display name is equal to atom-name    
-  (for-each (lambda (an-atom-element)
-              (let ([atom-name (pcdata-string (first (element-content an-atom-element)))])
-                (hash-set! atom-hash atom-name (make-atom atom-name atom-name empty))))
-            (get-child-elements universe-element 'atom))
-  
-  ; go through the XML and update the 2 hashes. Then afterwards print them out.
-  
-  (define (handle-relation relation)                   
-    (define relation-arity (string->number (get-attribute-value relation 'arity)))
-    (define relation-name  (get-attribute-value relation 'name))
-    (define relation-is-sort (equal? "sort" (get-attribute-value relation 'type)))
-    (define relation-is-constant (equal? "constant" (get-attribute-value relation 'type)))
-    
-    ;if the relation (predicate) doesn't exist in the hash yet, create it
-    (when (not (hash-ref predicate-hash relation-name #f))
-      (hash-set! predicate-hash relation-name 
-                 (make-predicate relation-name relation-arity empty (or relation-is-sort
-                                                                        relation-is-constant
-                                                                        (equal? (string-ref relation-name 0) #\$)))))    
-    (define predicate-struct (hash-ref predicate-hash relation-name)) 
-    (define tuple-elements (get-child-elements relation 'TUPLE))
-    
-    ; Insert a tuple into the current relation
-    (define (insert-tuple tuple-element) 
-      (when (or relation-is-constant
-                (and (not relation-is-sort) (not relation-is-constant))
-                (equal? "true" (get-attribute-value tuple-element 'not-in-subsort)))
-        (set-predicate-list-of-tuples! predicate-struct (cons (parse-tuple-contents (get-child-elements tuple-element 'ATOM)) 
-                                                              (predicate-list-of-tuples predicate-struct)))))
-    
-    ; Produce a tuple (list of atom structs) from XML
-    (define (parse-tuple-contents atom-elements)
-      (cond [(empty? atom-elements) '()]
-            [else
-             (define an-atom-element (first atom-elements))
-             (define atom-element-name (pcdata-string (first (element-content an-atom-element))))
-             
-             ; Get the atom struct for this atom                         
-             (define atom-struct (hash-ref atom-hash atom-element-name)) 
-             
-             ; If this is a $var relation, change displayed name for the atom
-             ; otherwise, add to the appropriate relation                                       
-             ; note: comment out the relation-is-constant block to move constants to appear with the least specific sorts instead of with vars
-             (cond [relation-is-constant 
-                    (if (equal? (atom-name atom-struct)
-                                (atom-display-name atom-struct))                                                
-                        (set-atom-display-name! atom-struct relation-name)
-                        (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
-                                                                           "="
-                                                                           relation-name )))]
-                   [(equal? (string-ref relation-name 0) #\$)                    
-                    (if (equal? (atom-name atom-struct)
-                                (atom-display-name atom-struct))                                                
-                        (set-atom-display-name! atom-struct (substring relation-name 1))
-                        (set-atom-display-name! atom-struct (string-append (atom-display-name atom-struct)
-                                                                           "="
-                                                                           (substring relation-name 1))))]
-                   ; Not a $var. Is it a sort or predicate?
-                   [(= relation-arity 1)                         
-                    ; Sort or unary predicate       
-                    
-                    ; Note that this atom belongs to this sort/constant
-                    (when (or relation-is-sort relation-is-constant)
-                      (set-atom-list-of-types! atom-struct (cons relation-name (atom-list-of-types atom-struct))))
-                    
-                    ; A tuple is a list of atom-structs. This is a unary tuple. Return a singleton list.
-                    (list atom-struct)] 
-                   
-                   ; >1-ary, so must be a predicate (tuple is k-ary, where k is the arity of the pred)                           
-                   [else (cons atom-struct (parse-tuple-contents (rest atom-elements) ))])]))
-    ; ^^^ end of parse-tuple-contents
-    
-    (for-each insert-tuple tuple-elements))
-  ; handle-relation ends here
-  
-  (begin
-    (for-each handle-relation relation-elements)
-    (write (string-from-hash atom-hash predicate-hash model-size))
-    (when (> (length annotation-elements) 0)
-      (write "\n    -> Also:\n"))
-    (print-annotations string-buffer annotation-elements)
-    (when (not (equal? empty statistics-element))
-      (write (print-statistics statistics-element)))    
-    (write "********************************************************")
-    
-    
-    ; Debugging (let the caller decide whether to print or not)
-    ;(display (get-output-string string-buffer))
-    (get-output-string string-buffer)))
-
-(define (print-annotations buffer list-of-annot)
-  (for-each (lambda (annotation-element)
-              (write-string (pcdata-string (first (element-content annotation-element))) buffer)
-              (write-string "\n" buffer))
-            list-of-annot)) 
-
-;Returns a string to display based on atom-hash and predicate-hash
-(define (string-from-hash atom-hash predicate-hash model-size)
-  (local [(define (atom-helper hash-pos)
-            (cond [(false? hash-pos) ""]
-                  [else (let ((atom (hash-iterate-value atom-hash hash-pos)))
-                          (string-append
-                           (atom-display-name atom)
-                           ": "
-                           (foldl (lambda (type rest) (string-append type " " rest)) "" (atom-list-of-types atom))
-                           "\n"
-                           (atom-helper (hash-iterate-next atom-hash hash-pos))))]))
-          (define (predicate-helper hash-pos)
-            (cond [(false? hash-pos) ""]
-                  [else (let ([predicate (hash-iterate-value predicate-hash hash-pos)])
-                          (if (predicate-is-sort-or-variable predicate)
-                              (predicate-helper (hash-iterate-next predicate-hash hash-pos))
-                              (string-append
-                               (predicate-name predicate)
-                               " = {"
-                               ; For each tuple (as a list of atoms) 
-                               (foldl (lambda (a-tuple so-far) 
-                                        ;(printf "l: ~a ~a ~a ~a ~n" a-tuple so-far (map atom-name a-tuple) (fold-append-with-separator (map atom-name a-tuple) ", " ))
-                                        (string-append 
-                                         "[" 
-                                         (fold-append-with-separator (map atom-display-name a-tuple) ", ")
-                                         (if (not (equal? so-far ""))
-                                             "], "
-                                             "]") 
-                                         so-far))
-                                      ""
-                                      (predicate-list-of-tuples predicate))
-                               "}"
-                               "\n"
-                               (predicate-helper (hash-iterate-next predicate-hash hash-pos)))))]))]
-    (string-append "********* SOLUTION FOUND at size = " model-size " ******************\n"
-                   (atom-helper (hash-iterate-first atom-hash))
-                   (predicate-helper (hash-iterate-first predicate-hash)))))
-
 ; Get value for attribute name-symbol of element ele
 ; Element -> Symbol -> String
 (define/contract (get-attribute-value ele name-symbol)
@@ -619,14 +453,14 @@
         [(element? the-response)
          (let* ([type (get-attribute-value the-response 'type)])
            ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
-           (cond [(equal? type "model") (pretty-print-model the-response)] 
+           (cond [(equal? type "model") (m-scenario->string (xml->scenario the-response))] 
                  [(equal? type "sysinfo") (pretty-print-sys-info-xml the-response)]
                  [(equal? type "collection-info") (pretty-print-collection-info-xml the-response)]
                  [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml the-response)]
                  [(equal? type "error") (pretty-print-error-xml the-response)]
                  [(equal? type "exception") (pretty-print-exception-xml the-response)]
                  [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
-                 [(equal? type "unsat") (pretty-print-unsat-xml the-response)]
+                 [(equal? type "unsat") (m-scenario->string (xml->scenario the-response))]
                  [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
                  ; [(equal? type "string") (pretty-print-string-xml the-response)]
                  [(equal? type "string") (xml-string-response->string the-response)]
@@ -786,17 +620,6 @@
 (define (pretty-print-map-xml element)
   (let ([the-hashtable (xml-map-response->map element)])
     (pretty-print-hashtable the-hashtable)))
-
-; element -> string
-(define (pretty-print-unsat-xml element)
-  (let* ((string-buffer (open-output-string))
-         (statistics-element (get-child-element element 'statistics)))
-    (local ((define (write s)
-              (write-string s string-buffer)))
-      (begin 
-        (write "---> No more solutions! <---\n")
-        (write (print-statistics statistics-element))
-        (get-output-string string-buffer)))))
 
 ; element -> string
 (define (pretty-print-explore-xml element)

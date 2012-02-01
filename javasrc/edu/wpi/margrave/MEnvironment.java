@@ -1889,7 +1889,8 @@ public class MEnvironment
 		statsElement.setAttribute("max-size", String.valueOf(theResult.getCeilingUsed()));		
 		statsElement.setAttribute("user-max-size", String.valueOf(theResult.ceilingsToUse.get(MEnvironment.sUnivSortName)));
 		statsElement.setAttribute("computed-max-size", String.valueOf(theResult.getCeilingComputed()));
-		statsElement.setAttribute("result-id", String.valueOf(id));		
+		statsElement.setAttribute("result-id", String.valueOf(id));	
+		statsElement.setAttribute("query-id", theResult.forQuery.getQueryID());
 		statsElement.setAttribute("query-creation-ms", String.valueOf(theResult.msQueryCreationTime));
 		statsElement.setAttribute("query-run-ms", String.valueOf(theResult.msQueryKodkodTime));
 		
@@ -2083,7 +2084,7 @@ public class MEnvironment
 		}
 		
 		modelElement.setAttribute("size", String.valueOf(usedAtoms.size()));
-		modelElement.setAttribute("original-size", String.valueOf(facts.universe().size()));
+		modelElement.setAttribute("original-size", String.valueOf(facts.universe().size()));		
 		modelElement.appendChild(universeElement);
 		
 		
