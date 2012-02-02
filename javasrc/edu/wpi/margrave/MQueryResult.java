@@ -37,40 +37,37 @@ import kodkod.instance.TupleSet;
 import kodkod.instance.Universe;
 import kodkod.util.ints.IntSet;
 
-/*class MCNFSpyQueryResult extends MQueryResult
+class MCNFSpyQueryResult extends MQueryResult
 {
-	List<Integer> trivialTrue = new ArrayList<Integer>();
-	List<Integer> trivialFalse = new ArrayList<Integer>();
-	HashMap<Integer, Translation> nonTrivialTranslations = new HashMap<Integer, Translation>();
-	HashMap<Integer, Bounds> nonTrivialBounds = new HashMap<Integer, Bounds>();
-
+	Translation nonTrivialTranslation;
+	Bounds nonTrivialBounds;
+	boolean trivialFalse;
+	boolean trivialTrue;
+	
 	CNFSpyFactory spyFactory;
 	
 	MCNFSpyQueryResult(MPreparedQueryContext qr)
 	{
-		super(qr);
-				
-		// Prepare a CNF for each model size to be tested.
-		
-		for(int iSize=1;iSize<=fromContext.getCeilingUsed();iSize++)
-		{
-			try
-			{
-				createCNFFor(qr.qryFormulaWithAxioms, iSize);
-			}
-			catch(TrivialFormulaException e)
-			{				
-	        	if(e.value().booleanValue() == false)
-	        		trivialFalse.add(iSize);
-	        	else
-	        		trivialTrue.add(iSize);
-	        	
-	        	nonTrivialTranslations.put(iSize, null);
-	        	nonTrivialBounds.put(iSize, null);
-			}
+		super(qr);				
 			
+		try
+		{
+			// Prepare a CNF to watch:
+			createCNFFor(qr.qryFormulaWithAxioms);
 		}
-				
+		catch(TrivialFormulaException e)
+		{				
+			// Either all models or no models. Set the appropriate flags.
+	       	if(e.value().booleanValue() == false)
+	       		trivialFalse = true;
+	       	else
+	       		trivialTrue = true;
+	       	
+	       	// Clear these out (previously set by createCNFFor)
+	       	nonTrivialTranslation = null;
+	       	nonTrivialBounds = null;
+		}
+			
 		if(qr.forQuery.debug_verbosity > 1)
 			MEnvironment.writeOutLine("DEBUG: Translation to CNF complete. Time: "+msKodkodTransTime + " ms.");
 	}
@@ -90,20 +87,10 @@ import kodkod.util.ints.IntSet;
 		
 		return result;
 	}
-
-	///////////////// **
-	// TODO iSize is the old way to do it. need to re-do this code. Do not call!
-	///////////////// **
 	
-	void createCNFFor(Formula f, int iSize)
+	void createCNFFor(Formula f)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName, TrivialFormulaException
-	{
-				
-		LinkedList<String> atoms = new LinkedList<String>();
-		for(int ii=0;ii<iSize;ii++)			
-			atoms.add("Atom"+ii);		
-		Universe u = new Universe(atoms);		
-		
+	{						
 		Solver qrySolver = new Solver();		
 		qrySolver.options().setFlatten(true);
 		qrySolver.options().setSymmetryBreaking(fromContext.forQuery.mySB);		
@@ -111,8 +98,7 @@ import kodkod.util.ints.IntSet;
 		spyFactory = new CNFSpyFactory(fromContext.forQuery.mySATFactory);
 		qrySolver.options().setSolver(spyFactory);
 		
-		Bounds qryBounds = new Bounds(u);
-		f = makeConservativeBounds(u, f, qryBounds);		
+		KodkodContext ctxt = makeBounds(f);				
 		
 		// Kodkod Skolemizes, which means the bounds we have at this point
 		// get augmented. If we want to give variable bindings (and we do!) 
@@ -129,21 +115,19 @@ import kodkod.util.ints.IntSet;
     		
     		//MCommunicator.writeToLog("\nBounds: \n"+qryBounds.toString());
     		//MCommunicator.writeToLog("\nFormula: "+f.toString());
-            Translation trans = Translator.translate(f, qryBounds, qrySolver.options());
+            Translation trans = Translator.translate(ctxt.fmla, ctxt.bounds, qrySolver.options());
+            
            // CNFSpy theSpy = (CNFSpy)trans.cnf();         
     		final long endTransl = System.currentTimeMillis();
     		msKodkodTransTime += (endTransl - startTransl);
             
             // Remember the clauses.
-            nonTrivialTranslations.put(iSize, trans);   
+            nonTrivialTranslation = trans;  
             if(rep.skolemBounds != null)
-            	nonTrivialBounds.put(iSize, rep.skolemBounds);
+            	nonTrivialBounds = rep.skolemBounds;
             else
-            	nonTrivialBounds.put(iSize, qryBounds); // just in case!
-    		
-            
-                                    
-            
+            	nonTrivialBounds = ctxt.bounds;
+
             // Kodkod modifies the clause arrays afterward. Do not re-use!
 
         }
@@ -151,12 +135,10 @@ import kodkod.util.ints.IntSet;
         {
         	// Either ALL solutions or NO solutions. Let the caller decide.
         	throw e;
-        }        
-		
-		
+        }        			
 	}
 
-}*/
+}
 
 
 public abstract class MQueryResult
@@ -175,7 +157,7 @@ public abstract class MQueryResult
 		this.fromContext = fromContext;		
 	}
 	
-	protected KodkodContext makeConservativeBounds(Formula f)
+	/*protected KodkodContext makeConservativeBounds(Formula f)
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{
 		
@@ -374,7 +356,7 @@ public abstract class MQueryResult
 		
 		return new KodkodContext(f, qryBounds);
 	} // end makeConservativeBounds
-	
+	*/
 	
 	/////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////
@@ -531,7 +513,7 @@ public abstract class MQueryResult
 	throws MGEManagerException, MGEUnknownIdentifier, MGEBadIdentifierName
 	{		
 		// Create bounds on relations 						
-		MCommunicator.writeToLog("\nCreating bounds ...");
+		MCommunicator.writeToLog("\nCreating bounds ...");		
 		
 		Map<Relation, Set<String>> sortUpperBounds = new HashMap<Relation, Set<String>>();
 		Map<Relation, Set<String>> sortLowerBounds = new HashMap<Relation, Set<String>>();
@@ -587,14 +569,15 @@ public abstract class MQueryResult
 		// functions
 		for(MFunction fn : fromContext.forQuery.vocab.functions.values())
 			qryBounds.bound(fn.rel, makePredicateUpperBound(factory, qryBounds, fn));				
-
+				
+		
 		
 		// ****************************************
-		// Bound IDBs that we want to output
+		// Bound IDBs that the query was informed to axiomatize
+		// (E.g. because we want to show realized on an IDB.)
 		// ****************************************
-		
-		// Are we including non-decision IDBs in the calculation? If not, and this isn't one, ignore.		
-	/*	if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
+				
+		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
 			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = 
@@ -608,11 +591,12 @@ public abstract class MQueryResult
 			// Decisions, Rule Applicability, etc. (IDBs at policy level)
 			for(MIDBCollection idbs : fromContext.forQuery.myIDBCollections.values())
 			{			
+									
 				// What is this policy publishing?
 			 
 				for(String idbname : idbs.idbKeys())
 				{						
-					//MEnvironment.errorStream.println(idbs.name+MEnvironment.sIDBSeparator+idbname);							
+					//MEnvironment.errorStream.println(idbs.name+MEnvironment.sIDBSeparator+idbname);																	
 					
 					// Is this an idb to be published? If not, skip it.
 					if(!fromContext.forQuery.getIDBNamesToOutput().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
@@ -620,7 +604,7 @@ public abstract class MQueryResult
 						continue;
 					}
 					
-					MCommunicator.writeToLog("\nAxiomatizing IDB: "+idbname);													
+					MCommunicator.writeToLog("\nAxiomatizing IDB: "+idbname);																							
 					
 					Formula idbFormula = idbs.getIDB(idbname);
 					
@@ -633,16 +617,16 @@ public abstract class MQueryResult
 					
 					/// !!! TODO is this even needed anymore?
 					
-					RelationAndTermReplacementV vis;
-					if(initialVisitors.containsKey(idbs))
-						vis = initialVisitors.get(idbs);
-					else
-					{
-						vis = MIDBCollection.getReplacementVisitor(idbs.vocab, fromContext.forQuery.vocab);
-						initialVisitors.put(idbs, vis);
-					}
+					//RelationAndTermReplacementV vis;
+					//if(initialVisitors.containsKey(idbs))
+					//	vis = initialVisitors.get(idbs);
+					//else
+					//{
+					//	vis = MIDBCollection.getReplacementVisitor(idbs.vocab, fromContext.forQuery.vocab);
+					//	initialVisitors.put(idbs, vis);
+					//}
 					
-					idbFormula = idbFormula.accept(vis);
+					//idbFormula = idbFormula.accept(vis);
 									
 					// What temporary variables did the policy refer to?
 					// (Order doesn't really matter here, since it's all flat universal quantifiers)
@@ -666,30 +650,42 @@ public abstract class MQueryResult
 					// TODO some of that up there is not needed in this new bounding function. TN 12/11
 					
 					boolean first = true;
-					TupleSet myBounds = factory.allOf(idbArity); // dummy value
+					TupleSet thisIDBUpperBound = factory.allOf(idbArity); // dummy value															
+					
+					// Bound the IDB relation based on the upper bounds of its component sorts
 					for(Variable v : idbs.varOrderings.get(idbname))
 					{
 						Expression e = idbs.varSorts.get(v);
+												
+						if(!idbs.varSorts.containsKey(v))
+						{
+							throw new MUserException("The policy "+idbs.name+" did not contain a declaration for the variable "+v);
+						}
+						
 						assert(e instanceof Relation);
-						Relation r = (Relation)e;
+						Relation r = (Relation)e;						
+						
 						if(first)
 						{
-							myBounds = qryBounds.upperBound(r);
+							thisIDBUpperBound = qryBounds.upperBound(r);
+							first = false;
 						}
 						else
 						{
-							myBounds = myBounds.product(qryBounds.upperBound(r));
+							thisIDBUpperBound = thisIDBUpperBound.product(qryBounds.upperBound(r));						
 						}
 					}
 					
 					
 					
 					// Create a temporary relation 
-					// (If tupled, attach the indexing -- uglier but desirable for correctness checking.)
 					Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);		
 					
+					MCommunicator.writeToLog("\n***** "+therel+" "+idbArity+" "+idbs.varOrderings.get(idbname));
+					
 					// And bound it.
-					qryBounds.bound(therel, myBounds);			
+					MCommunicator.writeToLog("\nBounding "+therel+" above by: "+thisIDBUpperBound);
+					qryBounds.bound(therel, thisIDBUpperBound);			
 									
 					///////////////////////////////////////////////////////
 					// Get proper ordering of freeVars
@@ -765,7 +761,6 @@ public abstract class MQueryResult
 			f = MFormulaManager.makeConjunction(impSet);
 		} // end of if including idbs in output								
 		// ****************************************
-*/
 				
 	
 		if(fromContext.forQuery.debug_verbosity > 1)			
@@ -1237,11 +1232,11 @@ class MPreparedQueryContext
 		return new MPartialInstanceIterator(this);
 	}*/
 
-	/*public MRealizedFormulaFinder getRealizedFormulaFinder() 
+	public MRealizedFormulaFinder getRealizedFormulaFinder() 
 	throws MUserException
 	{
 		return new MRealizedFormulaFinder(this);
-	}*/
+	}
 
 	/*public MUnrealizedFormulaFinder getUnrealizedFormulaFinder() 
 	throws MUserException

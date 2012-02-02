@@ -989,40 +989,30 @@ public class MEnvironment
 	public static Document showRealized(String id,
 			Map<String, Set<List<MTerm>>> rlist,
 			Map<String, Set<List<MTerm>>> clist) throws MBaseException
-	{
-		
-		return errorResponse(sUnsupported, sCommand, id);
-		
-		/*MPreparedQueryContext aResult = getQueryResult(id);
+	{				
+		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
-				
-		// XXX no more placeholders. to be removed. 
-		// If tupled, will have indexing. Translate (using the original vocab)
-		//if(aResult.forQuery.tupled)
-		//{
-		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
-		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
-		//}
+						
 		
-		Map<String, Set<String>> outsets;
 		try
 		{
-			outsets = aResult.getRealizedFormulaFinder().getRealizedFormulas(rlist, clist);
+			Map<String, Set<String>> outsets = 
+					aResult.getRealizedFormulaFinder().getRealizedFormulas(rlist, clist);
 			
-			MCommunicator.writeToLog(rlist.toString());
-			MCommunicator.writeToLog(clist.toString());
-			MCommunicator.writeToLog(outsets.toString());
+			MCommunicator.writeToLog("\nshowRealized rlist="+rlist.toString());
+			MCommunicator.writeToLog("\nshowRealized clist="+clist.toString());
+			MCommunicator.writeToLog("\nshowRealized outsets="+outsets.toString());
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));
-			return mapResponse(outsets);
+			return mapResponse("SHOW-REALIZED", outsets);
 			
 		}
 		catch (MBaseException e)
 		{
 			return exceptionResponse(e);
-		}*/
+		}
 	}
 
 	public static Document showNextCollapse(Integer id) 
@@ -1631,6 +1621,7 @@ public class MEnvironment
 		
 		try
 		{
+			// Inform the policy that this variable has that sort.
 			pol.varSorts.put(MFormulaManager.makeVariable(varname), pol.vocab.getSort(typename).rel);
 		}
 		catch(MBaseException e)

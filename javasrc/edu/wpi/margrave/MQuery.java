@@ -98,7 +98,7 @@ public class MQuery extends MIDBCollection
 	// For tupled queries. Need to know which tuple indexing to use for a given
 	// IDB. Setting function will confirm that it is a valid list of numbers, and
 	// that the arity matches the desired IDB name.
-	protected HashMap<String, Set<List<String>>> idbsToAddInFormula = new HashMap<String, Set<List<String>>>();
+	protected Set<String> idbsToAddInFormula = new HashSet<String>();
 
 
 	// The default default is SAT4j, for compatibility.
@@ -131,19 +131,6 @@ public class MQuery extends MIDBCollection
 		mySATFactory = defaultSATFactory;
 	}
 
-	// constructors
-	/*private MQuery(Formula nFormula, MPolicy initialPolicy)
-			throws  MGEUnknownIdentifier,
-			MGEBadQueryString, MGEArityMismatch {
-		vocab = initialPolicy.vocab;
-		init(nFormula);
-
-		myIDBCollections = new HashMap<String, MIDBCollection>();
-		myIDBCollections.put(initialPolicy.name, initialPolicy);
-
-		// Don't need to combine or replace -- only one source vocab.
-
-	}*/
 
 	protected MQuery(MVocab uber, Formula nFormula,
 			Set<MIDBCollection> idbcollections) {
@@ -165,21 +152,41 @@ public class MQuery extends MIDBCollection
 	MQuery(MQuery previous) 
 	throws MGEUnknownIdentifier, MGEBadQueryString, MGEArityMismatch 
 	{
+		// Clone the previous query.
+		
 		vocab = previous.vocab;
 		init(previous.myQueryFormula);
 
 		debug_verbosity = previous.debug_verbosity;
+		mySATFactory = previous.mySATFactory;
+		mySB = previous.mySB;		
+		name = previous.name;
+		queryID = previous.queryID;
 		
-		// "Deep enough" copy
-		for(Map.Entry<String, Set<List<String>>> e : previous.idbsToAddInFormula.entrySet())
-			idbsToAddInFormula.put(e.getKey(), new HashSet<List<String>>(e.getValue()));
+		for(String anIDB : previous.idbsToAddInFormula)
+		{
+			idbsToAddInFormula.add(anIDB);
+		}
+		
+		for(String s : previous.varOrderings.keySet())
+		{
+			List<Variable> lst = previous.varOrderings.get(s);
+			varOrderings.put(s, new ArrayList<Variable>(lst));			
+		}
 				
+		for(Variable v : previous.varSorts.keySet())
+		{
+			varSorts.put(v, previous.varSorts.get(v));
+		}
+		
 		myIDBCollections = new HashMap<String, MIDBCollection>(previous.myIDBCollections);
+		
+		localCeilings = new HashMap<String, Integer>(previous.localCeilings);
 	}
 
 	public Set<String> getIDBNamesToOutput()
 	{
-		return idbsToAddInFormula.keySet();
+		return idbsToAddInFormula;
 	}
 
 	public void useMiniSAT() {
@@ -481,7 +488,7 @@ public class MQuery extends MIDBCollection
 			MEnvironment.writeOutLine("Preprocessing: " + cputime+ "ms.");
 		}
 		
-		MCommunicator.writeToLog("\nComputed Bounds:\n"+herbrandBounds);
+		MCommunicator.writeToLog("\nComputed Bounds:\n"+herbrandBounds);				
 		
 		return new MPreparedQueryContext(this, queryWithAxioms, herbrandBounds, cputime);
 
@@ -526,13 +533,12 @@ public class MQuery extends MIDBCollection
 	}
 
 
-	public void removeIDBOutputIndexing(String idbname, List<String> indexing)
-	{
-		if(idbsToAddInFormula.containsKey(idbname))
-			idbsToAddInFormula.get(idbname).remove(indexing);
+	public void removeIDBFromAxiomatization(String idbname)
+	{		
+		idbsToAddInFormula.remove(idbname);
 	}
 
-	public void addIDBOutputIndexing(String idbname, List<String> indexing)
+	/*public void addIDBOutputIndexing(String idbname, List<String> indexing)
 			throws MGEArityMismatch, MGEUnknownIdentifier
 	{
 		// CHECK: the indexing Strings must actually be integers
@@ -581,7 +587,8 @@ public class MQuery extends MIDBCollection
 			idbsToAddInFormula.put(idbname, new HashSet<List<String>>());
 		idbsToAddInFormula.get(idbname).add(indexing);
 	}
-
+*/
+	
 /*	public boolean isQuerySatisfiable() throws MGException
 	{
 		// don't bother saving the result
@@ -1423,9 +1430,9 @@ public class MQuery extends MIDBCollection
 		List<String> prefixVarOrder = new ArrayList<String>();
 
 		MCommunicator.writeToLog("\n\n");
-		MCommunicator.writeToLog("creating query from explore: \n");
-		MCommunicator.writeToLog("publish = "+publish+"\n");
-		MCommunicator.writeToLog("freeVars = "+freeVarsUnsorted+"\n");
+		MCommunicator.writeToLog("\nCreating query from Explore: \n");
+		MCommunicator.writeToLog("\npublish = "+publish+"\n");
+		MCommunicator.writeToLog("\nfreeVars = "+freeVarsUnsorted+"\n");
 		MCommunicator.writeToLog("\n\n");
 		
 		// FIRST: Published vars (vars declared free in the query statement)
@@ -1734,18 +1741,15 @@ public class MQuery extends MIDBCollection
 		MCommunicator.writeToLog("\nDone. Assertions are: "+freeVars+")");
 	}*/
 
-	public void addIDBOutputs(String idbname)
+	public void addIDBToForceAxiomatization(String idbname)
 	{
-		//MEnvironment.errorStream.println("adding: "+idbname);
-		if(!idbsToAddInFormula.containsKey(idbname))
-			idbsToAddInFormula.put(idbname, new HashSet<List<String>>());
-		//MEnvironment.errorStream.println(idbOutputIndexing);
+		idbsToAddInFormula.add(idbname);	
 	}	
 	
-	public void addIDBOutputs(Collection<String> idbnames)
+	public void addIDBsToForceAxiomatization(Collection<String> idbnames)
 	{
 		for(String s : idbnames)
-			addIDBOutputs(s);
+			addIDBToForceAxiomatization(s);
 	}
 
 }

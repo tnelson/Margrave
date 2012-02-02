@@ -66,6 +66,17 @@ abstract class MFatalException extends MBaseException
 
 // ------------------------------------------------------------------
 
+class MInternalNoBoundsException extends Exception
+{
+	private static final long serialVersionUID = 100; 
+	
+	MInternalNoBoundsException()
+	{
+		super("");
+	}
+	
+}
+
 /* Thrown when the formula given cannot be tupled, or the 
  *  tupling process gets confused.
  */
