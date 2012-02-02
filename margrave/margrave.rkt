@@ -47,6 +47,7 @@
          m-get
          m-reset
          m-count-scenarios
+         m-show-realized         
          
          send-and-receive-xml
          load-xacml-policy
@@ -402,8 +403,8 @@ gmarceau
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; policy-id policy-file-name -> bool
-
 (define (m-load-policy id fn)    
   (when (engine-needs-starting?)
     (raise-user-error "The Java engine is not started. Unable to load policy."))
@@ -417,6 +418,7 @@ gmarceau
   (define load-func (eval func-sexpr the-margrave-namespace))
   (load-func))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
   (m-is-poss? qryid)
   [-> string? boolean?]
@@ -427,6 +429,7 @@ gmarceau
   (define xml-response (send-and-receive-xml the-xml)) 
   (xml-bool-response->bool xml-response))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
   (m-count-scenarios qryid)
   [-> string? (or/c number? #f)]
@@ -439,7 +442,7 @@ gmarceau
   (cond [(> result -1) result]
         [else #f]))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
   (m-show qryid #:include [include-list empty])
   [->* [string?]
@@ -456,6 +459,31 @@ gmarceau
   ; May be unsat, so don't just call pretty-print-model
   (pretty-print-response-xml (document-element xml-response)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define/contract 
+  (m-show-realized qryid candidates cases)
+  [string? (listof m-formula?) (listof m-formula?) . -> . (or/c hash? list?)]
+  
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started."))
+    
+  (define the-candidates-xexpr-list (map m-formula->xexpr candidates))
+  (define the-cases-xexpr-list 
+    (cond [(empty? cases) empty]
+          [else (list (xml-make-forcases (map m-formula->xexpr cases)))]))
+    
+  (define the-xml (xml-make-show-realized-command qryid (append 
+                                                         the-candidates-xexpr-list
+                                                         the-cases-xexpr-list)))
+  (define xml-response (send-and-receive-xml the-xml))
+  
+  (cond
+    [(empty? cases)
+     (xml-set-response->list (document-element xml-response))]
+    [else
+     (xml-map-response->map (document-element xml-response))]))
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract 
   (m-reset qryid)
   [string? . -> . (or/c void? boolean?)]  
@@ -466,6 +494,7 @@ gmarceau
   (unless (equal? "success" (get-response-type xml-response))
     #f))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
   (m-get qryid #:include [include-list empty])
   [->* [string?]
@@ -481,6 +510,7 @@ gmarceau
   
   (xml->scenario (document-element xml-response)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; let MyQry [x : A, y : B] be r(x) and q(y) ...
 ; (m-let MyQry '([s Subject] [a Action] [r Resource]) '(and ([MyPol permit] s a r) (Write a)))        
 ; sexpr-vars can be empty, but must be given.

@@ -218,6 +218,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Test show realized
+(m-let "QSR1" '([s Subject] [a Action] [r Resource]) 
+       '(and ([mypol1 permit] s a r) (ReadPaper a)))      
+(check-true (member? "mypol1.permit(s, a, r)"
+                     (m-show-realized "QSR1" '( ([mypol1 permit] s a r)) empty)))
+
+(m-show-realized "QSR1"                  
+                 ; Candidates
+                 '( ([mypol1 permit] s a r) )
+                 ; Cases
+                 '( (ReadPaper a) (SubmitReview a)))
+                 
+; TODO: Show realized should return structured data. Still returning the old-style strings.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Test that the engine can be stopped
 (check-true (stop-margrave-engine))

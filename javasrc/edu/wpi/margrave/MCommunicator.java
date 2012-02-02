@@ -904,7 +904,11 @@ public class MCommunicator
 			
 			for(Node childNode : childNodes)
 			{
-				if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
+				if(childNode.getNodeName().equalsIgnoreCase("FORCASES"))
+				{
+					// Ignore. This is a special child node for SHOW REALIZED.
+				}
+				else if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
 				{
 					List<String> relNamePieces = getRelationNameFromAtomicFmla(childNode);
 					List<MTerm> terms = getTermsFromAtomicFmla(childNode);
@@ -924,6 +928,28 @@ public class MCommunicator
 					hashMap.get(relName).add(terms);
 				
 				}
+				else if(childNode.getNodeName().equalsIgnoreCase("ISA"))
+				{
+					// Only atomic ISA allowed!
+					String relName = getAttributeOfChildNodeOrNode(childNode, "ISA", "sort");
+										
+					// ISA has a special TERM sub-node. The first (and only) child of that is the variable-term, function-term, etc.
+					MTerm theTerm = termHelper(getChildNode(childNode, "TERM").getFirstChild());				
+					// ISA has a special FORMULA sub-node. The first (and only) child of that is the actual formula.
+					MExploreCondition cond = exploreHelper(getChildNode(childNode, "FORMULA").getFirstChild());
+					
+					if(theTerm == null || cond == null || !cond.fmla.equals(Formula.TRUE))
+					{
+						throw new MUnsupportedFormulaException("atomicFormulasToHashmap: Got a non-atomic ISA node. ISAs in this context must be atomic.");
+					}
+									
+					if(!hashMap.containsKey(relName))
+						hashMap.put(relName, new HashSet<List<MTerm>>());
+					List<MTerm> singletonList = new ArrayList<MTerm>(1);
+					singletonList.add(theTerm);
+					hashMap.get(relName).add(singletonList);
+					
+				}
 				else if(childNode.getNodeName().equalsIgnoreCase("EQUALS"))
 				{
 					List<MTerm> terms = getTermsFromEqualsFmla(childNode);
@@ -934,7 +960,7 @@ public class MCommunicator
 				}
 				else
 				{
-					throw new MUnsupportedFormulaException("INCLUDE must be a list of atomic formulas.");
+					throw new MUnsupportedFormulaException("atomicFormulasToHashmap: Expected a list of atomic formulas. Got a node with name: "+childNode.getNodeName());
 				}
 			}
         							        
@@ -1455,21 +1481,24 @@ public class MCommunicator
 			return new MExploreCondition(idbf, pol, relationName, terms);
 		}
 
-		private static List<MTerm> getTermsFromAtomicFmla(Node n) {
-			/////////////////////////////////////////////////////
-			// Terms
-			
-			Node termsNode = getChildNode(n, "TERMS");
+		private static List<MTerm> getTermsFromNode(Node termsNode)		
+		{
 			List<Node> termsNodeComponents = getElementChildren(termsNode);   
 			List<MTerm> terms = new ArrayList<MTerm>();
 			for(Node theNode : termsNodeComponents)
 			{
-				MTerm theTerm = termHelper(theNode); 
-				
+				MTerm theTerm = termHelper(theNode); 				
 				//String nameStr = getNodeAttribute(theNode, "ID", "id");
 				terms.add(theTerm);
 			}
-			return terms;
+			return terms;	
+		}
+		
+		private static List<MTerm> getTermsFromAtomicFmla(Node n) {
+			/////////////////////////////////////////////////////
+			// Terms			
+			Node termsNode = getChildNode(n, "TERMS");
+			return getTermsFromNode(termsNode);			
 		}
 
 		private static List<String> getRelationNameFromAtomicFmla(Node n) {

@@ -3,6 +3,8 @@ package edu.wpi.margrave;
 //import java.io.PrintWriter;
 import java.util.*;
 
+import javax.swing.event.ListSelectionEvent;
+
 //import kodkod.ast.Expression;
 //import kodkod.ast.Formula;
 import kodkod.ast.Relation;
@@ -512,7 +514,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         return result;
 	}
 
-	void handleClause (ISolver solver, int[] aClause, Set<IConstr> toRemove, List<Integer> toAssume)
+	void handleClause (ISolver solver, int[] aClause, Set<IConstr> toRemove, Set<Integer> toAssume)
 	throws ContradictionException
 	{
 		Map<int[], IConstr> tempMap = new HashMap<int[], IConstr>();
@@ -524,7 +526,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 	
 	
-	void handleClause(ISolver solver, int[] aClause, Map<int[], IConstr> toRemove, List<Integer> toAssume)
+	void handleClause(ISolver solver, int[] aClause, Map<int[], IConstr> toRemove, Set<Integer> toAssume)
 	throws ContradictionException
 	{
 		MCommunicator.writeToLog("\nin handleClause:");
@@ -559,7 +561,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Set<String> result = new HashSet<String>();
 		boolean issat = false;
 		
-		List<Integer> unitClausesToAssumeCases = new ArrayList<Integer>();	
+		Set<Integer> unitClausesToAssumeCases = new HashSet<Integer>();	
 		
 		MCommunicator.writeToLog("\ninternalRealized. Case clauses: "+stringifyArrays(caseClauseSet));
 		
@@ -606,7 +608,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		// We can remove non-unit clauses.
 		Map<int[], IConstr> toRemoveCandidate = new HashMap<int[], IConstr>();
-		List<Integer> unitClausesToAssumeCandidates = new ArrayList<Integer>();
+		Set<Integer> unitClausesToAssumeCandidates = new HashSet<Integer>();
 		
 		
 		// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
@@ -773,6 +775,21 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 
 	}
 
+	String intArrayCollectionToString(Collection<int[]> coll)
+	{
+		StringBuffer buff = new StringBuffer();
+		
+		buff.append("[ ");
+		for(int[] arr : coll)
+		{
+			buff.append(Arrays.toString(arr));
+			buff.append(" ");
+		}
+		buff.append(" ]");
+		
+		return buff.toString();
+	}
+	
 
 	protected void addRealizedToListAndTrimGoals(ISolver theSolver, Translation trans, 
 			Map<String, Set<List<MTerm>>> candidates, int firstQ, int lastQ, 
@@ -780,7 +797,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			Set<String> result, 
 			Map<Set<Integer>, Set<int[]>> candidateClauseSets, 
 			Set<Integer> candidateGoals,
-			List<Integer> unitClausesToAssumeCandidates,
+			Set<Integer> unitClausesToAssumeCandidates,
 			Map<int[], IConstr> toRemoveCandidates)
 	{
 		// This method needs to do 2 things:
@@ -819,10 +836,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 						Set<Integer> qVars = entry.getKey();						
 						if(qVars.contains(iVar)) // is this for q?
 						{
-							Set<int[]> clausesForQ = entry.getValue();
+							Set<int[]> clausesForQ = entry.getValue();													
 							
-							MEnvironment.writeToLog("\n--- Removing clauses: "+clausesForQ+"\n");
-							MEnvironment.writeToLog("\n--- Removing goals: "+qVars+"\n");
+							MEnvironment.writeToLog("\n--- Removing clauses: "+intArrayCollectionToString(clausesForQ)+"\n");
+							MEnvironment.writeToLog("\n--- Removing goal variables: "+qVars+"\n");
 							
 							// remove clause sets (vals)
 							for(int[] aClause : clausesForQ)
@@ -836,7 +853,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 								{
 									// aClause should be unit; remove the first literal
 									assert(aClause.length == 1);
-									unitClausesToAssumeCandidates.remove(aClause[0]);
+									unitClausesToAssumeCandidates.remove(aClause[0]);																											
 								}
 							}
 							
