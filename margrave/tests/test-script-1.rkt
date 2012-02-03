@@ -225,12 +225,33 @@
 (check-true (member? "mypol1.permit(s, a, r)"
                      (m-show-realized "QSR1" '( ([mypol1 permit] s a r)) empty)))
 
-(m-show-realized "QSR1"                  
-                 ; Candidates
-                 '( ([mypol1 permit] s a r) )
-                 ; Cases
-                 '( (ReadPaper a) (SubmitReview a)))
+; ISA cases
+(check-equal? (m-show-realized "QSR1"                  
+                               ; Candidates
+                               '( ([mypol1 permit] s a r) )
+                               ; Cases
+                               '( (ReadPaper a) (SubmitReview a)))
+              (hash-copy (hash "SubmitReview(a)" empty "ReadPaper(a)"  '("mypol1.permit(s, a, r)"))))
                  
+; Test equality 
+; TODO: support
+;(m-show-realized "QSR1"                  
+;                 ; Candidates
+;                 '( (= s s) (= s r) )
+;                 ; Cases
+;                 '( ([mypol1 permit] s a r) ([mypol1 deny] s a r)))
+
+; Functions? TODO support
+
+; Test non-ISA
+(check-equal? (m-show-realized "QSR1"                  
+                 ; Candidates
+                 '( (conflicted s r) (assigned s r))
+                 ; Cases
+                 '( ([mypol1 permit] s a r) ([mypol1 deny] s a r)))
+              (hash-copy (hash "mypol1.deny(s, a, r)" empty "mypol1.permit(s, a, r)" '("conflicted(s, r)" "assigned(s, r)"))))
+
+
 ; TODO: Show realized should return structured data. Still returning the old-style strings.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

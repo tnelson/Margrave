@@ -91,6 +91,7 @@
                    ;[univ 58]
                    ))
 (time (check-true (m-is-poss? "Q1")))
+;(printf "Q1 solution count: ~v~n" (m-count-scenarios "Q1"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Can the wrong person set the external web-server port?
@@ -115,6 +116,7 @@
                    ;[univ 58]
                    ))
 (time (check-false (m-is-poss? "Q2")))
+;(printf "Q2 solution count: ~v~n" (m-count-scenarios "Q2"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Paul Anderson's basic example: 2 users colluding to do something that
@@ -149,6 +151,7 @@
                    [User 3]
                    [univ 18]))
 (time (check-true (m-is-poss? "PA1")))
+;(printf "PA1 solution count: ~v~n" (m-count-scenarios "PA1"))
 
 ; > Hmm. Each sequential change validates, but the final result means that we are running
 ; > a web server with a port which was not approved by Mr Security.
@@ -185,6 +188,7 @@
                    [User 3]
                    [univ 18]))
 (time (check-true (m-is-poss? "PA2")))
+;(printf "PA2 solution count: ~v~n" (m-count-scenarios "PA2"))
 ; > Hmmm. So the new web server (3) would have the "right" port number
 ; > to satisfy Mr Security, so we might reasonably allow this to happen.
 ; > But now who is "responsible" for this value? 
@@ -206,7 +210,7 @@
 ; appeared? [Added "before" relation to support this. Since Margrave's
 ; language is first-order, we have no way of creating such a relation
 ; locally in this query. Had to state it manually since no trans clos.]  !!!
-(m-let "PA2-blame1" '([thestate ReqTime]
+(m-let "PA1-blame1" '([thestate ReqTime]
                       [therequest Request]
                       [theuser User])
        '(and ([PA1])
@@ -219,7 +223,13 @@
              (forall t Time (implies
                              (before thestate t)
                              (= (portAtTime t (externalAtTime 'end))
-                                (portAtTime 'end (externalAtTime 'end))))))
+                                (portAtTime 'end (externalAtTime 'end)))))
+             
+             ; Framing: reduce number of solns for comparison (>1000 without these at 5 ReqTimes):
+             (= (portAtTime 'state0 'machine3) 'port1234)
+             (= (portAtTime 'state0 'machine4) 'port1234)
+             (= (externalAtTime 'state0) 'machine3)
+             )
        #:ceiling '([Server 2]
                    [Time 6]
                    [Request 5]
@@ -228,7 +238,9 @@
                    [univ 18]))
 
 ;(m-get "PA2-blame1")
-(display (m-show "PA2-blame1"))
+(display (m-scenario->string (m-get "PA1-blame1") #:brief #t))
+(display (m-scenario->string (m-get "PA1-blame1") #:brief #t))
+(printf "PA2-blame1 solution count: ~v~n" (m-count-scenarios "PA1-blame1"))
 ; ^^ This reveals that mrAdmin issued the request at state2 (time=3) that
 ; changed the port on what would _EVENTUALLY_ (key word) be the external webserver.
 

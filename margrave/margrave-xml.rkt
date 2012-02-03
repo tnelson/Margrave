@@ -203,21 +203,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; m-scenario->string
 ; Consume an m-scenario and pretty-print it. 
-(define/contract (m-scenario->string a-response)
-  [(or/c m-unsat? m-scenario?) . -> . string?]
+(define/contract (m-scenario->string a-response #:brief [brief #f])
+  [->* ((or/c m-unsat? m-scenario?))
+       (#:brief boolean?)
+       string?]
   
   (define buffer (open-output-string)) 
     
   ;;;;;;;;;;;;;;;;;;;;;;;;
   (define (print-statistics statistics)
     (unless (empty? (m-statistics-warnings statistics))   
-      (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
-      (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
-                (sort (m-statistics-warnings statistics)
-                      string<=?)))
-    
-    (write-string "Used these upper-bounds on sort sizes:\n" buffer)
-    (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer))
+      (cond [brief (write-string "*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.\n" buffer)]
+            [else
+             (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
+             (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
+                       (sort (m-statistics-warnings statistics)
+                             string<=?))
+             (write-string "Used these upper-bounds on sort sizes:\n" buffer)
+             (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   (define/contract (internal-process-unsat an-unsat)
@@ -359,11 +362,12 @@
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; End the scenario with annotations and statistics
     (define annotations (m-scenario-annotations a-scenario))
-    (unless (empty? annotations)
+    (unless (or brief (empty? annotations))
       (write-string "\n    -> The scenario also contained these annotations:\n" buffer)
       (for-each (lambda (ann) (write-string (string-append ann "\n") buffer))
                 annotations))
     
+    ; Call this even if in brief mode. Print a one-line warning if no completeness guarantee.
     (print-statistics (m-scenario-statistics a-scenario))
     
     (write-string "********************************************************\n\n" buffer)        
