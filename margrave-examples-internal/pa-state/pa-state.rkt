@@ -225,10 +225,17 @@
                              (= (portAtTime t (externalAtTime 'end))
                                 (portAtTime 'end (externalAtTime 'end)))))
              
+             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
              ; Framing: reduce number of solns for comparison (>1000 without these at 5 ReqTimes):
              (= (portAtTime 'state0 'machine3) 'port1234)
              (= (portAtTime 'state0 'machine4) 'port1234)
              (= (externalAtTime 'state0) 'machine3)
+             ; 388 so far
+             (forall reqt ReqTime (implies
+                                   (RSetExternal (requestAtTime reqt))
+                                   (= 'port1234 (requestPort (requestAtTime reqt)))))
+             ; 92 now
+             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
              )
        #:ceiling '([Server 2]
                    [Time 6]

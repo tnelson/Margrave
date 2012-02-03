@@ -155,6 +155,7 @@
 (display (m-scenario->string 
           result))
 (display (m-count-scenarios "Q1"))
+(save-all-scenarios "Q1" #:brief #t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The "Simple sanity checks" from the Alloy spec are all stateful...

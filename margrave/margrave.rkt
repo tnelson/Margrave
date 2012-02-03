@@ -47,7 +47,9 @@
          m-get
          m-reset
          m-count-scenarios
-         m-show-realized         
+         m-show-realized       
+         
+         save-all-scenarios
          
          send-and-receive-xml
          load-xacml-policy
@@ -486,13 +488,11 @@ gmarceau
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract 
   (m-reset qryid)
-  [string? . -> . (or/c void? boolean?)]  
+  [string? . -> . boolean?]  
   
-  (define the-xml (xml-make-reset-command qryid))  
-  (printf "~a~n" the-xml)    
+  (define the-xml (xml-make-reset-command qryid))    
   (define xml-response (send-and-receive-xml the-xml))  
-  (unless (equal? "success" (get-response-type xml-response))
-    #f))
+  (equal? "success" (get-response-type xml-response)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
@@ -745,5 +745,25 @@ gmarceau
   (hash-set! custom-vector-environment vecid contents)
   (format "Custom vector <~a> defined." vecid))
 
-(define foo (parse-and-compile "SHOW ALL Q INCLUDE r(x)"))
-(define bar (eval foo the-margrave-namespace))
+; Helpers for scenario-saving
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (display-scenarios-to-file qid fileport brief)
+  [string? port? boolean? . -> . any/c]
+  (define result (m-get qid))  
+  (when (m-scenario? result)  
+    (display (m-scenario->string result #:brief brief) fileport)
+    (display "\n\n" fileport)
+    (display-scenarios-to-file qid fileport brief)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (save-all-scenarios qid #:brief [brief #f])   
+  [->* (string?)
+       (#:brief boolean?)
+       any/c]
+  (m-reset qid) ; start at beginning of scenario-stream
+  (define out (open-output-file (string-append "scenarios-" qid ".txt") #:exists 'replace))
+  (display (format "*** Found ~v scenarios for query with ID: ~v. ***~n~n" (m-count-scenarios qid) qid) out)
+  (display-scenarios-to-file qid out brief)
+  (m-reset qid) ; return to beginning of stream
+  (close-output-port out))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
