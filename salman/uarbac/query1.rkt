@@ -1,9 +1,10 @@
 #lang racket
 
-(require "../../margrave/margrave.rkt")
+(require margrave)
 
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "../../margrave"                       
+                       ;#:margrave-path "M:\\RktMargrave\\margrave"
+                      ; #:margrave-path "F:\\msysgit\\git\\margrave\\margrave"
                        #:jvm-params '("-Xmx512m"))
 
 
@@ -15,13 +16,13 @@
        ; Miscellaneous examples:
        ; ([uarbac permit] qu1 qp qo)
        ; ([uarbac grantRoleToUser] 'craig qr1 qu1)
-        ([uarbac grantRoleToUser] 'craig 'manager-alas 'salman)
+       ; ([uarbac grantRoleToUser] 'craig 'manager-alas 'salman)
        ; ([uarbac revokeRoleFromUser] 'craig 'manager-alas 'dan)
        ; ([uarbac revokeRoleFromUser] 'dan 'manager-alas 'kathi)
 
        ;; Kathi's queries:
        ; 1.
-       ; ([uarbac permit] 'salman 'research 'alas)  ;-- NO RESPONSE
+       ([uarbac permit] 'salman 'research 'alas)  ;-- NO RESPONSE
 
        ; 2.
        ; (ua 'salman 'ra-alas)
@@ -53,6 +54,34 @@
        ; ([uarbac grantRolePermToRole] 'sso 'head-cs 'admin 'ra-alas)
 
        ;UARBAC state definition:
+
+
+       ;; (forall auser User
+       ;; 		(= (ob auser) 'user))
+       ;; (forall arole Role
+       ;; 		(= (ob arole) 'role))
+       (= (ob 'sso) 'user)
+       (= (ob 'craig) 'user)
+       (= (ob 'dan) 'user)
+       (= (ob 'kathi) 'user)
+       (= (ob 'tim) 'user)
+       (= (ob 'theo) 'user)
+       (= (ob 'salman) 'user)
+       (= (ob 'administrator) 'role)
+       (= (ob 'head-cs) 'role)
+       (= (ob 'professor-cs2102) 'role)
+       (= (ob 'professor-cs521) 'role)
+       (= (ob 'student-csgrad) 'role)
+       (= (ob 'manager-alas) 'role)
+       (= (ob 'manager-hci) 'role)
+       (= (ob 'faculty-cs) 'role)
+       (= (ob 'ta-cs2102) 'role)
+       (= (ob 'ra-alas) 'role)
+       (= (ob 'cs2102) 'course)
+       (= (ob 'cs521) 'course)
+       (= (ob 'alas) 'lab)
+       (= (ob 'hci) 'lab)
+       (= (ob 'cs) 'department)
 
        ;RH(role1, role2)
        (forall role1 Role
@@ -228,4 +257,48 @@
 
 ;; Retursn the relation that we are interested in.
 ; To pretty-print, use m-show:
-(display (m-show "Q"))
+;(display (m-show "Q"))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define mainScenario  (m-get "Q"))
+
+
+(struct dictionaryElement (word atoms) #:transparent)
+
+
+
+;; Returns a relation of the scenario indicated by relName
+(define (getRelations scenario relName) 
+  (first (filter (lambda (x) (string=? (m-relation-name x) relName))
+	  (m-scenario-relations scenario))))
+
+
+;;(display temp)
+
+
+;; Returns all the mappings for a given atom.
+(define (getMappings atom relations modelRelations)
+  (map
+   (lambda (relation) (m-relation-name relation))
+   (filter 
+    (lambda (x) (and (member atom (foldr append '() (m-relation-tuples x)))
+		     (not (member (m-relation-name x) modelRelations))))
+    relations)))
+
+
+;; Makes the dictionary for a given relation:
+(define (makeDictionary relation relations modelRelations)
+  (map (lambda (elm) (dictionaryElement elm (getMappings elm relations modelRelations)))
+   ; Returns a list of unique atoms used in the relation
+   (filter (lambda (atm) (not (string=? (substring atm 0 (min (string-length atm) 12)) "DomainObject")))
+	   (remove-duplicates (foldr append '() (m-relation-tuples relation))))))
+
+
+
+
+
+;;; (display (makeDictionary (getRelations mainScenario "opa") (m-scenario-relations mainScenario) '("rh" "opa" "cpa" "ua" "ob")))
+
+
