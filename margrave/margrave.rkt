@@ -81,7 +81,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-011312")
+(define margrave-version "3.1-internal-020812")
 
 ;****************************************************************
 ;;Java Connection
@@ -216,33 +216,50 @@ gmarceau
        boolean?]
   
   ; If the engine isn't running (either uninitialized, or it died before we called this)
-  (if (or (not java-process-list) 
-          (not (eq? (ctrl-function 'status) 'running)))
-      (let* ([ vital-margrave-params
-               (list "-cp"
-                     
-                     ; PARAM: classpath
-                     (build-classpath-param home-path))]
-             ; Class name comes AFTER jvm params and BEFORE margrave params
-             [margrave-params (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params)])
-        
-        ;(printf "~a~n" margrave-params)        
-       ; (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
-        (printf "--------------------------------------------------~n")
-        (printf "Starting Margrave at: ~a~n    JVM params: ~a~n    Margrave params: ~a~n"
-                home-path user-jvm-params user-margrave-params)
-        (printf "Welcome to Margrave version ~a.~n" margrave-version)
-        (printf "--------------------------------------------------~n")
-        ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
-        (set! java-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
-        (set! input-port (first java-process-list))
-        (set! output-port (second java-process-list))
-        (set! process-id (third java-process-list))
-        (set! err-port (fourth java-process-list))
-        (set! ctrl-function (fifth java-process-list))
-        (set! margrave-home-path home-path)
-        #t)
-      #f))
+  (cond [(or (not java-process-list) 
+             (not (eq? (ctrl-function 'status) 'running)))
+         (define vital-margrave-params
+           (list "-cp"                 
+                 ; PARAM: classpath
+                 (build-classpath-param home-path)))
+         
+         ; Class name comes AFTER jvm params and BEFORE margrave params
+         (define margrave-params 
+           (append vital-margrave-params user-jvm-params (list  "edu.wpi.margrave.MCommunicator") user-margrave-params))
+         
+         ;(printf "~a~n" margrave-params)        
+         ; (display (cons (path->string (build-path java-path java-exe-name)) margrave-params))
+         (printf "--------------------------------------------------~n")
+         (printf "Starting Margrave at: ~a~n    JVM params: ~a~n    Margrave params: ~a~n"
+                 home-path user-jvm-params user-margrave-params)
+         (printf "Welcome to Margrave version ~a.~n" margrave-version)
+         (printf "--------------------------------------------------~n")
+         ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
+         (set! java-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
+         (set! input-port (first java-process-list))
+         (set! output-port (second java-process-list))
+         (set! process-id (third java-process-list))
+         (set! err-port (fourth java-process-list))
+         (set! ctrl-function (fifth java-process-list))
+         (set! margrave-home-path home-path)                     
+         
+         (wait-for-ready-response)]
+        [else #f]))
+
+(define (wait-for-ready-response)
+  ;(printf "Waiting for engine...~n")  
+  (with-handlers ([exn? (lambda (e) 
+                          (printf "Engine did not reply properly. Closing Engine.~n")
+                          (define curr-status (ctrl-function 'status))                          
+                          (when (or (equal? curr-status 'done-error)
+                                    (equal? curr-status 'done-ok))
+                            (printf "~a~n" (list->string (get-the-rest-in-port err-port))))
+                          
+                          (cleanup-margrave-engine)
+                          #f)])
+    (define result-xml (read-xml/document input-port))
+;    (printf "~v~n" result-xml)
+    #t))
 
 (define (cleanup-margrave-engine)
   (close-input-port input-port)
@@ -340,6 +357,11 @@ gmarceau
         
         [else xml-response]))
 
+(define (get-the-rest-in-port aport)
+  (define c (read-char aport))
+  (cond [(eof-object? c) empty]
+        [else (cons c (get-the-rest-in-port aport))]))    
+
 ; m
 ; xexpr, func -> document or #f
 ; Sends the given XML to java. Returns #f if the engine has not been started.
@@ -353,6 +375,12 @@ gmarceau
          #f]  
         [(port-closed? output-port)
          (raise-user-error "Could not send Margrave command. The port to the Java engine was closed. Please restart Margrave.")
+         #f]
+        [(equal? (ctrl-function 'status) 'done-error)
+         (raise-user-error "Could not send Margrave command. The Java engine closed with an error. Please restart Margrave.")
+         #f]
+        [(equal? (ctrl-function 'status) 'done-ok)
+         (raise-user-error "Could not send Margrave command. The Java engine was closed. Please restart Margrave.")
          #f]
         [else
                   
@@ -368,6 +396,7 @@ gmarceau
          ; Send the command XML (DO NOT COMMENT THIS OUT)
          ; ******************************************
          ;(write-bytes-avail cmd-xexpr output-port)
+                  
          (copy-port (open-input-string cmd-string) output-port)
         ; (printf "Sent XML to engine: ~a~n" cmd-string)           
          ; ******************************************

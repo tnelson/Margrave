@@ -977,6 +977,12 @@ public class MFormulaManager
 		if(!hasBeenInitialized)
 			initialize();	
 		
+		if(expressions.size() < 1)
+		{
+			// Don't bother. Empty union is always NONE.
+			return Expression.NONE;
+		}
+		
 		final Set<Expression> weakSetNotYetKey = Collections.newSetFromMap(
 		        new WeakHashMap<Expression, Boolean>());
 		for(Expression e : expressions)
@@ -1013,6 +1019,13 @@ public class MFormulaManager
 	{
 		if(!hasBeenInitialized)
 			initialize();	
+		
+		if(expressions.size() < 1)
+		{
+			// Don't bother. Empty intersection is always everything.
+			return Expression.UNIV;
+		}
+		
 		
 		final Set<Expression> weakSetNotYetKey = Collections.newSetFromMap(
 		        new WeakHashMap<Expression, Boolean>());

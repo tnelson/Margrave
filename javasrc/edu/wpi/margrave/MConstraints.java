@@ -308,7 +308,7 @@ public class MConstraints
 		}
 		
 		for(String r : setsConstantsCover)
-		{
+		{					
 			Set<Expression> theConstantRels = new HashSet<Expression>();
 			Relation theSortRelation =  vocab.getRelation(r);
 			for(MConstant c : vocab.constants.values())
@@ -316,9 +316,17 @@ public class MConstraints
 				if(c.type.get(0).rel.equals(theSortRelation))
 						theConstantRels.add(c.rel);
 			}
-			Expression theUnion = MFormulaManager.makeUnion(theConstantRels);
-			Formula theFmla = MFormulaManager.makeEqAtom(theUnion, theSortRelation); 
-			results.add(theFmla);			
+			// If there are no constants, assume the user made a mistake.
+			if(theConstantRels.size() > 0)
+			{					
+				Expression theUnion = MFormulaManager.makeUnion(theConstantRels);
+				Formula theFmla = MFormulaManager.makeEqAtom(theUnion, theSortRelation); 
+				results.add(theFmla);
+			}
+			else
+			{
+				throw new MUserException("The type "+r+" was declared to be covered by all constants of type "+r+", but there were no such constants. Please either add constants or remove the constraint.");
+			}
 		}
 				
 		for(String r : setsConstantsNeqAll)
