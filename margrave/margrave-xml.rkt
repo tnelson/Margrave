@@ -1409,9 +1409,10 @@
 
 ; Note some clauses have extra calls to validity checker functions.
 ; These special functions will throw appropriate errors for invalid 
-; syntax, instead of just returning #f.
+; syntax, returning void.
 (define/contract (m-formula->xexpr sexpr #:syntax [src #f])
-  [any/c . -> . xexpr?]      
+  [any/c . -> . (or/c xexpr? void?)]
+  
   (match sexpr 
     [(maybe-identifier true)
      (xml-make-true-condition)]        

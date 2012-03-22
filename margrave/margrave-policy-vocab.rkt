@@ -40,8 +40,8 @@
              racket/base
              racket/contract))
 
-(provide evaluate-policy        
-         ; for test cases
+(provide evaluate-policy 
+                  
          Policy
          PolicySet
          Vocab
@@ -731,7 +731,7 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        (define target-result
          (if (empty? the-target-clauses)
-             empty
+             'true
              (let ()               
                (define the-target-clause (first the-target-clauses))
                (define the-targets (rest (syntax-e the-target-clause)))
@@ -739,6 +739,8 @@
                  (raise-syntax-error 'Policy "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
                (when (< (length the-targets) 1)
                  (raise-syntax-error 'Policy "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
+               (when (not (m-formula? (first the-targets)))
+                 (raise-syntax-error 'Policy "Target was not a valid formula." #f #f (list (first the-targets))))
                
                (first the-targets))))
        
@@ -822,7 +824,8 @@
        ; need ,(list (xml-make-command ...
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
-       ; (create must come first; prepare last)
+       ; (create must come first; prepare last)              
+       
        (with-syntax ([my-theory-name my-theory-name-sym]
                      [my-comb-list rcomb-result]
                      [my-target target-result]
@@ -874,15 +877,15 @@
              
              (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
-             
+               
              (m-policy local-policy-id ; [id string?]                      
                        vocab-path ; [theory-path path?]
                        my-thy ; [theory m-theory?]  
                        vardec-hash ; [vardecs (hash/c string? m-vardec?)]
-                       rule-names ; [rule-names (list string?)]
+                       'rule-names ; [rule-names (list string?)]
                        rules-hash ; [rules (hash/c string? m-rule?)]
-                       my-comb-list ; [rcomb any/c]
-                       my-target ; [target m-formula?]
+                       'my-comb-list ; [rcomb any/c]
+                       'my-target ; [target m-formula?]
                        idbs-hash ;  [idbs (hash/c string? (listof string?))]
                        )))))]
     
@@ -1255,10 +1258,62 @@
                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))
                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "mythy"))) (CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "f1"))))))))
-
-
-
-
+(check-equal? (m-policy->xexprs ((Policy uses Conference
+                                               (Variables 
+                                                (s Subject)
+                                                (a Action)
+                                                (r Resource))
+                                               (Rules 
+                                                (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
+                                                (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
+                                                (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
+                                 "examples\\conference\\conference.v" "MYPOLICYID" #'foo))
+              '((MARGRAVE-COMMAND ((type "CREATE POLICY LEAF")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VOCAB-IDENTIFIER ((vname "Conference"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Action") (varname "a"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Resource") (varname "r"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Subject") (varname "s"))))
+                (MARGRAVE-COMMAND
+                 ((type "ADD"))
+                 (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
+                 (RULE
+                  ((name "PaperNoConflict"))
+                  (DECISION-TYPE ((type "Permit")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
+                  (TARGET
+                   (AND
+                    (NOT (ATOMIC-FORMULA (RELATION-NAME (ID ((id "conflicted")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r"))))))
+                    (AND
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
+                (MARGRAVE-COMMAND
+                 ((type "ADD"))
+                 (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
+                 (RULE
+                  ((name "PaperAssigned"))
+                  (DECISION-TYPE ((type "Permit")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
+                  (TARGET
+                   (AND
+                    (ATOMIC-FORMULA (RELATION-NAME (ID ((id "assigned")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r")))))
+                    (AND
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
+                (MARGRAVE-COMMAND
+                 ((type "ADD"))
+                 (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
+                 (RULE
+                  ((name "PaperConflict"))
+                  (DECISION-TYPE ((type "Deny")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
+                  (TARGET
+                   (AND
+                    (ATOMIC-FORMULA (RELATION-NAME (ID ((id "conflicted")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r")))))
+                    (AND
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
+                     (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
+                (MARGRAVE-COMMAND ((type "SET TARGET FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (TRUE))
+                (MARGRAVE-COMMAND ((type "SET RCOMBINE FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (COMB-LIST))
+                (MARGRAVE-COMMAND ((type "PREPARE")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))))))
+              
+              
+              
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; ((eval '(Policy uses Conference
