@@ -410,16 +410,13 @@
      (let ()       
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
-       (define the-vocab-syntax #'myvocab)                    
+       (define the-vocab-syntax #'myvocab)                           
+       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))                     
        
-       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))              
-       (define axioms-xml (map (lambda (axiom) (make-axiom-command (->string #'theoryname) axiom)) the-axioms-clauses))
-       
-       (with-syntax ([axioms-xml axioms-xml]
-                     [theory-name (->string #'theoryname)]                     
+       (with-syntax ([theory-name (->string #'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
                      [the-axioms-list the-axioms-clauses])                                               
-         (syntax/loc stx (m-theory theory-name 'axioms-xml the-vocab-syntax 'the-axioms-list)))))))
+         (syntax/loc stx (m-theory theory-name the-vocab-syntax 'the-axioms-list)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -516,11 +513,7 @@
        
        (define (type-aggregator ele sofar)
          (hash-set sofar (m-type-name ele) ele))
-       (define types-result (foldl type-aggregator (make-immutable-hash '()) types-result-list))
-       
-       (define types-cmds (map (lambda (x) 
-                                 (m-type->cmd vocab-name-string x))
-                               types-result-list))
+       (define types-result (foldl type-aggregator (make-immutable-hash '()) types-result-list))      
        
        ; potential duplicates here (and in above xml); s/b a set maintained throughout the process?
        (define types-names (hash-keys types-result))
@@ -568,13 +561,7 @@
        (define (predicate-aggregator ele sofar)
          (hash-set sofar (m-predicate-name ele) ele))
        (define predicates-result (foldl predicate-aggregator (make-immutable-hash '()) predicates-result-list))
-       
-       
-       (define predicates-cmds (if (empty? predicates-result)
-                                   empty
-                                   (map (lambda (x) 
-                                          (m-predicate->cmd vocab-name-string x)) predicates-result-list)))       
-       
+                    
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Constants
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;              
@@ -606,11 +593,7 @@
        (define (constants-aggregator ele sofar)
          (hash-set sofar (m-constant-name ele) ele))
        (define constants-result (foldl constants-aggregator (make-immutable-hash '()) constants-result-list))
-       
-       (define constants-cmds (if (empty? constants-result)
-                                  empty
-                                  (map (lambda (x) (m-constant->cmd vocab-name-string x)) constants-result-list)))              
-       
+             
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Functions
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -643,17 +626,13 @@
          (hash-set sofar (m-function-name ele) ele))
        (define functions-result (foldl functions-aggregator (make-immutable-hash '()) functions-result-list))
        
-       (define functions-cmds (if (empty? functions-result)
-                                  empty
-                                  (map (lambda (x) (m-function->cmd vocab-name-string x)) functions-result-list)))       
               
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
        ; We have no idea whether the vocabulary has been created yet or not. 
        ; Java will handle creation of the object if the identifier hasn't been seen before.                            
               
        ;;;;;;;;; Final Syntax ;;;;;;;;;
-       (with-syntax ([vocab-name-string vocab-name-string]
-                     [xml-list (append types-cmds predicates-cmds constants-cmds functions-cmds)]
+       (with-syntax ([vocab-name-string vocab-name-string]                     
                      [types-disassembled-hash
                       #`(hash #,@(apply append (map (lambda (ele) (list (m-type-name ele) `',(disassemble-transparent-struct ele))) (hash-values types-result))))]
                      [predicates-disassembled-hash
@@ -663,8 +642,7 @@
                      [functions-disassembled-hash
                       #`(hash #,@(apply append (map (lambda (ele) (list (m-function-name ele) `',(disassemble-transparent-struct ele))) (hash-values functions-result))))])     
          
-         (syntax/loc stx (m-vocabulary vocab-name-string 
-                                       'xml-list
+         (syntax/loc stx (m-vocabulary vocab-name-string                                       
                                        (assemble-struct-hash types-disassembled-hash)
                                        (assemble-struct-hash predicates-disassembled-hash)
                                        (assemble-struct-hash constants-disassembled-hash)
@@ -762,10 +740,7 @@
                (when (< (length the-targets) 1)
                  (raise-syntax-error 'Policy "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
                
-               (define the-target (first the-targets))                                             
-               (list `(xml-make-command "SET TARGET FOR POLICY" 
-                                        (list (xml-make-policy-identifier local-policy-id)
-                                              ',(m-formula->xexpr the-target)))))))    
+               (first the-targets))))
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -823,12 +798,11 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       
-       (define (handle-combine comb)         
+                                 
+       (define (comb->sexpr comb)         
          (syntax-case comb [fa over]         
-           [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
-           [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
-                                                     (map symbol->string (syntax->datum #'(odec0 odec ...))))]
+           [(fa dec0 dec ...) (syntax->datum comb)]
+           [(over dec odec0 odec ...)(syntax->datum comb)]
            [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
        
        (define rcomb-result 
@@ -837,23 +811,11 @@
              (let ()
                (define the-rcomb-clause (first the-rcomb-clauses))
                (syntax-case the-rcomb-clause [RComb]
-                 [(RComb x0 x ...) (list `(xml-make-command "SET RCOMBINE FOR POLICY" 
-                                                            (list (xml-make-policy-identifier local-policy-id) 
-                                                                  ',(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
+                 [(RComb x0 x ...) (map comb->sexpr (syntax->list #'(x0 x ...)))]
                  [_ (raise-syntax-error 'Policy "Invalid rule-combination clause." #f #f (list the-rcomb-clause))]))))
        
        ; !!! How to make fa, over case insensitive?
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Create and Prepare
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       
-       (define create-xexpr `(xml-make-command "CREATE POLICY LEAF" 
-                                                (list (xml-make-policy-identifier local-policy-id)
-                                                      (xml-make-vocab-identifier ,my-theory-name-str))))
-       
-       (define prepare-xexpr 
-         `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))
+      
        
        ; Only know filename and policy id at *runtime*                                         
        
@@ -861,11 +823,9 @@
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
        ; (create must come first; prepare last)
-       (with-syntax ([start-commands `(list ,create-xexpr)]
-                     [end-commands `(list ,@(append target-result
-                                                    rcomb-result                                                   
-                                                    (list prepare-xexpr)))]
-                     [my-theory-name my-theory-name-sym]
+       (with-syntax ([my-theory-name my-theory-name-sym]
+                     [my-comb-list rcomb-result]
+                     [my-target target-result]
                      [disassembled-rules-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-rule-name ele) `',(disassemble-transparent-struct ele))) (hash-values rules-hash))))]
                      [disassembled-vardec-hash #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash))))]
                      [rule-names rule-names]
@@ -902,36 +862,27 @@
                    ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
                    (eval the-vocab-syntax margrave-policy-vocab-namespace))))
              
-             ; Allow users to provide just a vocab with no theory.
+             ; Allow users to provide just a vocab with no theory. No axioms if so.
              (define my-thy
                (if (m-vocabulary? my-t-or-v)
-                   (m-theory (m-vocabulary-name my-t-or-v) empty my-t-or-v empty)
+                   (m-theory (m-vocabulary-name my-t-or-v) my-t-or-v empty)
                    my-t-or-v))
              
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span))) 
              
-             ; !!! TODO: these fields of the m-policy structure need to be populated still             
-             (define rcomb-desc "")
-             (define target-fmla 'true)                                                      
-             
              (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
              
              (m-policy local-policy-id ; [id string?]                      
                        vocab-path ; [theory-path path?]
-                       ; [xml (listof xexpr?)]
-                       (append start-commands                               
-                               (map (lambda (ele) (m-vardec->cmd local-policy-id ele)) (hash-values vardec-hash))
-                               ; make sure to PRESERVE ORDER on the rules. Order shouldn't matter for variable declarations.
-                               (map (lambda (aname) (m-rule->cmd local-policy-id (hash-ref rules-hash aname))) 'rule-names)
-                               end-commands)
                        my-thy ; [theory m-theory?]  
                        vardec-hash ; [vardecs (hash/c string? m-vardec?)]
+                       rule-names ; [rule-names (list string?)]
                        rules-hash ; [rules (hash/c string? m-rule?)]
-                       rcomb-desc ; [rcomb string?]
-                       target-fmla ; [target m-formula?]
+                       my-comb-list ; [rcomb any/c]
+                       my-target ; [target m-formula?]
                        idbs-hash ;  [idbs (hash/c string? (listof string?))]
                        )))))]
     
@@ -1214,26 +1165,23 @@
   [m-vocabulary? m-vocabulary? . -> . m-vocabulary?]
   (define new-name (string-append (m-vocabulary-name v1) "+" (m-vocabulary-name v2)))
   
-  ; Should never be used...
-  (define new-xml empty)
-  
   ; can't use hash-union since we want to allow (and check) overlaps
   (define new-types (union-types-hashes (m-vocabulary-types v1) (m-vocabulary-types v2)))
   (define new-predicates (hash-union/overlap (m-vocabulary-predicates v1) (m-vocabulary-predicates v2) "Predicates did not match"))
   (define new-constants (hash-union/overlap (m-vocabulary-constants v1) (m-vocabulary-constants v2) "Constants did not match"))
   (define new-functions (hash-union/overlap (m-vocabulary-functions v1) (m-vocabulary-functions v2) "Functions did not match"))
   
-  (m-vocabulary new-name new-xml new-types new-predicates new-constants new-functions))
+  (m-vocabulary new-name new-types new-predicates new-constants new-functions))
 
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" empty (hash) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" empty (make-hash) (make-hash) (make-hash) (make-hash))))
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash "A" (m-type "A" empty)) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" empty (hash "A" (m-type "A" empty)) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" '() (make-hash `(("A" ,@(m-type "A" '())))) (make-hash) (make-hash) (make-hash))))
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" empty (hash "A" (m-type "A" '("B"))) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" empty (hash "A" (m-type "A" '("C"))) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" '() (make-hash `(("A" ,@(m-type "A" '("B" "C"))))) (make-hash) (make-hash) (make-hash))))
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" (hash) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" (make-hash) (make-hash) (make-hash) (make-hash))))
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash "A" (m-type "A" empty)) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" (hash "A" (m-type "A" empty)) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" (make-hash `(("A" ,@(m-type "A" '())))) (make-hash) (make-hash) (make-hash))))
+(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash "A" (m-type "A" '("B"))) (hash) (hash) (hash)) 
+                                    (m-vocabulary "v2" (hash "A" (m-type "A" '("C"))) (hash) (hash) (hash)))
+                    (m-vocabulary "v1+v2" (make-hash `(("A" ,@(m-type "A" '("B" "C"))))) (make-hash) (make-hash) (make-hash))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Functions that grab the appropriate m-vocabulary from the cache
@@ -1277,26 +1225,53 @@
   (foldl combine-vocabs f r))
   
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+(check-equal? (m-vocabulary->xexprs (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
+               '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT-WITH-CHILDREN ((name "Z")) (SORT ((name "A"))) (SORT ((name "B"))) (SORT ((name "C")))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "X"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "Y"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (PREDICATE ((name "r"))) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y")))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c") (type "A"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c2") (type "X"))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
+                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))))               
+
+(check-equal? (m-theory->xexprs (Theory mythy (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))) (Axioms (partial-function f1))))
+              '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT-WITH-CHILDREN ((name "Z")) (SORT ((name "A"))) (SORT ((name "B"))) (SORT ((name "C")))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "X"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "Y"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (PREDICATE ((name "r"))) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y")))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c") (type "A"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c2") (type "X"))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))
+                (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "mythy"))) (CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "f1"))))))))
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(expand '(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))))
-;(expand-once '(Policy uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true))))
-; Why not case-insensitive in match?
-; (expand-once '(Policy polname uses vocabname (Variables )(RComb (fa Permit Deny)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
-;(expand-once '(Policy polname uses vocabname (Variables (Variable x A) (Variable y B) (Variable z C)) (RComb (fa Permit Deny) (over Permit CallPolice) (over Deny CallPolice)) (Rules (Rule1 = (Permit x y z) :- true) (Rule2 = (Permit y x z) :- (rel x y (f x 'c))))))
-
 
 ; ((eval '(Policy uses Conference
 ;        (Variables 
-;         (Variable s Subject)
-;         (Variable a Action)
-;         (Variable r Resource))
+;         (s Subject)
+;         (a Action)
+;         (r Resource))
 ;        (Rules 
 ;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
 ;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
 ;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))
-;        (RComb (fa permit deny)))) "F:\\msysgit\\git\\Margrave\\margrave\\examples\\conference.v" "MYPOLICYID" #'foo)
+;        (RComb (fa permit deny)))) "examples\\conference\\conference.v" "MYPOLICYID" #'foo)
 
-; Theory mythy (Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y))) (Axioms (partial-function f1)))
 
-;(Vocab myvoc (Types (Type X ) (Type Y) (Type Z > A B C)) (Constants (Constant 'c A) (Constant 'c2 X)) (Functions (Function f1 A B) (Function f2 X Y Z)) (Predicates (Predicate r X Y)))
+;(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
+; (Theory mythy (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))) (Axioms (partial-function f1)))

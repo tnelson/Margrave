@@ -63,8 +63,7 @@
           (hash-set! cached-theories
                      thy-key
                      theory-instance)
-          (append (m-vocabulary-xml vocab-instance)
-                  (m-theory-axioms-xml theory-instance)))))
+          (m-theory->xexprs theory-instance))))
     
   ;; Cache the policy
   (hash-set! cached-policies 
@@ -72,7 +71,7 @@
              policy-instance)
   
   (define xml-cmds (append vocab-and-axioms-xml
-                           (m-policy-xml policy-instance)))
+                           (m-policy->xexprs policy-instance)))
   
   ; Load the policy, but also bind the result in our environment
   (make-simple-load-func policy-id                                                     

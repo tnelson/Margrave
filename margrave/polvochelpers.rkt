@@ -33,8 +33,7 @@
 ; reflection. (E.g. "What sorts are available in theory X?")
 
 (define-struct/contract m-vocabulary  
-  ([name string?]
-   [xml (listof xexpr?)]
+  ([name string?]  
    [types (hash/c string? m-type?)] 
    [predicates (hash/c string? m-predicate?)] 
    [constants (hash/c string? m-constant?)] 
@@ -48,8 +47,7 @@
   #:transparent)
 
 (define-struct/contract m-theory
-  ([name string?]
-   [axioms-xml (listof xexpr?)]
+  ([name string?]   
    [vocab m-vocabulary?]   
    [axioms (listof m-axiom?)])
   #:transparent)
@@ -68,20 +66,19 @@
 
 (define-struct/contract m-policy
   ([id string?]
-   [theory-path path?]
-   [xml (listof xexpr?)]
+   [theory-path path?]   
    [theory m-theory?]   
    [vardecs (hash/c string? m-vardec?)]
+   [rule-names (listof string?)]
    [rules (hash/c string? m-rule?)]
-   [rcomb string?]
+   [rcomb any/c]
    [target m-formula?]
    [idbs (hash/c string? (listof string?))])
   #:transparent)
 
 (define-struct/contract m-policy-set
   ([id string?]
-   [theory-path path?]
-   [xml (listof xexpr?)]
+   [theory-path path?]   
    [theory m-theory?]   
    [vardecs (hash/c string? m-vardec?)]
    [children (hash/c string? m-policy?)]
@@ -370,4 +367,81 @@
                                 (m-statistics #f #f #f empty (hash))
                                 empty
                                 "")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Produce XML for declaring these vocabularies, theories, 
+; policies... to the Java engine
+(define/contract (m-vocabulary->xexprs vocab)
+  [m-vocabulary? . -> . (listof xexpr?)]
+  
+  (define types-cmds (map (lambda (x) (m-type->cmd (m-vocabulary-name vocab) x))
+                          (hash-values (m-vocabulary-types vocab))))
+  
+  (define predicates-cmds (map (lambda (x) (m-predicate->cmd (m-vocabulary-name vocab) x)) 
+                               (hash-values (m-vocabulary-predicates vocab))))       
+  
+  (define constants-cmds (map (lambda (x) (m-constant->cmd (m-vocabulary-name vocab) x)) 
+                              (hash-values (m-vocabulary-constants vocab))))
+  
+  (define functions-cmds (map (lambda (x) (m-function->cmd (m-vocabulary-name vocab) x))
+                              (hash-values (m-vocabulary-functions vocab))))
+  
+  (append types-cmds predicates-cmds constants-cmds functions-cmds))
+
+; Sometimes we just want to use a vocabulary w/o theory wrapper. Support that.
+(define/contract (m-theory->xexprs thy)
+  [(or/c m-vocabulary? m-theory?) . -> . (listof xexpr?)]
+  (cond [(m-vocabulary? thy) (m-vocabulary->xexprs thy)]
+        [else 
+         (define axioms-xexprs (map (lambda (axiom) (make-axiom-command (m-theory-name thy) axiom)) 
+                                    (m-theory-axioms thy)))
+         (append (m-vocabulary->xexprs (m-theory-vocab thy)) 
+                 axioms-xexprs)]))
+
+; Does NOT auto-include the theory's XML
+(define/contract (m-policy->xexprs policy)
+  [m-policy? . -> . (listof xexpr?)]
+  
+  (define target-xexpr (xml-make-command "SET TARGET FOR POLICY" 
+                                         (list (xml-make-policy-identifier (m-policy-id policy))
+                                               (m-formula->xexpr (m-policy-target policy)))))    
+  
+  (define (comb->xexpr comb)
+         (match comb
+           [`(fa ,@(list args ...))            
+            (xml-make-fa (map symbol->string args))]
+           [`(over ,dec ,@(list odecs ...))
+            (xml-make-over (->string dec)
+                           (map ->string odecs))]
+           [else empty]))
+  
+  (define rcomb-xexpr (xml-make-command "SET RCOMBINE FOR POLICY" 
+                                           (list (xml-make-policy-identifier (m-policy-id policy)) 
+                                                 (xml-make-comb-list (map comb->xexpr (m-policy-rcomb policy))))))
+  
+       
+  (define create-xexpr (xml-make-command "CREATE POLICY LEAF" 
+                                         (list (xml-make-policy-identifier (m-policy-id policy))
+                                               (xml-make-vocab-identifier (m-theory-name (m-policy-theory policy))))))
+       
+  (define prepare-xexpr 
+    (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-id policy)))))
+    
+  ; Order of XML commands matters.
+  (append (list create-xexpr)
+          (map (lambda (ele) (m-vardec->cmd (m-policy-id policy) ele)) (hash-values (m-policy-vardecs policy)))
+          ; make sure to PRESERVE ORDER on the rules. Order shouldn't matter for variable declarations.
+          ; Don't map over by (hash-keys (m-policy-rules policy)). Use the rule-names list instead:
+          (map (lambda (aname) (m-rule->cmd (m-policy-id policy) (hash-ref (m-policy-rules policy) aname))) (m-policy-rule-names policy))
+          (list target-xexpr rcomb-xexpr prepare-xexpr)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+
 

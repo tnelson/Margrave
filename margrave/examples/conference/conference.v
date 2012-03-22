@@ -1,22 +1,19 @@
 (Vocab Conference
-             (Types
-              (Type Subject > Author Reviewer)
-              (Type Author > LBAuthorReviewer)
-              
-              ;; Allow reviewers to be authors
-              (Type Reviewer > LBAuthorReviewer)
-              
-              (Type Action > SubmitPaper ReadPaper SubmitReview ReadScore)
-              (Type Resource > Paper Score))
-             
-             (Predicates
-              (Predicate conflicted Reviewer Paper)
-              (Predicate assigned Reviewer Paper)
-              (Predicate submittedReview Reviewer Paper)
-              (Predicate scoreFor Paper Score)
-              )
-             
-             )
+       (Types
+        (Subject > Author Reviewer)
+        (Author > LBAuthorReviewer)
+        
+        (Action > SubmitPaper ReadPaper SubmitReview ReadScore)
+        (Resource > Paper Score))
+       
+       (Predicates
+        (conflicted Reviewer Paper)
+        (assigned Reviewer Paper)
+        (submittedReview Reviewer Paper)
+        (scoreFor Paper Score)
+        )
+       
+       )
 
 	      
 

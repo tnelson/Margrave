@@ -88,10 +88,7 @@
          ; Never more than one conference at a time
          ; (To allow >1, would need to add to the arities of the preds above)
          (atmostone Conference)
-         
-         ; Object is either a User or a Resource
-         (abstract Object)
-         
+                  
          ; There is some administrator (constraint on _predicate_)
          (nonempty admin)
                   
@@ -103,6 +100,8 @@
          ; admins cannot be authors                       
          (disjoint admin author)
          
+         ; Disable these abstractness constraints to emulate naive term counting
+         (abstract Object)
          (abstract Resource)                           
          (abstract PaperPhase)                           
          (abstract ConferencePhase)                  

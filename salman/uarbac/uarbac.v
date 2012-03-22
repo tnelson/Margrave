@@ -6,7 +6,7 @@
         (Vocab uarbac
                (Types
                 Class
-                (Object > User Role DomainObject)
+                (Object > User Role Course Lab Department)
                 Permission)
                         
                (Constants
@@ -32,11 +32,11 @@
                 ('course Class)
                 ('lab Class) 
                 ('department Class)                
-                ('cs2102 DomainObject)
-                ('cs521 DomainObject)
-                ('alas DomainObject)
-                ('hci DomainObject)
-                ('cs DomainObject)
+                ('cs2102 Course)
+                ('cs521 Course)
+                ('alas Lab)
+                ('hci Lab)
+                ('cs Department)
                 ('register Permission)
                 ('drop Permission) 
                 ('lecture Permission)
@@ -52,21 +52,22 @@
                 (rh Role Role)
                 (ua User Role)
                 (cpa Role Permission Class)
-		(opa Role Permission Object))
-
-               (Functions
-                (ob Object Class)))
+		(opa Role Permission Object)))
         
         (Axioms
          (abstract User)
          (abstract Role)
-	 (abstract DomainObject)
+	 (abstract Course)
+	 (abstract Lab)
+	 (abstract Department)
          (abstract Permission)
          (abstract Class)
          (abstract Object)
          (constants-neq-all User)
          (constants-neq-all Role)
          (constants-neq-all Permission)
+         (constants-neq-all Course)
+         (constants-neq-all Lab)
+         (constants-neq-all Department)
          (constants-neq-all Class)
-	 (constants-neq-all DomainObject)
          (constants-neq-all Object)))

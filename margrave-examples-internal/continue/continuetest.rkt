@@ -100,12 +100,10 @@
          ;; 12 solns: author who is also a reviewer trying to bid on something
          ;; some of these have the author of p trying to bid on his/her own work!
          (author s)
-                  
-         (reviewer s)
-         (Paper r)
+                                    
          (= a 'paperBid)
          
-         ([Framing])
+        ; ([Framing])
          
          ;;; axioms not in framing, tailored for THIS query to save time
          ;;; also some restrictions on the query space to reduce # solns
@@ -152,10 +150,24 @@
                       #:include '(([continue rule810_matches] s a r)
                                   ([continue rule810_applies] s a r))))
 
-(display (m-scenario->string 
-          result))
-(display (m-count-scenarios "Q1"))
-(save-all-scenarios "Q1" #:brief #t)
+;(display (m-scenario->string 
+;          result))
+;(display (m-count-scenarios "Q1"))
+;(save-all-scenarios "Q1" #:brief #t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The "Simple sanity checks" from the Alloy spec are all stateful...
+
+; Confirm: A paper's author may not see the identity of 
+
+;(m-let "Q2" '([s User]              
+;              [r User])
+;       '(and                   
+;         (admin s) 
+;         ;(not ([continue permit] s 'modifyUserPassword r)))
+;         ([continue permit] s 'modifyUserPassword r))
+;       #:debug 3)
+;(check-true (m-scenario? (m-get "Q1")))
+;(time (display (m-show "Q2")))
+
+
