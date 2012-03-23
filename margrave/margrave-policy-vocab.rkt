@@ -1241,6 +1241,11 @@
 
 
 
+(eval '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
+      margrave-policy-vocab-namespace)
+
+;(expand-once '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
+
 (check equal-unordered? (m-vocabulary->xexprs (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
                '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
                  (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
