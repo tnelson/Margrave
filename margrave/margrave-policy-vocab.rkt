@@ -145,7 +145,7 @@
 
 ; Is this a capitalized id?
 ; (Sorts)
-(define-for-syntax (capitalized-id-syn? syn)
+(define-for-syntax (capitalized-id-syn? syn)  
   (define dat (if (syntax? syn)
                   (syntax->datum syn)
                   syn))  
@@ -469,7 +469,14 @@
        (define the-types (rest (syntax-e the-types-clause)))
        
        ; Returns a pair (name cmd)
-       (define (handle-type a-type)         
+       (define (handle-type a-type)     
+         (printf "handle-type: ~v~n" a-type)
+         (printf "current-dir: ~v~n" (current-directory))
+         (printf "~v~n" (syntax-case a-type [>]                                      
+                          [(t > subt ...) (and (capitalized-id-syn? #'t)
+                                               (all-are-syn? #'(subt ...) capitalized-id-syn?))
+                                          #t]                       
+                          [_ #f]))
          (syntax-case a-type [>]                           
            ; (T > A B C)
            [(t > subt ...) (and (capitalized-id-syn? #'t)

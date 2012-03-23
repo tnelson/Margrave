@@ -81,7 +81,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-020812")
+(define margrave-version "3.1-internal-032212")
 
 ;****************************************************************
 ;;Java Connection
@@ -795,4 +795,3 @@ gmarceau
   (m-reset qid) ; return to beginning of stream
   (close-output-port out))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
