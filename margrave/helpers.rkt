@@ -507,3 +507,18 @@
         [(list? sexpr)
          (second sexpr)]
         [else sexpr]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+; Used to de-order lists in test cases
+(define (equal-unordered? xs ys)
+  (cond 
+    [(not (and (list? xs) (list? ys))) 
+     (equal? xs ys)]
+    [(and (empty? xs) (empty? ys)) 
+     #t]
+    [(or (empty? xs) (empty? ys)) 
+     #f]
+    [else 
+     (and (member (first xs) ys)
+          (equal-unordered? (rest xs)
+                            (remove (first xs) ys)))]))

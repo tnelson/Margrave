@@ -25,8 +25,10 @@
          syntax/readerr
          racket/generator
                            
-         (for-syntax (file "compiler.rkt")
-                     (file "margrave-policy-vocab.rkt"))
+         (for-syntax "compiler.rkt"
+                     "margrave-policy-vocab.rkt")
+         
+         (for-template "margrave-policy-vocab.rkt")
          
          (file "compiler.rkt")
          (file "margrave-policy-vocab.rkt")
