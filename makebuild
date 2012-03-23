@@ -2,8 +2,6 @@
 # Margrave build script
 
 MARGRAVE_PROJECT_ROOT=`pwd`
-
-
 echo Beginning build at Margrave root directory: ${MARGRAVE_PROJECT_ROOT}
 
 ##############################
@@ -94,6 +92,7 @@ ${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/javasrc/edu/wpi/margrave/*.java
 ##############################
 echo Creating PLT archive for distribution
 
-# raco pack --replace --at-plt testbuild.plt margrave
+raco pack --replace --at-plt testbuild.plt margrave
 
-
+echo Don't forget to insert safety checks. Did compilation complete ok? etc.
+echo Also can we build in the date?
