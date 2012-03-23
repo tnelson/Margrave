@@ -1,0 +1,99 @@
+#!/bin/sh
+# Margrave build script
+
+MARGRAVE_PROJECT_ROOT=`pwd`
+
+
+echo Beginning build at Margrave root directory: ${MARGRAVE_PROJECT_ROOT}
+
+##############################
+
+echo Removing old files...
+
+rm -rf ${MARGRAVE_PROJECT_ROOT}/build-temp
+
+##############################
+echo Copying files for build...
+
+mkdir ${MARGRAVE_PROJECT_ROOT}/build-temp
+cd ${MARGRAVE_PROJECT_ROOT}/build-temp
+mkdir margrave
+mkdir margrave/bin
+mkdir margrave/tests
+mkdir margrave/examples
+mkdir margrave/scribblings
+
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/*.rkt margrave
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/*LICENSE* margrave
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/COPYING.LESSER margrave
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/bin/*.jar margrave/bin
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/scribblings/*.scrbl margrave/scribblings
+
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.rkt margrave/tests
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.p margrave/tests
+cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.v margrave/tests
+
+# examples need updating
+#cp ${MARGRAVE_PROJECT_ROOT}/margrave/examples/ margrave/examples
+
+##############################
+
+echo Building fresh Java classes ...todo...
+
+
+#Remove -g for real release
+
+# todo and make a jar, not individual class files
+
+mkdir margrave/bin/edu
+mkdir margrave/bin/edu/wpi
+mkdir margrave/bin/edu/wpi/margrave
+
+MJLIB=${MARGRAVE_PROJECT_ROOT}/build-temp/margrave/bin
+
+# -verbose for verbose compiler output
+# -g to include debugging info
+
+# OPTIONS:
+VERBOSE=0
+DEBUG=1
+
+if [ $VERBOSE = 1 ]; then
+    VFLAG="-verbose"
+else
+    VFLAG=""
+fi
+
+if [ $DEBUG = 1 ]; then
+    DFLAG="-g"
+else
+    DFLAG=""
+fi
+
+
+JAVA_C="javac $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}/edu/wpi/margrave"
+
+
+
+# todo add fresh java build
+
+${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/javasrc/edu/wpi/margrave/*.java
+
+
+
+
+
+#cp ${MARGRAVE_PROJECT_ROOT}/margrave/bin/edu/wpi/margrave/*.class margrave/bin/edu/wpi/margrave
+
+
+##############################
+echo Creating PLT archive for distribution
+
+# raco pack --replace --at-plt testbuild.plt margrave
+
+
