@@ -18,13 +18,12 @@
 #lang racket
 
 (require 
- xml
- 
- (file "margrave-policy-vocab.rkt")
- (file "helpers.rkt")
- (file "lexer.rkt")
- (file "parser.rkt")
- (file "margrave-xml.rkt"))
+ xml 
+ "margrave-policy-vocab.rkt"
+ "helpers.rkt"
+ "lexer.rkt"
+ "parser.rkt"
+ "margrave-xml.rkt")
 
 (provide parse-and-compile
          evaluate-parse 

@@ -470,15 +470,7 @@
        (define the-types (rest (syntax-e the-types-clause)))
        
        ; Returns a pair (name cmd)
-       (define (handle-type a-type)     
-         (printf "handle-type: ~v~n" a-type)
-         (printf "current-dir: ~v~n" (current-directory))
-         (printf "stx: ~a" (syntax->datum a-type))
-         (printf "~v~n" (syntax-case a-type [>]                                                                
-                          [(t > subt ...) #t 1]                          
-                          [lst (syntax-e #'lst)]                          
-                          [_ 0]))
-         
+       (define (handle-type a-type)              
          (syntax-case a-type [>]                           
            ; (T > A B C)
            [(t > subt ...) (and (capitalized-id-syn? #'t)
@@ -1241,10 +1233,8 @@
 
 
 
-(eval '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
-      margrave-policy-vocab-namespace)
-
-;(expand-once '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
+;(eval '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
+;      margrave-policy-vocab-namespace)
 
 (check equal-unordered? (m-vocabulary->xexprs (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
                '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
@@ -1273,19 +1263,6 @@
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "mythy"))) (CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "f1"))))))))
-
-
-#;(printf "~v~n" ((eval '(Policy uses Conference
-                                                   (Variables 
-                                                    (s Subject)
-                                                    (a Action)
-                                                    (r Resource))
-                                                   (Rules 
-                                                    (paperNoConflict = (permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
-                                                    (paperAssigned = (permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
-                                                    (paperConflict = (deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
-                      margrave-policy-vocab-namespace)
-                "./examples/conference/conference.p" "MYPOLICYID" #'foo))
 
 
 (check equal-unordered? (m-policy->xexprs ((Policy uses Conference

@@ -24,17 +24,17 @@
          srfi/13
          syntax/readerr
          racket/generator
-                           
-         (for-syntax "compiler.rkt"
-                     "margrave-policy-vocab.rkt")
+         "compiler.rkt"
+         "margrave-policy-vocab.rkt"
+
+         ; Don't have two separate versions of Vocab floating around, or can get
+         ; odd behavior, like syntax-case not matching syntax. The fact that this
+         ; require is NOT safe implies a bug somewhere... - TN
+         ;(for-syntax "margrave-policy-vocab.rkt")
          
-         (for-template "margrave-policy-vocab.rkt")
-         
-         (file "compiler.rkt")
-         (file "margrave-policy-vocab.rkt")
-         (file "helpers.rkt")
-         (file "polvochelpers.rkt")
-         (file "margrave-xml.rkt"))
+         "helpers.rkt"
+         "margrave-xml.rkt")
+
 
 (provide stop-margrave-engine
          start-margrave-engine
@@ -57,9 +57,9 @@
          load-xacml-policy
          load-sqs-policy
          
-         (all-from-out (file "margrave-xml.rkt"))
-         (all-from-out (file "helpers.rkt"))
-         (all-from-out (file "polvochelpers.rkt"))         
+         (all-from-out "margrave-xml.rkt")
+         (all-from-out "helpers.rkt")
+         (all-from-out "margrave-policy-vocab.rkt")         
 
          display-response
          response->string
@@ -76,14 +76,15 @@
          define-custom-vector
          
          cached-policies
-         cached-theories)
+         cached-theories
+         cached-prior-queries)
 
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-032212")
+(define margrave-version "3.1-internal-032312")
 
 ;****************************************************************
 ;;Java Connection
