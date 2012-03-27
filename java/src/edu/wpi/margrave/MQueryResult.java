@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +16,6 @@ import org.sat4j.specs.ISolver;
 import kodkod.ast.Decl;
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
-import kodkod.ast.LeafExpression;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
 import kodkod.engine.Solver;
@@ -1256,6 +1254,7 @@ class MPreparedQueryContext
 			{ 
 				try 
 				{ 
+					 @SuppressWarnings("unused")
 					 Instance sol = it.next().getFacts();
 					 count++;
 				}

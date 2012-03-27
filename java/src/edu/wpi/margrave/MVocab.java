@@ -24,8 +24,6 @@ package edu.wpi.margrave;
 import java.io.*;
 import java.util.*;
 
-import javax.swing.event.ListSelectionEvent;
-
 import kodkod.ast.*;
 import kodkod.ast.operator.ExprOperator;
 import kodkod.ast.operator.Multiplicity;

@@ -64,7 +64,9 @@ else
     DFLAG=""
 fi
 
-JAVA_C="javac $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}"
+# Force compatability with JRE 1.6. 
+
+JAVA_C="javac -target 1.6 -source 1.6 $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}"
 ${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/java/src/edu/wpi/margrave/*.java
 
 # JAR the class files

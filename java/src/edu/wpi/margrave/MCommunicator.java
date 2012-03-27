@@ -23,14 +23,12 @@ import kodkod.ast.*;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -181,7 +179,8 @@ public class MCommunicator
             		else
             		{
                 		byte[] inputBytes = new byte[commandStream.available()];         
-                		int bytesRead = commandStream.read(inputBytes);    
+                		@SuppressWarnings("unused")
+						int bytesRead = commandStream.read(inputBytes);    
                 		String block = new String(inputBytes);
                 		inputStringBuffer.append(block);            		
                 		//writeToLog("\n(Didn't block for) String: `"+block+"`");            		         		            			
@@ -1597,37 +1596,22 @@ public class MCommunicator
      
      static void initializeLog()
      {
-    	 
-    	 //if(!bDoLogging)
-    	//	 return;
+    	 if(!bDoLogging)
+    		 return;
     	     	     	 
     	 // Wipe the log clean every time the engine runs. 
     	 try
     	 {
-    		 // Put the logfile with the .class files for now (avoids having location change depending on where 
-    		 //   the current directory is.
+    		 // This only works if the .class file isn't in a .jar; it's also risky because the place Margrave is
+    		 // installed may not be writable. 
     		 
-    		 URL absoluteClassPathNameURL = MCommunicator.class.getClass().getResource("/edu/wpi/margrave/MCommunicator.class");
-    		 URL absoluteLogFileNameURL = new URL(absoluteClassPathNameURL, sLogFileName);
-    		 File logFILE = new File(absoluteLogFileNameURL.getFile());    		    		 
+    		 //URL absoluteClassPathNameURL = MCommunicator.class.getClass().getResource("/edu/wpi/margrave/MCommunicator.class");
+    		 //URL absoluteLogFileNameURL = new URL(absoluteClassPathNameURL, sLogFileName);
+    		 //File logFILE = new File(absoluteLogFileNameURL.getFile());    		    		     		     		 
+    		 //String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8");
     		 
-    		 URL url = absoluteClassPathNameURL;
-    		 
-    		 MEnvironment.writeErrLine("URL is " + url.toString());
-    		 MEnvironment.writeErrLine("protocol is "
-                                        + url.getProtocol());
-    		 MEnvironment.writeErrLine("authority is "
-                                        + url.getAuthority());
-    		 MEnvironment.writeErrLine("file name is " + url.getFile());
-    		 MEnvironment.writeErrLine("host is " + url.getHost());
-    		 MEnvironment.writeErrLine("path is " + url.getPath());
-    		 MEnvironment.writeErrLine("port is " + url.getPort());
-    		 MEnvironment.writeErrLine("default port is "
-                                       + url.getDefaultPort());
-    		 MEnvironment.writeErrLine("query is " + url.getQuery());
-             MEnvironment.writeErrLine("ref is " + url.getRef());
-    		 
-    		 String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8"); 
+    		 // Instead, default to the system's temp file folder:
+    		 String absoluteLogFileName = System.getProperty("java.io.tmpdir")+sLogFileName; 
     		     		 
     		 MCommunicator.outLogStream = new FileWriter(absoluteLogFileName);
     		 MCommunicator.outLog = new BufferedWriter(outLogStream);

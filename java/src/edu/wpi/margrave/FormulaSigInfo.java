@@ -2319,6 +2319,7 @@ public class FormulaSigInfo
 		// Abstract S1, separate constants in S1 and S2, func from S2 to S3.
 		// Should not register as infinitary
 		Variable c1 = Variable.unary("c1");
+		@SuppressWarnings("unused")
 		Variable c2 = Variable.unary("c2");
 		// 2 constants (one in parent, one in sort2 child)
 		Formula fmlad1 = Formula.TRUE.forSome(c1.oneOf(Sort1)).and(Sort2.some())

@@ -3,12 +3,9 @@ package edu.wpi.margrave;
 //import java.io.PrintWriter;
 import java.util.*;
 
-import javax.swing.event.ListSelectionEvent;
-
 //import kodkod.ast.Expression;
 //import kodkod.ast.Formula;
 import kodkod.ast.Relation;
-import kodkod.ast.Variable;
 //import kodkod.engine.Solver;
 import kodkod.engine.fol2sat.Translation;
 //import kodkod.engine.fol2sat.Translator;
@@ -16,14 +13,10 @@ import kodkod.engine.fol2sat.Translation;
 import kodkod.instance.Bounds;
 import kodkod.instance.Tuple;
 import kodkod.instance.TupleFactory;
-import kodkod.instance.TupleSet;
 //import kodkod.instance.TupleSet;
 //import kodkod.instance.Universe;
 import kodkod.util.ints.IntIterator;
 import kodkod.util.ints.IntSet;
-import kodkod.util.ints.Ints;
-//import kodkod.util.ints.Ints;
-
 import org.sat4j.core.VecInt;
 import org.sat4j.specs.*;
 //import org.w3c.dom.Document;
@@ -758,6 +751,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		// debug
 		org.sat4j.minisat.core.Solver<?> theSolver = (org.sat4j.minisat.core.Solver<?>) solver;
+		//org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
 
 		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+" clauses. They are:");
 		

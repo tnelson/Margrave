@@ -726,6 +726,7 @@ class RelationAndTermReplacementV extends AbstractCacheAllReplacer
 		///////////////////
 		
 		Relation c = MFormulaManager.makeRelation("c", 1);
+		@SuppressWarnings("unused")
 		Relation d = MFormulaManager.makeRelation("d", 1);		
 		Relation Connected = MFormulaManager.makeRelation("Connected", 2);
 
