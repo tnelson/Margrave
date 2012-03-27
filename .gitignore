@@ -10,6 +10,10 @@ margrave/bin/edu/wpi/margrave/margrave-log.txt
 margrave/compiled/
 compiled/
 
+# Copies of .class files and .jar files for development ONLY
+racket/bin
+java/bin
+
 # The IOS examples for LISA10 compiled IOS to .p/.v, but
 # the compilation is part of the example. Only include the
 # IOS source in git.
@@ -30,3 +34,5 @@ IOS-example2/revised-address/*.v
 margrave/examples/policies/ios-demo/initial/*.p
 margrave/examples/policies/ios-demo/initial/*.v
 
+# Temporary folder for creating distributions
+build-temp/

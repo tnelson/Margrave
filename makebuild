@@ -20,33 +20,32 @@ mkdir margrave/bin
 mkdir margrave/tests
 mkdir margrave/examples
 mkdir margrave/scribblings
+mkdir margrave/licenses
 
 
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/*.rkt margrave
+cp ${MARGRAVE_PROJECT_ROOT}/racket/*.rkt margrave
 
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/*LICENSE* margrave
+cp ${MARGRAVE_PROJECT_ROOT}/licenses/* margrave/licenses
 
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/COPYING.LESSER margrave
+cp ${MARGRAVE_PROJECT_ROOT}/java/lib/*.jar margrave/bin
 
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/bin/*.jar margrave/bin
+cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.scrbl margrave/scribblings
 
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/scribblings/*.scrbl margrave/scribblings
-
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.rkt margrave/tests
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.p margrave/tests
-cp ${MARGRAVE_PROJECT_ROOT}/margrave/tests/*.v margrave/tests
+cp ${MARGRAVE_PROJECT_ROOT}/racket/tests/*.rkt margrave/tests
+cp ${MARGRAVE_PROJECT_ROOT}/racket/tests/*.p margrave/tests
+cp ${MARGRAVE_PROJECT_ROOT}/racket/tests/*.v margrave/tests
 
 # examples need updating
-#cp ${MARGRAVE_PROJECT_ROOT}/margrave/examples/ margrave/examples
+cp -r ${MARGRAVE_PROJECT_ROOT}/racket/examples/* margrave/examples
 
 ##############################
 
-echo Building fresh Java classes ...todo...
+echo Building fresh Java .class files...
 
-
-#Remove -g for real release
-
-# todo and make a jar, not individual class files
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!
+# MAKE CHANGES TO JAVA OPTIONS HERE:
+VERBOSE=0
+DEBUG=1
 
 mkdir margrave/bin/edu
 mkdir margrave/bin/edu/wpi
@@ -56,10 +55,6 @@ MJLIB=${MARGRAVE_PROJECT_ROOT}/build-temp/margrave/bin
 
 # -verbose for verbose compiler output
 # -g to include debugging info
-
-# OPTIONS:
-VERBOSE=0
-DEBUG=1
 
 if [ $VERBOSE = 1 ]; then
     VFLAG="-verbose"
@@ -73,26 +68,24 @@ else
     DFLAG=""
 fi
 
+JAVA_C="javac $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}"
+${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/java/src/edu/wpi/margrave/*.java
 
-JAVA_C="javac $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}/edu/wpi/margrave"
+# Copy a fresh version of these .class and .jar files into 
+# the DEVELOPMENT folder. Git will ignore.
 
-
-
-# todo add fresh java build
-
-${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/javasrc/edu/wpi/margrave/*.java
-
-
-
-
-
-#cp ${MARGRAVE_PROJECT_ROOT}/margrave/bin/edu/wpi/margrave/*.class margrave/bin/edu/wpi/margrave
-
+mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin
+mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu
+mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi
+mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi/margrave
+cp ${MJLIB}/edu/wpi/margrave/*.class ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi/margrave
 
 ##############################
 echo Creating PLT archive for distribution
-
 raco pack --replace --at-plt testbuild.plt margrave
 
-echo Don't forget to insert safety checks. Did compilation complete ok? etc.
-echo Also can we build in the date?
+##############################
+echo "Don't forget to insert safety checks. Did compilation complete ok? etc."
+echo "Also can we build in the date?"
+echo "todo make a jar, not individual class files"
+

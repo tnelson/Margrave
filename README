@@ -1,1 +1,9 @@
-Margrave requires DrRacket version 5.01 or later.
+This is the Margrave tool for policy analysis. 
+Contact: Tim Nelson (tn@cs.wpi.edu)
+Margrave requires Java 1.6 and DrRacket version 5.01 or later.
+
+Margrave's license (and licenses for tools we use) is in the licenses directory.
+Source for Margrave's Java engine is in the java directory.
+Margrave's Racket front-end is in the racket directory.
+
+Outdated and partially completed files are in the old directory.

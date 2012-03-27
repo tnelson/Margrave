@@ -1,0 +1,140 @@
+BNF for vocab and policy syntax follow. Note that we've broken out policy sets from policies!
+
+We use identifiers that start with lowercase letters (<low-id>) for: variables, predicates, functions. 
+Identifiers that begin with a capital letter (<cap-id>) are Sorts. Identifiers that begin with a single quote
+are <const-id>. 
+
+The terminal <id> represents any (unquoted) identifier, regardless of case.
+
+Non-terminals wrapped in [] denote optional parameters.
+
+
+<VOCAB> ::= "(" "Vocab" <id>
+           <TYPES-CLAUSE>
+           [<PREDS-CLAUSE>]
+           [<CONSTANTS-CLAUSE>]
+           [<FUNCTIONS-CLAUSE>] ")"
+
+
+// Clearer than old hierarchical format.
+// (Type A > B C D)
+
+<TYPES-CLAUSE> ::= "(" "Types" <LIST-OF-TYPE-DECLS> ")"
+
+<LIST-OF-TYPE-DECLS> ::= <TYPE> | <TYPE>, <LIST-OF-TYPE-DECLS>
+
+<TYPE> ::= <cap-id> | "(" <cap-id> ">" <LIST-OF-TYPES> ")"
+
+// Note that LIST-OF-TYPE-DECLS is different from LIST-OF-TYPES
+//   one denotes "A B (C > D)", the other "A B C"
+
+<LIST-OF-TYPES> ::= <cap-id> | <cap-id> <LIST-OF-TYPES>
+
+// (R A B C) means R: A x B x C
+// no colon.
+
+<PREDS-CLAUSE> ::= "(" "Predicates" <LIST-OF-PREDS> ")"
+<LIST-OF-PREDS> ::= <PRED> | <PRED> <LIST-OF-PREDS>
+<PRED> ::= "(" <low-id> <LIST-OF-TYPES>  ")"
+
+<CONSTANTS-CLAUSE> ::= "(" "Constants" <LIST-OF-CONSTS> ")"
+<LIST-OF-CONSTS> ::= <CONST> | <CONST> <LIST-OF-CONSTS>
+<CONST> ::= "(" <const-id> <cap-id>  ")"
+
+<FUNCTIONS-CLAUSE> ::= "(" "Functions" <LIST-OF-FUNCS> ")"
+<LIST-OF-FUNCS> ::= <FUNC> | <FUNC> <LIST-OF-FUNCS>
+<FUNC> ::= "(" <low-id> <LIST-OF-TYPES>  ")"
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+// Policies declare the variables they use now. We even allow:
+// permit(s, r) :- foo(s)
+// permit(r, s) :- bar(r)
+// (provided that's well typed) because after we rename, it's the same as
+// permit (x, y) :- foo(x)
+// permit(x, y) :- bar(x)
+// and we can use the same internal variable ordering (invisible to the user)
+
+
+
+	
+<POLICY> ::= "(" "Policy" 
+             "uses" <id>
+   	    [<TARGET-CLAUSE>]
+            <VARIABLES-CLAUSE>
+            <RULES-CLAUSE>
+            [<RCOMB-CLAUSE>] ")"
+
+<TARGET-CLAUSE> ::= "(" "Target" <FORMULA> ")"
+
+<VARIABLES-CLAUSE> ::= "(" "Variables" <LIST-OF-VARIABLE-DECLS> ")"
+<LIST-OF-VARIABLE-DECLS> ::= <VARDEC> | <VARDEC> <LIST-OF-VARIABLE-DECLS>
+<VARDEC> ::= "(" <low-id> <cap-id>  ")"
+
+<RULES-CLAUSE> ::= "(" "Rules" <LIST-OF-RULES> ")"
+<LIST-OF-RULES> ::= <RULE> | <RULE> <LIST-OF-RULES>
+
+// Rule allows a list of fmlas at top-level for brevity. implicit conjunction ala datalog.
+// Any deeper than top level, must give an explicit "and".
+
+<RULE> ::= "(" <id> "="
+          "(" <low-id> <VAR-LIST> ")" ":-"
+          <LIST-OF-FORMULAS>
+          ")"
+
+<VAR-LIST> ::= <low-id> | <low-id> <VAR-LIST>
+
+<FORMULA> ::= <ATOMIC-FORMULA> |
+             "(" "and" <LIST-OF-FORMULAS> ")" |
+             "(" "or" <LIST-OF-FORMULAS> ")" |
+             "(" "not" <FORMULA> ")" |
+             "(" "implies" <FORMULA> <FORMULA> ")" |
+             "(" "iff" <FORMULA> <FORMULA> ")" |
+             "(" "exists" <low-id> <cap-id> <FORMULA> ")" |
+             "(" "forall" <low-id> <cap-id> <FORMULA> ")"
+
+<LIST-OF-FORMULAS> ::= <FORMULA> | <FORMULA> <LIST-OF-FORMULAS>
+
+<ATOMIC-FORMULA> ::= "(" "=" <low-id> <low-id> ")" |
+                    "(" <DOTTED-LIST-OF-PREDS> <LIST-OF-TERMS> ")"
+
+<DOTTED-LIST-OF-PREDS> ::= <low-id> | <low-id> "." <DOTTED-LIST-OF-PREDS>
+
+<LIST-OF-TERMS> ::= <TERM> | <TERM> <LIST-OF-TERMS>
+
+// 'c to denote constant
+// term must be well formed
+
+<TERM> ::= 
+          <const-id> |
+          "(" <low-id> <LIST-OF-TERMS> ")"
+
+<RCOMB-CLAUSE> ::= "(" "RComb" <FACS> <LIST-OF-OVERS> ")"
+
+<FACS> ::= "(" "FA" <LIST-OF-DECISIONS> ")"
+
+<LIST-OF-OVERS> ::= nothing | <OVER> <LIST-OF-OVERS>
+
+// (Overrides A B C D) means A is overridden by B, C, and D.
+
+<OVER> ::= "(" "Overrides" <cap-id> <LIST-OF-DECISIONS>  ")"
+
+<LIST-OF-DECISIONS> ::= <low-id> | <low-id> <LIST-OF-DECISIONS>
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+// POLICYSET SYNTAX IS PROVISIONAL! Not yet in! 
+
+<POLICYSET> ::=  "(" "PolicySet"
+    		[<TARGET-CLAUSE>]
+                <CHILDREN-CLAUSE>
+                [<PCOMB-CLAUSE>] ")"
+
+<CHILDREN-CLAUSE> ::= "(" "Children" <LIST-OF-POLICIES> ")"
+
+<LIST-OF-POLICIES> ::= <POLICY> | <POLICY> <LIST-OF-POLICIES>
+
+<PCOMB-CLAUSE> ::= "(" "PComb" <FACS> <LIST-OF-OVERS> ")"

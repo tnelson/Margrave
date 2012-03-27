@@ -1,0 +1,19 @@
+Margrave is Copyright 2009-2011 Brown University and Worcester 
+Polytechnic Institute. It is released under the GNU LGPL. 
+See COPYING.LESSER.
+
+We use KodKod, a model finding library, which is released
+under the MIT License. Kodkod is available from: 
+http://alloy.mit.edu/kodkod/
+See KodKod-LICENSE.
+
+We use Sun's XACML Implementation to parse and process 
+XACML policies. This library is released under the license
+available at http://sunxacml.sourceforge.net/license.txt,
+and can be downloaded at http://sunxacml.sourceforge.net/.
+See SUN-LICENSE.
+
+We also use a SAT Solver package, SAT4j,
+which is available under the GNU LGPL.
+To download SAT4j, see http://www.sat4j.org/.
+SAT4j is Copyright (C) 2004-2008 Daniel Le Berre.
