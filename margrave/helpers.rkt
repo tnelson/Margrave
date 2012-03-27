@@ -50,25 +50,6 @@
             the-list)
   result-hash)
 
-; TESTS
-; Need to call hash-copy because partition returns a MUTABLE hash table, but '#hash( ... ) 
-; is immutable. Mut != Immut.
-(check-true (equal? 
-             (partition* even? 
-                         '())
-             (hash-copy '#hash())))
-
-(check-true (equal? 
-             (partition* (lambda (x) (remainder x 3))
-                         '(1 2 3) 
-                         #:init-keys (list 17))
-             (hash-copy '#hash( (0 . (3)) (1 . (1)) (2 . (2)) (17 . () )))))
-
-(check-true (equal?
-             (partition* (lambda (x) (and (even? x) (remainder x 3)))
-                         '(1 2 3 4 5 6 7 8 9 10))    
-            (hash-copy '#hash((0 . (6)) (2 . (8 2)) (1 . (10 4))))))
-
 
 ;****************************************************************
 ;****************************************************************
@@ -369,8 +350,6 @@
          (and 
           (char-lower-case? str0)
           (char-alphabetic? str0)))))
-(check-true (valid-function? 'f0))
-(check-false (valid-function? 100))  
 
 ; Constant symbols are preceded by a quote, but otherwise same as funcs.
 (define (valid-constant? sym-or-syn)
@@ -380,10 +359,6 @@
   (match sym
     [`(quote ,(? valid-function? sym)) #t]
     [else #f]))
-(check-true (valid-constant? ''cONSTANT))
-(check-false (valid-constant? 'c))
-(check-false (valid-constant? '100))  
-(check-false (valid-constant? ''100))  
 
 ; Predicate symbols are the same as function symbols.
 ; Understand difference from context.
@@ -397,8 +372,6 @@
          (and 
           (char-lower-case? str0)
           (char-alphabetic? str0)))))
-(check-true (valid-predicate? 'myPred))
-(check-false (valid-predicate? 100))  
 
 ; Sort symbols must be capitalized.
 (define (valid-sort? sym-or-syn)
@@ -411,10 +384,6 @@
          (and 
           (char-upper-case? str0)
           (char-alphabetic? str0)))))
-(check-true (valid-sort? 'A))
-(check-false (valid-sort? 'a))  
-(check-false (valid-sort? 'constant))  
-(check-false (valid-sort? 100))  
 
 ; Variables must begin with a lowercase letter.
 ; This is also the same as func ids and predicate ids.
@@ -428,9 +397,6 @@
          (and 
           (char-lower-case? str0)
           (char-alphabetic? str0)))))
-(check-true (valid-variable? 'myVar0))
-(check-false (valid-variable? 'A))  
-(check-false (valid-variable? 100))  
 
 (define (valid-variable?/err sexpr)
   (cond [(valid-variable? sexpr) #t]
@@ -492,12 +458,6 @@
       [else (raise-user-error overlap-error-msg)]))
   result)
 
-(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash "B" 3) "oops")
-                    (hash-copy (hash "A" 2 "B" 3 "C" 4))))
-(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash ) "oops")
-                    (hash-copy (hash "A" 2 "B" 3 "C" 4))))
-(check-true (equal? (hash-union/overlap (hash "A" 2 "B" 3 "C" 4) (hash "B" 3 "D" 5) "oops")
-                    (hash-copy (hash "A" 2 "B" 3 "C" 4 "D" 5))))
 
 ; Since constants have the form 'x  ---- (quote x)
 ; We really have ''x (quote 'x) when working with them.

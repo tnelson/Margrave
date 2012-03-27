@@ -1365,17 +1365,6 @@
                                 (xml-make-function-decl (m-function-name afunc)
                                                         (xml-make-relations-list (append (m-function-arity afunc)
                                                                                          (list (m-function-result afunc))))))))  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(check-true (equal?
-             (m-type->cmd "vocabname" (m-type "A" (list "B" "C")))                    
-             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocabname"))) 
-                                (SORT-WITH-CHILDREN ((name "A")) (SORT ((name "B"))) (SORT ((name "C")))))))
-
-(check-true (equal?
-             (m-predicate->cmd "vocab" (m-predicate "pname" '("A" "B" "C")))                    
-             '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab")))
-                                (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
 
 
 ; Is this a dotted identifier? Must have a . somewhere.
@@ -1481,32 +1470,6 @@
     (if (m-formula->xexpr sexpr)
         #t
         #f)))
-(check-true (m-formula? '(or (= x y) (r x y))))
-(check-true (m-formula? #'(and (= x y) (iff (= 'c z) (r x y)))))
-(check-true (m-formula? #'(implies (= x y) (not (r x y)))))
-(check-true (m-formula? #'(forall x S (r x y))))
-(check-true (m-formula? #'(exists x S (r x y))))
-(check-true (m-formula? #'(isa x S (r x y))))
-(check-false(m-formula? #'(forall X S (r x y))))
-(check-false (m-formula? #'(exists X S (r x y))))
-(check-false (m-formula? #'(isa X S (r x y))))
-(check-true (m-formula? #'true))
-(check-true (m-formula? 'true))
-(check-true (m-formula? #'false))
-(check-false (m-formula? #'(or (= x y) (A x 1))))
-(check-true (m-formula? '((mypolicyname permit) s a r)))
-(check-true (m-formula? #'((mypolicyname permit) s a r)))
-(check-true (m-formula? '(aRelation s x)))
-(check-false (m-formula? '((mypolicyname permit) 1 2 3)))
-(check-false (m-formula? '(S x y)))
-(check-false (m-formula? '(S )))
-(check-true (m-formula? '(S x)))
-(check-true (m-formula? '(S 'c)))
-(check-true (m-formula? '(S (f 'c x y))))
-(check-true (equal? 
-             (m-formula->xexpr '(S (f 'c x y)))
-             '(ISA ((sort "S")) (TERM (FUNCTION-TERM ((func "f")) (CONSTANT-TERM ((id "c"))) (VARIABLE-TERM ((id "x"))) (VARIABLE-TERM ((id "y"))))) (FORMULA (TRUE)))))
-; ^^^ More cases go here. Not fully covered!
 
 ; Avoid duplicate code. Defer to m-term->xml
 (define (m-term? sexpr)
@@ -1517,9 +1480,6 @@
     (if (m-term->xexpr sexpr)
         #t
         #f)))
-(check-true (m-term? #'(f x (g x z) 'c x)))
-(check-false (m-term? #'(f x (g x z) 'c 2)))
-(check-false (m-term? #'('c x (g x z) 'c 2)))
 
 (define (make-axiom-command vocab axiom)
   (define vocab-xexpr (xml-make-vocab-identifier vocab))
@@ -1593,19 +1553,6 @@
      (xml-make-custom-fmla-constraint (m-formula->xexpr fmla))]
     
     [else (margrave-error "The axiom was neither a formula nor a constraint declaration" axiom)]))
-
-
-
-(check-true (equal? (m-axiom->xexpr '(constants-neq-all A)) '(CONSTRAINT ((type "CONSTANTS-NEQ-ALL")) (RELATIONS (RELATION ((name "A")))))))
-(check-true (equal? (m-axiom->xexpr '(constants-neq 'a 'b)) '(CONSTRAINT ((type "CONSTANTS-NEQ")) (RELATIONS (RELATION ((name "a"))) (RELATION ((name "b")))))))
-(check-true (equal? (m-axiom->xexpr '(disjoint preda predb)) '(CONSTRAINT ((type "DISJOINT")) (RELATIONS (RELATION ((name "preda"))) (RELATION ((name "predb")))))))
-(check-true (equal? (m-axiom->xexpr '(formula (foo x y z))) 
-                    '(CONSTRAINT ((type "FORMULA")) (ATOMIC-FORMULA (RELATION-NAME (ID ((id "foo")))) (TERMS (VARIABLE-TERM ((id "x"))) (VARIABLE-TERM ((id "y"))) (VARIABLE-TERM ((id "z"))))))))
-(check-true (equal? (m-axiom->xexpr '(constants-neq-all ASort))
-                    '(CONSTRAINT ((type "CONSTANTS-NEQ-ALL")) (RELATIONS (RELATION ((name "ASort")))))))
-(check-true (equal? (m-axiom->xexpr '(partial-function foo)) '(CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "foo")))))))
-(check-true (equal? (m-axiom->xexpr '(total-relation foo)) '(CONSTRAINT ((type "TOTAL-RELATION")) (RELATIONS (RELATION ((name "foo")))))))
-;(check-true (equal? ))
 
 
 

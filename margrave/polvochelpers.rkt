@@ -64,17 +64,31 @@
    [rbody (listof m-formula?)])
   #:transparent)
 
-(define-struct/contract m-policy
-  ([id string?]
-   [theory-path path?]   
-   [theory m-theory?]   
-   [vardecs (hash/c string? m-vardec?)]
-   [rule-names (listof string?)]
-   [rules (hash/c string? m-rule?)]
-   [rcomb any/c]
-   [target m-formula?]
-   [idbs (hash/c string? (listof string?))])
-  #:transparent)
+; Validate the m-policy fields. Check for consistency, etc.
+(define/contract (prevalidate-m-policy id theory-path theory vardecs rule-names rules rcomb target idbs type-name)
+  [-> string? path? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)) any/c
+      (values string? path? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)))]    
+  ;(when ...
+  ;  (error ...))
+  
+  ; All is well:
+  (values id theory-path theory vardecs rule-names rules rcomb target idbs))
+
+(struct m-policy (id theory-path theory vardecs rule-names rules rcomb target idbs)
+  #:transparent
+  #:guard prevalidate-m-policy)
+
+;(define-struct/contract m-policy
+;  ([id string?]
+;   [theory-path path?]   
+;   [theory m-theory?]   
+;   [vardecs (hash/c string? m-vardec?)]
+;   [rule-names (listof string?)]
+;   [rules (hash/c string? m-rule?)]
+;   [rcomb any/c]
+;   [target m-formula?]
+;   [idbs (hash/c string? (listof string?))])
+;  #:transparent)
 
 (define-struct/contract m-policy-set
   ([id string?]
@@ -177,29 +191,6 @@
     (error 'get-skolem-relation (format "The scenario did not contain a unique relation named ~v" relation-name)))
   (first found-list))
 
-(define dereference-term-test-scenario-1 
-  (m-scenario 5 
-              '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-              (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-              (list (m-relation "$x" 'skolem '(("Atom#1"))) )
-              (list (m-relation "c" 'constant '(("Atom#2")))
-                    (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                ("Atom#4" "Atom#5")))
-                    (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))                    
-              (m-statistics #f #f #f empty (hash))
-              empty
-              ""))
-(check-true (equal? (dereference-term dereference-term-test-scenario-1 'x) "Atom#1"))
-(check-true (equal? (dereference-term dereference-term-test-scenario-1 ''c) "Atom#2"))
-(check-true (equal? (dereference-term dereference-term-test-scenario-1 '(f x)) "Atom#3"))
-(check-true (equal? (dereference-term dereference-term-test-scenario-1 '(g 'c x)) "Atom#4"))
-(check-true (equal? (dereference-term dereference-term-test-scenario-1 '(f (g 'c x))) "Atom#5"))
-; (f c) not defined in this scenario, so should get an error:
-(check-exn exn:fail? (lambda () (dereference-term dereference-term-test-scenario-1 '(f 'c))))
-; no such variable
-(check-exn exn:fail? (lambda () (dereference-term dereference-term-test-scenario-1 'z)))
-; mis-use of constant as variable
-(check-exn exn:fail? (lambda () (dereference-term dereference-term-test-scenario-1 'c)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -213,12 +204,6 @@
                          the-terms))  
   (ormap (lambda (anatom) (member? anatom the-atoms))
          the-tuple))
-(check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '(x)))
-(check-false (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '('c)))
-(check-true (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1" "Atom123") '(x)))
-(check-exn exn:fail? (lambda () (tuple-involves-terms dereference-term-test-scenario-1 '("Atom#1") '((f 'c)))))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; filter-tuples: procedure scenario -> scenario
@@ -250,54 +235,6 @@
    (m-scenario-annotations a-scenario)
    (m-scenario-query-id a-scenario)))
 
-;;test-cases
-(check-true (equal? (filter-tuples (lambda (atuple)
-                                     (tuple-involves-terms dereference-term-test-scenario-1 
-                                                           atuple
-                                                           '()))
-                                   dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '()))
-                                (list (m-relation "$x" 'skolem '()) )
-                                (list (m-relation "c" 'constant '())
-                                      (m-relation "f" 'relation '())
-                                      (m-relation "g" 'relation '()))                    
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
-(check-true (equal? (filter-tuples (lambda (atuple)
-                                     (tuple-involves-terms dereference-term-test-scenario-1 
-                                                           atuple
-                                                           '(x)))
-                                   dereference-term-test-scenario-1)
-                    (m-scenario 5
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '(("Atom#1"))))
-                                (list (m-relation "$x" 'skolem '(("Atom#1"))))
-                                (list
-                                 (m-relation "c" 'constant '())
-                                 (m-relation "f" 'relation '(("Atom#1" "Atom#3")))
-                                 (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
-(check-true (equal? (filter-tuples (lambda (atuple)
-                                     (tuple-involves-terms dereference-term-test-scenario-1 
-                                                           atuple
-                                                           '('c x (g 'c x))))
-                                   dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#4"))))
-                                (list (m-relation "$x" 'skolem '(("Atom#1"))) )
-                                (list (m-relation "c" 'constant '(("Atom#2")))
-                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                                  ("Atom#4" "Atom#5")))
-                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))                    
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; filter-relations: procedure scenario -> scenario
 ; Retains only the relations that filter-pred returns non-#f on.
@@ -313,60 +250,6 @@
    (m-scenario-statistics a-scenario)
    (m-scenario-annotations a-scenario)
    (m-scenario-query-id a-scenario)))
-
-
-;;test-cases
-(check-true (equal? (filter-relations (lambda (arelation)
-                                        true)
-                                      dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-                                (list (m-relation "$x" 'skolem '(("Atom#1"))))
-                                (list (m-relation "c" 'constant '(("Atom#2")))
-                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                                  ("Atom#4" "Atom#5")))
-                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
-(check-true (equal? (filter-relations (lambda (arelation)
-                                        false)
-                                      dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list )
-                                (list )
-                                (list )
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
-(check-true (equal? (filter-relations (lambda (arelation)
-                                        (or (equal? (m-relation-reltype arelation) 'constant)
-                                            (equal? (m-relation-reltype arelation) 'sort)))
-                                      dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-                                (list )
-                                (list (m-relation "c" 'constant '(("Atom#2"))))
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
-(check-true (equal? (filter-relations (lambda (arelation)
-                                        (not (equal? (m-relation-name arelation) "$x")))
-                                      dereference-term-test-scenario-1)
-                    (m-scenario 5 
-                                '("Atom#1" "Atom#2" "Atom#3" "Atom#4" "Atom#5")
-                                (list (m-relation "ASort" 'sort '(("Atom#1") ("Atom#2") ("Atom#3") ("Atom#4") ("Atom#5"))))
-                                (list )
-                                (list (m-relation "c" 'constant '(("Atom#2")))
-                                      (m-relation "f" 'relation '(("Atom#1" "Atom#3")
-                                                                  ("Atom#4" "Atom#5")))
-                                      (m-relation "g" 'relation '(("Atom#2" "Atom#1" "Atom#4"))))
-                                (m-statistics #f #f #f empty (hash))
-                                empty
-                                "")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -403,10 +286,14 @@
 ; Does NOT auto-include the theory's XML
 (define/contract (m-policy->xexprs policy)
   [m-policy? . -> . (listof xexpr?)]
-  
-  (define target-xexpr (xml-make-command "SET TARGET FOR POLICY" 
-                                         (list (xml-make-policy-identifier (m-policy-id policy))
-                                               (m-formula->xexpr (m-policy-target policy)))))    
+    
+  ; No reason to include target if it's 'true
+  (define target-xexpr-list
+    (cond [(equal? (m-policy-target policy) 'true)
+           empty]
+          [else (list (xml-make-command "SET TARGET FOR POLICY" 
+                                  (list (xml-make-policy-identifier (m-policy-id policy))
+                                        (m-formula->xexpr (m-policy-target policy)))))]))
   
   (define (comb->xexpr comb)
          (match comb
@@ -435,7 +322,8 @@
           ; make sure to PRESERVE ORDER on the rules. Order shouldn't matter for variable declarations.
           ; Don't map over by (hash-keys (m-policy-rules policy)). Use the rule-names list instead:
           (map (lambda (aname) (m-rule->cmd (m-policy-id policy) (hash-ref (m-policy-rules policy) aname))) (m-policy-rule-names policy))
-          (list target-xexpr rcomb-xexpr prepare-xexpr)))
+          target-xexpr-list
+          (list rcomb-xexpr prepare-xexpr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

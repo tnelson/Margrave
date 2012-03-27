@@ -57,7 +57,9 @@
          m-formula-is-well-sorted?
          m-formula-is-well-sorted?/err
          get-uber-vocab-for-formula 
-         combine-vocabs
+         combine-vocabs         
+         gather-query-references
+         gather-policy-references
          
          (all-from-out "polvochelpers.rkt"))
 
@@ -989,10 +991,6 @@
      (set)]         
     [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
 
-(check-true (set-empty? (gather-policy-references '(and (= x y) (r x y z)))))
-(check-false (set-empty? (gather-policy-references '(or false ((MyPolicy permit) x y z)))))
-(check-true (equal? 2 (set-count (gather-policy-references '(or ((MyOtherPolicy deny) z y x) ((MyPolicy permit) x y z))))))
-
 ; Gather the set of prior query references used in this formula
 (define/contract (gather-query-references fmla)
   [m-formula? . -> . set?]
@@ -1177,15 +1175,6 @@
   
   (m-vocabulary new-name new-types new-predicates new-constants new-functions))
 
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" (hash) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" (make-hash) (make-hash) (make-hash) (make-hash))))
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash "A" (m-type "A" empty)) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" (hash "A" (m-type "A" empty)) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" (make-hash `(("A" ,@(m-type "A" '())))) (make-hash) (make-hash) (make-hash))))
-(check-true (equal? (combine-vocabs (m-vocabulary "v1" (hash "A" (m-type "A" '("B"))) (hash) (hash) (hash)) 
-                                    (m-vocabulary "v2" (hash "A" (m-type "A" '("C"))) (hash) (hash) (hash)))
-                    (m-vocabulary "v1+v2" (make-hash `(("A" ,@(m-type "A" '("B" "C"))))) (make-hash) (make-hash) (make-hash))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Functions that grab the appropriate m-vocabulary from the cache
@@ -1228,113 +1217,3 @@
   (define r (rest voc-list))
   (foldl combine-vocabs f r))
   
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-;(eval '(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
-;      margrave-policy-vocab-namespace)
-
-(check equal-unordered? (m-vocabulary->xexprs (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
-               '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT-WITH-CHILDREN ((name "Z")) (SORT ((name "A"))) (SORT ((name "B"))) (SORT ((name "C")))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "X"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "Y"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (PREDICATE ((name "r"))) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y")))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c") (type "A"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c2") (type "X"))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
-                 (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))))               
-
-(check equal-unordered? 
-       (m-theory->xexprs (Theory mythy (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))) (Axioms (partial-function f1))))
-       '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT-WITH-CHILDREN ((name "Z")) (SORT ((name "A"))) (SORT ((name "B"))) (SORT ((name "C")))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "X"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "Y"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (PREDICATE ((name "r"))) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y")))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c") (type "A"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (CONSTANT ((name "c2") (type "X"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f1")) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))
-         (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "mythy"))) (CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "f1"))))))))
-
-
-(check equal-unordered? (m-policy->xexprs ((Policy uses Conference
-                                                   (Variables 
-                                                    (s Subject)
-                                                    (a Action)
-                                                    (r Resource))
-                                                   (Rules 
-                                                    (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
-                                                    (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
-                                                    (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
-                                           "./examples/conference/conference.p" "MYPOLICYID" #'foo))
-       
-       '((MARGRAVE-COMMAND ((type "CREATE POLICY LEAF")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VOCAB-IDENTIFIER ((vname "Conference"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Action") (varname "a"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Resource") (varname "r"))))
-         (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Subject") (varname "s"))))
-         (MARGRAVE-COMMAND
-          ((type "ADD"))
-          (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
-          (RULE
-           ((name "PaperNoConflict"))
-           (DECISION-TYPE ((type "Permit")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
-           (TARGET
-            (AND
-             (NOT (ATOMIC-FORMULA (RELATION-NAME (ID ((id "conflicted")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r"))))))
-             (AND
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
-         (MARGRAVE-COMMAND
-          ((type "ADD"))
-          (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
-          (RULE
-           ((name "PaperAssigned"))
-           (DECISION-TYPE ((type "Permit")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
-           (TARGET
-            (AND
-             (ATOMIC-FORMULA (RELATION-NAME (ID ((id "assigned")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r")))))
-             (AND
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
-         (MARGRAVE-COMMAND
-          ((type "ADD"))
-          (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
-          (RULE
-           ((name "PaperConflict"))
-           (DECISION-TYPE ((type "Deny")) (ID ((id "s"))) (ID ((id "a"))) (ID ((id "r"))))
-           (TARGET
-            (AND
-             (ATOMIC-FORMULA (RELATION-NAME (ID ((id "conflicted")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r")))))
-             (AND
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "readPaper")))) (TERMS (VARIABLE-TERM ((id "a")))))
-              (ATOMIC-FORMULA (RELATION-NAME (ID ((id "paper")))) (TERMS (VARIABLE-TERM ((id "r"))))))))))
-         (MARGRAVE-COMMAND ((type "SET TARGET FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (TRUE))
-         (MARGRAVE-COMMAND ((type "SET RCOMBINE FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (COMB-LIST))
-         (MARGRAVE-COMMAND ((type "PREPARE")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))))))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; ((eval '(Policy uses Conference
-;        (Variables 
-;         (s Subject)
-;         (a Action)
-;         (r Resource))
-;        (Rules 
-;  	  (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
-;	  (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
-;	  (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))
-;        (RComb (fa permit deny)))) "examples\\conference\\conference.p" "MYPOLICYID" #'foo)
-
-
-;(Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y)))
-; (Theory mythy (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))) (Axioms (partial-function f1)))

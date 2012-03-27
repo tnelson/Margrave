@@ -476,6 +476,49 @@ gmarceau
   (cond [(> result -1) result]
         [else #f]))
 
+
+; !!!!!
+; if we use gensyms etc. to factor out internal ids, need to substitute in the query sexpr
+; '([mypol permit] x) <--- needs to become '([G4321 permit] x)
+; similar for queries:
+; '([Q] x) <--- needs to become '([G1234] x)
+; But that means an eval, doesn't it? 
+
+
+
+; Also need to change the caches we keep, and the structures (no id, right?)
+
+; nice to have: m-policy guard; check for unknown function syms, etc.
+
+; send-theory also needed
+
+
+
+; Send this m-policy to the Java engine. 
+#|(define/contract
+  (send-policy apol)
+  [-> m-policy? boolean?]  
+  (when (hash-has-key? policy-to-id apol)
+    (error "The engine already knows about this policy."))
+  (define pol-id-used (string-upcase (->string (gensym))))  
+  (hash-set! policy-to-id apol pol-id-used)
+  (hash-set! id-to-policy pol-id-used apol)
+  
+  ; Do we need to send this policy's vocabulary as well?
+  ; !!! Set instead? Also where else is cached-theories used?
+  (define thy-xml (cond [(hash-has-key? cached-theories (m-policy-theory apol))
+                         (m-theory->xexprs theory-instance)]
+                        [else
+                         empty]))  
+  (define pol-xml (m-policy->xexprs policy-instance))
+  
+  (for-each (lambda (an-xexpr) (unless (send-and-receive-xml an-xexpr)
+                                 (error "Transfer of policy to engine failed.")))
+            (append thy-xml pol-xml))  
+  #t)
+
+|#
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
   (m-show qryid #:include [include-list empty])
