@@ -84,7 +84,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-032312")
+(define margrave-version "3.1-internal-032712")
 
 ;****************************************************************
 ;;Java Connection
@@ -163,40 +163,41 @@
 (define (build-classpath-param home-path)
   (string-append ;; gmarceau : string-join
    
-   ;For testing, use the .class files instead of the .jar:
+   ; This would use class files instead of the jar:
+   ;(path->string
+   ; (build-path home-path
+   ;             "bin"))
+   
    (path->string
     (build-path home-path
-                "bin"))
-   #;(path->string
-      (build-path home-path
-                  "bin"
-                  "margrave.jar"))
+                "lib"
+                "margrave.jar"))
    
    ; Margrave requires these JAR files to run:
    java-class-separator
    (path->string
     (build-path home-path
-                "bin"
+                "lib"
                 "kodkod.jar"))
    java-class-separator
    (path->string
     (build-path home-path
-                "bin"
+                "lib"
                 "org.sat4j.core.jar"))
    java-class-separator
    (path->string
     (build-path home-path
-                "bin"
+                "lib"
                 "sunxacml.jar"))
    java-class-separator
    (path->string
     (build-path home-path
-                "bin"
+                "lib"
                 "commons-io-2.0.1.jar"))
    java-class-separator
    (path->string
     (build-path home-path
-                "bin"
+                "lib"
                 "json.jar"))))
 
 #|
@@ -238,6 +239,7 @@ gmarceau
          (printf "Welcome to Margrave version ~a.~n" margrave-version)
          (printf "--------------------------------------------------~n")
          ;; (match-define (list ip op p-id err-p ctrl-fn) gmarceau
+         ;(printf "~v~n" (cons (path->string (build-path java-path java-exe-name)) margrave-params))
          (set! java-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
          (set! input-port (first java-process-list))
          (set! output-port (second java-process-list))
@@ -261,7 +263,8 @@ gmarceau
                           (cleanup-margrave-engine)
                           #f)])
     (define result-xml (read-xml/document input-port))
-;    (printf "~v~n" result-xml)
+    (when (not (response-is-success? result-xml))
+      (printf "Received a fatal error from the Margrave engine on startup. Details:~n~v~n" result-xml))
     #t))
 
 (define (cleanup-margrave-engine)

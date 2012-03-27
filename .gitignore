@@ -11,8 +11,10 @@ margrave/compiled/
 compiled/
 
 # Copies of .class files and .jar files for development ONLY
-racket/bin
+racket/lib
 java/bin
+
+# We DO want java/lib in the repo. It contains kodkod.jar, etc.
 
 # The IOS examples for LISA10 compiled IOS to .p/.v, but
 # the compilation is part of the example. Only include the

@@ -16,7 +16,7 @@ echo Copying files for build...
 mkdir ${MARGRAVE_PROJECT_ROOT}/build-temp
 cd ${MARGRAVE_PROJECT_ROOT}/build-temp
 mkdir margrave
-mkdir margrave/bin
+mkdir margrave/lib
 mkdir margrave/tests
 mkdir margrave/examples
 mkdir margrave/scribblings
@@ -27,7 +27,7 @@ cp ${MARGRAVE_PROJECT_ROOT}/racket/*.rkt margrave
 
 cp ${MARGRAVE_PROJECT_ROOT}/licenses/* margrave/licenses
 
-cp ${MARGRAVE_PROJECT_ROOT}/java/lib/*.jar margrave/bin
+cp ${MARGRAVE_PROJECT_ROOT}/java/lib/*.jar margrave/lib
 
 cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.scrbl margrave/scribblings
 
@@ -47,11 +47,7 @@ echo Building fresh Java .class files...
 VERBOSE=0
 DEBUG=1
 
-mkdir margrave/bin/edu
-mkdir margrave/bin/edu/wpi
-mkdir margrave/bin/edu/wpi/margrave
-
-MJLIB=${MARGRAVE_PROJECT_ROOT}/build-temp/margrave/bin
+MJLIB=${MARGRAVE_PROJECT_ROOT}/build-temp/margrave/lib
 
 # -verbose for verbose compiler output
 # -g to include debugging info
@@ -71,21 +67,27 @@ fi
 JAVA_C="javac $VFLAG $DFLAG -classpath ${MJLIB}:.:${MJLIB}/kodkod.jar:${MJLIB}/sunxacml.jar:${MJLIB}/json.jar:${MJLIB}/org.sat4j.core.jar:${MJLIB}/commons-io-2.0.1.jar -d ${MJLIB}"
 ${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/java/src/edu/wpi/margrave/*.java
 
-# Copy a fresh version of these .class and .jar files into 
+# JAR the class files
+# Note that NOT cding and using ${MJLIB}/edu would not give us the desired outcome.
+cd ${MJLIB}
+jar cvf ${MJLIB}/margrave.jar edu
+
+# Clean up by removing all class files
+rm -r ${MJLIB}/edu
+
+# Copy a fresh version of the .jar files to
 # the DEVELOPMENT folder. Git will ignore.
 
-mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin
-mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu
-mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi
-mkdir ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi/margrave
-cp ${MJLIB}/edu/wpi/margrave/*.class ${MARGRAVE_PROJECT_ROOT}/racket/bin/edu/wpi/margrave
+mkdir ${MARGRAVE_PROJECT_ROOT}/racket/lib
+cp ${MJLIB}/*.jar ${MARGRAVE_PROJECT_ROOT}/racket/lib
 
 ##############################
 echo Creating PLT archive for distribution
+# Need to CD to appropriate folder again:
+cd ${MARGRAVE_PROJECT_ROOT}/build-temp
 raco pack --replace --at-plt testbuild.plt margrave
 
 ##############################
 echo "Don't forget to insert safety checks. Did compilation complete ok? etc."
 echo "Also can we build in the date?"
-echo "todo make a jar, not individual class files"
 
