@@ -1597,8 +1597,9 @@ public class MCommunicator
      
      static void initializeLog()
      {
-    	 if(!bDoLogging)
-    		 return;
+    	 
+    	 //if(!bDoLogging)
+    	//	 return;
     	     	     	 
     	 // Wipe the log clean every time the engine runs. 
     	 try
@@ -1608,7 +1609,23 @@ public class MCommunicator
     		 
     		 URL absoluteClassPathNameURL = MCommunicator.class.getClass().getResource("/edu/wpi/margrave/MCommunicator.class");
     		 URL absoluteLogFileNameURL = new URL(absoluteClassPathNameURL, sLogFileName);
-    		 File logFILE = new File(absoluteLogFileNameURL.getFile());
+    		 File logFILE = new File(absoluteLogFileNameURL.getFile());    		    		 
+    		 
+    		 URL url = absoluteClassPathNameURL;
+    		 
+    		 MEnvironment.writeErrLine("URL is " + url.toString());
+    		 MEnvironment.writeErrLine("protocol is "
+                                        + url.getProtocol());
+    		 MEnvironment.writeErrLine("authority is "
+                                        + url.getAuthority());
+    		 MEnvironment.writeErrLine("file name is " + url.getFile());
+    		 MEnvironment.writeErrLine("host is " + url.getHost());
+    		 MEnvironment.writeErrLine("path is " + url.getPath());
+    		 MEnvironment.writeErrLine("port is " + url.getPort());
+    		 MEnvironment.writeErrLine("default port is "
+                                       + url.getDefaultPort());
+    		 MEnvironment.writeErrLine("query is " + url.getQuery());
+             MEnvironment.writeErrLine("ref is " + url.getRef());
     		 
     		 String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8"); 
     		     		 
