@@ -315,3 +315,24 @@
                                 empty
                                 "")))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Procedures to send policy to engine. Turn on engine first!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(start-margrave-engine #:margrave-params '("-log")
+                       #:margrave-path "..")
+
+(send-policy-to-engine ((Policy uses Conference
+                                (Variables 
+                                 (s Subject)
+                                 (a Action)
+                                 (r Resource))
+                                (Rules 
+                                 (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
+                                 (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)))
+                                 (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
+                        "../examples/conference/conference.p" "MYPOLICYID" #'foo))
+                      
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LEAVE MARGRAVE ENGINE RUNNING (for additional checks via repl if desired)

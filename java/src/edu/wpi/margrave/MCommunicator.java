@@ -23,6 +23,7 @@ import kodkod.ast.*;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1611,7 +1612,10 @@ public class MCommunicator
     		 //String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8");
     		 
     		 // Instead, default to the system's temp file folder:
-    		 String absoluteLogFileName = System.getProperty("java.io.tmpdir")+sLogFileName; 
+    		 String tempFolder = System.getProperty("java.io.tmpdir");
+    		 if(!tempFolder.endsWith(File.separator))
+    			 tempFolder += File.separator;
+    		 String absoluteLogFileName = tempFolder+sLogFileName; 
     		     		 
     		 MCommunicator.outLogStream = new FileWriter(absoluteLogFileName);
     		 MCommunicator.outLog = new BufferedWriter(outLogStream);

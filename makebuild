@@ -72,7 +72,8 @@ ${JAVA_C} ${MARGRAVE_PROJECT_ROOT}/java/src/edu/wpi/margrave/*.java
 # JAR the class files
 # Note that NOT cding and using ${MJLIB}/edu would not give us the desired outcome.
 cd ${MJLIB}
-jar cvf ${MJLIB}/margrave.jar edu
+jar cf ${MJLIB}/margrave.jar edu
+# Add the v option for verbose output.
 
 # Clean up by removing all class files
 rm -r ${MJLIB}/edu
