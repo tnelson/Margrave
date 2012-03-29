@@ -146,7 +146,7 @@
                    [PaperPhase 6]
                    [ConferenceInfo 0]))
 ;(check-true (m-scenario? (m-get "Q1")))
-(define result (m-get "Q1"
+(define result (m-get-scenario "Q1"
                       #:include '(([continue rule810_matches] s a r)
                                   ([continue rule810_applies] s a r))))
 
@@ -168,6 +168,6 @@
 ;         ([continue permit] s 'modifyUserPassword r))
 ;       #:debug 3)
 ;(check-true (m-scenario? (m-get "Q1")))
-;(time (display (m-show "Q2")))
+;(time (display (m-show-scenario "Q2")))
 
 

@@ -94,7 +94,13 @@
     [(symbol? arg) (symbol->string arg)]
     [(number? arg) (number->string arg)]
     [(syntax? arg) (->string (syntax->datum arg))]        
+    [(string? arg) arg]
     [else (format "~a" arg)]))
+
+(define (->symbol arg)  
+  (cond 
+    [(symbol? arg) arg]
+    [else (string->symbol (->string arg))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

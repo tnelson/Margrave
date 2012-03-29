@@ -23,13 +23,13 @@
 (m-let "Q2" '([s Subject]) 
        '(exists a Action (exists r Resource ([mypol1 permit] s a r))))
 (check-true (m-is-poss? "Q2"))
-(check-true (string? (m-show "Q2"))) ; show for a model
+(check-true (string? (m-show-scenario "Q2"))) ; show for a model
 
 ; forall
 (m-let "Q3" '([s Subject]) 
        '(exists a Action (forall r Resource ([mypol1 permit] s a r))))
 (check-false (m-is-poss? "Q3")) ; false because Resource can't be empty; we have a constant in it.
-(check-true (string? (m-show "Q3"))) ; show for unsat
+(check-true (string? (m-show-scenario "Q3"))) ; show for unsat
 (check-true (equal? 0 (m-count-scenarios "Q3")))
 
 ; forall (w/o constant)
@@ -69,7 +69,7 @@
 (check-true (m-is-poss? "Q7")) ; true
 
 ; Prior queries + #:include in show
-(define sQ7 (m-get "Q7" #:include '(([mypol1 permit] s a r))))
+(define sQ7 (m-get-scenario "Q7" #:include '(([mypol1 permit] s a r))))
 (check-true (and (m-scenario? sQ7)))
                  
 
@@ -78,13 +78,13 @@
 (m-let "Q8" '([s Subject] [a Action] [r Paper]) 
        '(and ([mypol1 permit] s a r) 
              (= (techreportfor r) (techreportfor r))))   
-(check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 permit] s a r)))))
+(check-false (m-unsat? (m-get-scenario "Q8" #:include '(([mypol1 permit] s a r)))))
 ; check #:include for non-decision names
-(check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 papernoconflict_matches] s a r)))))
-(check-false (m-unsat? (m-get "Q8" #:include '(([mypol1 paperassigned_applies] s a r)))))
+(check-false (m-unsat? (m-get-scenario "Q8" #:include '(([mypol1 papernoconflict_matches] s a r)))))
+(check-false (m-unsat? (m-get-scenario "Q8" #:include '(([mypol1 paperassigned_applies] s a r)))))
 ; check #:include for non-decision names vs. saved query prior
 ; check #:include for non-decision names
-(check-false (m-unsat? (m-get "Q7" #:include '(([mypol1 papernoconflict_matches] s a r)))))
+(check-false (m-unsat? (m-get-scenario "Q7" #:include '(([mypol1 papernoconflict_matches] s a r)))))
 
 (check-exn 
  exn:fail? 
@@ -235,7 +235,7 @@
                  
 ; Test equality 
 ; TODO: support
-;(m-show-realized "QSR1"                  
+;(m-show-scenario-realized "QSR1"                  
 ;                 ; Candidates
 ;                 '( (= s s) (= s r) )
 ;                 ; Cases

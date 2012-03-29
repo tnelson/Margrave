@@ -20,17 +20,29 @@
  xml
  "margrave-xml.rkt"
  "helpers.rkt"
- rackunit)
+ rackunit
+ (only-in srfi/1 zip))
 
 (provide
- (all-defined-out))
+ (all-defined-out)
+ 
+ ; for reflection, errors, etc
+ cached-policies         
+ cached-theories 
+ cached-prior-queries)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define cached-policies (make-hash))
+(define cached-theories (make-hash))
+(define cached-prior-queries (make-hash))
 
 ;****************************************************************
 ; Structs used to store information about policies, theories, etc.
 ; This data is also stored on the Java side, but we duplicate it
 ; here in order to produce helpful error messages and facilitate
 ; reflection. (E.g. "What sorts are available in theory X?")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-struct/contract m-vocabulary  
   ([name string?]  
@@ -40,11 +52,15 @@
    [functions (hash/c string? m-function?)])
   #:transparent)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-struct/contract m-prior-query
   ([id string?]   
    [vocab m-vocabulary?]   
    [idbs (hash/c string? (listof string?))])
   #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-struct/contract m-theory
   ([name string?]   
@@ -53,22 +69,54 @@
    [axioms (listof m-axiom?)])
   #:transparent)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-struct/contract m-vardec
-  ([name string?]
-   [type string?])
+  ([name symbol?]
+   [type symbol?])
   #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-struct/contract m-rule
   ([name string?]
    [decision string?]
-   [headvars (listof string?)]
+   [headvars (listof symbol?)]
    [rbody (listof m-formula?)])
   #:transparent)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; m-policy
+
+;(define-struct/contract m-policy
+;  ([id string?]
+;   [theory m-theory?]   
+;   [vardecs (hash/c symbol? m-vardec?)]
+;   [rule-names (listof string?)]
+;   [rules (hash/c string? m-rule?)]
+;   [rcomb any/c]
+;   [target m-formula?]
+;   [idbs (hash/c string? (listof symbol?))])
+;  #:transparent)
+
 ; Validate the m-policy fields. Check for consistency, etc.
 (define/contract (prevalidate-m-policy id theory vardecs rule-names rules rcomb target idbs type-name)
-  [-> string? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)) any/c
-      (values string? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)))]    
+  [-> string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)) any/c
+      (values string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)))]        
+    
+  (define env (foldl (lambda (next sofar) 
+                       (hash-set sofar (m-vardec-name next) (m-vardec-type next)))
+                     (hash)
+                     (hash-values vardecs)))
+  
+  ; The policy's variable declarations provide the environment under which we well-sort each rule. 
+  ; So cannot validate rules via a guard on m-rule. Need to do it here:
+
+  (define (validate-rule r voc env)  
+    (define fullbody `(and ,@(m-rule-rbody r)))
+    (m-formula-is-well-sorted?/err voc fullbody env)  )
+  (for-each (lambda (arule) (validate-rule arule (m-theory-vocab theory) env)) (hash-values rules))
+  
   ;(when ...
   ;  (error ...))
   
@@ -79,16 +127,7 @@
   #:transparent
   #:guard prevalidate-m-policy)
 
-;(define-struct/contract m-policy
-;  ([id string?]
-;   [theory m-theory?]   
-;   [vardecs (hash/c string? m-vardec?)]
-;   [rule-names (listof string?)]
-;   [rules (hash/c string? m-rule?)]
-;   [rcomb any/c]
-;   [target m-formula?]
-;   [idbs (hash/c string? (listof string?))])
-;  #:transparent)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-struct/contract m-policy-set
   ([id string?]   
@@ -339,6 +378,326 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Well-sortedness checking
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Inefficient, but works -- compute transitive closure of sort hierarchy.
+(define/contract (m-type-child-names/rtrans voc sname)
+  [m-vocabulary? symbol? . -> . (listof symbol?)]  
+  
+  (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
+    (margrave-error (format "Unknown type ~v in vocabulary ~v." sname voc) sname))
+  
+  (define the-type (hash-ref (m-vocabulary-types voc) (->string sname)))
+  (define child-names (m-type-child-names the-type)) 
+  ;(printf "child-names: ~v~n" child-names)
+  (define result (append (list sname) ; *reflexive* transitive closure
+                         ; do not include child-names explicitly; the map below will add them
+                         (flatten 
+                          (map (lambda (childname) (m-type-child-names/rtrans voc (->symbol childname))) child-names))))
+  (remove-duplicates result))
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; What is the sort of this term? If the term is not well-sorted, throw a suitable error.
+(define/contract (m-term->sort/err voc term env)
+  [m-vocabulary? any/c hash? . -> . (or/c symbol? boolean?)]
+  ;(printf "m-term->sort/err: ~v ~v ~v~n" voc term env)
+  (match term
+    [(or `(,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...))
+         (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
+     (define id-str (->string funcid))
+     (unless (hash-has-key? (m-vocabulary-functions voc) id-str)
+       (margrave-error (format "The function symbol ~v was not declared in the vocabulary context. Declared functions were: ~v"
+                               id-str (hash-keys (m-vocabulary-functions voc))) term))   
+     (define thefunc (hash-ref (m-vocabulary-functions voc) id-str))     
+     (define pairs-to-check (zip terms (m-function-arity thefunc)))
+     (for-each (lambda (p) 
+                 (define-values (p-term p-sort) (values (first p) (second p)))
+                 (define expected-sorts (m-type-child-names/rtrans voc (->symbol p-sort)))
+                 (define term-sort (m-term->sort/err voc p-term env))
+                 (unless (member? term-sort expected-sorts)
+                   (margrave-error (format "The subterm ~v did not have the correct sort to be used in ~v. The subterm had sort ~v; expected one of these sorts: ~v" 
+                                           p-term term term-sort expected-sorts) term)))
+               pairs-to-check)                    
+     (string->symbol (m-function-result thefunc))]
+    [(? valid-constant? cid) 
+     (define unquoted-id (extract-constant-id cid))
+     (define unquoted-id-str (->string unquoted-id))     
+     (unless (hash-has-key? (m-vocabulary-constants voc) unquoted-id-str)
+       (margrave-error "The constant symbol was not declared in the query's vocabulary context" unquoted-id))     
+     (string->symbol (m-constant-type (hash-ref (m-vocabulary-constants voc) unquoted-id-str)))]
+    [(? valid-variable? vid) 
+     (unless (hash-has-key? env term)
+       (margrave-error (format "The variable was not declared in the environment (~v)" env) vid))     
+     (hash-ref env term)]
+    [else (margrave-error (format "The term ~v was not well-sorted. Environment was: ~v." term env) term)]))    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Gather the set of policy references used in this formula
+(define/contract (gather-policy-references fmla)
+  [m-formula? . -> . set?]    
+  (match fmla
+    [(maybe-identifier true)
+     (set)]        
+    [(maybe-identifier false)
+     (set)]            
+    [(m-op-case = t1 t2)
+     (set)]    
+    [(m-op-case and args ...)
+     (apply set-union (map gather-policy-references args))]    
+    [(m-op-case or args ...)
+     (apply set-union (map gather-policy-references args))]
+    [(m-op-case implies arg1 arg2)
+     (set-union (gather-policy-references arg1) (gather-policy-references arg2))]  
+    [(m-op-case iff arg1 arg2)
+     (set-union (gather-policy-references arg1) (gather-policy-references arg2))]   
+    [(m-op-case not arg)
+     (gather-policy-references arg)]       
+    [(m-op-case forall vname sname subfmla)
+     (gather-policy-references subfmla)]     
+    [(m-op-case exists vname sname subfmla)
+     (gather-policy-references subfmla)]               
+    [(m-op-case isa vname sname subfmla)
+     (gather-policy-references subfmla)]     
+    
+    ; IDB: gather policy ids used!
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
+     (list->set pids)] ; will be empty set if saved-query IDB  
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (set)]         
+    [else (margrave-error "Invalid formula given to gather-policy-references" fmla)]))
+
+; Gather the set of prior query references used in this formula
+(define/contract (gather-query-references fmla)
+  [m-formula? . -> . set?]
+  (match fmla
+    [(maybe-identifier true)
+     (set)]        
+    [(maybe-identifier false)
+     (set)]            
+    [(m-op-case = t1 t2)
+     (set)]    
+    [(m-op-case and args ...)
+     (apply set-union (map gather-query-references args))]    
+    [(m-op-case or args ...)
+     (apply set-union (map gather-query-references args))]
+    [(m-op-case implies arg1 arg2)
+     (set-union (gather-query-references arg1) (gather-query-references arg2))]  
+    [(m-op-case iff arg1 arg2)
+     (set-union (gather-query-references arg1) (gather-query-references arg2))]   
+    [(m-op-case not arg)
+     (gather-query-references arg)]       
+    [(m-op-case forall vname sname subfmla)
+     (gather-query-references subfmla)]     
+    [(m-op-case exists vname sname subfmla)
+     (gather-query-references subfmla)]               
+    [(m-op-case isa vname sname subfmla)
+     (gather-query-references subfmla)]     
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
+     (if (empty? pids)
+         (set idbname)
+         (set))]     
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (set)]         
+    [else (margrave-error "Invalid formula given to gather-query-references" fmla)]))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Get a cached policy by ID. If no such policy exists, throw a suitable error.
+(define (get-cached-policy/err pid)  
+  (unless (hash-has-key? cached-policies (->string pid))
+    (margrave-error "No such policy" pid))
+  (hash-ref cached-policies (->string pid)))
+; same for cached prior query
+(define (get-prior-query/err qid)  
+  (unless (hash-has-key? cached-prior-queries (->string qid))
+    (margrave-error "No prior query saved under that name" qid))
+  (hash-ref cached-prior-queries (->string qid)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Avoid duplicate code. Defer to m-formula-is-well-sorted/err
+(define (m-formula-is-well-sorted? voc sexpr env)
+  (with-handlers ([(lambda (e) (exn:fail:syntax? e))
+                   (lambda (e) #f)]
+                  [(lambda (e) (exn:fail:user? e))
+                   (lambda (e) #f)])
+    (m-formula-is-well-sorted?/err sexpr)))
+
+; If the formula is not well-sorted, throw a suitable error.
+(define/contract (m-formula-is-well-sorted?/err voc fmla env)
+  [m-vocabulary? any/c hash? . -> . boolean?]      
+    
+  ; Check to see if term <tname> can "fit" as sort <sname>
+  (define/contract (internal-correct tname sname)
+    [any/c (or/c string? symbol?) . -> . boolean?]               
+    ;(printf "In internal correct. Can ~v be a ~v? ~n" tname sname)
+    (define sname-sym (->symbol sname))                            
+    (define valid-sort-names (m-type-child-names/rtrans voc sname-sym))
+    ;(printf "done with valid-sort-names: ~v~n" valid-sort-names)
+    (define term-sort (m-term->sort/err voc tname env))
+    ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname-sym valid-sort-names term-sort (member? term-sort valid-sort-names))
+    (unless (member? term-sort valid-sort-names)
+      (margrave-error (format "This formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v." fmla tname term-sort sname-sym) tname))
+    #t)
+  
+  ; Handle case: (isa x A true)
+  (define/contract (internal-correct/isa-sugar vname sname)
+    [any/c (or/c symbol? string?) . -> . boolean?]  
+    ; sugary isa formulas are always well-sorted.
+    ;(internal-correct vname sname)
+    #t)
+  
+  ; Handle case: (edbname x y z)
+  (define (internal-correct/edb list-of-vars edbname)
+    (unless (hash-has-key? (m-vocabulary-predicates voc) edbname)
+      (margrave-error "The predicate was not defined in the vocabulary context" fmla))
+    (define mypred (hash-ref (m-vocabulary-predicates voc) edbname))    
+    (define pairs-to-check (zip list-of-vars (m-predicate-arity mypred)))
+    (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
+  
+  ; Handle case: ( (polname idbname) x y z)
+  ; todo for now: only support single element in polidlist
+  ; need to access cached policies
+  (define (internal-correct/idb list-of-vars pol-id-list idbname-pre)
+    (define idbname (->string idbname-pre))
+    ;(printf "internal-correct/idb: ~v ~v ~v~n" list-of-vars pol-id-list idbname-pre)
+    (define the-idbs 
+      (cond 
+      [(empty? pol-id-list) 
+       ; saved-query IDB
+       (define this-prior-query (get-prior-query/err idbname))
+       (unless (hash-has-key? (m-prior-query-idbs this-prior-query) idbname)
+         (margrave-error (format "Saved query ~v did not contain the IDB ~v. It contained: ~v" idbname idbname (m-prior-query-idbs this-prior-query)) idbname))
+       (m-prior-query-idbs this-prior-query)]
+      [else
+       ; policy IDB
+       (define this-policy (get-cached-policy/err (first pol-id-list)))
+       (unless (hash-has-key? (m-policy-idbs this-policy) idbname)
+         (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname (m-policy-idbs this-policy)) idbname))
+       (m-policy-idbs this-policy)]))        
+    ;(printf "the idbs ~v~n" the-idbs)
+    
+    (define my-arity (hash-ref the-idbs idbname)) ; these will be strings
+    (define pairs-to-check (zip list-of-vars my-arity)) ; symbol . string            
+    (andmap (lambda (p)                  
+              (internal-correct (first p) (second p))) pairs-to-check))
+    
+    
+  ; Checking starts here:
+  (match fmla
+    [(maybe-identifier true)
+     #t]        
+    [(maybe-identifier false)
+     #t]        
+    
+    [(m-op-case = t1 t2)
+     (m-term->sort/err voc t1 env) 
+     (m-term->sort/err voc t2 env)
+     #t]
+    
+    [(m-op-case and args ...)
+     (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]    
+    [(m-op-case or args ...)
+     (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]
+    [(m-op-case implies arg1 arg2)
+     (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
+    [(m-op-case iff arg1 arg2)
+     (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
+    [(m-op-case not arg)
+     (m-formula-is-well-sorted?/err voc arg env)]   
+    
+    [(m-op-case forall vname sname subfmla)
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
+    [(m-op-case exists vname sname subfmla)
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]  
+    ; If (isa x A alpha) is sugar for (exists y A (and (= x y) alpha[x -> y]))
+    ; the sort of x must be _replaced_, not augmented, by the new sort.
+    [(m-op-case isa vname sname subfmla)
+     (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
+    
+    ; (idb term0 terms ...)    
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
+     (internal-correct/idb terms pids idbname)] 
+    
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (cond
+       [(and (valid-sort? dbname) 
+             (empty? terms))
+        (internal-correct/isa-sugar term0 (->string dbname))] ; sugar for (isa x A true)      
+       [else (internal-correct/edb (cons term0 terms) (->string dbname))])] ; (edb term0 terms ...)
+    
+    [else (margrave-error "This formula was not well-sorted" fmla) ]))
+
+(define/contract (union-types-hashes h1 h2)
+  [hash? hash? . -> . (and/c hash? (not/c immutable?))]
+  (define result (hash-copy h1))
+  (for ([key (hash-keys h2)])
+    (cond
+      [(not (hash-has-key? result key)) (hash-set! result key (hash-ref h2 key))]
+      [else 
+       (define type1 (hash-ref h1 key))
+       (define type2 (hash-ref h2 key))
+       (hash-set! result key (m-type key (remove-duplicates (append (m-type-child-names type1)
+                                                                    (m-type-child-names type2)))))]))   
+  result)
+
+(define/contract (combine-vocabs v1 v2)
+  [m-vocabulary? m-vocabulary? . -> . m-vocabulary?]
+  (define new-name (string-append (m-vocabulary-name v1) "+" (m-vocabulary-name v2)))
+  
+  ; can't use hash-union since we want to allow (and check) overlaps
+  (define new-types (union-types-hashes (m-vocabulary-types v1) (m-vocabulary-types v2)))
+  (define new-predicates (hash-union/overlap (m-vocabulary-predicates v1) (m-vocabulary-predicates v2) "Predicates did not match"))
+  (define new-constants (hash-union/overlap (m-vocabulary-constants v1) (m-vocabulary-constants v2) "Constants did not match"))
+  (define new-functions (hash-union/overlap (m-vocabulary-functions v1) (m-vocabulary-functions v2) "Functions did not match"))
+  
+  (m-vocabulary new-name new-types new-predicates new-constants new-functions))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Functions that grab the appropriate m-vocabulary from the cache
+; One accepts saved query identifiers, the other accepts policy identifiers.
+(define/contract (policy-name->m-vocab pname)
+  [(or/c symbol? string?) . -> . m-vocabulary?]
+  (define pname-str (->string pname))
+  (unless (hash-has-key? cached-policies pname-str)
+    (margrave-error "Unknown policy identifier" pname))
+  (define the-policy (hash-ref cached-policies pname-str))
+  (m-theory-vocab (m-policy-theory the-policy)))
+
+(define/contract (prior-query-name->m-vocab qname)
+  [(or/c symbol? string?) . -> . m-vocabulary?]
+  (define qname-str (->string qname))
+  (unless (hash-has-key? cached-prior-queries qname-str)
+    (margrave-error "Unknown prior query identifier" qname))
+  (m-prior-query-vocab (hash-ref cached-prior-queries qname-str)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Given a formula, compute its vocabulary context
+; take policy references _and_ references to prior queries into account.
+; This function makes 2 separate passes, for simplicity
+(define/contract (get-uber-vocab-for-formula fmla #:under [under-list empty])
+  [->* (m-formula?)
+       (#:under list?)
+       m-vocabulary?]
+  (define used-policy-ids (gather-policy-references fmla))                                                     
+  (define used-query-ids (gather-query-references fmla))
+  
+  ;(printf "used: ~v ~v~n" used-policy-ids used-query-ids)
+  (define voc-list (remove-duplicates
+                    (append (set-map used-policy-ids policy-name->m-vocab)
+                            (set-map used-query-ids prior-query-name->m-vocab)
+                            (map policy-name->m-vocab under-list))))
+  (when (empty? voc-list)
+    (margrave-error "The formula contained no vocabulary references. Please use the #:under clause." fmla))
+  
+  (define f (first voc-list))
+  (define r (rest voc-list))
+  (foldl combine-vocabs f r))
+  
 
 
 
