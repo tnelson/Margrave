@@ -698,6 +698,70 @@
   (define r (rest voc-list))
   (foldl combine-vocabs f r))
   
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Remove syntactic sugar from the formula. 
+; (1) (and (isa x S) a b c) --> (isa x S (and a b c))
+; (2) (and (S x) a b c) --> (isa x S (and a b c))
+; This change allows policies to be well-sorted without
+; an annoyingly deep scope of isas, and should be called when creating each
+; rule and each query. Also:
+; (3) (S x) -> (isa x S)
+(define/contract (desugar-formula fmla)
+  [m-formula? . -> . m-formula?]
+  
+  (define (desugar-and conjuncts)    
+    ; Partition the conjuncts into (isa x S) and others.
+    (define-values (isas others)
+      (partition (lambda (e) (match e
+                               [(m-op-case isa vname sname 'true) #t]
+                               [else #f]))
+                 conjuncts))
+    (printf "desugaring and: ~v ~v" isas others)
+    
+    ; Wrap the conjunction of the others with the isas.
+    (foldl (lambda (next sofar) (match next
+                                  [(m-op-case isa vname sname 'true) 
+                                   `(isa ,vname ,sname ,sofar)]))
+           `(and ,@others)
+           isas))
+  
+  (match fmla
+    [(maybe-identifier true)
+     fmla]        
+    [(maybe-identifier false)
+     fmla]            
+    [(m-op-case = t1 t2)     
+     fmla]
+    
+    ; Desugar subformulas first. Now we should have (isa x S)
+    ; everywhere instead of (S x)
+    [(m-op-case and args ...)
+     (desugar-and (map desugar-formula args))]    
+    
+    [(m-op-case or args ...)
+     `(or ,@(map desugar-formula args))]
+    [(m-op-case implies arg1 arg2)
+     `(implies ,(desugar-formula arg1) ,(desugar-formula arg2))]   
+    [(m-op-case iff arg1 arg2)
+     `(iff ,(desugar-formula arg1) ,(desugar-formula arg2))]   
+    [(m-op-case not arg)
+     `(not ,(desugar-formula arg))]   
+    
+    [(m-op-case forall vname sname subfmla)
+     `(forall ,vname ,sname ,(desugar-formula subfmla))]     
+    [(m-op-case exists vname sname subfmla)
+     `(exists ,vname ,sname ,(desugar-formula subfmla))]     
+    [(m-op-case isa vname sname subfmla)
+     `(isa ,vname ,sname ,(desugar-formula subfmla))]              
+    [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
+     fmla] 
+    
+    [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
+     (cond
+       [(and (valid-sort? dbname) (empty? terms))
+        `(isa ,term0 ,dbname true)]   
+       [else 
+        fmla])] 
+    
+    [else (margrave-error "The formula was not well-formed" fmla) ]))
 
