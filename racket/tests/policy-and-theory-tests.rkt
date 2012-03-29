@@ -6,10 +6,33 @@
          "../margrave-xml.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Macros
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define vocab1 (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
+(check-pred m-vocabulary? vocab1)
+
+(define thy1 (Theory mythy
+                     vocab1
+                     (Axioms (partial-function f1))))
+(check-pred m-theory? thy1)
+
+(define polfunc1 (Policy uses Conference
+                         (Variables 
+                          (s Subject)
+                          (a Action)
+                          (r Resource))
+                         (Rules 
+                          (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
+                          (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)))
+                          (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r))))))
+(check-pred procedure? polfunc1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Conversion of vocabularies, theories, and policies to XML
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(check equal-unordered? (m-vocabulary->xexprs (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))))
+(check equal-unordered? (m-vocabulary->xexprs vocab1)
                '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
                  (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
                  (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
@@ -23,7 +46,7 @@
                  (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (FUNCTION ((name "f2")) (RELATIONS (RELATION ((name "X"))) (RELATION ((name "Y"))) (RELATION ((name "Z"))))))))               
 
 (check equal-unordered? 
-       (m-theory->xexprs (Theory mythy (Vocab myvoc (Types X Y (Z > A B C)) (Constants ('c A) ('c2 X)) (Functions (f1 A B) (f2 X Y Z)) (Predicates (r X Y))) (Axioms (partial-function f1))))
+       (m-theory->xexprs thy1)
        '((MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "A"))))
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "C"))))
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "myvoc"))) (SORT ((name "B"))))
@@ -38,15 +61,7 @@
          (MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "mythy"))) (CONSTRAINT ((type "PARTIAL-FUNCTION")) (RELATIONS (RELATION ((name "f1"))))))))
 
 
-(check equal-unordered? (m-policy->xexprs ((Policy uses Conference
-                                                   (Variables 
-                                                    (s Subject)
-                                                    (a Action)
-                                                    (r Resource))
-                                                   (Rules 
-                                                    (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
-                                                    (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)));
-                                                    (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
+(check equal-unordered? (m-policy->xexprs (polfunc1
                                            "../examples/conference/conference.p" "MYPOLICYID" #'foo))
        
        '((MARGRAVE-COMMAND ((type "CREATE POLICY LEAF")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VOCAB-IDENTIFIER ((vname "Conference"))))
@@ -322,17 +337,23 @@
 (start-margrave-engine #:margrave-params '("-log")
                        #:margrave-path "..")
 
-(send-policy-to-engine ((Policy uses Conference
-                                (Variables 
-                                 (s Subject)
-                                 (a Action)
-                                 (r Resource))
-                                (Rules 
-                                 (PaperNoConflict = (Permit s a r) :- (and (not (conflicted s r)) (readPaper a) (paper r)))
-                                 (PaperAssigned = (Permit s a r) :- (and (assigned s r) (readPaper a) (paper r)))
-                                 (PaperConflict = (Deny s a r) :- (and (conflicted s r) (readPaper a) (paper r)))))
-                        "../examples/conference/conference.p" "MYPOLICYID" #'foo))
-                      
+(check-true (send-policy-to-engine (polfunc1 "../examples/conference/conference.p" "MYPOLICYID" #'foo)))
+(check-true (send-theory-to-engine thy1))
+
+; Try to re-send the same policy id
+(check-exn exn:fail? (lambda ()
+                       (send-policy-to-engine (polfunc1 "../examples/conference/conference.p" "MYPOLICYID" #'foo))))
+
+; Try to re-send the same theory
+(check-exn exn:fail? (lambda () (send-theory-to-engine thy1)))
+
+; Check that restarting the engine clears the caches
+(stop-margrave-engine)
+(start-margrave-engine #:margrave-params '("-log")
+                       #:margrave-path "..")
+(check-equal? (hash-count cached-policies) 0)
+(check-equal? (hash-count cached-theories) 0)
+(check-equal? (hash-count cached-prior-queries) 0)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; LEAVE MARGRAVE ENGINE RUNNING (for additional checks via repl if desired)

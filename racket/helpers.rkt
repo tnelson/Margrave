@@ -482,3 +482,9 @@
      (and (member (first xs) ys)
           (equal-unordered? (rest xs)
                             (remove (first xs) ys)))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+; remove all elements in a mutable hash table
+(define/contract (hash-remove-all ahash) 
+  [(and/c hash? (not/c immutable?)) . -> . void?]
+  (hash-for-each ahash (lambda (key val) (hash-remove! ahash key))))

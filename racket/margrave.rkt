@@ -1,4 +1,4 @@
-;    Copyright (c) 2009-2010 Brown University and Worcester Polytechnic Institute.
+;    Copyright (c) 2009-2012 Brown University and Worcester Polytechnic Institute.
 ;    
 ;    This file is part of Margrave.
 
@@ -17,6 +17,10 @@
 
 ; tn
 ; Modifications by TN and VS, Summer 2010
+; Modifications by TN through 2012
+
+; This module is responsible for starting and stopping the Java engine, sending
+; commands to the engine, etc.
 
 #lang racket
 
@@ -29,7 +33,7 @@
 
          ; Don't have two separate versions of Vocab floating around, or can get
          ; odd behavior, like syntax-case not matching syntax. The fact that this
-         ; require is NOT safe implies a bug somewhere... - TN
+         ; require is NOT safe implies a bug (in Margrave's macro) somewhere... - TN
          ;(for-syntax "margrave-policy-vocab.rkt")
          
          "helpers.rkt"
@@ -45,48 +49,43 @@
          m-load-policy
          m-let
          m-is-poss?
-         m-show
-         m-get
-         m-reset
+         m-show-scenario
+         m-get-scenario
+         m-reset-scenario-iterator
          m-count-scenarios
          m-show-realized       
          
          save-all-scenarios
          
          send-and-receive-xml
-         load-xacml-policy
-         load-sqs-policy
          
          (all-from-out "margrave-xml.rkt")
          (all-from-out "helpers.rkt")
          (all-from-out "margrave-policy-vocab.rkt")         
-
-         display-response
-         response->string
-         get-qualified-rule-list
-         get-rule-list
-         make-applies-list
-         make-matches-list
-         
+                           
          send-policy-to-engine
+         send-theory-to-engine
          
          the-margrave-namespace
          margrave-home-path         
          resolve-java-path!
+         
+         ; Old
+         load-xacml-policy
+         load-sqs-policy
+         make-applies-list
+         make-matches-list         
          resolve-custom-vector-y
          resolve-custom-vector-n
          define-custom-vector
-         
-         cached-policies
-         cached-theories
-         cached-prior-queries)
+         )
 
 
 ;****************************************************************
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-032712")
+(define margrave-version "3.1-internal-032912")
 
 ;****************************************************************
 ;;Java Connection
@@ -202,13 +201,6 @@
                 "lib"
                 "json.jar"))))
 
-#|
-gmarceau
-(define (engine-has-died?) ...)
-(define (engine-never-started?) ...)
-(define (engine-needs-starting)  ...)
-|#
-
 ; If the list is not initialized, the engine was never started (or was closed cleanly).
 (define (engine-needs-starting?)
   (not java-process-list))
@@ -270,9 +262,11 @@ gmarceau
     #t))
 
 (define (cleanup-margrave-engine)
+  ; Close ports politely (as requested in Racket docs)
   (close-input-port input-port)
   (close-output-port output-port)
   (close-input-port err-port)  
+  
   ; allow restart of the engine
   (set! java-process-list #f)
   (set! input-port #f)
@@ -280,7 +274,12 @@ gmarceau
   (set! process-id #f)
   (set! err-port #f)
   (set! ctrl-function #f)
-  (set! margrave-home-path #f))
+  (set! margrave-home-path #f)
+  
+  ;Clean out caches
+  (hash-remove-all cached-policies)
+  (hash-remove-all cached-theories)
+  (hash-remove-all cached-prior-queries))
 
 (define (stop-margrave-engine)
   (or (not java-process-list)
@@ -344,13 +343,13 @@ gmarceau
   (define (local-report-error)
     (if (syntax? src-syntax)
         (raise-read-error 
-          (pretty-print-response-xml xml-response)
+          (response->string xml-response)
           (syntax-source src-syntax)
           (syntax-line src-syntax)
           (syntax-column src-syntax)
           (syntax-position src-syntax)
           (syntax-span src-syntax))
-        (raise-user-error (pretty-print-response-xml xml-response))))
+        (raise-user-error (response->string xml-response))))
   
 ;  (match-define (list src line col pos span) (or src-loc-list
 ;                                                 '(#f #f #f #f #f)))
@@ -481,6 +480,21 @@ gmarceau
   (cond [(> result -1) result]
         [else #f]))
 
+; Send this m-theory to the Java engine.
+(define/contract
+  (send-theory-to-engine athy [from-path ""])
+  [-> m-theory? boolean?]  
+  
+  ; Don't just use the theory's name. See comments before m-theory->key.
+  (when (hash-has-key? cached-theories (m-theory->key athy))    
+    (error (format "The engine already knows about a theory named ~v in path ~v." (m-theory-name athy) (m-theory-path athy))))
+  
+  (for-each (lambda (an-xexpr) (unless (send-and-receive-xml an-xexpr)
+                                 (error (format "Transfer of theory ~v to engine failed." (m-theory->key athy)))))
+            (m-theory->xexprs athy))
+  
+  (hash-set! cached-theories (m-theory->key athy) athy)
+  #t)
 
 ; Send this m-policy to the Java engine, without needing an intermediate .p file
 (define/contract
@@ -489,23 +503,19 @@ gmarceau
   (when (hash-has-key? cached-policies (m-policy-id apol))
     (error (format "The engine already knows about a policy with the id ~v." (m-policy-id apol))))
   
-  ; Do we need to send this policy's vocabulary as well?
-  ; !!! Set instead? Also where else is cached-theories used?
-  (define atheory (m-policy-theory apol))
-  (define thy-xml (cond [(hash-has-key? cached-theories atheory)
-                         empty]
-                        [else
-                         (m-theory->xexprs atheory)]))  
-  (define pol-xml (m-policy->xexprs apol))
-  
+  (unless (hash-has-key? cached-theories (m-theory->key (m-policy-theory apol)))
+    (send-theory-to-engine (m-policy-theory apol)))
+    
   (for-each (lambda (an-xexpr) (unless (send-and-receive-xml an-xexpr)
-                                 (error "Transfer of policy to engine failed.")))
-            (append thy-xml pol-xml))  
+                                 (error (format "Transfer of policy ~v to engine failed." (m-policy-id apol)))))
+            (m-policy->xexprs apol))
+  
+  (hash-set! cached-policies (m-policy-id apol) apol)
   #t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
-  (m-show qryid #:include [include-list empty])
+  (m-show-scenario qryid #:include [include-list empty])
   [->* [string?]
        [#:include (listof m-formula?)]
        string?]
@@ -518,7 +528,7 @@ gmarceau
   (define xml-response (send-and-receive-xml the-xml))
   
   ; May be unsat, so don't just call pretty-print-model
-  (pretty-print-response-xml (document-element xml-response)))
+  (response->string (document-element xml-response)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract 
@@ -546,7 +556,7 @@ gmarceau
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract 
-  (m-reset qryid)
+  (m-reset-scenario-iterator qryid)
   [string? . -> . boolean?]  
   
   (define the-xml (xml-make-reset-command qryid))    
@@ -555,7 +565,7 @@ gmarceau
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define/contract
-  (m-get qryid #:include [include-list empty])
+  (m-get-scenario qryid #:include [include-list empty])
   [->* [string?]
        [#:include (listof m-formula?)]
        (or/c m-unsat? m-scenario?)]
@@ -642,32 +652,7 @@ gmarceau
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Functions to support easier query string creation
-
-; get-idbname-list
-(define (get-rule-list pol [decision ""])
-#| gmarceau
-  (define str (string-append "GET RULES IN " pol
-                             (match decision
-                               ["" ""] [else " WITH DECISION " decision])))
-  (xml-list-response->list (document-element (mtext str))))
-|#
-  
-  (if (equal? decision "")      
-      (xml-list-response->list (document-element (mtext (string-append "GET RULES IN " pol))))
-      (xml-list-response->list (document-element (mtext (string-append "GET RULES IN " pol " WITH DECISION " decision))))))
-
-; get-qualified-idbname-list
-; Same as get-idbname-list but includes policy name prefix
-(define (get-qualified-rule-list pol (decision ""))
-  (if (equal? decision "")      
-      (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol))))
-      (xml-list-response->list (document-element (mtext (string-append "GET QUALIFIED RULES IN " pol " WITH DECISION " decision))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-; Take a rule list and create a list of _applies (or _matches) IDB names from it. 
+; Take a rule-name list and create a list of _applies (or _matches) IDB names from it. 
 ; Optional policy name will be appended to the beginning.
 ; If the rule name contains a colon, it will be quoted.
 (define (make-idb-list-with-suffix rlist suffix polname)
@@ -689,39 +674,14 @@ gmarceau
   (make-idb-list-with-suffix rlist "_matches" polname))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; [not yet in]
-; get-decision-for-idbname
-; Policy String -> String
-; Given an idbname, policy will report its decision if a rule, or the empty string otherwise
-;(define (get-decision-for-rule-idbname policy idbname)
-;  (mtext (string-append "GET DECISION FOR " policy " " idbname)))
-
-; rules-with-higher-priority
-; Policy String -> List
-; Returns a list of rule idb names who have higher priority than the given rule.
-; (This doesn't consider whether an overlap is possible, just the rule-ordering
-;  given by combining algs.) Names are qualified with policyname:.
-; Only works for Leaves, not Sets.
-;(define (rule-idbs-with-higher-priority pol rulename)
-;  (mtext (string-append "GET HIGHER PRIORITY THAN " pol " " rulename)))
-
 ; **************************************************************
-; Test case procedures
 
-(define (test desc s1 s2)
-  (if (equal? s1 s2)
-      (display (string-append desc ": Passed."))
-      (display (string-append desc ": FAILED!")))
-  (newline))
-
-; read from stderr until nothing is left. This WILL block.
-(define (flush-error error-buffer target-port) 
+; read from a port until until nothing is left. This WILL block.
+(define (read-until-eof buffer target-port) 
   (let ([next-char (read-char target-port)])
     (when (not (equal? next-char eof))
-      (write-string (string next-char) error-buffer)
-      (flush-error error-buffer target-port))))
+      (write-string (string next-char) buffer)
+      (read-until-eof buffer target-port))))
 
 ; To run tests:
 (define (run-java-test-cases (home-path default-margrave-home-path) (user-jvm-params empty))
@@ -743,9 +703,8 @@ gmarceau
     
     (define test-process-list (apply process* (cons (path->string (build-path java-path java-exe-name)) margrave-params)))
     
-    ; Keep waiting until the JVM closes on its own (tests will print results via error port)
-    
-    (flush-error error-buffer (fourth test-process-list))
+    ; Keep waiting until the JVM closes on its own (tests will print results via stdout)  
+    (read-until-eof error-buffer (first test-process-list))
     (printf "~a~n" (get-output-string error-buffer))    
     #t))
 
@@ -761,12 +720,7 @@ gmarceau
   (read-line)
   (clear-port-helper))
 
-(define (display-response the-response)
-  (printf "~a~n" (pretty-print-response-xml the-response)))
 
-; Better function name. May make it do more later, but for now just a wrapper.
-(define (response->string the-response)
-  (pretty-print-response-xml the-response))
 
 
 ; ********************************************************
@@ -808,20 +762,20 @@ gmarceau
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (display-scenarios-to-file qid fileport brief)
   [string? port? boolean? . -> . any/c]
-  (define result (m-get qid))  
+  (define result (m-get-scenario qid))  
   (when (m-scenario? result)  
     (display (m-scenario->string result #:brief brief) fileport)
     (display "\n\n" fileport)
     (display-scenarios-to-file qid fileport brief)))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (save-all-scenarios qid #:brief [brief #f])   
   [->* (string?)
        (#:brief boolean?)
        any/c]
-  (m-reset qid) ; start at beginning of scenario-stream
+  (m-reset-scenario-iterator qid) ; start at beginning of scenario-stream
   (define out (open-output-file (string-append "scenarios-" qid ".txt") #:exists 'replace))
   (display (format "*** Found ~v scenarios for query with ID: ~v. ***~n~n" (m-count-scenarios qid) qid) out)
   (display-scenarios-to-file qid out brief)
-  (m-reset qid) ; return to beginning of stream
+  (m-reset-scenario-iterator qid) ; return to beginning of stream
   (close-output-port out))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

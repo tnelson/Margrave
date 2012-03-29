@@ -419,7 +419,7 @@
        (with-syntax ([theory-name (->string #'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
                      [the-axioms-list the-axioms-clauses])                                               
-         (syntax/loc stx (m-theory theory-name the-vocab-syntax 'the-axioms-list)))))))
+         (syntax/loc stx (m-theory theory-name (string->path ".") the-vocab-syntax 'the-axioms-list)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -871,7 +871,7 @@
              ; Allow users to provide just a vocab with no theory. No axioms if so.
              (define my-thy
                (if (m-vocabulary? my-t-or-v)
-                   (m-theory (m-vocabulary-name my-t-or-v) my-t-or-v empty)
+                   (m-theory (m-vocabulary-name my-t-or-v) vocab-path my-t-or-v empty)
                    my-t-or-v))
              
              (define (make-placeholder-syntax placeholder)
@@ -881,9 +881,11 @@
              (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
                
-             (m-policy local-policy-id ; [id string?]                      
-                       vocab-path ; [theory-path path?]
-                       my-thy ; [theory m-theory?]                     
+             (define (grant-theory-path t vp)
+               (m-theory (m-theory-name t) vp (m-theory-vocab t) (m-theory-axioms t)))
+             
+             (m-policy local-policy-id ; [id string?]                                             
+                       (grant-theory-path my-thy vocab-path) ; [theory-path path?]; [theory m-theory?]                     
                        vardec-hash ; [vardecs (hash/c string? m-vardec?)]
                        'rule-names ; [rule-names (list string?)]
                        rules-hash ; [rules (hash/c string? m-rule?)]

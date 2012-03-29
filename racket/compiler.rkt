@@ -49,8 +49,7 @@
   
   (define theory-instance (m-policy-theory policy-instance))
   (define vocab-instance (m-theory-vocab theory-instance))
-  (define thy-path (m-policy-theory-path policy-instance))
-  (define thy-key (list (path->string thy-path) (m-theory-name theory-instance)))
+  (define thy-key (m-theory->key theory-instance))
   
   ; If we already loaded the theory, don't re-send the vocab/axiom commands.
   ; Also cache the theory if this is the first time we've seen it.

@@ -48,6 +48,7 @@
 
 (define-struct/contract m-theory
   ([name string?]   
+   [path path?]
    [vocab m-vocabulary?]   
    [axioms (listof m-axiom?)])
   #:transparent)
@@ -65,22 +66,21 @@
   #:transparent)
 
 ; Validate the m-policy fields. Check for consistency, etc.
-(define/contract (prevalidate-m-policy id theory-path theory vardecs rule-names rules rcomb target idbs type-name)
-  [-> string? path? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)) any/c
-      (values string? path? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)))]    
+(define/contract (prevalidate-m-policy id theory vardecs rule-names rules rcomb target idbs type-name)
+  [-> string? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)) any/c
+      (values string? m-theory? (hash/c string? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof string?)))]    
   ;(when ...
   ;  (error ...))
   
   ; All is well:
-  (values id theory-path theory vardecs rule-names rules rcomb target idbs))
+  (values id theory vardecs rule-names rules rcomb target idbs))
 
-(struct m-policy (id theory-path theory vardecs rule-names rules rcomb target idbs)
+(struct m-policy (id theory vardecs rule-names rules rcomb target idbs)
   #:transparent
   #:guard prevalidate-m-policy)
 
 ;(define-struct/contract m-policy
 ;  ([id string?]
-;   [theory-path path?]   
 ;   [theory m-theory?]   
 ;   [vardecs (hash/c string? m-vardec?)]
 ;   [rule-names (listof string?)]
@@ -91,8 +91,7 @@
 ;  #:transparent)
 
 (define-struct/contract m-policy-set
-  ([id string?]
-   [theory-path path?]   
+  ([id string?]   
    [theory m-theory?]   
    [vardecs (hash/c string? m-vardec?)]
    [children (hash/c string? m-policy?)]
@@ -327,6 +326,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;
+; m-theory->key converts a theory to a key for use in hash tables. It uses both
+; the theory's id and the theory's path. This way, different theories may be defined
+; with the same name. E.g. the way we produce firewall vocabularies.      
+; TODO: This is a hangup from reading theories from files. Should be able to stop doing this
+; TODO: at some point.
+(define/contract
+  (m-theory->key athy)
+  [m-theory? . -> . list?]
+  (list (path->string (m-theory-path athy)) (m-theory-name athy)))
 
 
 

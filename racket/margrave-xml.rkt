@@ -447,12 +447,12 @@
 
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
 ; document? or element? or string? -> string?
-(define (pretty-print-response-xml the-response)
+(define (response->string the-response)
   (cond [(false? the-response)
          "Engine stopped!"]
         
         [(document? the-response)
-         (pretty-print-response-xml (document-element the-response))]
+         (response->string (document-element the-response))]
         
         [(element? the-response)
          (let* ([type (get-attribute-value the-response 'type)])
