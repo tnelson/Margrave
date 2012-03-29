@@ -747,10 +747,15 @@
                     (begin
                      ; (printf "Creating Rule: ~v with conditions: ~v~n" #'rulename (syntax->list #'(fmla0 fmla ...)))
                       ;(printf "Head variables: ~v~n" (map syntax->datum (syntax->list #'(rvar ...))))
+                      ; Add implicit 'and if needed before desugaring:
+                      (define bodyfmlas (syntax->list #'(fmla0 fmla ...)))
+                      (define bodyfmla (if (> (length bodyfmlas) 1) 
+                                           `(and ,@bodyfmlas)
+                                           (first bodyfmlas)))
                       (m-rule (->string #'rulename)
                               (->string #'decision)
                               (map syntax->datum (syntax->list #'(rvar ...)))
-                              (map desugar-formula (syntax->list #'(fmla0 fmla ...)))))]
+                              (desugar-formula bodyfmla)))]
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                
                (map handle-rule the-rules))))                                  

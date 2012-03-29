@@ -24,12 +24,7 @@
  (only-in srfi/1 zip))
 
 (provide
- (all-defined-out)
- 
- ; for reflection, errors, etc
- cached-policies         
- cached-theories 
- cached-prior-queries)
+ (all-defined-out))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -82,7 +77,7 @@
   ([name string?]
    [decision string?]
    [headvars (listof symbol?)]
-   [rbody (listof m-formula?)])
+   [rbody m-formula?])
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,8 +108,8 @@
   ; So cannot validate rules via a guard on m-rule. Need to do it here:
 
   (define (validate-rule r voc env)  
-    (define fullbody `(and ,@(m-rule-rbody r)))
-    (m-formula-is-well-sorted?/err voc fullbody env)  )
+    (define fullbody (m-rule-rbody r))
+    (m-formula-is-well-sorted?/err voc fullbody env))
   (for-each (lambda (arule) (validate-rule arule (m-theory-vocab theory) env)) (hash-values rules))
   
   ;(when ...
@@ -146,7 +141,7 @@
                                 (xml-make-rule (m-rule-name arule)
                                                (xml-make-decision-type (m-rule-decision arule)
                                                                        (m-rule-headvars arule))
-                                               (xml-make-target (xml-make-and* (map m-formula->xexpr (m-rule-rbody arule))))))))
+                                               (xml-make-target (m-formula->xexpr (m-rule-rbody arule)))))))
 
 (define/contract 
   (m-vardec->cmd policyid adec)  
@@ -540,7 +535,7 @@
     (define term-sort (m-term->sort/err voc tname env))
     ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname-sym valid-sort-names term-sort (member? term-sort valid-sort-names))
     (unless (member? term-sort valid-sort-names)
-      (margrave-error (format "This formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v." fmla tname term-sort sname-sym) tname))
+      (margrave-error (format "This formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v" fmla tname term-sort sname-sym) tname))
     #t)
   
   ; Handle case: (isa x A true)
@@ -716,14 +711,16 @@
                                [(m-op-case isa vname sname 'true) #t]
                                [else #f]))
                  conjuncts))
-    (printf "desugaring and: ~v ~v" isas others)
-    
     ; Wrap the conjunction of the others with the isas.
-    (foldl (lambda (next sofar) (match next
-                                  [(m-op-case isa vname sname 'true) 
-                                   `(isa ,vname ,sname ,sofar)]))
-           `(and ,@others)
-           isas))
+    (define result (foldl (lambda (next sofar) 
+                            (match next
+                              [(m-op-case isa vname sname 'true) 
+                               `(isa ,vname ,sname ,sofar)]))
+                          `(and ,@others)
+                          isas))
+    ;(printf "    desugaring ~v:~n    isas: ~v~n    non:~v~n" `(and ,@conjuncts) isas others)
+    ;(printf "    result: ~v~n~n" result)
+    result)
   
   (match fmla
     [(maybe-identifier true)

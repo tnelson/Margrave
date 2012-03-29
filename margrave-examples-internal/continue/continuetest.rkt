@@ -9,83 +9,82 @@
 (m-load-policy "continue" "continuep.p")
 
 ; Taken from the policy:
-(m-let "Framing" '()
-       ; Whatever phase the conference is in, its papers must reflect that.
-       '(and          
-         (forall p Paper 
-                 (and
-                  ; to move into reviewing phase, every paper has to have a user assigned to it.
-                  (implies (or (= (paperPhase p) 'pReviewing)
-                               (= (paperPhase p) 'pDiscussion)
-                               (= (paperPhase p) 'pNotification))
-                           (exists u User (assignedTo u p)))
-                  ; to move into the discussion phase, every paper needs to have at least one review
-                  (implies (or (= (paperPhase p) 'pDiscussion)
-                               (= (paperPhase p) 'pNotification))
-                           (exists u User (exists rev Review (reviewOn u p rev))))
-                  ; to move into the notification phase, a paper needs a decision.
-                  (implies (= (paperPhase p) 'pNotification)
-                           (exists d Decision (and (not (= 'undecided d)) 
-                                                   (= d (decisionIs p)))))))      
-         
-         ; (decisionIs p d)
-         ; ^^^ !!! TODO
-         ; This should give an error in the *POLICY*. Why didn't it?
-         
-         (forall conf Conference 
-                 (and  
-                  ; No papers if the conference is in pre-submission or initialization
-                  (implies (or (= (conferencePhase conf) 'cPreSubmission)
-                               (= (conferencePhase conf) 'cInitialization))
-                           (forall p Paper (not (= p p))))
-                  
-                  (implies (= (conferencePhase conf) 'cPublishing)
-                           (and
-                            ; condition for being past the bidding phase
-                            (forall u User (implies (reviewer u)
-                                                    (exists p Paper (bid u p))))
-                            
-                            ; papers meet the phase requirements: none of them lag behind
-                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
-                                                 (not (= (paperPhase p) 'pBidding))
-                                                 (not (= (paperPhase p) 'pAssignment))
-                                                 (not (= (paperPhase p) 'pReviewing))
-                                                 (not (= (paperPhase p) 'pDiscussion))))))
-                  
-                  (implies (= (conferencePhase conf) 'cDiscussion)
-                           (and
-                            ; condition for being past the bidding phase
-                            (forall u User (implies (reviewer u)
-                                                    (exists p Paper (bid u p))))
-                            
-                            ; papers meet the phase requirements: none of them lag behind
-                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
-                                                 (not (= (paperPhase p) 'pBidding))
-                                                 (not (= (paperPhase p) 'pAssignment))
-                                                 (not (= (paperPhase p) 'pReviewing))))))
-                  
-                  (implies (= (conferencePhase conf) 'cReviewing)
-                           (and 
-                            ; condition for being past the bidding phase
-                            (forall u User (implies (reviewer u)
-                                                    (exists p Paper (bid u p))))
-                            ; papers meet the phase requirements: none of them lag behind
-                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
-                                                 (not (= (paperPhase p) 'pBidding))
-                                                 (not (= (paperPhase p) 'pAssignment))))))
-                  
-                  (implies (= (conferencePhase conf) 'cAssignment)
-                           (and 
-                            ; condition for being past the bidding phase
-                            (forall u User (implies (reviewer u)
-                                                    (exists p Paper (bid u p))))
-                            ; papers meet the phase requirements: none of them lag behind
-                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
-                                                 (not (= (paperPhase p) 'pBidding))))))
-                  
-                  (implies (= (conferencePhase conf) 'cBidding)
-                           (forall p Paper (not (= (paperPhase p) 'pSubmission)))))))
-       #:under '("continue") )
+; NOTE: Will need to add suitable isas to well-sort this.
+;(m-let "Framing" '()
+;       ; Whatever phase the conference is in, its papers must reflect that.
+;       '(and          
+;         (forall p Paper 
+;                 (and
+;                  ; to move into reviewing phase, every paper has to have a user assigned to it.
+;                  (implies (or (= (paperPhase p) 'pReviewing)
+;                               (= (paperPhase p) 'pDiscussion)
+;                               (= (paperPhase p) 'pNotification))
+;                           (exists u User (assignedTo u p)))
+;                  ; to move into the discussion phase, every paper needs to have at least one review
+;                  (implies (or (= (paperPhase p) 'pDiscussion)
+;                               (= (paperPhase p) 'pNotification))
+;                           (exists u User (exists rev Review (reviewOn u p rev))))
+;                  ; to move into the notification phase, a paper needs a decision.
+;                  (implies (= (paperPhase p) 'pNotification)
+;                           (exists d Decision (and (not (= 'undecided d)) 
+;                                                   (= d (decisionIs p)))))))      
+;         
+;         ; (decisionIs p d)
+;         
+;         (forall conf Conference 
+;                 (and  
+;                  ; No papers if the conference is in pre-submission or initialization
+;                  (implies (or (= (conferencePhase conf) 'cPreSubmission)
+;                               (= (conferencePhase conf) 'cInitialization))
+;                           (forall p Paper (not (= p p))))
+;                  
+;                  (implies (= (conferencePhase conf) 'cPublishing)
+;                           (and
+;                            ; condition for being past the bidding phase
+;                            (forall u User (implies (reviewer u)
+;                                                    (exists p Paper (bid u p))))
+;                            
+;                            ; papers meet the phase requirements: none of them lag behind
+;                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+;                                                 (not (= (paperPhase p) 'pBidding))
+;                                                 (not (= (paperPhase p) 'pAssignment))
+;                                                 (not (= (paperPhase p) 'pReviewing))
+;                                                 (not (= (paperPhase p) 'pDiscussion))))))
+;                  
+;                  (implies (= (conferencePhase conf) 'cDiscussion)
+;                           (and
+;                            ; condition for being past the bidding phase
+;                            (forall u User (implies (reviewer u)
+;                                                    (exists p Paper (bid u p))))
+;                            
+;                            ; papers meet the phase requirements: none of them lag behind
+;                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+;                                                 (not (= (paperPhase p) 'pBidding))
+;                                                 (not (= (paperPhase p) 'pAssignment))
+;                                                 (not (= (paperPhase p) 'pReviewing))))))
+;                  
+;                  (implies (= (conferencePhase conf) 'cReviewing)
+;                           (and 
+;                            ; condition for being past the bidding phase
+;                            (forall u User (implies (reviewer u)
+;                                                    (exists p Paper (bid u p))))
+;                            ; papers meet the phase requirements: none of them lag behind
+;                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+;                                                 (not (= (paperPhase p) 'pBidding))
+;                                                 (not (= (paperPhase p) 'pAssignment))))))
+;                  
+;                  (implies (= (conferencePhase conf) 'cAssignment)
+;                           (and 
+;                            ; condition for being past the bidding phase
+;                            (forall u User (implies (reviewer u)
+;                                                    (exists p Paper (bid u p))))
+;                            ; papers meet the phase requirements: none of them lag behind
+;                            (forall p Paper (and (not (= (paperPhase p) 'pSubmission))
+;                                                 (not (= (paperPhase p) 'pBidding))))))
+;                  
+;                  (implies (= (conferencePhase conf) 'cBidding)
+;                           (forall p Paper (not (= (paperPhase p) 'pSubmission)))))))
+;       #:under '("continue") )
 
 (m-let "Q1" '([s User]
               [a Action]

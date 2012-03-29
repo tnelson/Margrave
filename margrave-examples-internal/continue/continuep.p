@@ -240,7 +240,7 @@
          
          ; 796
          (rule796 = (permit s a r) :- (Paper r) (= 'writeReview a) 
-                   (= 'pReviewing (paperPhase r)) (reviewer s) (assignedTo r s))                  
+                   (= 'pReviewing (paperPhase r)) (reviewer s) (assignedTo s r))                  
          (rule796failed = (deny s a r) :- (Paper r) (= 'writeReview a))   
          
          ;;	resource in User and action in ModifyUserInfo implies {
@@ -299,11 +299,14 @@
          ;;		and resource in cc.reviewers
          ;;	}
          
-         ;819
-         (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
-                   (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
-         (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
+         ; TODO ^^^ This makes no sense. resource in User. resource.pphase??
          
+         ;819
+        ; (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
+        ;           (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
+        ; (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
+         
+                  
          
          ;;	resource in Paper and action in PaperDecide implies {
          ;;		resource.pphase in PDiscussion

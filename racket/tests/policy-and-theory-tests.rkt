@@ -165,6 +165,9 @@
              '(MARGRAVE-COMMAND ((type "ADD")) (VOCAB-IDENTIFIER ((vname "vocab")))
                                 (PREDICATE ((name "pname"))) (RELATIONS (RELATION ((name "A"))) (RELATION ((name "B"))) (RELATION ((name "C")))))))
 
+(check-equal? (desugar-formula '(and (S x) (r x) (T y)))
+              '(isa y T (isa x S (and (r x)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (check-true (m-formula? '(or (= x y) (r x y))))
