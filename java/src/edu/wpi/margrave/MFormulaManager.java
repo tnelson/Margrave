@@ -798,7 +798,7 @@ public class MFormulaManager
 	}
 	
 	// Called by replacement visitor
-	static Expression substituteExprTuple(Expression expr, Map<Variable, Expression> termpairs)
+	/*static Expression substituteExprTuple(Expression expr, Map<Variable, Expression> termpairs)
 	throws MGEManagerException
 	{
 		MCommunicator.writeToLog("\nIn MFormulaManager.substituteExprTuple, expr="+expr+"; termpairs="+termpairs);
@@ -856,7 +856,8 @@ public class MFormulaManager
 		}
 					
 	}
-
+*/
+	
 	static Expression makeExprTuple(List<String> varNames)
 	{
 		List<Expression> key = new ArrayList<Expression>(varNames.size());
@@ -883,18 +884,18 @@ public class MFormulaManager
 			initialize();		
 		
 		if(exprs.size() < 1)
-			throw new MGEManagerException("makeVarTuple called with empty list.");		
+			throw new MGEManagerException("makeExprTupleE called with empty list.");		
 		
-		Expression cachedValue = exprTuples.get(exprs); 
-		if(cachedValue != null)
-			return cachedValue;		
-						
-		Expression newTuple = Expression.product(exprs);
-		
+		// exprs is NOT the key!
 		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(exprs.size());
 		for(int ii=0;ii<exprs.size();ii++)
 			key.set(ii, exprs.get(ii));
 		
+		Expression cachedValue = exprTuples.get(key); 
+		if(cachedValue != null)
+			return cachedValue;		
+						
+		Expression newTuple = Expression.product(exprs);			
 		exprTuples.put(key, newTuple);
 		return newTuple;
 	}
@@ -904,21 +905,20 @@ public class MFormulaManager
 	throws MGEManagerException
 	{
 		if(!hasBeenInitialized)
-			initialize();		
-		
+			initialize();				
 		if(exprs.size() < 1)
 			throw new MGEManagerException("makeJoinE called with empty list.");		
-		
-		Expression cachedValue = joinExpressions.get(exprs); 
-		if(cachedValue != null)
-			return cachedValue;			
-							
-		Expression newJoin = Expression.compose(ExprOperator.JOIN, exprs);
-		
+				
+		// exprs is NOT the key!
 		MWeakArrayVector<Expression> key = new MWeakArrayVector<Expression>(exprs.size());
 		for(int ii=0;ii<exprs.size();ii++)
 			key.set(ii, exprs.get(ii));
 		
+		Expression cachedValue = joinExpressions.get(key); 
+		if(cachedValue != null)
+			return cachedValue;			
+		
+		Expression newJoin = Expression.compose(ExprOperator.JOIN, exprs);								
 		joinExpressions.put(key, newJoin);
 		return newJoin;
 	}

@@ -108,8 +108,8 @@
   ; So cannot validate rules via a guard on m-rule. Need to do it here:
 
   (define (validate-rule r voc env)  
-    (define fullbody (m-rule-rbody r))
-    (m-formula-is-well-sorted?/err voc fullbody env))
+    (define desugared-body (desugar-formula (m-rule-rbody r)))
+    (m-formula-is-well-sorted?/err voc desugared-body env))
   (for-each (lambda (arule) (validate-rule arule (m-theory-vocab theory) env)) (hash-values rules))
   
   ;(when ...
@@ -424,7 +424,7 @@
      (string->symbol (m-constant-type (hash-ref (m-vocabulary-constants voc) unquoted-id-str)))]
     [(? valid-variable? vid) 
      (unless (hash-has-key? env term)
-       (margrave-error (format "The variable was not declared in the environment (~v)" env) vid))     
+       (margrave-error (format "The variable ~v was not declared in the environment. Environment was: ~v" vid env) vid))     
      (hash-ref env term)]
     [else (margrave-error (format "The term ~v was not well-sorted. Environment was: ~v." term env) term)]))    
 
@@ -698,8 +698,19 @@
 ; (1) (and (isa x S) a b c) --> (isa x S (and a b c))
 ; (2) (and (S x) a b c) --> (isa x S (and a b c))
 ; This change allows policies to be well-sorted without
-; an annoyingly deep scope of isas, and should be called when creating each
-; rule and each query. Also:
+; an annoyingly deep scope of isas, so should be called
+; by the well-sortedness check. 
+
+; HOWEVER! The java engine is only smart enough to notice
+; (isa x S true) is special --- the 'true subfmla triggers
+; special behavior. The term counter knows how to handle
+; S(x) as a *local* coercion. It will blow up the number of 
+; elements if we actually PASS 
+;(and (S x) a b c)
+;as 
+;(isa x S (and a b c))
+
+; Also:
 ; (3) (S x) -> (isa x S)
 (define/contract (desugar-formula fmla)
   [m-formula? . -> . m-formula?]

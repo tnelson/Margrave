@@ -4,17 +4,14 @@
 ; re-written by Tim in Dec 2011
 
 
-(require "../margrave/margrave.rkt")
+(require "../../racket/margrave.rkt")
 
-(start-margrave-engine #:margrave-params '("-log")
-                       ;#:margrave-path "M:\\RktMargrave\\margrave"
-                       #:margrave-path "F:\\msysgit\\git\\margrave\\margrave"
+(start-margrave-engine #:margrave-params '("-log")                       
+                       #:margrave-path "../../racket"
                        #:jvm-params '("-Xmx512m"))
 
-;(m-load-policy "before" "M:\\RktMargrave\\salman\\rbac_before.p")
-;(m-load-policy "after" "M:\\RktMargrave\\salman\\rbac_after.p")
-(m-load-policy "before" "F:\\msysgit\\git\\margrave\\salman\\rbac_before.p")
-(m-load-policy "after" "F:\\msysgit\\git\\margrave\\salman\\rbac_after.p")
+(m-load-policy "before" "rbac_before.p")
+(m-load-policy "after" "rbac_after.p")
 
 ; The query is the conjunction of a bunch of conditions:
 (define qrysexpr '(and 
@@ -125,11 +122,11 @@
 ; Is the query satisfiable?
 (time (m-is-poss? "Q"))
 ; Get an actual solution.
-(time (m-get "Q"))
+(time (m-get-scenario "Q"))
 ; Reset the iterator, start at the beginning of the solution list again.
-(time (m-reset "Q"))
+(time (m-reset-scenario-iterator "Q"))
 ; Get an actual solution that includes whether <u, p> is permitted before and after.
-(time (m-get "Q" #:include '( ([before permit] u p) ([after permit] u p))))
+(time (m-get-scenario "Q" #:include '( ([before permit] u p) ([after permit] u p))))
 
 ; Create the same query, but bound the ceiling.
 (time (m-let "Q3" '([u User] [p Permission]) 
@@ -137,7 +134,7 @@
                    #:ceiling '([Role 4]
                                [User 3]
                                [univ 12]))) 
-(time (m-get "Q3"))
+(time (m-get-scenario "Q3"))
 
 ; Test #lang margrave
 (define xmlresult (mtext "LET Q4[u : User, p: Permission] BE before.permit(u, p) CEILING 3 User, 5 Permission, 4 Role, 12 univ"))

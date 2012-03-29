@@ -3,11 +3,11 @@
 
 #lang racket
 
-(require "../../margrave/margrave.rkt"
+(require "../../racket/margrave.rkt"
          rackunit)
 
 (start-margrave-engine #:margrave-params '("-log")
-                       #:margrave-path "../../margrave")
+                       #:margrave-path "../../racket")
 
 (m-load-policy "pa-state" "pa-state.p")
 
@@ -245,8 +245,8 @@
                    [univ 18]))
 
 ;(m-get "PA2-blame1")
-(display (m-scenario->string (m-get "PA1-blame1") #:brief #t))
-(display (m-scenario->string (m-get "PA1-blame1") #:brief #t))
+(display (m-scenario->string (m-get-scenario "PA1-blame1") #:brief #t))
+(display (m-scenario->string (m-get-scenario "PA1-blame1") #:brief #t))
 (printf "PA2-blame1 solution count: ~v~n" (m-count-scenarios "PA1-blame1"))
 ; ^^ This reveals that mrAdmin issued the request at state2 (time=3) that
 ; changed the port on what would _EVENTUALLY_ (key word) be the external webserver.

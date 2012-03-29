@@ -56,7 +56,7 @@
 	  (RvkRoleFromRole = (revokeRoleFromRole u pr spr) :- (exists r1 Role (exists r2 Role (and (ua u r1) (ua u r2) (or (opa r1 'admin pr) (opa r1 'admin spr) (and (opa r1 'empower pr) (opa r2 'grant spr)))))))
 	  (RvkRoleFromRoleViaRoleClsAdm = (revokeRoleFromRole u pr spr) :- (exists r Role (and (ua u r) (cpa r 'admin 'role))))
 	  (RvkRoleFromRoleViaRoelClsEmp = (revokeRoleFromRole u pr spr) :- (exists r1 Role (exists r2 Role (and (ua u r1) (ua u r2) (cpa r1 'empower 'role) (opa r2 'grant spr)))))
-	  (RvkRoleFromRoleViaRoleClsGrnt = (revokeRoleFromRole u pr spr) :- (exists r Role (exists r2 Role (and (ua u r1) (ua u r2) (opa r1 'empower pr) (cpa r2 'grant 'role)))))
+	  (RvkRoleFromRoleViaRoleClsGrnt = (revokeRoleFromRole u pr spr) :- (exists r1 Role (exists r2 Role (and (ua u r1) (ua u r2) (opa r1 'empower pr) (cpa r2 'grant 'role)))))
 	  (RvkRoleFromRoleViaRoleClsEmpAndGrnt = (revokeRoleFromRole u pr spr) :- (exists r1 Role (exists r2 Role (and (ua u r1) (ua u r2) (cpa r1 'empower 'role) (cpa r2 'grant 'role)))))
 
 	  (GrntObjPermToRole = (grantObjectPermToRole u pr p o) :- (exists r1 Role (exists r2 Role (and (ua u r1) (ua u r2) (opa r1 'admin o) (opa r2 'admin pr)))))

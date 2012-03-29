@@ -33,13 +33,13 @@
                 (= 'fw1ext interf) (= 'mailserver ipdest) (= 'port25 portdest) (= 'tcp pro))
 
          (rule5 = (accept interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw1ext interf) (= 'webserver ipdest) (= 'port80 portdest) (tcp pro))
+                (= 'fw1ext interf) (= 'webserver ipdest) (= 'port80 portdest) (= 'tcp pro))
 
 
          ; Bug in context of this network:
          ; employeePC packet will already have been subjected to NAT by FW2.
          (rule6 = (accept interf ipsrc ipdest portsrc portdest pro) :-
-                (fw1dmz interf) (managerpc ipsrc) (port80 portdest) (OutsideIPs ipdest) (tcp pro))
+                (= 'fw1dmz interf) (= 'managerpc ipsrc) (= 'port80 portdest) (OutsideIPs ipdest) (= 'tcp pro))
          
          (rule7 = (deny interf ipsrc ipdest portsrc portdest pro) :-
                 true) )

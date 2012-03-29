@@ -203,19 +203,23 @@ class MExploreCondition
 		}
 		else
 		{
+			MEnvironment.writeToLog("\nisaSubstitution for expr="+expr+"; r="+r+"");
 			if(!(expr instanceof Variable))
-				throw new MUserException("Unsupported Functionality: ISA with non-trivial formula must be downcasting a variable term. The term given was not a variable: "+expr);				
-			Variable v = (Variable)expr;
+				MEnvironment.writeToLog("\n  Target was NOT a variable!");
+
+			//if(!(expr instanceof Variable))
+			//	throw new MUserException("Unsupported Functionality: ISA with non-trivial formula must be downcasting a variable term. The term given was not a variable: "+expr);				
+			//Variable v = (Variable)expr;
 			
 			// We have (isa x A alpha(x)). alpha(x) may not be well-sorted!
 			// Want to convert to
 			// \exists y^A (x = y) and alpha(y).
 		
-			Map<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+			Map<Expression, Expression> toReplace = new HashMap<Expression, Expression>();
 			Variable freshVar = MFormulaManager.makeFreshVariable();
-			toReplace.put(v, freshVar);
-			Formula subsFmla = fmla.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace, termMap));		
-			Formula eqFmla = MFormulaManager.makeEqAtom(v, freshVar);
+			toReplace.put(expr, freshVar);
+			Formula subsFmla = fmla.accept(new ExpressionReplacementV(toReplace, termMap));		
+			Formula eqFmla = MFormulaManager.makeEqAtom(expr, freshVar);
 			Formula innerFmla = MFormulaManager.makeAnd(eqFmla, subsFmla);
 			Decl decl = MFormulaManager.makeOneOfDecl(freshVar, r); // x acts as type A inside		
 			fmla = MFormulaManager.makeExists(innerFmla, decl);
@@ -2265,7 +2269,7 @@ public class MEnvironment
 			throw new MGEArityMismatch("Arity Mismatch. Vector given was: "+newterms+
 					", but collection expects arity "+coll.varOrderings.get(idbname).size()+".");
 		
-		HashMap<Variable, Expression> toReplace = new HashMap<Variable, Expression>();
+		HashMap<Expression, Expression> toReplace = new HashMap<Expression, Expression>();
 			
 		// coll knows what its idbs free variable vector is.
 		int ii = 0;
@@ -2279,7 +2283,7 @@ public class MEnvironment
 			ii ++;	
 		}
 
-		return f.accept(new RelationAndTermReplacementV(new HashMap<Relation, Relation>(), toReplace, coll.vocab.exprToTerm));		
+		return f.accept(new ExpressionReplacementV(toReplace, coll.vocab.exprToTerm));		
 	}
 	
 	

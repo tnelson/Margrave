@@ -138,36 +138,6 @@ abstract class MIDBCollection
 		idbs.clear();
 	}
 	
-
-	// TODO Tn april 2011, I don't think this method has been necessary since MFormulaManager
-	
-	protected static RelationAndTermReplacementV getReplacementVisitor(MVocab vocab, MVocab uber) 
-	throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		HashMap<Variable, Expression> varpairs = new HashMap<Variable, Expression>();
-		HashMap<Relation, Relation> relpairs = new HashMap<Relation, Relation>();
-		
-		// Each type 
-		for(MSort t : vocab.sorts.values())
-		{
-			Relation newrel = uber.getRelation(t.name);
-			if(newrel != t.rel)
-				relpairs.put(t.rel, newrel);
-		}
-		
-		// Each predicate
-		for(String s : vocab.predicates.keySet())
-		{
-			Relation newrel = uber.predicates.get(s).rel;
-			Relation oldrel = vocab.predicates.get(s).rel;
-			if(oldrel != newrel)
-				relpairs.put(oldrel, newrel);
-		}
-		
-		// NOTE APRIL 2011: no more request/other vars declared at the vocab level. so no need to replace vars here anymore
-		
-		return new RelationAndTermReplacementV(relpairs, varpairs, vocab.exprToTerm);
-	}	
 	
 	void initIDBs()
 	throws MUserException

@@ -1,16 +1,13 @@
 #lang racket
 
-(require "../../margrave/margrave.rkt")
+(require "../../../racket/margrave.rkt")
 
-(start-margrave-engine #:margrave-params '("-log")
-                       ;#:margrave-path "M:\\RktMargrave\\margrave"
-                       #:margrave-path "../../margrave"
-                       
+(start-margrave-engine #:margrave-params '("-log")                       
+                       #:margrave-path "../../../racket"                       
                        #:jvm-params '("-Xmx512m"))
 
 
 (m-load-policy "uarbac" "uarbac.p")
-
 
 (m-let "Q"
       ; '([qu1 User] [qu2 User] [qr1 Role] [qp Permission] [qc Class] [qo Object])
@@ -260,6 +257,6 @@
 
 ;; Retursn the relation that we are interested in.
 ; To pretty-print, use m-show:
-(display (m-show "Q"))
+(display (m-show-scenario "Q"))
 
 

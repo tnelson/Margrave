@@ -755,7 +755,7 @@
                       (m-rule (->string #'rulename)
                               (->string #'decision)
                               (map syntax->datum (syntax->list #'(rvar ...)))
-                              (desugar-formula bodyfmla)))]
+                               bodyfmla))]
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                
                (map handle-rule the-rules))))                                  

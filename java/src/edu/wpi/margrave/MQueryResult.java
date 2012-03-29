@@ -578,8 +578,8 @@ public abstract class MQueryResult
 		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
-			HashMap<MIDBCollection, RelationAndTermReplacementV> initialVisitors = 
-				new HashMap<MIDBCollection, RelationAndTermReplacementV>();
+			HashMap<MIDBCollection, ExpressionReplacementV> initialVisitors = 
+				new HashMap<MIDBCollection, ExpressionReplacementV>();
 			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
 			Set<Formula> impSet = new HashSet<Formula>();
 			

@@ -1,12 +1,12 @@
 #lang racket
 
 ;(require margrave)
-(require "../../margrave/margrave.rkt"
+(require "../../racket/margrave.rkt"
          rackunit)
 
 ; Start the engine
 (start-margrave-engine #:margrave-params '( "-log" )
-                       #:margrave-path "../../margrave")
+                       #:margrave-path "../../racket")
 
 ; Our policies:
 (m-load-policy "aclfw1" "inboundacl_fw1.p")
@@ -69,7 +69,7 @@
 ; ************************************************************
 
 (printf "~n----------------------------------~nExample 2 results:~n----------------------------------~n~n")
-(check-not-exn (lambda () (m-show "Example1" #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro) 
+(check-not-exn (lambda () (m-show-scenario "Example1" #:include '(([aclfw2 deny] interf ipsrc ipdest portsrc portdest pro) 
                                                          ([aclfw1 deny] interf tempnatsrc ipdest portsrc portdest pro)
                                                          ([aclfw1 rule1_applies] interf tempnatsrc ipdest portsrc portdest pro)
                                                          ([aclfw1 rule2_applies] interf tempnatsrc ipdest portsrc portdest pro)

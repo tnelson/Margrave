@@ -262,7 +262,7 @@
      (define query-id (symbol->string (syntax->datum (second interns))))
      (define options (map helper-syn->xml (syntax-e (third interns))))
      
-     `(lambda () (pretty-print-response-xml 
+     `(lambda () (response->string 
                   (send-and-receive-xml
                    (xml-make-get-command (xml-make-type "NEXT") 
                                          ,query-id
@@ -313,7 +313,7 @@
                 (letrec ([helper-func (lambda () 
                                         (let ([response (the-generator)]) 
                                           (when (not (response-is-unsat? response))
-                                            (write-string (pretty-print-response-xml response) string-buffer) 
+                                            (write-string (response->string response) string-buffer) 
                                             (write-string "\n" string-buffer)                                                 
                                             (helper-func))))])
                   (helper-func)
