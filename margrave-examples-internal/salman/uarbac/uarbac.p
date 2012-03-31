@@ -74,7 +74,7 @@
 										  							    (and (Course o) (= c 'course))
 										  							    (and (Lab o) (= c 'lab))
 										  							    (and (Department o) (= c 'department)))
-																	(opa r1 'admin c) (cpa r2 'admin 'role))))))
+																	(cpa r1 'admin c) (cpa r2 'admin 'role))))))
 
 	  (RvkObjPermFromRole = (revokeObjectPermFromRole u pr p o) :- (exists r Role (and (ua u r) (or (opa r 'admin o) (opa r 'admin pr)))))
 	  (RvkObjPermFromRoleViaCls = (revokeObjectPermFromRole u pr p o) :- (exists r Role (exists c Class (and (ua u r)

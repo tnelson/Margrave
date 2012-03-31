@@ -98,19 +98,38 @@
 (define/contract (prevalidate-m-policy id theory vardecs rule-names rules rcomb target idbs type-name)
   [-> string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)) any/c
       (values string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)))]        
-    
+  
+  ; Environment for well-sortedness check: all vars declared in the policy
   (define env (foldl (lambda (next sofar) 
                        (hash-set sofar (m-vardec-name next) (m-vardec-type next)))
                      (hash)
                      (hash-values vardecs)))
   
+  ; Vocabulary for well-sortedness check
+  ; The policy should be able to reference its own IDBs without qualification.
+  ; E.g. not ([me permit] s a r) but just (permit s a r)
+  ; To allow this, extend the base vocabulary with un-qualified predicates for this check ONLY:
+  (define orig-vocab (m-theory-vocab theory))
+  (define extended-vocab
+    (m-vocabulary (m-vocabulary-name orig-vocab)
+                  (m-vocabulary-types orig-vocab)
+                  (foldl (lambda (idb-pair sofar)              
+                           (hash-set sofar
+                                     (car idb-pair)
+                                     (m-predicate (car idb-pair) (map ->string (cdr idb-pair)))))
+                         (m-vocabulary-predicates (m-theory-vocab theory))
+                         (hash->list idbs))
+                  (m-vocabulary-constants orig-vocab)
+                  (m-vocabulary-functions orig-vocab)))
+    
+  
   ; The policy's variable declarations provide the environment under which we well-sort each rule. 
-  ; So cannot validate rules via a guard on m-rule. Need to do it here:
-
+  ; So cannot validate rules via a guard on m-rule. Need to do it here:  
+  
   (define (validate-rule r voc env)  
     (define desugared-body (desugar-formula (m-rule-rbody r)))
     (m-formula-is-well-sorted?/err voc desugared-body env))
-  (for-each (lambda (arule) (validate-rule arule (m-theory-vocab theory) env)) (hash-values rules))
+  (for-each (lambda (arule) (validate-rule arule extended-vocab env)) (hash-values rules))
   
   ;(when ...
   ;  (error ...))

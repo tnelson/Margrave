@@ -302,9 +302,9 @@
          ; TODO ^^^ This makes no sense. resource in User. resource.pphase??
          
          ;819
-        ; (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
-        ;           (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
-        ; (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
+         (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
+                   (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
+         (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
          
                   
          
