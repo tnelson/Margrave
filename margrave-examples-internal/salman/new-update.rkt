@@ -1,7 +1,7 @@
 #lang racket
 
 ; Salman's experimental RBAC query
-; re-written by Tim in Dec 2011
+; re-written by Tim in Dec 2011; Modifications in March 2012
 
 
 (require "../../racket/margrave.rkt")
@@ -131,14 +131,15 @@
 ; Create the same query, but bound the ceiling.
 (time (m-let "Q3" '([u User] [p Permission]) 
                    qrysexpr
-                   #:ceiling '([Role 4]
-                               [User 3]
-                               [univ 12]))) 
+                  ; #:ceiling '([Role 4]
+                  ;             [User 3]
+                  ;             [univ 12]))) 
+                   ))
 (time (m-get-scenario "Q3"))
 
 ; Test #lang margrave
-(define xmlresult (mtext "LET Q4[u : User, p: Permission] BE before.permit(u, p) CEILING 3 User, 5 Permission, 4 Role, 12 univ"))
-(mtext "show Q4")
+;(define xmlresult (mtext "LET Q4[u : User, p: Permission] BE before.permit(u, p) CEILING 3 User, 5 Permission, 4 Role, 12 univ"))
+;(mtext "show Q4")
 
 ; This will NOT override the computed univ bound. Need to provide explicitly as above.
 ;(time (m-let "Q2" '([u User] [p Permission]) 

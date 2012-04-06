@@ -28,8 +28,12 @@
                 ('ra Role)))
         
         (Axioms 
-               ; TODO: java support for custom axioms, e.g.
-         ;          (forall arole Role (or (= arole 'professor) (= arole 'student) (= arole 'ta) (= arole 'ra)))
+         (abstract User)
+         (abstract Role)
+         (abstract Permission)
+         (constants-neq-all User)
+         (constants-neq-all Role)
+         (constants-neq-all Permission)
          
          ;(singleton-all User)
          ;(atmostone-all Role)

@@ -477,6 +477,8 @@
   (define the-xml (xml-make-count-command qryid))
   (define xml-response (send-and-receive-xml the-xml)) 
   (define result (string->number (xml-string-response->string xml-response)))
+  ; Reset the iterator:
+  (m-reset-scenario-iterator qryid)
   (cond [(> result -1) result]
         [else #f]))
 
