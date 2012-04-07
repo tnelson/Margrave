@@ -181,7 +181,7 @@
     ;; -> symbol
     ;;   Returns a symbol in in ip-A.B.C.D form
     (define/public (text)
-      (string->symbol (number->dashed-octet host)))
+      (string->symbol (string-append "IP-" (number->dashed-octet host))))
     
     ;; address<%> -> boolean
     ;;   Returns whether this address<%> equals another address<%>
@@ -238,7 +238,8 @@
       (if (and (equal? 0 (address)) 
                (equal? 0 (mask)))
           'IPAddress
-          (string->symbol (string-append (number->dashed-octet (address))
+          (string->symbol (string-append "IP-"
+                                         (number->dashed-octet (address))
                                          "/"
                                          (number->dashed-octet (mask))))))
     
@@ -302,7 +303,7 @@
     ;; -> symbol
     ;;   Returns a symbol in port-N form
     (define/public (text)
-      (string->symbol (string-append "port-" (number->string port))))
+      (string->symbol (string-append "Port-" (number->string port))))
     
     ;; port<%> -> boolean
     ;;   Returns whether this port<%> equals another port<%>
@@ -356,7 +357,7 @@
       (if (and (equal? 0 (range-start))
                (equal? 65535 (range-end)))
           'Port
-          (string->symbol (string-append "ports-"
+          (string->symbol (string-append "Ports-"
                                          (number->string (range-start))
                                          "-"
                                          (number->string (range-end))))))
@@ -928,7 +929,7 @@
         (decision)
         `(,@additional-conditions
           (,src-addr-in src-addr-in)
-          (prot-ICMP protocol)
+          (Prot-ICMP protocol)
           (,msg message)
           (,dest-addr-in dest-addr-in))))
     
@@ -941,7 +942,7 @@
         (decision)
         `(,@additional-conditions
           (,src-addr-in dest-addr-in)
-          (prot-ICMP protocol)
+          (Prot-ICMP protocol)
           (,msg message))))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -954,7 +955,7 @@
         `(,@additional-conditions
           (,dest-addr-in src-addr-out)
           (,src-addr-in dest-addr-in)
-          (prot-ICMP protocol)
+          (Prot-ICMP protocol)
           (,msg message))))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -966,7 +967,7 @@
         (decision)
         `(,@additional-conditions
           (,dest-addr-in src-addr-in)
-          (prot-ICMP protocol)
+          (Prot-ICMP protocol)
           (,msg message))))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -979,7 +980,7 @@
         `(,@additional-conditions
           (,dest-addr-in src-addr-in)
           (,src-addr-in dest-addr-out)
-          (prot-ICMP protocol)
+          (Prot-ICMP protocol)
           (,msg message))))
     ))
 
@@ -1069,7 +1070,7 @@
 (define extended-ACE-TCP/flags%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
     (init line-number permit source-addr source-port dest-addr dest-port flags)
-    (super-make-object line-number permit source-addr 'prot-tcp source-port dest-addr dest-port)
+    (super-make-object line-number permit source-addr 'Prot-TCP source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
     (inherit-field src-port-in)
@@ -3534,7 +3535,7 @@
            ,@(make-type-decls (value-tree rules
                                          address<%>
                                          (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
-           (Protocol-any : prot-ICMP prot-TCP prot-UDP)
+           (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
            
            ; - TN, removed port-N/A etc. Colon no longer needed.
            ; type-tree
@@ -3607,13 +3608,13 @@
                  ;(disjoint-all Port)
                  ;(disjoint-all ICMPMessage)
                  ;(disjoint-all Length)
-                 (atmostone-all interf-real)
-                 (atmostone interf-drop)
+                 (atmostone-all Interf-real)
+                 (atmostone Interf-drop)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
                  (atmostone-all Protocol-any)
                  ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
-                 (atmostone icmp-echo)
-                 (atmostone icmp-echo-reply)
+                 (atmostone ICMP-echo)
+                 (atmostone ICMP-echo-reply)
                  ; TN Removed: can have an atom that is SYN+ACK and an atom that is SYN -- both live in SYN
                  ;(atmostone-all TCPFlags)
                  (atmostone-all Length)
@@ -3636,7 +3637,7 @@
 ;; symbol (listof rule%) -> (listof symbol)
 ;;   Constructs a policy from a list of rules
 (define (policy name rules)
-  `(Policy ,name uses IOS-vocab
+  `(Policy uses IOS-vocab
            (Variables
             (hostname Hostname)
             (entry-interface Interf-real)
