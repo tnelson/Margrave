@@ -20,10 +20,8 @@
 (require "margrave.rkt"
          "IOS-parser/ios-compile.rkt")
 
-(provide load-ios-policies
-         parse-and-load-ios-by-filename
-         parse-and-load-ios
-         parse-and-load-multi-ios)
+; Others provided via provide/contract
+(provide load-ios-policies)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
@@ -172,141 +170,212 @@
   (define policyroute (string->symbol (string-append prefix "PolicyRoute" suffix)))
   (define defaultpolicyroute (string->symbol (string-append prefix "DefaultPolicyRoute" suffix)))
   
-  (define xml-response-ir (mtext (string-append "EXPLORE "
-  (string-append prefix "OutsideNAT" suffix)
-  ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
-  dest-addr-in, dest-addr_, protocol, message, flags, src-port-in, src-port_,
-  dest-port-in, dest-port_, length, next-hop, exit-interface)
-AND
-
-( "
-  (string-append prefix "LocalSwitching" suffix)
-  ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-  dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
-  dest-port_, dest-port_, length, next-hop, exit-interface)
-  OR
-
-  ( "
-  (string-append prefix "LocalSwitching" suffix)
-    ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-    dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
-    dest-port_, dest-port_, length, next-hop, exit-interface)
-    AND
-    ( "
-      (string-append prefix "PolicyRoute" suffix)
-      ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
-      dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
-      dest-port_, dest-port_, length, next-hop, exit-interface)
-      OR
-      ( "
-        (string-append prefix "PolicyRoute" suffix)
-        ":Route(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
-        dest-port_, dest-port_, length, next-hop, exit-interface)
-        AND "
-          (string-append prefix "NetworkSwitching" suffix)
-        ":Forward(ahostname, entry-interface, src-addr_,
-        src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
-        src-port_, src-port_, dest-port_, dest-port_, length,
-        next-hop, exit-interface)
-      )
-      OR
-      ( "
-          (string-append prefix "PolicyRoute" suffix)
-        ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-        dest-addr_, dest-addr_, protocol, message, flags, src-port_,
-        src-port_, dest-port_, dest-port_, length, next-hop,
-        exit-interface)
-        AND
-        ( "
-          (string-append prefix "StaticRoute" suffix)
-          ":Forward(ahostname, entry-interface, src-addr_,
-          src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
-          src-port_, src-port_, dest-port_, dest-port_, length,
-          next-hop, exit-interface)
-          OR
-          ( "
-            (string-append prefix "StaticRoute" suffix)
-            ":Route(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
-            src-port_, src-port_, dest-port_, dest-port_, length,
-            next-hop, exit-interface)
-            AND "
-            (string-append prefix "NetworkSwitching" suffix)
-            ":Forward(ahostname, entry-interface, src-addr_,
-            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
-            src-port_, src-port_, dest-port_, dest-port_, length,
-            next-hop, exit-interface)
-          )
-          OR
-          ( "
-            (string-append prefix "StaticRoute" suffix)
-            ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
-            dest-addr_, dest-addr_, protocol, message, flags, src-port_,
-            src-port_, dest-port_, dest-port_, length, next-hop,
-            exit-interface)
-            AND
-            ( "
-              (string-append prefix "DefaultPolicyRoute" suffix)
-              ":Forward(ahostname, entry-interface,
-              src-addr_, src-addr_, dest-addr_, dest-addr_,
-              protocol, message, flags, src-port_, src-port_, dest-port_,
-              dest-port_, length, next-hop, exit-interface)
-              OR
-              ( "
-              (string-append prefix "DefaultPolicyRoute" suffix)
-              ":Route(ahostname, entry-interface,
-                src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, flags, src-port_, src-port_, dest-port_,
-                dest-port_, length, next-hop, exit-interface)
-                AND "
-              (string-append prefix "NetworkSwitching" suffix)
-              ":Forward(ahostname, entry-interface,
-                src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, flags, src-port_, src-port_, dest-port_,
-                dest-port_, length, next-hop, exit-interface)
-              )"
-              
-              ;final case: unrouted. DPR finds no next-hop, so the packet
-              ; has nowhere to go
-              "OR 
-               ( "
-              (string-append prefix "DefaultPolicyRoute" suffix)
-              ":Pass(ahostname, entry-interface,
-                src-addr_, src-addr_, dest-addr_, dest-addr_,
-                protocol, message, flags, src-port_, src-port_, dest-port_,
-                dest-port_, length, next-hop, exit-interface)
-                AND 
-               (next-hop = dest-addr-out) AND
-               interf-drop(exit-interface)"
-
-"             )
-            )
-          )
-        )
-      )
-    )
-  )
-)
-
-AND "
-              (string-append prefix "InsideNAT" suffix)
-              ":Translate(ahostname, entry-interface, src-addr_, src-addr-out,
-  dest-addr_, dest-addr-out, protocol, message, flags, src-port_,
-  src-port-out, dest-port_, dest-port-out, length, next-hop,
-  exit-interface)
-
-PUBLISH ahostname, entry-interface, 
-        src-addr-in, src-addr_, src-addr-out, 
-        dest-addr-in, dest-addr_, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in, src-port_, src-port-out, 
-        dest-port-in, dest-port_, dest-port-out, 
-        length, next-hop, exit-interface
-
-TUPLING"))) 
+  (define localswitching (string->symbol (string-append prefix "LocalSwitching" suffix)))  
+  (define networkswitching (string->symbol (string-append prefix "NetworkSwitching" suffix)))
+  (define encryption (string->symbol (string-append prefix "Encryption" suffix)))
   
-  (mtext (string-append "RENAME LAST " prefix "internal-result" suffix))
+    (define vardec-20 '([ahostname Hostname]
+                      [entry-interface Interface]
+                      [src-addr-in IPAddress]
+                      [src-addr_ IPAddress]
+                      [src-addr-out IPAddress]
+                      [dest-addr-in IPAddress]
+                      [dest-addr_ IPAddress]
+                      [dest-addr-out IPAddress]
+                      [protocol Protocol-any]
+                      [message ICMPMessage]
+                      [flags TCPFlags]
+                      [src-port-in Port]
+                      [src-port_ Port]
+                      [src-port-out Port]
+                      [dest-port-in Port]
+                      [dest-port_ Port]
+                      [dest-port-out Port] 
+                      [length Length]
+                      [next-hop IPAddress]
+                      [exit-interface Interface]))
+  (define vardec-16 '([ahostname Hostname]
+                      [entry-interface Interface]
+                      [src-addr-in IPAddress]
+                      [src-addr-out IPAddress]
+                      [dest-addr-in IPAddress]
+                      [dest-addr-out IPAddress]
+                      [protocol Protocol-any]
+                      [message ICMPMessage]
+                      [flags TCPFlags]
+                      [src-port-in Port]
+                      [src-port-out Port]
+                      [dest-port-in Port]
+                      [dest-port-out Port] 
+                      [length Length]
+                      [next-hop IPAddress]
+                      [exit-interface Interface]))
+  
+  (define inner-vec '(ahostname entry-interface src-addr_ src-addr_
+                                dest-addr_ dest-addr_ protocol message flags src-port_ src-port_
+                                dest-port_ dest-port_ length next-hop exit-interface))
+  
+  ; ACLs are not involved in internal-result, which is concerned with routing.
+  (m-let (string-append prefix "internal-result" suffix) 
+         vardec-20
+         '(and ([,outsidenat translate] ahostname entry-interface src-addr-in src-addr_
+                                        dest-addr-in dest-addr_ protocol message flags src-port-in src-port_
+                                        dest-port-in dest-port_ length next-hop exit-interface)
+               ([,insidenat translate]  ahostname entry-interface src-addr_ src-addr-out
+                                       dest-addr_ dest-addr-out protocol message flags src-port_ src-port-out 
+                                       dest-port_ dest-port-out length next-hop exit-interface)
+               
+               ; NAT translation confirmed. Now see if and how the packet is routed.
+               (or ([,localswitching forward] ,inner-vec)
+                   (and ([,localswitching pass] ,inner-vec)
+                        (or ([,policyroute forward] ,inner-vec)
+                            (and ([,policyroute route] ,inner-vec)
+                                 ([,networkswitching forward] ,inner-vec))
+                            (and ([,policyroute pass] ,inner-vec)
+                                 (or ([,staticroute forward] ,inner-vec)
+                                     (and ([,staticroute route] ,inner-vec)
+                                          ([,networkswitching forward] ,inner-vec))
+                                     (and ([,staticroute pass] ,inner-vec)
+                                          (or ([,defaultpolicyroute forward] ,inner-vec)
+                                              (and ([,defaultpolicyroute forward] ,inner-vec)
+                                                   ([,networkswitching forward] ,inner-vec))
+                                              ; Final option: Packet is dropped.
+                                              (and ([,defaultpolicyroute pass] ,inner-vec)
+                                                   (= next-hop dest-addr-out)
+                                                   (Interf-drop exit-interface)))))))))))
+  
+; (define xml-response-ir (mtext (string-append "EXPLORE "
+;  (string-append prefix "OutsideNAT" suffix)
+;  ":translate(ahostname, entry-interface, src-addr-in, src-addr_,
+;  dest-addr-in, dest-addr_, protocol, message, flags, src-port-in, src-port_,
+;  dest-port-in, dest-port_, length, next-hop, exit-interface)
+;AND
+;
+;( "
+;  (string-append prefix "LocalSwitching" suffix)
+;  ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
+;  dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
+;  dest-port_, dest-port_, length, next-hop, exit-interface)
+;  OR
+;
+;  ( "
+;  (string-append prefix "LocalSwitching" suffix)
+;    ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
+;    dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
+;    dest-port_, dest-port_, length, next-hop, exit-interface)
+;    AND
+;    ( "
+;      (string-append prefix "PolicyRoute" suffix)
+;      ":Forward(ahostname, entry-interface, src-addr_, src-addr_,
+;      dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
+;      dest-port_, dest-port_, length, next-hop, exit-interface)
+;      OR
+;      ( "
+;        (string-append prefix "PolicyRoute" suffix)
+;        ":Route(ahostname, entry-interface, src-addr_, src-addr_,
+;        dest-addr_, dest-addr_, protocol, message, flags, src-port_, src-port_,
+;        dest-port_, dest-port_, length, next-hop, exit-interface)
+;        AND "
+;          (string-append prefix "NetworkSwitching" suffix)
+;        ":Forward(ahostname, entry-interface, src-addr_,
+;        src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
+;        src-port_, src-port_, dest-port_, dest-port_, length,
+;        next-hop, exit-interface)
+;      )
+;      OR
+;      ( "
+;          (string-append prefix "PolicyRoute" suffix)
+;        ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
+;        dest-addr_, dest-addr_, protocol, message, flags, src-port_,
+;        src-port_, dest-port_, dest-port_, length, next-hop,
+;        exit-interface)
+;        AND
+;        ( "
+;          (string-append prefix "StaticRoute" suffix)
+;          ":Forward(ahostname, entry-interface, src-addr_,
+;          src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
+;          src-port_, src-port_, dest-port_, dest-port_, length,
+;          next-hop, exit-interface)
+;          OR
+;          ( "
+;            (string-append prefix "StaticRoute" suffix)
+;            ":Route(ahostname, entry-interface, src-addr_,
+;            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
+;            src-port_, src-port_, dest-port_, dest-port_, length,
+;            next-hop, exit-interface)
+;            AND "
+;            (string-append prefix "NetworkSwitching" suffix)
+;            ":Forward(ahostname, entry-interface, src-addr_,
+;            src-addr_, dest-addr_, dest-addr_, protocol, message, flags,
+;            src-port_, src-port_, dest-port_, dest-port_, length,
+;            next-hop, exit-interface)
+;          )
+;          OR
+;          ( "
+;            (string-append prefix "StaticRoute" suffix)
+;            ":Pass(ahostname, entry-interface, src-addr_, src-addr_,
+;            dest-addr_, dest-addr_, protocol, message, flags, src-port_,
+;            src-port_, dest-port_, dest-port_, length, next-hop,
+;            exit-interface)
+;            AND
+;            ( "
+;              (string-append prefix "DefaultPolicyRoute" suffix)
+;              ":Forward(ahostname, entry-interface,
+;              src-addr_, src-addr_, dest-addr_, dest-addr_,
+;              protocol, message, flags, src-port_, src-port_, dest-port_,
+;              dest-port_, length, next-hop, exit-interface)
+;              OR
+;              ( "
+;              (string-append prefix "DefaultPolicyRoute" suffix)
+;              ":Route(ahostname, entry-interface,
+;                src-addr_, src-addr_, dest-addr_, dest-addr_,
+;                protocol, message, flags, src-port_, src-port_, dest-port_,
+;                dest-port_, length, next-hop, exit-interface)
+;                AND "
+;              (string-append prefix "NetworkSwitching" suffix)
+;              ":Forward(ahostname, entry-interface,
+;                src-addr_, src-addr_, dest-addr_, dest-addr_,
+;                protocol, message, flags, src-port_, src-port_, dest-port_,
+;                dest-port_, length, next-hop, exit-interface)
+;              )"
+;              
+;              ;final case: unrouted. DPR finds no next-hop, so the packet
+;              ; has nowhere to go
+;              "OR 
+;               ( "
+;              (string-append prefix "DefaultPolicyRoute" suffix)
+;              ":Pass(ahostname, entry-interface,
+;                src-addr_, src-addr_, dest-addr_, dest-addr_,
+;                protocol, message, flags, src-port_, src-port_, dest-port_,
+;                dest-port_, length, next-hop, exit-interface)
+;                AND 
+;               (next-hop = dest-addr-out) AND
+;               interf-drop(exit-interface)"
+;
+;"             )
+;            )
+;          )
+;        )
+;      )
+;    )
+;  )
+;)
+;
+;AND "
+;              (string-append prefix "InsideNAT" suffix)
+;              ":Translate()
+;
+;PUBLISH ahostname, entry-interface, 
+;        src-addr-in, src-addr_, src-addr-out, 
+;        dest-addr-in, dest-addr_, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in, src-port_, src-port-out, 
+;        dest-port-in, dest-port_, dest-port-out, 
+;        length, next-hop, exit-interface
+;
+;TUPLING"))) 
+  
+
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -317,26 +386,18 @@ TUPLING")))
   ; However, for now, we use the standard policy request vector, and so must
   ; use EACH variable in the query definition.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define xml-response-id (mtext (string-append "EXPLORE interf-drop(exit-interface) AND
-
-IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND 
-Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND 
-ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND 
-Protocol-any(protocol) AND Hostname(ahostname) AND TCPFlags(flags)
-
-UNDER " prefix "InboundACL" suffix " 
-
-PUBLISH ahostname, entry-interface, 
-        src-addr-in,  src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in,  dest-port-out, 
-        length, next-hop, exit-interface
-
-TUPLING")))
-  (mtext (string-append "RENAME LAST " prefix "int-dropped" suffix))
   
+   (m-let (string-append prefix "int-dropped" suffix) 
+         vardec-16
+         '(and (Interf-drop exit-interface)
+               ) #:under '((symbol->string inboundacl)))
+  
+  ;(define xml-response-id (mtext (string-append "EXPLORE interf-drop(exit-interface) AND
+; IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND 
+;Port(dest-port-out) AND Port(dest-port-in) AND Port(src-port-out) AND Port(src-port-in) AND IPAddress(next-hop) AND 
+;ICMPMessage(message) AND Interface(entry-interface) AND Interface(exit-interface) and Length(length) AND 
+;Protocol-any(protocol) AND Hostname(ahostname) AND TCPFlags(flags)
+
   
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -347,27 +408,24 @@ TUPLING")))
   ;; negated to mean the packets the firewall drops (or rejects). It would then also
   ;; include all the nonsensical scenarios...
   ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
-  (define xml-response-pf (mtext (string-append "EXPLORE NOT interf-drop(exit-interface) AND " 
-                        prefix "InboundACL" suffix
-                        ":permit(ahostname, entry-interface, src-addr-in, src-addr-in,
-  dest-addr-in, dest-addr-in, protocol, message, flags, src-port-in, src-port-in,
-  dest-port-in, dest-port-in, length, next-hop, exit-interface) AND " 
-                        prefix "OutboundACL" suffix
-                        ":Permit(ahostname, entry-interface, src-addr-out, src-addr-out,
-  dest-addr-out, dest-addr-out, protocol, message, flags, src-port-out,
-  src-port-out, dest-port-out, dest-port-out, length, next-hop,
-  exit-interface)
-
-PUBLISH ahostname, entry-interface, 
-        src-addr-in,  src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in,  dest-port-out, 
-        length, next-hop, exit-interface
-
-TUPLING")))
-  (mtext (string-append "RENAME LAST " prefix "passes-firewall" suffix))
+  
+  
+  (define aclinvec '(ahostname entry-interface src-addr-in src-addr-in
+                               dest-addr-in dest-addr-in protocol message flags src-port-in src-port-in
+                               dest-port-in dest-port-in length next-hop exit-interface))
+  
+  (define acloutvec '(ahostname entry-interface src-addr-out src-addr-out
+                                dest-addr-out dest-addr-out protocol message flags src-port-out
+                                src-port-out dest-port-out dest-port-out length next-hop
+                                exit-interface))
+    
+  (m-let (string-append prefix "passes-firewall" suffix) 
+         vardec-16
+         `(and (not (Interf-drop exit-interface))
+               ([,inboundacl permit] ,@aclinvec)
+               ([,outboundacl permit] ,@acloutvec)))
+  
+  ; end
   )
 
   
