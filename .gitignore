@@ -43,6 +43,8 @@ old/LISA10/IOS-example2/revised-address/*.p
 old/LISA10/IOS-example2/revised-address/*.v
 racket/examples/policies/ios-demo/initial/*.p
 racket/examples/policies/ios-demo/initial/*.v
+racket/tests/IOS/*.p
+racket/tests/IOS/*.v
 
 # Temporary folder for creating distributions
 build-temp/

@@ -596,7 +596,7 @@
     ;; -> symbol
     ;;   Returns the name for this interface
     (define/public (text)
-      name)
+      (string->symbol (string-titlecase (symbol->string name))))
     
     ;; -> boolean
     ;;   Returns whether this interface<%> represents a single interface
@@ -3467,7 +3467,7 @@
                                type-name]
                               [else
                                `(,type-name > ,@(map (lambda (child) (send (tree-node child) text)) (tree-children tree)))]))
-  (define child-type-decls (map (lambda (child) (send (tree-node child) text)) (tree-children tree)))
+  (define child-type-decls (apply append (map make-type-decls (tree-children tree))))  
   (cons own-type-decl child-type-decls))
 
 ;; tree -> (listof symbol)
@@ -3526,7 +3526,7 @@
                              (append*
                               (map (λ (rule)
                                      (map (λ (interf)
-                                            (send interf text))
+                                             (send interf text))
                                           (send rule extract-atoms interface%)))
                                    rules))))
            
