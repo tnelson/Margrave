@@ -126,7 +126,7 @@
   ; The policy's variable declarations provide the environment under which we well-sort each rule. 
   ; So cannot validate rules via a guard on m-rule. Need to do it here:  
   
-  (define (validate-rule r voc env)  
+  (define (validate-rule r voc env)   
     (define desugared-body (desugar-formula (m-rule-rbody r)))
     (m-formula-is-well-sorted?/err voc desugared-body env))
   (for-each (lambda (arule) (validate-rule arule extended-vocab env)) (hash-values rules))
@@ -736,17 +736,21 @@
   
   (define (desugar-and conjuncts)    
     ; Partition the conjuncts into (isa x S) and others.
+    ;(printf "Desugaring and: ~v~n" conjuncts)
     (define-values (isas others)
       (partition (lambda (e) (match e
                                [(m-op-case isa vname sname 'true) #t]
                                [else #f]))
                  conjuncts))
-    ; Wrap the conjunction of the others with the isas.
+    ;(printf "  isas: ~v~n  others: ~v~n" isas others)
+    ; Wrap the conjunction of the others with the isas. Special case: empty others.
     (define result (foldl (lambda (next sofar) 
                             (match next
                               [(m-op-case isa vname sname 'true) 
                                `(isa ,vname ,sname ,sofar)]))
-                          `(and ,@others)
+                          (if (empty? others)
+                              'true
+                              `(and ,@others))
                           isas))
     ;(printf "    desugaring ~v:~n    isas: ~v~n    non:~v~n" `(and ,@conjuncts) isas others)
     ;(printf "    result: ~v~n~n" result)

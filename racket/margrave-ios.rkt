@@ -124,6 +124,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (load-ios-helper filename dirpath prefix suffix) 
   (define pol-id (string-append prefix filename suffix))  
+  (printf "Loading ~v~n" filename)
   (m-load-policy pol-id (build-path dirpath (string-append filename ".p")))      
   (printf "."))
   
@@ -174,8 +175,8 @@
   (define networkswitching (string->symbol (string-append prefix "NetworkSwitching" suffix)))
   (define encryption (string->symbol (string-append prefix "Encryption" suffix)))
   
-    (define vardec-20 '([ahostname Hostname]
-                      [entry-interface Interface]
+  (define vardec-20 '([ahostname Hostname]
+                      [entry-interface Interf-real]
                       [src-addr-in IPAddress]
                       [src-addr_ IPAddress]
                       [src-addr-out IPAddress]
@@ -195,7 +196,7 @@
                       [next-hop IPAddress]
                       [exit-interface Interface]))
   (define vardec-16 '([ahostname Hostname]
-                      [entry-interface Interface]
+                      [entry-interface Interf-real]
                       [src-addr-in IPAddress]
                       [src-addr-out IPAddress]
                       [dest-addr-in IPAddress]
@@ -218,29 +219,29 @@
   ; ACLs are not involved in internal-result, which is concerned with routing.
   (m-let (string-append prefix "internal-result" suffix) 
          vardec-20
-         '(and ([,outsidenat translate] ahostname entry-interface src-addr-in src-addr_
+         `(and ([,outsidenat translate] ahostname entry-interface src-addr-in src-addr_
                                         dest-addr-in dest-addr_ protocol message flags src-port-in src-port_
                                         dest-port-in dest-port_ length next-hop exit-interface)
-               ([,insidenat translate]  ahostname entry-interface src-addr_ src-addr-out
+               ([,insidenat translate] ahostname entry-interface src-addr_ src-addr-out
                                        dest-addr_ dest-addr-out protocol message flags src-port_ src-port-out 
                                        dest-port_ dest-port-out length next-hop exit-interface)
                
                ; NAT translation confirmed. Now see if and how the packet is routed.
-               (or ([,localswitching forward] ,inner-vec)
-                   (and ([,localswitching pass] ,inner-vec)
-                        (or ([,policyroute forward] ,inner-vec)
-                            (and ([,policyroute route] ,inner-vec)
-                                 ([,networkswitching forward] ,inner-vec))
-                            (and ([,policyroute pass] ,inner-vec)
-                                 (or ([,staticroute forward] ,inner-vec)
-                                     (and ([,staticroute route] ,inner-vec)
-                                          ([,networkswitching forward] ,inner-vec))
-                                     (and ([,staticroute pass] ,inner-vec)
-                                          (or ([,defaultpolicyroute forward] ,inner-vec)
-                                              (and ([,defaultpolicyroute forward] ,inner-vec)
-                                                   ([,networkswitching forward] ,inner-vec))
+               (or ([,localswitching forward] ,@inner-vec)
+                   (and ([,localswitching pass] ,@inner-vec)
+                        (or ([,policyroute forward] ,@inner-vec)
+                            (and ([,policyroute route] ,@inner-vec)
+                                 ([,networkswitching forward] ,@inner-vec))
+                            (and ([,policyroute pass] ,@inner-vec)
+                                 (or ([,staticroute forward] ,@inner-vec)
+                                     (and ([,staticroute route] ,@inner-vec)
+                                          ([,networkswitching forward] ,@inner-vec))
+                                     (and ([,staticroute pass] ,@inner-vec)
+                                          (or ([,defaultpolicyroute forward] ,@inner-vec)
+                                              (and ([,defaultpolicyroute forward] ,@inner-vec)
+                                                   ([,networkswitching forward] ,@inner-vec))
                                               ; Final option: Packet is dropped.
-                                              (and ([,defaultpolicyroute pass] ,inner-vec)
+                                              (and ([,defaultpolicyroute pass] ,@inner-vec)
                                                    (= next-hop dest-addr-out)
                                                    (Interf-drop exit-interface)))))))))))
   
@@ -389,7 +390,7 @@
   
    (m-let (string-append prefix "int-dropped" suffix) 
          vardec-16
-         '(and (Interf-drop exit-interface)
+         `(and (Interf-drop exit-interface)
                ) #:under '((symbol->string inboundacl)))
   
   ;(define xml-response-id (mtext (string-append "EXPLORE interf-drop(exit-interface) AND

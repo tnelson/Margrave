@@ -155,13 +155,13 @@
     ;;   Returns the dashed-octet representation of an IP address
     (define/public (number->dashed-octet numeric-address)
       (string-append ;"ip-"
-                     (number->string (arithmetic-shift (bitwise-and numeric-address #xFF000000) -24))
-                     "." ;"-"
-                     (number->string (arithmetic-shift (bitwise-and numeric-address #x00FF0000) -16))
-                     "." ;"-"
-                     (number->string (arithmetic-shift (bitwise-and numeric-address #x0000FF00) -8))
-                     "." ;"-"
-                     (number->string (bitwise-and numeric-address #x000000FF))))
+       (number->string (arithmetic-shift (bitwise-and numeric-address #xFF000000) -24))
+       "." ;"-"
+       (number->string (arithmetic-shift (bitwise-and numeric-address #x00FF0000) -16))
+       "." ;"-"
+       (number->string (arithmetic-shift (bitwise-and numeric-address #x0000FF00) -8))
+       "." ;"-"
+       (number->string (bitwise-and numeric-address #x000000FF))))
     ))
 
 
@@ -759,8 +759,8 @@
     ;;   Returns the decision for this ACE
     (define/public (decision)
       (if permit
-          'Permit
-          'Deny))
+          'permit
+          'deny))
     
     ;; symbol symbol -> symbol
     ;;   Returns a name for this ACE
@@ -1303,7 +1303,7 @@
                              sequence-num))
                  <)))
     ))
-    
+
 ;; -> map-set%
 ;;   Returns an empty map set
 (define (make-empty-map-set)
@@ -1375,8 +1375,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
                            ,(if overload
@@ -1390,13 +1390,13 @@
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
-                     'Drop
+                     'drop
                      '())))
-           (send (hash-ref ACLs ACL-ID)
-                 rules
-                 hostname
-                 interf
-                 additional-conditions))))
+            (send (hash-ref ACLs ACL-ID)
+                  rules
+                  hostname
+                  interf
+                  additional-conditions))))
     
     ;; symbol symbol (hash-table symbol route-map%) (hash-table symbol ACL%) (hash-table symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1410,12 +1410,12 @@
                                additional-conditions))]
         (append
          (map (λ (match-rule)
-                (if (eqv? (get-field decision match-rule) 'Permit)
+                (if (eqv? (get-field decision match-rule) 'permit)
                     (list
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
@@ -1426,7 +1426,7 @@
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              (= dest-addr-in dest-addr-out)
@@ -1434,20 +1434,20 @@
                      (send match-rule
                            augment/replace-decision
                            (name hostname "drop")
-                           'Drop
+                           'drop
                            `()))))
               match-rules)
          (map (λ (match-rule)
                 (send match-rule
                       augment/replace-decision
                       (name hostname "drop")
-                      'Drop
+                      'drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                         ,(if overload
                              `(Port dest-port-in)
                              `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
-                        (eqv? (get-field decision match-rule) 'Permit))
+                        (eqv? (get-field decision match-rule) 'permit))
                       match-rules)))))
     ))
 
@@ -1472,8 +1472,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-out)
                            (= dest-addr-in dest-addr-out)
                            ,(if overload
@@ -1487,11 +1487,11 @@
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
-                     'Drop
+                     'drop
                      '())))
             (flatten (map (λ (m)
-                           (send m match-rules hostname interf ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m match-rules hostname interf ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1508,12 +1508,12 @@
                                        (send (hash-ref route-maps route-map-ID) ordered-maps))))]
         (append
          (map (λ (match-rule)
-                (if (eqv? (get-field decision match-rule) 'Permit)
+                (if (eqv? (get-field decision match-rule) 'permit)
                     (list
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                              (= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
@@ -1524,7 +1524,7 @@
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              (= dest-addr-in dest-addr-out)
@@ -1532,20 +1532,20 @@
                      (send match-rule
                            augment/replace-decision
                            (name hostname "drop")
-                           'Drop
+                           'drop
                            '()))))
               match-rules)
          (map (λ (match-rule)
                 (send match-rule
                       augment/replace-decision
                       (name hostname "drop")
-                      'Drop
+                      'drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                         ,(if overload
                              `(Port dest-port-in)
                              `(= dest-port-in dest-port-out)))))
               (filter (λ (match-rule)
-                        (eqv? (get-field decision match-rule) 'Permit))
+                        (eqv? (get-field decision match-rule) 'permit))
                       match-rules)))))
     ))
 
@@ -1570,8 +1570,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-out)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1585,7 +1585,7 @@
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
-                     'Drop
+                     'drop
                      '())))
             (send (hash-ref ACLs ACL-ID)
                   rules
@@ -1605,12 +1605,12 @@
                                additional-conditions))]
         (append
          (map (λ (match-rule)
-                (if (eqv? (get-field decision match-rule) 'Permit)
+                (if (eqv? (get-field decision match-rule) 'permit)
                     (list
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
                              ,(if overload
@@ -1621,7 +1621,7 @@
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              (= dest-addr-in dest-addr-out)
@@ -1629,20 +1629,20 @@
                      (send match-rule
                            augment/replace-decision
                            (name hostname "drop")
-                           'Drop
+                           'drop
                            '()))))
               match-rules)
          (map (λ (match-rule)
                 (send match-rule
                       augment/replace-decision
                       (name hostname "drop")
-                      'Drop
+                      'drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                         ,(if overload
                              `(Port src-port-in)
                              `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
-                        (eqv? (get-field decision match-rule) 'Permit))
+                        (eqv? (get-field decision match-rule) 'permit))
                       match-rules)))))
     ))
 
@@ -1667,8 +1667,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-out)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -1682,27 +1682,27 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "drop" match-rule)
-                     'Drop
+                     'drop
                      '())))
             (flatten (map (λ (m)
-                           (send m match-rules hostname interf ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m match-rules hostname interf ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of rules for the reverse direction for this NAT
     (define/public (reverse-rules hostname interf route-maps ACLs interfaces additional-conditions)
       (let [(match-rules  (flatten (map (λ (m)
-                           (send m inverse-match-rules/no-source2 hostname interf "" ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))]
+                                          (send m inverse-match-rules/no-source2 hostname interf "" ACLs additional-conditions))
+                                        (send (hash-ref route-maps route-map-ID) ordered-maps))))]
         (append
          (map (λ (match-rule)
-                (if (eqv? (get-field decision match-rule) 'Permit)
+                (if (eqv? (get-field decision match-rule) 'permit)
                     (list
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                              (= dest-addr-in dest-addr-out)
                              ,(if overload
@@ -1713,7 +1713,7 @@
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Translate
+                           'translate
                            `((= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              (= dest-addr-in dest-addr-out)
@@ -1721,20 +1721,20 @@
                      (send match-rule
                            augment/replace-decision
                            (augmented-name "trans" match-rule)
-                           'Drop
+                           'drop
                            '()))))
               match-rules)
          (map (λ (match-rule)
                 (send match-rule
                       augment/replace-decision
                       (name hostname "drop")
-                      'Drop
+                      'drop
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) src-addr-in)
                         ,(if overload
                              `(Port src-port-in)
                              `(= src-port-in src-port-out)))))
               (filter (λ (match-rule)
-                        (eqv? (get-field decision match-rule) 'Permit))
+                        (eqv? (get-field decision match-rule) 'permit))
                       match-rules)))))
     ))
 
@@ -1756,7 +1756,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
            (,to-src-addr-in src-addr-out)
@@ -1765,7 +1765,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)))))
     
@@ -1776,7 +1776,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,to-src-addr-in dest-addr-in)
            (,from-src-addr-in dest-addr-out)
@@ -1785,7 +1785,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,to-src-addr-in dest-addr-in)))))
     ))
@@ -1808,7 +1808,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
            (,to-src-addr-in src-addr-out)
@@ -1819,7 +1819,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
            (,from-src-port-in src-port-in)))))
@@ -1831,7 +1831,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,to-src-addr-in dest-addr-in)
            (,from-src-addr-in dest-addr-out)
@@ -1842,7 +1842,7 @@
            (= src-port-in src-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,to-src-addr-in dest-addr-in)
            (,to-src-port-in dest-port-in)))))
@@ -1866,7 +1866,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
            (,(hash-ref interfaces interface-ID) src-addr-out)
@@ -1877,7 +1877,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
            (,from-src-port-in src-port-in)))))
@@ -1889,7 +1889,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) dest-addr-in)
            (,from-src-addr-in dest-addr-out)
@@ -1900,7 +1900,7 @@
            (= src-port-in src-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) dest-addr-in)
            (,from-src-port-in dest-port-in)))))
@@ -1924,7 +1924,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
            (,to-dest-addr-in dest-addr-out)
@@ -1933,7 +1933,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)))))
     
@@ -1944,7 +1944,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,to-dest-addr-in src-addr-in)
            (,from-dest-addr-in src-addr-out)
@@ -1953,7 +1953,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,to-dest-addr-in src-addr-in)))))
     ))
@@ -1976,7 +1976,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
            (,to-dest-addr-in dest-addr-out)
@@ -1987,7 +1987,7 @@
            (= src-port-in src-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
            (,from-dest-port-in dest-port-in)))))
@@ -1999,7 +1999,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,to-dest-addr-in src-addr-in)
            (,from-dest-addr-in src-addr-out)
@@ -2010,7 +2010,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,to-dest-addr-in src-addr-in)
            (,to-dest-port-in src-port-in)))))
@@ -2034,7 +2034,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
            (,(hash-ref interfaces interface-ID) dest-addr-out)
@@ -2045,7 +2045,7 @@
            (= src-port-in src-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
            (,from-dest-port-in dest-port-in)))))
@@ -2057,7 +2057,7 @@
       (list
        (make-object rule%
          (name hostname "trans")
-         'Translate
+         'translate
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) src-addr-in)
            (,from-dest-addr-in src-addr-out)
@@ -2068,7 +2068,7 @@
            (= dest-port-in dest-port-out)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) src-addr-in)
            (,from-dest-port-in src-port-in)))))
@@ -2095,8 +2095,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,from-src-addr-in src-addr-in)
                            (,to-src-addr-in src-addr-out)
                            (= dest-addr-in dest-addr-out)
@@ -2110,11 +2110,11 @@
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
-                     'Drop
+                     'drop
                      `((,from-src-addr-in src-addr-in)))))
             (flatten (map (λ (m)
-                           (send m match-rules hostname interf ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m match-rules hostname interf ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -2122,12 +2122,12 @@
     (define/public (reverse-rules hostname interf route-maps ACLs interfaces additional-conditions)
       (append
        (map (λ (match-rule)
-              (if (eqv? (get-field decision match-rule) 'Permit)
+              (if (eqv? (get-field decision match-rule) 'permit)
                   (list
                    (send match-rule
                          augment/replace-decision
                          (augmented-name "trans" match-rule)
-                         'Translate
+                         'translate
                          `((,to-src-addr-in dest-addr-in)
                            (,from-src-addr-in dest-addr-out)
                            (= src-addr-in src-addr-out)
@@ -2136,13 +2136,13 @@
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
-                         'Drop
+                         'drop
                          `((,to-src-addr-in dest-addr-in))))
                   (list
                    (send match-rule
                          augment/replace-decision
                          (augmented-name "trans" match-rule)
-                         'Translate
+                         'translate
                          `((,from-src-addr-in dest-addr-in)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -2151,11 +2151,11 @@
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
-                         'Drop
+                         'drop
                          `((,from-src-addr-in dest-addr-in))))))
             (flatten (map (λ (m)
-                           (send m inverse-match-rules/no-destination hostname interf "" ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m inverse-match-rules/no-destination hostname interf "" ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     ))
 
 ;; static-destination-map-NAT% : number boolean host-address% host-address% symbol
@@ -2179,8 +2179,8 @@
                (send match-rule
                      augment/replace-decision
                      (augmented-name "trans" match-rule)
-                     'Translate
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     'translate
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,from-dest-addr-in dest-addr-in)
                            (,to-dest-addr-in dest-addr-out)
                            (= src-addr-in src-addr-out)
@@ -2194,11 +2194,11 @@
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
-                     'Drop
+                     'drop
                      `((,from-dest-addr-in dest-addr-in)))))
             (flatten (map (λ (m)
-                           (send m match-rules hostname interf ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m match-rules hostname interf ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -2206,12 +2206,12 @@
     (define/public (reverse-rules hostname interf route-maps ACLs interfaces additional-conditions)
       (append
        (map (λ (match-rule)
-              (if (eqv? (get-field decision match-rule) 'Permit)
+              (if (eqv? (get-field decision match-rule) 'permit)
                   (list
                    (send match-rule
                          augment/replace-decision
                          (augmented-name "trans" match-rule)
-                         'Translate
+                         'translate
                          `((,to-dest-addr-in src-addr-in)
                            (,from-dest-addr-in src-addr-out)
                            (= dest-addr-in dest-addr-out)
@@ -2220,13 +2220,13 @@
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
-                         'Drop
+                         'drop
                          `((,to-dest-addr-in src-addr-in))))
                   (list
                    (send match-rule
                          augment/replace-decision
                          (augmented-name "trans" match-rule)
-                         'Translate
+                         'translate
                          `((,from-dest-addr-in src-addr-in)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
@@ -2235,11 +2235,11 @@
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
-                         'Drop
+                         'drop
                          `((,from-dest-addr-in src-addr-in))))))
             (flatten (map (λ (m)
-                           (send m inverse-match-rules/no-source hostname interf "" ACLs additional-conditions))
-                         (send (hash-ref route-maps route-map-ID) ordered-maps))))))
+                            (send m inverse-match-rules/no-source hostname interf "" ACLs additional-conditions))
+                          (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     ))
 
 ;; hostname% -> rule%
@@ -2247,7 +2247,7 @@
 (define (make-default-NAT-rule hostname)
   (make-object rule%
     (string->symbol (string-append (symbol->string (send hostname name)) "-default-NAT"))
-    'Translate
+    'translate
     `((= src-addr-in src-addr-out)
       (= dest-addr-in dest-addr-out)
       (= src-port-in src-port-out)
@@ -2294,16 +2294,16 @@
       (list
        (make-object rule%
          (name hostname "route")
-         'Route
+         'route
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)
            (,next-hop next-hop)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)))))
-      ))
+    ))
 
 ;; static-route-interface% : number address interface
 ;;   Represents a static route via an interface
@@ -2321,7 +2321,7 @@
       (list
        (make-object rule%
          (name hostname "route")
-         'Forward
+         'forward
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)
            ; -TN added next-hop restriction below
@@ -2331,7 +2331,7 @@
            (IPAddress next-hop)))
        (make-object rule%
          (name hostname "drop")
-         'Drop
+         'drop
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)))))
     ))
@@ -2341,7 +2341,7 @@
 (define (make-default-routing-rule hostname)
   (make-object rule%
     (string->symbol (string-append (symbol->string (send hostname name)) "-default-route"))
-    'Pass
+    'pass
     `((,hostname hostname))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2422,14 +2422,14 @@
                (send match-rule
                      augment/replace-decision
                      (name "route" match-rule)
-                     (if (eqv? (get-field decision match-rule) 'Permit)
-                         'Route
-                         'Pass)
+                     (if (eqv? (get-field decision match-rule) 'permit)
+                         'route
+                         'pass)
                      `((,next-hop next-hop)))
                (send match-rule
                      augment/replace-decision
                      (name "drop" match-rule)
-                     'Drop
+                     'drop
                      '())))
             match-rules)))
     
@@ -2458,22 +2458,22 @@
                (send match-rule
                      augment/replace-decision
                      (name "forward" match-rule)
-                     (if (eqv? (get-field decision match-rule) 'Permit)
-                         'Forward
-                         'Pass)
-                     (if (eqv? (get-field decision match-rule) 'Permit)
+                     (if (eqv? (get-field decision match-rule) 'permit)
+                         'forward
+                         'pass)
+                     (if (eqv? (get-field decision match-rule) 'permit)
                          `((,next-hop exit-interface)
                            ; -TN added next-hop restriction and this if statement
                            (= next-hop dest-addr-out)
                            ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                       (IPAddress next-hop))
+                           (IPAddress next-hop))
                          `((,next-hop exit-interface)
-                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                       (IPAddress next-hop))))
+                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                           (IPAddress next-hop))))
                (send match-rule
                      augment/replace-decision
                      (name "drop" match-rule)
-                     'Drop
+                     'drop
                      '())))
             match-rules)))
     
@@ -2499,7 +2499,7 @@
                    augment/replace-decision
                    (string->symbol (string-append (symbol->string (get-field name match-rule))
                                                   "-default-route"))
-                   'Pass
+                   'pass
                    `(true)))
            match-rules))
     ))
@@ -2556,7 +2556,7 @@
     (define/public (rule hostname conditions)
       (make-object rule%
         (name hostname)
-        'Encrypt
+        'encrypt
         `(,@conditions
           (,address next-hop))))
     ))
@@ -2596,7 +2596,7 @@
                    augment/replace-decision
                    (string->symbol (string-append (symbol->string (get-field name match-rule))
                                                   "-encrypt"))
-                   'Encrypt
+                   'encrypt
                    '()))
            (match-rules ACLs additional-conditions)))
     
@@ -2921,9 +2921,9 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send route-map
-                                    insert-match-length
-                                    length)))
+                          (send route-map
+                                insert-match-length
+                                length)))
           networks
           neighbors
           endpoints
@@ -2947,9 +2947,9 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send route-map
-                                    set-next-hop
-                                    action)))
+                          (send route-map
+                                set-next-hop
+                                action)))
           networks
           neighbors
           endpoints
@@ -2973,9 +2973,9 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send route-map
-                                    set-default-next-hop
-                                    action)))
+                          (send route-map
+                                set-default-next-hop
+                                action)))
           networks
           neighbors
           endpoints
@@ -3054,9 +3054,9 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send crypto-map
-                                    insert-match-ACL-ID
-                                    ACL-ID)))
+                          (send crypto-map
+                                insert-match-ACL-ID
+                                ACL-ID)))
           default-ACL-permit)))
     
     ;; symbol number -> IOS-config%
@@ -3080,9 +3080,9 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send crypto-map
-                                    insert-match-length
-                                    length)))
+                          (send crypto-map
+                                insert-match-length
+                                length)))
           default-ACL-permit)))
     
     ;; symbol number host-address% -> IOS-config%
@@ -3106,48 +3106,48 @@
                     (send map-set
                           insert-map
                           sequence-num
-                              (send crypto-map
-                                    set-peer-endpoint
-                                    peer-endpoint)))
+                          (send crypto-map
+                                set-peer-endpoint
+                                peer-endpoint)))
           default-ACL-permit)))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the rules that describe inbound ACL policies
     (define/public (inbound-ACL-rules)
       (flatten (append*
-       (hash-map interfaces
-                 (λ (name interf)
-                   (send (hash-ref ACLs (get-field inbound-ACL-ID interf))
-                         rules
-                         (send hostname name)
-                         (send interf text)
-                         `((,hostname hostname)
-                           (,interf entry-interface)))))
-       (list (if default-ACL-permit
-                 (list (make-object rule%
-                         'default-ACE
-                         'Permit
-                         `((,hostname hostname))))
-                 '())))))
+                (hash-map interfaces
+                          (λ (name interf)
+                            (send (hash-ref ACLs (get-field inbound-ACL-ID interf))
+                                  rules
+                                  (send hostname name)
+                                  (send interf text)
+                                  `((,hostname hostname)
+                                    (,interf entry-interface)))))
+                (list (if default-ACL-permit
+                          (list (make-object rule%
+                                  'default-ACE
+                                  'permit
+                                  `((,hostname hostname))))
+                          '())))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the rules that describe outbound ACL policies
     (define/public (outbound-ACL-rules)
       (flatten (append*
-       (hash-map interfaces
-                 (λ (name interf)
-                   (send (hash-ref ACLs (get-field outbound-ACL-ID interf))
-                         rules
-                         (send hostname name)
-                         (send interf text)
-                         `((,hostname hostname)
-                           (,interf exit-interface)))))
-       (list (if default-ACL-permit
-                 (list (make-object rule%
-                         'default-ACE
-                         'Permit
-                         `((,hostname hostname))))
-                 '())))))
+                (hash-map interfaces
+                          (λ (name interf)
+                            (send (hash-ref ACLs (get-field outbound-ACL-ID interf))
+                                  rules
+                                  (send hostname name)
+                                  (send interf text)
+                                  `((,hostname hostname)
+                                    (,interf exit-interface)))))
+                (list (if default-ACL-permit
+                          (list (make-object rule%
+                                  'default-ACE
+                                  'permit
+                                  `((,hostname hostname))))
+                          '())))))
     
     ;; symbol -> (listof interface%)
     ;;   Returns a list of interfaces on the given side of the NAT
@@ -3211,7 +3211,7 @@
       (append (NAT-forward-rules 'inside)
               (NAT-reverse-rules 'outside)
               (list (make-default-NAT-rule hostname))))
-
+    
     ;; -> (listof rule%)
     ;;   Returns a list of the outside-to-inside NAT rules
     (define/public (outside-NAT-rules)
@@ -3234,7 +3234,7 @@
                                                     "-"
                                                     (symbol->string name)
                                                     "-primary"))
-                     'Forward
+                     'forward
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in)
                        ; -TN added next-hop restriction below
@@ -3247,7 +3247,7 @@
                                                     "-"
                                                     (symbol->string name)
                                                     "-drop"))
-                     'Drop
+                     'drop
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in))))))                    
               (hash-filter interfaces (λ (name interf)
@@ -3261,12 +3261,12 @@
                                                     "-"
                                                     (symbol->string name)
                                                     "-secondary"))
-                     'Forward
+                     'forward
                      `((,hostname hostname)
                        ; -TN added next-hop restriction below
                        (= next-hop dest-addr-out)
                        (,(get-field secondary-network interf) dest-addr-in)
-                          ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
+                       ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                        (IPAddress next-hop)
                        (,interf exit-interface)))
                    (make-object rule%
@@ -3274,7 +3274,7 @@
                                                     "-"
                                                     (symbol->string name)
                                                     "-drop"))
-                     'Drop
+                     'drop
                      `((,hostname hostname)
                        (,(get-field secondary-network interf) dest-addr-in))))))
               (hash-filter interfaces (λ (name interf)
@@ -3293,7 +3293,7 @@
                                                  "-"
                                                  (symbol->string name)
                                                  "-primary"))
-                  'Forward
+                  'forward
                   `((,hostname hostname)
                     (,(get-field primary-network interf) next-hop)
                     (,interf exit-interface)))))
@@ -3307,7 +3307,7 @@
                                                  "-"
                                                  (symbol->string name)
                                                  "-secondary"))
-                  'Forward
+                  'forward
                   `((,hostname hostname)
                     (,(get-field secondary-network interf) next-hop)
                     (,interf exit-interface)))))
@@ -3512,120 +3512,94 @@
 ;; (listof rule%) -> (listof symbol)
 ;;   Constructs a policy vocabulary from a list of rules
 (define (vocabulary rules)
-  `(Vocab IOS-vocab
-          (Types
-           (Hostname > ,@(remove-duplicates
-                          (append*
-                           (map (λ (rule)
-                                  (map (λ (name)
-                                         (send name text))
-                                       (send rule extract-atoms hostname%)))
-                                rules))))
-           (Interface > Interf-drop Interf-real)
-           (Interf-real > ,@(remove-duplicates
-                             (append*
-                              (map (λ (rule)
-                                     (map (λ (interf)
+  `(Theory IOS-vocab
+    (Vocab IOS-vocab
+           (Types
+            (Hostname > ,@(remove-duplicates
+                           (append*
+                            (map (λ (rule)
+                                   (map (λ (name)
+                                          (send name text))
+                                        (send rule extract-atoms hostname%)))
+                                 rules))))
+            (Interface > Interf-drop Interf-real)
+            (Interf-real > ,@(remove-duplicates
+                              (append*
+                               (map (λ (rule)
+                                      (map (λ (interf)
                                              (send interf text))
-                                          (send rule extract-atoms interface%)))
-                                   rules))))
-           
-           ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
-           ; type-tree
-           ,@(make-type-decls (value-tree rules
-                                         address<%>
-                                         (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
-           (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
-           
-           ; - TN, removed port-N/A etc. Colon no longer needed.
-           ; type-tree
-           ,@(make-type-decls (value-tree rules
-                                         port<%>
-                                         (make-object port-range% 0 65535)))
-           
-           ; - TN, removed icmp-N/A, etc.
-           (ICMPMessage > ICMP-echo ICMP-echo-reply ICMP-time-exceeded ICMP-unreachable)
-           
-           (TCPFlags > ,@TCP-flags)
-           ,(let ([length-children (remove-duplicates
-                        (append*
-                         (map (λ (rule)
-                                (send rule extract-atoms length%))
-                              rules)))])
-              (cond [(empty? length-children)
-                     'Length]
-                    [else
-                     `(Length > ,length-children)]))
-           
-           )
-          ;(Decisions
-          ; Permit
-          ; Deny
-          ; Translate
-          ; Route
-          ; Forward
-          ; Drop
-          ; Pass
-          ; Advertise
-          ; Encrypt)
-          (Predicates ,@(map (λ (predicate)
-                               `(,predicate : IPAddress Port Protocol-any IPAddress Port))
-                             (remove-duplicates (flatten (map (λ (rule)
-                                                                (send rule extract-predicates))
-                                                              rules))))
-                      )
-          ;(ReqVariables
-          ;       (hostname : Hostname)
-          ;       (entry-interface : interf-real)
-          ;       (src-addr-in : IPAddress)
-          ;       (src-addr-out : IPAddress)
-          ;       (dest-addr-in : IPAddress)
-          ;       (dest-addr-out : IPAddress)
-          ;       (protocol : Protocol-any)
-          ;       (message : ICMPMessage)
-          ;       (flags : TCPFlags)
-          ;       (src-port-in : Port)
-          ;       (src-port-out : Port)
-          ;       (dest-port-in : Port)
-          ;       (dest-port-out : Port)
-          ;       (length : Length)
-          ;       (next-hop : IPAddress)
-          ;       (exit-interface : Interface)
-          ;       )
-          ;      (OthVariables )
-                (Constraints
-                 (abstract Hostname)
-                 (abstract Interface)
-                 (abstract interf-real)
-                 (abstract ICMPMessage)
-                 (abstract Protocol-any)
-                 (atmostone-all Hostname)
-                 ;(disjoint-all Hostname)
-                 ;(disjoint-all Interface)
-                 ;(disjoint-all interf-real)
-                 ;(disjoint-all IPAddress)
-                 ;(disjoint-all Protocol-any)
-                 ;(disjoint-all Port)
-                 ;(disjoint-all ICMPMessage)
-                 ;(disjoint-all Length)
-                 (atmostone-all Interf-real)
-                 (atmostone Interf-drop)
-                 ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
-                 (atmostone-all Protocol-any)
-                 ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
-                 (atmostone ICMP-echo)
-                 (atmostone ICMP-echo-reply)
-                 ; TN Removed: can have an atom that is SYN+ACK and an atom that is SYN -- both live in SYN
-                 ;(atmostone-all TCPFlags)
-                 (atmostone-all Length)
-                 (nonempty Hostname)
-                 (nonempty Interface)
-                 (nonempty IPAddress)
-                 (nonempty Protocol-any)
-                 (nonempty Port)
-                 (nonempty ICMPMessage)
-                 (nonempty TCPFlags)
-                 (nonempty Length))))
+                                           (send rule extract-atoms interface%)))
+                                    rules))))
+            
+            ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
+            ; type-tree
+            ,@(make-type-decls (value-tree rules
+                                           address<%>
+                                           (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
+            (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
+            
+            ; - TN, removed port-N/A etc. Colon no longer needed.
+            ; type-tree
+            ,@(make-type-decls (value-tree rules
+                                           port<%>
+                                           (make-object port-range% 0 65535)))
+            
+            ; - TN, removed icmp-N/A, etc.
+            (ICMPMessage > ICMP-echo ICMP-echo-reply ICMP-time-exceeded ICMP-unreachable)
+            
+            (TCPFlags > ,@TCP-flags)
+            ,(let ([length-children (remove-duplicates
+                                     (append*
+                                      (map (λ (rule)
+                                             (send rule extract-atoms length%))
+                                           rules)))])
+               (cond [(empty? length-children)
+                      'Length]
+                     [else
+                      `(Length > ,length-children)]))
+            
+            )
+           ;(Decisions
+           ; Permit
+           ; Deny
+           ; Translate
+           ; Route
+           ; Forward
+           ; Drop
+           ; Pass
+           ; Advertise
+           ; Encrypt)
+           (Predicates ,@(map (λ (predicate)
+                                `(,predicate : IPAddress Port Protocol-any IPAddress Port))
+                              (remove-duplicates (flatten (map (λ (rule)
+                                                                 (send rule extract-predicates))
+                                                               rules)))))    
+           )     
+    (Axioms
+     (abstract Hostname)
+     (abstract Interface)
+     (abstract Interf-real)
+     (abstract ICMPMessage)
+     (abstract Protocol-any)
+     (atmostone-all Hostname)     
+     (atmostone-all Interf-real)
+     (atmostone Interf-drop)
+     ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
+     (atmostone-all Protocol-any)
+     ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
+     (atmostone ICMP-echo)
+     (atmostone ICMP-echo-reply)
+     ; TN Removed: can have an atom that is SYN+ACK and an atom that is SYN -- both live in SYN
+     ;(atmostone-all TCPFlags)
+     (atmostone-all Length)
+     (nonempty Hostname)
+     (nonempty Interface)
+     (nonempty IPAddress)
+     (nonempty Protocol-any)
+     (nonempty Port)
+     (nonempty ICMPMessage)
+     (nonempty TCPFlags)
+     (nonempty Length))))
 
 ; TN removed NONE, not needed
 (define TCP-flags '(SYN ACK FIN PSH URG RST))

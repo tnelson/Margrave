@@ -1302,8 +1302,11 @@
 
 (define (xml-make-and p1 p2)
   `(AND ,p1 ,p2))
+
 (define (xml-make-and* conjuncts)
   (cond 
+    [(empty? conjuncts) 
+     (xml-make-true-condition)]
     [(= (length conjuncts) 1)
      (first conjuncts)]
     [(= (length conjuncts) 2)
@@ -1314,6 +1317,8 @@
   `(OR ,p1 ,p2))
 (define (xml-make-or* disjuncts)
   (cond 
+    [(empty? disjuncts) 
+     (xml-make-false-condition)]
     [(= (length disjuncts) 1)
      (first disjuncts)]
     [(= (length disjuncts) 2)
@@ -1400,7 +1405,7 @@
 ; These special functions will throw appropriate errors for invalid 
 ; syntax, returning void.
 (define/contract (m-formula->xexpr sexpr #:syntax [src #f])
-  [any/c . -> . (or/c xexpr? void?)]
+  [any/c . -> . (or/c xexpr? void?)]  
   
   (match sexpr 
     [(maybe-identifier true)
