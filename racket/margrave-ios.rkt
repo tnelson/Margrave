@@ -1,4 +1,4 @@
-; Copyright © 2009-2010 Brown University and Worcester Polytechnic Institute.
+; Copyright © 2009-2012 Brown University and Worcester Polytechnic Institute.
 ;
 ; This file is part of Margrave.
 
@@ -17,16 +17,17 @@
 
 #lang racket
 
-; Assume same dir for now (later, module path!)
-(require margrave/margrave
-         margrave/IOS-parser/ios-compile)
+(require "margrave.rkt"
+         "IOS-parser/ios-compile.rkt")
 
-(provide load-ios-policies )
+(provide load-ios-policies
+         parse-and-load-ios-by-filename
+         parse-and-load-ios
+         parse-and-load-multi-ios)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
-; updated tn july 2010
-; updated for release aug-sept 2010
+; Updates by tn through 2012
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -124,14 +125,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (load-ios-helper filename dirpath prefix suffix) 
-  (let ([ polname (load-policy (build-path dirpath (string-append filename ".p")))])
-    
-    ;(printf ".~a~n" filename)
-    (printf ".")
-    
-    (when (or (> (string-length prefix) 0)
-              (> (string-length suffix) 0))
-      (mtext (string-append "RENAME " polname " " prefix polname suffix))))) 
+  (define pol-id (string-append prefix filename suffix))  
+  (m-load-policy pol-id (build-path dirpath (string-append filename ".p")))      
+  (printf "."))
   
 
 ; ------------------------------------------------
@@ -141,17 +137,10 @@
 ; prefix (and suffix) are prepended (and appended) to the 
 ;   policy's name to avoid naming conflicts.
 (define (load-ios-policies dirpath prefix suffix (verbose #f))
-
-  (time-since-last) ; init timer
-  
   (printf "Loading IOS policies in path: ~a. Adding prefix: ~a and suffix: ~a ~n" dirpath prefix suffix)
-  
+   
   ; ACLs
-  (load-ios-helper "InboundACL" dirpath prefix suffix)    
-  (when (equal? #t verbose)
-    (printf "Time to load InboundACL: ~a ms.~n" (time-since-last))
-    (display-response (mtext "INFO")))
-  
+  (load-ios-helper "InboundACL" dirpath prefix suffix)      
   (load-ios-helper "OutboundACL" dirpath prefix suffix) 
   
   ; NATs
@@ -170,16 +159,18 @@
   (load-ios-helper "Encryption" dirpath prefix suffix)  
 
   (printf "~n")
-  (when (equal? #t verbose)
-    (printf "Time to load all other sub-policies: ~a ms.~n" (time-since-last))
-    (display-response (mtext "INFO")))
-
- ; (printf "Time to load policy files + vocabularies: ~a milliseconds.~n" (time-since-last))
-
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Internal-Result
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define inboundacl (string->symbol (string-append prefix "InboundACL" suffix)))
+  (define outboundacl (string->symbol (string-append prefix "OutboundACL" suffix)))
+  (define insidenat (string->symbol (string-append prefix "InsideNAT" suffix)))
+  (define outsidenat (string->symbol (string-append prefix "OutsideNAT" suffix)))
+  
+  (define staticroute (string->symbol (string-append prefix "StaticRoute" suffix)))  
+  (define policyroute (string->symbol (string-append prefix "PolicyRoute" suffix)))
+  (define defaultpolicyroute (string->symbol (string-append prefix "DefaultPolicyRoute" suffix)))
   
   (define xml-response-ir (mtext (string-append "EXPLORE "
   (string-append prefix "OutsideNAT" suffix)
@@ -377,8 +368,6 @@ PUBLISH ahostname, entry-interface,
 
 TUPLING")))
   (mtext (string-append "RENAME LAST " prefix "passes-firewall" suffix))
+  )
 
-  (when (equal? #t verbose)
-    (printf "Time to create and save internal-result, int-dropped, and passes-firewall: ~a milliseconds.~n" (time-since-last)))
   
-) ; end of function (more clear as lone paren; we are adding more)
