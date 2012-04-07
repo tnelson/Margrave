@@ -20,7 +20,7 @@
 ;;  You should have received a copy of the GNU Lesser General Public License
 ;;  along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;; Modifications by Tim are marked with -TN
+;; Modifications by Tim 2010-2012
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -440,9 +440,9 @@
     (define hostname symbolic-name)
     
     ;; -> symbol
-    ;;   Returns a symbol in the form hostname-X
+    ;;   Returns a symbol in the form Hostname-X
     (define/public (text)
-      (string->symbol (string-append "hostname-" (symbol->string hostname))))
+      (string->symbol (string-append "Hostname-" (symbol->string hostname))))
     
     ;; -> boolean
     ;;   Returns whether this hostname<%> represents a single hostname
@@ -3458,28 +3458,39 @@
          (make-tree root-value '())
          rules))
 
-;; tree -> (listof symbol)
-(define (type-tree tree)
-  (let [(node-value (send (tree-node tree) text))]
-    (cons node-value
-          (map (λ (child)
-                 (if (empty? (tree-children child))
-                     (send (tree-node child) text)
-                     (type-tree-helper child)))
-               (tree-children tree)))))
+
+; tree -> list-of-type-decl
+(define (make-type-decls tree)
+  (define type-name (send (tree-node tree) text))  
+  (define own-type-decl (cond [(empty? (tree-children tree))
+                               type-name]
+                              [else
+                               `(,type-name > ,@(map (lambda (child) (send (tree-node child) text)) (tree-children tree)))]))
+  (define child-type-decls (map (lambda (child) (send (tree-node child) text)) (tree-children tree)))
+  (cons own-type-decl child-type-decls))
 
 ;; tree -> (listof symbol)
-(define (type-tree-helper tree)
-  (let [(node-value (send (tree-node tree) text))
-        (node-children (tree-children tree))]
-    (cons node-value
-          (if (empty? node-children)
-              '()
-              (map (λ (child)
-                     (if (empty? (tree-children child))
-                         (send (tree-node child) text)
-                         (type-tree-helper child)))
-                   node-children)))))
+;(define (type-tree tree)
+;  (let [(node-value (send (tree-node tree) text))]    
+;    (cons node-value
+;          (map (λ (child)
+;                 (if (empty? (tree-children child))
+;                     (send (tree-node child) text)
+;                     (type-tree-helper child)))
+;               (tree-children tree)))))
+
+;; tree -> (listof symbol)
+;(define (type-tree-helper tree)
+;  (let [(node-value (send (tree-node tree) text))
+;        (node-children (tree-children tree))]    
+;    (cons node-value
+;          (if (empty? node-children)
+;              '()
+;              (map (λ (child)
+;                     (if (empty? (tree-children child))
+;                         (send (tree-node child) text)
+;                         (type-tree-helper child)))
+;                   node-children)))))
 
 ;; symbol -> symbol
 (define (make-other-type-value value)
@@ -3493,7 +3504,8 @@
           '())
       (foldl (λ (child result)
                (append (constraints child) result))
-             `((disjoint-all ,(send (tree-node tree) text)))
+             ;`((disjoint-all ,(send (tree-node tree) text)))
+             empty ; no disjoint constraint to start with
              (tree-children tree))))
 
 ;; (listof rule%) -> (listof symbol)
@@ -3516,64 +3528,70 @@
                                             (send interf text))
                                           (send rule extract-atoms interface%)))
                                    rules))))
-                 
-                 ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
-                 ,(type-tree (value-tree rules
+           
+           ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
+           ; type-tree
+           ,@(make-type-decls (value-tree rules
                                          address<%>
                                          (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
-                 (Protocol-any : prot-ICMP prot-TCP prot-UDP)
-
-                 ; - TN, removed port-N/A etc. Colon no longer needed.
-                 ,(type-tree (value-tree rules
+           (Protocol-any : prot-ICMP prot-TCP prot-UDP)
+           
+           ; - TN, removed port-N/A etc. Colon no longer needed.
+           ; type-tree
+           ,@(make-type-decls (value-tree rules
                                          port<%>
                                          (make-object port-range% 0 65535)))
-                 
-                 ; - TN, removed icmp-N/A, etc.
-                 (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
-                 
-                 (TCPFlags : ,@TCP-flags)
-                           
-                 (Length : ,@(remove-duplicates
-                              (append*
-                               (map (λ (rule)
-                                      (send rule extract-atoms length%))
-                                    rules))))
-                 )
-                (Decisions
-                 Permit
-                 Deny
-                 Translate
-                 Route
-                 Forward
-                 Drop
-                 Pass
-                 Advertise
-                 Encrypt)
-                (Predicates ,@(map (λ (predicate)
-                                     `(,predicate : IPAddress Port Protocol-any IPAddress Port))
-                                   (remove-duplicates (flatten (map (λ (rule)
-                                                                      (send rule extract-predicates))
-                                                                    rules))))
-                 )
-                (ReqVariables
-                 (hostname : Hostname)
-                 (entry-interface : interf-real)
-                 (src-addr-in : IPAddress)
-                 (src-addr-out : IPAddress)
-                 (dest-addr-in : IPAddress)
-                 (dest-addr-out : IPAddress)
-                 (protocol : Protocol-any)
-                 (message : ICMPMessage)
-                 (flags : TCPFlags)
-                 (src-port-in : Port)
-                 (src-port-out : Port)
-                 (dest-port-in : Port)
-                 (dest-port-out : Port)
-                 (length : Length)
-                 (next-hop : IPAddress)
-                 (exit-interface : Interface)
-                 )
-                (OthVariables )
+           
+           ; - TN, removed icmp-N/A, etc.
+           (ICMPMessage > ICMP-echo ICMP-echo-reply ICMP-time-exceeded ICMP-unreachable)
+           
+           (TCPFlags > ,@TCP-flags)
+           ,(let ([length-children (remove-duplicates
+                        (append*
+                         (map (λ (rule)
+                                (send rule extract-atoms length%))
+                              rules)))])
+              (cond [(empty? length-children)
+                     'Length]
+                    [else
+                     `(Length > ,length-children)]))
+           
+           )
+          ;(Decisions
+          ; Permit
+          ; Deny
+          ; Translate
+          ; Route
+          ; Forward
+          ; Drop
+          ; Pass
+          ; Advertise
+          ; Encrypt)
+          (Predicates ,@(map (λ (predicate)
+                               `(,predicate : IPAddress Port Protocol-any IPAddress Port))
+                             (remove-duplicates (flatten (map (λ (rule)
+                                                                (send rule extract-predicates))
+                                                              rules))))
+                      )
+          ;(ReqVariables
+          ;       (hostname : Hostname)
+          ;       (entry-interface : interf-real)
+          ;       (src-addr-in : IPAddress)
+          ;       (src-addr-out : IPAddress)
+          ;       (dest-addr-in : IPAddress)
+          ;       (dest-addr-out : IPAddress)
+          ;       (protocol : Protocol-any)
+          ;       (message : ICMPMessage)
+          ;       (flags : TCPFlags)
+          ;       (src-port-in : Port)
+          ;       (src-port-out : Port)
+          ;       (dest-port-in : Port)
+          ;       (dest-port-out : Port)
+          ;       (length : Length)
+          ;       (next-hop : IPAddress)
+          ;       (exit-interface : Interface)
+          ;       )
+          ;      (OthVariables )
                 (Constraints
                  (abstract Hostname)
                  (abstract Interface)
@@ -3581,14 +3599,14 @@
                  (abstract ICMPMessage)
                  (abstract Protocol-any)
                  (atmostone-all Hostname)
-                 (disjoint-all Hostname)
-                 (disjoint-all Interface)
-                 (disjoint-all interf-real)
-                 (disjoint-all IPAddress)
-                 (disjoint-all Protocol-any)
-                 (disjoint-all Port)
-                 (disjoint-all ICMPMessage)
-                 (disjoint-all Length)
+                 ;(disjoint-all Hostname)
+                 ;(disjoint-all Interface)
+                 ;(disjoint-all interf-real)
+                 ;(disjoint-all IPAddress)
+                 ;(disjoint-all Protocol-any)
+                 ;(disjoint-all Port)
+                 ;(disjoint-all ICMPMessage)
+                 ;(disjoint-all Length)
                  (atmostone-all interf-real)
                  (atmostone interf-drop)
                  ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
@@ -3619,12 +3637,26 @@
 ;;   Constructs a policy from a list of rules
 (define (policy name rules)
   `(Policy ,name uses IOS-vocab
-           (Target )
+           (Variables
+            (hostname Hostname)
+            (entry-interface Interf-real)
+            (src-addr-in IPAddress)
+            (src-addr-out IPAddress)
+            (dest-addr-in IPAddress)
+            (dest-addr-out IPAddress)
+            (protocol Protocol-any)
+            (message ICMPMessage)
+            (flags TCPFlags)
+            (src-port-in Port)
+            (src-port-out Port)
+            (dest-port-in Port)
+            (dest-port-out Port)
+            (length Length)
+            (next-hop IPAddress)
+            (exit-interface Interface))           
            (Rules
             ,@(map (λ (rule)
                      (send rule text))
                    rules))
-           (RComb FAC)
-           (PComb FAC)
-           (Children )))
+           (RComb (fa permit deny translate route forward drop pass advertise encrypt))))
 

@@ -15,41 +15,7 @@
 
 ; The query is the conjunction of a bunch of conditions:
 (define qrysexpr '(and 
-                   
-                   ; All roles are one of the constants
-                   (forall arole Role (or (= arole 'professor) (= arole 'student) (= arole 'ta) (= arole 'ra)))
-  
-                   ; All users are one of the constants
-                   (forall auser User (or (= auser 'tim) (= auser 'kathi) (= auser 'salman)))
-                   
-                   ; All permissions are one of the constants
-                   (forall ap Permission (or (= ap 'grade) (= ap 'teach) (= ap 'enterLab) (= ap 'takeExam) (= ap 'submitPaper)))
-                   
-                   ; All are disjoint
-                   (not (= 'tim 'kathi))
-                   (not (= 'tim 'salman))
-                   (not (= 'kathi 'salman))
-                   (not (= 'professor 'student))
-                   (not (= 'professor 'ta))
-                   (not (= 'professor 'ra))
-                   (not (= 'student 'ta))
-                   (not (= 'student 'ra))
-                   (not (= 'ta 'ra))
-                   (not (= 'grade 'teach))
-                   (not (= 'grade 'enterLab))
-                   (not (= 'grade 'takeExam))
-                   (not (= 'grade 'submitPaper))
-                   (not (= 'teach 'enterLab))
-                   (not (= 'teach 'takeExam))
-                   (not (= 'teach 'submitPaper))
-                   (not (= 'enterLab 'takeExam))
-                   (not (= 'enterLab 'submitPaper))                   
-                   (not (= 'takeExam 'submitPaper))
-
-                   
-                   ; ^^^ TODO note to self: Seems to be possible optimization here? Could have a (all-are-constants Sortname) constraint in axioms.
-                   ; TODO also: should be able to do better lower-bounds here. (if two terms are necessarily !=, can add them both. Beyond just caused by disj.)
-                   
+                                      
                    ; Wasn't permitted before but is permitted now.
                    ([after permit] u p)
                    (not ([before permit] u p))
@@ -91,10 +57,12 @@
                    (not (hadPermission 'ra 'teach))
                    (not (hadPermission 'ra 'takeExam))
                    
-                   (= u 'tim)
-                   (= p 'grade)
+                   (or (= u 'tim) (= u 'kathi))
+    ;               (= u 'salman)
+     ;              (not (= p 'teach))
+                   
                                       
-                   ; role permissions are EXACTLY THE SAME in new policy
+                   ; role-permissions are EXACTLY THE SAME in new policy
                    (forall rx Role 
                            (forall px Permission 
                                    (iff (hadPermission rx px) 
@@ -102,11 +70,12 @@
                    
                    ; ^^^ TODO: axiom for subset constraints on _predicates_. will eliminate this forall.
                    
-                    ;permits are EXACTLY THE SAME in new policy except: (Tim, Grading), which can change.  
+                    ;permits are EXACTLY THE SAME in new policy except this particular request...
                    (forall uy User 
                            (forall py Permission 
-                                   (implies (or (not (= uy 'tim)) 
-                                                (not (= py 'grade))) 
+                                   (implies (or (not (= uy u))              ; 'tim
+                                                (not (= py p))       ; 'grade
+                                                ) 
                                             (iff
                                              ([before permit] uy py)
                                              ([after permit] uy py) ))))
@@ -120,13 +89,13 @@
 (time (m-let "Q" '([u User] [p Permission]) 
                    qrysexpr))   
 ; Is the query satisfiable?
-(time (m-is-poss? "Q"))
+;(time (m-is-poss? "Q"))
 ; Get an actual solution.
-(time (m-get-scenario "Q"))
+;(time (m-get-scenario "Q"))
 ; Reset the iterator, start at the beginning of the solution list again.
-(time (m-reset-scenario-iterator "Q"))
+;(time (m-reset-scenario-iterator "Q"))
 ; Get an actual solution that includes whether <u, p> is permitted before and after.
-(time (m-get-scenario "Q" #:include '( ([before permit] u p) ([after permit] u p))))
+;(time (m-get-scenario "Q" #:include '( ([before permit] u p) ([after permit] u p))))
 
 ; Create the same query, but bound the ceiling.
 (time (m-let "Q3" '([u User] [p Permission]) 
@@ -135,7 +104,7 @@
                   ;             [User 3]
                   ;             [univ 12]))) 
                    ))
-(time (m-get-scenario "Q3"))
+;(time (m-get-scenario "Q3"))
 
 ; Test #lang margrave
 ;(define xmlresult (mtext "LET Q4[u : User, p: Permission] BE before.permit(u, p) CEILING 3 User, 5 Permission, 4 Role, 12 univ"))

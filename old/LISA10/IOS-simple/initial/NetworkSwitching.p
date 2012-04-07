@@ -2,7 +2,23 @@
  NetworkSwitching
  uses
  IOS-vocab
- (Target)
+ (Variables
+  (hostname Hostname)
+  (entry-interface Interf-real)
+  (src-addr-in IPAddress)
+  (src-addr-out IPAddress)
+  (dest-addr-in IPAddress)
+  (dest-addr-out IPAddress)
+  (protocol Protocol-any)
+  (message ICMPMessage)
+  (flags TCPFlags)
+  (src-port-in Port)
+  (src-port-out Port)
+  (dest-port-in Port)
+  (dest-port-out Port)
+  (length Length)
+  (next-hop IPAddress)
+  (exit-interface Interface))
  (Rules
   (Router-fe0-primary
    =
@@ -24,7 +40,7 @@
     next-hop
     exit-interface)
    :-
-   (hostname-Router hostname)
+   (Hostname-Router hostname)
    (10.1.1.0/255.255.255.254 next-hop)
    (fe0 exit-interface))
   (Router-vlan1-primary
@@ -47,9 +63,7 @@
     next-hop
     exit-interface)
    :-
-   (hostname-Router hostname)
+   (Hostname-Router hostname)
    (192.128.5.0/255.255.255.0 next-hop)
    (vlan1 exit-interface)))
- (RComb FAC)
- (PComb FAC)
- (Children))
+ (RComb (fa permit deny translate route forward drop pass advertise encrypt)))
