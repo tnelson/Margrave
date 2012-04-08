@@ -302,9 +302,9 @@
          ; TODO ^^^ This makes no sense. resource in User. resource.pphase??
          
          ;819
-         (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
-                   (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
-         (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
+        ; (rule819 = (permit s a r) :- (User r) (= 'paperAssign a) 
+        ;           (= 'pAssignment (paperPhase r)) (admin s) (reviewer r))         
+        ; (rule819failed = (deny s a r) :- (User r) (= 'paperAssign a) )  
          
                   
          
@@ -317,7 +317,7 @@
          ; 824         
          (rule824 = (permit s a r) :- (Paper r) (= 'paperDecide a) 
                    (= 'pDiscussion (paperPhase r)) (admin s))         
-         (rule824failed = (deny s a r) :- (Paper r) (= 'paperDecide a))  
+         (rule824failed = (deny s a r) :- (Paper r) (= 'paperDecide a))                    
          
          ; Final rule is TRUE because the Alloy policy was phrased as a series of implications.
          ; Want to preserve: anything that doesn't match an implication's antecedent is permitted.

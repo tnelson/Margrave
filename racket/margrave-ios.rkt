@@ -123,8 +123,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (load-ios-helper filename dirpath prefix suffix) 
-  (define pol-id (string-append prefix filename suffix))  
-  (printf "Loading ~v~n" filename)
+  (define pol-id (string-append prefix filename suffix))   
   (m-load-policy pol-id (build-path dirpath (string-append filename ".p")))      
   (printf "."))
   
@@ -391,7 +390,7 @@
    (m-let (string-append prefix "int-dropped" suffix) 
          vardec-16
          `(and (Interf-drop exit-interface)
-               ) #:under '((symbol->string inboundacl)))
+               ) #:under (list (symbol->string inboundacl)))
   
   ;(define xml-response-id (mtext (string-append "EXPLORE interf-drop(exit-interface) AND
 ; IPAddress(src-addr-in) AND IPAddress(src-addr-out) AND IPAddress(dest-addr-in) AND IPAddress(dest-addr-out) AND 

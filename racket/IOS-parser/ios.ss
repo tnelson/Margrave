@@ -501,7 +501,7 @@
                length
                next-hop
                exit-interface)
-              :- ,@(textualize conditions)))
+              :- ,@(textualize conditions)))         
     
     ;; symbol (listof (listof symbol))
     ;;   Augments a rule
@@ -3246,7 +3246,7 @@
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
                                                     (symbol->string name)
-                                                    "-drop"))
+                                                    "-drop-p"))
                      'drop
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in))))))                    
@@ -3273,7 +3273,7 @@
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
                                                     (symbol->string name)
-                                                    "-drop"))
+                                                    "-drop-s"))
                      'drop
                      `((,hostname hostname)
                        (,(get-field secondary-network interf) dest-addr-in))))))
@@ -3511,7 +3511,7 @@
 
 ;; (listof rule%) -> (listof symbol)
 ;;   Constructs a policy vocabulary from a list of rules
-(define (vocabulary rules)
+(define (vocabulary rules)                                                     
   `(Theory IOS-vocab
     (Vocab IOS-vocab
            (Types
@@ -3611,6 +3611,51 @@
 ;; symbol (listof rule%) -> (listof symbol)
 ;;   Constructs a policy from a list of rules
 (define (policy name rules)
+  ; "Must have" decision lists. Make sure these decisions get at least an empty rule  
+  (define acl-decisions '(permit deny drop))
+  (define nat-decisions '(translate))
+  (define route-decisions '(forward route pass drop))
+  (define switching-decisions '(forward route pass drop))
+  (define encryption-decisions '(encrypt))
+  
+  (define decisions-that-appear (remove-duplicates (map (λ (rule)
+                                                          (get-field decision rule))
+                                                        rules)))
+  
+  (define (any-missing decision-list)
+    (define missing (foldl (lambda (a-decision sofar) (remove a-decision sofar))
+                           decision-list
+                           decisions-that-appear))
+   ; (printf "any-missing: decision-list=~v; decisions-that-appear=~v; missing=~v~n" decision-list decisions-that-appear missing)
+    (map (lambda (a-decision) 
+           (define rname (string->symbol (string-append "ruleNever" (symbol->string a-decision))))
+           (make-object rule% rname a-decision '( false ))) 
+         missing))
+  
+  (define extra-rules-needed 
+    (cond [(equal? 'InboundACL name)
+           (any-missing acl-decisions)]
+          [(equal? 'OutboundACL name)
+           (any-missing acl-decisions)]
+          [(equal? 'InsideNAT name)
+           (any-missing nat-decisions)]
+          [(equal? 'OutsideNAT name)
+           (any-missing nat-decisions)]
+          [(equal? 'LocalSwitching name)
+           (any-missing switching-decisions)]
+          [(equal? 'NetworkSwitching name)
+           (any-missing switching-decisions)]
+          [(equal? 'StaticRoute name)
+           (any-missing route-decisions)]
+          [(equal? 'PolicyRoute name)
+           (any-missing route-decisions)]
+          [(equal? 'DefaultPolicyRoute name)
+           (any-missing route-decisions)]
+          [(equal? 'Encryption name)
+           (any-missing encryption-decisions)]          
+          [else 
+          empty]))
+  
   `(Policy uses IOS-vocab
            (Variables
             (hostname Hostname)
@@ -3632,6 +3677,6 @@
            (Rules
             ,@(map (λ (rule)
                      (send rule text))
-                   rules))
+                   (append rules extra-rules-needed)))
            (RComb (fa permit deny translate route forward drop pass advertise encrypt))))
 
