@@ -1,4 +1,4 @@
-; Copyright © 2009-2010 Brown University and Worcester Polytechnic Institute.
+; Copyright © 2009-2012 Brown University and Worcester Polytechnic Institute.
 ;
 ; This file is part of Margrave.
 
@@ -17,37 +17,28 @@
 
 #lang racket
 
-(require margrave
-         margrave/margrave-ios)
-
-
-(define my-vector "(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)")
-
+(require "../../../racket/margrave.rkt"
+         "../../../racket/margrave-ios.rkt"
+         rackunit)
 
 (define (run-queries-for-example)
   
-  ; Start Margrave's java engine
-  ; Pass path of the engine files: 1 level up from here.
-;  (start-margrave-engine (build-path (current-directory) 'up))
-  (start-margrave-engine)
+  ; Start Margrave's java engine  
+  (start-margrave-engine #:margrave-params '("-log")
+                         #:margrave-path "../../../racket")
   
   ; Load all the policies 
   ; InboundACL -> InboundACL1, InboundACL2, InboundACL3 respectively.
-  (load-ios-policies (build-path (current-directory) "initial") "" "1")
-  (load-ios-policies (build-path (current-directory) "change1") "" "2")
-  (load-ios-policies (build-path (current-directory) "change2") "" "3")
+  (parse-and-load-ios "demo.txt" "initial" "" "1")
+  (parse-and-load-ios "change1.txt" "change1" "" "2")
+  (parse-and-load-ios "change2.txt" "change2" "" "3")
+
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; which-packets
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (printf "~n~nWhich-packets:~n")
+ ; (printf "~n~nWhich-packets:~n")
   
   ;        AND fe0(entry-interface)
   ;    AND prot-tcp(protocol)
@@ -55,38 +46,54 @@
   ;    AND ip-10-1-1-2(ip-addr-in)
   
   
-  (display-response (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-     TUPLING")  )
-  ; The TUPLING keyword activates the tupling optimization, which is very useful for firewalls.
+    (define vardec-16 '([ahostname Hostname]
+                      [entry-interface Interf-real]
+                      [src-addr-in IPAddress]
+                      [src-addr-out IPAddress]
+                      [dest-addr-in IPAddress]
+                      [dest-addr-out IPAddress]
+                      [protocol Protocol-any]
+                      [message ICMPMessage]
+                      [flags TCPFlags]
+                      [src-port-in Port]
+                      [src-port-out Port]
+                      [dest-port-in Port]
+                      [dest-port-out Port] 
+                      [length Length]
+                      [next-hop IPAddress]
+                      [exit-interface Interface]))
+  (define vars-16 '(ahostname entry-interface src-addr-in src-addr-out
+                      dest-addr-in dest-addr-out
+                      protocol message flags
+                      src-port-in src-port-out dest-port-in dest-port-out 
+                      length next-hop exit-interface))
+
+  (m-let "Q1" vardec-16
+         `([InboundACL1 permit] ,@vars-16))
   
-  (display-response (mtext "GET ONE"))
+  (check-true (m-scenario? (m-get-scenario "Q1")))
+  ;(display (m-show-scenario "Q1"))  
      
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; verification
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (printf "~n~nVerification:~n")
+  ;(printf "~n~nVerification:~n")
   
-  (display-response (mtext "EXPLORE InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
 
-        AND src-addr-in = 10.1.1.2 
-        AND fe0 = entry-interface
+        ;AND src-addr-in = 10.1.1.2 
+        ;AND fe0 = entry-interface"
 
-     TUPLING") )
-  (display-response (mtext "IS POSSIBLE?"))
+  (m-let "Q2" vardec-16
+         `(and ([InboundACL1 permit] ,@vars-16)
+               (IP-10.1.1.2 src-addr-in)
+               (Fe0 entry-interface)))
   
+  ;(printf "Is there a counterexample to the property? ~v~n" (m-is-poss? "Q2"))
+  (check-false (m-is-poss? "Q2"))
+  
+  
+ 
   
   
   ;; due to gensym use, rule names will change along with line numbers and on each re-parse
@@ -95,132 +102,136 @@
   ; rule responsibility
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  (printf "~n~nRule-blaming:~n")
+;  (printf "~n~nRule-blaming:~n")
   
-  (display-response (mtext (string-append "EXPLORE InboundACL1:Deny" my-vector
-                        
-                        " AND 10.1.1.2 = src-addr-in"
-                        " AND fe0 = entry-interface "
-                        
-                        " INCLUDE InboundACL1:Router-fe0-line9_applies" my-vector ","
-                        "InboundACL1:Router-fe0-line12_applies" my-vector
-                        " TUPLING")))
-  (display-response (mtext (string-append "SHOW REALIZED InboundACL1:Router-fe0-line9_applies" my-vector ","
-                        "InboundACL1:Router-fe0-line12_applies" my-vector)))
+  ; Why are those packets denied?
+  (m-let "Q3" vardec-16
+         `(and ([InboundACL1 deny] ,@vars-16)
+               (IP-10.1.1.2 src-addr-in)
+               (Fe0 entry-interface))
+         #:debug 3)
+ 
+  (m-show-realized "Q3" `( ([InboundACL1 Router-Fe0-line9_applies] ,@vars-16)
+                           ([InboundACL1 Router-Fe0-line12_applies] ,@vars-16)) 
+                   empty)
   
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; change-impact
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; arity too large for a universe of size 24. 
+  ; kodkod.engine.CapacityExceededException
+  ; edu.wpi.margrave.MQueryResult.makeBounds(MQueryResult.java:673), edu.wpi.margrave.MCNFSpyQueryResult.createCNFFor(MQueryResult.java:99)
   
-  (printf "~n~nChange-impact:~n")
-  
-  ; vs change 1    
-  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-
-       AND NOT InboundACL2:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface) )
-
-       OR
-       (InboundACL2:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-
-       AND NOT InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface) )
-
-     TUPLING"))  
-  (display-response (mtext "IS POSSIBLE?"))
-  
-  
-  ; Vs. change 2
-  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-
-       AND NOT InboundACL3:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface) )
-
-       OR
-       (InboundACL3:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface)
-
-       AND NOT InboundACL1:Permit(ahostname, entry-interface, 
-        src-addr-in, src-addr-out, 
-        dest-addr-in, dest-addr-out, 
-        protocol, message, flags,
-        src-port-in,  src-port-out, 
-        dest-port-in, dest-port-out, 
-        length, next-hop, exit-interface) )
-
-     TUPLING")  )
- (display-response  (mtext "IS POSSIBLE?"))
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ; Rule relationships
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-  (printf "~n~nRule relationships:~n")
-  
-  ;; This involves rules in the first change (InboundACL2)
-  ; line 12 wants to apply: what prevents it from doing so?
-  
-  (display-response (mtext (string-append "EXPLORE InboundACL2:Router-fe0-line12_matches" my-vector
-                        
-                        " INCLUDE InboundACL2:Router-fe0-line9_applies" my-vector ","
-                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
-                        "InboundACL2:Router-fe0-line11_applies" my-vector
-                        " TUPLING"))) 
-  (display-response (mtext (string-append "SHOW REALIZED InboundACL2:Router-fe0-line9_applies" my-vector ","
-                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
-                        "InboundACL2:Router-fe0-line11_applies" my-vector)))
-  
-  
-  
-  
-  
-  
-  ; Computing superfluous rules
-  ; ----> In sup-ios.rkt
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-  ; 2.1 in other file
-  
-  
-  
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ; change-impact
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  
+;  (printf "~n~nChange-impact:~n")
+;  
+;  ; vs change 1    
+;  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface)
+;
+;       AND NOT InboundACL2:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface) )
+;
+;       OR
+;       (InboundACL2:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface)
+;
+;       AND NOT InboundACL1:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface) )
+;
+;     TUPLING"))  
+;  (display-response (mtext "IS POSSIBLE?"))
+;  
+;  
+;  ; Vs. change 2
+;  (display-response (mtext "EXPLORE (InboundACL1:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface)
+;
+;       AND NOT InboundACL3:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface) )
+;
+;       OR
+;       (InboundACL3:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface)
+;
+;       AND NOT InboundACL1:Permit(ahostname, entry-interface, 
+;        src-addr-in, src-addr-out, 
+;        dest-addr-in, dest-addr-out, 
+;        protocol, message, flags,
+;        src-port-in,  src-port-out, 
+;        dest-port-in, dest-port-out, 
+;        length, next-hop, exit-interface) )
+;
+;     TUPLING")  )
+; (display-response  (mtext "IS POSSIBLE?"))
+;  
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ; Rule relationships
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  
+;  (printf "~n~nRule relationships:~n")
+;  
+;  ;; This involves rules in the first change (InboundACL2)
+;  ; line 12 wants to apply: what prevents it from doing so?
+;  
+;  (display-response (mtext (string-append "EXPLORE InboundACL2:Router-fe0-line12_matches" my-vector
+;                        
+;                        " INCLUDE InboundACL2:Router-fe0-line9_applies" my-vector ","
+;                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
+;                        "InboundACL2:Router-fe0-line11_applies" my-vector
+;                        " TUPLING"))) 
+;  (display-response (mtext (string-append "SHOW REALIZED InboundACL2:Router-fe0-line9_applies" my-vector ","
+;                        "InboundACL2:Router-fe0-line10_applies" my-vector ","
+;                        "InboundACL2:Router-fe0-line11_applies" my-vector)))
+;  
+;  
+;  
+;  
+;  
+;  
+;  ; Computing superfluous rules
+;  ; ----> In sup-ios.rkt
+;  
+;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  
+;  ; 2.1 in other file
+;  
+;  
+;  
   ;(stop-margrave-engine)
   )

@@ -1,69 +1,58 @@
-(PolicyVocab
+(Theory
  IOS-vocab
- (Types
-  (Hostname : hostname-Router)
-  (Interface : interf-drop (interf-real vlan1 fe0))
-  (IPAddress
-   192.128.5.0/255.255.255.0
-   10.1.1.0/255.255.255.254
-   10.1.1.3
-   192.168.5.11
-   192.168.5.10
-   10.1.1.2)
-  (Protocol-any : prot-ICMP prot-TCP prot-UDP)
-  (Port port-443 port-25 port-80)
-  (ICMPMessage : icmp-echo icmp-echo-reply icmp-time-exceeded icmp-unreachable)
-  (TCPFlags : SYN ACK FIN PSH URG RST)
-  (Length :))
- (Decisions Permit Deny Translate Route Forward Drop Pass Advertise Encrypt)
- (Predicates)
- (ReqVariables
-  (hostname : Hostname)
-  (entry-interface : interf-real)
-  (src-addr-in : IPAddress)
-  (src-addr-out : IPAddress)
-  (dest-addr-in : IPAddress)
-  (dest-addr-out : IPAddress)
-  (protocol : Protocol-any)
-  (message : ICMPMessage)
-  (flags : TCPFlags)
-  (src-port-in : Port)
-  (src-port-out : Port)
-  (dest-port-in : Port)
-  (dest-port-out : Port)
-  (length : Length)
-  (next-hop : IPAddress)
-  (exit-interface : Interface))
- (OthVariables)
- (Constraints
+ (Vocab
+  IOS-vocab
+  (Types
+   (Hostname > Hostname-Router)
+   (Interface > Interf-drop Interf-real)
+   (Interf-real > Vlan1 Fe0)
+   (IPAddress
+    >
+    IP-192.128.5.0/255.255.255.0
+    IP-10.1.1.0/255.255.255.254
+    IP-10.1.1.3
+    IP-192.168.5.11
+    IP-192.168.5.10
+    IP-10.1.1.2)
+   IP-192.128.5.0/255.255.255.0
+   IP-10.1.1.0/255.255.255.254
+   IP-10.1.1.3
+   IP-192.168.5.11
+   IP-192.168.5.10
+   IP-10.1.1.2
+   (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
+   (Port > Port-443 Port-25 Port-80)
+   Port-443
+   Port-25
+   Port-80
+   (ICMPMessage
+    >
+    ICMP-echo
+    ICMP-echo-reply
+    ICMP-time-exceeded
+    ICMP-unreachable)
+   (TCPFlags > SYN ACK FIN PSH URG RST)
+   Length)
+  (Predicates))
+ (Axioms
   (abstract Hostname)
   (abstract Interface)
-  (abstract interf-real)
+  (abstract Interf-real)
   (abstract ICMPMessage)
   (abstract Protocol-any)
   (atmostone-all Hostname)
-  (disjoint-all Hostname)
-  (disjoint-all Interface)
-  (disjoint-all interf-real)
-  (disjoint-all IPAddress)
-  (disjoint-all Protocol-any)
-  (disjoint-all Port)
-  (disjoint-all ICMPMessage)
-  (disjoint-all Length)
-  (atmostone-all interf-real)
-  (atmostone interf-drop)
-  (atmostone 10.1.1.2)
-  (atmostone 192.168.5.10)
-  (atmostone 192.168.5.11)
-  (atmostone 10.1.1.3)
-  (disjoint-all IPAddress)
+  (atmostone-all Interf-real)
+  (atmostone Interf-drop)
+  (atmostone IP-10.1.1.2)
+  (atmostone IP-192.168.5.10)
+  (atmostone IP-192.168.5.11)
+  (atmostone IP-10.1.1.3)
   (atmostone-all Protocol-any)
-  (atmostone port-80)
-  (atmostone port-25)
-  (atmostone port-443)
-  (disjoint-all Port)
-  (atmostone icmp-echo)
-  (atmostone icmp-echo-reply)
+  (atmostone Port-80)
+  (atmostone Port-25)
+  (atmostone Port-443)
+  (atmostone ICMP-echo)
+  (atmostone ICMP-echo-reply)
   (atmostone-all Length)
   (nonempty Hostname)
   (nonempty Interface)

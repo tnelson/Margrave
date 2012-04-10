@@ -403,7 +403,7 @@
           line
           (eqv? disposition 'permit)
           src-addr
-          (string->symbol (string-append "Prot-" (symbol->string prot)))
+          (string->symbol (string-append "Prot-" (string-upcase (symbol->string prot))))
           src-port
           dest-addr
           dest-port)))
@@ -675,7 +675,7 @@
                  line
                  (eqv? disposition 'permit)
                  src-addr
-                 (string->symbol (string-append "Prot-" (symbol->string protocol)))
+                 (string->symbol (string-append "Prot-" (string-upcase (symbol->string protocol))))
                  src-port
                  dest-addr
                  (make-object port-range% 0 65535)))]
@@ -736,7 +736,7 @@
                  line
                  (eqv? disposition 'permit)
                  src-addr
-                 (string->symbol (string-append "Prot-" (symbol->string protocol)))
+                 (string->symbol (string-append "Prot-" (string-upcase (symbol->string protocol))))
                  src-port
                  dest-addr
                  dest-port))]
@@ -786,7 +786,7 @@
                 line
                 (eqv? disposition 'permit)
                 src-addr
-                (string->symbol (string-append "Prot-" (symbol->string protocol)))
+                (string->symbol (string-append "Prot-" (string-upcase (symbol->string protocol))))
                 src-port
                 dest-addr
                 dest-port))
@@ -796,7 +796,7 @@
           line
           (eqv? disposition 'permit)
           dest-addr
-          (string->symbol (string-append "Prot-" (symbol->string protocol)))
+          (string->symbol (string-append "Prot-" (string-upcase (symbol->string protocol))))
           src-port
           src-addr
           dest-port

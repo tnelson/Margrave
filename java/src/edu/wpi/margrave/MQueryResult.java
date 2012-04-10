@@ -665,11 +665,13 @@ public abstract class MQueryResult
 						
 						if(first)
 						{
+							MCommunicator.writeToLog("\n  Bounding IDB relation "+idbname+". Projecting by sort"+ r+" with ub size: "+qryBounds.upperBound(r).size());
 							thisIDBUpperBound = qryBounds.upperBound(r);
 							first = false;
 						}
 						else
 						{
+							MCommunicator.writeToLog("\n  Bounding IDB relation "+idbname+". Projecting by sort"+ r+" with ub size: "+qryBounds.upperBound(r).size());
 							thisIDBUpperBound = thisIDBUpperBound.product(qryBounds.upperBound(r));						
 						}
 					}

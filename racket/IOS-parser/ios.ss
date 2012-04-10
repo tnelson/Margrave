@@ -3536,6 +3536,7 @@
             ,@(make-type-decls (value-tree rules
                                            address<%>
                                            (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
+            ; Protocol name must be capitalized
             (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
             
             ; - TN, removed port-N/A etc. Colon no longer needed.
