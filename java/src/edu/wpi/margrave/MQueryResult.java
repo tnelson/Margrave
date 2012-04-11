@@ -368,7 +368,10 @@ public abstract class MQueryResult
 		for(int ii=haveCurrently+1;ii<=numNeeded;ii++)
 		{
 			String theAtom = "UNIV#"+ii;			
-			atomSet.add(theAtom);			
+			atomSet.add(theAtom);		
+			MCommunicator.writeToLog("\n!!! UNIV required an extra element "+theAtom);
+			MCommunicator.writeToLog("\n !!! Propagating the new atom to ALL SORTS.");
+			
 			// Propagate to ALL SORTS.			
 			for(MSort dt : fromContext.forQuery.vocab.sorts.values())
 			{
@@ -410,6 +413,7 @@ public abstract class MQueryResult
 				String theAtom = t.name+"#"+ii;
 				upperBounds.get(t.rel).add(theAtom);
 				atomSet.add(theAtom);
+				MCommunicator.writeToLog("\n!!! Leaf sort "+t+" gets new element "+theAtom);
 				propagateNewAtomInUpperBounds(upperBounds, t, theAtom);
 			}
 									
@@ -429,7 +433,8 @@ public abstract class MQueryResult
 			{
 				String theAtom = t.name+"#"+ii;
 				upperBounds.get(t.rel).add(theAtom);
-				atomSet.add(theAtom);								
+				atomSet.add(theAtom);				
+				MCommunicator.writeToLog("\n!!! Sort "+t+" gets new element "+theAtom+" to meet ceiling="+numNeeded+". Currently had: "+haveCurrently);
 				propagateNewAtomInUpperBounds(upperBounds, t, theAtom);				
 			}						
 			

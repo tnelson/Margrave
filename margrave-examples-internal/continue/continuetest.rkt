@@ -7,6 +7,7 @@
                        #:margrave-path "../../racket")
 
 (m-load-policy "continue" "continuep.p")
+(m-load-policy "continue-changed" "continuep-changed.p")
 
 ; Taken from the policy:
 ; NOTE: Will need to add suitable isas to well-sort this.
@@ -135,6 +136,7 @@
        ; !!! TODO. Observation: managing these is a PAIN.
        #:ceiling '([univ 37]                   
                    [Object 6] ;<-- don't increase unless increasing subsort
+                   ;[Resource 3] ; doesnt matter for THIS query, but will in later ones
                    [User 3] ; an admin, an author, a reviewer (who isn't conflicted --> can't be the author)
                    [Action 16]
                    [Paper 1]
@@ -169,4 +171,81 @@
 ;(check-true (m-scenario? (m-get "Q1")))
 ;(time (display (m-show-scenario "Q2")))
 
+
+; One direction change imp
+(m-let "Q3" '([s User]              
+              [a Action]
+              [r Object])
+       '(and (or 
+              (and (not ([continue-changed permit] s a r))
+                   ([continue permit] s a r))
+              (and ([continue-changed permit] s a r)
+                   (not ([continue permit] s a r))) 
+              )
+                         
+              
+              ;;;;;;;;;;;;;;;;;
+              ; paper decisions still unfixed
+              (exists c Conference 
+                      (forall p Paper (and (= (decisionIs p) 'undecided)
+                                           
+                                           ; Papers all ready to move out of this phase
+                                           (implies 
+                                            (= 'cSubmission (conferencePhase c)) 
+                                            (= 'pBidding (paperPhase p)))
+                                           (implies 
+                                            (= 'cBidding (conferencePhase c)) 
+                                            (= 'pAssignment (paperPhase p)))
+                                           (implies 
+                                            (= 'cAssignment (conferencePhase c)) 
+                                            (= 'pReviewing (paperPhase p)))
+                                           (implies 
+                                            (= 'cReviewing (conferencePhase c)) 
+                                            (= 'pDiscussion (paperPhase p)))
+                                           ; Allow situations that used to be denied to occur: papers not ready to advance
+                                            (implies 
+                                            (= 'cDiscussion (conferencePhase c)) 
+                                            (= 'pDiscussion (paperPhase p)))
+                                               )))
+              ; Nobody has been assigned yet (still bidding)
+              ; No conflicts
+              ; Nobody has even bid yet
+              ; No reviewers
+              (forall p Paper (forall u User (and (not (assignedTo u p))
+                                                  (not (conflicted u p))
+                                                  (not (bid u p))
+                                                  (not (reviewer u)))))
+              ; some paper has been submitted
+              (exists p Paper true )            
+              ; no reviews exist yet (stronger than saying reviewOn is empty)
+              (forall rev Review (not (= rev rev)))
+              ; the conference is in the bidding phase
+              (exists conf Conference (or (= 'cSubmission (conferencePhase conf)) 
+                                          ;(= 'cBidding (conferencePhase conf))
+                                          ;(= 'cAssignment (conferencePhase conf))
+                                         ; (= 'cReviewing (conferencePhase conf))
+                                          (= 'cDiscussion (conferencePhase conf))
+                                          ))
+              
+              
+              ;;;;;;;;;;;;;;;;;;
+              )
+       
+       #:ceiling '([univ 37]                   
+                   [Object 6] ;<-- don't increase unless increasing subsort
+                   [User 3] ; an admin, an author, a reviewer (who isn't conflicted --> can't be the author)
+                   [Resource 3] ; if not given, Margrave will use its own calculated ceiling of 10
+                   [Action 16]                   
+                   [Paper 1]
+                   [Review 1]
+                   [Decision 2] ; <-- need to allow for a non-undecided decision
+                   [Conference 1]
+                   [ConferencePhase 9]
+                   [PaperPhase 6]
+                   [ConferenceInfo 0]))
+       
+(display (m-show-scenario "Q3" #:include '( ([continue-changed permit] s a r)
+                                            ([continue permit] s a r)
+                                            ([continue-changed deny] s a r)
+                                            ([continue deny] s a r))))
 
