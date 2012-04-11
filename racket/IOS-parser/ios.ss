@@ -1069,14 +1069,15 @@
 ;;   Represents an extended ACE for TCP with flags
 (define extended-ACE-TCP/flags%
   (class* extended-ACE-TCP/UDP% (ACE<%>)
-    (init line-number permit source-addr source-port dest-addr dest-port flags)
+    (init line-number permit source-addr source-port dest-addr dest-port)
+    (init-field flags)
     (super-make-object line-number permit source-addr 'Prot-TCP source-port dest-addr dest-port)
     
     (inherit-field src-addr-in)
     (inherit-field src-port-in)
     (inherit-field prot)
     (inherit-field dest-addr-in)
-    (inherit-field dest-port-in)
+    (inherit-field dest-port-in)      
     
     (define flag-conditions (map (λ (flag)
                                    `(,flag flags))
@@ -1084,8 +1085,15 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/override (rule hostname interf additional-conditions)
-      (super rule hostname interf (append flag-conditions additional-conditions)))
+    (define/override (rule hostname interf additional-conditions)   
+          
+      ; Kludge for now. Used to be just interf.
+      (define interf-flags-name (string->symbol (foldl (λ (flag sofar)
+                                                         (string-append sofar (symbol->string flag)))
+                                                       (symbol->string interf)
+                                                       flags)))
+      
+      (super rule hostname interf-flags-name (append flag-conditions additional-conditions)))
     ))
 
 ;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port symbol
@@ -1112,8 +1120,7 @@
         (name hostname interf)
         (decision)
         (list (connection-predicate))
-        `(,@additional-conditions
-          ; TN -- changed from ,src-addr-in to src-addr-in, etc. (Want the literal var names, not sorts)
+        `(,@additional-conditions         
           (,(connection-predicate) src-addr-in src-port-in protocol dest-addr-in dest-port-in)
           (,src-addr-in src-addr-in)
           (,prot protocol)
@@ -1124,7 +1131,7 @@
     ;; -> symbol
     ;;   Returns the name of the connection predicate for this rule
     (define/private (connection-predicate)
-      (string->symbol (string-append "Connection-" (symbol->string ACL-name))))
+      (string->symbol (string-append "connection-" (symbol->string ACL-name))))
     ))
 
 ;; ACL% : (listof ACE<%>)
@@ -3571,7 +3578,7 @@
            ; Advertise
            ; Encrypt)
            (Predicates ,@(map (λ (predicate)
-                                `(,predicate : IPAddress Port Protocol-any IPAddress Port))
+                                `(,predicate IPAddress Port Protocol-any IPAddress Port))
                               (remove-duplicates (flatten (map (λ (rule)
                                                                  (send rule extract-predicates))
                                                                rules)))))    

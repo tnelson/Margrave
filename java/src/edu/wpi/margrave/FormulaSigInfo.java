@@ -1818,22 +1818,17 @@ public class FormulaSigInfo
 			// LOCAL SAP coercions 
 			// not true coercions, just statements that "c" may also be a B as well as an A.
 			for(SigFunction sf : sapFunctions)
+			{
 				if(sf.funcCause != null) // locals only
+				{
 					if(sf.funcCause.equals(c) && finitarySorts.contains(sf.sort))
+					{
 						toPopulate.add(sf.sort);
+						MCommunicator.writeToLog("\nFormulaSigInfo calculateBounds() LOCAL SAP for "+c+": "+sf+". Propagating to "+sf.sort);
+					}
+				}
+			}	
 									
-			// GLOBALS are applied below by supersAndCoercionsFromTC. Not needed here.
-			
-			// GLOBAL SAP coercions (from SAP functions)
-			//for(SigFunction sf : sapFunctions)
-			//{
-			//	System.out.println(sf + " ... "+sf.funcCause);
-			//	System.out.println(c.sort);
-			//	if(sf.funcCause == null) // coercion not specific to a skolem function
-			//		if(sf.arity.get(0).equals(c.sort) && finitarySorts.contains(sf.sort))
-			//			toPopulate.add(sf.sort);
-			//}
-
 			// only one actual element bound to this constant
 			totalTerms = totalTerms.add(BigInteger.ONE);
 			
@@ -1858,6 +1853,8 @@ public class FormulaSigInfo
 					if(!finitarySorts.contains(r)) continue; // don't try to prop to an infinitary sort
 					if(countedIn.contains(r)) continue; // don't double-count
 						
+					MCommunicator.writeToLog("\nFormulaSigInfo calculateBounds() supersAndCoercionsFromTC for "+c+"; propagating to"+r);
+					
 					totals[0][sortsInOrder.get(r).intValue()] = 
 						totals[0][sortsInOrder.get(r).intValue()].add(BigInteger.ONE);
 					
@@ -1882,8 +1879,12 @@ public class FormulaSigInfo
 			// No point in going to the next height if this height has no terms.
 			boolean thisHeightExists = false;
 			
+			MCommunicator.writeToLog("\nFormulaSigInfo calculateBounds() height="+height);
+			
 			for(SigFunction f : productiveFunctions)
 			{
+				MCommunicator.writeToLog("\nFormulaSigInfo calculateBounds() prodFunc="+f);
+								
 				// First, build a list of all native sorts for f's result. 
 				// (f.sort, but also local coercions due to sort-as-predicate appearance)			
 				Set<LeafExpression> toPopulate = new HashSet<LeafExpression>();
@@ -1893,12 +1894,20 @@ public class FormulaSigInfo
 				// SAP coercions (from SAP functions local to f)
 				for(SigFunction sc : sapFunctions)
 					if(f.equals(sc.funcCause) && finitarySorts.contains(sc.sort))
+					{
+						MCommunicator.writeToLog("\nFormulaSigInfo prodFunc="+f+" prop by local:"+sc);
 						toPopulate.add(sc.sort);
+					}
 				// SAP coercions (from SAP functions which are global coercions)
 				for(SigFunction sf : sapFunctions)
 					if(sf.funcCause == null) // coercion not specific to a Skolem function
+					{
 						if(sf.arity.get(0).equals(f.sort) && finitarySorts.contains(sf.sort))
+						{
+							MCommunicator.writeToLog("\nFormulaSigInfo prodFunc="+f+" prop by global:"+sf);
 							toPopulate.add(sf.sort);
+						}
+					}
 				
 				if(toPopulate.size() == 0)
 					continue; // don't calculate if nowhere to populate.

@@ -21,7 +21,9 @@
          "IOS-parser/ios-compile.rkt")
 
 ; Others provided via provide/contract
-(provide load-ios-policies)
+(provide load-ios-policies
+         vardec-20
+         vardec-16)
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
@@ -120,6 +122,44 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  (define vardec-20 '([ahostname Hostname]
+                      [entry-interface Interf-real]
+                      [src-addr-in IPAddress]
+                      [src-addr_ IPAddress]
+                      [src-addr-out IPAddress]
+                      [dest-addr-in IPAddress]
+                      [dest-addr_ IPAddress]
+                      [dest-addr-out IPAddress]
+                      [protocol Protocol-any]
+                      [message ICMPMessage]
+                      [flags TCPFlags]
+                      [src-port-in Port]
+                      [src-port_ Port]
+                      [src-port-out Port]
+                      [dest-port-in Port]
+                      [dest-port_ Port]
+                      [dest-port-out Port] 
+                      [length Length]
+                      [next-hop IPAddress]
+                      [exit-interface Interface]))
+  (define vardec-16 '([ahostname Hostname]
+                      [entry-interface Interf-real]
+                      [src-addr-in IPAddress]
+                      [src-addr-out IPAddress]
+                      [dest-addr-in IPAddress]
+                      [dest-addr-out IPAddress]
+                      [protocol Protocol-any]
+                      [message ICMPMessage]
+                      [flags TCPFlags]
+                      [src-port-in Port]
+                      [src-port-out Port]
+                      [dest-port-in Port]
+                      [dest-port-out Port] 
+                      [length Length]
+                      [next-hop IPAddress]
+                      [exit-interface Interface]))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (load-ios-helper filename dirpath prefix suffix) 
@@ -173,43 +213,7 @@
   (define localswitching (string->symbol (string-append prefix "LocalSwitching" suffix)))  
   (define networkswitching (string->symbol (string-append prefix "NetworkSwitching" suffix)))
   (define encryption (string->symbol (string-append prefix "Encryption" suffix)))
-  
-  (define vardec-20 '([ahostname Hostname]
-                      [entry-interface Interf-real]
-                      [src-addr-in IPAddress]
-                      [src-addr_ IPAddress]
-                      [src-addr-out IPAddress]
-                      [dest-addr-in IPAddress]
-                      [dest-addr_ IPAddress]
-                      [dest-addr-out IPAddress]
-                      [protocol Protocol-any]
-                      [message ICMPMessage]
-                      [flags TCPFlags]
-                      [src-port-in Port]
-                      [src-port_ Port]
-                      [src-port-out Port]
-                      [dest-port-in Port]
-                      [dest-port_ Port]
-                      [dest-port-out Port] 
-                      [length Length]
-                      [next-hop IPAddress]
-                      [exit-interface Interface]))
-  (define vardec-16 '([ahostname Hostname]
-                      [entry-interface Interf-real]
-                      [src-addr-in IPAddress]
-                      [src-addr-out IPAddress]
-                      [dest-addr-in IPAddress]
-                      [dest-addr-out IPAddress]
-                      [protocol Protocol-any]
-                      [message ICMPMessage]
-                      [flags TCPFlags]
-                      [src-port-in Port]
-                      [src-port-out Port]
-                      [dest-port-in Port]
-                      [dest-port-out Port] 
-                      [length Length]
-                      [next-hop IPAddress]
-                      [exit-interface Interface]))
+ 
   
   (define inner-vec '(ahostname entry-interface src-addr_ src-addr_
                                 dest-addr_ dest-addr_ protocol message flags src-port_ src-port_

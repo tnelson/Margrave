@@ -46,22 +46,22 @@
   ;    AND ip-10-1-1-2(ip-addr-in)
   
   
-    (define vardec-16 '([ahostname Hostname]
-                      [entry-interface Interf-real]
-                      [src-addr-in IPAddress]
-                      [src-addr-out IPAddress]
-                      [dest-addr-in IPAddress]
-                      [dest-addr-out IPAddress]
-                      [protocol Protocol-any]
-                      [message ICMPMessage]
-                      [flags TCPFlags]
-                      [src-port-in Port]
-                      [src-port-out Port]
-                      [dest-port-in Port]
-                      [dest-port-out Port] 
-                      [length Length]
-                      [next-hop IPAddress]
-                      [exit-interface Interface]))
+    (define vardec-16 '([ahostname Hostname] ; 1
+                      [entry-interface Interf-real] ; 2 
+                      [src-addr-in IPAddress] ; 5
+                      [src-addr-out IPAddress] ; 5
+                      [dest-addr-in IPAddress] ; 5
+                      [dest-addr-out IPAddress] ;5
+                      [protocol Protocol-any] ; 1
+                      [message ICMPMessage] ; 1
+                      [flags TCPFlags] ;1 
+                      [src-port-in Port] ;4
+                      [src-port-out Port] ;4
+                      [dest-port-in Port] ;4
+                      [dest-port-out Port] ;4
+                      [length Length] ;1 
+                      [next-hop IPAddress] ;5
+                      [exit-interface Interface])) ;2
   (define vars-16 '(ahostname entry-interface src-addr-in src-addr-out
                       dest-addr-in dest-addr-out
                       protocol message flags
