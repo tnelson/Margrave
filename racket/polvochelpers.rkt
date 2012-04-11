@@ -105,6 +105,17 @@
                      (hash)
                      (hash-values vardecs)))
   
+  ; accepts either an immutable or mutable hash table
+  ; and performs the appropriate hash-set (or set!) operation
+  (define/contract (hash-set/safe a-hash a-key a-val)
+    [hash? any/c any/c . -> . hash?]
+    (cond [(immutable? a-hash)
+           (hash-set a-hash a-key a-val)]
+          [else 
+           (hash-set! a-hash a-key a-val)
+           a-hash]))
+    
+  
   ; Vocabulary for well-sortedness check
   ; The policy should be able to reference its own IDBs without qualification.
   ; E.g. not ([me permit] s a r) but just (permit s a r)
@@ -113,10 +124,10 @@
   (define extended-vocab
     (m-vocabulary (m-vocabulary-name orig-vocab)
                   (m-vocabulary-types orig-vocab)
-                  (foldl (lambda (idb-pair sofar)              
-                           (hash-set sofar
-                                     (car idb-pair)
-                                     (m-predicate (car idb-pair) (map ->string (cdr idb-pair)))))
+                  (foldl (lambda (idb-pair sofar)                             
+                           (hash-set/safe sofar
+                                          (car idb-pair)
+                                          (m-predicate (car idb-pair) (map ->string (cdr idb-pair)))))
                          (m-vocabulary-predicates (m-theory-vocab theory))
                          (hash->list idbs))
                   (m-vocabulary-constants orig-vocab)
@@ -521,15 +532,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Get a cached policy by ID. If no such policy exists, throw a suitable error.
-(define (get-cached-policy/err pid)  
-  (unless (hash-has-key? cached-policies (->string pid))
-    (margrave-error "No such policy" pid))
-  (hash-ref cached-policies (->string pid)))
+(define (get-cached-policy pid)  
+  (if (hash-has-key? cached-policies (->string pid))    
+      (hash-ref cached-policies (->string pid))
+      #f))
 ; same for cached prior query
-(define (get-prior-query/err qid)  
-  (unless (hash-has-key? cached-prior-queries (->string qid))
-    (margrave-error "No prior query saved under that name" qid))
-  (hash-ref cached-prior-queries (->string qid)))
+(define (get-prior-query qid)  
+  (if (hash-has-key? cached-prior-queries (->string qid))    
+      (hash-ref cached-prior-queries (->string qid))
+      #f))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Avoid duplicate code. Defer to m-formula-is-well-sorted/err
@@ -567,7 +578,7 @@
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)
     (unless (hash-has-key? (m-vocabulary-predicates voc) edbname)
-      (margrave-error "The predicate was not defined in the vocabulary context" fmla))
+      (margrave-error (format "The predicate ~v was not defined in the vocabulary context" edbname) fmla))
     (define mypred (hash-ref (m-vocabulary-predicates voc) edbname))    
     (define pairs-to-check (zip list-of-vars (m-predicate-arity mypred)))
     (andmap (lambda (p) (internal-correct (first p) (second p))) pairs-to-check))
@@ -582,15 +593,19 @@
       (cond 
       [(empty? pol-id-list) 
        ; saved-query IDB
-       (define this-prior-query (get-prior-query/err idbname))
+       (define this-prior-query (get-prior-query idbname))
+       (unless this-prior-query
+         (margrave-error (format "Formula ~v referenced the prior query identifier ~v but no such query was found." fmla idbname) fmla))
        (unless (hash-has-key? (m-prior-query-idbs this-prior-query) idbname)
-         (margrave-error (format "Saved query ~v did not contain the IDB ~v. It contained: ~v" idbname idbname (m-prior-query-idbs this-prior-query)) idbname))
+         (margrave-error (format "Saved query ~v did not contain the IDB ~v. It contained: ~v" idbname idbname (m-prior-query-idbs this-prior-query)) fmla))
        (m-prior-query-idbs this-prior-query)]
       [else
        ; policy IDB
-       (define this-policy (get-cached-policy/err (first pol-id-list)))
+       (define this-policy (get-cached-policy (first pol-id-list)))
+       (unless this-policy
+         (margrave-error (format "Formula ~v referenced the policy identifier ~v but no such policy was found." fmla (first pol-id-list)) fmla))
        (unless (hash-has-key? (m-policy-idbs this-policy) idbname)
-         (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname (m-policy-idbs this-policy)) idbname))
+         (margrave-error (format "Policy ~v did not contain the IDB ~v. It contained: ~v" pol-id-list idbname (m-policy-idbs this-policy)) fmla))
        (m-policy-idbs this-policy)]))        
     ;(printf "the idbs ~v~n" the-idbs)
     
