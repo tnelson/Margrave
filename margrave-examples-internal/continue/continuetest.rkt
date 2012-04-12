@@ -215,30 +215,38 @@
                                                   (not (conflicted u p))
                                                   (not (bid u p))
                                                   (not (reviewer u)))))
-              ; some paper has been submitted
-              (exists p Paper true )            
+              ; there are two papers
+              (exists p1 Paper (exists p2 Paper (not (= p1 p2))))
               ; no reviews exist yet (stronger than saying reviewOn is empty)
               (forall rev Review (not (= rev rev)))
               ; the conference is in the bidding phase
               (exists conf Conference (or (= 'cSubmission (conferencePhase conf)) 
-                                          ;(= 'cBidding (conferencePhase conf))
+                                          (= 'cBidding (conferencePhase conf))
                                           ;(= 'cAssignment (conferencePhase conf))
                                          ; (= 'cReviewing (conferencePhase conf))
                                           (= 'cDiscussion (conferencePhase conf))
                                           ))
+              
+              ; No un-used users
+              (forall us User (or (admin us) (author us) (reviewer us)))
+              
+              ; Can have the 2 papers share an author
+              ; can be csubmission (p/d) or cdiscussion (d/p)
+              
+              
               
               
               ;;;;;;;;;;;;;;;;;;
               )
        
        #:ceiling '([univ 37]                   
-                   [Object 6] ;<-- don't increase unless increasing subsort
-                   [User 3] ; an admin, an author, a reviewer (who isn't conflicted --> can't be the author)
+                   [Object 7] ;<-- don't increase unless increasing subsort
+                   [User 3] ; an admin and 2 authors (for the papers)
                    [Resource 3] ; if not given, Margrave will use its own calculated ceiling of 10
                    [Action 16]                   
-                   [Paper 1]
+                   [Paper 2]
                    [Review 1]
-                   [Decision 2] ; <-- need to allow for a non-undecided decision
+                   [Decision 1] ; no need for a non-undecided decision in this stripped down cia query
                    [Conference 1]
                    [ConferencePhase 9]
                    [PaperPhase 6]
@@ -248,4 +256,11 @@
                                             ([continue permit] s a r)
                                             ([continue-changed deny] s a r)
                                             ([continue deny] s a r))))
+
+(save-all-scenarios "Q3" 
+                    #:brief #t
+                    #:include '( ([continue-changed permit] s a r)
+                                            ([continue permit] s a r)
+                                            ([continue-changed deny] s a r)
+                                            ([continue deny] s a r)))
 

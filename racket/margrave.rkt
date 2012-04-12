@@ -762,22 +762,22 @@
 
 ; Helpers for scenario-saving
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (display-scenarios-to-file qid fileport brief)
-  [string? port? boolean? . -> . any/c]
-  (define result (m-get-scenario qid))  
+(define (display-scenarios-to-file qid fileport brief include)
+  [string? port? boolean? list? . -> . any/c]
+  (define result (m-get-scenario qid #:include include))  
   (when (m-scenario? result)  
     (display (m-scenario->string result #:brief brief) fileport)
     (display "\n\n" fileport)
-    (display-scenarios-to-file qid fileport brief)))
+    (display-scenarios-to-file qid fileport brief include)))
 
-(define (save-all-scenarios qid #:brief [brief #f])   
+(define (save-all-scenarios qid #:brief [brief #f] #:include [include empty])   
   [->* (string?)
        (#:brief boolean?)
        any/c]
   (m-reset-scenario-iterator qid) ; start at beginning of scenario-stream
   (define out (open-output-file (string-append "scenarios-" qid ".txt") #:exists 'replace))
   (display (format "*** Found ~v scenarios for query with ID: ~v. ***~n~n" (m-count-scenarios qid) qid) out)
-  (display-scenarios-to-file qid out brief)
+  (display-scenarios-to-file qid out brief include)
   (m-reset-scenario-iterator qid) ; return to beginning of stream
   (close-output-port out))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
