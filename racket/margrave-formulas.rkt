@@ -156,9 +156,11 @@
     ; Looks like the annotation isn't working properly if the ? form is used inside it?
     ; #{} is a reader extension... 
     
-    [ (list (list #{(? symbol? pids) : (Listof Symbol)} ... (? symbol? idbname)) 
-            #{terms : (Listof Sexp)} ...)
-     (m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
+    ;[ (list (list #{(? symbol? pids) : (Listof Symbol)} ... (? symbol? idbname)) 
+    [ (list #{args : (Listof Symbol)} ... ) 
+      (m-true #f)]
+            ;#{terms : (Listof Sexp)} ...)
+     ;(m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
     
     ;[`( ,@(list #{pids : (Listof Symbol)} ... (? symbol? idbname)) 
     ;    ,@(list #{terms : (Listof Sexp)} ...))
