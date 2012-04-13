@@ -48,19 +48,19 @@
 (struct: m-not ([subfmla : m-formula]
                 [syn : (Option Syntax)]) #:transparent)
 
-(struct: m-exists ([var : Symbol]
+(struct: m-exists ([var : m-variable-term]
                    [sort : Symbol]
                    [subfmla : m-formula]
                    [syn : (Option Syntax)])  
   #:transparent)
 
-(struct: m-forall ([var : Symbol]
+(struct: m-forall ([var : m-variable-term]
                    [sort : Symbol]
                    [subfmla : m-formula]
                    [syn : (Option Syntax)])  
   #:transparent)
 
-(struct: m-isa ([var : Symbol]
+(struct: m-isa ([var : m-variable-term]
                 [sort : Symbol]
                 [subfmla : m-formula]
                 [syn : (Option Syntax)])  
@@ -104,8 +104,8 @@
   ))
 
 
-(test (m-exists 'x 'S (m-true #f) #f))
-(test (m-forall 'x 'S (m-true #'test) #'foo) )
+(test (m-exists (m-variable-term 'x #'zot) 'S (m-true #f) #f))
+(test (m-forall (m-variable-term 'x #'zot) 'S (m-true #'test) #'foo) )
 (test (m-and (list (m-true #'bar) 
                    (m-atomic-edb 'P (list (m-variable-term 'x #'zot)) #'baz)) #'test))
 (test (m-or (list (m-false #'bar) 
@@ -113,7 +113,7 @@
                                                               (m-variable-term 'y #'zot2)
                                                               (m-function-term 'f (list (m-variable-term 'y #'zot2)) #'zot3)) #'baz)) #'test))
 
-(: sexp->m-term (Datum -> m-term))
+(: sexp->m-term (Sexp -> m-term))
 (define (sexp->m-term s)
   (m-constant-term 'x #f))
 
@@ -122,51 +122,49 @@
 ; Syntax
 ; SExp
 ; Identifier = (Syntaxof Symbol)
-(: sexp->m-formula (Datum -> m-formula))
+(: sexp->m-formula (Sexp -> m-formula))
 (define (sexp->m-formula s)
   (match s
     ['true
      (m-true #f)]        
     ['false
      (m-false #f)]        
-    
     [(list '= t1 t2)
      (m-equals (sexp->m-term t1) (sexp->m-term t1)  #f)]
+                    
+    [(list 'and #{args : (Listof Sexp)} ...)
+     (m-and (map sexp->m-formula args) #f)]        
+    [(list 'or #{args : (Listof Sexp)} ...)
+     (m-or (map sexp->m-formula args) #f)]    
+    [(list 'implies f1 f2)
+     (m-implies (sexp->m-formula f1) (sexp->m-formula f2) #f)]    
+    [(list 'iff f1 f2)
+     (m-iff (sexp->m-formula f1) (sexp->m-formula f2) #f)]
+    [(list 'not subf)
+     (m-not (sexp->m-formula subf) #f)]
+
+    [(list 'exists (? symbol? var) (? symbol? sort) subf)
+     (m-exists (m-variable-term var #f) sort (sexp->m-formula subf) #f)]    
+    [(list 'forall (? symbol? var) (? symbol? sort) subf)
+     (m-forall (m-variable-term var #f) sort (sexp->m-formula subf) #f)]    
+    [(list 'isa (? symbol? var) (? symbol? sort) subf)
+     (m-isa (m-variable-term var #f) sort (sexp->m-formula subf) #f)]
+
+    [(list (? symbol? edbname) #{terms : (Listof Sexp)} ...)
+     (m-atomic-edb edbname (map sexp->m-term terms) #f)]
     
-    ;[`(and ,@(list args ...))               
-    [(list 'and args ...)              
-     ; getting (Listof Any) as type of arg
-     (m-and (map sexp->m-formula args) #f)]    
-    ;[(m-op-case or args ...)
-    ; (andmap (lambda (f) (m-formula-is-well-sorted?/err voc f env)) args)]
-    ;[(m-op-case implies arg1 arg2)
-    ; (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
-    ;[(m-op-case iff arg1 arg2)
-    ; (and (m-formula-is-well-sorted?/err voc arg1 env) (m-formula-is-well-sorted?/err voc arg2 env))]   
-    ;[(m-op-case not arg)
-    ; (m-formula-is-well-sorted?/err voc arg env)]   
-   ; 
-   ; [(m-op-case forall vname sname subfmla)
-   ;  (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
-   ; [(m-op-case exists vname sname subfmla)
-   ;  (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]  
-   ; ; If (isa x A alpha) is sugar for (exists y A (and (= x y) alpha[x -> y]))
-   ; ; the sort of x must be _replaced_, not augmented, by the new sort.
-   ; [(m-op-case isa vname sname subfmla)
-   ;  (m-formula-is-well-sorted?/err voc subfmla (hash-set env vname sname))]     
-   ; 
-   ; ; (idb term0 terms ...)    
-   ; [(maybe-syntax-list-quasi ,(maybe-syntax-list-quasi ,@(list pids ... idbname)) ,@(list terms ...))
-   ;  (internal-correct/idb terms pids idbname)] 
-   ; 
-   ; [(maybe-syntax-list-quasi ,dbname ,term0 ,@(list terms ...))
-   ;  (cond
-   ;    [(and (valid-sort? dbname) 
-   ;          (empty? terms))
-   ;     (internal-correct/isa-sugar term0 (->string dbname))] ; sugar for (isa x A true)      
-   ;    [else (internal-correct/edb (cons term0 terms) (->string dbname))])] ; (edb term0 terms ...)
-   ;
-    [else (raise "x")]))
+    ; Looks like the annotation isn't working properly if the ? form is used inside it?
+    ; #{} is a reader extension... 
+    
+    [ (list (list #{(? symbol? pids) : (Listof Symbol)} ... (? symbol? idbname)) 
+            #{terms : (Listof Sexp)} ...)
+     (m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
+    
+    ;[`( ,@(list #{pids : (Listof Symbol)} ... (? symbol? idbname)) 
+    ;    ,@(list #{terms : (Listof Sexp)} ...))
+    ; (m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
+
+    [else (raise "bad m-formula sexpression")]))
 
 
 ; Fails. The checker can't solve undecidable problems. :-)
