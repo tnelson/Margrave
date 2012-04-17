@@ -118,6 +118,11 @@
   (m-constant-term 'x #f))
 
 
+
+(: foo ((Listof Symbol) -> (Option Syntax)))
+(define (foo lst)
+  #f)
+
 ; Populate syn fields appropriately
 ; Syntax
 ; SExp
@@ -150,17 +155,23 @@
     [(list 'isa (? symbol? var) (? symbol? sort) subf)
      (m-isa (m-variable-term var #f) sort (sexp->m-formula subf) #f)]
 
+    ; correct pattern:
+    ; (match '((1 2) 3) [(list (list a b) c) '(a b c)])
+    
     [(list (? symbol? edbname) #{terms : (Listof Sexp)} ...)
      (m-atomic-edb edbname (map sexp->m-term terms) #f)]
     
     ; Looks like the annotation isn't working properly if the ? form is used inside it?
     ; #{} is a reader extension... 
     
-    ;[ (list (list #{(? symbol? pids) : (Listof Symbol)} ... (? symbol? idbname)) 
-    [ (list #{args : (Listof Symbol)} ... ) 
-      (m-true #f)]
-            ;#{terms : (Listof Sexp)} ...)
-     ;(m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
+   ; [ (list (list (? symbol? #{pids : (Listof Symbol)}) ... (? symbol? idbname))        
+   ;         #{terms : (Listof Sexp)} ...)
+    ;  (m-atomic-idb pids idbname (map sexp->m-term terms) #f)]
+    
+    ; NOT ok; simpler
+     [ (list (? symbol? #{pids : (Listof Symbol)}) ... (? symbol? idbname)) 
+      (m-atomic-idb pids 'idbname empty #f)]
+    
     
     ;[`( ,@(list #{pids : (Listof Symbol)} ... (? symbol? idbname)) 
     ;    ,@(list #{terms : (Listof Sexp)} ...))

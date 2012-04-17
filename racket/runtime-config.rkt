@@ -39,7 +39,7 @@
       (let ()                                     
         (define a-result (proc))
         (when (not (void? a-result))
-          (display-response a-result)))
+          (display (response->string a-result))))
       (orig-print proc)))
 
 (define (margrave-repl-prompt-read)

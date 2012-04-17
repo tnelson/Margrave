@@ -21,6 +21,7 @@ mkdir margrave/tests
 mkdir margrave/examples
 mkdir margrave/scribblings
 mkdir margrave/licenses
+mkdir margrave/lang
 
 
 cp ${MARGRAVE_PROJECT_ROOT}/racket/*.rkt margrave
@@ -28,6 +29,8 @@ cp ${MARGRAVE_PROJECT_ROOT}/racket/*.rkt margrave
 cp ${MARGRAVE_PROJECT_ROOT}/licenses/* margrave/licenses
 
 cp ${MARGRAVE_PROJECT_ROOT}/java/lib/*.jar margrave/lib
+
+cp ${MARGRAVE_PROJECT_ROOT}/racket/lang/*.rkt margrave/lang
 
 cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.scrbl margrave/scribblings
 

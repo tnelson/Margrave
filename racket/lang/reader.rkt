@@ -104,7 +104,7 @@
              (define a-result (a-func))
              ;(printf "handle-func: ~a ~a~n" a-func a-result)
              (when (not (void? a-result))
-               (display-response a-result))
+               (display (response->string a-result)))
              a-result)
            
            ; voids may be inserted as no-ops (see parser)
