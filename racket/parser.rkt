@@ -369,13 +369,11 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(LET any-id LSQBRACK RSQBRACK BE condition-formula) 
           (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 empty) 1 6)]
          [(LET any-id LSQBRACK RSQBRACK BE condition-formula explore-modifiers-list) 
-          (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 $7) 1 7)]         
+          (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 $7) 1 7)]
+         [(COMPARE any-id EQUALS any-id any-id)
+          (build-so (list 'COMPARE $2 $4 $5) 1 5)]
          )
-                
-        ;(compare-statement                  
-        ; [(COMPARE policy policy) (build-so (list 'COMPARE $2 $3 empty) 1 3)]
-        ; [(COMPARE policy policy explore-modifiers-list) (build-so (list 'COMPARE $2 $3 $4) 1 4)]
-        ; )
+                       
                         
         ;**************************************************
         ; Optional modifiers for the explore statement
