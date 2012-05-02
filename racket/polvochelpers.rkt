@@ -403,18 +403,22 @@
 ; Well-sortedness checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define/contract (is-a-type-in-vocab? sname voc)
+(define/contract (is-a-type-in-vocab?/err sname voc)
   [string? m-vocabulary? . -> . boolean? ]
   (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
-    (margrave-error (format "Unknown type: ~v. Valid types were: ~v" (->symbol sname) (hash-keys (m-vocabulary-types voc))) sname))  
+    (margrave-error (format "Unknown type: ~a. Valid types were: ~v" (->symbol sname) (hash-keys (m-vocabulary-types voc))) sname))  
   #t)
+
+(define/contract (is-a-constant-in-vocab? cname voc)
+  [(or/c string? symbol?) m-vocabulary? . -> . boolean? ]
+  (hash-has-key? (m-vocabulary-constants voc) (->string cname)))
 
 ; Inefficient, but works -- compute transitive closure of sort hierarchy.
 (define/contract (m-type-child-names/rtrans voc sname)
   [m-vocabulary? symbol? . -> . (listof symbol?)]  
   
   (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
-    (margrave-error (format "Unknown type: ~v. Valid types were: ~v" sname (hash-keys (m-vocabulary-types voc))) sname))
+    (margrave-error (format "Unknown type: ~a. Valid types were: ~v" sname (hash-keys (m-vocabulary-types voc))) sname))
   
   (define the-type (hash-ref (m-vocabulary-types voc) (->string sname)))
   (define child-names (m-type-child-names the-type)) 
@@ -456,7 +460,12 @@
      (string->symbol (m-constant-type (hash-ref (m-vocabulary-constants voc) unquoted-id-str)))]
     [(? valid-variable? vid) 
      (unless (hash-has-key? env term)
-       (margrave-error (format "The variable ~v was not declared in the environment. Environment was: ~v" vid env) vid))     
+       ; Give special error if we think they might have forgotten the '
+       (cond [(is-a-constant-in-vocab? vid voc)
+              (margrave-error (format "The variable <~a> was not declared or quantified, but there was a constant of the same name. Should it be '~a?" 
+                                      vid vid) vid)]
+             [else
+              (margrave-error (format "The variable <~a> was not declared or quantified. The formula expected one of the following: ~v" vid (hash-keys env)) vid)]))
      (hash-ref env term)]
     [else (margrave-error (format "The term ~v was not well-sorted. Environment was: ~v." term env) term)]))    
 
@@ -567,7 +576,7 @@
     (define term-sort (m-term->sort/err voc tname env))
     ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname-sym valid-sort-names term-sort (member? term-sort valid-sort-names))
     (unless (member? term-sort valid-sort-names)
-      (margrave-error (format "The formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v" fmla tname term-sort sname-sym) tname))
+      (margrave-error (format "The formula ~v was not well-sorted. The term ~a was of type ~a, but expected to be of type ~v" fmla tname term-sort sname-sym) tname))
     #t)
   
   ; Handle case: (isa x A true)
@@ -577,7 +586,7 @@
     ; unless the sort name is not defined in the vocab.
     ; Don't use internal-correct, which will force x to be subsort of A in (A x). 
     ; Instead, just check that A is valid.
-    (is-a-type-in-vocab? sname voc))
+    (is-a-type-in-vocab?/err sname voc))
   
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)
