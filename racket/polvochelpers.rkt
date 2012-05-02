@@ -349,15 +349,11 @@
 ; Does NOT auto-include the theory's XML
 (define/contract (m-policy->xexprs policy)
   [m-policy? . -> . (listof xexpr?)]
-    
-  ; No reason to include target if it's 'true
+      
   (define target-xexpr-list
-    (cond [(equal? (m-policy-target policy) 'true)
-           empty]
-          [else (list (xml-make-command "SET TARGET FOR POLICY" 
+    (list (xml-make-command "SET TARGET FOR POLICY" 
                                   (list (xml-make-policy-identifier (m-policy-id policy))
-                                        (m-formula->xexpr (m-policy-target policy)))))]))
-  
+                                        (xml-make-target (m-formula->xexpr (m-policy-target policy))))))) 
   (define (comb->xexpr comb)
          (match comb
            [`(fa ,@(list args ...))            

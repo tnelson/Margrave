@@ -217,41 +217,10 @@ public abstract class MPolicy extends MIDBCollection
 		return theBuffer.toString();
 	}
 	
-	public void setTarget(List<String> conjuncts)
+	public void setTarget(Formula targetfmla)
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEManagerException
-	{
-		// Elements of conjunction must be of the form "Domain var" or "Subdomain var"
-		// where "var" is in requestVariables.
-		// Anything else will cause an error!
-		
-		Set<Formula> targetSet = new HashSet<Formula>();
-		
-		for(String s : conjuncts)
-		{
-			s = s.toLowerCase();
-			String breakdown[] = s.split(" ");
-			
-			if(!vocab.isSort(breakdown[0]))
-				throw new MGEBadIdentifierName("Relation "+breakdown[0]+" is not a type.");
-
-			if("=".equals(breakdown[0]))
-			{
-				// EQ
-				// Bad variable name exception will propagate up.
-				Variable v1 = MFormulaManager.makeVariable(breakdown[1]);
-				Variable v2 = MFormulaManager.makeVariable(breakdown[2]);
-				targetSet.add(MFormulaManager.makeEqAtom(v1, v2));
-			}
-			else
-			{
-				// IN
-				Expression r = getRelationExpr(breakdown[0]);			
-				targetSet.add(MFormulaManager.makeAtom(MFormulaManager.makeVariable(breakdown[1]), r));
-			}
-		}
-		
-		this.target = MFormulaManager.makeConjunction(targetSet);
-		
+	{		
+		this.target = targetfmla;			
 	}
 
 	protected Expression getRelationExpr(String name) throws MGEUnknownIdentifier, MGEBadIdentifierName

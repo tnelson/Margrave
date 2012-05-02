@@ -1635,7 +1635,7 @@ public class MEnvironment
 		return successResponse();
 	}
 	
-	public static Document setPolicyTarget(String pname, List<String> cc)
+	public static Document setPolicyTarget(String pname, Formula targetfmla)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
@@ -1645,7 +1645,7 @@ public class MEnvironment
 		MPolicy pol = (MPolicy) coll;
 		try
 		{
-			pol.setTarget(cc);
+			pol.setTarget(targetfmla);
 		}
 		catch(MBaseException e)
 		{

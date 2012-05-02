@@ -394,8 +394,14 @@ public class MCommunicator
 
         		else if (type.equalsIgnoreCase("SET TARGET FOR POLICY")) {
         			String pname = getPolicyName(margraveCommandNode);
-        			List<String> conjuctChain = getConjunctChainList(margraveCommandNode);
-        			theResponse = MEnvironment.setPolicyTarget(pname, conjuctChain);
+        			
+					// Target fmla
+					Node targetNode = getChildNode(margraveCommandNode, "TARGET"); 							
+					assert(targetNode != null);
+					MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
+					Formula target = targetCondition.fmla;
+        			        			
+        			theResponse = MEnvironment.setPolicyTarget(pname, target);
         		}	
         		else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
         			String pname = getPolicyName(margraveCommandNode);
@@ -1124,11 +1130,7 @@ public class MCommunicator
         private static List<String> getRelationsList(Node n) {
         	return getListElements(n, "RELATIONS", "name");
         }
-        
-        private static List<String> getConjunctChainList(Node n) {        	
-			return getListElements(n, "CONJUNCTCHAIN", "name");
-		}
-                
+                        
         private static List<String> getUnderList(Node n)
         {
 			// The under node is the "list" node, so need to be passed the EXPLORE node,
