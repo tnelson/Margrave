@@ -412,7 +412,7 @@
   [m-vocabulary? symbol? . -> . (listof symbol?)]  
   
   (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
-    (margrave-error (format "Unknown type ~v in vocabulary ~v." sname voc) sname))
+    (margrave-error (format "Unknown type: ~v. Valid types were: ~v" sname (hash-keys (m-vocabulary-types voc))) sname))
   
   (define the-type (hash-ref (m-vocabulary-types voc) (->string sname)))
   (define child-names (m-type-child-names the-type)) 
@@ -565,15 +565,16 @@
     (define term-sort (m-term->sort/err voc tname env))
     ;(printf "internal-correct checking: ~v ~v ~v ~v ~v~n" tname sname-sym valid-sort-names term-sort (member? term-sort valid-sort-names))
     (unless (member? term-sort valid-sort-names)
-      (margrave-error (format "This formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v" fmla tname term-sort sname-sym) tname))
+      (margrave-error (format "The formula ~v was not well-sorted. The term ~v was of type ~v, but expected to be of type ~v" fmla tname term-sort sname-sym) tname))
     #t)
   
   ; Handle case: (isa x A true)
   (define/contract (internal-correct/isa-sugar vname sname)
     [any/c (or/c symbol? string?) . -> . boolean?]  
-    ; sugary isa formulas are always well-sorted.
-    ;(internal-correct vname sname)
-    #t)
+    ; sugary isa formulas are always well-sorted
+    ; unless the sort name is not defined in the vocab
+    (internal-correct vname sname))
+    ;#t)
   
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)

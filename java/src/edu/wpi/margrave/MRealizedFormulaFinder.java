@@ -750,8 +750,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// And getIthConstr is returning ArrayIndexOutOfBoundsException even if we use nConstraints as a limiter...
 		
 		// debug
-		org.sat4j.minisat.core.Solver<?> theSolver = (org.sat4j.minisat.core.Solver<?>) solver;
-		//org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
+		//org.sat4j.minisat.core.Solver<?> theSolver = (org.sat4j.minisat.core.Solver<?>) solver;
+		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
 
 		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+" clauses. They are:");
 		
