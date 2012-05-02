@@ -407,6 +407,12 @@
 ; Well-sortedness checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define/contract (is-a-type-in-vocab? sname voc)
+  [string? m-vocabulary? . -> . boolean? ]
+  (unless (hash-has-key? (m-vocabulary-types voc) (->string sname))
+    (margrave-error (format "Unknown type: ~v. Valid types were: ~v" (->symbol sname) (hash-keys (m-vocabulary-types voc))) sname))  
+  #t)
+
 ; Inefficient, but works -- compute transitive closure of sort hierarchy.
 (define/contract (m-type-child-names/rtrans voc sname)
   [m-vocabulary? symbol? . -> . (listof symbol?)]  
@@ -572,9 +578,10 @@
   (define/contract (internal-correct/isa-sugar vname sname)
     [any/c (or/c symbol? string?) . -> . boolean?]  
     ; sugary isa formulas are always well-sorted
-    ; unless the sort name is not defined in the vocab
-    (internal-correct vname sname))
-    ;#t)
+    ; unless the sort name is not defined in the vocab.
+    ; Don't use internal-correct, which will force x to be subsort of A in (A x). 
+    ; Instead, just check that A is valid.
+    (is-a-type-in-vocab? sname voc))
   
   ; Handle case: (edbname x y z)
   (define (internal-correct/edb list-of-vars edbname)
