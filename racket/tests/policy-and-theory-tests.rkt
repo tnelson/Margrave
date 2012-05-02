@@ -30,6 +30,22 @@
                           (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a))))))))
 (check-pred procedure? polfunc1)
 
+; Check that TARGET works. Negated SAP EDB (not simple atom):
+(define polfunc1-target (Policy uses Conference
+                         (Target (not (Reviewer s)))
+                         (Variables 
+                          (s Subject)
+                          (a Action)
+                          (r Resource))
+                         (Rules 
+                          (PaperNoConflict = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (not (conflicted s r)) (ReadPaper a)))))
+                          (PaperAssigned = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (assigned s r) (ReadPaper a)))))
+                          (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a))))))))
+(check-pred procedure? polfunc1-target)
+
+(define pol1-target (polfunc1-target "../examples/conference/conference.p" "MYPOLTARGET" #'foo))
+(check-pred m-policy? pol1-target)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Conversion of vocabularies, theories, and policies to XML
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -70,6 +86,7 @@
   (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Resource") (varname "r"))))
   (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Action") (varname "a"))))
   (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Subject") (varname "s"))))
+  (MARGRAVE-COMMAND ((type "SET TARGET FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (TARGET (TRUE)))
   (MARGRAVE-COMMAND
    ((type "ADD"))
    (POLICY-IDENTIFIER ((pname "MYPOLICYID")))
@@ -389,6 +406,12 @@
 (m-let "Q1" '([s Subject] [a Action] [r Resource])
        '([MYPOLICYID Permit] s a r))
 (check-true (m-is-poss? "Q1"))
+
+; Check that TARGET is sent correctly when it isn't just 'true:
+(check-true (send-policy-to-engine pol1-target))
+(m-let "Q2" '([s Subject] [a Action] [r Resource])
+       '([MYPOLTARGET Permit] s a r))
+(check-false (m-is-poss? "Q2"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; LEAVE MARGRAVE ENGINE RUNNING (for additional checks via repl if desired)

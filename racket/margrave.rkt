@@ -506,8 +506,8 @@
     (error (format "The engine already knows about a policy with the id ~v." (m-policy-id apol))))
   
   (unless (hash-has-key? cached-theories (m-theory->key (m-policy-theory apol)))
-    (send-theory-to-engine (m-policy-theory apol)))
-    
+    (send-theory-to-engine (m-policy-theory apol)))    
+  
   (for-each (lambda (an-xexpr) (unless (send-and-receive-xml an-xexpr)
                                  (error (format "Transfer of policy ~v to engine failed." (m-policy-id apol)))))
             (m-policy->xexprs apol))
