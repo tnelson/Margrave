@@ -3477,6 +3477,13 @@
   (define child-type-decls (apply append (map make-type-decls (tree-children tree))))  
   (cons own-type-decl child-type-decls))
 
+(define (make-tp-preds tree sort)
+  (define id (send (tree-node tree) text))  
+  (define own-decl `(,id ,sort))
+  (define child-decls (apply append (map (lambda (t) (make-tp-preds t sort)) 
+                                         (tree-children tree))))  
+  (cons own-decl child-decls))
+
 ;; tree -> (listof symbol)
 ;(define (type-tree tree)
 ;  (let [(node-value (send (tree-node tree) text))]    
@@ -3512,60 +3519,54 @@
           '())
       (foldl (λ (child result)
                (append (constraints child) result))
-             ;`((disjoint-all ,(send (tree-node tree) text)))
-             empty ; no disjoint constraint to start with
+             `((disjoint-all ,(send (tree-node tree) text)))
+             empty 
              (tree-children tree))))
 
 ;; (listof rule%) -> (listof symbol)
 ;;   Constructs a policy vocabulary from a list of rules
-(define (vocabulary rules)                                                     
-  `(Theory IOS-vocab
-    (Vocab IOS-vocab
-           (Types
-            (Hostname > ,@(remove-duplicates
+(define (vocabulary rules)     
+  
+  (define hostnames (remove-duplicates
                            (append*
                             (map (λ (rule)
                                    (map (λ (name)
                                           (send name text))
                                         (send rule extract-atoms hostname%)))
                                  rules))))
-            (Interface > Interf-drop Interf-real)
-            (Interf-real > ,@(remove-duplicates
+  
+  (define real-interfaces (remove-duplicates
                               (append*
                                (map (λ (rule)
                                       (map (λ (interf)
                                              (send interf text))
                                            (send rule extract-atoms interface%)))
                                     rules))))
-            
-            ; - TN, removed ip-N/A etc. Colon is now deprecated, so not needed
-            ; type-tree
-            ,@(make-type-decls (value-tree rules
-                                           address<%>
-                                           (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
-            ; Protocol name must be capitalized
-            (Protocol-any > Prot-ICMP Prot-TCP Prot-UDP)
-            
-            ; - TN, removed port-N/A etc. Colon no longer needed.
-            ; type-tree
-            ,@(make-type-decls (value-tree rules
-                                           port<%>
-                                           (make-object port-range% 0 65535)))
-            
-            ; - TN, removed icmp-N/A, etc.
-            (ICMPMessage > ICMP-echo ICMP-echo-reply ICMP-time-exceeded ICMP-unreachable)
-            
-            (TCPFlags > ,@TCP-flags)
-            ,(let ([length-children (remove-duplicates
-                                     (append*
-                                      (map (λ (rule)
-                                             (send rule extract-atoms length%))
-                                           rules)))])
-               (cond [(empty? length-children)
-                      'Length]
-                     [else
-                      `(Length > ,length-children)]))
-            
+  
+  (define length-children (remove-duplicates
+                           (append*
+                            (map (λ (rule)
+                                   (send rule extract-atoms length%))                    
+                                 rules))))
+  
+  (define types-tree (value-tree rules
+                                 address<%>
+                                 (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
+  
+  (define ports-tree (value-tree rules
+                                 port<%>
+                                 (make-object port-range% 0 65535)))
+
+  `(Theory IOS-vocab
+    (Vocab IOS-vocab
+           (Types
+                        
+            Hostname
+            (Interface > Interf-drop Interf-real)                        
+            Protocol-any                                     
+            ICMPMessage            
+            TCPFlags            
+            Length                                 
             )
            ;(Decisions
            ; Permit
@@ -3577,18 +3578,75 @@
            ; Pass
            ; Advertise
            ; Encrypt)
+           
+           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+           ; Predicates instead of constants for hostnames, etc. for efficiency. 
            (Predicates ,@(map (λ (predicate)
                                 `(,predicate IPAddress Port Protocol-any IPAddress Port))
                               (remove-duplicates (flatten (map (λ (rule)
                                                                  (send rule extract-predicates))
-                                                               rules)))))    
+                                         
+                                                               rules))))                      
+                       
+                       
+                       ,@(map (lambda (name) `(,name Hostname)) hostnames)
+                       
+                       (ICMP-echo ICMPMessage)
+                       (ICMP-echo-reply ICMPMessage)
+                       (ICMP-time-exceeded ICMPMessage)
+                       (ICMP-unreachable ICMPMessage)
+                       
+                       (Prot-ICMP Protocol-any)
+                       (Prot-TCP Protocol-any)
+                       (Prot-UDP Protocol-any)
+                       
+                       ,@(map (lambda (name) `(,name Interf-real)) real-interfaces)
+                       ,@(map (lambda (name) `(,name TCPFlags)) TCP-flags)
+                       ,@(map (lambda (name) `(,name Length)) length-children)
+                        
+                       ,@(apply append (map (lambda (tchild) (make-tp-preds tchild 'IPAddress)) (tree-children types-tree)))
+                       ,@(apply append (map (lambda (pchild) (make-tp-preds pchild 'Port)) (tree-children ports-tree)))                                                               
+
+                       )
+                      
+           ; Formerly variables in every request, now projections of a single PacketDisposition variable.
+;           (Functions 
+;            (psrc-addr-in PacketDisposition IPAddress)
+;            (psrc-addr_ PacketDisposition IPAddress)
+;            (psrc-addr-out PacketDisposition IPAddress)
+;            (pdest-addr-in PacketDisposition IPAddress)
+;            (pdest-addr_ PacketDisposition IPAddress)
+;            (pdest-addr-out PacketDisposition IPAddress)
+;            
+;            (psrc-port-in PacketDisposition Port)
+;            (psrc-port_ PacketDisposition Port)
+;            (psrc-port-out PacketDisposition Port)            
+;            (pdest-port-in PacketDisposition Port)
+;            (pdest-port_ PacketDisposition Port)
+;            (pdest-port-out PacketDisposition Port)
+;            
+;            (pentry-interface PacketDisposition Interf-real)
+;            (pexit-interface PacketDisposition Interface)
+;            (pnext-hop PacketDisposition IPAddress)
+;            
+;            (phostname PacketDisposition Hostname)
+;            (pprotocol PacketDisposition Protocol-any)
+;            (pmessage PacketDisposition ICMPMessage)
+;            (pflags PacketDisposition TCPFlags)
+;            (plength PacketDisposition Length))
            )     
     (Axioms
-     (abstract Hostname)
+     (disjoint-all Hostname)
+     (disjoint-all ICMPMessage)
+     ;(abstract Hostname)
      (abstract Interface)
-     (abstract Interf-real)
-     (abstract ICMPMessage)
-     (abstract Protocol-any)
+     ;(abstract Interf-real)
+     ;(abstract ICMPMessage)
+    ; (abstract Protocol-any)
+     (disjoint-all Interf-real)
+     (disjoint-all Protocol-any)
+     (disjoint-all Length)
+     
      (atmostone-all Hostname)     
      (atmostone-all Interf-real)
      (atmostone Interf-drop)
@@ -3597,8 +3655,6 @@
      ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
      (atmostone ICMP-echo)
      (atmostone ICMP-echo-reply)
-     ; TN Removed: can have an atom that is SYN+ACK and an atom that is SYN -- both live in SYN
-     ;(atmostone-all TCPFlags)
      (atmostone-all Length)
      (nonempty Hostname)
      (nonempty Interface)
@@ -3666,22 +3722,24 @@
   
   `(Policy uses IOS-vocab
            (Variables
-            (hostname Hostname)
-            (entry-interface Interf-real)
-            (src-addr-in IPAddress)
-            (src-addr-out IPAddress)
-            (dest-addr-in IPAddress)
-            (dest-addr-out IPAddress)
-            (protocol Protocol-any)
-            (message ICMPMessage)
-            (flags TCPFlags)
-            (src-port-in Port)
-            (src-port-out Port)
-            (dest-port-in Port)
-            (dest-port-out Port)
-            (length Length)
-            (next-hop IPAddress)
-            (exit-interface Interface))           
+            (pktd PacketDisposition))
+            
+            ;(hostname Hostname)
+            ;(entry-interface Interf-real)
+            ;(src-addr-in IPAddress)
+            ;(src-addr-out IPAddress)
+            ;(dest-addr-in IPAddress)
+            ;(dest-addr-out IPAddress)
+            ;(protocol Protocol-any)
+            ;(message ICMPMessage)
+            ;(flags TCPFlags)
+            ;(src-port-in Port)
+            ;(src-port-out Port)
+            ;(dest-port-in Port)
+            ;(dest-port-out Port)
+            ;(length Length)
+            ;(next-hop IPAddress)
+            ;(exit-interface Interface))           
            (Rules
             ,@(map (λ (rule)
                      (send rule text))

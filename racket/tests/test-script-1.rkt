@@ -261,6 +261,34 @@
 (m-let "Qtiers1" '([s Subject] [a Action] [r Resource]) '([p2tiers permit] s a r))
 (let ([c (m-count-scenarios "Qtiers1")])
   (check-true (and c (> c 0))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Test change-impact sugar and rule/decision formula functions
+
+(m-policy-difference-query "diff1" "mypol1" "mypol2")
+(m-load-policy "mypol3" "conference1-modified.p")
+(m-policy-difference-query "diff2" "mypol1" "mypol3")
+
+(check-false (m-is-poss? "diff1"))
+
+(check-true (m-scenario? (m-get-scenario "diff2"
+                                         #:include (m-policy-decisions-idbs "mypol3" '(v0 v1 v2)))))
+(check-true (m-scenario? (m-get-scenario "diff2"
+                                         #:include (m-policy-rules-idbs/matches "mypol3" '(v0 v1 v2)))))
+(check-true (m-scenario? (m-get-scenario "diff2"
+                                         #:include (m-policy-rules-idbs/applies "mypol3" '(v0 v1 v2)))))
+ 
+; !!! PROBLEM: TODO: if problem w/ policy text, says "unsaved editor" instead of file name. why?
+
+(check-true (scenario-has-relation-or-sort
+             (m-get-scenario "diff2"
+                #:include (append 
+                           (m-policy-decisions-idbs "mypol1" '(v0 v1 v2))
+                           (m-policy-decisions-idbs "mypol3" '(v0 v1 v2))))
+             "mypol3.deny"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

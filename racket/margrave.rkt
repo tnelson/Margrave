@@ -26,6 +26,7 @@
 
 (require xml
          srfi/13
+         srfi/1
          syntax/readerr
          racket/generator
          "compiler.rkt"
@@ -78,6 +79,12 @@
          resolve-custom-vector-y
          resolve-custom-vector-n
          define-custom-vector
+         
+         m-policy-difference-query
+         m-policy-rules-idbs/applies
+         m-policy-rules-idbs/matches     
+         m-policy-decisions
+         m-policy-decisions-idbs
          )
 
 
@@ -783,3 +790,99 @@
   (m-reset-scenario-iterator qid) ; return to beginning of stream
   (close-output-port out))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Functions to get IDB names for rules. For use with #:include. 
+
+; m-policy-rules-apply
+; m-policy-rules-match
+; m-policy-decisions
+
+;#:include `( ,@(m-policy-rules-apply '(s a r))
+;             ,@(m-policy-rules-match '(s a r)))
+
+;;;;;;;;;;;;;;;;
+; We need the policy's registered name for use in 
+; query sexprs. So accept the name, not m-policy itself.
+; If you have an m-policy, just register it under some name
+; and use that name instead!
+
+(define/contract (get-policy/error pid)
+  [string? . -> . m-policy?]
+  (cond [(not (hash-has-key? cached-policies pid))
+         (error (format "No policy found registered with name: ~a~n" pid))]
+        [else (hash-ref cached-policies pid)]))
+
+(define/contract (m-policy-rules-idbs/suffix pid suffix varvec)
+ [string? string? (listof symbol?) . -> . any/c]  
+  (define pol (get-policy/error pid))
+  (map (lambda (rname) `( [,pid ,(string-append rname suffix)] ,@varvec))
+       (m-policy-rule-names pol)))
+
+(define/contract (m-policy-rules-idbs/matches pid varvec)
+  [string? (listof symbol?) . -> . any/c]  
+  (m-policy-rules-idbs/suffix pid "_matches" varvec))
+
+(define/contract (m-policy-rules-idbs/applies pid varvec)
+  [string? (listof symbol?) . -> . any/c]  
+  (m-policy-rules-idbs/suffix pid "_applies" varvec))
+
+(define/contract (m-policy-decisions pol-or-pid)
+  [(or/c string? m-policy?) . -> . (listof string?)]  
+  (define pol (cond [(m-policy? pol-or-pid) pol-or-pid]
+                    [else (get-policy/error pol-or-pid)])) 
+  (define rules (hash-values (m-policy-rules pol)))
+  (remove-duplicates (map m-rule-decision rules)))
+
+(define/contract (m-policy-decisions-idbs pid varvec)
+  [string? (listof symbol?) . -> . any/c]  
+  (map (lambda (rname) `([,pid ,(->symbol rname)] ,@varvec))
+       (m-policy-decisions pid)))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Change impact sugar. returns same as m-let; sets up a stock change-impact
+; query for 2 policies.
+
+(define/contract (m-policy-difference-query qid p1id p2id #:debug [debug-level 0] #:ceiling [ceilings-list empty])
+ [->* (string? string? string?)
+      (#:debug integer? #:ceiling list?)
+      (or/c void? boolean?)] 
+    
+  (define pol1 (get-policy/error p1id))
+  (define pol2 (get-policy/error p2id))
+  (define decstrings1 (m-policy-decisions pol1))
+  (define decstrings2 (m-policy-decisions pol2))
+  
+  ; MUST HAVE: the same decisions; 
+  ;            the same request vector across all decisions.
+  
+  (unless (equal-unordered? decstrings1 decstrings2)
+    (error (format "To use m-policy-different-query, the policies must have identical decision-sets." )))
+  (when (empty? decstrings1)
+    (error (format "To use m-policy-different-query, the policies must each have at least one decision." )))
+  
+  (define vec1 (hash-ref (m-policy-idbs pol1) (first decstrings1)))
+  (define vec2 (hash-ref (m-policy-idbs pol2) (first decstrings2)))
+      
+  ; Can't just prepend to the sort names, because may have duplicate sorts. 
+  ; Instead, index in the vector:
+  (define varvector (map (lambda (i) (string->symbol (string-append "v" (->string i)))) (build-list (length vec1) values)))
+  (define fvars (zip varvector vec1))
+  
+  (define (for-dec1 decname)
+    `(and ([,p1id ,decname] ,@varvector) 
+          (not ([,p2id ,decname] ,@varvector))))
+  (define (for-dec2 decname)
+    `(and ([,p2id ,decname] ,@varvector) 
+          (not ([,p1id ,decname] ,@varvector))))
+  
+  ; p1 yields A and p2 does not or
+  ; p2 yields A and p1 does not or
+  ; p1 yields B and p2 does not or ... 
+  (define fmla `(or ,@(map for-dec1 decstrings1)
+                    ,@(map for-dec2 decstrings2)))
+  
+  ;(printf "mpdq: ~v~n~v~n~v~n~v~n~v~n~v~n" decstrings1 vec1 vec2 fvars fmla (map for-dec1 decstrings1))    
+  (m-let qid fvars fmla
+         #:debug debug-level #:ceiling ceilings-list))

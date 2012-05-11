@@ -314,6 +314,12 @@
    (m-scenario-annotations a-scenario)
    (m-scenario-query-id a-scenario)))
 
+(define/contract (scenario-has-relation-or-sort a-scenario relname)
+  [m-scenario? string? . -> . boolean?]
+  (ormap (lambda (rel) (equal? (m-relation-name rel) relname))
+         (append (m-scenario-sorts a-scenario)                 
+                 (m-scenario-relations a-scenario))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

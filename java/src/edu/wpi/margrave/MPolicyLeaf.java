@@ -318,7 +318,7 @@ public class MPolicyLeaf extends MPolicy
 	
 	protected void doSubstituteIDBs() 
 	{
-		MEnvironment.writeToLog("MPolicyLeaf.doSubstituteIDBs() ...");
+		MEnvironment.writeToLog("\nMPolicyLeaf.doSubstituteIDBs() ...");
 		
 		// Handle rules that refer to IDBs in a stratified manner.
 		
@@ -373,6 +373,8 @@ public class MPolicyLeaf extends MPolicy
 				// Concerned with decisions only, not EDBs
 				if(!decisions.contains(aPred))
 					continue;
+				
+				MCommunicator.writeToLog("\n  Substituting to resolve cyclic IDB: "+aPred);
 				
 				// Replace (with substitution). Potentially different substitution for each occurrence, so use a visitor.
 				Formula fullFormula = getIDB(dec);
@@ -734,6 +736,8 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////
 		// Finally, each of these IDBs only apply if the _policy's_ target is met. 		
+		
+		MEnvironment.writeToLog("\nUpdating with target="+target);
 		
 		for(String idbname : idbKeys())
 		{			

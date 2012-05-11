@@ -235,6 +235,11 @@ abstract class MInstanceIterator extends MQueryResult
 	
 	public MSolutionInstance next() throws MGENoMoreSolutions
 	{
+		// NOTE:
+		// For #:include, evaluation here suffices. No need to include
+		// the IDB in the query. But for show-realized, we need to include
+		// the IDB. Hence the apparently duplicate code.
+		
 		// hasNext prepares the next solution (if any exists)
 		if(!hasNext())
 			throw new MGENoMoreSolutions("No more solutions exist for the query.");
@@ -306,10 +311,11 @@ abstract class MInstanceIterator extends MQueryResult
 						if(pol == null)
 							throw new MUserException("Unknown policy: "+collName);
 																	
-						// throws exception rather than returning null
+						// throws exception rather than returning null						
 						Formula idbf = MCommunicator.validateDBIdentifier(collName, relationName);						
 						idbf = MCommunicator.performSubstitution(relationName, pol, idbf, args);
-						idbf = addFreeVarsForInclude(idbf, result.getFacts());						
+						idbf = addFreeVarsForInclude(idbf, result.getFacts());	
+						//MCommunicator.writeToLog("\nEvaluating: "+idbf+" in model=\n"+result.getFacts());
 						bIsInRelation = theEvaluator.evaluate(idbf);
 					}
 															

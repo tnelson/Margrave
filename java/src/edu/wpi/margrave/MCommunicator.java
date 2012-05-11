@@ -1747,9 +1747,9 @@ public class MCommunicator
 		MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
 		 		
 		if(pol == null)
-			throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);
-			   				
-		writeToLog("\n  Collection found. Contains="+pol.containsIDB(dbn));
+			throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);			   					
+		
+		writeToLog("\n  Collection found. Self reported name="+pol.name+" ContainsIDB = "+pol.containsIDB(dbn));
 		
 		if(pol.containsIDB(dbn))
 		{
