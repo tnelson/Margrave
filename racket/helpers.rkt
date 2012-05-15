@@ -4,6 +4,7 @@
          syntax/readerr
          rackunit
          racket/serialize
+         "test-utils.rkt"
          ;racket/contract
          ;racket/list
          ;racket/path
