@@ -372,13 +372,17 @@ public class MCommunicator
         			writeToLog("Finished Create Vocabulary\n");
         		} 
         		else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
+        			String pname = getPolicyName(margraveCommandNode);        			
         			String fileName = getLoadFileName(margraveCommandNode);
         			String schemaFileName = getLoadSchemaFileName(margraveCommandNode);
-        			theResponse = MEnvironment.loadXACML(fileName, schemaFileName);
+        			writeToLog("\n Loading policy in file: "+fileName+"; id to use: "+pname);
+        			theResponse = MEnvironment.loadXACML(pname, fileName, schemaFileName);
         		}
         		else if (type.equalsIgnoreCase("LOAD SQS POLICY")) {
+        			String pname = getPolicyName(margraveCommandNode);
         			String fileName = getLoadFileName(margraveCommandNode);
-        			theResponse = MEnvironment.loadSQS(fileName);
+        			writeToLog("\n Loading policy in file: "+fileName+"; id to use: "+pname);
+        			theResponse = MEnvironment.loadSQS(pname, fileName);
         		}
 
         		else if (type.equalsIgnoreCase("PREPARE")) {

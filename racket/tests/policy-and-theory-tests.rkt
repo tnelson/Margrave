@@ -414,4 +414,28 @@
 (check-false (m-is-poss? "Q2"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Tests for XACML and SQS loaders, which are entirely Java-side
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; XACML examples
+(check-not-exn (lambda () (load-xacml-policy "pxacml1" "xacml/generated.xml")))
+
+; The SQS examples from Amazon's page
+(check-not-exn (lambda () (load-sqs-policy "psqs0" "sqs/sqs1.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs1" "sqs/sqs_example1.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs2" "sqs/sqs_example2.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs3" "sqs/sqs_example3.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs4" "sqs/sqs_example4.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs5" "sqs/sqs_example5.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs6" "sqs/sqs_example6.json")))
+(check-not-exn (lambda () (load-sqs-policy "psqs7" "sqs/sqs_example7.json")))
+
+; Test that we can run queries on them.
+
+;(m-let "Qsqs7" '([s Subject] [a Action] [r Resource])
+;       '([psqs7 Allow] s a r))
+
+; Can't actually use these yet. See issue #76.
+              
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; LEAVE MARGRAVE ENGINE RUNNING (for additional checks via repl if desired)

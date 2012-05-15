@@ -124,6 +124,12 @@ public class MConstraints
 		lst.add(d1); lst.add(d2);
 		setsDisjoint.add(lst);
 	}
+
+	public void addConstraintDisjoint(String d1, Set<String> d2s) throws MUserException
+	{
+		for(String d2 : d2s)
+			addConstraintDisjoint(d1, d2);
+	}	
 	
 	public void addConstraintConstantsNeq(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
@@ -156,6 +162,7 @@ public class MConstraints
 	
 	public void addConstraintSubset(String d1, String d2) throws MGEUnknownIdentifier, MGEBadIdentifierName
 	{
+		// d1 in d2.
 		if(!vocab.isPredicate(d1))
 			throw new MGEUnknownIdentifier("Could not add constraint. "+d1+" is not a predicate.");
 		if(!vocab.isPredicate(d2))
@@ -419,6 +426,86 @@ public class MConstraints
 		//}
 		
 		return results;
+	}
+
+	public void sexprAxioms(StringBuffer buf) 
+	{
+		buf.append("  (Axioms "+MEnvironment.eol);
+			
+		Set<Formula> results = new HashSet<Formula>();
+
+		for(String r : setsAbstract)
+		{
+			buf.append("(abstract "+r+")"+MEnvironment.eol);
+		}
+
+		for(String r : setsAtMostOne)
+		{
+			buf.append("(atmostone "+r+")"+MEnvironment.eol);
+		}
+
+		for(String r : setsSingleton)
+		{
+			buf.append("(singleton "+r+")"+MEnvironment.eol);
+		}
+		
+		for(String r : setsConstantsCover)
+		{					
+			buf.append("(constants-cover "+r+")"+MEnvironment.eol);
+		}
+				
+		for(String r : setsConstantsNeqAll)
+		{
+			buf.append("(constants-neq-all "+r+")"+MEnvironment.eol);
+						
+		}
+		for(List<String> lst : constantsNeq)
+		{
+			buf.append("(constants-neq "+lst.get(0)+" "+lst.get(1)+")"+MEnvironment.eol);
+		}
+		
+		
+		for(String r : setsNonempty)
+		{
+			buf.append("(nonempty "+r+")"+MEnvironment.eol);
+		}
+		
+		for(List<String> lst : setsDisjoint)
+		{
+			assert(lst.size() == 2);
+			buf.append("(disjoint "+lst.get(0)+" "+lst.get(1)+")"+MEnvironment.eol);
+		}
+
+		for(List<String> lst : setsSubset)
+		{
+			assert(lst.size() == 2);
+			buf.append("(subset "+lst.get(0)+" "+lst.get(1)+")"+MEnvironment.eol);
+		}
+		
+		// Constrain total and partial functions to be such
+		for(String r : funcPartial)
+		{
+			buf.append("(partial-function "+r+")"+MEnvironment.eol);
+
+		}
+
+		for(String r : funcTotal)
+		{
+			buf.append("(total-function "+r+")"+MEnvironment.eol);
+		}
+		
+		for(String r : relTotal)
+		{
+			buf.append("(total-relation "+r+")"+MEnvironment.eol);
+		}
+
+		// Other constraints:
+		for(Formula f : otherAxioms)
+		{
+			throw new MUserException("Unable to convert MConstraints to s-expression: arbitrary formulas are not supported.");
+		}
+
+		buf.append(")"+MEnvironment.eol);	
 	}
 
 }

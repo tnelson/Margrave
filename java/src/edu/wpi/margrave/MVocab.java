@@ -475,6 +475,13 @@ class MPredicate
 	{
 		return name.hashCode() + rel.hashCode() + type.hashCode();
 	}
+
+	public void asSexpression(StringBuffer buf) {
+		buf.append("    ("+name+" ");		
+		for(MSort arg : type)
+			buf.append(" "+arg.name);
+		buf.append(")"+MEnvironment.eol);	
+	}
 	
 }
 
@@ -511,7 +518,53 @@ public class MVocab {
 	Map<MSort, Set<MSort>> cacheConciseDisj = new HashMap<MSort, Set<MSort>>();
 	///////////////////////////////////////////////////////////////////////
 	
+
+	String asSExpression(String name)
+	{
+		StringBuffer buf = new StringBuffer();
+		buf.append("(Theory "+name+MEnvironment.eol);
+		buf.append("  (Vocab "+name+MEnvironment.eol);
 	
+		buf.append("    (Types "+MEnvironment.eol);
+		for(MSort s : sorts.values())
+		{
+			if(s.subsorts.size() == 0)
+				buf.append("        "+s.name+MEnvironment.eol);
+			else
+			{
+				buf.append("        ("+s.name+MEnvironment.eol+" > ");
+				for(MSort sub : s.subsorts)
+					buf.append(" "+sub.name); 
+				buf.append(")"+MEnvironment.eol);
+			}
+		}
+		buf.append(")"+MEnvironment.eol); // end types	
+			
+		sexprPreds("Functions", buf, functions.values());
+		sexprPreds("Constants", buf, constants.values());
+		sexprPreds("Predicates", buf, predicates.values());
+		
+		buf.append(")"+MEnvironment.eol); // end vocab	
+		
+		axioms.sexprAxioms(buf);
+		buf.append(")"+MEnvironment.eol); // end theory	
+		
+		return buf.toString();
+	}
+	
+	void sexprPreds(String cat, StringBuffer buf, Collection<? extends MPredicate> coll)
+	{
+		if(coll.size() < 1)
+			return;
+		
+		buf.append("    ("+cat+MEnvironment.eol);
+		for(MPredicate p : coll)
+		{
+			p.asSexpression(buf);			
+		}
+		buf.append(")"+MEnvironment.eol); 
+	}
+		
 	void clearCache()
 	{
 		// Called when adding a new sort or subsort assertion.

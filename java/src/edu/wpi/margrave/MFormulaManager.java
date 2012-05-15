@@ -1761,6 +1761,80 @@ public class MFormulaManager
 		return result;
 	}
 
+	private static String toOpName(FormulaOperator op)
+	{
+		if(FormulaOperator.AND.equals(op))
+			return "and";
+		else if(FormulaOperator.OR.equals(op))
+			return "or";				
+		else if(FormulaOperator.IMPLIES.equals(op))
+			return "implies";				
+		else if(FormulaOperator.IFF.equals(op))
+			return "iff";						
+		else
+			throw new MUserException("Tried to convert unsupported formula op to sexpression: "+op);
+	}
+	
+	public static String toSExpression(Formula fmla)
+	{	
+		// What is the sexpression for this formula?
+		// Only supports w/o functions for now!
+		
+		// Not implemented as a visitor because (1) only a subset of formulas are supported and
+		// (2) there is no ->x abstract visitor type; just ->Set<x>.
+				
+		if(fmla instanceof BinaryFormula)
+		{
+			String lstr = toSExpression(((BinaryFormula) fmla).left());
+			String rstr = toSExpression(((BinaryFormula) fmla).right());
+			return "(" + toOpName(((BinaryFormula) fmla).op()) + lstr + " " + rstr +")";
+		}
+		else if(fmla instanceof NaryFormula)
+		{
+			StringBuffer buf = new StringBuffer();
+			NaryFormula nfmla = (NaryFormula) fmla;
+			buf.append("("+toOpName(nfmla.op())+" ");
+			for(int ii=0;ii<nfmla.size();ii++)
+			{
+				buf.append(toSExpression(nfmla.child(ii))+" ");
+			}
+			buf.append(")");
+			return buf.toString();
+		}
+		else if(fmla instanceof ComparisonFormula)
+		{
+			ComparisonFormula cfmla = (ComparisonFormula) fmla;
+			
+			assert(cfmla.right() instanceof Relation);
+			
+			// Break down lhs (and rhs?) using existing functions
+			// TODO
+			
+			//cfmla.right()
+		}
+		else if(fmla instanceof QuantifiedFormula)
+		{
+			QuantifiedFormula qfmla = (QuantifiedFormula)fmla;								
+			String quant = toQuantName(qfmla.quantifier());
+			
+			// Assume one decls
+			assert(qfmla.decls().size() == 1);
+			
+			String varname = qfmla.decls().get(0).variable().name();
+			String sortname = qfmla.decls().get(0).expression().toString();
+			return "("+quant+" "+varname+" "+sortname+" "+toSExpression(qfmla.formula())+")";
+		}
+		else
+			throw new MUserException("Tried to convert unsupported fmla to sexpression: "+fmla.toString());
+	}
+
+	private static String toQuantName(Quantifier quantifier) {
+		if(Quantifier.ALL.equals(quantifier))
+			return "forall";
+		else
+			return "exists";
+	}
+
 }
 
 

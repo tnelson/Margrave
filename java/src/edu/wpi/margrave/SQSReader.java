@@ -43,14 +43,12 @@ public class SQSReader
 		env.addSort("action");
 		env.addSort("resource");
 		env.addSort("condition");
+
+		// All of these sorts are pairwise disjoint
+		// since they are incomparable in the ordering.
 		
-		//env.addRequestVar("p", "principal");
-		//env.addRequestVar("a", "action");
-		//env.addRequestVar("r", "resource");
-		//env.addRequestVar("c", "condition");
-				
-		//env.addDecision("allow");
-		//env.addDecision("deny");
+		// Decisions will be Alloy, Deny
+		// ReqVars will be: p, a, r, c.
 		
 		return env;
 	}	
@@ -118,7 +116,7 @@ public class SQSReader
 		
 	}
 	
-	protected static Formula makeSQSAtom(MVocab vocab, String varname, String parentsortname, String sortname) 
+	protected static Formula makeSQSAtom(MVocab vocab, String varname, String parentsortname, String predname) 
 	throws MGEBadIdentifierName, MGEUnknownIdentifier, MGEManagerException
 	{
 		// Get the variable for this varname. 
@@ -126,22 +124,28 @@ public class SQSReader
 		
 		// Add the sort (if it doesn't already exist.)
 		
-		sortname = MVocab.validateIdentifier(sortname, true);
+		predname = MVocab.validateIdentifier(predname, true);
 		parentsortname = MVocab.validateIdentifier(parentsortname, true);
 		
 		// Kludge (for now) to make * contain subsorts:
 		
-		if(sortname.equals("principal.aws=*")) 
-			parentsortname = "principal";
-		else if(sortname.startsWith("principal.aws"))
-			parentsortname = "principal.aws=*";
+		//if(predname.equalsIgnoreCase("principal.aws=*")) 
+		//	parentsortname = "Principal";
+		//else
 		
-		if(sortname.equals("action=sqs:*"))
-			parentsortname = "action";
-		else if(sortname.startsWith("action=sqs"))
-			parentsortname = "action=sqs:*";
+		//if(predname.equalsIgnoreCase("action=sqs:*"))
+		//	parentsortname = "action";
+		//else
 		
-		vocab.addSubSort(parentsortname, sortname);
+		vocab.addPredicate(predname, parentsortname);
+
+		if(predname.startsWith("principal.aws"))
+			vocab.axioms.addConstraintSubset(predname, "principal.aws=*");		
+		else if(predname.startsWith("action=sqs"))
+			vocab.axioms.addConstraintSubset(predname, "action=sqs:*");				
+
+		
+		//vocab.addSubSort(parentsortname, sortname);
 		
 		//MEnvironment.errorStream.println(sortname);
 		
@@ -151,41 +155,36 @@ public class SQSReader
 		// (e.g., Principal.AWS=555566667777 and Principal.AWS=123456789012 should be disjoint, but
 		//  Principal.AWS=555566667777 with and without dashes should not be
 		// More ugly code:
+			
 		
-		/////////////////
-		// TN April 2011
-		// TODO SQS, XACML, etc. unsafe due to change in how we handle disjointness.
-		/////////////////
-		
-		/*
 		// This should be a *specific* AWS. Disjoint from all other SPECIFIC ones.
-		if(sortname.startsWith("principal.aws=") && !sortname.contains("*"))
+		if(predname.startsWith("principal.aws=") && !predname.contains("*"))
 		{
 			Set<String> other_candidates = vocab.getSortNamesWithPrefix("principal.aws=");
 
 			// Don't disj ones with a * in them.
 			Set<String> others = new HashSet<String>();
 			for(String s : other_candidates)
-				if(!s.contains("*") && !s.equals(sortname))
+				if(!s.contains("*") && !s.equals(predname))
 					others.add(s);
 			
-			vocab.axioms.addConstraintDisjoint(sortname, others);			
+			vocab.axioms.addConstraintDisjoint(predname, others);			
 		}
 		
 		// This should be a *specific* resource ID. Disjoint from all other specific ones
-		if(sortname.startsWith("resource=") && !sortname.contains("*") && !sortname.contains("&"))
+		if(predname.startsWith("resource=") && !predname.contains("*") && !predname.contains("&"))
 		{
 			Set<String> other_candidates = vocab.getSortNamesWithPrefix("resource=");
 
 			// Don't disj ones with a * or & in them.
 			Set<String> others = new HashSet<String>();
 			for(String s : other_candidates)
-				if(!s.contains("*") && !s.contains("&") && !s.equals(sortname))
+				if(!s.contains("*") && !s.contains("&") && !s.equals(predname))
 					others.add(s);
 			
-			vocab.axioms.addConstraintDisjoint(sortname, others);
+			vocab.axioms.addConstraintDisjoint(predname, others);
 		}
-		*/
+		
 		
 			
 		
@@ -200,8 +199,8 @@ public class SQSReader
 		// So we support only the SQS-specific stuff here for now.
 		
 		
-		MSort thesort = vocab.getSort(sortname);
-		return MFormulaManager.makeAtom(thevar, thesort.rel);
+		MPredicate thepred = vocab.predicates.get(predname);
+		return MFormulaManager.makeAtom(thevar, thepred.rel);
 	}
 	
 	protected static void handleStatementPAR(Object obj, 
@@ -330,7 +329,7 @@ public class SQSReader
 		result.rules.add(rule);		
 	}
 	
-	protected static MPolicy loadSQS(String sFileName) 
+	protected static MPolicy loadSQS(String polId, String sFileName) 
 	throws MUserException
 	{		
 		// Convert filename
@@ -350,12 +349,13 @@ public class SQSReader
 			}									
 			
 			JSONObject json = new JSONObject(target.toString());
-			String polId;
 			
-			if(!json.isNull("Id"))
-				polId = json.getString("Id");
-			else
-				throw new MGEUnsupportedSQS("Id element must be present.");
+			// Use provided policy ID
+			//String polId;			
+			//if(!json.isNull("Id"))
+			//	polId = json.getString("Id");
+			//else
+			//	throw new MGEUnsupportedSQS("Id element must be present.");
 			
 			MVocab env = createSQSVocab(polId);
 			MPolicyLeaf result = new MPolicyLeaf(polId, env);
@@ -383,7 +383,7 @@ public class SQSReader
 			
 			result.initIDBs();
 			
-			//result.prettyPrintRules();
+			//result.prettyPrintRules();			
 			return result;
 			
 		}		

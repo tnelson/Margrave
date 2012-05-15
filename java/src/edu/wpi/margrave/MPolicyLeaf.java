@@ -31,6 +31,10 @@ import com.sun.xacml.combine.DenyOverridesPolicyAlg;
 import com.sun.xacml.combine.DenyOverridesRuleAlg;
 import com.sun.xacml.combine.FirstApplicablePolicyAlg;
 import com.sun.xacml.combine.FirstApplicableRuleAlg;
+import com.sun.xacml.combine.OrderedDenyOverridesPolicyAlg;
+import com.sun.xacml.combine.OrderedDenyOverridesRuleAlg;
+import com.sun.xacml.combine.OrderedPermitOverridesPolicyAlg;
+import com.sun.xacml.combine.OrderedPermitOverridesRuleAlg;
 import com.sun.xacml.combine.PermitOverridesPolicyAlg;
 import com.sun.xacml.combine.PermitOverridesRuleAlg;
 
@@ -142,7 +146,7 @@ public class MPolicyLeaf extends MPolicy
 
 		// http://docs.oasis-open.org/xacml/2.0/access_control-xacml-2.0-core-spec-os.pdf
 		else
-			throw new MGEBadCombinator("Unsupported rule combining algorithm: "+result);	
+			throw new MGEBadCombinator("XACML 2.x Leaf: Unsupported rule combining algorithm: "+result);	
 	}
 
 
@@ -152,13 +156,15 @@ public class MPolicyLeaf extends MPolicy
 
 	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
 	{
-		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg)
+		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg ||
+				ca instanceof OrderedDenyOverridesPolicyAlg || ca instanceof OrderedDenyOverridesRuleAlg)
 		{
 			Set<String> denySet = new HashSet<String>();
 			denySet.add("Deny");
 			rCombineWhatOverrides.put("Permit", denySet);
 		}
-		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg)
+		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg   ||
+				ca instanceof OrderedPermitOverridesPolicyAlg || ca instanceof OrderedPermitOverridesRuleAlg)
 		{
 			Set<String> permSet = new HashSet<String>();
 			permSet.add("Permit");
@@ -170,8 +176,10 @@ public class MPolicyLeaf extends MPolicy
 			rCombineFA.add("Permit");
 			rCombineFA.add("Deny");			
 		}
-				
-		throw new MGEBadCombinator("Unsupported combining algorithm: "+ca);		
+		else
+		{
+			throw new MGEBadCombinator("XACML 1.x Leaf: Unsupported combining algorithm: "+ca);
+		}
 	}
 
 	
@@ -845,11 +853,40 @@ public class MPolicyLeaf extends MPolicy
 		if(MJavaTests.testIsSatisfiable(testFmla3, voc, 3, varSorts))
 			MEnvironment.errorWriter.println("********** MPolicyLeaf test 3: FAILED!");
 		
-		pol.prettyPrintIDBs();
+		//pol.prettyPrintIDBs();
+		MEnvironment.writeOutLine(pol.vocab.asSExpression(pol.name));
+		MEnvironment.writeOutLine(pol.asSExpression());
 		/////////////////////////////////////////////////////////////
+		
+		
 		
 		
 		MEnvironment.writeErrLine("----- End MPolicyLeaf Tests -----");	
 	}
 	
+	public String asSExpression()
+	{
+		StringBuffer buf = new StringBuffer();
+		buf.append("(PolicyLeaf "+name+" uses "+name+MEnvironment.eol);
+		
+		buf.append("  (Variables "+MEnvironment.eol);
+		for(Variable v : varSorts.keySet())
+		{
+			buf.append("("+v.name()+" "+varSorts.get(v)+")"+MEnvironment.eol);
+		}		
+		buf.append(")"+MEnvironment.eol); // end vars
+	
+		buf.append("  (Rules "+MEnvironment.eol);
+		for(MRule r : rules)
+		{
+			r.toSExpression(buf);			
+		}		
+		buf.append(")"+MEnvironment.eol); // end rules
+		
+		
+		
+		buf.append(")"+MEnvironment.eol);
+		return buf.toString();
+	}
+
 }

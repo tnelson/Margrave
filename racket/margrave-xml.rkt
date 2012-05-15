@@ -977,17 +977,19 @@
 (define (xml-make-get-qrules-command polid (decid-str ""))
   (xml-make-command "GET-INFO" (list (xml-make-get-rules "QUALIFIED-RULES" polid decid-str))))
 
-(define (xml-make-load-xacml fn sfn)
-  (xml-make-command "LOAD XACML POLICY" (list (xml-make-xacml-load fn sfn))))
+(define (xml-make-load-xacml polid fn sfn)
+  (xml-make-command "LOAD XACML POLICY" (list (xml-make-xacml-load polid fn sfn) 
+                                              (xml-make-policy-identifier polid))))
 
-(define (xml-make-load-sqs fn)
-  (xml-make-command "LOAD SQS POLICY" (list (xml-make-sqs-load fn))))
+(define (xml-make-load-sqs polid fn)
+  (xml-make-command "LOAD SQS POLICY" (list (xml-make-sqs-load polid fn)
+                                            (xml-make-policy-identifier polid))))
 
 
-(define (xml-make-xacml-load fn sfn)
-  `(LOAD ((file-name ,(->string fn)) (schema-file-name ,(->string sfn)))))
+(define (xml-make-xacml-load polid fn sfn)
+  `(LOAD ((file-name ,(->string fn)) (schema-file-name ,(->string sfn))) ))
 
-(define (xml-make-sqs-load fn)
+(define (xml-make-sqs-load polid fn)
   `(LOAD ((file-name ,(->string fn)))))
 
 (define (xml-make-get-rules get-type polid decid-str)

@@ -3,8 +3,7 @@
 (require srfi/13                  
          syntax/readerr
          rackunit
-         racket/serialize
-         "test-utils.rkt"
+         racket/serialize         
          ;racket/contract
          ;racket/list
          ;racket/path

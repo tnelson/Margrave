@@ -26,13 +26,7 @@ import java.util.*;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.sun.xacml.combine.CombiningAlgorithm;
-import com.sun.xacml.combine.DenyOverridesPolicyAlg;
-import com.sun.xacml.combine.DenyOverridesRuleAlg;
-import com.sun.xacml.combine.FirstApplicablePolicyAlg;
-import com.sun.xacml.combine.FirstApplicableRuleAlg;
-import com.sun.xacml.combine.PermitOverridesPolicyAlg;
-import com.sun.xacml.combine.PermitOverridesRuleAlg;
+import com.sun.xacml.combine.*;
 
 import kodkod.ast.Expression;
 import kodkod.ast.Formula;
@@ -108,20 +102,22 @@ public class MPolicySet extends MPolicy
 			throw new MGEUnsupportedXACML("The only-one-applicable policy combination algorithm is not currently supported.");		
 	
 		else
-			throw new MGEBadCombinator("Unsupported rule combining algorithm: "+result);	
+			throw new MGEBadCombinator("XACML 2.x Set: Unsupported rule combining algorithm: "+result);	
 
 
 	}
 	
 	void handleXACMLCombine(CombiningAlgorithm ca) throws MGEBadCombinator
 	{
-		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg)
-		{
+		if(ca instanceof DenyOverridesPolicyAlg || ca instanceof DenyOverridesRuleAlg ||
+				ca instanceof OrderedDenyOverridesPolicyAlg || ca instanceof OrderedDenyOverridesRuleAlg)
+		{ 
 			Set<String> denySet = new HashSet<String>();
 			denySet.add("Deny");
 			pCombineWhatOverrides.put("Permit", denySet);
 		}
-		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg)
+		else if(ca instanceof PermitOverridesPolicyAlg || ca instanceof PermitOverridesRuleAlg  ||
+				ca instanceof OrderedPermitOverridesPolicyAlg || ca instanceof OrderedPermitOverridesRuleAlg)
 		{
 			Set<String> permSet = new HashSet<String>();
 			permSet.add("Permit");
@@ -133,8 +129,10 @@ public class MPolicySet extends MPolicy
 			pCombineFA.add("Permit");
 			pCombineFA.add("Deny");			
 		}
-				
-		throw new MGEBadCombinator("Unsupported combining algorithm: "+ca);		
+		else
+		{			
+			throw new MGEBadCombinator("XACML 1.x Set: Unsupported combining algorithm: "+ca);
+		}
 	}
 	
 	public void initIDBs() throws MUserException
@@ -468,6 +466,16 @@ public class MPolicySet extends MPolicy
 				
 		MEnvironment.writeErrLine("----- End MPolicySet Tests -----");	
 
+	}
+	
+	public String asSExpression()
+	{
+		StringBuffer buf = new StringBuffer();
+		buf.append("(PolicySet "+name+" uses "+name+MEnvironment.eol);
+		
+	
+		buf.append(")"+MEnvironment.eol);
+		return buf.toString();
 	}
 	
 }

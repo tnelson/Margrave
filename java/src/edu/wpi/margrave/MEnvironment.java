@@ -1179,9 +1179,10 @@ public class MEnvironment
 			return errorResponse(sNotExpected, sPolicy, pname);
 	}
 
-	public static Document loadXACML(String fname, String sfname) throws MUserException
+	public static Document loadXACML(String polid, String fname, String sfname) throws MUserException
 	{
 		MPolicy pol = MPolicy.readXACML(fname, sfname);
+		pol.name = polid;
 		
 		if(envIDBCollections.containsKey(pol.name))
 			return errorResponse(sUsed, sPolicy, pol.name);
@@ -1190,16 +1191,16 @@ public class MEnvironment
 		return stringResponse(pol.name);
 	}
 
-	public static Document loadSQS(String fname)
+	public static Document loadSQS(String polid, String fname)
 	throws MUserException
 	{
-		MPolicy pol = MPolicy.loadSQS(fname);
+		MPolicy pol = MPolicy.loadSQS(polid, fname);		
 		
 		if(envIDBCollections.containsKey(pol.name))
 			return errorResponse(sUsed, sPolicy, pol.name);
 		
 		envIDBCollections.put(pol.name, pol);			
-		return stringResponse(pol.name);	
+		return policySuccessResponse(pol.vocab.asSExpression(pol.name), pol.asSExpression());	
 	}
 
 	static MVocab makeNewVocabIfNeeded(String vname)
@@ -1905,6 +1906,25 @@ public class MEnvironment
 		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
 	
 		Document xmldoc = makeInitialResponse(sSuccess);
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+		return xmldoc;
+	}
+	
+	
+	static Document policySuccessResponse(String thySexpr, String polSexpr)
+	{
+		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
+	
+		Document xmldoc = makeInitialResponse(sSuccess);
+		
+		Element thyElement = xmldoc.createElementNS(null, "THEORY");
+		thyElement.setAttribute("sexpr", thySexpr);		
+		xmldoc.getDocumentElement().appendChild(thyElement);
+
+		Element polElement = xmldoc.createElementNS(null, "POLICY");
+		polElement.setAttribute("sexpr", polSexpr);		
+		xmldoc.getDocumentElement().appendChild(polElement);
+		
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		return xmldoc;
 	}

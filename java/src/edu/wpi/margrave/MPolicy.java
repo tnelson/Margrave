@@ -74,6 +74,15 @@ class MRule
 	{
 		return myDecision;
 	}
+
+	public void toSExpression(StringBuffer buf)
+	{
+		buf.append("("+name+" = "+"("+decision()+" ");
+		for(Variable v : ruleVarOrdering)
+			buf.append(v.name()+" ");
+		buf.append(") :- "+MFormulaManager.toSExpression(target_and_condition));
+		buf.append(")"+MEnvironment.eol);		
+	}
 	
 }
 
@@ -138,7 +147,6 @@ abstract class MIDBCollection
 		idbs.clear();
 	}
 	
-	
 	void initIDBs()
 	throws MUserException
 	{
@@ -178,11 +186,13 @@ public abstract class MPolicy extends MIDBCollection
 	// Affects how first-applicable is handled.
 	public boolean isXACML = false;
 	
-	
+	abstract String asSExpression();	
 	
 	MPolicy(String n, MVocab voc)
 	{
 		super();
+		
+		n = n.replaceAll("\\s+", "_");
 		
 		vocab = voc;
 		name = n;					
@@ -436,10 +446,10 @@ public abstract class MPolicy extends MIDBCollection
 	
 	// Amazon SQS (JSON)
 	
-	public static MPolicy loadSQS(String sFileName) 
+	public static MPolicy loadSQS(String polId, String sFileName) 
 	throws MUserException
 	{
-		return SQSReader.loadSQS(sFileName);
+		return SQSReader.loadSQS(polId, sFileName);
 	}
 			
 	
