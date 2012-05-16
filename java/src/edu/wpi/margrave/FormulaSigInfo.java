@@ -130,7 +130,15 @@ class SigFunction
 }
 
 
-
+/**
+ * 
+ * The FormulaSigInfo class accepts a specification of 
+ * a first-order signature and computes sufficient sort-bounds
+ * for that signature (if possible).
+ * 
+ * @author Tim
+ *
+ */
 
 public class FormulaSigInfo
 {
@@ -1347,6 +1355,7 @@ public class FormulaSigInfo
 		
 	}
 	
+	@SuppressWarnings("unused")
 	private void printSetMatrix(Set<?>[][] validM, int max)
 	{
 		for(int row=0;row<max;row++)
@@ -1372,6 +1381,7 @@ public class FormulaSigInfo
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private void printMatrix(SortEdge[][] connM, int max)
 	{
 		// hash the matrix

@@ -65,21 +65,18 @@ public class MCommunicator
 {
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
-	static final char semicolon = ';';
-	
-	static final String setupError = "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to send XML reply.</ERROR></MARGRAVE-RESPONSE>";
-	
+		
 	static String sLogFileName = "margrave-log.txt";
 	static BufferedWriter outLog = null; 
 	static FileWriter outLogStream = null;
 	
 	static boolean bDoLogging = false;
 	
-	static String makeLastResortError()
-	{
-		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>Unable to produce XML document</ERROR></MARGRAVE-RESPONSE>";
-	}
-	
+	/**
+	 * Creates a fatal error with the appropriate message inside.
+	 * @param str
+	 * @return
+	 */
 	static String makeDetailedError(String str)
 	{
 		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>"+str+"</ERROR></MARGRAVE-RESPONSE>";		
@@ -113,19 +110,25 @@ public class MCommunicator
 		{
 			// Block until a command is received, handle it, and then return the result.
 			handleXMLCommand(in);
-		} // end loop while(true)
+		} 
 		
 		// outLog will be closed as it goes out of scope
 	}
 
+	/**
+	 * Places a "success" message on the output buffer. This message 
+	 * lets the caller (Racket) know that it is safe to begin sending
+	 * commands. 
+	 * 
+	 */
 	public static void sendReadyReply()
 	{
 		Document theResponse = MEnvironment.successResponse();
 		addBuffers(theResponse);    	
-		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
+		writeToLog("Returning: " + transformXMLToString(theResponse) + "\n");
 		try
 		{
-			out.write(transformXML(theResponse));
+			out.write(transformXMLToByteArray(theResponse));
 		} catch (IOException ex)
         {
             Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
@@ -157,142 +160,157 @@ public class MCommunicator
 			System.exit(200);
         }	
             	
-            // Save this command for use in exception messages
-    		//MEnvironment.lastCommandReceived = command.trim();    		
+		// Save this command for use in exception messages
+  		//MEnvironment.lastCommandReceived = command.trim();    		
             
-            Document doc = null;            
+        Document inputXMLDoc = null;            
 
-            try {
-               // doc = docBuilder.parse(new InputSource(new StringReader(command)));            	
-            	writeToLog("========================================\n========================================\n");
-            	writeToLog("\n"+commandStream.available());
+        try {
+        	// doc = docBuilder.parse(new InputSource(new StringReader(command)));            	
+            writeToLog("========================================\n========================================\n");
+            writeToLog("\n"+commandStream.available());
             	
-            	StringBuffer inputStringBuffer = new StringBuffer();            	
-            	while(true)
+            StringBuffer inputStringBuffer = new StringBuffer();            	
+            while(true)
+            {
+            	// if available=0; we want to block. But don't want to allocate too much room:
+            	if(commandStream.available() < 1)
             	{
-            		// if available=0; we want to block. But don't want to allocate too much room:
-            		if(commandStream.available() < 1)
-            		{
-            			int b = commandStream.read();
+            		int b = commandStream.read();
             			inputStringBuffer.append((char) b);
             			//writeToLog("\n(Blocked and then got) character: `"+(char)b+"`"); 
-            		}
-            		else
-            		{
-                		byte[] inputBytes = new byte[commandStream.available()];         
-                		@SuppressWarnings("unused")
-						int bytesRead = commandStream.read(inputBytes);    
-                		String block = new String(inputBytes);
-                		inputStringBuffer.append(block);            		
-                		//writeToLog("\n(Didn't block for) String: `"+block+"`");            		         		            			
-            		}            		
-            		
-            		// Bad kludge. Couldn't get proper XML parse function working, so
-            		// did this. Should re-write (preferably with correct XML handling functions!)
-            		// The trim() call below is especially egregious... - TN
-            		            		
-            		String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";
-            		String bufferStr = inputStringBuffer.toString();            		
-            		if(bufferStr.trim().endsWith(sMargraveCommandEnding))
-            			break;
             	}
-            	
-            	String cmdString = inputStringBuffer.toString();
-            	writeToLog("\n\n*********************************\nDONE! Received command: `"+cmdString+"`\n");
-            	
-            	doc = docBuilder.parse(new InputSource(new StringReader(cmdString)));
-            	
-            	//doc = docBuilder.parse(commandStream);            	
-            	//doc = docBuilder.parse(new InputSource(commandStream));
-   				writeToLog((new Date()).toString());
-   				writeToLog("\nExecuting command: " + transformXMLString(doc) + "\n");   					   				            	
-            } 
-            catch (SAXException ex) 
-            {
-                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
-                writeToLog("\nSAXException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
-            }
-            catch (IOException ex)
-            {
-                Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
-                writeToLog("\nIOException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
-            }
-            
-            Document theResponse;
-            try
-            {
-                // protect against getFirstChild() call            
-                if(doc != null)
-                	theResponse = xmlHelper(doc.getFirstChild(), "");
-                else
-                	theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, MEnvironment.sCommand, "");
-            }
-            catch(Exception e)
-            {
-            	// Construct an exception response;            	
-            	theResponse = MEnvironment.exceptionResponse(e);            	
-            }
-            catch(Throwable e)
-            {
-            	// This would ordinarily be a terrible thing to do (catching Throwable)
-            	// However, we need to warn the client that we're stuck.
-            	
-            	try
+            	else
             	{
-            		// First log that we got an exception:
-            		writeToLog("\n~~~ Throwable caught: "+e.getClass());
-            		writeToLog("\n    "+e.getLocalizedMessage());
-            		writeToLog("\n"+Arrays.toString(e.getStackTrace()));
-            		writeToLog("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-            		theResponse = MEnvironment.exceptionResponse(e);
-            	}
-            	catch(Throwable f)
-            	{
-            		// If we can't even warn the client, at least close down the engine. Client will detect EOF.
+                	byte[] inputBytes = new byte[commandStream.available()];         
+                	@SuppressWarnings("unused")
+					int bytesRead = commandStream.read(inputBytes);    
+                	String block = new String(inputBytes);
+                	inputStringBuffer.append(block);            		
+                	//writeToLog("\n(Didn't block for) String: `"+block+"`");            		         		            			
+            	}            		
             		
-            		theResponse = null;
-            		System.exit(101);
-            	}
-            	System.exit(100); 
-            }
-            
-            try 
-            {
-            	addBuffers(theResponse);
+            	// Bad kludge. Couldn't get proper XML parse function working, so
+            	// did this. Should re-write (preferably with correct XML handling functions!)
+            	// The trim() call below is especially egregious... - TN
+            	            		
+            	String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";
+            	String bufferStr = inputStringBuffer.toString();            		
+            	if(bufferStr.trim().endsWith(sMargraveCommandEnding))
+            		break;
+            } // end while(true) for kludge
             	
-        		writeToLog("Returning: " + transformXMLString(theResponse) + "\n");
-        		out.write(transformXML(theResponse));
-        	} catch (IOException e)
-        	{
-        		// don't do this. would go through System.err
-        		//e.printStackTrace();
-        	}
-        	out.flush(); // ALWAYS FLUSH!
-        } // end handleXMLCommand
-
-        protected static void addBuffers(Document theResponse)
+           	String cmdString = inputStringBuffer.toString();
+           	writeToLog("\n\n*********************************\nDONE! Received command: `"+cmdString+"`\n");
+            	
+           	inputXMLDoc = docBuilder.parse(new InputSource(new StringReader(cmdString)));
+            	
+           	//doc = docBuilder.parse(commandStream);            	
+           	//doc = docBuilder.parse(new InputSource(commandStream));
+           	writeToLog((new Date()).toString());
+  			writeToLog("\nExecuting command: " + transformXMLToString(inputXMLDoc) + "\n");   					   				            	
+        } // end try 
+        catch (SAXException ex) 
         {
-        	// add in any supplemental or error information                     	
-        	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
-        	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
-        	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
-        	envErrChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
-        	
-        	// Clear out the "out" and "error" buffers.        	
-        	MEnvironment.errorBuffer.getBuffer().setLength(0);
-        	MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
-        	
-        	theResponse.getDocumentElement().appendChild(envOutChild);
-        	theResponse.getDocumentElement().appendChild(envErrChild);
+        	Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            writeToLog("\nSAXException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
+        }
+        catch (IOException ex)
+        {
+            Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            writeToLog("\nIOException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
         }
         
+        /////////////////////////////////////////////////////
+        // Done parsing input. Now prepare the response.
         
-        //Takes a MARGRAVE-COMMAND node
+        Document theResponse;
+        try
+        {
+            // protect against getFirstChild() call            
+            if(inputXMLDoc != null)
+             	theResponse = xmlHelper(inputXMLDoc.getFirstChild(), "");
+            else
+              	theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, MEnvironment.sCommand, "");
+        }
+        catch(Exception e)
+        {
+        	// Construct an exception response;            	
+          	theResponse = MEnvironment.exceptionResponse(e);            	
+        }
+        catch(Throwable e)
+        {
+           	// This would ordinarily be a terrible thing to do (catching Throwable)
+           	// However, we need to warn the client that we're stuck.
+            	
+          	try
+           	{
+           		// First log that we got an exception:
+           		writeToLog("\n~~~ Throwable caught: "+e.getClass());
+           		writeToLog("\n    "+e.getLocalizedMessage());
+           		writeToLog("\n"+Arrays.toString(e.getStackTrace()));
+           		writeToLog("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+           		theResponse = MEnvironment.exceptionResponse(e);
+           	}
+           	catch(Throwable f)
+           	{
+           		// If we can't even warn the client, at least close down the engine. Client will detect EOF.            	
+           		theResponse = null;
+           		System.exit(101);
+           	}
+          	
+          	// Last resort
+            System.exit(100); 
+        }
+            
+        try 
+        {
+         	addBuffers(theResponse);
+            	
+      		writeToLog("Returning: " + transformXMLToString(theResponse) + "\n");
+       		out.write(transformXMLToByteArray(theResponse));
+       	} catch (IOException e)
+       	{
+       		// don't do this. would go through System.err
+       		//e.printStackTrace();
+       	}
+       	out.flush(); // ALWAYS FLUSH!
+       	
+    } // end handleXMLCommand
+
+	/**
+	 * We suspended stdin and stdout. Append what has accumulated to the response.
+	 * @param theResponse
+	 */
+    protected static void addBuffers(Document theResponse)
+    {
+       	// add in any supplemental or error information                     	
+      	Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
+       	envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
+       	Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
+       	envErrChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
+        	
+       	// Clear out the "out" and "error" buffers.        	
+       	MEnvironment.errorBuffer.getBuffer().setLength(0);
+       	MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
+       	
+       	theResponse.getDocumentElement().appendChild(envOutChild);
+       	theResponse.getDocumentElement().appendChild(envErrChild);
+    }
+        
+        
+        /** 
+         * Takes a MARGRAVE-COMMAND node and performs the appropriate action.
+         * 
+         * @param margraveCommandNode
+         * @param originalXMLText
+         * @return
+         * @throws MBaseException
+         */
         private static Document xmlHelper(Node margraveCommandNode, String originalXMLText) throws MBaseException
         {        	
         	//List<Node> childNodes = getElementChildren(node);
         	
-        	//String type = node.getAttributes().item(0).getNodeValue();
         	writeToLog("\n  In XML Helper...");
 
         	Document theResponse = null;
@@ -1145,19 +1163,12 @@ public class MCommunicator
         }
         
         //Returns the child node of n whose name is nodeName 
-        //If no child, returns null
         private static Node getChildNode(Node n, String nodeName)
         {
-        	List<Node> childNodes = getElementChildren(n);
-        	        	
-        	for (Node childNode : childNodes)
-        	{
-        		if (nodeName.equalsIgnoreCase(childNode.getNodeName()))
-        		{
-        			return childNode;
-        		}
-        	}
-        	return null; //Didn't find it, error
+        	List<Node> childNodes = getChildNodes(n, nodeName);        	        	
+        	if(childNodes.size() > 0)
+        		return childNodes.get(0);
+        	return null; // Didn't find it, error
         }
         
         private static List<Node> getChildNodes(Node n, String nodeName)
@@ -1176,7 +1187,9 @@ public class MCommunicator
         }
         
         /**
-         * Finds the child node of n whose name is nodeName (unless n's name is nodename), and returns the value of its attribute with attributeName
+         * Returns the value of attribute [attributeName] in either
+         * (1) Node n (if n's name is [nodeName])
+         * (2) The first child of Node n named [nodeName])
          * @param n 
          * @param nodeName
          * @param attributeName
@@ -1185,43 +1198,33 @@ public class MCommunicator
         private static String getAttributeOfChildNodeOrNode(Node n, String nodeName, String attributeName)
         {
         	if(n == null) {
-        		return null;
+        		throw new MCommunicatorException("getAttributeofChildNodeorNode called with n=null.");
         	}
         	
-        	Node node = null;
+        	Node targetNode = null;
         	if (n.getNodeName().equalsIgnoreCase(nodeName))
         	{
-        		node = n;
+        		targetNode = n;
         	}
         	else
         	{
-        		node = getChildNode(n, nodeName);
+        		targetNode = getChildNode(n, nodeName);
+        		if(targetNode == null)
+        			throw new MCommunicatorException("getAttributeofChildNodeorNode: Neither node nor children had name="+nodeName);
         	}
         	
-        	//Return null if we couldn't find the node, or if the node doesn't have the specified attribute
-        	if (node == null) {
-        		return null;
-        	}
-        	Node attribute = node.getAttributes().getNamedItem(attributeName);
-        	if (attribute == null) {
-        		return null;
-        	}
-        	return attribute.getNodeValue();
+        	return getNodeAttribute(targetNode, attributeName);        	        		        	        	
         }
-        
-        
-        
+                        
         private static String getNodeAttribute(Node n, String attributeName)
         {
         	if(n == null) { 
-        		return null;
+        		throw new MCommunicatorException("getNodeAttribute called with n=null.");
         	}
         	
         	Node attribute = n.getAttributes().getNamedItem(attributeName);
-        	if(attribute == null) {
-        		return null;
-        	}        		
-        	
+        	if(attribute == null) 
+        		throw new MCommunicatorException("getNodeAttribute: Node did not have attribute="+attributeName);
         	return attribute.getNodeValue();
         }
         
@@ -1370,8 +1373,7 @@ public class MCommunicator
         		return exploreHelper(n.getFirstChild()).forall(theVar, theSort);
         	}
         	else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
-        	{
-        		// "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>"
+        	{        		
         		return handleAtomicFormula(n);
         	}
         	else if(name.equalsIgnoreCase("TRUE"))
@@ -1392,17 +1394,10 @@ public class MCommunicator
 			List<MTerm> terms = getTermsFromEqualsFmla(n);
 			MTerm term1 = terms.get(0);
 			MTerm term2 = terms.get(1);
-				
-			//String idname1 = getNodeAttribute(n, "EQUALS", "v1");
-			//String idname2 = getNodeAttribute(n, "EQUALS", "v2");
-			
-			writeToLog("\nEQUALS: "+term1+" = "+term2+"\n\n");
+							
+			writeToLog("\nexploreHelper: EQUALS: "+term1+" = "+term2+"\n\n");
 			        		
-			//Variable v1 = MFormulaManager.makeVariable(idname1);
-			//Variable v2 = MFormulaManager.makeVariable(idname2);
-			Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
-			writeToLog("\nNew Explore condition (equals): "+fmla);
-			        		        	
+			Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);			        		        	
 			return new MExploreCondition(fmla, term1, term2, true);
 		}
 
@@ -1568,9 +1563,6 @@ public class MCommunicator
      		}
      		
      		return new MFunctionTerm(funcName, subTerms);
-     		
-     		// remember what symbols we saw, so we can catch errors?
-     		
      	}	
      	else if (name.equalsIgnoreCase("CONSTANT-TERM"))
      	{
@@ -1584,7 +1576,7 @@ public class MCommunicator
      	}
      	else
      	{     		     		
-     		throw new MGEUnsupportedXACML("Unsupported term type: "+name);
+     		throw new MCommunicatorException("Unsupported term type: "+name);
      	}
      }
 
@@ -1647,7 +1639,6 @@ public class MCommunicator
      {
     	 if(!bDoLogging)
     		 return;
-
     	 try
     	 {    		
     		 MCommunicator.outLog.write(s);
@@ -1655,44 +1646,12 @@ public class MCommunicator
     	 }
     	 catch (Exception e)
     	 {
-    	     //Catch exception if any
     		 out.println(makeDetailedError("\nError writing log file: " + e.getMessage() +" (exception: "+e+")"+"( outLog = "+outLog+")"+"( outLogStream = "+outLogStream+")"));
     		 out.flush();
     	     System.exit(3);
     	 }
      }
-               
-     
-     protected static String transformXMLString(Document theResponse) 
-     {
-    	 try
-    	 {
-			Transformer transformer = TransformerFactory.newInstance().newTransformer();
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			
-			//initialize StreamResult with File object to save to file
-			StreamResult result = new StreamResult(new StringWriter());
-			DOMSource source = new DOMSource(theResponse);
-			
-			// If this line causes a null pointer exception, there is an empty text element somewhere.
-			// For some reason the transformer can't handle text elements with "" in them.
-			transformer.transform(source, result);			
-			
-			
-			String xmlString = result.getWriter().toString();
-			//xmlString += cEOF;
-			return xmlString;
-		}
-		catch(Exception e)
-		{
-			// Will hit this if theResponse is null.	
-			// don't do this. would go through System.err
-			//e.printStackTrace();
-			//return (makeDetailedError(e.getLocalizedMessage())+cEOF);
-			return (makeDetailedError(e.getLocalizedMessage()));
-		}
-	}
-     
+                        
      protected static String transformXMLToString(Document theResponse)
      {
     	 try
@@ -1722,7 +1681,7 @@ public class MCommunicator
     	 
      }
      
-     protected static byte[] transformXML(Document theResponse) 
+     protected static byte[] transformXMLToByteArray(Document theResponse) 
      {
     	return transformXMLToString(theResponse).getBytes(); 
      }

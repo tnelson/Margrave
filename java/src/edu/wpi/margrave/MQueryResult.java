@@ -583,8 +583,6 @@ public abstract class MQueryResult
 		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
-			HashMap<MIDBCollection, ExpressionReplacementV> initialVisitors = 
-				new HashMap<MIDBCollection, ExpressionReplacementV>();
 			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
 			Set<Formula> impSet = new HashSet<Formula>();
 			
@@ -612,24 +610,7 @@ public abstract class MQueryResult
 					Formula idbFormula = idbs.getIDB(idbname);
 					
 					//MEnvironment.errorStream.println("++ " +idbs.name+MEnvironment.sIDBSeparator+idbname);
-					//MEnvironment.errorStream.println(idbFormula.hashCode());
-					
-					// At this point, idbFormula is using object references from the Policy instead
-					// of the proper vocabulary, which would lead to unbound relation exceptions if 
-					// we did not do this:
-					
-					/// !!! TODO is this even needed anymore?
-					
-					//RelationAndTermReplacementV vis;
-					//if(initialVisitors.containsKey(idbs))
-					//	vis = initialVisitors.get(idbs);
-					//else
-					//{
-					//	vis = MIDBCollection.getReplacementVisitor(idbs.vocab, fromContext.forQuery.vocab);
-					//	initialVisitors.put(idbs, vis);
-					//}
-					
-					//idbFormula = idbFormula.accept(vis);
+					//MEnvironment.errorStream.println(idbFormula.hashCode());					
 									
 					// What temporary variables did the policy refer to?
 					// (Order doesn't really matter here, since it's all flat universal quantifiers)

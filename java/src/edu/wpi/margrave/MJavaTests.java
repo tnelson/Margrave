@@ -136,7 +136,7 @@ public class MJavaTests
 		}		
 		/////////////////////////////////////////////////////////////	
 		
-		
+		//XACML20Reader.doComplianceTests("", "");
 		
 		
 		// Do not put anything after this point except the call to exitJavaTests.
@@ -145,32 +145,9 @@ public class MJavaTests
 		/////////////////////////////////////////////////////////////
 		exitJavaTests(1);
 	
-		// do_time_tupling_new();
-		// 		exitJavaTests(1);
-
-		// do_time_tupling();
-		// 		exitJavaTests(1);
-
-	//	benchmarkXACML();
-	//			exitJavaTests(1);
-						
 /*
 		
 		
-				
-		
-		// Main test blocks		
-		runTests();		
-		
-		// 		exitJavaTexts(1);
-
-		
-		// tupling benchmarks
-		MEnvironment.writeOutLine("\n\nTUPLING BENCHMARKS\n\n");
-		// Not _new; the new timer uses unary preds for address bits
-		do_time_tupling();					
-				
-
 	
 		
 		
@@ -190,6 +167,12 @@ public class MJavaTests
 		 * Leave everything after the above printStatistics() call empty.
 		 */
 	}
+
+	
+	
+	
+	
+	
 	
 /*	public static void testSAT()
 	{

@@ -441,18 +441,8 @@ abstract class MInstanceIterator extends MQueryResult
 			atoms.add(termToAtom(aterm, model));
 		return atoms;
 	}
- 	
-	/*public boolean warn_user()
-	{
-		// Warn the user if there is an inf. herbrand univ, OR if the user has overridden a finite one.
-		if(fromContext.getCeilingUsed() < 0 || fromContext.getCeilingUsed() > fromContext.get_universe_max())
-			return true;
-		
-		return false;
-	}	*/
 
-	
-	
+
 	private String varToRelName(List<Relation> relList, HashMap<Relation, List<Tuple>>tupMap, int iVar)
 	{
 		for(Relation r : relList)

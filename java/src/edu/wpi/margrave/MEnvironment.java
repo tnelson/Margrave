@@ -1917,6 +1917,7 @@ public class MEnvironment
 		// <MARGRAVE-RESPONSE>success</MARGRAVE-RESPONSE>
 	
 		Document xmldoc = makeInitialResponse(sSuccess);
+		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
 		
 		Element thyElement = xmldoc.createElementNS(null, "THEORY");
 		thyElement.setAttribute("sexpr", thySexpr);		
@@ -1925,8 +1926,7 @@ public class MEnvironment
 		Element polElement = xmldoc.createElementNS(null, "POLICY");
 		polElement.setAttribute("sexpr", polSexpr);		
 		xmldoc.getDocumentElement().appendChild(polElement);
-		
-		if(xmldoc == null) return null; // be safe (but bottle up exceptions)
+				
 		return xmldoc;
 	}
 	
@@ -2018,7 +2018,7 @@ public class MEnvironment
 			// Explicitly add the buffers (since this func will be called from outside the main loop)
 			MCommunicator.addBuffers(xmldoc);
 			
-			byte[] theBytes = MCommunicator.transformXML(xmldoc);
+			byte[] theBytes = MCommunicator.transformXMLToByteArray(xmldoc);
 			try
 			{
 				MCommunicator.out.write(theBytes);
@@ -2036,7 +2036,7 @@ public class MEnvironment
 		{
 			Text val = xmldoc.createTextNode(sQuitMargrave);
 			xmldoc.getDocumentElement().appendChild(val);	
-			byte[] theBytes = MCommunicator.transformXML(xmldoc);
+			byte[] theBytes = MCommunicator.transformXMLToByteArray(xmldoc);
 			try
 			{
 				MCommunicator.out.write(theBytes);
@@ -2363,43 +2363,6 @@ public class MEnvironment
 	public static Document setSortCeiling(String sortName, int value) {
 		globalUserSortCeilings.put(sortName, value);
 		return successResponse();
-	}
-	
-	/*
-	public static Document returnCompareQuery(String originalXMLText,
-			String polname1, String polname2,
-			Boolean tupling, Integer debugLevel,
-			Integer ceilingLevel)
-	throws MUserException
-	{
-		
-		// Get the policies
-		MIDBCollection coll1 = envIDBCollections.get(polname1);
-		MIDBCollection coll2 = envIDBCollections.get(polname2);		
-		if(coll1 == null)
-			return errorResponse(sUnknown, sPolicy, polname1);
-		if(coll2 == null)
-			return errorResponse(sUnknown, sPolicy, polname2);
-
-		// should be a different error message
-		if(!(coll1 instanceof MPolicy))
-			return errorResponse(sUnknown, sPolicy, polname1);
-		if(!(coll2 instanceof MPolicy))
-			return errorResponse(sUnknown, sPolicy, polname2);
-				
-		MPolicy pol1 = (MPolicy)coll1;
-		MPolicy pol2 = (MPolicy)coll2;
-		
-		// Create exploreCondition
-		MQuery theQuery = pol1.compareWithPolicy(pol2);
-							
-		theQuery.debug_verbosity = debugLevel;
-		theQuery.userSizeCeiling = ceilingLevel;
-		theQuery.doTupling = tupling;
-		
-		return returnQueryResponse(theQuery, originalXMLText);
-	}*/
-
-	
+	}	
 	
 }

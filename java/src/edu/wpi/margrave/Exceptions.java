@@ -77,19 +77,6 @@ class MInternalNoBoundsException extends Exception
 	
 }
 
-/* Thrown when the formula given cannot be tupled, or the 
- *  tupling process gets confused.
- */
-class MGETuplingFailure extends MUserException
-{
-	private static final long serialVersionUID = 100; 
-	
-	MGETuplingFailure(String s)
-	{
-		super(s);
-	}
-}
-
 /* Thrown if a pair of vocabularies used in the same query cannot be combined.
  * (e.g., they may have different request vectors)
  */
@@ -146,6 +133,17 @@ class MGEUnknownIdentifier extends MUserException
 		super(message);
 	}
 }
+
+class MCommunicatorException extends MUserException
+{
+	private static final long serialVersionUID = 100;
+	
+	public MCommunicatorException(String message)
+	{         
+		super(message);
+	}
+}
+
 
 class MGEArityMismatch extends MUserException
 {

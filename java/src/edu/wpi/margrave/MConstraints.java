@@ -432,8 +432,6 @@ public class MConstraints
 	{
 		buf.append("  (Axioms "+MEnvironment.eol);
 			
-		Set<Formula> results = new HashSet<Formula>();
-
 		for(String r : setsAbstract)
 		{
 			buf.append("(abstract "+r+")"+MEnvironment.eol);
@@ -502,7 +500,7 @@ public class MConstraints
 		// Other constraints:
 		for(Formula f : otherAxioms)
 		{
-			throw new MUserException("Unable to convert MConstraints to s-expression: arbitrary formulas are not supported.");
+			buf.append("(formula "+MFormulaManager.toSExpression(vocab, f)+")");			
 		}
 
 		buf.append(")"+MEnvironment.eol);	

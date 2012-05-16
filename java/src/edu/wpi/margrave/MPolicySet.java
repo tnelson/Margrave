@@ -467,7 +467,7 @@ public class MPolicySet extends MPolicy
 		MEnvironment.writeErrLine("----- End MPolicySet Tests -----");	
 
 	}
-	
+		
 	public String asSExpression()
 	{
 		StringBuffer buf = new StringBuffer();
