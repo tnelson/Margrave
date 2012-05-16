@@ -759,9 +759,9 @@ class XACML20Reader {
 
 	
 	
-	static MRule handleRule(Node rule, MVocab env) throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
+	static MRule handleRule(MPolicyLeaf pol, Node rule, MVocab env) throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
 	{
-		MRule mr = new MRule();
+		MRule mr = new MRule(pol);
 		
 		NamedNodeMap ruleattrs = rule.getAttributes();
 		if(ruleattrs == null)
@@ -806,6 +806,7 @@ class XACML20Reader {
 		}
 				
 		mr.target_and_condition = MFormulaManager.makeAnd(mr.target, mr.condition);
+		pol.rules.add(mr);	
 		return mr;
 	}
 	
@@ -1193,10 +1194,7 @@ class XACML20Reader {
 	        		if("rule".equals(child.getNodeName().toLowerCase()))
 	        		{
 	        			// Add this rule
-	        			MRule mr = handleRule(child, env);
-	        				        			
-	        			// Add the rule
-	        			pol.rules.add(mr);
+	        			MRule mr = handleRule(pol, child, env);	        				        				        			
 	        		}
 	        		
 	        		// TARGET

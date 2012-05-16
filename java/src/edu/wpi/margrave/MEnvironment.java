@@ -1627,7 +1627,7 @@ public class MEnvironment
 		try
 		{
 			// Inform the policy that this variable has that sort.
-			pol.varSorts.put(MFormulaManager.makeVariable(varname), pol.vocab.getSort(typename).rel);
+			pol.declareVariable(varname, typename);			
 		}
 		catch(MBaseException e)
 		{

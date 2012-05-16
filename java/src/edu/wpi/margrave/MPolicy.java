@@ -49,6 +49,8 @@ class MRule
 	String name;
 	private String myDecision;
 
+	MPolicyLeaf mypolicy;
+	
 	Formula target = Formula.TRUE;
 	Formula condition = Formula.TRUE;
 	
@@ -60,9 +62,9 @@ class MRule
 	
 	List<Variable> ruleVarOrdering = new ArrayList<Variable>();
 	
-	MRule()
+	MRule(MPolicyLeaf pol)
 	{
-		
+		mypolicy = pol;
 	}
 	
 	protected void setDecision(String s)
@@ -80,7 +82,7 @@ class MRule
 		buf.append("("+name+" = "+"("+decision()+" ");
 		for(Variable v : ruleVarOrdering)
 			buf.append(v.name()+" ");
-		buf.append(") :- "+MFormulaManager.toSExpression(target_and_condition));
+		buf.append(") :- "+MFormulaManager.toSExpression(mypolicy.vocab, target_and_condition));
 		buf.append(")"+MEnvironment.eol);		
 	}
 	
@@ -809,7 +811,7 @@ public abstract class MPolicy extends MIDBCollection
 		// For the moment, 1 XACML rule -> 1 Margrave Rule. This means that Margrave rules may not be
 		// simple conjunctive queries anymore. But we could factor out if we needed to, right?
 		
-		MRule mr = new MRule();
+		MRule mr = new MRule(pol);
 		mr.name = r.getId().toString().toLowerCase();
 		
 		// Decision

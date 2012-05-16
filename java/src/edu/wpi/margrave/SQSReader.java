@@ -293,7 +293,7 @@ public class SQSReader
 		else
 			return; // no effect means no need to add the rule
 
-		MRule rule = new MRule();
+		MRule rule = new MRule(result);
 		rule.name = ruleId;		
 		rule.setDecision(effect);		
 		// target starts as true. All criteria must be met, so just "and" each on.

@@ -475,7 +475,7 @@ public class MPolicyLeaf extends MPolicy
 		
 		/////////////////////////////////////////////////////////////
 		// Add this rule to the rule set.
-		MRule newrule = new MRule();
+		MRule newrule = new MRule(this);
 		newrule.setDecision(decision);
 		newrule.name = rulename;	
 		newrule.ruleVarOrdering = ruleVarOrdering;
@@ -771,6 +771,9 @@ public class MPolicyLeaf extends MPolicy
 		
 		
 		MPolicyLeaf pol = new MPolicyLeaf("Test Policy 1", voc);
+		pol.declareVariable("s", "Subject");
+		pol.declareVariable("a", "Action");
+		pol.declareVariable("r", "Resource");
 		
 		/////////////////////////////////////////////////////////////
 		// Decisions are added implicitly by adding rules.
@@ -887,6 +890,11 @@ public class MPolicyLeaf extends MPolicy
 		
 		buf.append(")"+MEnvironment.eol);
 		return buf.toString();
+	}
+
+	public void declareVariable(String varname, String typename) {
+		varSorts.put(MFormulaManager.makeVariable(varname),
+				     vocab.getSort(typename).rel);		
 	}
 
 }

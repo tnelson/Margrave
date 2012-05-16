@@ -1775,7 +1775,7 @@ public class MFormulaManager
 			throw new MUserException("Tried to convert unsupported formula op to sexpression: "+op);
 	}
 	
-	public static String toSExpression(Formula fmla)
+	public static String toSExpression(MVocab v, Formula fmla)
 	{	
 		// What is the sexpression for this formula?
 		// Only supports w/o functions for now!
@@ -1785,8 +1785,8 @@ public class MFormulaManager
 				
 		if(fmla instanceof BinaryFormula)
 		{
-			String lstr = toSExpression(((BinaryFormula) fmla).left());
-			String rstr = toSExpression(((BinaryFormula) fmla).right());
+			String lstr = toSExpression(v, ((BinaryFormula) fmla).left());
+			String rstr = toSExpression(v, ((BinaryFormula) fmla).right());
 			return "(" + toOpName(((BinaryFormula) fmla).op()) + lstr + " " + rstr +")";
 		}
 		else if(fmla instanceof NaryFormula)
@@ -1796,7 +1796,7 @@ public class MFormulaManager
 			buf.append("("+toOpName(nfmla.op())+" ");
 			for(int ii=0;ii<nfmla.size();ii++)
 			{
-				buf.append(toSExpression(nfmla.child(ii))+" ");
+				buf.append(toSExpression(v, nfmla.child(ii))+" ");
 			}
 			buf.append(")");
 			return buf.toString();
@@ -1804,13 +1804,22 @@ public class MFormulaManager
 		else if(fmla instanceof ComparisonFormula)
 		{
 			ComparisonFormula cfmla = (ComparisonFormula) fmla;
+			StringBuffer buf = new StringBuffer();
 			
 			assert(cfmla.right() instanceof Relation);
 			
-			// Break down lhs (and rhs?) using existing functions
-			// TODO
+			buf.append("("+cfmla.right().toString()+" ");
+			
+			List<Expression> args = MVocab.getInOrderTerms(cfmla.left());			
+			for(Expression arg : args)
+			{
+				assert(arg instanceof Variable);
+				buf.append(arg.toString()+" ");
+			}
 			
 			//cfmla.right()
+			buf.append(")");
+			return buf.toString();
 		}
 		else if(fmla instanceof QuantifiedFormula)
 		{
@@ -1822,7 +1831,7 @@ public class MFormulaManager
 			
 			String varname = qfmla.decls().get(0).variable().name();
 			String sortname = qfmla.decls().get(0).expression().toString();
-			return "("+quant+" "+varname+" "+sortname+" "+toSExpression(qfmla.formula())+")";
+			return "("+quant+" "+varname+" "+sortname+" "+toSExpression(v, qfmla.formula())+")";
 		}
 		else
 			throw new MUserException("Tried to convert unsupported fmla to sexpression: "+fmla.toString());

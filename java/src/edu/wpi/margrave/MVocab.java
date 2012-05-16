@@ -1289,7 +1289,7 @@ public class MVocab {
 	}
 
 	// Called by MatrixTuplingV
-	public static String constructIndexing(Expression be,
+	/*public static String constructIndexing(Expression be,
 			HashMap<Variable, Integer> indexing) {
 		List<String> lst = inorderTraversalOfVariableProduct(be, indexing, null);
 		if (lst.size() < 1)
@@ -1315,7 +1315,7 @@ public class MVocab {
 			result.append("," + String.valueOf(indexing.get(theVar)));
 		}
 		return result.toString();
-	}	
+	}*/	
 	
 	// OPT Variant on inorderTraversalOfVariableProduct below.
 	// Duplicate code but sufficient complex that I've just
@@ -1323,6 +1323,13 @@ public class MVocab {
 	static List<Expression> getInOrderTerms(Expression e)
 	{
 		List<Expression> result = new ArrayList<Expression>();
+				
+		// Base case:
+		if(e instanceof LeafExpression)
+		{
+			result.add(e);
+			return result;
+		}
 		
 		/////////////////////////////////////////////////////////////
 		// Setup for DFS
@@ -1413,6 +1420,7 @@ public class MVocab {
 	
 	
 	// OPT Duplicate code with above function for now. - TN
+	/*
 	private static List<String> inorderTraversalOfVariableProduct(
 			Expression e, HashMap<Variable, Integer> indexing,
 			HashMap<Variable, String> sortenv)
@@ -1501,7 +1509,7 @@ public class MVocab {
 			return index_result;
 		return varname_result;
 
-	}
+	}*/
 
 	Set<MSort> buildSubSortSet(String tname)
 	{
