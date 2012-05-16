@@ -870,7 +870,7 @@ public class MPolicyLeaf extends MPolicy
 	public String asSExpression()
 	{
 		StringBuffer buf = new StringBuffer();
-		buf.append("(PolicyLeaf "+name+" uses "+name+MEnvironment.eol);
+		buf.append("(Policy uses "+name+MEnvironment.eol);
 		
 		buf.append("  (Variables "+MEnvironment.eol);
 		for(Variable v : varSorts.keySet())
@@ -886,7 +886,33 @@ public class MPolicyLeaf extends MPolicy
 		}		
 		buf.append(")"+MEnvironment.eol); // end rules
 		
-		
+		buf.append("(RComb ");
+		//rCombineWhatOverrides
+		if(rCombineFA.size() > 0)
+		{
+			buf.append("(fa ");
+			for(String s : rCombineFA)
+			{
+				buf.append(s+" ");
+			}
+			buf.append(")");
+		}
+		if(rCombineWhatOverrides.size() > 0)
+		{
+			for(String k : rCombineWhatOverrides.keySet())
+			{
+				// // A -> { decisions that override A }
+				// Warning: this is **NOT** transitive!
+				buf.append("(over "+k+" ");
+				for(String s : rCombineWhatOverrides.get(k))
+				{
+					buf.append(s+" ");
+				}
+				buf.append(")");
+
+			}
+		}
+		buf.append(")"); // end rcomb
 		
 		buf.append(")"+MEnvironment.eol);
 		return buf.toString();

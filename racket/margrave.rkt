@@ -663,9 +663,11 @@
   (define response (send-and-receive-xml (xml-make-load-sqs pol-id fn)))
   (when (response-is-success? response)
     ; Expect an extended reply
-    (printf "~v~n~v~n" 
-            (success->policy-sexpr response)
-            (success->theory-sexpr response)))
+    (define polexpr (read (open-input-string (success->policy-sexpr response))))
+    (define thyexpr (read (open-input-string (success->theory-sexpr response))))
+    (define thethy (eval thyexpr the-margrave-namespace))
+    (define thepolfunc (eval polexpr the-margrave-namespace))
+    (printf "~v~n~v~n~v~n~v~n" thyexpr polexpr thethy thepolfunc))
   (response->string response))
 
 

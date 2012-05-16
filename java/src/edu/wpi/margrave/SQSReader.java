@@ -42,7 +42,7 @@ public class SQSReader
 		env.addSort("Principal"); 
 		env.addSort("Action");
 		env.addSort("Resource");
-		env.addSort("Condition");
+		env.addSort("Condition");		
 
 		// All of these sorts are pairwise disjoint
 		// since they are incomparable in the ordering.
@@ -94,7 +94,7 @@ public class SQSReader
 					{
 						//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
 						Formula theatom = makeSQSAtom(vocab, "c", "Condition", 
-								cFunction+"<"+cSubKey+", "+subarr.get(iValue)+">");
+								cFunction+"<"+cSubKey+"><"+subarr.get(iValue)+">");
 						valuedisj.add(theatom);
 					}
 					
@@ -103,7 +103,8 @@ public class SQSReader
 				else
 				{
 					//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subcondition+")");	
-					Formula theatom = makeSQSAtom(vocab, "c", "Condition", cFunction+"<"+cSubKey+", "+subcondition+">");
+					Formula theatom = makeSQSAtom(vocab, "c", "Condition", 
+							cFunction+"<"+cSubKey+"><"+subcondition+">");
 					thisCondition.add(theatom);
 				}
 				
@@ -124,7 +125,7 @@ public class SQSReader
 		
 		// Add the sort (if it doesn't already exist.)
 		
-		predname = MVocab.validateIdentifier(predname, true);
+		predname = MVocab.validateIdentifier("is"+predname, true);
 		parentsortname = MVocab.validateIdentifier(parentsortname, true);
 		
 		// Kludge (for now) to make * contain subsorts:
@@ -301,7 +302,13 @@ public class SQSReader
 
 		MRule rule = new MRule(result);
 		rule.name = ruleId;		
-		rule.setDecision(effect);		
+		rule.setDecision(effect);
+		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("p"));
+		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("a"));
+		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("r"));
+		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("c"));
+					
+
 		// target starts as true. All criteria must be met, so just "and" each on.
 
 		
@@ -365,6 +372,11 @@ public class SQSReader
 			
 			MVocab env = createSQSVocab(polId);
 			MPolicyLeaf result = new MPolicyLeaf(polId, env);
+			
+			result.declareVariable("p", "Principal");
+			result.declareVariable("a", "Action");
+			result.declareVariable("r", "Resource");
+			result.declareVariable("c", "Condition");
 			
 			// Get statements; may be an array or a single statement object.
 			Object statement_s = json.get("Statement");

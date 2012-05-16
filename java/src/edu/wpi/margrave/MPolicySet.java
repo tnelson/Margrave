@@ -471,7 +471,7 @@ public class MPolicySet extends MPolicy
 	public String asSExpression()
 	{
 		StringBuffer buf = new StringBuffer();
-		buf.append("(PolicySet "+name+" uses "+name+MEnvironment.eol);
+		buf.append("(PolicySet uses "+name+MEnvironment.eol);
 		
 	
 		buf.append(")"+MEnvironment.eol);
