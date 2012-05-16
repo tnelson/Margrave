@@ -442,9 +442,3 @@
 
 
 
-(Policy psqs7 uses psqs7 
-        (Variables (p Principal) (c Condition) (r Resource) (a Action)) 
-        (Rules 
-         (Queue1_AnonymousAccess_SendMessage_IPLimit = (Allow p a r c) :- (and (isResource=/987654321098/queue1 r) (isNotIpAddress<AWS:SourceIp><192.168.143.188/32> c) (isAction=SQS:SendMessage a) (isPrincipal.AWS=* p) (isIpAddress<AWS:SourceIp><192.168.143.0/24> c))) 
-         (Queue1_AnonymousAccess_AllActions_IPLimit_Deny = (Deny p a r c) :- (and (isResource=/987654321098/queue1 r) (isIpAddress<AWS:SourceIp><10.1.2.0/24> c) (isAction=SQS:* a) (isPrincipal.AWS=* p))))
-        (RComb (over Allow Deny)))
