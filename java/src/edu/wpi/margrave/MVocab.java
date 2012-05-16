@@ -606,8 +606,10 @@ public class MVocab {
 			n = n.replace(" ", "_");
 			// No quote symbols allowed (just in case)
 			n = n.replace("\"", "`");
+			
+			// Removed: No reason to do this internally
 			// Must be lower-case
-			n = n.toLowerCase();
+			//n = n.toLowerCase();
 		}
 
 		String allowedchars;

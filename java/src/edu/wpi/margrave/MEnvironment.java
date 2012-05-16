@@ -1188,7 +1188,8 @@ public class MEnvironment
 			return errorResponse(sUsed, sPolicy, pol.name);
 		
 		envIDBCollections.put(pol.name, pol);			
-		return stringResponse(pol.name);
+		return policySuccessResponse(pol.vocab.asSExpression(pol.name),
+				pol.asSExpression());
 	}
 
 	public static Document loadSQS(String polid, String fname)

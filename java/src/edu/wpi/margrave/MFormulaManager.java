@@ -1833,6 +1833,14 @@ public class MFormulaManager
 			String sortname = qfmla.decls().get(0).expression().toString();
 			return "("+quant+" "+varname+" "+sortname+" "+toSExpression(v, qfmla.formula())+")";
 		}
+		else if(Formula.TRUE.equals(fmla))
+		{
+			return "true";
+		}
+		else if(Formula.FALSE.equals(fmla))
+		{
+			return "false";
+		}
 		else
 			throw new MUserException("Tried to convert unsupported fmla to sexpression: "+fmla.toString());
 	}

@@ -660,7 +660,13 @@
 ; Loads an XACML policy 
 (define (load-sqs-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
-  (response->string (send-and-receive-xml (xml-make-load-sqs pol-id fn))))
+  (define response (send-and-receive-xml (xml-make-load-sqs pol-id fn)))
+  (when (response-is-success? response)
+    ; Expect an extended reply
+    (printf "~v~n~v~n" 
+            (success->policy-sexpr response)
+            (success->theory-sexpr response)))
+  (response->string response))
 
 
 

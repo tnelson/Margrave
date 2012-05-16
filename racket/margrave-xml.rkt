@@ -378,6 +378,15 @@
   (cond [(m-scenario? a-response) (internal-process-scenario a-response)]
         [else (internal-process-unsat a-response)]))
 
+(define (success->policy-sexpr response)
+  (define polelement (get-child-element (maybe-document->element response) 'POLICY))
+  (cond [(empty? polelement) #f]
+        [else (get-attribute-value polelement 'sexpr)]))
+(define (success->theory-sexpr response)
+  (define polelement (get-child-element (maybe-document->element response) 'THEORY))
+  (cond [(empty? polelement) #f]
+        [else (get-attribute-value polelement 'sexpr)]))
+
 
 ; Get value for attribute name-symbol of element ele
 ; Element -> Symbol -> String

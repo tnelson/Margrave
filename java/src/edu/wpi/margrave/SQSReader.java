@@ -39,10 +39,10 @@ public class SQSReader
 	{
 		MVocab env = new MVocab();
 		
-		env.addSort("principal"); 
-		env.addSort("action");
-		env.addSort("resource");
-		env.addSort("condition");
+		env.addSort("Principal"); 
+		env.addSort("Action");
+		env.addSort("Resource");
+		env.addSort("Condition");
 
 		// All of these sorts are pairwise disjoint
 		// since they are incomparable in the ordering.
@@ -94,7 +94,7 @@ public class SQSReader
 					{
 						//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
 						Formula theatom = makeSQSAtom(vocab, "c", "Condition", 
-								cFunction+"("+cSubKey+", "+subarr.get(iValue)+")");
+								cFunction+"<"+cSubKey+", "+subarr.get(iValue)+">");
 						valuedisj.add(theatom);
 					}
 					
@@ -103,7 +103,7 @@ public class SQSReader
 				else
 				{
 					//MEnvironment.errorStream.println(cFunction+"("+cSubKey+", "+subcondition+")");	
-					Formula theatom = makeSQSAtom(vocab, "c", "Condition", cFunction+"("+cSubKey+", "+subcondition+")");
+					Formula theatom = makeSQSAtom(vocab, "c", "Condition", cFunction+"<"+cSubKey+", "+subcondition+">");
 					thisCondition.add(theatom);
 				}
 				
@@ -140,9 +140,15 @@ public class SQSReader
 		vocab.addPredicate(predname, parentsortname);
 
 		if(predname.startsWith("principal.aws"))
-			vocab.axioms.addConstraintSubset(predname, "principal.aws=*");		
+		{
+			vocab.addPredicate("principal.aws=*", "Principal");
+			vocab.axioms.addConstraintSubset(predname, "principal.aws=*");
+		}
 		else if(predname.startsWith("action=sqs"))
-			vocab.axioms.addConstraintSubset(predname, "action=sqs:*");				
+		{
+			vocab.addPredicate("action=sqs:*", "Action");
+			vocab.axioms.addConstraintSubset(predname, "action=sqs:*");
+		}
 
 		
 		//vocab.addSubSort(parentsortname, sortname);
