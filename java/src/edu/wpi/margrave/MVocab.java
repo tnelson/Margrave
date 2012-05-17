@@ -362,7 +362,7 @@ class MConstant extends MPredicate
 	{
 		if (this == other)
             return true;
-
+		
         if (!(other instanceof MConstant))
         	return false;
 
@@ -458,11 +458,19 @@ class MPredicate
 	
 	public boolean equals(Object other)
 	{
+		if (other == null)
+			return false;		
 		if (this == other)
             return true;
+		
+		// Make it safe to extend this class and override equals:
+		if(!this.getClass().equals(other.getClass()))
+			return false;
 
-        if (!(other instanceof MPredicate))
-            return false;
+		// Unnecessary due to getClass() comparison above.
+		// If included, FindBugs is unhappy.
+        //  if (!(other instanceof MPredicate))
+        //     return false;
 
         MPredicate othPred = (MPredicate)other;
         

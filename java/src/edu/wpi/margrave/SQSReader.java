@@ -359,7 +359,8 @@ public class SQSReader
 			{
 				String line = reader.readLine();
 				target.append(line + "\n");
-			}									
+			}	
+			reader.close();
 			
 			JSONObject json = new JSONObject(target.toString());
 			
@@ -400,8 +401,7 @@ public class SQSReader
 			result.rCombineWhatOverrides.put("Allow", denySet); // Allow < {Deny}
 			
 			result.initIDBs();
-			
-			//result.prettyPrintRules();			
+						
 			return result;
 			
 		}		

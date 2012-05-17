@@ -813,7 +813,8 @@ public class MCommunicator
 
 				exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
 				if (exploreCondition == null)
-					MEnvironment.errorWriter.println("explore condition is null!");
+					throw new MCommunicatorException("Explore condition is null!");
+				
 				MQuery result = null;
 
 				//Default Values                                     					
@@ -826,7 +827,6 @@ public class MCommunicator
 
 				Node underNode = getUnderNode(n);
 				Node publishNode = getPublishNode(n);
-				//Node tuplingNode = getTuplingNode(n);
 				Node debugNode = getDebugNode(n);
 				Node ceilingsNode = getCeilingsNode(n);
 

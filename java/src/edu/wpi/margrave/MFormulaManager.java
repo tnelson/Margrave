@@ -166,9 +166,13 @@ class MWeakArrayVector<T>
 		// xor the hashCodes of element referents
 		int result = 0;
 		for(WeakReference<T> ref : internalList)
-		{
-			if(ref != null && ref.get() != null)
-				result ^= ref.get().hashCode();
+		{			
+			if(ref != null)
+			{
+				Object refContents = ref.get();
+				if(refContents != null)
+					result ^= refContents.hashCode();
+			}
 		}			
 		
 		// Only recalculate this object's hash code when explicitly told to.
@@ -179,8 +183,7 @@ class MWeakArrayVector<T>
 		// (3) Fields that contributed to hashCode are freed
 		// (4) We try to find the key and fail b/c hashCode has changed.
 		
-		myHashCode = result;
-		
+		myHashCode = result;		
 		return result;
 	}
 	

@@ -229,7 +229,8 @@ class XACML20Reader {
 								decision = "Indeterminate";
 								break;
 							}
-						} // for each line in the response											
+						} // for each line in the response	
+						reader.close();
 
 						// Is this a real decision? If so, let's see what Margrave says about the request.
 						if("Indeterminate".equals(decision) || decision.length() < 1)
@@ -252,8 +253,7 @@ class XACML20Reader {
 					catch(IOException e)
 					{
 						throw new MGEUnsupportedXACML("Test failed: IO Exception "+e);
-					}
-			
+					}					
 				}
 				catch(MGEUnsupportedXACML e)
 				{

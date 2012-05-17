@@ -591,7 +591,10 @@ public abstract class MPolicy extends MIDBCollection
 		// Only ever one variable named "s" now. So manager will have it.
 		return MFormulaManager.makeAtom(MFormulaManager.makeVariable(varname), r);
 	}
-	
+			
+	// Otherwise the cast from List to List<List<TargetMatch>> will give a warning.
+	// (The XACML 1.0 library we currently use does not use generics.)
+	@SuppressWarnings("unchecked")
 	private static Formula handleXACMLTarget(Target targ, MVocab env) 
 	throws MGEUnsupportedXACML,MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
 	{
@@ -609,9 +612,9 @@ public abstract class MPolicy extends MIDBCollection
 			return Formula.TRUE;
 					
 		// null for any of these below means no restrictions to target for that sort
-		
+				
 		// Subjects
-		if(targ.getSubjects() != null) {
+		if(targ.getSubjects() != null) {			 
 			for(List<TargetMatch> subl : (List<List<TargetMatch>>)targ.getSubjects()) {				
 				Formula thissubject = Formula.TRUE; 
 				for(TargetMatch tm : subl)

@@ -461,11 +461,11 @@ public class MEnvironment
 	// System.out should never be written to except by
 	// MCommunicator, since Racket expects well-formed XML.
 	
-	protected static StringWriter errorBuffer = new StringWriter();
-	protected static PrintWriter errorWriter = new PrintWriter(errorBuffer);
+	protected static final StringWriter errorBuffer = new StringWriter();
+	protected static final PrintWriter errorWriter = new PrintWriter(errorBuffer);
 	
-	protected static StringWriter outBuffer = new StringWriter();
-	protected static PrintWriter outWriter = new PrintWriter(outBuffer);
+	protected static final StringWriter outBuffer = new StringWriter();
+	protected static final PrintWriter outWriter = new PrintWriter(outBuffer);
 	
 	public static final String eol = System.getProperty("line.separator");
 	public static final String sNoIterator = "no iterator";
