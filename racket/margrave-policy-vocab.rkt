@@ -235,13 +235,12 @@
                (syntax-case the-pcomb-clause [PComb]
                  [(PComb x0 x ...) (map comb->sexpr (syntax->list #'(x0 x ...)))]
                  [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
-                            
+       
        ; Macro returns a lambda that takes a filename and a syntax object.   
-       ; This is so we know where to find the vocabulary file. Only know that at runtime
        (with-syntax ([the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
                      [target-result target-result]
-                     [pcomb-result pcomb-result]
+                     [my-comb-list pcomb-result]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -253,7 +252,7 @@
          
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
-           (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                                                                        
+           (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                     
              (define vocab-path (build-path (path-only/same local-policy-filename) 
                                             (string-append (symbol->string 'vocabname) ".v")))
                           
@@ -280,9 +279,11 @@
                                        
              ; Error out if there is a duplicate policy name (or the same name as this parent policy)
              ; Don't repeat vocabularies
-             (define the-children-list (map (lambda (childsyntax) 
-                                              ((eval childsyntax margrave-policy-vocab-namespace) 
+             (define the-children-list (map (lambda (childproc)
+                                              (printf "Handling: ~v~n" childproc)
+                                              (childproc ;(eval childsyntax margrave-policy-vocab-namespace) 
                                                local-policy-filename
+                                               (string-append local-policy-id (->string (gensym)))
                                                src-syntax
                                                thy/maybe))
                                             the-child-policies))
@@ -292,26 +293,22 @@
                        [else (m-policy-set-id child)]))
                (hash-set sofar id child))
              (define the-children (foldl children-aggregator (make-immutable-hash '()) the-children-list))                    
-
              
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
              
-             
-             
-             
-             
-             ; Don't double-load vocabs
-             ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
+             ; Vocabs must all be the same. Since we're in a fixed directory, check only the vname of each
              (for-each (lambda (child)
-                         (define id
-                           (cond [(m-policy? child) (m-policy-id child)] 
-                                 [else (m-policy-set-id child)]))
-                         (unless (equal? (m-theory-name my-theory) id)
+                         (define childthy
+                           (cond [(m-policy? child) (m-policy-theory child)] 
+                                 [else (m-policy-set-theory child)]))
+                         (unless (equal? (m-theory-name my-theory) (m-theory-name childthy))
                            (raise-syntax-error 
                             'Policy 
-                            (format "Child policy used a vocabulary other than \"~a\". Child vocabulary must match parent vocabulary." 'vocabname)                
+                            (format "Child policy used a vocabulary other than ~a. Child vocabulary must match parent vocabulary, but used ~a." 
+                                    'vocabname 
+                                    (m-theory-name childthy))                
                             (make-placeholder-syntax child))))
                        (hash-values the-children))
              
@@ -324,7 +321,17 @@
              ;[target m-formula?]
              ;[idbs (hash/c string? (listof string?))])                          
              
-             (m-policy-set local-policy-id my-theory the-children pcomb-result target-result (hash) ))))))))
+             (printf "~v~n" local-policy-id)
+             (printf "~v~n" the-children)
+             (printf "~v~n" 'my-comb-list)
+             (printf "~v~n" 'target-result)
+             
+             (m-policy-set local-policy-id 
+                           my-theory 
+                           the-children
+                           'my-comb-list
+                           'target-result
+                           (hash) ))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

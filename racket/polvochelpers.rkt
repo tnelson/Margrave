@@ -158,8 +158,8 @@
   ([id string?]   
    [theory m-theory?]   
    ;[vardecs (hash/c string? m-vardec?)]
-   [children (hash/c string? m-policy?)]
-   [pcomb string?]
+   [children (hash/c string? (or/c m-policy-set? m-policy?))]
+   [pcomb any/c]
    [target m-formula?]
    [idbs (hash/c string? (listof string?))])
   #:transparent)
