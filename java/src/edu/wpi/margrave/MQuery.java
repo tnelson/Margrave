@@ -222,58 +222,9 @@ public class MQuery extends MIDBCollection
 		return measure.counter;
 	}
 
-	/*
-	 * private static Set<FuncStruct> walkASTForFunctions(Formula origfmla,
-	 * MGVocab context) throws MGEUnknownIdentifier { // Convert to NNF (nearly)
-	 * and return the result of walking the AST. WalkASTForFunctionsV walker =
-	 * new WalkASTForFunctionsV(context);
-	 *
-	 * Formula nnf_formula = origfmla.accept(new NNFConverterV());
-	 *
-	 *
-	 * //MREPL.outStream.println("Traversing both formulas and measuring their length..."
-	 * );
-	 * //MREPL.outStream.println("Length of pre-nnf: "+measureFormulaSize(origfmla)+
-	 * ". Length of post-nnf: "+ // measureFormulaSize(nnf_formula));
-	 *
-	 * Set<FuncStruct> results = nnf_formula.accept(walker);
-	 *
-	 * if(walker.error) throw new
-	 * MGEUnknownIdentifier("AST Walker returned error: "
-	 * +walker.error_condition); return results; }
-	 */
-
-	protected void print_query_formula() {
-		MEnvironment.writeOutLine(myQueryFormula.toString());
-	}
-
-	/*
-	 * private boolean funcIsCoveredByOther(FuncStruct f, HashMap<Expression,
-	 * Set<FuncStruct>> coveredby) throws MGEUnknownIdentifier,
-	 * MGEBadIdentifierName { // We know that that f covers its own type, so
-	 * check to see if there's some other in the list.
-	 * if(coveredby.get(f.resulttype).size() > 1) return true;
-	 *
-	 * // Assert that this is a simple MgType, not an intersection (or etc.)
-	 * thereof. // Search for covered subtypes of f's type. List<MGSort> tocheck
-	 * = new LinkedList<MGSort>(); for(MGSort c :
-	 * myVocab.getSortForExpression(f.resulttype).subsorts) tocheck.add(c);
-	 *
-	 * while(tocheck.size() > 0) { MGSort current = tocheck.get(0);
-	 * if(coveredby.containsKey(current.rel))
-	 * if(coveredby.get(current.rel).size() > 0) return true;
-	 *
-	 * // continue to check deeper in the hierarchy for(MGSort c :
-	 * current.subsorts) tocheck.add(c); tocheck.remove(0); }
-	 *
-	 * if(debug_verbosity >= 2) MREPL.outStream.println("DEBUG: "+f +
-	 * " was not multi-covered by "+coveredby); return false; }
-	 */
-
 	protected FormulaSigInfo getHerbrandUniverseCeilingFor(
 			Formula queryAndQueryAxioms,
-			boolean prenexExistential) throws MGEUnknownIdentifier,
-			MGEBadIdentifierName
+			boolean prenexExistential) throws MUserException
 	{
 		if(queryAndQueryAxioms.accept(new FindClosureUseV()))
 			return new InvalidFormulaSigInfo(1);
@@ -538,63 +489,6 @@ public class MQuery extends MIDBCollection
 		idbsToAddInFormula.remove(idbname);
 	}
 
-	/*public void addIDBOutputIndexing(String idbname, List<String> indexing)
-			throws MGEArityMismatch, MGEUnknownIdentifier
-	{
-		// CHECK: the indexing Strings must actually be integers
-		for (String inlist : indexing) {
-			try {
-				Integer.parseInt(inlist);
-			} catch (NumberFormatException e) {
-				throw new MGEArityMismatch(e.toString());
-			}
-		}
-
-		// CHECK: Valid idb name
-
-		String[] split = idbname.split(MEnvironment.sIDBSeparatorRegExp);
-		String polName = split[0].toLowerCase();
-
-		if (split.length < 2)
-			throw new MGEUnknownIdentifier(
-					"IDB names for output must be of the form policyname:idbname.");
-
-		String internal_idbname = idbname.substring(polName.length() + 1)
-				.toLowerCase(); // include :
-
-		if (!myIDBCollections.containsKey(polName))
-			throw new MGEUnknownIdentifier("IDB collection appeared in IDBOUTPUT that was not used in condition or UNDER clause: "
-					+ polName + MEnvironment.eol + " Collections declared were: "+myIDBCollections.keySet());
-
-
-		MIDBCollection coll = myIDBCollections.get(polName);
-
-		if (!coll.containsIDB(internal_idbname))
-			throw new MGEUnknownIdentifier("Unknown IDB: " + internal_idbname
-					+ " in collection: " + polName);
-
-		List<Variable> idbArity = coll.varOrderings.get(internal_idbname);
-		
-		// CHECK: Arity matches between the indexing given and the idb.
-		if (idbArity.size() != indexing.size())
-			throw new MGEArityMismatch(
-					"Given indexing did not match IDB arity: " + idbname
-					+ ", " + indexing + "." + " Arity of IDB was: "
-					+ idbArity.size());
-
-		// Add to indexing map
-		if(!idbsToAddInFormula.containsKey(idbname))
-			idbsToAddInFormula.put(idbname, new HashSet<List<String>>());
-		idbsToAddInFormula.get(idbname).add(indexing);
-	}
-*/
-	
-/*	public boolean isQuerySatisfiable() throws MGException
-	{
-		// don't bother saving the result
-		return runQuery().getTotalIterator().hasNext();
-	}
-*/
 	/**
 	 * Used in the test suite to check whether a query had the expected number
 	 * of solutions.
@@ -1439,15 +1333,7 @@ public class MQuery extends MIDBCollection
 		for (String vname : publish)
 		{
 			Variable v = MFormulaManager.makeVariable(vname);
-			varOrdering.add(v);
-			
-			// TN 12/16/11: Removed. Under new query language, all free vars are listed, but they need not be used.
-			// Make sure that this variable actually appears in the query.
-			// Throw an exception if it is garbage.
-			//if(!freeVarsUnsorted.contains(v))
-			//{
-			//	throw new MGEUnknownIdentifier("The variable "+v+" appeared in the query's free variable list, did not appear in the condition.");
-			//}
+			varOrdering.add(v);			
 			
 			Expression theSort = uber.getSort(sortsForPublish.get(vname)).rel;
 			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
@@ -1478,81 +1364,7 @@ public class MQuery extends MIDBCollection
 		Collections.reverse(prefixVarOrder);
 
 		MQuery result;
-		// Tupling is deprecated (possibly temporary) as of September 2011 -- TN
-		//if(bTupling) {
-		//	result = new MTuplingQuery(uber, qryFormula, mpc.seenIDBCollections);
-		//}
-		//else {
-			result = new MQuery(uber, qryFormula, mpc.seenIDBCollections);	
-		//}
-		
-
-		//MEnvironment.outStream.println("Query created. Fmla = ");
-		//qryFormula.accept(new FormulaIndentPrintV());
-		
-		// **********************************
-		// Handle INCLUDE parameters
-		// TODO remove this. include now at SHOW rather than EXPLORE level
-		/*for(String dbname : includeMap.keySet())
-		{
-			// Indexings if any
-			Set<List<String>> indexingsToAdd = new HashSet<List<String>>();
-			
-			try
-			{				
-			
-				for(List<MTerm> indexing : includeMap.get(dbname))
-				{
-					// Can't add directly: user has provided a vector of identifiers.
-					// addIDBOutputIndexing expects an _indexing_ into the tupled ordering.
-					// Need to use our knowledge (from above) about ordering of the prefix.
-
-					// prefixVarOrder
-
-					List<String> nIndexing = new ArrayList<String>(indexing.size());
-					for(String varname : indexing)
-					{
-						// Look for this var
-						int ii = prefixVarOrder.indexOf(varname);
-						// if not found, error.
-						if(ii < 0)
-						{
-							throw new MGEArityMismatch("Unrecognized identifier in INCLUDE indexing: "+varname);
-						}
-						nIndexing.add(String.valueOf(ii+1));
-					}
-
-					indexingsToAdd.add(nIndexing);
-				}							
-			
-				// Is this an edb or an idb?
-				// EDB?
-				if(uber.isSort(dbname) || uber.predicates.containsKey(dbname))
-				{
-					result.addEDBIncludes(dbname);
-					for(List<String> nIndexing : indexingsToAdd)
-						result.addEDBIncludesIndexing(dbname, nIndexing);
-				}
-				else
-				{			
-					// IDB
-					String idbname = dbname;
-					
-					// add to general list
-					result.addIDBOutputs(idbname);
-					for(List<String> nIndexing : indexingsToAdd)
-						result.addIDBOutputIndexing(dbname, nIndexing);
-				} // end of IDB case
-			
-			}
-			catch(MGEArityMismatch e)
-			{
-				MEnvironment.writeErrLine(e.getLocalizedMessage());
-				return null;
-			}
-			
-		}
-*/
+		result = new MQuery(uber, qryFormula, mpc.seenIDBCollections);	
 
 		result.debug_verbosity = iDebugLevel;
 
@@ -1595,152 +1407,6 @@ public class MQuery extends MIDBCollection
 		return queryID; 					
 	}
 	
-	/*
-	static void handleSortAssertions(MVocab voc, MExploreCondition mpc,
-			Map<Variable, Expression> freeVars) throws MGEBadIdentifierName,
-			MGEUnknownIdentifier {
-		// MREPL.outStream.println(mpc.assertPossible);
-		// MEnvironment.writeErrLine(mpc.assertNecessary);
-		// MEnvironment.writeErrLine(mpc.assertAtomicNecessary);
-
-		Set<List<Variable>> toDo = new HashSet<List<Variable>>(
-				mpc.assertNecessary.keySet());
-		toDo.addAll(mpc.assertAtomicNecessary.keySet());
-		toDo.addAll(mpc.inferredSorts.keySet());
-
-		for (List<Variable> varvector : toDo)
-		{
-
-			MCommunicator.writeToLog("\nProducing sorts for variable vector: "+varvector);
-
-			Set<MVariableVectorAssertion> assertsN = mpc.assertNecessary
-					.get(varvector);
-			Set<MVariableVectorAssertion> assertsA = mpc.assertAtomicNecessary
-					.get(varvector);
-			Set<MVariableVectorAssertion> assertsP = mpc.assertSufficient
-					.get(varvector);
-
-			Set<MVariableVectorAssertion> allNecessary = new HashSet<MVariableVectorAssertion>(
-					assertsN);
-			allNecessary.addAll(assertsA);
-			
-			Set<MVariableVectorAssertion> inferredforthis = new HashSet<MVariableVectorAssertion>(mpc.inferredSorts.get(varvector));
-			
-			for (Variable v : varvector) 
-			{
-				// If this is a placeholder variable, ignore it
-				if(mpc.knownPlaceholders.contains(v))
-					continue;
-				
-				MSort runningSort;
-				if(!freeVars.containsKey(v) || freeVars.get(v).equals(Expression.UNIV))
-				{
-					// Default to no info
-					freeVars.put(v, Expression.UNIV);
-					runningSort = null;
-				}
-				else
-					runningSort = voc.getSortForExpression(freeVars.get(v));			
-				
-				MCommunicator.writeToLog("\n  Producing sort for variable: "+v);
-				MCommunicator.writeToLog("\n  (Starting at: "+freeVars.get(v)+")");
-
-				//MEnvironment.writeErrLine("var: "+v);
-				
-				// Start off with our well-formed formula inferences:
-				for(MVariableVectorAssertion a : inferredforthis)
-				{
-					// If this isn't a sort, skip for now (test arity separately since
-					// getSortForExpression tests NAMES. May have a sort and a >1-ary pred.
-					if(a.sortExpression.arity() > 1)
-						continue;
-					
-					// a.positive
-					//a.sortExpression
-					MSort theSort = voc.getSortForExpression(a.sortExpression);
-					
-					// if this isn't a sort, skip for now
-					if(theSort == null)
-						continue;
-					
-					if(runningSort == null)
-					{					
-						runningSort = theSort;
-						freeVars.put(v, a.sortExpression);
-						MCommunicator.writeToLog("\n    Taking inference (was null): "+a.sortExpression);
-					}
-					else
-					{
-						
-						// TODO: we don't have intersection types...
-						// So juse follow the first assertion we see
-						// Only replace if we have a more specific assertion
-						if(voc.isSubOrSubOf(theSort, runningSort))
-						{
-							runningSort = theSort;
-							freeVars.put(v, a.sortExpression);
-							MCommunicator.writeToLog("\n    Taking inference (was "+runningSort.name+"): "+a.sortExpression);
-						}
-						else
-							MCommunicator.writeToLog("\n    Ignoring inference: "+a.sortExpression);
-					}
-				} // end for each inferredforthis				
-
-				for (MVariableVectorAssertion a : allNecessary)
-				{
-					
-					
-					//MEnvironment.writeErrLine("assertion: "+a);
-
-					if (!a.positive)
-						continue;
-
-					// If it is NECESSARY for x to have sort A
-					// Then x must have sort A (or a subsort thereof)
-
-					// If rel is a sort (which means this is a singleton vector)
-					// just handle that assertion.
-					if (voc.isSort(a.sortExpression.toString()))
-					{
-						MSort theSort = voc.getSortForExpression(a.sortExpression);
-						if (runningSort == null)
-						{
-							runningSort = theSort;
-							freeVars.put(v, a.sortExpression);
-							MCommunicator.writeToLog("\n    Taking necessary assertion (was null): "+a.sortExpression);
-						}
-						else
-						{
-							// is theSort a subsort of the current running sort?
-							// (need to check grandchildren etc. Also use subset constraints.)
-							// If not, ignore
-
-							//MEnvironment.writeErrLine("SUB? --- "+runningSort.subsorts);
-							//MEnvironment.writeErrLine(theSort);
-							if(voc.isSubOrSubOf(theSort, runningSort))
-							{
-								runningSort = theSort;
-								freeVars.put(v, a.sortExpression);
-								MCommunicator.writeToLog("\n    Taking necessary assertion (was "+runningSort.name+"): "+a.sortExpression);
-							}
-							else
-								MCommunicator.writeToLog("\n    Ignoring necessary assertion: "+a.sortExpression);
-
-							// else do nothing. (we COULD see which option had
-							// the most children? TODO maybe
-
-						} 
-					} // end is sort
-
-				} // end for each allnecessary
-
-			} // end for each v in varvector
-
-		}
-		
-		MCommunicator.writeToLog("\nDone. Assertions are: "+freeVars+")");
-	}*/
-
 	public void addIDBToForceAxiomatization(String idbname)
 	{
 		idbsToAddInFormula.add(idbname);	

@@ -252,6 +252,7 @@ class MWeakArrayVector<T>
 		return true;
 	}
 	
+	@SuppressWarnings("unused")
 	private void cleanUp()
 	{
 		// Since we are using these for keys, we hope that none of the referents will be

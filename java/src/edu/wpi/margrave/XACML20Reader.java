@@ -1194,7 +1194,7 @@ class XACML20Reader {
 	        		if("rule".equals(child.getNodeName().toLowerCase()))
 	        		{
 	        			// Add this rule
-	        			MRule mr = handleRule(pol, child, env);	        				        				        			
+	        			handleRule(pol, child, env);	        				        				        			
 	        		}
 	        		
 	        		// TARGET
