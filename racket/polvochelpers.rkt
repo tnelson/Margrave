@@ -157,7 +157,7 @@
 (define-struct/contract m-policy-set
   ([id string?]   
    [theory m-theory?]   
-   [vardecs (hash/c string? m-vardec?)]
+   ;[vardecs (hash/c string? m-vardec?)]
    [children (hash/c string? m-policy?)]
    [pcomb string?]
    [target m-formula?]
@@ -352,15 +352,7 @@
          (append (m-vocabulary->xexprs (m-theory-vocab thy)) 
                  axioms-xexprs)]))
 
-; Does NOT auto-include the theory's XML
-(define/contract (m-policy->xexprs policy)
-  [m-policy? . -> . (listof xexpr?)]
-      
-  (define target-xexpr-list
-    (list (xml-make-command "SET TARGET FOR POLICY" 
-                                  (list (xml-make-policy-identifier (m-policy-id policy))
-                                        (xml-make-target (m-formula->xexpr (m-policy-target policy))))))) 
-  (define (comb->xexpr comb)
+(define (comb->xexpr comb)
          (match comb
            [`(fa ,@(list args ...))            
             (xml-make-fa (map symbol->string args))]
@@ -368,6 +360,50 @@
             (xml-make-over (->string dec)
                            (map ->string odecs))]
            [else empty]))
+
+(define/contract (m-policy-set>xexprs pset)
+  [m-policy-set? . -> . (listof xexpr?)]
+  
+  (define target-xexpr-list
+    (list (xml-make-command "SET TARGET FOR POLICY" 
+                                  (list (xml-make-policy-identifier (m-policy-set-id pset))
+                                        (xml-make-target (m-formula->xexpr (m-policy-set-target pset))))))) 
+  
+  (define pcomb-xexpr (xml-make-command "SET PCOMBINE FOR POLICY" 
+                                        (list (xml-make-policy-identifier (m-policy-set-id pset)) 
+                                              (xml-make-comb-list (map comb->xexpr (m-policy-set-pcomb pset))))))
+  
+  (define create-xexpr (xml-make-command "CREATE POLICY SET" 
+                                         (list (xml-make-policy-identifier (m-policy-set-id pset))
+                                               (xml-make-vocab-identifier (m-theory-name (m-policy-set-theory pset))))))
+  (define prepare-xexpr 
+    (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-set-id pset)))))
+  
+  (define (get-add-child-xml child-p-or-pset)
+               (xml-make-command "ADD" (list `(PARENT ,(xml-make-policy-identifier (m-policy-set-id pset))
+                                                      ,(xml-make-child-identifier (cond
+                                                                                    [(m-policy-set? child-p-or-pset) 
+                                                                                     (m-policy-set-id child-p-or-pset)]
+                                                                                    [else
+                                                                                     (m-policy-id child-p-or-pset)])))))) 
+  
+  ; Order of XML commands matters.
+  (append (map m-policy->xexprs (m-policy-set-children pset))
+          (list create-xexpr)
+          (map (lambda (child) (get-add-child-xml child)) (m-policy-set-children pset))          
+          target-xexpr-list
+          (list pcomb-xexpr prepare-xexpr))
+  )
+
+
+; Does NOT auto-include the theory's XML
+(define/contract (m-policy->xexprs policy)
+  [m-policy? . -> . (listof xexpr?)]
+      
+  (define target-xexpr-list
+    (list (xml-make-command "SET TARGET FOR POLICY" 
+                                  (list (xml-make-policy-identifier (m-policy-id policy))
+                                        (xml-make-target (m-formula->xexpr (m-policy-target policy)))))))   
   
   (define rcomb-xexpr (xml-make-command "SET RCOMBINE FOR POLICY" 
                                            (list (xml-make-policy-identifier (m-policy-id policy)) 

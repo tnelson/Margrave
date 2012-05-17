@@ -478,6 +478,12 @@ public class MPolicySet extends MPolicy
 			buf.append("  (Target "+MFormulaManager.toSExpression(vocab, target)+")"+MEnvironment.eol);						
 		}	
 		
+		buf.append("(Children "+MEnvironment.eol);
+		for(MPolicy child : children)
+		{
+			buf.append(child.asSExpression()+MEnvironment.eol);
+		}
+		buf.append(")"+MEnvironment.eol);
 		
 		buf.append("(PComb ");
 		if(pCombineFA.size() > 0)

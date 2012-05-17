@@ -42,7 +42,7 @@
 (provide evaluate-policy 
                   
          Policy
-         ;PolicySet
+         PolicySet
          Vocab
          Theory        
                   
@@ -161,12 +161,12 @@
 ;     (quasisyntax/loc syn (and #,@fmla-list))]
 ;    [else syn]))
 
-(define-for-syntax (handle-combine comb)
-  (syntax-case comb [fa over]         
-    [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
-    [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
-                                              (map symbol->string (syntax->datum #'(odec0 odec ...))))]
-    [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
+;(define-for-syntax (handle-combine comb)
+;  (syntax-case comb [fa over]         
+;    [(fa dec0 dec ...) (xml-make-fa (map symbol->string (syntax->datum #'(dec0 dec ...))))]
+;    [(over dec odec0 odec ...) (xml-make-over (symbol->string (syntax->datum #'dec))
+;                                              (map symbol->string (syntax->datum #'(odec0 odec ...))))]
+;    [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
 
 
 
@@ -199,13 +199,11 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Children
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ; Set of syntax objects. Will be consumed in the func we create.
        (define the-child-policies
          (let ()    
            (define the-children-clause (first the-children-clauses))
-           (define the-children (rest (syntax-e the-children-clause)))               
-           
-           ; Let the macro system expand these
-           the-children)) 
+           (rest (syntax-e the-children-clause)))) 
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
@@ -222,9 +220,7 @@
                  (raise-syntax-error 'PolicySet "The Target clause must contain a formula if it is given." #f #f (list the-target-clause)))
                
                (define the-target (first the-targets))                                             
-               (list `(xml-make-command "SET TARGET FOR POLICY" 
-                                        (list (xml-make-policy-identifier local-policy-id)
-                                              ,(m-formula->xexpr the-target)))))))    
+               the-target)))    
        
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -237,36 +233,15 @@
              (let ()
                (define the-pcomb-clause (first the-pcomb-clauses)) 
                (syntax-case the-pcomb-clause [PComb]
-                 [(PComb x0 x ...) (list `(xml-make-command "SET PCOMBINE FOR POLICY" 
-                                                            (list (xml-make-policy-identifier local-policy-id) 
-                                                                  ,(xml-make-comb-list (map handle-combine (syntax->list #'(x0 x ...)))))))]
+                 [(PComb x0 x ...) (map comb->sexpr (syntax->list #'(x0 x ...)))]
                  [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
-       
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Create
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       
-       (define create-result           
-         (list
-          `(xml-make-command "CREATE POLICY SET" (list (xml-make-policy-identifier local-policy-id)
-                                                       ,(xml-make-vocab-identifier (symbol->string (syntax->datum #'vocabname)))))))
-       
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ; Prepare
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       
-       (define prepare-result 
-         `(xml-make-command "PREPARE" (list (xml-make-policy-identifier local-policy-id))))   
-       
+                            
        ; Macro returns a lambda that takes a filename and a syntax object.   
        ; This is so we know where to find the vocabulary file. Only know that at runtime
-       (with-syntax ([my-commands (append create-result ; create must come first                                                                                   
-                                          target-result
-                                          pcomb-result)]
-                     [my-prepare-command (list prepare-result)]
-                     [the-child-policies #`(list #,@the-child-policies)]
+       (with-syntax ([the-child-policies #`(list #,@the-child-policies)]
                      [vocabname #'vocabname]
+                     [target-result target-result]
+                     [pcomb-result pcomb-result]
                      
                      ; can't include Policy here or else it gets macro-expanded (inf. loop)
                      ; smuggle in location info and re-form syntax if we need to throw an error
@@ -278,104 +253,78 @@
          
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
-           (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
+           (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                                                                        
              (define vocab-path (build-path (path-only/same local-policy-filename) 
                                             (string-append (symbol->string 'vocabname) ".v")))
-             
-             ; Produce a friendly error if the vocab doesn't exist
-             ; src-syntax here is the *command* that spawned the loading, not the Policy form.
-             (file-exists?/error vocab-path src-syntax 
-                                 (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))   
-             
-             (define my-vocab                 
-               (call-with-input-file
-                   vocab-path
-                 (lambda (in-port) 
-                   (port-count-lines! in-port)
-                   (define the-vocab-syntax (read-syntax vocab-path in-port))               
-                   ; Keep as syntax here, so the PolicyVocab macro gets the right location info
-                   ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                   (eval the-vocab-syntax margrave-policy-vocab-namespace))))  
-             
-             ; (vocab-name xml-list types-names predicates-names-and-arities constants-names functions-names-and-arities)
-             (define vocab-name (first my-vocab))
-             (define vocab-commands (second my-vocab))
-             
-             ; Get the 6-tuples for each child
-             (define child-policy-macros the-child-policies) ; no '
-             
-             
-             ; Each child gives us its own list (pname, vname, vlist, plist, (child-pol-pairs), (child-voc-pairs)
+                          
+             (define my-theory
+               (cond [(m-theory? thy/maybe)
+                      thy/maybe]
+                     [else
+                      ; Produce a friendly error if the vocab doesn't exist
+                      ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+                      (file-exists?/error vocab-path src-syntax 
+                                          (format "The policyset's vocabulary did not exist. Expected: ~a" (path->string vocab-path)))                         
+                      (define my-t-or-v 
+                        (call-with-input-file
+                            vocab-path
+                          (lambda (in-port) 
+                            (port-count-lines! in-port)
+                            (define the-vocab-syntax (read-syntax vocab-path in-port))               
+                            ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                            ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                            (eval the-vocab-syntax margrave-policy-vocab-namespace))))
+                      (if (m-vocabulary? my-t-or-v)
+                          (m-theory (m-vocabulary-name my-t-or-v) vocab-path my-t-or-v empty)
+                          my-t-or-v)]))
+                                       
              ; Error out if there is a duplicate policy name (or the same name as this parent policy)
              ; Don't repeat vocabularies
-             (define the-children (map (lambda (child)                                          
-                                         ((eval child margrave-policy-vocab-namespace) 
-                                          local-policy-filename
-                                          src-syntax))
-                                       child-policy-macros))
+             (define the-children-list (map (lambda (childsyntax) 
+                                              ((eval childsyntax margrave-policy-vocab-namespace) 
+                                               local-policy-filename
+                                               src-syntax
+                                               thy/maybe))
+                                            the-child-policies))
+             (define (children-aggregator child sofar)
+               (define id
+                 (cond [(m-policy? child) (m-policy-id child)] 
+                       [else (m-policy-set-id child)]))
+               (hash-set sofar id child))
+             (define the-children (foldl children-aggregator (make-immutable-hash '()) the-children-list))                    
+
              
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder
                               (list 'orig-stx-source orig-stx-line orig-stx-column orig-stx-position orig-stx-span)))                                              
              
-             ; take the child policy's tuple from evaluation
-             ; get the list of pnames              
-             (define (get-child-pols tuple)
-               (when (or (< (length tuple) 5)
-                         (not (list? (fifth tuple))))
-                 (raise-syntax-error #f (format "Internal error: result from policy child did not have expected form. Result was ~a~n" tuple) 
-                                     (make-placeholder-syntax 'placeholder)))
-               (append (list (first tuple)) ; <-- child's pname
-                       (fifth tuple)))      ; <-- list of child's children's pnames
              
-             (define (get-add-child-xml tuple)
-               (xml-make-command "ADD" (list `(PARENT local-policy-id
-                                                      ,(xml-make-child-identifier (first tuple))))))
              
-             (define my-commands-without-child 'my-commands)
              
-             ; Forge the connection between parent and child policies
-             ; and *prefix* this policy's commands with the child commands
-             ; *FINALLY* prepare the policy.
-             (define child-commands (append* (map fourth the-children)))
-             (define my-commands-with-children (append child-commands
-                                                       my-commands-without-child
-                                                       (map get-add-child-xml the-children)
-                                                       'my-prepare-command))                          
-             
-             ;    (define child-polnames (flatten (map get-child-pols the-children)))
-             
-             ; Throw error if duplicate policy name
-             ;    (define (dup-pname-helper todo sofar)
-             ;      (cond [(empty? todo) #f]
-             ;            [(member (first todo) sofar)                      
-             ;             (raise-syntax-error 'Policy 
-             ;                                 "Policy name duplicated among children and parent. All policies in a hierarchy must have distinct names."; 
-             ;                                   (make-placeholder-syntax (first todo)))]
-             ;              [else (dup-pname-helper (rest todo) (cons (first todo) sofar))]))
-             
-             ;     (dup-pname-helper child-polnames (list (symbol->string 'policyname)))
              
              ; Don't double-load vocabs
              ; Even more, they must all be the same. Since we're in a fixed directory, check only the vname of each
-             (for-each (lambda (tuple)
-                         (unless (equal? (second tuple) (symbol->string 'vocabname))
+             (for-each (lambda (child)
+                         (define id
+                           (cond [(m-policy? child) (m-policy-id child)] 
+                                 [else (m-policy-set-id child)]))
+                         (unless (equal? (m-theory-name my-theory) id)
                            (raise-syntax-error 
                             'Policy 
                             (format "Child policy used a vocabulary other than \"~a\". Child vocabulary must match parent vocabulary." 'vocabname)                
-                            (make-placeholder-syntax (second tuple)))))
-                       the-children)
+                            (make-placeholder-syntax child))))
+                       (hash-values the-children))
              
              
+             ;[id string?]   
+             ;[theory m-theory?]   
+             ;;[vardecs (hash/c string? m-vardec?)]
+             ;[children (hash/c string? m-policy?)]
+             ;[pcomb string?]
+             ;[target m-formula?]
+             ;[idbs (hash/c string? (listof string?))])                          
              
-             ; Return list(pname, vname, list-of-commands-for-vocab, list-of-commands-for-policy, list(child-pname, child-pcmds), list(child-vname, child-vcmds))
-             `( ,local-policy-id
-                ,(symbol->string 'vocabname)
-                ,vocab-commands
-                ,my-commands-with-children
-                ,my-commands
-                ,child-polnames
-                ))))))))
+             (m-policy-set local-policy-id my-theory the-children pcomb-result target-result (hash) ))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -635,6 +584,12 @@
 ; Policy: Parses a policy definition and creates an MPolicyLeaf OR MPolicySet object
 ; Policies are permitted to have child policies, so this may be recursively called
 
+(define-for-syntax (comb->sexpr comb)         
+  (syntax-case comb [fa over]         
+    [(fa dec0 dec ...) (syntax->datum comb)]
+    [(over dec odec0 odec ...)(syntax->datum comb)]
+    [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
+
 (define-syntax (Policy stx)
   (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
     [(_ uses a-vocab-or-thy-name clauses ... )
@@ -790,13 +745,7 @@
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; RComb
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                                 
-       (define (comb->sexpr comb)         
-         (syntax-case comb [fa over]         
-           [(fa dec0 dec ...) (syntax->datum comb)]
-           [(over dec odec0 odec ...)(syntax->datum comb)]
-           [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;                                        
        
        (define rcomb-result 
          (if (empty? the-rcomb-clauses)
@@ -847,7 +796,7 @@
              (define vocab-path (build-path (path-only/same local-policy-filename) 
                                             (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION)))           
                                      
-             (define my-t-or-v 
+             (define my-thy
                (cond [(m-theory? thy/maybe)
                       thy/maybe]
                      [else
@@ -857,20 +806,19 @@
                                           (format "Unable to find the policy's vocabulary. Expected a file at ~a; current-directory is: ~a" 
                                                   (path->string vocab-path)
                                                   (path->string (current-directory))))                         
-                      (call-with-input-file
-                          vocab-path
-                        (lambda (in-port) 
-                          (port-count-lines! in-port)
-                          (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
-                          ; Keep as syntax here, so the PolicyVocab macro gets the right location info
-                          ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                          (eval the-vocab-syntax margrave-policy-vocab-namespace)))]))
+                      (define my-t-or-v 
+                        (call-with-input-file
+                            vocab-path
+                          (lambda (in-port) 
+                            (port-count-lines! in-port)
+                            (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
+                            ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                            ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                            (eval the-vocab-syntax margrave-policy-vocab-namespace))))
+                      (if (m-vocabulary? my-t-or-v)
+                          (m-theory (m-vocabulary-name my-t-or-v) vocab-path my-t-or-v empty)
+                          my-t-or-v)]))
              
-             ; Allow users to provide just a vocab with no theory. No axioms if so.
-             (define my-thy
-               (if (m-vocabulary? my-t-or-v)
-                   (m-theory (m-vocabulary-name my-t-or-v) vocab-path my-t-or-v empty)
-                   my-t-or-v))
              
              (define (make-placeholder-syntax placeholder)
                (datum->syntax #f placeholder

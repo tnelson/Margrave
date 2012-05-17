@@ -62,8 +62,30 @@
 
 (define pol-target-invalid (polfunc2-target "../examples/conference/conference.p" "MYPOLTARGET2" #'foo #f))
 (check-pred m-policy? pol-target-invalid)
-; The actual test is performed LATER:
+; The actual test is performed LATER...
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; PolicySet
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define polset1-func (PolicySet uses Conference
+                           (Target (not (Reviewer s)))
+                           (Children
+                            (Policy uses Conference
+                                    (Target (not (Reviewer s)))
+                                    (Variables 
+                                     (s Subject)
+                                     (a Action)
+                                     (r Resource))
+                                    (Rules 
+                                     (PaperNoConflict = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (not (conflicted s r)) (ReadPaper a)))))
+                                     (PaperAssigned = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (assigned s r) (ReadPaper a)))))
+                                     (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a)))))))
+                            )))
+(check-pred procedure? polset1-func)
+
+(define polset1 (polset1-func "../examples/conference/conference.p" "MYPOLSET1" #'foo #f))
+(check-pred m-policy-set? polset1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Conversion of vocabularies, theories, and policies to XML
