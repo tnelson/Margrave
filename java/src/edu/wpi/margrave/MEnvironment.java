@@ -2116,7 +2116,7 @@ public class MEnvironment
 			if(theVocab.isSort(r.name()))
 			{
 				relationElement.setAttribute("type", "sort");
-				theSort = theVocab.fastGetSort(r.name());
+				theSort = theVocab.getSort(r.name());
 			}
 			else if(theVocab.constants.containsKey(r.name()))
 			{

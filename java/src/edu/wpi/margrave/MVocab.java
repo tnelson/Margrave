@@ -66,10 +66,6 @@ class MSort
 	{
 		return name.hashCode();
 	}
-	
-	
-
-	
 }
 
 class MSortPair
@@ -500,30 +496,30 @@ class MPredicate
 public class MVocab {
 
 	// Sort symbols
-	Map<String, MSort> sorts;
+	final Map<String, MSort> sorts;
 
 	// Constant symbols
-	Map<String, MConstant> constants;
+	final Map<String, MConstant> constants;
 	
 	// Function symbols
-	Map<String, MFunction> functions;
+	final Map<String, MFunction> functions;
 	
 	// Non-sort predicate symbols
-	Map<String, MPredicate> predicates;	
+	final Map<String, MPredicate> predicates;	
 	
 	// More constraints on the domain of discourse
-	public MConstraints axioms;
+	public final MConstraints axioms;
 	
 	// Backward map from Expression to MTerm, used by FormulaSigInfo
-	Map<Expression, MTerm> exprToTerm = new HashMap<Expression, MTerm>();
+	final Map<Expression, MTerm> exprToTerm = new HashMap<Expression, MTerm>();
 
 	///////////////////////////////////////////////////////////////////////
 	// CACHE
 	///////////////////////////////////////////////////////////////////////
 	Set<MSort> cacheTopLevelSorts = new HashSet<MSort>();
-	Map<MSort, Set<MSort>> cacheAncestors = new HashMap<MSort, Set<MSort>>();
-	Map<MSort, Set<MSort>> cacheDescend = new HashMap<MSort, Set<MSort>>();
-	Map<MSort, Set<MSort>> cacheConciseDisj = new HashMap<MSort, Set<MSort>>();
+	final Map<MSort, Set<MSort>> cacheAncestors = new HashMap<MSort, Set<MSort>>();
+	final Map<MSort, Set<MSort>> cacheDescend = new HashMap<MSort, Set<MSort>>();
+	final Map<MSort, Set<MSort>> cacheConciseDisj = new HashMap<MSort, Set<MSort>>();
 	///////////////////////////////////////////////////////////////////////
 	
 
@@ -599,7 +595,7 @@ public class MVocab {
 	 * Should NOT be used by MVocab directly. Caller is responsible.
 	 * 
 	 */
-	static String validateIdentifier(String n, boolean substitute)
+	static String validateIdentifierFromExternalPolicy(String n, boolean substitute)
 			throws MGEBadIdentifierName 
 	{
 		// Make sure n is an OK Predicate or Variable name
@@ -622,16 +618,13 @@ public class MVocab {
 
 		String allowedchars;
 
-		// old
-		//allowedchars = "[A-Za-z0-9.\\\\-/:=_(),<>{}|+*@]*";
-		// now just forbid whitespace, all else is legal.
+		// just forbid whitespace, all else is legal.
 		allowedchars = "[\\S]*";
 		
 		if (!n.matches(allowedchars))
 			throw new MGEBadIdentifierName("Illegal identifier: " + n
 					+ ". Only names matching " + allowedchars
 					+ " are allowed as names.");
-
 
 		return n;
 	}
@@ -698,31 +691,6 @@ public class MVocab {
 
 	}
 
-	protected void makeThisTheTopLevelSort(String name)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// Creates a new sort and makes it the parent of all parentless types
-		// used in tupling
-
-		clearCache();
-		
-		if (!isSort(name))
-			sorts.put(name, new MSort(name));
-		MSort t = getSort(name);
-
-		if(isSubtype(t))
-			throw new MGEBadIdentifierName("Sort "+name+" had supersorts; could not make it top level.");
-		
-		for (MSort candidate : sorts.values())
-		{
-			if (!isSubtype(candidate) && !(candidate.name.equals(name)))
-			{
-				t.subsorts.add(candidate);
-				candidate.parents.add(t);
-			}
-		}
-	}
-
 	Set<MConstant> getConstantsWithLocalSort(MSort s)
 	{
 		Set<MConstant> result = new HashSet<MConstant>();
@@ -784,28 +752,12 @@ public class MVocab {
 		return predicates.containsKey(n);
 	}
 
-	
 	/**
-	 * Does not call validateIdentifier before checking, but much faster.
-	 * Should be used internally or when the parameter has already been
-	 * validated.
-	 * @param n
+	 * Used by addSort and addSubSort.
+	 * Is there a cycle in the sort hierarchy?
+	 * @param t
 	 * @return
 	 */
-	boolean fastIsSort(String n)
-	{
-		return fastGetSort(n) != null;
-	}
-	
-	/**
-	 * See fastIsSort doc
-	 * @param n
-	 * @return
-	 */
-	MSort fastGetSort(String n)
-	{
-		return sorts.get(n);
-	}
 
 	boolean searchForSelfAncestor(MSort t) {
 		// Did we accidentally introduce a cycle?
@@ -950,30 +902,7 @@ public class MVocab {
 		cacheTopLevelSorts = results;
 		return results;
 	}
-	
-	Set<MSortPair> getConciseDisjointSortsAsymm()
-	{
-		// Gives the result of calling getConciseDisjointSorts on
-		// each sort, *but*, will only assert the disjointness between
-		// A and B in one direction. Saves work. 
-		
-		Set<MSortPair> results = new HashSet<MSortPair>();
-		
-		for(MSort aSort : sorts.values())
-		{
-			Set<MSort> theseDisjs = getConciseDisjointSorts(aSort);
-			
-			// Set will use equality and not double-populate.
-			for(MSort othSort : theseDisjs)
-			{
-				MSortPair aPair = new MSortPair(aSort, othSort);
-				results.add(aPair);
-			}
-			
-		}
-		
-		return results;
-	}
+
 	
 	Set<MSort> getConciseDisjointSorts(MSort t)
 	{
@@ -1066,28 +995,8 @@ public class MVocab {
 		// Returns a formula stating "This is a model of order-sorted FoL over
 		// these sorts and this ordering." 
 				
-		// Sub-sorts need not be mutually exclusive!
-
-		// If using tupling:
-		// Requires current vocab to be the tupled vocabulary, and
-		// thus must be separated from user axioms which could affect
-		// tupling.
-
 		Set<Formula> axiomSet = new HashSet<Formula>();
-
-		//////////////////////////////////////////////
-		// Every atom is contained in some type.		
-		
-		// Removed this constraint to allow for 1-invocation-per-query 10/11 - TN
-		/*Expression univunion = Expression.NONE;
-		for(MSort aSort : sorts.values())
-		{
-			if(!isSubtype(aSort))
-				univunion = univunion.union(aSort.rel);
-		}
-		axiomSet.add(Expression.UNIV.in(univunion));		
-		*/
-		
+				
 		//////////////////////////////////////////////		
 		// All sorts contain their subsorts
 		for (MSort basetype : sorts.values())
@@ -1097,37 +1006,34 @@ public class MVocab {
 				Relation subd = subtype.rel;
 				axiomSet.add(subd.in(basetype.rel));
 			}
-
-				//axiomSet.add(basetype.rel.in(allsubs));
-			
+				
 			//////////////////////////////////////////////
 			// and assert disjointness where appropriate
 			axiomSet.addAll(getDisjointness(basetype));
 		}
 		
 		//////////////////////////////////////////////					
-		// Predicates have a sig which must be respected
+		// Predicates have a sig that must be respected
 		// e.g.: EdgePredicate in (Nodes x Nodes)
 		// This also covers constants and functions due to inheritance.
 		for (MPredicate aPred : predicates.values())
 			axiomSet.add(getPredTypeFormula(aPred));		
 				
 		//////////////////////////////////////////////
-		// sig is respected
+		// MFunction sig is respected
 		for(MFunction aFunc : functions.values())	
 		{
 			axiomSet.add(getPredTypeFormula(aFunc));
 		}
 		
 		//////////////////////////////////////////////
-		// sig is respected
+		// MConstant sig is respected
 		for(MConstant aConst : constants.values())
 		{
 			axiomSet.add(getPredTypeFormula(aConst));
 		}
-		// The other functional/const axioms are in the other function
 		
-		
+		// The other functional/const axioms are in the other function			
 		//System.err.println(axiomSet);
 		
 		return MFormulaManager.makeConjunction(axiomSet); // .accept(new SimplifyFormulaV());
@@ -1141,13 +1047,10 @@ public class MVocab {
 		// optimized query signature, and so must be obtained before
 		// optimization.
 
-		Set<Formula> results = new HashSet<Formula>();
-
-		
+		Set<Formula> results = new HashSet<Formula>();		
 		
 		//////////////////////////////////////////////
 		// Functions are total
-		// and their sig is respected
 		for(MFunction aFunc : functions.values())	
 		{
 			results.add(makeFunctionalFormula(aFunc, "T"));
@@ -1155,13 +1058,11 @@ public class MVocab {
 		
 		//////////////////////////////////////////////
 		// Constants have only one atom
-		// and their sig is respected
 		for(MConstant aConst : constants.values())
 		{
 			results.add(MFormulaManager.makeMultiplicity(aConst.rel, Multiplicity.ONE));
 		}
-		
-		
+				
 		// User-defined axioms -- things like "lone R", "A disjoint B", etc.
 		results.addAll(axioms.getConstraintFormulas());
 
@@ -1229,6 +1130,8 @@ public class MVocab {
 		
 		if("T".equals(type))
 		{
+			// TOTAL FUNCTION
+			
 			// tuple1 = (..., fc1)
 			// tuple2 = (..., fc2)
 			// EXISTS fc1 [(tuple1 in R) and (FORALL fc2 (tuple2 in R implies fc1=fc2))] 
@@ -1243,6 +1146,8 @@ public class MVocab {
 		}
 		else if("P".equals(type))
 		{
+			// PARTIAL FUNCTION
+			
 			// FORALL fc1 FORALL fc2 ( fc1!=fc2 implies (!(tuple1 in R) or !(tuple2 in R)))
 			
 			Formula ante = MFormulaManager.makeNegation(MFormulaManager.makeEqAtom(fc1, fc2));
@@ -1297,35 +1202,6 @@ public class MVocab {
 			return true;
 		return false;
 	}
-
-	// Called by MatrixTuplingV
-	/*public static String constructIndexing(Expression be,
-			HashMap<Variable, Integer> indexing) {
-		List<String> lst = inorderTraversalOfVariableProduct(be, indexing, null);
-		if (lst.size() < 1)
-			return "";
-
-		StringBuffer result = new StringBuffer(lst.get(0));
-		for (int ii = 1; ii < lst.size(); ii++)
-			result.append("," + lst.get(ii));
-		return result.toString();
-	}
-	
-	public static String constructIndexing(List<String> vars,
-			HashMap<Variable, Integer> indexing)
-	{		
-		if (vars.size() < 1)
-			return "";
-
-		Variable theVar = MFormulaManager.makeVariable(vars.get(0));
-		StringBuffer result = new StringBuffer(String.valueOf(indexing.get(theVar)));
-		for (int ii = 1; ii < vars.size(); ii++)
-		{
-			theVar = MFormulaManager.makeVariable(vars.get(ii));
-			result.append("," + String.valueOf(indexing.get(theVar)));
-		}
-		return result.toString();
-	}*/	
 	
 	// OPT Variant on inorderTraversalOfVariableProduct below.
 	// Duplicate code but sufficient complex that I've just
@@ -1428,99 +1304,6 @@ public class MVocab {
 		return result;
 	} // end getInOrderTerms
 	
-	
-	// OPT Duplicate code with above function for now. - TN
-	/*
-	private static List<String> inorderTraversalOfVariableProduct(
-			Expression e, HashMap<Variable, Integer> indexing,
-			HashMap<Variable, String> sortenv)
-	{
-		// DFS this expression. Assume either a BinaryExpression node or a
-		// Variable. Otherwise yell.
-		List<String> sort_result = new ArrayList<String>();
-		List<String> index_result = new ArrayList<String>();
-		List<String> varname_result = new ArrayList<String>();
-
-		/////////////////////////////////////////////////////////////
-		// Setup for DFS
-		List<Expression> dfslist = new LinkedList<Expression>();
-		if(e instanceof BinaryExpression)
-		{			
-			BinaryExpression be = (BinaryExpression) e;
-			if(!be.op().equals(ExprOperator.PRODUCT))
-				throw new MUserException("inorderTraversalOfVariableProduct: Not a variable: "+be);
-			
-			dfslist.add(be.left());
-			dfslist.add(be.right());
-		}
-		
-		// This method is NOT meant to handle more than a variable product. The above "term" traversal method does that.
-		// This method is called from tupling, which requires only variables!
-		
-		else if (e instanceof NaryExpression)
-		{
-			NaryExpression ne = (NaryExpression) e;
-			if(!ne.op().equals(ExprOperator.PRODUCT))
-				throw new MUserException("inorderTraversalOfVariableProduct: Not a variable: "+ne);
-
-			for(int ii=0;ii<ne.size();ii++)
-			{
-				dfslist.add(ne.child(ii));
-			}			
-		}
-
-		/////////////////////////////////////////////////////////////
-		// DFS
-		while (dfslist.size() > 0)
-		{
-			Expression next = dfslist.get(0);
-			dfslist.remove(0);
-
-			// What does sortenv say the sort of this variable is?
-			if (next instanceof Variable)
-			{
-				if (sortenv != null)
-					sort_result.add(sortenv.get(next));
-				if (indexing != null)
-					index_result.add(indexing.get(next).toString());
-				varname_result.add(next.toString());
-
-			}
-			else if (next instanceof BinaryExpression)
-			{
-				BinaryExpression benext = (BinaryExpression) next;
-				// Don't .add to the END. Need to put at the beginning,
-				// or else this will not be in-order.
-				//dfslist.add(benext.left()); <--- NO
-				//dfslist.add(benext.right()); <--- NO
-				// Add right first (so left ends up in its proper place)
-				dfslist.add(0, benext.right());
-				dfslist.add(0, benext.left());
-			}
-			else if(next instanceof NaryExpression)
-			{
-				NaryExpression nenext = (NaryExpression) next;
-				
-				// In reverse order
-				for(int ii=nenext.size()-1;ii>=0;ii--)
-				{
-					Expression childexpr = nenext.child(ii);
-					dfslist.add(0, childexpr);
-				}
-			}
-
-			else
-				return new ArrayList<String>(); // will warn user
-		} // while there remain DFS nodes to explore
-
-		if (sortenv != null)
-			return sort_result;
-		if (indexing != null)
-			return index_result;
-		return varname_result;
-
-	}*/
-
 	Set<MSort> buildSubSortSet(String tname)
 	{
 		return buildSubSortSet(getSort(tname));
@@ -1582,42 +1365,6 @@ public class MVocab {
 		return result;
 	}
 
-	protected boolean possibleOverlap(String st1, String st2)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
-		return possibleOverlap(getSort(st1), getSort(st2));
-	}
-
-	protected boolean possibleOverlap(Expression et1, Expression et2)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName {
-		return possibleOverlap(getSortForExpression(et1),
-				getSortForExpression(et2));
-	}
-
-	protected boolean possibleOverlap(MSort t1, MSort t2)
-			throws MGEUnknownIdentifier, MGEBadIdentifierName
-	{
-		// TODO use cache (and construct it!)
-		
-		// Since we require top-level sorts to be disjoint 
-		if (t1.parents.size() == 0 && t2.parents.size() == 0 && t1 != t2)
-			return false;
-		
-		Set<MSort> subs1 = buildSubSortSet(t1);
-		Set<MSort> subs2 = buildSubSortSet(t2);
-		
-		// <-related?
-		if(subs1 == subs2 || subs1.contains(t2) || subs2.contains(t1))
-			return true;
-		
-		// common lower bound?
-		
-		if(!Collections.disjoint(subs1, subs2))
-			return true;
-		
-		// unrelated sorts, no common lower-bound
-		return false; 
-	}
-	
 	
 	protected MVocab combineWith(MVocab other) throws MGECombineVocabs,
 			MGEBadIdentifierName, MGEUnknownIdentifier 

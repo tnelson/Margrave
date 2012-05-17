@@ -125,8 +125,8 @@ public class SQSReader
 		
 		// Add the sort (if it doesn't already exist.)
 		
-		predname = MVocab.validateIdentifier("is"+predname, true);
-		parentsortname = MVocab.validateIdentifier(parentsortname, true);
+		predname = MVocab.validateIdentifierFromExternalPolicy("is"+predname, true);
+		parentsortname = MVocab.validateIdentifierFromExternalPolicy(parentsortname, true);
 		
 		// Kludge (for now) to make * contain subsorts:
 		

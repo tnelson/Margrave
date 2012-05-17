@@ -36,38 +36,38 @@ public class MConstraints
 	MVocab vocab;
 
 	// sorts only
-	Set<String> setsAbstract = new HashSet<String>();
+	final Set<String> setsAbstract = new HashSet<String>();
 	
 	// Either predicates OR sorts
-	Set<String> setsSingleton = new HashSet<String>();
-	Set<String> setsAtMostOne = new HashSet<String>();
-	Set<String> setsNonempty = new HashSet<String>();
+	final Set<String> setsSingleton = new HashSet<String>();
+	final Set<String> setsAtMostOne = new HashSet<String>();
+	final Set<String> setsNonempty = new HashSet<String>();
 
 	// Relations constrained to be functions
-	Set<String> funcTotal = new HashSet<String>();
-	Set<String> funcPartial = new HashSet<String>();
+	final Set<String> funcTotal = new HashSet<String>();
+	final Set<String> funcPartial = new HashSet<String>();
 	
 	// Relations constrained to be total, but not functional
-	Set<String> relTotal = new HashSet<String>();
+	final Set<String> relTotal = new HashSet<String>();
  
 	// only predicates allowed
-	Set<List<String>> setsDisjoint = new HashSet<List<String>>();	
-	Set<List<String>> setsSubset = new HashSet<List<String>>();
+	final Set<List<String>> setsDisjoint = new HashSet<List<String>>();	
+	final Set<List<String>> setsSubset = new HashSet<List<String>>();
 
 	// These sorts are entirely covered by the elements denoted by constants of that sort (or subsorts):
-	Set<String> setsConstantsCover = new HashSet<String>();
+	final Set<String> setsConstantsCover = new HashSet<String>();
 
 	// Constants of type T are all pairwise disjoint.
-	Set<String> setsConstantsNeqAll = new HashSet<String>();
+	final Set<String> setsConstantsNeqAll = new HashSet<String>();
 	
 	// These pairs of constants are non-equal.
-	Set<List<String>> constantsNeq = new HashSet<List<String>>();
+	final Set<List<String>> constantsNeq = new HashSet<List<String>>();
 	
 	// Custom constraints not supported in any way but to say "this must be satisfied."
 	// In string format so that a policy's assumptions can contain IDB references.
 	// (Yes this is inefficient, but the user may add more rules later which could change the formulas.)
 
-	Set<Formula> otherAxioms = new HashSet<Formula>();
+	final Set<Formula> otherAxioms = new HashSet<Formula>();
 
 	public MConstraints(MVocab voc)
 	{		
@@ -267,6 +267,17 @@ public class MConstraints
 	{
 		return getConstraintFormulas(null);
 	}		
+	
+	/**
+	 * Returns a set of Kodkod formulas that implement the declared constraints.
+	 * @param idbContext
+	 * @return
+	 * @throws MGEUnknownIdentifier
+	 * @throws MGEArityMismatch
+	 * @throws MGEBadQueryString
+	 * @throws MGEManagerException
+	 * @throws MGEBadIdentifierName
+	 */
 	Set<Formula> getConstraintFormulas(MIDBCollection idbContext)
 	throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadQueryString, MGEManagerException, MGEBadIdentifierName
 	{
@@ -415,15 +426,6 @@ public class MConstraints
 		{
 			results.add(f);
 		}
-
-		
-		// 4/11 disabled for now
-		//SimplifyFormulaV simplifierV = new SimplifyFormulaV();
-		//for(String s : otherConstraintStrings)
-		//{
-		//	results.add(MQuery.constructFormulaFromString(hmpol, vocab, new Stack<Variable>(), s, "Q"));
-		//			//.accept(simplifierV));
-		//}
 		
 		return results;
 	}
