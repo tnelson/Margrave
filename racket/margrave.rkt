@@ -660,6 +660,11 @@
 ; Loads an XACML policy 
 (define (load-sqs-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started. Unable to load policy."))
+  (when (hash-has-key? cached-policies pol-id)
+    (error (format "The engine already knows about a policy with the id ~v." pol-id)))
+
   (define response (send-and-receive-xml (xml-make-load-sqs pol-id fn)))
   (when (response-is-success? response)
     ; Expect an extended reply
@@ -667,7 +672,13 @@
     (define thyexpr (read (open-input-string (success->theory-sexpr response))))
     (define thethy (eval thyexpr the-margrave-namespace))
     (define thepolfunc (eval polexpr the-margrave-namespace))
-    (printf "~v~n~v~n~v~n~v~n" thyexpr polexpr thethy thepolfunc))
+    (define thepol (thepolfunc fn pol-id src-syntax thethy))
+    ;(printf "~v~n~v~n~v~n~v~n" thyexpr polexpr thethy thepolfunc))
+;    (printf "~v~n" thepol)
+    
+    ; Add to cache.
+    (hash-set! cached-theories pol-id thethy)
+    (hash-set! cached-policies pol-id thepol))
   (response->string response))
 
 

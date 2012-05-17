@@ -840,29 +840,31 @@
          
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
-           (lambda (local-policy-filename local-policy-id src-syntax)                                                                        
+           (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                                                                         
              (define s-VOCAB-EXTENSION ".v")
              
              ; vocab names are all lower-cased before searching for file
              (define vocab-path (build-path (path-only/same local-policy-filename) 
                                             (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION)))           
-             
-             ; Produce a friendly error if the vocab doesn't exist
-             ; src-syntax here is the *command* that spawned the loading, not the Policy form.
-             (file-exists?/error vocab-path src-syntax 
-                                 (format "Unable to find the policy's vocabulary. Expected a file at ~a; current-directory is: ~a" 
-                                         (path->string vocab-path)
-                                         (path->string (current-directory))))   
-             
-             (define my-t-or-v                 
-               (call-with-input-file
-                   vocab-path
-                 (lambda (in-port) 
-                   (port-count-lines! in-port)
-                   (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
-                   ; Keep as syntax here, so the PolicyVocab macro gets the right location info
-                   ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
-                   (eval the-vocab-syntax margrave-policy-vocab-namespace))))
+                                     
+             (define my-t-or-v 
+               (cond [(m-theory? thy/maybe)
+                      thy/maybe]
+                     [else
+                      ; Produce a friendly error if the vocab doesn't exist
+                      ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+                      (file-exists?/error vocab-path src-syntax 
+                                          (format "Unable to find the policy's vocabulary. Expected a file at ~a; current-directory is: ~a" 
+                                                  (path->string vocab-path)
+                                                  (path->string (current-directory))))                         
+                      (call-with-input-file
+                          vocab-path
+                        (lambda (in-port) 
+                          (port-count-lines! in-port)
+                          (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
+                          ; Keep as syntax here, so the PolicyVocab macro gets the right location info
+                          ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
+                          (eval the-vocab-syntax margrave-policy-vocab-namespace)))]))
              
              ; Allow users to provide just a vocab with no theory. No axioms if so.
              (define my-thy

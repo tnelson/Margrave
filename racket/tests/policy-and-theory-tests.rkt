@@ -43,7 +43,7 @@
                           (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a))))))))
 (check-pred procedure? polfunc1-target)
 
-(define pol1-target (polfunc1-target "../examples/conference/conference.p" "MYPOLTARGET" #'foo))
+(define pol1-target (polfunc1-target "../examples/conference/conference.p" "MYPOLTARGET" #'foo #f))
 (check-pred m-policy? pol1-target)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -81,7 +81,7 @@
 
 
 (check equal-unordered? (m-policy->xexprs (polfunc1
-                                           "../examples/conference/conference.p" "MYPOLICYID" #'foo))
+                                           "../examples/conference/conference.p" "MYPOLICYID" #'foo #f))
        '((MARGRAVE-COMMAND ((type "CREATE POLICY LEAF")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VOCAB-IDENTIFIER ((vname "Conference"))))
   (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Resource") (varname "r"))))
   (MARGRAVE-COMMAND ((type "ADD")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (VARIABLE-DECLARATION ((sort "Action") (varname "a"))))
@@ -432,8 +432,11 @@
 
 ; Test that we can run queries on them.
 
-;(m-let "Qsqs7" '([s Subject] [a Action] [r Resource])
-;       '([psqs7 Allow] s a r))
+(m-let "Qsqs7" '([p Principal]
+                 [a Action]
+                 [r Resource]
+                 [c Condition])
+       '([psqs7 Allow] p a r c))
 
 ; Can't actually use these yet. See issue #76.
               
