@@ -23,8 +23,10 @@
  rackunit
  (only-in srfi/1 zip))
 
+;; Policy set struct has its own provide/contract
 (provide
- (all-defined-out))
+ (except-out (all-defined-out)
+             (struct-out m-policy-set)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -154,15 +156,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-struct/contract m-policy-set
-  ([id string?]   
-   [theory m-theory?]   
-   ;[vardecs (hash/c string? m-vardec?)]
-   [children (hash/c string? (or/c m-policy-set? m-policy?))]
-   [pcomb any/c]
-   [target m-formula?]
-   [idbs (hash/c string? (listof string?))])
+
+(struct m-policy-set (id theory children pcomb target idbs) 
   #:transparent)
+(provide/contract (struct m-policy-set                    
+                    ([id string?]   
+                     [theory m-theory?]   
+                     ;[vardecs (hash/c string? m-vardec?)]
+                     [children (hash/c string? (or/c m-policy-set? m-policy?))]
+                     [pcomb any/c]
+                     [target m-formula?]
+                     [idbs (hash/c string? (listof string?))])))  
 
 (define/contract 
   (m-rule->cmd policyid arule)  

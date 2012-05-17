@@ -662,18 +662,17 @@
   (when (response-is-success? response)
     ; Expect an extended reply
     (define polexpr (read (open-input-string (success->policy-sexpr response))))
-    (define thyexpr (read (open-input-string (success->theory-sexpr response))))
-    ;(printf "~v~n" thyexpr)
-    ;(printf "~v~n" polexpr)
-    (define thethy (eval thyexpr the-margrave-namespace))
-    (define thepolfunc (eval polexpr the-margrave-namespace))
-    (define thepol (thepolfunc fn pol-id src-syntax thethy))    
-    (hash-set! cached-theories pol-id thethy)
+    (define thyexpr (read (open-input-string (success->theory-sexpr response))))    
+    (printf "~v~n" pol-id)
+    (define thethy  (time (eval thyexpr the-margrave-namespace)))
+    (define thepolfunc  (time (eval polexpr the-margrave-namespace)))
+    (define thepol  (time (thepolfunc fn pol-id src-syntax thethy))  )  
+    (hash-set! cached-theories (m-theory->key thethy) thethy)
     (hash-set! cached-policies pol-id thepol))
   (response->string response))
 
 ; sqs-policy-filename -> MPolicy
-; Loads an XACML policy 
+; Loads an SQS
 (define (load-sqs-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
   (when (engine-needs-starting?)
@@ -685,11 +684,11 @@
   (when (response-is-success? response)
     ; Expect an extended reply
     (define polexpr (read (open-input-string (success->policy-sexpr response))))
-    (define thyexpr (read (open-input-string (success->theory-sexpr response))))
+    (define thyexpr (read (open-input-string (success->theory-sexpr response))))    
     (define thethy (eval thyexpr the-margrave-namespace))
     (define thepolfunc (eval polexpr the-margrave-namespace))
     (define thepol (thepolfunc fn pol-id src-syntax thethy))
-    (hash-set! cached-theories pol-id thethy)
+    (hash-set! cached-theories (m-theory->key thethy) thethy)
     (hash-set! cached-policies pol-id thepol))
   (response->string response))
 

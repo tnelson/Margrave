@@ -196,6 +196,8 @@
        (assert-lone-clause stx the-target-clauses "Target")
        (assert-lone-clause stx the-pcomb-clauses "PComb")       
        
+      ; (printf "In policyset macro phase +1. done getting clauses. vocab was: ~v~n" (syntax->datum #'vocabname))
+       
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Children
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -204,6 +206,8 @@
          (let ()    
            (define the-children-clause (first the-children-clauses))
            (rest (syntax-e the-children-clause)))) 
+       
+       ;(printf "In policyset macro phase +1. number of children gotten:~v~n" (length the-child-policies))
        
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; Target
@@ -221,8 +225,7 @@
                
                (define the-target (first the-targets))                                             
                the-target)))    
-       
-       
+              
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        ; PComb
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -235,9 +238,11 @@
                (syntax-case the-pcomb-clause [PComb]
                  [(PComb x0 x ...) (map comb->sexpr (syntax->list #'(x0 x ...)))]
                  [_ (raise-syntax-error 'PolicySet "Invalid policy-combination clause." #f #f (list the-pcomb-clause))]))))
-       
+              
+       ;(printf "Children are: ~v~n" the-child-policies)
        ; Macro returns a lambda that takes a filename and a syntax object.   
-       (with-syntax ([the-child-policies #`(list #,@the-child-policies)]
+       (with-syntax (;[the-child-policies #`(list #,@the-child-policies)]
+                     [the-child-policies `',the-child-policies]
                      [vocabname #'vocabname]
                      [target-result target-result]
                      [my-comb-list pcomb-result]
@@ -254,8 +259,7 @@
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                     
              (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                            (string-append (symbol->string 'vocabname) ".v")))
-                          
+                                            (string-append (symbol->string 'vocabname) ".v")))             
              (define my-theory
                (cond [(m-theory? thy/maybe)
                       thy/maybe]
@@ -278,10 +282,11 @@
                           my-t-or-v)]))
                                        
              ; Error out if there is a duplicate policy name (or the same name as this parent policy)
-             ; Don't repeat vocabularies
+             ; Don't repeat vocabularies             
              (define the-children-list (map (lambda (childproc)
-                                              (printf "Handling: ~v~n" childproc)
-                                              (childproc ;(eval childsyntax margrave-policy-vocab-namespace) 
+                                             ; (printf "Handling: ~v~n" childproc)
+                                              ;(childproc
+                                               ((eval childproc margrave-policy-vocab-namespace) 
                                                local-policy-filename
                                                (string-append local-policy-id (->string (gensym)))
                                                src-syntax
@@ -292,6 +297,7 @@
                  (cond [(m-policy? child) (m-policy-id child)] 
                        [else (m-policy-set-id child)]))
                (hash-set sofar id child))
+             
              (define the-children (foldl children-aggregator (make-immutable-hash '()) the-children-list))                    
              
              (define (make-placeholder-syntax placeholder)
@@ -321,10 +327,10 @@
              ;[target m-formula?]
              ;[idbs (hash/c string? (listof string?))])                          
              
-             (printf "~v~n" local-policy-id)
-             (printf "~v~n" the-children)
-             (printf "~v~n" 'my-comb-list)
-             (printf "~v~n" 'target-result)
+             ;(printf "~v~n" local-policy-id)
+             ;(printf "~v~n" the-children)
+             ;(printf "~v~n" 'my-comb-list)
+             ;(printf "~v~n" 'target-result)
              
              (m-policy-set local-policy-id 
                            my-theory 
@@ -605,6 +611,8 @@
        (unless (identifier? #'a-vocab-or-thy-name)
          (raise-syntax-error 'Policy (format "Expected a theory or vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'a-vocab-or-thy-name)) #f #f (list #'a-vocab-or-thy-name)))                          
+       
+       ;(printf "In POLICY macro phase +1. done getting clauses. vocab was: ~v~n" (syntax->datum #'a-vocab-or-thy-name))
        
        (define my-theory-name-sym (syntax->datum #'a-vocab-or-thy-name))     
        (define my-theory-name-str (->string my-theory-name-sym)) 
