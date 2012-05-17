@@ -442,8 +442,16 @@
 ; Tests for XACML and SQS loaders, which are entirely Java-side
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; XACML examples
+; XACML 1.x examples
 (check-not-exn (lambda () (load-xacml-policy "pxacml1" "xacml/generated.xml")))
+
+; TODO: XACML 2.x Examples
+(check-true "TODO")
+
+; *SETS* from 1.0 (Continue, College)
+(check-not-exn (lambda () (load-xacml-policy "pxacmlcolleged" "xacml/college/CodeD/RPSlist.xml")))
+(check-not-exn (lambda () (load-xacml-policy "pxacmlcontinueb" "xacml/continue/CodeB/RPSlist.xml")))
+
 
 ; The SQS examples from Amazon's page
 (check-not-exn (lambda () (load-sqs-policy "psqs0" "sqs/sqs1.json")))

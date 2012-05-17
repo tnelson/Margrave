@@ -293,37 +293,43 @@ public class MPolicyLeaf extends MPolicy
 		throw new MGEUnknownIdentifier(rulename+" is not a rule name in policy "+name);
 	}
 	
-	private Set<Variable> getFreeVarsUsedInEveryRule()
+	/**
+	 * Returns a set of Variables that the head of every rule shares.
+	 * Note that this is NOT the same as the "free variables" of every rule. E.g.:
+	 * (permit s a r) :- admin(s)
+	 * Here we care about s, a, r; not just s.
+	 * @return
+	 */
+	private Set<Variable> getDeclaredVarsInEveryRule()
 	{
-		// INTERSECTION of free vars, not union.
-		Set<Variable> freeVars = new HashSet<Variable>();
+		
+		Set<Variable> declaredVars = new HashSet<Variable>();
 		boolean first = true;
 		for(MRule r : rules)
 		{
-			Set<Variable> thisFreeVars = r.target_and_condition.accept(new FreeVariableCollectionV());
 			if(first)
 			{
 				first = false;
-				freeVars.addAll(thisFreeVars);
+				declaredVars.addAll(r.ruleVarOrdering);
 			}
 			else
 			{
-				freeVars.retainAll(thisFreeVars);
+				declaredVars.retainAll(r.ruleVarOrdering);
 			}
 		}
-		return freeVars;
+		return declaredVars;
 	}
 	
 	public void checkTargetIsCoherent()
 	{
 		// A target only makes sense if all rules contain the free vars in the target:
 		
-		Set<Variable> varsFreeInAllRules = getFreeVarsUsedInEveryRule();		
+		Set<Variable> declaredFreeVarsInAllRules = getDeclaredVarsInEveryRule();		
 		Set<Variable> varsFreeInTarget = target.accept(new FreeVariableCollectionV());
 		
-		if(!varsFreeInAllRules.containsAll(varsFreeInTarget))
+		if(!declaredFreeVarsInAllRules.containsAll(varsFreeInTarget))
 		{
-			varsFreeInTarget.removeAll(varsFreeInAllRules);
+			varsFreeInTarget.removeAll(declaredFreeVarsInAllRules);
 			throw new MGEArityMismatch("The policy target's free variables must always be free in each policy rule. The variables: "+varsFreeInTarget+" did not appear in some rule.");
 		}
 	}
@@ -440,7 +446,7 @@ public class MPolicyLeaf extends MPolicy
 		addRule(rulename, decision, ruleVarNameOrdering, aTarget, aCondition, null);
 	}
 	
-	public void addRule(String rulename, String decision, List<String> ruleVarNameOrdering, 
+	public void addRule(String rulename, String decision, List<String> declaredRuleVarNameOrdering, 
 			Formula aTarget, Formula aCondition, MExploreCondition helper)
 	  throws MGEUnknownIdentifier, MGEArityMismatch, MGEBadIdentifierName
 	{	
@@ -455,10 +461,10 @@ public class MPolicyLeaf extends MPolicy
 		/////////////////////////////////////////////////////////////
 		// Variable ordering on this rule from the rule head; 
 		// e.g. (permit s a r) :- ...
-		List<Variable> ruleVarOrdering = new ArrayList<Variable>();
-		for(String vname : ruleVarNameOrdering)
+		List<Variable> declaredRuleVarOrdering = new ArrayList<Variable>();
+		for(String vname : declaredRuleVarNameOrdering)
 		{
-			ruleVarOrdering.add(MFormulaManager.makeVariable(vname));
+			declaredRuleVarOrdering.add(MFormulaManager.makeVariable(vname));
 		}
 		
 		/////////////////////////////////////////////////////////////
@@ -466,7 +472,7 @@ public class MPolicyLeaf extends MPolicy
 		{
 			// First time we saw this IDB. Need to add it (and the free var ordering) to the policy.
 			// (Sorts of all these variables should be known already.)			
-			putIDB(decision, Formula.FALSE, ruleVarOrdering);			
+			putIDB(decision, Formula.FALSE, declaredRuleVarOrdering);			
 			
 			// Add the decision to the list as well
 			decisions.add(decision);
@@ -479,16 +485,16 @@ public class MPolicyLeaf extends MPolicy
 		
 		// order-independent
 		Set<Variable> expectedSet = new HashSet<Variable>(expectedIDBFreeVars);
-		Set<Variable> thisSet = new HashSet<Variable>(ruleVarOrdering);
+		Set<Variable> declaredSet = new HashSet<Variable>(declaredRuleVarOrdering);
 		
-		if(!expectedSet.equals(thisSet))
+		if(!expectedSet.equals(declaredSet))
 		{
 			String hashStr = "";
 			
 			int ii = 0;
 			for(Variable v1 : expectedIDBFreeVars)
 			{
-				Variable v2 = ruleVarOrdering.get(ii);
+				Variable v2 = declaredRuleVarOrdering.get(ii);
 				if(!v1.equals(v2))
 				{
 					hashStr += "Mismatch between var "+v1.toString()+" (hash="+v1.hashCode()+") and var "+
@@ -502,7 +508,7 @@ public class MPolicyLeaf extends MPolicy
 			
 			
 			throw new MGEArityMismatch("The decision "+decision+" was used with two different variable orderings. "+
-					"First was: "+expectedIDBFreeVars+"; second was: "+ruleVarOrdering+". Hashes were: \n"+hashStr);
+					"First was: "+expectedIDBFreeVars+"; second was: "+declaredRuleVarOrdering+". Hashes were: \n"+hashStr);
 
 		}			
 		
@@ -515,7 +521,7 @@ public class MPolicyLeaf extends MPolicy
 		MRule newrule = new MRule(this);
 		newrule.setDecision(decision);
 		newrule.name = rulename;	
-		newrule.ruleVarOrdering = ruleVarOrdering;
+		newrule.ruleVarOrdering = declaredRuleVarOrdering;
 		newrule.target = aTarget;
 		newrule.condition = aCondition;
 				
@@ -915,7 +921,12 @@ public class MPolicyLeaf extends MPolicy
 			buf.append("("+v.name()+" "+varSorts.get(v)+")"+MEnvironment.eol);
 		}		
 		buf.append(")"+MEnvironment.eol); // end vars
-	
+			
+		if(!target.equals(Formula.TRUE))
+		{
+			buf.append("  (Target "+MFormulaManager.toSExpression(vocab, target)+")"+MEnvironment.eol);						
+		}	
+		
 		buf.append("  (Rules "+MEnvironment.eol);
 		for(MRule r : rules)
 		{
@@ -924,7 +935,6 @@ public class MPolicyLeaf extends MPolicy
 		buf.append(")"+MEnvironment.eol); // end rules
 		
 		buf.append("(RComb ");
-		//rCombineWhatOverrides
 		if(rCombineFA.size() > 0)
 		{
 			buf.append("(fa ");

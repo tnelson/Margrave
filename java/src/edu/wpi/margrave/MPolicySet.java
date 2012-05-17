@@ -473,6 +473,39 @@ public class MPolicySet extends MPolicy
 		StringBuffer buf = new StringBuffer();
 		buf.append("(PolicySet uses "+name+MEnvironment.eol);
 		
+		if(!target.equals(Formula.TRUE))
+		{
+			buf.append("  (Target "+MFormulaManager.toSExpression(vocab, target)+")"+MEnvironment.eol);						
+		}	
+		
+		
+		buf.append("(PComb ");
+		if(pCombineFA.size() > 0)
+		{
+			buf.append("(fa ");
+			for(String s : pCombineFA)
+			{
+				buf.append(s+" ");
+			}
+			buf.append(")");
+		}
+		if(pCombineWhatOverrides.size() > 0)
+		{
+			for(String k : pCombineWhatOverrides.keySet())
+			{
+				// // A -> { decisions that override A }
+				// Warning: this is **NOT** transitive!
+				buf.append("(over "+k+" ");
+				for(String s : pCombineWhatOverrides.get(k))
+				{
+					buf.append(s+" ");
+				}
+				buf.append(")");
+
+			}
+		}
+		buf.append(")"); // end rcomb
+		
 	
 		buf.append(")"+MEnvironment.eol);
 		return buf.toString();
