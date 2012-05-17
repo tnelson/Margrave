@@ -293,11 +293,48 @@ public class MPolicyLeaf extends MPolicy
 		throw new MGEUnknownIdentifier(rulename+" is not a rule name in policy "+name);
 	}
 	
+	private Set<Variable> getFreeVarsUsedInEveryRule()
+	{
+		// INTERSECTION of free vars, not union.
+		Set<Variable> freeVars = new HashSet<Variable>();
+		boolean first = true;
+		for(MRule r : rules)
+		{
+			Set<Variable> thisFreeVars = r.target_and_condition.accept(new FreeVariableCollectionV());
+			if(first)
+			{
+				first = false;
+				freeVars.addAll(thisFreeVars);
+			}
+			else
+			{
+				freeVars.retainAll(thisFreeVars);
+			}
+		}
+		return freeVars;
+	}
+	
+	public void checkTargetIsCoherent()
+	{
+		// A target only makes sense if all rules contain the free vars in the target:
+		
+		Set<Variable> varsFreeInAllRules = getFreeVarsUsedInEveryRule();		
+		Set<Variable> varsFreeInTarget = target.accept(new FreeVariableCollectionV());
+		
+		if(!varsFreeInAllRules.containsAll(varsFreeInTarget))
+		{
+			varsFreeInTarget.removeAll(varsFreeInAllRules);
+			throw new MGEArityMismatch("The policy target's free variables must always be free in each policy rule. The variables: "+varsFreeInTarget+" did not appear in some rule.");
+		}
+	}
+	
 	public void initIDBs()	
 	throws MUserException
 	{				
 		// Do NOT call this!
 		//super.initIDBs();
+		
+		checkTargetIsCoherent();
 		
 		clearIDBs();
 		disjunctionOfRules_cache.clear();

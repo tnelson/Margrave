@@ -69,6 +69,7 @@ class MRule
 	
 	protected MRule(MPolicyLeaf pol)
 	{
+		// DO NOT Instantiate directly. Instead, use MPolicyLeaf.addRule(...)
 		mypolicy = pol;
 	}
 			

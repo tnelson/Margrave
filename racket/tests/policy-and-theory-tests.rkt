@@ -46,6 +46,25 @@
 (define pol1-target (polfunc1-target "../examples/conference/conference.p" "MYPOLTARGET" #'foo #f))
 (check-pred m-policy? pol1-target)
 
+;;;;;;;;;;;;;;;;;;;;;
+; Check that an invalid target (with variables not shared by all rules) is rejected by the engine
+(define polfunc2-target (Policy uses Conference
+                         (Target (ReadPaper a))
+                         (Variables 
+                          (s Subject)
+                          (a Action)
+                          (r Resource))
+                         (Rules 
+                          (PaperNoConflict = (Permit s r) :- (isa s Reviewer (isa r Paper (and (not (conflicted s r))))))
+                          (PaperAssigned = (Permit s r) :- (isa s Reviewer (isa r Paper (and (assigned s r)))))
+                          (PaperConflict = (Deny s r) :- (isa s Reviewer (isa r Paper (and (conflicted s r))))))))
+(check-pred procedure? polfunc2-target)
+
+(define pol-target-invalid (polfunc2-target "../examples/conference/conference.p" "MYPOLTARGET2" #'foo #f))
+(check-pred m-policy? pol-target-invalid)
+; The actual test is performed LATER:
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Conversion of vocabularies, theories, and policies to XML
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -412,6 +431,12 @@
 (m-let "Q2" '([s Subject] [a Action] [r Resource])
        '([MYPOLTARGET Permit] s a r))
 (check-false (m-is-poss? "Q2"))
+
+;; Check that invalid target is rejected by engine
+(check-exn exn:fail? 
+           (lambda ()
+             (send-policy-to-engine pol-target-invalid)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Tests for XACML and SQS loaders, which are entirely Java-side

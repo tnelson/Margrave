@@ -511,7 +511,7 @@ class XACML20Reader {
 		return false;
 	}
 	private static Formula handleTargetMatch(Node tm, MVocab env, String varname, 
-			String relname) 
+			String sortname) 
 	throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
 	{
 		
@@ -537,22 +537,22 @@ class XACML20Reader {
 		// We add relname+":" because not all attribute names are descriptive ones. Could have overlap
 		// between sorts, and that would be bad.
 
-		String newpredname ;
+		String newpredname;
 		
 		if(!tm.hasChildNodes())
 			throw new MGEUnsupportedXACML("Match element must contain children.");
 		if(!hasChildNamed(tm, "AttributeValue"))
 			throw new MGEUnsupportedXACML("Match element had no AttributeValue child node.");
-		if(hasChildNamed(tm, relname+"AttributeDesignator"))
+		if(hasChildNamed(tm, sortname+"AttributeDesignator"))
 		{
 				
 			// <X>AttributeDesignator child's attribute: AttributeId
-			Node adChild = getNodeChildNamed(tm, relname+"AttributeDesignator");	
+			Node adChild = getNodeChildNamed(tm, sortname+"AttributeDesignator");	
 			if(!hasAttributeNamed(adChild, "AttributeId"))
 				throw new MGEUnsupportedXACML("Designator has no AttributeId attribute.");
 			String adValue = getNodeAttributeValue(adChild, "AttributeId");
 			
-			newpredname = (relname+":"+adValue + "=_by_"+matchid+"_="+av);
+			newpredname = (sortname+":"+adValue + "=_by_"+matchid+"_="+av);
 		}
 		else if(hasChildNamed(tm, "AttributeSelector"))
 		{
@@ -561,7 +561,7 @@ class XACML20Reader {
 				throw new MGEUnsupportedXACML("Designator has no AttributeId attribute.");
 			String asValue = getNodeAttributeValue(asChild, "RequestContextPath");
 			
-			newpredname = (relname+":"+asValue + "=_by_"+matchid+"_="+av);
+			newpredname = (sortname+":"+asValue + "=_by_"+matchid+"_="+av);
 		}
 		else
 			throw new MGEUnsupportedXACML("Match element did not contain an AttributeSelector or AttributedDesignator.");
@@ -570,7 +570,7 @@ class XACML20Reader {
 		if(!env.isSort(newpredname))
 		{			
 			// New predicate
-			env.addSubSort(relname, newpredname);
+			env.addPredicate(newpredname, sortname);
 			
 			// Cannot infer a disjointness constraint between two values for the same attribute: 			
 			// A request context may contain multiple values for the same attribute.
@@ -759,36 +759,37 @@ class XACML20Reader {
 
 	
 	
-	static MRule handleRule(MPolicyLeaf pol, Node rule, MVocab env) throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
-	{
-		MRule mr = new MRule(pol);
-		
-		NamedNodeMap ruleattrs = rule.getAttributes();
+	static void handleRule(MPolicyLeaf pol, Node ruleNode, MVocab env) throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
+	{		
+		NamedNodeMap ruleattrs = ruleNode.getAttributes();
 		if(ruleattrs == null)
 			throw new MGEUnsupportedXACML("Rule had no attributes.");
 		
+		String ruleID = "NoName";
 		if(ruleattrs.getNamedItem("RuleId") != null)
-			mr.name = ruleattrs.getNamedItem("RuleId").getNodeValue();
-		
+			ruleID = ruleattrs.getNamedItem("RuleId").getNodeValue();
+				
 		if(ruleattrs.getNamedItem("Effect") == null)
 			throw new MGEUnsupportedXACML("Rule must have effect.");
 		
-		mr.setDecision(ruleattrs.getNamedItem("Effect").getNodeValue().toLowerCase());
-	
+		String effect = ruleattrs.getNamedItem("Effect").getNodeValue().toLowerCase();	
 				
-		if(!rule.hasChildNodes())
+		if(!ruleNode.hasChildNodes())
 			throw new MGEUnsupportedXACML("Rule must have child nodes.");
-		NodeList children = rule.getChildNodes();
+		NodeList children = ruleNode.getChildNodes();
 		
 		boolean seenTarget = false;
 		boolean seenCondition = false;
+		
+		Formula aTarget = Formula.TRUE;
+		Formula aCondition = Formula.TRUE;
 		for(int ii = 0;ii<children.getLength();ii++)
 		{
 			Node child = children.item(ii);
 			
     		if("target".equals(child.getNodeName().toLowerCase()) && !seenTarget)
     		{
-    			mr.target = handleTarget(child, env);
+    			aTarget = handleTarget(child, env);
     			seenTarget = true;
     		}
     		else if("target".equals(child.getNodeName().toLowerCase()))
@@ -797,7 +798,7 @@ class XACML20Reader {
     		if("condition".equals(child.getNodeName().toLowerCase()) && !seenCondition)
     		{
     			
-    			handleRuleCondition(mr, child, env);
+    			aCondition = handleRuleCondition(child, env);
     			seenCondition = true;
     		}
     		else if("condition".equals(child.getNodeName().toLowerCase()))
@@ -805,9 +806,15 @@ class XACML20Reader {
     		
 		}
 				
-		mr.target_and_condition = MFormulaManager.makeAnd(mr.target, mr.condition);
-		pol.rules.add(mr);	
-		return mr;
+		
+		List<String> ruleVarNameOrdering = new ArrayList<String>(4);
+		ruleVarNameOrdering.add("s");
+		ruleVarNameOrdering.add("a");
+		ruleVarNameOrdering.add("r");
+		ruleVarNameOrdering.add("e");
+		
+		pol.addRule(ruleID, effect, ruleVarNameOrdering, aTarget, aCondition);
+	
 	}
 	
 	
@@ -910,13 +917,13 @@ class XACML20Reader {
 	}
 
 	
-	private static void handleRuleCondition(MRule mr, Node cond, MVocab env)
+	private static Formula handleRuleCondition(Node cond, MVocab env)
 	throws MGEUnsupportedXACML, MGEManagerException, MGEBadIdentifierName
 	{
-		mr.condition = Formula.TRUE;
+		Formula aCondition = Formula.TRUE;
 		
 		if(cond == null)
-			return; // no condition!
+			return aCondition; // no condition!
 							
 		// Build a state predicate that governs whether or not this condition holds.
 		// Predicate name will be this function's name (child names, possibly recursively derived)
@@ -978,13 +985,14 @@ class XACML20Reader {
 				varsList.add(s);			
 						
 			kodkod.ast.Expression tuple = MFormulaManager.makeExprTuple(varsList);
-			mr.condition = MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
+			aCondition = MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
 		}
 		catch(MGEUnknownIdentifier e)
 		{
 			throw new MGEUnsupportedXACML("Identifier problem with getVariable: "+e.getMessage());
 		}				
 		
+		return aCondition;
 	}
 	
 	static MPolicy findPolicyWithId(String polid, String schemaFileName, String policyDir, String fieldname) 
@@ -1160,7 +1168,7 @@ class XACML20Reader {
 			
 			polset.initIDBs();
 			return polset;
-		}
+		} // END For policy SET
 		else if("Policy".equals(nodename))
 		{
 			// children are rules, target...
@@ -1174,6 +1182,11 @@ class XACML20Reader {
 			String policyID = policyIDNode.getNodeValue();			
 
 			MPolicyLeaf pol = new MPolicyLeaf(policyID, env);
+			pol.declareVariable("s", "Subject");
+	        pol.declareVariable("a", "Action");
+	        pol.declareVariable("r", "Resource");
+	        pol.declareVariable("e", "Environment");
+
 			pol.isXACML = true;
 
 			pol.handleXACML2Combine(ruleCombAlgNode); // "RuleCombiningAlgId"

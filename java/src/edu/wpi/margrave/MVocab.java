@@ -608,15 +608,19 @@ public class MVocab {
 		{
 			// No whitespace allowed, but sometimes XACML wants spaces
 			n = n.replace(" ", "_");
+			
+			// Quote symbols should be allowed.
 			// No quote symbols allowed (just in case)
-			n = n.replace("\"", "`");
+			//n = n.replace("\"", "`");
 			
-			// No commas allowed (reserved by Racket)
+			// No single quotes or commas allowed
 			n = n.replace(",", "");
-			
+			n = n.replace("'", "");
 			// No parens allowed
 			n = n.replace("(", "<");
 			n = n.replace(")", ">");
+			n = n.replace("[", "<");
+			n = n.replace("]", ">");
 			
 			// Removed: No reason to do this internally
 			// Must be lower-case
