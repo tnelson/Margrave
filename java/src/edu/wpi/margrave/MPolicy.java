@@ -497,9 +497,7 @@ public abstract class MPolicy extends MIDBCollection
 	
 	public static MPolicy readXACML10(String xacmlFileName)
 	throws MUserException
-	{
-		
-			
+	{					
 		MVocab voc = makeXACMLVocab(xacmlFileName);
 				
         // setup the PolicyFinder and FilePolicyModule
@@ -535,19 +533,11 @@ public abstract class MPolicy extends MIDBCollection
 	public static MVocab makeXACMLVocab(String filename) throws MGEBadIdentifierName, MGEUnknownIdentifier
 	{
 		MVocab env = new MVocab();
-		env.addSort("subject"); 
-		env.addSort("action");
-		env.addSort("resource");
-		env.addSort("environment");
-		
-		//env.addRequestVar("s", "subject");
-		//env.addRequestVar("a", "action");
-		//env.addRequestVar("r", "resource");
-		//env.addRequestVar("e", "environment");
-		
-		//env.addDecision("permit");
-		//env.addDecision("deny");
-		
+		env.addSort("Subject"); 
+		env.addSort("Action");
+		env.addSort("Resource");
+		env.addSort("Environment");
+				
 		// Note that Margrave does not support any language features that could result in an
 		// Indeterminate decision. (In particular, MustBePresent, among others.)
 		return env;
@@ -555,7 +545,7 @@ public abstract class MPolicy extends MIDBCollection
 
 	
 	private static Formula handleXACMLTargetMatch(TargetMatch tm, MVocab env, String varname, 
-			String relname) 
+			String sortname) 
 	throws MGEUnsupportedXACML, MGEUnknownIdentifier, MGEBadIdentifierName, MGEManagerException
 	{
 		Evaluatable ev = tm.getMatchEvaluatable();
@@ -578,13 +568,13 @@ public abstract class MPolicy extends MIDBCollection
 		// = signifies match function	
 		// We add relname+":" because not all attribute names are descriptive ones. Could have overlap
 		// between sorts, and that would be bad.
-		String newpredname = (relname+":"+((AttributeDesignator)ev).getId().getSchemeSpecificPart() + "="+tm.getMatchValue().encode()).toLowerCase(); 
+		String newpredname = (sortname+":"+((AttributeDesignator)ev).getId().getSchemeSpecificPart() + "="+tm.getMatchValue().encode()).toLowerCase(); 
 		//String propprefix = (relname+":"+((AttributeDesignator)ev).getId().getSchemeSpecificPart() + "=").toLowerCase();
-		
+		newpredname = MVocab.validateIdentifierFromExternalPolicy(newpredname, true);
 		if(!env.isSort(newpredname))
 		{			
-			// New predicate
-			env.addSubSort(relname, newpredname);
+			// New predicate (NOT sort!)
+			env.addPredicate(newpredname, sortname);			
 			
 			// Cannot infer a disjointness constraint between two values for the same attribute: 			
 			// A request context may contain multiple values for the same attribute.
@@ -739,14 +729,14 @@ public abstract class MPolicy extends MIDBCollection
 				throw new MGEUnsupportedXACML("Unexpected type in Apply child: "+child);
 		}
 		
-		return result+")";		
+		return MVocab.validateIdentifierFromExternalPolicy(result+")", true);		
 	}
 	
-	private static void handleXACMLRuleCondition(MRule mr, Apply cond, MVocab env)
+	private static Formula handleXACMLRuleCondition(Apply cond, MVocab env)
 	throws MGEUnsupportedXACML, MGEManagerException, MGEBadIdentifierName
 	{
-		mr.condition = Formula.TRUE;		
-		if(cond == null) return; // no condition!
+		Formula aCondition = Formula.TRUE;		
+		if(cond == null) return aCondition; // no condition!
 							
 		// Build a state predicate that governs whether or not this condition holds.
 		// Predicate name will be this function's name (child names, possibly recursively derived)
@@ -794,12 +784,12 @@ public abstract class MPolicy extends MIDBCollection
 		try
 		{  						
 			List<String> varsList = new ArrayList<String>(involves_list.size());
-			for(String s : involves_list)
+			for(String s : involves)
 				varsList.add(s);			
 			
 			// New XACML library has an Expression type as well. Be specific.			
 			kodkod.ast.Expression tuple = MFormulaManager.makeExprTuple(varsList);
-			mr.condition = MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
+			return MFormulaManager.makeAtom(tuple, env.getRelation(newname)); 
 		}
 		catch(MGEUnknownIdentifier e)
 		{
@@ -817,27 +807,29 @@ public abstract class MPolicy extends MIDBCollection
 		// (and similarly for resources and actions)
 		
 		// For the moment, 1 XACML rule -> 1 Margrave Rule. This means that Margrave rules may not be
-		// simple conjunctive queries anymore. But we could factor out if we needed to, right?
+		// simple conjunctive queries anymore. But we could factor out if we needed to.
 		
-		MRule mr = new MRule(pol);
-		mr.name = r.getId().toString().toLowerCase();
+		List<String> ruleVarNameOrdering = new ArrayList<String>(4);
+		ruleVarNameOrdering.add("s");
+		ruleVarNameOrdering.add("a");
+		ruleVarNameOrdering.add("r");
+		ruleVarNameOrdering.add("e");
+			
 		
 		// Decision
+		String decision = "";
 		if(r.getEffect() == Result.DECISION_PERMIT)
-			mr.setDecision("permit");
+			decision = "permit";
 		else
-			mr.setDecision("deny");
+			decision = "deny";
 	
 		// target
-		mr.target = handleXACMLTarget(r.getTarget(), env); //.accept(new SimplifyFormulaV());
+		Formula aTarget = handleXACMLTarget(r.getTarget(), env); 
 		
 		// Condition
-		handleXACMLRuleCondition(mr, r.getCondition(), env);			
+		Formula aCondition = handleXACMLRuleCondition(r.getCondition(), env);			
 		
-		mr.target_and_condition = MFormulaManager.makeAnd(mr.target, mr.condition);
-		
-		// Add the rule
-		pol.rules.add(mr);
+		pol.addRule(r.getId().toString().toLowerCase(), decision, ruleVarNameOrdering, aTarget, aCondition);	
 	}
 	
 	private static MPolicy recXACMLPolicy(AbstractPolicy p, MVocab voc) throws 
@@ -850,8 +842,12 @@ public abstract class MPolicy extends MIDBCollection
 		{
 			// no children, return empty leaf policy
 			// (In XACML parser, "children" is EITHER rules or proper children.)
-			
-			return new MPolicyLeaf(p.getId().toString(), voc);
+			MPolicyLeaf pol = new MPolicyLeaf(p.getId().toString(), voc);					
+			pol.declareVariable("s", "Subject");
+	        pol.declareVariable("a", "Action");
+	        pol.declareVariable("r", "Resource");
+	        pol.declareVariable("e", "Environment");
+			return pol;
 		}
 					
 		// Children (if any)
@@ -893,6 +889,11 @@ public abstract class MPolicy extends MIDBCollection
 			MPolicyLeaf pol = new MPolicyLeaf(p.getId().toString(), voc);
 			pol.target = handleXACMLTarget(targ, voc); // env may be updated with new sorts	
 			pol.isXACML = true;
+
+			pol.declareVariable("s", "Subject");
+	        pol.declareVariable("a", "Action");
+	        pol.declareVariable("r", "Resource");
+	        pol.declareVariable("e", "Environment");
 
 			// Combining Alg
 			pol.handleXACMLCombine(p.getCombiningAlg()); 
@@ -972,20 +973,3 @@ class MXACMLPolicyFinderModule extends PolicyFinderModule
 	}
 	
 }
-
-//Used for tupling
-//class MInternalIDBCollection extends MIDBCollection
-//{
-//	
-//	protected MInternalIDBCollection(String n, MVocab voc)
-//	{
-//		name = n;		
-//		vocab = voc;
-//	}
-//
-//	protected void addIDB(String idbname, Formula idb)
-//	{
-//		putIDB(idbname, idb);		
-//	}
-	
-//}

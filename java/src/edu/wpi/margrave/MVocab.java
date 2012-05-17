@@ -611,6 +611,13 @@ public class MVocab {
 			// No quote symbols allowed (just in case)
 			n = n.replace("\"", "`");
 			
+			// No commas allowed (reserved by Racket)
+			n = n.replace(",", "");
+			
+			// No parens allowed
+			n = n.replace("(", "<");
+			n = n.replace(")", ">");
+			
 			// Removed: No reason to do this internally
 			// Must be lower-case
 			//n = n.toLowerCase();

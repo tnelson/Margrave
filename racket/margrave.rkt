@@ -663,9 +663,11 @@
     ; Expect an extended reply
     (define polexpr (read (open-input-string (success->policy-sexpr response))))
     (define thyexpr (read (open-input-string (success->theory-sexpr response))))
+    ;(printf "~v~n" thyexpr)
+    ;(printf "~v~n" polexpr)
     (define thethy (eval thyexpr the-margrave-namespace))
     (define thepolfunc (eval polexpr the-margrave-namespace))
-    (define thepol (thepolfunc fn pol-id src-syntax thethy))
+    (define thepol (thepolfunc fn pol-id src-syntax thethy))    
     (hash-set! cached-theories pol-id thethy)
     (hash-set! cached-policies pol-id thepol))
   (response->string response))

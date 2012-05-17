@@ -430,17 +430,20 @@
 (check-not-exn (lambda () (load-sqs-policy "psqs6" "sqs/sqs_example6.json")))
 (check-not-exn (lambda () (load-sqs-policy "psqs7" "sqs/sqs_example7.json")))
 
-; Test that we can run queries on them.
+; Test that we can run queries on XACML and SQS policies
 
+; "permit" must be lower-case here
 (check-not-exn (lambda () 
-                 (m-let "Qxacml1" '([s Subject] [a Action] [r Resource])
-                        '([pxacml1 Permit] s a r))))
+                 (m-let "Qxacml1" '([s Subject] [a Action] [r Resource] [e Environment])
+                        '([pxacml1 permit] s a r e))))
+(check-true (m-is-poss? "Qxacml1"))
 
+; "Allow" must be upper-case here
 (check-not-exn (lambda ()
                  (m-let "Qsqs7" '([p Principal] [a Action] [r Resource] [c Condition])
                         '([psqs7 Allow] p a r c))))
+(check-true (m-is-poss? "Qsqs7"))
 
-; Can't actually use these yet. See issue #76.
               
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; LEAVE MARGRAVE ENGINE RUNNING (for additional checks via repl if desired)
