@@ -1702,8 +1702,8 @@ public class MCommunicator
 
 
 	protected static Formula validateDBIdentifier(String objn, String dbn)
-			throws MUserException
-			{
+			throws MUserException {
+		
 		writeToLog("\nMCommunicator.validateDBIdentifier invoked for: "+objn+", "+dbn);
 
 		// Is objn a policy name? If not, error.
@@ -1720,8 +1720,11 @@ public class MCommunicator
 			return pol.getIDB(dbn);
 		}
 		else
-			throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);		 
-			}
+		{
+			writeToLog("Unknown IDB: "+dbn+" in collection: "+objn+". IDBs were: "+pol.idbKeys());
+			throw new MGEUnknownIdentifier("Unknown IDB: "+dbn+" in collection: "+objn);
+		}
+	}
 
 	private static List<MIDBCollection> namesToIDBCollections(List<String> names) throws MUserException
 	{

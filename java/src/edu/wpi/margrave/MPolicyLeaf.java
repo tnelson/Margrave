@@ -397,10 +397,10 @@ public class MPolicyLeaf extends MPolicy
 	}
 
 	// For test cases 
-	protected void addRule(String rulename, String decision, List<String> freeVarOrdering, 
+	protected void addRule(String rulename, String decision, List<String> ruleVarNameOrdering, 
 			Formula aTarget, Formula aCondition)
 	{
-		addRule(rulename, decision, freeVarOrdering, aTarget, aCondition, null);
+		addRule(rulename, decision, ruleVarNameOrdering, aTarget, aCondition, null);
 	}
 	
 	public void addRule(String rulename, String decision, List<String> ruleVarNameOrdering, 
@@ -665,9 +665,9 @@ public class MPolicyLeaf extends MPolicy
 		// (a) These are easy:
 		for(MRule r : rules)
 		{
-			String decName = r.name+"_matches";
-			putIDB(decName, r.target_and_condition, r.ruleVarOrdering);			
-			decisionUsesPredicates.put(decName, r.involvesPredicates);
+			String idbName = r.name+"_matches";
+			putIDB(idbName, r.target_and_condition, r.ruleVarOrdering);			
+			decisionUsesPredicates.put(idbName, r.involvesPredicates);
 		}
 		
 		/////////////////////////////////////////////////////////////////
@@ -692,9 +692,9 @@ public class MPolicyLeaf extends MPolicy
 				usesPreds.addAll(overR2.involvesPredicates);
 				rFmlas.add(MFormulaManager.makeNegation(overR2.target_and_condition));
 			}
-			String decName = r.name+"_applies";
-			decisionUsesPredicates.put(decName, usesPreds);
-			putIDB(decName, MFormulaManager.makeConjunction(rFmlas), r.ruleVarOrdering);
+			String idbName = r.name+"_applies";
+			decisionUsesPredicates.put(idbName, usesPreds);
+			putIDB(idbName, MFormulaManager.makeConjunction(rFmlas), r.ruleVarOrdering);
 		}
 
 		

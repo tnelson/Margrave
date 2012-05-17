@@ -24,7 +24,9 @@ package edu.wpi.margrave;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import kodkod.ast.Expression;
@@ -54,7 +56,7 @@ public class SQSReader
 	}	
 	
 
-	protected static void handleStatementCondition(JSONObject obj, MRule rule, MVocab vocab) 
+	protected static Formula handleStatementCondition(JSONObject obj, Formula theCondition, MVocab vocab) 
 	throws JSONException, MGEBadIdentifierName, MGEUnknownIdentifier, MGEManagerException
 	{
 		// Condition block is a conjunctive list of conditions. all must apply.
@@ -111,10 +113,11 @@ public class SQSReader
 				
 			}
 						
-			rule.condition = MFormulaManager.makeAnd(rule.condition, 
+			theCondition = MFormulaManager.makeAnd(theCondition, 
 					MFormulaManager.makeConjunction(thisCondition));
 		}
 		
+		return theCondition;		
 	}
 	
 	protected static Formula makeSQSAtom(MVocab vocab, String varname, String parentsortname, String predname) 
@@ -210,8 +213,8 @@ public class SQSReader
 		return MFormulaManager.makeAtom(thevar, thepred.rel);
 	}
 	
-	protected static void handleStatementPAR(Object obj, 
-			String varname, String parentsortname, MRule rule, MVocab vocab, String prepend) 
+	protected static Formula handleStatementPAR(Object obj, 
+			String varname, String parentsortname, Formula theTarget, MVocab vocab, String prepend) 
 	throws MGEUnsupportedSQS, JSONException, MGEBadIdentifierName, MGEUnknownIdentifier, MGEManagerException
 	{
 		// obj may be a JSONObject (Principal examples)
@@ -251,8 +254,7 @@ public class SQSReader
 				throw new MGEUnsupportedSQS("Number of keys != 1 as expected: "+obj.toString());			
 			
 			Object inner = jobj.get((String)names.get(0));
-			handleStatementPAR(inner, varname, parentsortname, rule, vocab, prepend+"."+names.get(0));			
-			return; 
+			return handleStatementPAR(inner, varname, parentsortname, theTarget, vocab, prepend+"."+names.get(0));						 
 		}
 		
 		// Now if obj is a simple value, we have a predicate name.
@@ -272,17 +274,17 @@ public class SQSReader
 				
 			}
 			
-			rule.target = MFormulaManager.makeAnd(rule.target, 
+			theTarget = MFormulaManager.makeAnd(theTarget, 
 					MFormulaManager.makeDisjunction(possibleValues));
 			
 		}
 		else
 		{			
 			Formula theatom = makeSQSAtom(vocab,varname, parentsortname, prepend+"="+obj);
-			rule.target = MFormulaManager.makeAnd(rule.target, theatom);
+			theTarget = MFormulaManager.makeAnd(theTarget, theatom);
 		}
 		
-		
+		return theTarget;
 	}
 	
 	protected static void handleSQSStatement(JSONObject thisStatement, MPolicyLeaf result, int counter)
@@ -299,47 +301,45 @@ public class SQSReader
 			effect = thisStatement.getString("Effect");
 		else
 			return; // no effect means no need to add the rule
-
-		MRule rule = new MRule(result);
-		rule.name = ruleId;		
-		rule.setDecision(effect);
-		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("p"));
-		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("a"));
-		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("r"));
-		rule.ruleVarOrdering.add(MFormulaManager.makeVariable("c"));
-					
-
+		
+		List<String> ruleNameOrdering = new ArrayList<String>(4);
+		ruleNameOrdering.add("p");
+		ruleNameOrdering.add("a");
+		ruleNameOrdering.add("r");
+		ruleNameOrdering.add("c");
+			
+		Formula theTarget = Formula.TRUE;
+		Formula theCondition = Formula.TRUE;
+		
 		// target starts as true. All criteria must be met, so just "and" each on.
-
 		
 		// *************************
 		// "Principal": disjunction
 		if(thisStatement.isNull("Principal"))
 			return; // never applies, so don't create the rule.				
-		handleStatementPAR(thisStatement.get("Principal"), "p", "Principal", rule, result.vocab, "Principal");
+		theTarget = handleStatementPAR(thisStatement.get("Principal"), "p", "Principal", theTarget, result.vocab, "Principal");
 				
 		// *************************		
 		// "Action": disjunction
 		if(thisStatement.isNull("Action"))
 			return; // never applies, so don't create the rule.
-		handleStatementPAR(thisStatement.get("Action"), "a", "Action", rule, result.vocab, "Action");
+		theTarget = handleStatementPAR(thisStatement.get("Action"), "a", "Action", theTarget, result.vocab, "Action");
 		
 		// *************************
 		// "Resource": disjunction
 		if(thisStatement.isNull("Resource"))
 			return; // never applies, so don't create the rule.
-		handleStatementPAR(thisStatement.get("Resource"), "r", "Resource", rule, result.vocab, "Resource");
+		theTarget = handleStatementPAR(thisStatement.get("Resource"), "r", "Resource", theTarget, result.vocab, "Resource");
 		
 		// *************************
 		// "Condition": more complex
 		// Condition optional? TODO -- for now if no condition, just finalize the rule. 
 		// (Why are P/A/R special?)
 		if(!thisStatement.isNull("Condition"))
-			handleStatementCondition(thisStatement.getJSONObject("Condition"), rule, result.vocab);
+			theCondition = handleStatementCondition(thisStatement.getJSONObject("Condition"), theTarget, result.vocab);
 					
 		// Finalize the rule.
-		rule.target_and_condition = MFormulaManager.makeAnd(rule.target, rule.condition);
-		result.rules.add(rule);		
+		result.addRule(ruleId, effect, ruleNameOrdering, theTarget, theCondition);
 	}
 	
 	protected static MPolicy loadSQS(String polId, String sFileName) 

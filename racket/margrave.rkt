@@ -649,12 +649,26 @@
 ; Loads an XACML policy 
 (define (load-xacml-policy pol-id fn #:syntax [src-syntax #f])
   (file-exists?/error fn src-syntax (format "Could not find XACML file: ~a" fn))
-  (response->string 
-   (send-and-receive-xml 
-    (xml-make-load-xacml 
-     pol-id
-     fn 
-     (path->string (build-path (safe-get-margrave-collection-path) "xacml20.xsd"))))))
+  (file-exists?/error fn src-syntax (format "Could not find SQS file: ~a" fn))
+  (when (engine-needs-starting?)
+    (raise-user-error "The Java engine is not started. Unable to load policy."))
+  (when (hash-has-key? cached-policies pol-id)
+    (error (format "The engine already knows about a policy with the id ~v." pol-id)))
+  
+  (define response (send-and-receive-xml 
+                    (xml-make-load-xacml pol-id 
+                                         fn
+                                         (path->string (build-path (safe-get-margrave-collection-path) "xacml20.xsd")))))
+  (when (response-is-success? response)
+    ; Expect an extended reply
+    (define polexpr (read (open-input-string (success->policy-sexpr response))))
+    (define thyexpr (read (open-input-string (success->theory-sexpr response))))
+    (define thethy (eval thyexpr the-margrave-namespace))
+    (define thepolfunc (eval polexpr the-margrave-namespace))
+    (define thepol (thepolfunc fn pol-id src-syntax thethy))
+    (hash-set! cached-theories pol-id thethy)
+    (hash-set! cached-policies pol-id thepol))
+  (response->string response))
 
 ; sqs-policy-filename -> MPolicy
 ; Loads an XACML policy 
@@ -673,10 +687,6 @@
     (define thethy (eval thyexpr the-margrave-namespace))
     (define thepolfunc (eval polexpr the-margrave-namespace))
     (define thepol (thepolfunc fn pol-id src-syntax thethy))
-    ;(printf "~v~n~v~n~v~n~v~n" thyexpr polexpr thethy thepolfunc))
-;    (printf "~v~n" thepol)
-    
-    ; Add to cache.
     (hash-set! cached-theories pol-id thethy)
     (hash-set! cached-policies pol-id thepol))
   (response->string response))

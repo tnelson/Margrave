@@ -41,12 +41,17 @@ import com.sun.xacml.attr.*;
 //Supporting Objects
 //***********************************************
 
+/**
+ * DO NOT instantiate this class directly. Use MPolicyLeaf.addRule instead.
+ * @author Tim
+ *
+ */
 class MRule
 {
 	// Stores a single rule. As caller adds rules to the policy, these objects are created.
 	// Can't directly add to the idbs in the policy b/c of different policy combinator options.
 	
-	String name;
+	String name;	
 	private String myDecision;
 
 	MPolicyLeaf mypolicy;
@@ -62,21 +67,21 @@ class MRule
 	
 	List<Variable> ruleVarOrdering = new ArrayList<Variable>();
 	
-	MRule(MPolicyLeaf pol)
+	protected MRule(MPolicyLeaf pol)
 	{
 		mypolicy = pol;
 	}
-	
+			
 	protected void setDecision(String s)
 	{
-		myDecision = s;
+		myDecision = s;		
 	}
 	
 	protected String decision()
 	{
-		return myDecision;
+		return myDecision;		
 	}
-
+	
 	public void toSExpression(StringBuffer buf)
 	{
 		buf.append("("+name+" = "+"("+decision()+" ");
@@ -123,7 +128,7 @@ abstract class MIDBCollection
 	{
 		idbs.put(idbname, val);
 		if(varOrdering == null)
-			throw new MUserException("Internal Margrave error: putIDB given null for varOrdering.");
+			throw new MUserException("Internal Margrave error: putIDB given null for varOrdering. idbname="+idbname+"; collection name="+name);
 		varOrderings.put(idbname, new ArrayList<Variable>(varOrdering));
 		//System.err.println(idbname+":"+varOrdering);
 	}

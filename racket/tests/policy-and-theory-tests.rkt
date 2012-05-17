@@ -432,11 +432,13 @@
 
 ; Test that we can run queries on them.
 
-(m-let "Qsqs7" '([p Principal]
-                 [a Action]
-                 [r Resource]
-                 [c Condition])
-       '([psqs7 Allow] p a r c))
+(check-not-exn (lambda () 
+                 (m-let "Qxacml1" '([s Subject] [a Action] [r Resource])
+                        '([pxacml1 Permit] s a r))))
+
+(check-not-exn (lambda ()
+                 (m-let "Qsqs7" '([p Principal] [a Action] [r Resource] [c Condition])
+                        '([psqs7 Allow] p a r c))))
 
 ; Can't actually use these yet. See issue #76.
               
