@@ -71,6 +71,7 @@ public class MCommunicator
 	static FileWriter outLogStream = null;
 
 	static boolean bDoLogging = false;
+	static boolean bMinimalModels = false;
 
 	/**
 	 * Creates a fatal error with the appropriate message inside.
@@ -84,12 +85,25 @@ public class MCommunicator
 
 	public static void main(String[] args) 
 	{
-		if(args.length > 0 && args[0].toLowerCase().equals("-log"))
+		ArrayList<String> foo = new ArrayList<String>();		
+		
+		Set<String> argsSet = new HashSet<String>();
+		for(int ii=0;ii<args.length;ii++)
+		{
+			argsSet.add(args[ii].toLowerCase());
+		}
+		
+		if(argsSet.contains("-log"))
 		{
 			// parser is in racket now. instead, require -log switch for logging
 			//MEnvironment.debugParser = true;
 			bDoLogging = true;
 		}					
+		
+		if(argsSet.contains("-min"))
+		{
+			bMinimalModels = true;
+		}
 
 		// Re-direct all System.err input to our custom buffer		
 		// Uses Apache Commons IO for WriterOutputStream.

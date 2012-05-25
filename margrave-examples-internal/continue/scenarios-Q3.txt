@@ -1,4 +1,4 @@
-*** Found 21 scenarios for query with ID: "Q3". ***
+*** Found 9 scenarios for query with ID: "Q3". ***
 
 ********* SOLUTION FOUND at size = 37 ******************
 User#3: Object, User
@@ -8,59 +8,7 @@ r=c=conf: Conference, Object, Resource
 s: Object, User
 ----------------------------------------
 Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#3>  }
-authorOf: { <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cDiscussion>  }
-conflicted: {  }
-continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
-continue.deny: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <User#3> <s>  }
-assignedTo: {  }
-author: { <User#1>  }
-authorOf: { <p2, User#1> <p1, User#1>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cDiscussion>  }
-conflicted: {  }
-continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
-continue.deny: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 37 ******************
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
 ----------------------------------------
 admin: { <s>  }
 assignedTo: {  }
@@ -76,196 +24,12 @@ paperPhase: { <p2, pBidding> <p1, pBidding>  }
 reviewOn: {  }
 reviewer: {  }
 ----------------------------------------
-
-
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <User#3> <s>  }
-assignedTo: {  }
-author: { <User#1>  }
-authorOf: { <p2, User#1> <p1, User#1>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cDiscussion>  }
-conflicted: {  }
-continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
-continue.deny: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-
-********* SOLUTION FOUND at size = 37 ******************
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#3>  }
-authorOf: { <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cBidding>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cBidding>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cBidding>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cBidding>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
 ********************************************************
 
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
+
+
+********* SOLUTION FOUND at size = 37 ******************
 User#3: Object, User
 p1: Object, Paper, Resource
 p2: Object, Paper, Resource
@@ -273,12 +37,41 @@ r=c=conf: Conference, Object, Resource
 s: Object, User
 ----------------------------------------
 Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
 ----------------------------------------
 admin: { <s>  }
 assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1>  }
+author: { <User#3>  }
+authorOf: { <p2, User#3> <p1, User#3>  }
+bid: {  }
+conferencePhase: { <r=c=conf, cBidding>  }
+conflicted: {  }
+continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
+continue.permit: { <s, a=advancePhase, r=c=conf>  }
+decisionIs: { <p2, undecided> <p1, undecided>  }
+paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
+reviewOn: {  }
+reviewer: {  }
+----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
+
+
+********* SOLUTION FOUND at size = 37 ******************
+User#3: Object, User
+p1: Object, Paper, Resource
+p2: Object, Paper, Resource
+r=c=conf: Conference, Object, Resource
+s: Object, User
+----------------------------------------
+Omitted sorts for atoms denoted by constants that did not appear outside their native type:
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
+----------------------------------------
+admin: { <s>  }
+assignedTo: {  }
+author: { <User#3>  }
+authorOf: { <p2, User#3> <p1, User#3>  }
 bid: {  }
 conferencePhase: { <r=c=conf, cDiscussion>  }
 conflicted: {  }
@@ -289,6 +82,9 @@ paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
 reviewOn: {  }
 reviewer: {  }
 ----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
 
 
 ********* SOLUTION FOUND at size = 38 ******************
@@ -300,7 +96,7 @@ r=c=conf: Conference, Object, Resource
 s: Object, User
 ----------------------------------------
 Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
 ----------------------------------------
 admin: { <User#3> <s>  }
 assignedTo: {  }
@@ -316,85 +112,10 @@ paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
 reviewOn: {  }
 reviewer: {  }
 ----------------------------------------
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cDiscussion>  }
-conflicted: {  }
-continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
-continue.deny: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
 ********************************************************
 
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cBidding>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
+
 
 ********* SOLUTION FOUND at size = 38 ******************
 User#1: Object, User
@@ -405,38 +126,12 @@ r=c=conf: Conference, Object, Resource
 s: Object, User
 ----------------------------------------
 Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
 ----------------------------------------
-admin: { <s>  }
+admin: { <User#3> <s>  }
 assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#1> <p1, User#3>  }
+author: { <User#1>  }
+authorOf: { <p2, User#1> <p1, User#1>  }
 bid: {  }
 conferencePhase: { <r=c=conf, cDiscussion>  }
 conflicted: {  }
@@ -447,33 +142,10 @@ paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
 reviewOn: {  }
 reviewer: {  }
 ----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
 
 
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#3> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
 
 ********* SOLUTION FOUND at size = 38 ******************
 User#1: Object, User
@@ -484,63 +156,12 @@ r=c=conf: Conference, Object, Resource
 s: Object, User
 ----------------------------------------
 Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
 ----------------------------------------
 admin: { <s>  }
 assignedTo: {  }
 author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#1> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cSubmission>  }
-conflicted: {  }
-continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
-continue.permit: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pBidding> <p1, pBidding>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#1> <p1, User#3>  }
-bid: {  }
-conferencePhase: { <r=c=conf, cDiscussion>  }
-conflicted: {  }
-continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
-continue.deny: { <s, a=advancePhase, r=c=conf>  }
-decisionIs: { <p2, undecided> <p1, undecided>  }
-paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
-reviewOn: {  }
-reviewer: {  }
-----------------------------------------
-********* SOLUTION FOUND at size = 38 ******************
-User#1: Object, User
-User#3: Object, User
-p1: Object, Paper, Resource
-p2: Object, Paper, Resource
-r=c=conf: Conference, Object, Resource
-s: Object, User
-----------------------------------------
-Omitted sorts for atoms denoted by constants that did not appear outside their native type:
-a=advancePhase, 
-----------------------------------------
-admin: { <s>  }
-assignedTo: {  }
-author: { <User#1> <User#3>  }
-authorOf: { <p2, User#1> <p2, User#3> <p1, User#1> <p1, User#3>  }
+authorOf: { <p2, User#3> <p1, User#1>  }
 bid: {  }
 conferencePhase: { <r=c=conf, cBidding>  }
 conflicted: {  }
@@ -551,5 +172,98 @@ paperPhase: { <p2, pAssignment> <p1, pAssignment>  }
 reviewOn: {  }
 reviewer: {  }
 ----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
+
+
+********* SOLUTION FOUND at size = 38 ******************
+User#1: Object, User
+User#3: Object, User
+p1: Object, Paper, Resource
+p2: Object, Paper, Resource
+r=c=conf: Conference, Object, Resource
+s: Object, User
+----------------------------------------
+Omitted sorts for atoms denoted by constants that did not appear outside their native type:
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
+----------------------------------------
+admin: { <s>  }
+assignedTo: {  }
+author: { <User#1> <User#3>  }
+authorOf: { <p2, User#3> <p1, User#1>  }
+bid: {  }
+conferencePhase: { <r=c=conf, cDiscussion>  }
+conflicted: {  }
+continue-changed.permit: { <s, a=advancePhase, r=c=conf>  }
+continue.deny: { <s, a=advancePhase, r=c=conf>  }
+decisionIs: { <p2, undecided> <p1, undecided>  }
+paperPhase: { <p2, pDiscussion> <p1, pDiscussion>  }
+reviewOn: {  }
+reviewer: {  }
+----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
+
+
+********* SOLUTION FOUND at size = 38 ******************
+User#1: Object, User
+User#3: Object, User
+p1: Object, Paper, Resource
+p2: Object, Paper, Resource
+r=c=conf: Conference, Object, Resource
+s: Object, User
+----------------------------------------
+Omitted sorts for atoms denoted by constants that did not appear outside their native type:
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
+----------------------------------------
+admin: { <User#3> <s>  }
+assignedTo: {  }
+author: { <User#1>  }
+authorOf: { <p2, User#1> <p1, User#1>  }
+bid: {  }
+conferencePhase: { <r=c=conf, cSubmission>  }
+conflicted: {  }
+continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
+continue.permit: { <s, a=advancePhase, r=c=conf>  }
+decisionIs: { <p2, undecided> <p1, undecided>  }
+paperPhase: { <p2, pBidding> <p1, pBidding>  }
+reviewOn: {  }
+reviewer: {  }
+----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
+
+
+********* SOLUTION FOUND at size = 38 ******************
+User#1: Object, User
+User#3: Object, User
+p1: Object, Paper, Resource
+p2: Object, Paper, Resource
+r=c=conf: Conference, Object, Resource
+s: Object, User
+----------------------------------------
+Omitted sorts for atoms denoted by constants that did not appear outside their native type:
+a=advancePhase, addReviewer, becomeAuthor, cAssignment, cBidding, cDiscussion, cInitialization, cNotification, cPreSubmission, cPublishing, cReviewing, cSubmission, editConferenceInfo, makeSubmission, modifySubmission, modifyUserInfo, modifyUserJob, modifyUserPassword, pAssignment, pBidding, pDiscussion, pNotification, pReviewing, pSubmission, paperAssign, paperBid, paperConflict, paperDecide, readReview, removeUser, undecided, writeReview
+----------------------------------------
+admin: { <s>  }
+assignedTo: {  }
+author: { <User#1> <User#3>  }
+authorOf: { <p2, User#3> <p1, User#1>  }
+bid: {  }
+conferencePhase: { <r=c=conf, cSubmission>  }
+conflicted: {  }
+continue-changed.deny: { <s, a=advancePhase, r=c=conf>  }
+continue.permit: { <s, a=advancePhase, r=c=conf>  }
+decisionIs: { <p2, undecided> <p1, undecided>  }
+paperPhase: { <p2, pBidding> <p1, pBidding>  }
+reviewOn: {  }
+reviewer: {  }
+----------------------------------------
+*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.
+********************************************************
+
 
 

@@ -64,8 +64,21 @@ public class MJavaTests
 		// Now apply Kodkod
 		
 		Solver qrySolver = new Solver();			
-		//qrySolver.options().setFlatten(true);
-		qrySolver.options().setSolver(SATFactory.DefaultSAT4J);
+
+		MCommunicator.bMinimalModels = true;
+		
+		if(MCommunicator.bMinimalModels)
+		{							
+			MyReporter myReporter = new MyReporter();
+			qrySolver.options().setSolver(new MinimalSolverFactory(myReporter));
+			qrySolver.options().setReporter(myReporter);
+		}
+		else
+		{
+			qrySolver.options().setSolver(SATFactory.DefaultSAT4J);			
+		}
+
+		//qrySolver.options().setFlatten(true);		
 		//qrySolver.options().setSymmetryBreaking(fromResult.forQuery.mySB);
 	
 		Set<String> theUniv = new HashSet<String>();

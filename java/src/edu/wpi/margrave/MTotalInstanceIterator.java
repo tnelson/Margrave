@@ -25,6 +25,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 
+import kodkod.ast.Decl;
 import kodkod.ast.Decls;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
@@ -32,8 +33,12 @@ import kodkod.ast.Variable;
 import kodkod.engine.Evaluator;
 import kodkod.engine.Solution;
 import kodkod.engine.Solver;
+import kodkod.engine.bool.BooleanFormula;
+import kodkod.engine.config.Reporter;
 import kodkod.engine.fol2sat.UnboundLeafException;
+import kodkod.engine.satlab.SATFactory;
 import kodkod.instance.*;
+import kodkod.util.ints.IntSet;
 
 class KodkodContext
 {
@@ -178,6 +183,7 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		return false;
 	}
 		
+	
 	private Iterator<Solution> doBoundsAndKodKod(Formula f)
 	throws MGEUnknownIdentifier, MGEManagerException, MGEBadIdentifierName
 	{				
@@ -189,7 +195,16 @@ public class MTotalInstanceIterator extends MInstanceIterator
 		
 		qrySolver.options().setFlatten(true);
 
-		qrySolver.options().setSolver(fromContext.forQuery.mySATFactory);
+		if(MCommunicator.bMinimalModels)
+		{							
+			MyReporter myReporter = new MyReporter();
+			qrySolver.options().setSolver(new MinimalSolverFactory(myReporter));
+			qrySolver.options().setReporter(myReporter);
+		}
+		else
+		{
+			qrySolver.options().setSolver(SATFactory.DefaultSAT4J);			
+		}	
 		qrySolver.options().setSymmetryBreaking(fromContext.forQuery.mySB);
 							
 		//KodkodContext context = makeConservativeBounds(f);
