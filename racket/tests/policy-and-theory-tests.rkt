@@ -471,7 +471,7 @@
 (check-true "TODO")
 
 ; *SETS* from 1.0 (Continue, College)
-;(check-not-exn (lambda () (load-xacml-policy "pxacmlcolleged" "xacml/college/CodeD/RPSlist.xml")))
+(check-not-exn (lambda () (load-xacml-policy "pxacmlcolleged" "xacml/college/CodeD/RPSlist.xml")))
 (check-not-exn (lambda () (load-xacml-policy "pxacmlcontinueb" "xacml/continue/CodeB/RPSlist.xml")))
 
 

@@ -58,6 +58,6 @@
        (m-theory-equal? (m-policy-theory lhs) (m-policy-theory rhs))
        (hash-contents-equal? (m-policy-vardecs lhs) (m-policy-vardecs rhs))
        (unordered-list-equal? (m-policy-rule-names lhs) (m-policy-rule-names rhs))
-       (equal? (m-policy-rcomb lhs) (m-policy-rcomb rhs))
+       (equal? (m-policy-comb lhs) (m-policy-comb rhs))
        (equal? (m-policy-target lhs) (m-policy-target rhs))
        (hash-contents-equal? (m-policy-idbs lhs) (m-policy-idbs rhs))))

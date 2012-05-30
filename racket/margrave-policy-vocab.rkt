@@ -295,7 +295,7 @@
              (define (children-aggregator child sofar)
                (define id
                  (cond [(m-policy? child) (m-policy-id child)] 
-                       [else (m-policy-set-id child)]))
+                       [else (m-policy-id child)]))
                (hash-set sofar id child))
              
              (define the-children (foldl children-aggregator (make-immutable-hash '()) the-children-list))                    
@@ -308,7 +308,7 @@
              (for-each (lambda (child)
                          (define childthy
                            (cond [(m-policy? child) (m-policy-theory child)] 
-                                 [else (m-policy-set-theory child)]))
+                                 [else (m-policy-theory child)]))
                          (unless (equal? (m-theory-name my-theory) (m-theory-name childthy))
                            (raise-syntax-error 
                             'Policy 
@@ -332,12 +332,16 @@
              ;(printf "~v~n" 'my-comb-list)
              ;(printf "~v~n" 'target-result)
              
+             ; id theory vardecs rule-names rules comb target idbs children
              (m-policy-set local-policy-id 
                            my-theory 
-                           the-children
+                           (hash) ; vardecs
+                           empty
+                           (hash)
                            'my-comb-list
                            'target-result
-                           (hash) ))))))))
+                           (hash) ;idbs 
+                           the-children))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -23,10 +23,8 @@
  rackunit
  (only-in srfi/1 zip))
 
-;; Policy set struct has its own provide/contract
 (provide
- (except-out (all-defined-out)
-             (struct-out m-policy-set)))
+ (all-defined-out))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cached-policies (make-hash))
@@ -83,21 +81,11 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; m-policy
-
-;(define-struct/contract m-policy
-;  ([id string?]
-;   [theory m-theory?]   
-;   [vardecs (hash/c symbol? m-vardec?)]
-;   [rule-names (listof string?)]
-;   [rules (hash/c string? m-rule?)]
-;   [rcomb any/c]
-;   [target m-formula?]
-;   [idbs (hash/c string? (listof symbol?))])
-;  #:transparent)
+; POLICY
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Validate the m-policy fields. Check for consistency, etc.
-(define/contract (prevalidate-m-policy id theory vardecs rule-names rules rcomb target idbs type-name)
+(define/contract (prevalidate-m-policy id theory vardecs rule-names rules comb target idbs type-name)
   [-> string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)) any/c
       (values string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)))]        
   
@@ -148,25 +136,43 @@
   ;  (error ...))
   
   ; All is well:
-  (values id theory vardecs rule-names rules rcomb target idbs))
+  (values id theory vardecs rule-names rules comb target idbs))
 
-(struct m-policy (id theory vardecs rule-names rules rcomb target idbs)
+(struct m-policy (id theory vardecs rule-names rules comb target idbs)
   #:transparent
   #:guard prevalidate-m-policy)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; POLICY-SET
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define/contract (prevalidate-m-policy-set id theory vardecs rule-names rules comb target idbs children type-name)
+  [-> string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)) (hash/c string? m-policy?)
+      any/c
+      (values string? m-theory? (hash/c symbol? m-vardec?) (listof string?) (hash/c string? m-rule?) any/c m-formula? (hash/c string? (listof symbol?)) (hash/c string? m-policy?))]        
+    
+  ; Child policies already pre-validated by their guard procedures.
+  ; Just check that there are no rules
+  (unless (and (empty? rule-names)
+               (< (hash-count rules) 1))
+    (margrave-error "Tried to create a policy set with rules."))
+  
+  ; All is well:
+  (values id theory vardecs rule-names rules comb target idbs children))
+
+; A policy set is a policy with children. 
+; (Technically this is not good style, since the rules field is inherited.)
+;; TODO do something more clean + idiomatic
+(struct m-policy-set m-policy (children) 
+  #:transparent
+  #:guard prevalidate-m-policy-set)
 
 
-(struct m-policy-set (id theory children pcomb target idbs) 
-  #:transparent)
-(provide/contract (struct m-policy-set                    
-                    ([id string?]   
-                     [theory m-theory?]   
-                     ;[vardecs (hash/c string? m-vardec?)]
-                     [children (hash/c string? (or/c m-policy-set? m-policy?))]
-                     [pcomb any/c]
-                     [target m-formula?]
-                     [idbs (hash/c string? (listof string?))])))  
+; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define/contract 
   (m-rule->cmd policyid arule)  
@@ -370,26 +376,22 @@
   
   (define target-xexpr-list
     (list (xml-make-command "SET TARGET FOR POLICY" 
-                                  (list (xml-make-policy-identifier (m-policy-set-id pset))
-                                        (xml-make-target (m-formula->xexpr (m-policy-set-target pset))))))) 
+                                  (list (xml-make-policy-identifier (m-policy-id pset))
+                                        (xml-make-target (m-formula->xexpr (m-policy-target pset))))))) 
   
   (define pcomb-xexpr (xml-make-command "SET PCOMBINE FOR POLICY" 
-                                        (list (xml-make-policy-identifier (m-policy-set-id pset)) 
-                                              (xml-make-comb-list (map comb->xexpr (m-policy-set-pcomb pset))))))
+                                        (list (xml-make-policy-identifier (m-policy-id pset)) 
+                                              (xml-make-comb-list (map comb->xexpr (m-policy-comb pset))))))
   
   (define create-xexpr (xml-make-command "CREATE POLICY SET" 
-                                         (list (xml-make-policy-identifier (m-policy-set-id pset))
-                                               (xml-make-vocab-identifier (m-theory-name (m-policy-set-theory pset))))))
+                                         (list (xml-make-policy-identifier (m-policy-id pset))
+                                               (xml-make-vocab-identifier (m-theory-name (m-policy-theory pset))))))
   (define prepare-xexpr 
-    (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-set-id pset)))))
+    (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-id pset)))))
   
   (define (get-add-child-xml child-p-or-pset)
-               (xml-make-command "ADD" (list `(PARENT ,(xml-make-policy-identifier (m-policy-set-id pset))
-                                                      ,(xml-make-child-identifier (cond
-                                                                                    [(m-policy-set? child-p-or-pset) 
-                                                                                     (m-policy-set-id child-p-or-pset)]
-                                                                                    [else
-                                                                                     (m-policy-id child-p-or-pset)])))))) 
+               (xml-make-command "ADD" (list `(PARENT ,(xml-make-policy-identifier (m-policy-id pset))
+                                                      ,(xml-make-child-identifier (m-policy-id child-p-or-pset)))))) 
   
   ; Order of XML commands matters.
   (append (map m-policy->xexprs (m-policy-set-children pset))
@@ -411,7 +413,7 @@
   
   (define rcomb-xexpr (xml-make-command "SET RCOMBINE FOR POLICY" 
                                            (list (xml-make-policy-identifier (m-policy-id policy)) 
-                                                 (xml-make-comb-list (map comb->xexpr (m-policy-rcomb policy))))))
+                                                 (xml-make-comb-list (map comb->xexpr (m-policy-comb policy))))))
   
        
   (define create-xexpr (xml-make-command "CREATE POLICY LEAF" 
