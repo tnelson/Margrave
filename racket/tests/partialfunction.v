@@ -12,11 +12,14 @@
                 ; Author and reviewer can overlap when declared as predicates
                 (author Subject)
                 (reviewer Subject)
+                (pcmember Subject)
                 (techreportfor Paper TechReport)
                 ))
         (Axioms 
          (partial-function techreportfor)
+                  
+         ; Test subset as well.
+         (subset pcmember reviewer)
          
-         ;(abstract Subject)
          (abstract Action)
          (abstract Resource)))        	    	     

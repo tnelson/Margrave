@@ -118,6 +118,8 @@ public class MJavaTests
 		//testSAT();
 		//System.exit(1);
 		
+		
+							
 		MEnvironment.writeOutLine("Starting java-based tests.");			
 		
 		MCommunicator.bDoLogging = true;

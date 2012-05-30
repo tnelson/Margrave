@@ -127,6 +127,7 @@
 
 
 ; Test partial functions
+; This vocab also tests subset constraints.
 (m-load-policy "PFunc" "partialfunction.p")
 ; Functional:
 (m-let "PFQ1" '() 

@@ -1542,7 +1542,7 @@
     [(m-op-case subset id1 id2)
      (valid-predicate?/err id1)
      (valid-predicate?/err id2)
-     `(CONSTRAINT ((type "SUBSET")) ,id1 ,id2)]
+     (xml-make-constraint 'SUBSET (list id1 id2))]
     
     ; (constants-cover S) --- Everything in S must be equal to one of the constants of sort S (or subsort S' of S)
     [(m-op-case constants-cover id) 

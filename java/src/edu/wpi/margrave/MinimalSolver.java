@@ -506,6 +506,7 @@ class MinimalSolver implements SATSolver {
 			if(minimalModel[i] > 0)
 				noRepeat.add(-minimalModel[i]);
 		}
+		System.out.println("* Adding clause to exclude cone: "+noRepeat);
 		solver.addClause(toVecInt(noRepeat));
 	}
 	
