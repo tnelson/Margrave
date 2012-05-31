@@ -472,6 +472,12 @@
                  (m-let "QSET1" '([s Subject] [a Action] [r Resource])
                         '([MYPOLSET1 Permit] s a r))))
 (check-true (m-is-poss? "QSET1"))
+(check-not-exn (lambda () 
+                 (m-let "QSET2" '([s Subject] [a Action] [r Resource])
+                        '(and ([MYPOLSET1 Deny] s a r)
+                              (or (not (Paper r))
+                                  (not (Reviewer s)))))))
+(check-false (m-is-poss? "QSET2"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Tests for XACML and SQS loaders, which are entirely Java-side
