@@ -439,23 +439,13 @@ public class MCommunicator
 
 				theResponse = MEnvironment.setPolicyTarget(pname, target);
 			}	
-			else if (type.equalsIgnoreCase("SET RCOMBINE FOR POLICY")) {
-				String pname = getPolicyName(margraveCommandNode);
-				//List<String> idl = getIdentifierList(n);
-
-				Set<String> rFA = new HashSet<String>();
-				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
-
-				handleComb(margraveCommandNode, rFA, rO);        				        				
-				theResponse = MEnvironment.setRCombine(pname, rFA, rO);
-			}	
-			else if (type.equalsIgnoreCase("SET PCOMBINE FOR POLICY")) {
+			else if (type.equalsIgnoreCase("SET COMBINE FOR POLICY")) {
 				String pname = getPolicyName(margraveCommandNode);        				
 				Set<String> rFA = new HashSet<String>();
 				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
 
 				handleComb(margraveCommandNode, rFA, rO);        				
-				theResponse = MEnvironment.setPCombine(pname, rFA, rO);
+				theResponse = MEnvironment.setCombine(pname, rFA, rO);
 			}
 			else if (type.equalsIgnoreCase("QUIT"))
 			{
@@ -652,6 +642,7 @@ public class MCommunicator
 
 				}
 				else if (childNode.getNodeName().equalsIgnoreCase("PARENT")) {
+					// Declaring that <parent> is a policy set with a new child <child>
 					String parent = getParentName(childNode);
 					String child = getChildName(childNode);
 					theResponse = MEnvironment.addChild(parent, child);

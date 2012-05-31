@@ -69,10 +69,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define polset1-func (PolicySet uses Conference
-                           (Target (not (Reviewer s)))
+                           (Target (Reviewer s))
+                           (PComb (fa Permit Deny))
                            (Children
                             (Policy uses Conference
-                                    (Target (not (Reviewer s)))
+                                    (Target (and (Reviewer s) (Paper r)))
                                     (Variables 
                                      (s Subject)
                                      (a Action)
@@ -80,7 +81,8 @@
                                     (Rules 
                                      (PaperNoConflict = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (not (conflicted s r)) (ReadPaper a)))))
                                      (PaperAssigned = (Permit s a r) :- (isa s Reviewer (isa r Paper (and (assigned s r) (ReadPaper a)))))
-                                     (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a)))))))
+                                     (PaperConflict = (Deny s a r) :- (isa s Reviewer (isa r Paper (and (conflicted s r) (ReadPaper a))))))
+                                    (RComb (over Permit Deny)))
                             )))
 (check-pred procedure? polset1-func)
 
@@ -182,7 +184,7 @@
          (AND
           (ATOMIC-FORMULA (RELATION-NAME (ID ((id "conflicted")))) (TERMS (VARIABLE-TERM ((id "s"))) (VARIABLE-TERM ((id "r")))))
           (ISA ((sort "ReadPaper")) (TERM (VARIABLE-TERM ((id "a")))) (FORMULA (TRUE)))))))))))
-  (MARGRAVE-COMMAND ((type "SET RCOMBINE FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (COMB-LIST))
+  (MARGRAVE-COMMAND ((type "SET COMBINE FOR POLICY")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))) (COMB-LIST))
   (MARGRAVE-COMMAND ((type "PREPARE")) (POLICY-IDENTIFIER ((pname "MYPOLICYID"))))))
        
 
@@ -442,16 +444,21 @@
 (check-equal? (hash-count cached-theories) 0)
 (check-equal? (hash-count cached-prior-queries) 0)
 
+; Check that policy sets can be SENT to the engine
+(check-true (send-policy-to-engine polset1))
+
 ; Check that the policy produces queries OK:
 (check-true (send-policy-to-engine (polfunc1 "../examples/conference/conference.p" "MYPOLICYID" #'foo)))
-(m-let "Q1" '([s Subject] [a Action] [r Resource])
-       '([MYPOLICYID Permit] s a r))
+(check-not-exn (lambda () 
+                 (m-let "Q1" '([s Subject] [a Action] [r Resource])
+                        '([MYPOLICYID Permit] s a r))))
 (check-true (m-is-poss? "Q1"))
 
 ; Check that TARGET is sent correctly when it isn't just 'true:
 (check-true (send-policy-to-engine pol1-target))
-(m-let "Q2" '([s Subject] [a Action] [r Resource])
-       '([MYPOLTARGET Permit] s a r))
+(check-not-exn (lambda ()
+                 (m-let "Q2" '([s Subject] [a Action] [r Resource])
+                        '([MYPOLTARGET Permit] s a r))))
 (check-false (m-is-poss? "Q2"))
 
 ;; Check that invalid target is rejected by engine
@@ -459,6 +466,12 @@
            (lambda ()
              (send-policy-to-engine pol-target-invalid)))
 
+; Check that policy sets work with queries
+; (Note that both the set and the single child have a target!)
+(check-not-exn (lambda () 
+                 (m-let "QSET1" '([s Subject] [a Action] [r Resource])
+                        '([MYPOLSET1 Permit] s a r))))
+(check-true (m-is-poss? "QSET1"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Tests for XACML and SQS loaders, which are entirely Java-side

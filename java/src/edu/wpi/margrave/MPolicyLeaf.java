@@ -336,7 +336,9 @@ public class MPolicyLeaf extends MPolicy
 	
 	public void initIDBs()	
 	throws MUserException
-	{				
+	{			
+		MCommunicator.writeToLog("\nEntering PolicyLeaf.initIDBs: "+name);
+		
 		// Do NOT call this!
 		//super.initIDBs();
 		

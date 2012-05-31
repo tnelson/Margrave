@@ -340,7 +340,7 @@
                            (hash)
                            'my-comb-list
                            'target-result
-                           (hash) ;idbs 
+                           (hash) ; EXTRA idbs beyond what is in children. empty!
                            the-children))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

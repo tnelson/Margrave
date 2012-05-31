@@ -1118,6 +1118,7 @@ public class MEnvironment
 		MVocab voc = envVocabularies.get(vname);
 		MPolicySet pol = new MPolicySet(pname, voc);
 		envIDBCollections.put(pname, pol);
+		MCommunicator.writeToLog("\nMade a new PolicySet: "+pname);
 		return successResponse();
 	}
 	
@@ -1132,6 +1133,7 @@ public class MEnvironment
 		MVocab voc = envVocabularies.get(vname);
 		MPolicyLeaf pol = new MPolicyLeaf(pname, voc);
 		envIDBCollections.put(pname, pol);
+		MCommunicator.writeToLog("\nMade a new PolicyLeaf: "+pname);
 		return successResponse();
 	}
 
@@ -1656,30 +1658,27 @@ public class MEnvironment
 		return successResponse();
 	}
 
-	public static Document setRCombine(String pname, Set<String> facs, Map<String, Set<String>> overrides)
+	public static Document setCombine(String pname, Set<String> facs, Map<String, Set<String>> overrides)
 	{
 		if(!envIDBCollections.containsKey(pname))
 			return errorResponse(sUnknown, sPolicy, pname);;			
 		MIDBCollection coll = envIDBCollections.get(pname);
-		if(!(coll instanceof MPolicyLeaf))
-			return errorResponse(sNotExpected, sPolicyLeaf, pname);
-		MPolicyLeaf pol = (MPolicyLeaf) coll;
-		pol.rCombineFA = new HashSet<String>(facs);
-		pol.rCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);
-		
-		return successResponse();
-	}
-
-	public static Document setPCombine(String pname, Set<String> facs, Map<String, Set<String>> overrides) 
-	{
-		if(!envIDBCollections.containsKey(pname))
-			return errorResponse(sUnknown, sPolicy, pname);;			
-		MIDBCollection coll = envIDBCollections.get(pname);
-		if(!(coll instanceof MPolicySet))
-			return errorResponse(sNotExpected, sPolicySet, pname);
-		MPolicySet pol = (MPolicySet) coll;
-		pol.pCombineFA = new HashSet<String>(facs);
-		pol.pCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);
+		if(coll instanceof MPolicyLeaf)
+		{
+			MPolicyLeaf pol = (MPolicyLeaf) coll;	
+			pol.rCombineFA = new HashSet<String>(facs);
+			pol.rCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);
+		}
+		else if(coll instanceof MPolicySet)
+		{
+			MPolicySet pol = (MPolicySet) coll;	
+			pol.pCombineFA = new HashSet<String>(facs);
+			pol.pCombineWhatOverrides = new HashMap<String, Set<String>>(overrides);			
+		}
+		else
+			return errorResponse(sNotExpected, sPolicyLeaf+" or "+sPolicySet, pname);
+			
+			
 		
 		return successResponse();
 	}

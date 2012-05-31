@@ -519,7 +519,7 @@
   (for-each (lambda (an-xexpr) (unless (send-and-receive-xml an-xexpr)
                                  (error (format "Transfer of policy ~v to engine failed." (m-policy-id apol)))))
             (m-policy->xexprs apol))
-  
+    
   (hash-set! cached-policies (m-policy-id apol) apol)
   #t)
 
@@ -663,7 +663,7 @@
     ; Expect an extended reply
     (define polexpr (read (open-input-string (success->policy-sexpr response))))
     (define thyexpr (read (open-input-string (success->theory-sexpr response))))    
-    (printf "~v~n" pol-id)
+    ;(printf "~v~n" pol-id)
     (define thethy  (time (eval thyexpr the-margrave-namespace)))
     (define thepolfunc  (time (eval polexpr the-margrave-namespace)))
     (define thepol  (time (thepolfunc fn pol-id src-syntax thethy))  )  

@@ -21,7 +21,8 @@
  "margrave-xml.rkt"
  "helpers.rkt"
  rackunit
- (only-in srfi/1 zip))
+ (only-in srfi/1 zip)
+ unstable/hash)
 
 (provide
  (all-defined-out))
@@ -157,12 +158,16 @@
                (< (hash-count rules) 1))
     (margrave-error "Tried to create a policy set with rules."))
   
+  (define mod-idbs (apply hash-union (cons idbs (map m-policy-idbs (hash-values children)))
+                          #:combine/key (lambda (k v1 v2) (cond [(equal? v1 v2) v1]
+                                                                [else (margrave-error "Child policies did not agree on IDB arities. ")]))))
+  
   ; All is well:
-  (values id theory vardecs rule-names rules comb target idbs children))
+  (values id theory vardecs rule-names rules comb target mod-idbs children))
 
 ; A policy set is a policy with children. 
 ; (Technically this is not good style, since the rules field is inherited.)
-;; TODO do something more clean + idiomatic
+;; TODO do something more clean + idiom
 (struct m-policy-set m-policy (children) 
   #:transparent
   #:guard prevalidate-m-policy-set)
@@ -371,37 +376,6 @@
                            (map ->string odecs))]
            [else empty]))
 
-(define/contract (m-policy-set>xexprs pset)
-  [m-policy-set? . -> . (listof xexpr?)]
-  
-  (define target-xexpr-list
-    (list (xml-make-command "SET TARGET FOR POLICY" 
-                                  (list (xml-make-policy-identifier (m-policy-id pset))
-                                        (xml-make-target (m-formula->xexpr (m-policy-target pset))))))) 
-  
-  (define pcomb-xexpr (xml-make-command "SET PCOMBINE FOR POLICY" 
-                                        (list (xml-make-policy-identifier (m-policy-id pset)) 
-                                              (xml-make-comb-list (map comb->xexpr (m-policy-comb pset))))))
-  
-  (define create-xexpr (xml-make-command "CREATE POLICY SET" 
-                                         (list (xml-make-policy-identifier (m-policy-id pset))
-                                               (xml-make-vocab-identifier (m-theory-name (m-policy-theory pset))))))
-  (define prepare-xexpr 
-    (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-id pset)))))
-  
-  (define (get-add-child-xml child-p-or-pset)
-               (xml-make-command "ADD" (list `(PARENT ,(xml-make-policy-identifier (m-policy-id pset))
-                                                      ,(xml-make-child-identifier (m-policy-id child-p-or-pset)))))) 
-  
-  ; Order of XML commands matters.
-  (append (map m-policy->xexprs (m-policy-set-children pset))
-          (list create-xexpr)
-          (map (lambda (child) (get-add-child-xml child)) (m-policy-set-children pset))          
-          target-xexpr-list
-          (list pcomb-xexpr prepare-xexpr))
-  )
-
-
 ; Does NOT auto-include the theory's XML
 (define/contract (m-policy->xexprs policy)
   [m-policy? . -> . (listof xexpr?)]
@@ -411,24 +385,47 @@
                                   (list (xml-make-policy-identifier (m-policy-id policy))
                                         (xml-make-target (m-formula->xexpr (m-policy-target policy)))))))   
   
-  (define rcomb-xexpr (xml-make-command "SET RCOMBINE FOR POLICY" 
+  (define rcomb-xexpr (xml-make-command "SET COMBINE FOR POLICY" 
                                            (list (xml-make-policy-identifier (m-policy-id policy)) 
                                                  (xml-make-comb-list (map comb->xexpr (m-policy-comb policy))))))
   
-       
-  (define create-xexpr (xml-make-command "CREATE POLICY LEAF" 
-                                         (list (xml-make-policy-identifier (m-policy-id policy))
-                                               (xml-make-vocab-identifier (m-theory-name (m-policy-theory policy))))))
-       
+  (define create-xexpr 
+    (cond [(m-policy-set? policy)
+           (xml-make-command "CREATE POLICY SET" 
+                             (list (xml-make-policy-identifier (m-policy-id policy))
+                                   (xml-make-vocab-identifier (m-theory-name (m-policy-theory policy)))))]
+          [else                  
+           (xml-make-command "CREATE POLICY LEAF" 
+                             (list (xml-make-policy-identifier (m-policy-id policy))
+                                   (xml-make-vocab-identifier (m-theory-name (m-policy-theory policy)))))]))
+  
   (define prepare-xexpr 
     (xml-make-command "PREPARE" (list (xml-make-policy-identifier (m-policy-id policy)))))
     
-  ; Order of XML commands matters.
-  (append (list create-xexpr)
+  (define child-decl-xml 
+    (cond [(m-policy-set? policy)
+           ; m-policy->xexprs returns a LIST of xexprs... hence the apply append
+           (apply append (map m-policy->xexprs (hash-values (m-policy-set-children policy))))]
+          [else empty]))
+
+  
+  (define (get-add-child-xml child-p-or-pset)
+    (xml-make-command "ADD" (list `(PARENT ,(xml-make-parent-identifier (m-policy-id policy))
+                                           ,(xml-make-child-identifier (m-policy-id child-p-or-pset)))))) 
+  
+  ; make sure to PRESERVE ORDER on the rules AND children. Order shouldn't matter for variable declarations.
+  ; Don't map over by (hash-keys (m-policy-rules policy)). Use the rule-names list instead:
+  (define child-or-rule-xml
+    (cond [(m-policy-set? policy)
+           (map (lambda (child) (get-add-child-xml child)) (hash-values (m-policy-set-children policy))) ]
+          [else 
+           (map (lambda (aname) (m-rule->cmd (m-policy-id policy) (hash-ref (m-policy-rules policy) aname))) (m-policy-rule-names policy))]))
+    
+  ; Order of XML commands matters.  
+  (append child-decl-xml
+          (list create-xexpr)
           (map (lambda (ele) (m-vardec->cmd (m-policy-id policy) ele)) (hash-values (m-policy-vardecs policy)))
-          ; make sure to PRESERVE ORDER on the rules. Order shouldn't matter for variable declarations.
-          ; Don't map over by (hash-keys (m-policy-rules policy)). Use the rule-names list instead:
-          (map (lambda (aname) (m-rule->cmd (m-policy-id policy) (hash-ref (m-policy-rules policy) aname))) (m-policy-rule-names policy))
+          child-or-rule-xml
           target-xexpr-list
           (list rcomb-xexpr prepare-xexpr)))
 

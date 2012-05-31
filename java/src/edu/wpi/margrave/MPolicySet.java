@@ -139,12 +139,14 @@ public class MPolicySet extends MPolicy
 	{
 		// Do NOT call this!
 		//super.initIDBs();
+		MCommunicator.writeToLog("\nEntering PolicySet.initIDBs: "+name);
 		
 		// Recalling this method should "reset" all IDBs. Start out with a clean slate:
 		decisions.clear();
 		clearIDBs();						
 				
 		// Prepare the IDBs of child policies
+		// TODO: duplicated work here if already prepared children. (take out PREPARE cmd for children in racket?)
 		for(MPolicy dc : children)
 		{
 			dc.initIDBs();	
@@ -160,6 +162,8 @@ public class MPolicySet extends MPolicy
 			throw new MGEBadCombinator("A policy set cannot have both first-applicable and overrides combinators.");
 		}
 
+		MCommunicator.writeToLog("\nPolicySet.initIDBs found decisions: "+decisions);
+		
 		// Decisions pre-combinators
 		Map<String, List<Variable>> varOrderingForThisDec = new HashMap<String, List<Variable>>();
 		Map<String, Formula> preComb = new HashMap<String, Formula>();
