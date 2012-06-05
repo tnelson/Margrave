@@ -41,7 +41,6 @@
 ;; string (listof string) boolean -> void
 ;; pass filename only if there is more than one configuration to do
 (define (compile-configurations root-path filenames default-ACL-permit)
-
   
   ; Let user errors through; catch all other errors and give a "friendly" error message.
   (with-handlers ([(lambda (e) (and (exn:fail? e) (not (exn:fail:user? e))))

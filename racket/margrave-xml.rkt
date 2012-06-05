@@ -1557,7 +1557,7 @@
      (valid-predicate?/err pred1)
      (valid-predicate?/err pred2)
      `(CONSTRAINT ((type "DISJOINT")) ,(xml-make-relations-list (list pred1 pred2)))]
-    
+        
     ; (constants-neq-all S) --- All constants of sort S are pairwise non-equal in all models.
     [(m-op-case constants-neq-all id) 
      (xml-make-constraint 'CONSTANTS-NEQ-ALL (list id))]

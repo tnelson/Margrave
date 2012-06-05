@@ -181,7 +181,7 @@
     ;; -> symbol
     ;;   Returns a symbol in in ip-A.B.C.D form
     (define/public (text)
-      (string->symbol (string-append "IP-" (number->dashed-octet host))))
+      (string->symbol (string-append "ip-" (number->dashed-octet host))))
     
     ;; address<%> -> boolean
     ;;   Returns whether this address<%> equals another address<%>
@@ -238,7 +238,7 @@
       (if (and (equal? 0 (address)) 
                (equal? 0 (mask)))
           'IPAddress
-          (string->symbol (string-append "IP-"
+          (string->symbol (string-append "ip-"
                                          (number->dashed-octet (address))
                                          "/"
                                          (number->dashed-octet (mask))))))
@@ -303,7 +303,7 @@
     ;; -> symbol
     ;;   Returns a symbol in port-N form
     (define/public (text)
-      (string->symbol (string-append "Port-" (number->string port))))
+      (string->symbol (string-append "port-" (number->string port))))
     
     ;; port<%> -> boolean
     ;;   Returns whether this port<%> equals another port<%>
@@ -441,9 +441,9 @@
     (define hostname symbolic-name)
     
     ;; -> symbol
-    ;;   Returns a symbol in the form Hostname-X
+    ;;   Returns a symbol in the form hostname-X
     (define/public (text)
-      (string->symbol (string-append "Hostname-" (symbol->string hostname))))
+      (string->symbol (string-append "hostname-" (symbol->string hostname))))
     
     ;; -> boolean
     ;;   Returns whether this hostname<%> represents a single hostname
@@ -1087,12 +1087,11 @@
     ;;   Returns a rule that represents this ACE
     (define/override (rule hostname interf additional-conditions)   
           
-      ; Kludge for now. Used to be just interf.
+      ; Kludge for now. Used to be just interf.      
       (define interf-flags-name (string->symbol (foldl (λ (flag sofar)
                                                          (string-append sofar (symbol->string flag)))
                                                        (symbol->string interf)
-                                                       flags)))
-      
+                                                       flags)))      
       (super rule hostname interf-flags-name (append flag-conditions additional-conditions)))
     ))
 
@@ -3457,7 +3456,7 @@
              (tree-children tree))))
 
 ;; (listof rule%) interface atom<%> -> tree
-(define (value-tree rules type root-value)
+(define (value-tree rules type root-value)  
   (foldl (λ (rule tree)
            (foldl (λ (value intermediate-tree)
                     (insert-tree intermediate-tree value))
@@ -3511,17 +3510,55 @@
 (define (make-other-type-value value)
   (string->symbol (string-append (symbol->string value) "-other")))
 
+; These are QUITE ugly. Surely there is a more idiomatic way to do it?
+(define (get-noneq-pairs lst)
+  (apply append (map 
+                 (lambda (e) 
+                   (map (lambda (e2) (list e e2))
+                               (remove e lst)))
+                 lst)))
+(define (get-noneq-pairs-no-order lst)
+  (define pairs (get-noneq-pairs lst))
+  pairs)
+
+;; !!!! TODO !!!! REMOVE DUPLICATES ABOVE (or don't generate in the first place)
+
 ;; tree -> (listof symbol)
-(define (constraints tree)
+(define (constraints tree)  
+      
+  (define tree-text (send (tree-node tree) text))
+  
+  (define (get-disjointness-constraints-for-children child)
+    (define child-names (map (lambda (ch) (send (tree-node ch) text)) (tree-children tree)))  
+    (map (lambda (p) `(disjoint ,(first p) ,(second p)))
+         (get-noneq-pairs-no-order child-names)))
+  
+  (define (issue-subset child)
+    (define child-text (send (tree-node child) text))
+    (cond [(equal? tree-text 'IPAddress) #f]
+          [else `(subset ,child-text ,tree-text)]))
+    
   (if (empty? (tree-children tree))
       (if (send (tree-node tree) single?)
           `((atmostone ,(send (tree-node tree) text)))
-          '())
-      (foldl (λ (child result)
-               (append (constraints child) result))
-             `((disjoint-all ,(send (tree-node tree) text)))
-             empty 
-             (tree-children tree))))
+          '())      
+      (append       
+       ; PAIRWISE disjointness of children
+       (get-disjointness-constraints-for-children tree)              
+       
+       ; Subset constraints for all children
+       (filter-map issue-subset (tree-children tree))
+       
+       ; child constraints
+       ;(foldl (λ (child result)
+       ;         (append (constraints child) result))             
+       ;       empty 
+       ;       (tree-children tree))
+       (apply append (map constraints (tree-children tree))))))
+
+(define (prefix-symbol pre sym)
+  (string->symbol (string-append (symbol->string pre)
+                                 (symbol->string sym))))
 
 ;; (listof rule%) -> (listof symbol)
 ;;   Constructs a policy vocabulary from a list of rules
@@ -3560,7 +3597,8 @@
   `(Theory IOS-vocab
     (Vocab IOS-vocab
            (Types
-                        
+            IPAddress
+            Port
             Hostname
             (Interface > Interf-drop Interf-real)                        
             Protocol-any                                     
@@ -3591,17 +3629,21 @@
                        
                        ,@(map (lambda (name) `(,name Hostname)) hostnames)
                        
-                       (ICMP-echo ICMPMessage)
-                       (ICMP-echo-reply ICMPMessage)
-                       (ICMP-time-exceeded ICMPMessage)
-                       (ICMP-unreachable ICMPMessage)
+                       (icmp-echo ICMPMessage)
+                       (icmp-echo-reply ICMPMessage)
+                       (icmp-time-exceeded ICMPMessage)
+                       (icmp-unreachable ICMPMessage)
                        
-                       (Prot-ICMP Protocol-any)
-                       (Prot-TCP Protocol-any)
-                       (Prot-UDP Protocol-any)
+                       (prot-ICMP Protocol-any)
+                       (prot-TCP Protocol-any)
+                       (prot-UDP Protocol-any)
                        
-                       ,@(map (lambda (name) `(,name Interf-real)) real-interfaces)
-                       ,@(map (lambda (name) `(,name TCPFlags)) TCP-flags)
+                       ,@(map (lambda (name) `(,name Interf-real)) 
+                              (map (lambda (s) (prefix-symbol 'i s))
+                                   real-interfaces))
+                       ,@(map (lambda (name) `(,name TCPFlags)) 
+                              (map (lambda (s) (prefix-symbol 'f s))
+                                   TCP-flags))
                        ,@(map (lambda (name) `(,name Length)) length-children)
                         
                        ,@(apply append (map (lambda (tchild) (make-tp-preds tchild 'IPAddress)) (tree-children types-tree)))
@@ -3636,16 +3678,16 @@
 ;            (plength PacketDisposition Length))
            )     
     (Axioms
-     (disjoint-all Hostname)
-     (disjoint-all ICMPMessage)
+     (disjoint-all-unary-preds Hostname)
+     (disjoint-all-unary-preds ICMPMessage)
      ;(abstract Hostname)
      (abstract Interface)
      ;(abstract Interf-real)
      ;(abstract ICMPMessage)
     ; (abstract Protocol-any)
-     (disjoint-all Interf-real)
-     (disjoint-all Protocol-any)
-     (disjoint-all Length)
+     (disjoint-all-unary-preds Interf-real)
+     (disjoint-all-unary-preds Protocol-any)
+     (disjoint-all-unary-preds Length)
      
      (atmostone-all Hostname)     
      (atmostone-all Interf-real)
@@ -3653,8 +3695,8 @@
      ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
      (atmostone-all Protocol-any)
      ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
-     (atmostone ICMP-echo)
-     (atmostone ICMP-echo-reply)
+     (atmostone icmp-echo)
+     (atmostone icmp-echo-reply)
      (atmostone-all Length)
      (nonempty Hostname)
      (nonempty Interface)
@@ -3721,25 +3763,25 @@
           empty]))
   
   `(Policy uses IOS-vocab
-           (Variables
-            (pktd PacketDisposition))
-            
-            ;(hostname Hostname)
-            ;(entry-interface Interf-real)
-            ;(src-addr-in IPAddress)
-            ;(src-addr-out IPAddress)
-            ;(dest-addr-in IPAddress)
-            ;(dest-addr-out IPAddress)
-            ;(protocol Protocol-any)
-            ;(message ICMPMessage)
-            ;(flags TCPFlags)
-            ;(src-port-in Port)
-            ;(src-port-out Port)
-            ;(dest-port-in Port)
-            ;(dest-port-out Port)
-            ;(length Length)
-            ;(next-hop IPAddress)
-            ;(exit-interface Interface))           
+           ; We may not use all of these in a single policy. Indeed, we expect not to.
+           ; However, for now, just list all the possibilities.
+           (Variables                        
+            (hostname Hostname)
+            (entry-interface Interf-real)
+            (src-addr-in IPAddress)
+            (src-addr-out IPAddress)
+            (dest-addr-in IPAddress)
+            (dest-addr-out IPAddress)
+            (protocol Protocol-any)
+            (message ICMPMessage)
+            (flags TCPFlags)
+            (src-port-in Port)
+            (src-port-out Port)
+            (dest-port-in Port)
+            (dest-port-out Port)
+            (length Length)
+            (next-hop IPAddress)
+            (exit-interface Interface))           
            (Rules
             ,@(map (λ (rule)
                      (send rule text))
