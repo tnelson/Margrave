@@ -283,12 +283,26 @@
  
 ; !!! PROBLEM: TODO: if problem w/ policy text, says "unsaved editor" instead of file name. why?
 
+; Test #:include returning the right result, as well as change-impact
+(define temp-scenario-1 
+  (m-get-scenario "diff2"
+                  #:include (append 
+                             (m-policy-decisions-idbs "mypol1" '(v0 v1 v2))
+                             (m-policy-decisions-idbs "mypol3" '(v0 v1 v2)))))
 (check-true (scenario-has-relation-or-sort
-             (m-get-scenario "diff2"
-                #:include (append 
-                           (m-policy-decisions-idbs "mypol1" '(v0 v1 v2))
-                           (m-policy-decisions-idbs "mypol3" '(v0 v1 v2))))
+             temp-scenario-1
              "mypol3.deny"))
+(check-true (scenario-has-relation-or-sort
+             temp-scenario-1
+             "NOT_mypol1.deny"))
+(check-true (scenario-has-relation-or-sort
+             temp-scenario-1
+             "NOT_mypol3.permit"))
+(check-true (scenario-has-relation-or-sort
+             temp-scenario-1
+             "NOT_mypol1.permit"))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

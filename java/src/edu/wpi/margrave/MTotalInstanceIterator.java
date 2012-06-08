@@ -271,11 +271,13 @@ abstract class MInstanceIterator extends MQueryResult
 			if(fromContext.includeMap.get(relName).size() < 1)
 				continue;
 			Relation theRelation = null;
+			Relation theNotRelation = null;
 			boolean isEDB = false;
 			for(List<MTerm> args : fromContext.includeMap.get(relName))
 			{
 				theRelation = MFormulaManager.makeRelation(relName, args.size());
 				isEDB = result.getFacts().relations().contains(theRelation);	
+				theNotRelation = MFormulaManager.makeRelation("NOT_"+relName, args.size());
 				break;
 			}
 						
@@ -287,15 +289,21 @@ abstract class MInstanceIterator extends MQueryResult
 								
 				// What does this tuple map to in the model?
 				TupleFactory factory = result.getFacts().universe().factory();
-				Tuple theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));												
-				TupleSet theTupleSet = factory.noneOf(args.size());
+				Tuple theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));		
+				
+				// Running set of tuples (ONLY TUPLES OF INTEREST) in the IDB
+				TupleSet tuplesInIDB = factory.noneOf(args.size());
+				
+				// Running set of tuples (ONLY TUPLES OF INTEREST) not in the IDB
+				TupleSet tuplesNotInIDB = factory.noneOf(args.size());
 				
 				// Is it in the relation? First check to see if this is an EDB relation:
 				boolean bIsInRelation = false;
 				if(isEDB)
 				{				
-					// TODO Seems silly to support EDBs at all... they will be included anyway.
-					bIsInRelation = result.getFacts().relationTuples().get(theRelation).contains(theTuple);
+					// Seems silly to support EDBs at all... they will be included anyway. Ignore...
+					//bIsInRelation = result.getFacts().relationTuples().get(theRelation).contains(theTuple);
+					continue;
 				}
 				else
 				{
@@ -338,22 +346,33 @@ abstract class MInstanceIterator extends MQueryResult
 				
 				if(bIsInRelation)
 				{
-					theTupleSet.add(theTuple);
+					tuplesInIDB.add(theTuple);
 					// Instance .add: "Maps the given relation to the given tuple set."
 					// So .add is really .set. Need to include what's already there.
 					TupleSet alreadyIn = result.getFacts().tuples(theRelation);
 					if(alreadyIn != null)
 					{
-						// Check above because if this is the first tuple to add, we won't have added the IDB relation to the instance yet.
-						theTupleSet.addAll(alreadyIn);
+						// Check above because if this is the first tuple to add,
+						// we won't have added the IDB relation to the instance yet.
+						tuplesInIDB.addAll(alreadyIn);
 					}
-					result.getFacts().add(theRelation, theTupleSet);	
+					result.getFacts().add(theRelation, tuplesInIDB);	
 					MCommunicator.writeToLog("\n The atomic formula was TRUE. Adding to relation.");
-					MCommunicator.writeToLog("\nThere are now "+result.getFacts().relationTuples().get(theRelation).size()+" tuples in the relation.");
+					MCommunicator.writeToLog("\n There are now "+result.getFacts().relationTuples().get(theRelation).size()+" tuples in the relation.");
 				}
 				else
 				{
-					MCommunicator.writeToLog("\n NOT true.");
+					tuplesNotInIDB.add(theTuple);
+					TupleSet alreadyInNot = result.getFacts().tuples(theNotRelation);
+					if(alreadyInNot != null)
+					{
+						// Check above because if this is the first tuple to add,
+						// we won't have added the IDB relation to the instance yet.
+						tuplesNotInIDB.addAll(alreadyInNot);
+					}
+					result.getFacts().add(theNotRelation, tuplesNotInIDB);
+					MCommunicator.writeToLog("\n NOT true. Adding to not-relation.");
+					MCommunicator.writeToLog("\n There are now "+result.getFacts().relationTuples().get(theNotRelation).size()+" tuples in the NOT relation.");
 				}						
 			}
 		}
