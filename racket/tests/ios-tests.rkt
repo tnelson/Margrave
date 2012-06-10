@@ -4,7 +4,8 @@
          ; Relative paths to avoid refreshing the Margrave collection every time something changes in dev.
          "../margrave.rkt"
          "../margrave-xml.rkt"
-         "../margrave-ios.rkt")
+         "../margrave-ios.rkt"
+         "../test-utils.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Parsing and loading IOS
@@ -31,10 +32,12 @@
 (check-equal? 9 (hash-count cached-prior-queries))
 ; Theories for first two identical (same file)
 ; Theory of third is different.
-(check-equal? (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
-                 (m-policy-theory (hash-ref cached-policies "testInboundACL2")))
-(check-not-equal? (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
-                 (m-policy-theory (hash-ref cached-policies "testInboundACL3")))
+(check m-theory-equal? 
+       (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL2")))
+(check (lambda (t1 t2) (not (m-theory-equal? t1 t2)))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL3")))
 
 ; TODO: NOT really what we want. Over-writing the cached theory...
 ;(check-equal? 1 (hash-count cached-theories))

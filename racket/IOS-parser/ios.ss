@@ -3476,9 +3476,10 @@
   (define child-type-decls (apply append (map make-type-decls (tree-children tree))))  
   (cons own-type-decl child-type-decls))
 
-(define (make-tp-preds tree sort)
+(define (make-tp-preds tree sort)  
   (define id (send (tree-node tree) text))  
   (define own-decl `(,id ,sort))
+  ;(printf "mtp: ~v~n" own-decl)
   (define child-decls (apply append (map (lambda (t) (make-tp-preds t sort)) 
                                          (tree-children tree))))  
   (cons own-decl child-decls))
@@ -3536,6 +3537,7 @@
   (define (issue-subset child)
     (define child-text (send (tree-node child) text))
     (cond [(equal? tree-text 'IPAddress) #f]
+          [(equal? tree-text 'Port) #f]
           [else `(subset ,child-text ,tree-text)]))
     
   (if (empty? (tree-children tree))
@@ -3573,12 +3575,12 @@
                                  rules))))
   
   (define real-interfaces (remove-duplicates
-                              (append*
-                               (map (λ (rule)
-                                      (map (λ (interf)
-                                             (send interf text))
-                                           (send rule extract-atoms interface%)))
-                                    rules))))
+                           (append*
+                            (map (λ (rule)
+                                   (map (λ (interf)
+                                          (send interf text))
+                                        (send rule extract-atoms interface%)))
+                                 rules))))
   
   (define length-children (remove-duplicates
                            (append*
@@ -3593,19 +3595,27 @@
   (define ports-tree (value-tree rules
                                  port<%>
                                  (make-object port-range% 0 65535)))
-
+  (define ports-decls (apply append (map (lambda (pchild) (make-tp-preds pchild 'Port)) (tree-children ports-tree))))  
+  
   `(Theory IOS-vocab
     (Vocab IOS-vocab
            (Types
             IPAddress
             Port
             Hostname
+            
+            ; Special handling for this particular sort. Since
+            ; exit-interface: Interface (i.e. possibly Interf-drop) 
+            ; But if we have a PREDICATE ieth0: Interf-real, 
+            ; (ieth0 exit-interface) is not well sorted. 
+            ; Whereas if Ieth0 is a type, (Ieth0 exit-interface) downcasts automatically.
             (Interface > Interf-drop Interf-real)                        
+            (Interf-real > ,@real-interfaces)
             Protocol-any                                     
             ICMPMessage            
             TCPFlags            
-            Length                                 
-            )
+            Length)
+           
            ;(Decisions
            ; Permit
            ; Deny
@@ -3637,17 +3647,13 @@
                        (prot-ICMP Protocol-any)
                        (prot-TCP Protocol-any)
                        (prot-UDP Protocol-any)
-                       
-                       ,@(map (lambda (name) `(,name Interf-real)) 
-                              (map (lambda (s) (prefix-symbol 'i s))
-                                   real-interfaces))
+                                             
                        ,@(map (lambda (name) `(,name TCPFlags)) 
-                              (map (lambda (s) (prefix-symbol 'f s))
-                                   TCP-flags))
+                              TCP-flags)
                        ,@(map (lambda (name) `(,name Length)) length-children)
                         
                        ,@(apply append (map (lambda (tchild) (make-tp-preds tchild 'IPAddress)) (tree-children types-tree)))
-                       ,@(apply append (map (lambda (pchild) (make-tp-preds pchild 'Port)) (tree-children ports-tree)))                                                               
+                       ,@ports-decls                                                              
 
                        )
                       
@@ -3678,26 +3684,33 @@
 ;            (plength PacketDisposition Length))
            )     
     (Axioms
-     (disjoint-all-unary-preds Hostname)
-     (disjoint-all-unary-preds ICMPMessage)
+     ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order hostnames))     
+     (disjoint icmp-echo-reply icmp-time-exceeded)
+     (disjoint icmp-echo-reply icmp-unreachable)
+     (disjoint icmp-time-exceeded icmp-unreachable)
+     (disjoint prot-TCP prot-UDP)
+     (disjoint prot-TCP prot-ICMP)
+     (disjoint prot-UDP prot-ICMP)
      ;(abstract Hostname)
      (abstract Interface)
      ;(abstract Interf-real)
      ;(abstract ICMPMessage)
     ; (abstract Protocol-any)
-     (disjoint-all-unary-preds Interf-real)
-     (disjoint-all-unary-preds Protocol-any)
-     (disjoint-all-unary-preds Length)
+          
+     ;,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order real-interfaces))     
+     ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order length-children))
      
      (atmostone-all Hostname)     
      (atmostone-all Interf-real)
      (atmostone Interf-drop)
-     ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))
      (atmostone-all Protocol-any)
-     ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
      (atmostone icmp-echo)
      (atmostone icmp-echo-reply)
      (atmostone-all Length)
+     
+     ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))     
+     ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
+     
      (nonempty Hostname)
      (nonempty Interface)
      (nonempty IPAddress)
@@ -3708,7 +3721,7 @@
      (nonempty Length))))
 
 ; TN removed NONE, not needed
-(define TCP-flags '(SYN ACK FIN PSH URG RST))
+(define TCP-flags '(fSYN fACK fFIN fPSH fURG fRST))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Policy Generation
