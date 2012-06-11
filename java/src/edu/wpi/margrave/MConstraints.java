@@ -124,7 +124,7 @@ public class MConstraints
 		lst.add(d1); lst.add(d2);
 		setsDisjoint.add(lst);
 	}
-
+	
 	public void addConstraintDisjoint(String d1, Set<String> d2s) throws MUserException
 	{
 		for(String d2 : d2s)

@@ -743,6 +743,7 @@ public class MCommunicator
 				String secondRelation = relations.get(1);
 				return MEnvironment.addConstraintDisjoint(vname, firstRelation, secondRelation);
 			}
+
 			else if (constraintType.equalsIgnoreCase("SUBSET")) {
 				assert(relations.size() == 2);
 				String secondRelation = relations.get(1);

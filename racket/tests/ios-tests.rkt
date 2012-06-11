@@ -4,7 +4,8 @@
          ; Relative paths to avoid refreshing the Margrave collection every time something changes in dev.
          "../margrave.rkt"
          "../margrave-xml.rkt"
-         "../margrave-ios.rkt")
+         "../margrave-ios.rkt"
+         "../test-utils.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Parsing and loading IOS
@@ -31,10 +32,12 @@
 (check-equal? 9 (hash-count cached-prior-queries))
 ; Theories for first two identical (same file)
 ; Theory of third is different.
-(check-equal? (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
-                 (m-policy-theory (hash-ref cached-policies "testInboundACL2")))
-(check-not-equal? (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
-                 (m-policy-theory (hash-ref cached-policies "testInboundACL3")))
+(check m-theory-equal? 
+       (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL2")))
+(check (lambda (t1 t2) (not (m-theory-equal? t1 t2)))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL1"))
+       (m-policy-theory (hash-ref cached-policies "testInboundACL3")))
 
 ; TODO: NOT really what we want. Over-writing the cached theory...
 ;(check-equal? 1 (hash-count cached-theories))
@@ -46,6 +49,36 @@
 ; TODO
 ; Fill in once we've reduced the arity of decisions...
 
+(m-let "Q1" '([ahostname Hostname]
+              [entry-interface Interf-real]
+              [src-addr-in IPAddress]
+              [src-addr_ IPAddress]
+              [src-addr-out IPAddress]
+              [dest-addr-in IPAddress]
+              [dest-addr_ IPAddress]
+              [dest-addr-out IPAddress]
+              [protocol Protocol-any]
+              [message ICMPMessage]
+              [flags TCPFlags]
+              [src-port-in Port]
+              [src-port_ Port]
+              [src-port-out Port]
+              [dest-port-in Port]
+              [dest-port_ Port]
+              [dest-port-out Port] 
+              [length Length]
+              [next-hop IPAddress]
+              [exit-interface Interface])
+       '(and ([testinternal-result1] ahostname entry-interface src-addr-in src-addr_ src-addr-out
+                                     dest-addr-in dest-addr_ dest-addr-out protocol message flags 
+                                     src-port-in src-port_ src-port-out dest-port-in dest-port_ dest-port-out
+                                     length next-hop exit-interface)
+             ([testpasses-firewall1] ahostname entry-interface src-addr-in src-addr-out
+                                     dest-addr-in dest-addr-out protocol message flags 
+                                     src-port-in src-port-out dest-port-in dest-port-out
+                                     length next-hop exit-interface)))
+
+(check-true (m-is-poss? "Q1"))
 
 ;(stop-margrave-engine)
 

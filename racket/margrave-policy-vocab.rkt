@@ -446,7 +446,7 @@
          
          (define (combine-same-types name)
            (define duplicate-types (hash-ref the-buckets name))
-           (define the-children (flatten (map m-type-child-names duplicate-types)))
+           (define the-children (sort (flatten (map m-type-child-names duplicate-types)) string<?))
            (define unmentioned-children (filter (lambda (c) (not (member c the-sort-names))) the-children))
            (define unmentioned-mtypes (map (lambda (c) (m-type c empty)) unmentioned-children))    
            (append unmentioned-mtypes (list (m-type name the-children))))
