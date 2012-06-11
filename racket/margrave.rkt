@@ -606,6 +606,8 @@
     (raise-user-error (format "Unable to create query. The query name ~v is already in use." qryid)))
   
   (define (handle-var-dec-sexpr->xexpr sexpr)  
+    (unless (and (list? sexpr) (= (length sexpr) 2))
+      (raise-user-error (format "Variable declaration was not of the proper form: ~v. Expected [varname sortid]." sexpr)))
     (xml-make-variable-declaration (symbol->string (first sexpr))
                                    (symbol->string (second sexpr))))
 

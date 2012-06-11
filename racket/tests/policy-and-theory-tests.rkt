@@ -68,7 +68,7 @@
 ; PolicySet
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define polset1-func (PolicySet uses Conference
+(define polset1-func (PolicySet uses conference
                            (Target (Reviewer s))
                            (PComb (fa Permit Deny))
                            (Children

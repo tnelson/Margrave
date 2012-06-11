@@ -702,7 +702,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 				MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
 				
-				debugPrintClauses(solver);
+				// This is extremely verbose...
+				if(fromContext.forQuery.debug_verbosity > 2)
+					debugPrintClauses(solver);
 				
 				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
 				MCommunicator.writeToLog("\nResult was: "+issat);
