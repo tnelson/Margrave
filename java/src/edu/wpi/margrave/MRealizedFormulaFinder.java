@@ -215,17 +215,23 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// Many valid p_i's means potentially intractable number of clauses.
 		        
 		// Can't trust MFormulaManager here, since Kodkod adds relations itself:
-        Relation r = getRelationFromBounds(theBounds, predname);
-        MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.                
+        Relation r = getRelationFromBounds(theBounds, predname);        
+        if(fromContext.forQuery.debug_verbosity > 2)
+        {
+        	MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
+        }
+        
     	
 		IntSet s = theTranslation.primaryVariables(r);
-        
+        		
         if(s == null)
         {
         	// Will have null if no tuples allocated to the relation. (If the relation's upper bound is empty.)
         	// If the tuple is empty, this candidate or case is impossible.
         	throw new MInternalNoBoundsException();
         }
+        
+		MCommunicator.writeToLog("\nRelation "+r+" has "+s.size()+" primary variables.");
         
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
@@ -284,8 +290,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         }
         
         startHereWrapper.set(0, q);
-                
-		MCommunicator.writeToLog("\n  makeClauseSetFor returning: "+stringifyArrays(clauseSet));		
+         
+        if(fromContext.forQuery.debug_verbosity > 2)
+        {
+        	MCommunicator.writeToLog("\n  makeClauseSetFor returning "+clauseSet.size()+" clauses: "+stringifyArrays(clauseSet));
+        }
         return Collections.unmodifiableSet(clauseSet);        
 	}
 
@@ -320,9 +329,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
 
 			// If the axiomatization fails, this will loop forever...
-			MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 
-			
-			
+			MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 						
 
 			return newFinder.getRealizedFormulas(candidates, cases);
 		}		
@@ -475,8 +482,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
             				caseGoals = null;
             			}
             			
-            			MCommunicator.writeToLog("\n-------------------------------------------------\n");            		            	
-                		
+            			if(fromContext.forQuery.debug_verbosity > 2)
+            			{
+            				MCommunicator.writeToLog("\n-------------------------------------------------\n");            		            	
+            			}
+            			
                 		if(fromContext.forQuery.debug_verbosity > 1)
                 			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+caseClauseSet+
                 					". SAT4j Constraint count = "+realSolver.nConstraints());
@@ -522,8 +532,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	void handleClause(ISolver solver, int[] aClause, Map<int[], IConstr> toRemove, Set<Integer> toAssume)
 	throws ContradictionException
 	{
-		MCommunicator.writeToLog("\nin handleClause:");
-		MCommunicator.writeToLog("\n BEFORE solver.nConstraints() = "+solver.nConstraints()+"\n");
+		if(fromContext.forQuery.debug_verbosity > 2)
+		{
+			MCommunicator.writeToLog("\nin handleClause:");
+			MCommunicator.writeToLog("\n BEFORE solver.nConstraints() = "+solver.nConstraints()+"\n");
+		}
+		
 		if(aClause.length > 1)
 		{			
 			IConstr aConstraint = solver.addClause(new VecInt(aClause));
@@ -533,15 +547,25 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			if(aConstraint != null)
 				toRemove.put(aClause, aConstraint);
 			
-			MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+aConstraint);
+			if(fromContext.forQuery.debug_verbosity > 2)
+			{
+				MCommunicator.writeToLog("\n  Added non-unit clause: "+Arrays.toString(aClause)+" with constr result: "+aConstraint);
+			}
 			
 		}
 		else
 		{
-			MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
+			if(fromContext.forQuery.debug_verbosity > 2)
+			{
+				MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
+			}
+			
 			toAssume.add(aClause[0]);
 		}
-		MCommunicator.writeToLog("\n AFTER solver.nConstraints() = "+solver.nConstraints()+"\n");
+		if(fromContext.forQuery.debug_verbosity > 2)
+		{
+			MCommunicator.writeToLog("\n AFTER solver.nConstraints() = "+solver.nConstraints()+"\n");
+		}
 
 	}
 	
@@ -635,9 +659,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		// Loop while there are still goals
 		do
-		{				
-			MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: "+candidateClauseSets);
-			MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
+		{	
+			if(fromContext.forQuery.debug_verbosity > 2)
+			{
+				MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: "+candidateClauseSets);
+				MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
+			}
 					
 				
 			List<Integer> potentialGoalUnit = new ArrayList<Integer>();
@@ -700,7 +727,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 											
 				//assumps - a set of literals (represented by usual non null integers in Dimacs format). 								
 				
-				MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
+				if(fromContext.forQuery.debug_verbosity > 2)
+				{
+					MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
+				}
 				
 				// This is extremely verbose...
 				if(fromContext.forQuery.debug_verbosity > 2)
@@ -800,18 +830,26 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// (1) Add caseToString(String predname, List<MTerm> args) to result
 		// (2) Remove clauses
 		
-		MCommunicator.writeToLog("\nartlatg: goals were "+candidateGoals);
+		if(fromContext.forQuery.debug_verbosity > 2)
+		{
+			MCommunicator.writeToLog("\nartlatg: goals were "+candidateGoals);
+		}
 		
 		// For (1) need to go backwards from var to its relation.
 		for(int iVar = firstQ;iVar <= lastQ;iVar++)
 		{						
-			
-			MCommunicator.writeToLog("\n  checking variable "+iVar);
+			if(fromContext.forQuery.debug_verbosity > 2)
+			{
+				MCommunicator.writeToLog("\n  checking variable "+iVar);
+			}
 			
 			// theSolver.model: Provide the truth value of a specific variable in the model.
 			if(theSolver.model(iVar))
 			{
-				MCommunicator.writeToLog("\n  var true in the model: "+iVar);
+				if(fromContext.forQuery.debug_verbosity > 2)
+				{
+					MCommunicator.writeToLog("\n  var true in the model: "+iVar);
+				}
 				
 				String predname = intermVarToPred.get(iVar);
 				List<MTerm> args = intermVarToArgs.get(iVar);
@@ -833,9 +871,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 						if(qVars.contains(iVar)) // is this for q?
 						{
 							Set<int[]> clausesForQ = entry.getValue();													
-							
-							MEnvironment.writeToLog("\n--- Removing clauses: "+intArrayCollectionToString(clausesForQ)+"\n");
-							MEnvironment.writeToLog("\n--- Removing goal variables: "+qVars+"\n");
+					
+							if(fromContext.forQuery.debug_verbosity > 2)
+							{
+								MEnvironment.writeToLog("\n--- Removing clauses: "+intArrayCollectionToString(clausesForQ)+"\n");
+								MEnvironment.writeToLog("\n--- Removing goal variables: "+qVars+"\n");
+							}
 							
 							// remove clause sets (vals)
 							for(int[] aClause : clausesForQ)
@@ -863,7 +904,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			} // end if model sets Q to true
 		} // end for each Q variable		
 	
-		MCommunicator.writeToLog("\n  artlatg: goals are "+candidateGoals);
+		if(fromContext.forQuery.debug_verbosity > 2)
+		{
+			MCommunicator.writeToLog("\n  artlatg: goals are "+candidateGoals);
+		}
 		
 	}
 	
