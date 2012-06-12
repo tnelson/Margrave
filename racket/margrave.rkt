@@ -880,9 +880,12 @@
 ; Change impact sugar. returns same as m-let; sets up a stock change-impact
 ; query for 2 policies.
 
-(define/contract (m-policy-difference-query qid p1id p2id #:debug [debug-level 0] #:ceiling [ceilings-list empty])
+(define/contract (m-policy-difference-query qid p1id p2id 
+                                            #:debug [debug-level 0]
+                                            #:ceiling [ceilings-list empty]
+                                            #:variables [req-vector #f])
  [->* (string? string? string?)
-      (#:debug integer? #:ceiling list?)
+      (#:debug integer? #:ceiling list? #:variables (or/c false? (listof symbol?)))
       (or/c void? boolean?)] 
     
   (define pol1 (get-policy/error p1id))
@@ -900,10 +903,17 @@
   
   (define vec1 (hash-ref (m-policy-idbs pol1) (first decstrings1)))
   (define vec2 (hash-ref (m-policy-idbs pol2) (first decstrings2)))
-      
-  ; Can't just prepend to the sort names, because may have duplicate sorts. 
-  ; Instead, index in the vector:
-  (define varvector (map (lambda (i) (string->symbol (string-append "v" (->string i)))) (build-list (length vec1) values)))
+  
+  ; If user provides a request vector, use it. Otherwise, construct a <v0, ..., vk> tuple of variable ids.
+  (define varvector 
+    (cond
+      [req-vector req-vector]
+      [else (map (lambda (i) (string->symbol (string-append "v" (->string i)))) 
+                 (build-list (length vec1) values))]))
+  
+  (unless (equal? (length vec1) (length varvector))
+    (error (format "The request variables provided: ~v did not have the expected arity: ~v~n" varvector (length vec1))))
+  
   (define fvars (zip varvector vec1))
   
   (define (for-dec1 decname)
