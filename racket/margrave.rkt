@@ -86,6 +86,9 @@
          m-policy-rules-idbs/matches     
          m-policy-decisions
          m-policy-decisions-idbs
+         rule-applies
+         rule-matches
+         m-policy-rule-names-from-pid
          )
 
 
@@ -848,11 +851,20 @@
          (error (format "No policy found registered with name: ~a~n" pid))]
         [else (hash-ref cached-policies pid)]))
 
-(define/contract (m-policy-rules-idbs/suffix pid suffix varvec)
- [string? string? (listof symbol?) . -> . any/c]  
+(define (m-policy-rule-names-from-pid pid)
   (define pol (get-policy/error pid))
+  (m-policy-rule-names pol))
+
+(define/contract (m-policy-rules-idbs/suffix pid suffix varvec)
+ [string? string? (listof symbol?) . -> . any/c]    
   (map (lambda (rname) `( [,pid ,(string-append rname suffix)] ,@varvec))
-       (m-policy-rule-names pol)))
+       (m-policy-rule-names-from-pid pid)))
+
+(define (rule-applies rule-id)
+  (->symbol (string-append (->string rule-id) "_applies")))
+(define (rule-matches rule-id)
+  (->symbol (string-append (->string rule-id) "_matches")))
+
 
 (define/contract (m-policy-rules-idbs/matches pid varvec)
   [string? (listof symbol?) . -> . any/c]  
