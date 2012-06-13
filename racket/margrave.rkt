@@ -856,7 +856,7 @@
   (m-policy-rule-names pol))
 
 (define/contract (m-policy-rules-idbs/suffix pid suffix varvec)
- [string? string? (listof symbol?) . -> . any/c]    
+ [string? string? (listof m-term?) . -> . any/c]    
   (map (lambda (rname) `( [,pid ,(string-append rname suffix)] ,@varvec))
        (m-policy-rule-names-from-pid pid)))
 
@@ -867,11 +867,11 @@
 
 
 (define/contract (m-policy-rules-idbs/matches pid varvec)
-  [string? (listof symbol?) . -> . any/c]  
+  [string? (listof m-term?) . -> . any/c]  
   (m-policy-rules-idbs/suffix pid "_matches" varvec))
 
 (define/contract (m-policy-rules-idbs/applies pid varvec)
-  [string? (listof symbol?) . -> . any/c]  
+  [string? (listof m-term?) . -> . any/c]  
   (m-policy-rules-idbs/suffix pid "_applies" varvec))
 
 (define/contract (m-policy-decisions pol-or-pid)
@@ -882,7 +882,7 @@
   (remove-duplicates (map m-rule-decision rules)))
 
 (define/contract (m-policy-decisions-idbs pid varvec)
-  [string? (listof symbol?) . -> . any/c]  
+  [string? (listof m-term?) . -> . any/c]  
   (map (lambda (rname) `([,pid ,(->symbol rname)] ,@varvec))
        (m-policy-decisions pid)))
 
