@@ -204,7 +204,7 @@ class MinimalSolver implements SATSolver {
 	public boolean addClause(int[] lits) {
 		if(foundMinimal)
 		{
-			System.out.println("* Kodkod tried to add a clause, but rejected: "+Arrays.toString(lits));
+			//System.out.println("* Kodkod tried to add a clause, but rejected: "+Arrays.toString(lits));
 			return false;
 		}
 		try {
@@ -506,7 +506,7 @@ class MinimalSolver implements SATSolver {
 			if(minimalModel[i] > 0)
 				noRepeat.add(-minimalModel[i]);
 		}
-		System.out.println("* Adding clause to exclude cone: "+noRepeat);
+		//System.out.println("* Adding clause to exclude cone: "+noRepeat);
 		solver.addClause(toVecInt(noRepeat));
 	}
 	
