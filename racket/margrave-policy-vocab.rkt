@@ -258,8 +258,8 @@
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                     
-             (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                            (string-append (symbol->string 'vocabname) ".v")))             
+             (define vocab-path (build-path/file-ci (path-only/same local-policy-filename) 
+                                               (string-append (symbol->string 'vocabname) ".v")))             
              (define my-theory
                (cond [(m-theory? thy/maybe)
                       thy/maybe]
@@ -812,9 +812,9 @@
              (define s-VOCAB-EXTENSION ".v")
              
              ; vocab names are all lower-cased before searching for file
-             (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                            (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION)))           
-                                     
+             (define vocab-path (build-path/file-ci (path-only/same local-policy-filename) 
+                                               (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION)))           
+             
              (define my-thy
                (cond [(m-theory? thy/maybe)
                       thy/maybe]
@@ -835,7 +835,7 @@
                             ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
                             (eval the-vocab-syntax margrave-policy-vocab-namespace))))
                       (if (m-vocabulary? my-t-or-v)
-                          (m-theory (m-vocabulary-name my-t-or-v) vocab-path my-t-or-v empty)
+                          (m-theory (m-vocabulary-name my-t-or-v) (or vocab-path (string->path ".")) my-t-or-v empty)
                           my-t-or-v)]))
              
              
@@ -847,7 +847,7 @@
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
                
              (define (grant-theory-path t vp)
-               (m-theory (m-theory-name t) vp (m-theory-vocab t) (m-theory-axioms t)))                          
+               (m-theory (m-theory-name t) (or vp (string->path ".")) (m-theory-vocab t) (m-theory-axioms t)))                          
              
              (m-policy local-policy-id ; [id string?]                                             
                        (grant-theory-path my-thy vocab-path) ; [theory-path path?]; [theory m-theory?]                     

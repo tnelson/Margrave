@@ -173,11 +173,12 @@
   (and (file-exists?/error file-name src-syntax error-message)
        (open-input-file file-name)))
 
+; If the-path is only a file with no directory, return "." as a path
 (define (path-only/same the-path)
   (define p (path-only the-path))
   (if p
       p
-      'same))
+      (build-path 'same)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -494,3 +495,31 @@
 (define/contract (hash-remove-all ahash) 
   [(and/c hash? (not/c immutable?)) . -> . void?]
   (hash-for-each ahash (lambda (key val) (hash-remove! ahash key))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+; Deal with the fact that the .p file contains a vocab name, 
+; and the name's capitalization may not match the file's.
+; Returns #f if no such file exists.
+; Does not accept 'same or 'up
+(define/contract (build-path/file-ci location want-filename) 
+  [path? string? . -> . (or/c path? #f)]  
+  
+  ;(printf "buildpath/file-ci: loc: ~v want-filename: ~v curr-dir: ~v~n" location want-filename (current-directory))
+  
+  (define (my-filter fullpath)
+    (define fname (file-name-from-path fullpath))    
+    (and fname (string-ci=? want-filename (path->string fname))))
+  
+  ; Don't use find-files, because that recurses and we want to be local. 
+  ; (It also has problems if one of the dirs it is recurring on lacks permissions...)
+
+  (define folder-contents-fullpaths (map (lambda (fpath) (build-path location fpath))
+                                         (directory-list location)))  
+  (define files-in-folder (filter file-exists? folder-contents-fullpaths))  
+  ;(printf "Testing vs. files: ~v~n" files-in-folder)
+  (define files-found (filter my-filter files-in-folder))  
+  (cond [(< (length files-found) 1) #f]
+        [(> (length files-found) 1) (raise-user-error (format "Ambiguous case-insensitive file name. Asked for ~v in ~v, but there were multiple matches: ~v" 
+                                                   want-filename (path->string location)
+                                                   (map path->string files-found)))]
+        [else (first files-found)]))
