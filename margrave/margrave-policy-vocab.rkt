@@ -731,8 +731,8 @@
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename src-syntax)                                                                        
-              (define vocab-path (build-path (path-only/same local-policy-filename) 
-                                             (string-append (symbol->string 'vocabname) ".v")))
+              (define vocab-path (build-path/file-ci (path-only/same local-policy-filename) 
+                                                     (string-append (symbol->string 'vocabname) ".v")))
              
               ; Produce a friendly error if the vocab doesn't exist
               ; src-syntax here is the *command* that spawned the loading, not the Policy form.
