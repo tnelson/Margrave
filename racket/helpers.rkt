@@ -169,9 +169,14 @@
 
 ; filename syntax -> port
 ; If file does not exist, raises an exception. If syntax has been passed, will enable syntax highlighting.
+; Modified to use case-insensitive filename resolution
 (define (open-input-file/exists file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
-  (and (file-exists?/error file-name src-syntax error-message)
-       (open-input-file file-name)))
+  (define file-path (build-path file-name))
+  (define actual-file-name (path->string (file-name-from-path file-path)))
+  (define actual-path (path-only/same file-path))
+  (define safe-path (build-path/file-ci actual-path actual-file-name))
+  (and (file-exists?/error safe-path src-syntax error-message)
+       (open-input-file safe-path)))
 
 ; If the-path is only a file with no directory, return "." as a path
 (define (path-only/same the-path)
