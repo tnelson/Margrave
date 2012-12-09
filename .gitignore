@@ -11,8 +11,8 @@ margrave/compiled/
 compiled/
 
 # Copies of .class files and .jar files for development ONLY
-racket/lib
 java/bin
+# But allow racket/lib. Will be recompiled in build
 
 # We DO want java/lib in the repo. It contains kodkod.jar, etc.
 
