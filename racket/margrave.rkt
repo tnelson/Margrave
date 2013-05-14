@@ -89,6 +89,8 @@
          rule-applies
          rule-matches
          m-policy-rule-names-from-pid
+         
+         Theory
          )
 
 
@@ -96,7 +98,7 @@
 (define-namespace-anchor margrave-namespace-anchor)
 (define the-margrave-namespace (namespace-anchor->namespace margrave-namespace-anchor))
 
-(define margrave-version "3.1-internal-050212")
+(define margrave-version "3.1-internal-051413")
 
 ;****************************************************************
 ;;Java Connection
@@ -105,7 +107,7 @@
 ; that there is no intermediate shell between Racket and Java.
 ; So we can place the java engine under the control of the current
 ; custodian: (Valid params are 'interrupt, 'kill, and #f.)
-(current-subprocess-custodian-mode 'interrupt)
+(current-subprocess-custodian-mode 'kill)
 
 ; Are we in windows or Unix/OSX?
 (define windows? (equal? 'windows (system-path-convention-type)))
