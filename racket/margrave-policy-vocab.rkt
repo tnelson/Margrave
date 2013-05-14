@@ -616,7 +616,7 @@
          (raise-syntax-error 'Policy (format "Expected a theory or vocabulary name for the policy to use, got: ~a"
                                              (syntax->datum #'a-vocab-or-thy-name)) #f #f (list #'a-vocab-or-thy-name)))                          
        
-       ;(printf "In POLICY macro phase +1. done getting clauses. vocab was: ~v~n" (syntax->datum #'a-vocab-or-thy-name))
+       ;(printf "In POLICY macro phase +1. done getting clauses. vocab was: ~v~n" (syntax->datum #'a-vocab-or-thy-name))              
        
        (define my-theory-name-sym (syntax->datum #'a-vocab-or-thy-name))     
        (define my-theory-name-str (->string my-theory-name-sym)) 
@@ -809,22 +809,29 @@
          (syntax/loc stx 
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                                                                         
-             (define s-VOCAB-EXTENSION ".v")
+             (define s-VOCAB-EXTENSION ".v")                          
+             
+             (define vocab-file-name 
+               (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION))
              
              ; vocab names are all lower-cased before searching for file
              (define vocab-path (build-path/file-ci (path-only/same local-policy-filename) 
-                                               (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION)))           
+                                                    vocab-file-name))
+                          
+             ; If vocab-path is #f here, the file doesn't exist (in any capitalization)
              
              (define my-thy
                (cond [(m-theory? thy/maybe)
-                      thy/maybe]
-                     [else
+                      thy/maybe]                    
+                     [else 
                       ; Produce a friendly error if the vocab doesn't exist
-                      ; src-syntax here is the *command* that spawned the loading, not the Policy form.
+                      ; src-syntax here is the *command* that spawned the loading, not the Policy form.                      
                       (file-exists?/error vocab-path src-syntax 
-                                          (format "Unable to find the policy's vocabulary. Expected a file at ~a; current-directory is: ~a" 
-                                                  (path->string vocab-path)
-                                                  (path->string (current-directory))))                         
+                                          (format "Unable to find the vocabulary named in policy file ~a.~nExpected a file ~a in directory ~a~nCurrent-directory is: ~a" 
+                                                  (->string local-policy-filename)
+                                                  (->string vocab-file-name)
+                                                  (->string (path-only/same local-policy-filename))
+                                                  (->string (current-directory))))                         
                       (define my-t-or-v 
                         (call-with-input-file
                             vocab-path

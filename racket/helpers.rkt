@@ -91,6 +91,7 @@
 
 (define (->string arg)
   (cond 
+    [(path? arg) (path->string arg)]
     [(symbol? arg) (symbol->string arg)]
     [(number? arg) (number->string arg)]
     [(syntax? arg) (->string (syntax->datum arg))]        
@@ -155,7 +156,7 @@
 ; filename src-syntax -> boolean
 ; If file does not exist, raises an error
 (define (file-exists?/error file-name src-syntax [error-message (format "File did not exist: ~a~n" file-name)])
-  (cond [(file-exists? file-name)
+  (cond [(and (path-string? file-name) (file-exists? file-name))
          #t]
         [(syntax? src-syntax)
          (raise-read-error 
