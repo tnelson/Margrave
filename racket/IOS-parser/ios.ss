@@ -477,41 +477,79 @@
 ;;   Represents a Margrave rule
 (define rule%
   (class object%
-    (init-field name decision conditions)
+    (init-field name decision conditions rule-type)    
     (super-make-object)
+    
+    ; Need the rule's head to contain args depending on which type of rule
+    ; it is (i.e., its policy/decision pairing). We cannot just filter on what's used
+    ; because that could result in a non-standard vector of variables in each. We want
+    ; to standardize!    
+    ;(define full-arg-list-for-ordering 
+    ;  '(hostname 
+    ;    entry-interface src-addr-in src-addr-out dest-addr-in dest-addr-out
+    ;    protocol message flags
+    ;    src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface))          
+    
+    (define arg-variable-list 
+      (cond [(equal? rule-type 'acl) ; both inbound and outbound 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol)]
+            
+            [(equal? rule-type 'nat) ; inside and outside 
+             '(hostname entry-interface 
+                        src-addr-in dest-addr-in src-port-in dest-port-in protocol
+                        src-addr-out dest-addr-out src-port-out dest-port-out)]
+            
+            [(equal? rule-type 'encrypt)              
+             '(next-hop)]
+            
+            ; Decision "forward" means the destination is directly attached.
+            ; Decision "route" means it must pass through another router
+            ;   (and then networkswitching must be consulted)
+            
+            ;;;;;;;;;;;;;;;;
+            ; routing: packet ---> next-hop.
+            ; types are from cisco language constructs
+            [(equal? rule-type 'defaultpolicyroute) 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
+            [(equal? rule-type 'policyroute) 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
+            [(equal? rule-type 'staticroute) 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
+            
+            ;;;;;;;;;;;;;;;;
+            ; switching: next-hop, packet ---> exit-interface
+            ; Local: next-hop is the destination (OUT, not necessarily IN?)
+            ;    ^^^ This means that the localswitching policy is applied before any routing.
+            ; Network: next-hop is just an address. 
+            [(equal? rule-type 'networkswitching) 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol 
+                        next-hop ; next-hop was decided by routing, and informs exit choice
+                        exit-interface)]
+            
+            ;; note no next-hop here, since LS applies before routing.
+            [(equal? rule-type 'localswitching) 
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol 
+                        exit-interface)] 
+            
+            [(error (format "Unknown rule type: ~a." rule-type))]))
     
     ;; -> (listof any)
     ;;   Returns a symbol for this rule
     (define/public (text)
       `(,name =
               (,decision
-               hostname
-               entry-interface
-               src-addr-in
-               src-addr-out
-               dest-addr-in
-               dest-addr-out
-               protocol
-               message
-               flags
-               src-port-in
-               src-port-out
-               dest-port-in
-               dest-port-out
-               length
-               next-hop
-               exit-interface)
+               ,@arg-variable-list)
               :- ,@(textualize conditions)))         
     
     ;; symbol (listof (listof symbol))
     ;;   Augments a rule
-    (define/public (augment new-name additional-conditions)
-      (make-object rule% new-name decision (append conditions additional-conditions)))
+    (define/public (augment new-name additional-conditions new-rule-type)
+      (make-object rule% new-name decision (append conditions additional-conditions) new-rule-type))
     
     ;; symbol symbol (listof (listof symbol))
     ;;   Augments a rule and changes the decision
-    (define/public (augment/replace-decision new-name new-decision additional-conditions)
-      (make-object rule% new-name new-decision (append conditions additional-conditions)))
+    (define/public (augment/replace-decision new-name new-decision additional-conditions new-rule-type)
+      (make-object rule% new-name new-decision (append conditions additional-conditions) new-rule-type))
     
     ;; (kindof atom<%>) -> (listof any)
     ;;   Returns the atoms of the given type that this rule contains
@@ -543,7 +581,8 @@
     (init name decision)
     (init-field predicates)
     (init conditions)
-    (super-make-object name decision conditions)
+    (init-field arg-variable-list)
+    (super-make-object name decision conditions arg-variable-list)
     
     ;; -> (listof symbol)
     ;;   Returns a list of the predicate names that this rule contains
@@ -794,13 +833,14 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/public (rule hostname interf additional-conditions)
+    (define/public (rule hostname interf additional-conditions rule-type)
       (make-object
           rule%
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr-in))))
+          (,src-addr-in src-addr)) ; not for use by nat
+        rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -810,7 +850,8 @@
         (extended-name hostname interf suffix)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in dest-addr-in))))
+          (,src-addr-in dest-addr-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -820,7 +861,8 @@
         (extended-name hostname interf suffix)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in dest-addr-in))))
+          (,src-addr-in dest-addr-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -829,7 +871,8 @@
       (make-object rule%
         (extended-name hostname interf suffix)
         (decision)
-        `(,@additional-conditions)))
+        `(,@additional-conditions)
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -839,7 +882,8 @@
         (extended-name hostname interf suffix)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in dest-addr-out))))
+          (,src-addr-in dest-addr-out))
+        'nat))
     ))
 
 ;; extended-ACE-IP% : number boolean address protocol address
@@ -857,13 +901,14 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/public (rule hostname interf additional-conditions)
+    (define/public (rule hostname interf additional-conditions rule-type)
       (make-object rule%
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr-in)
-          (,dest-addr-in dest-addr-in))))
+          (,src-addr-in src-addr) ;; not for use by nat
+          (,dest-addr-in dest-addr))
+        rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -873,7 +918,8 @@
         (extended-name hostname interf suffix)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in dest-addr-in))))
+          (,src-addr-in dest-addr-in))
+        'nat))
     
     ;; symbol symbol  string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -884,7 +930,8 @@
         (decision)
         `(,@additional-conditions
           (,dest-addr-in src-addr-out)
-          (,src-addr-in dest-addr-in))))
+          (,src-addr-in dest-addr-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -894,7 +941,8 @@
         (extended-name hostname interf suffix)
         (decision)
         `(,@additional-conditions
-          (,dest-addr-in src-addr-in))))
+          (,dest-addr-in src-addr-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -905,7 +953,8 @@
         (decision)
         `(,@additional-conditions
           (,dest-addr-in src-addr-in)
-          (,src-addr-in dest-addr-out))))
+          (,src-addr-in dest-addr-out))
+        'nat))
     ))
 
 ;; extended-ACE-ICMP% : number boolean address message address
@@ -923,15 +972,16 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/public (rule hostname interf additional-conditions)
+    (define/public (rule hostname interf additional-conditions rule-type)
       (make-object rule%
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr-in)
+          (,src-addr-in src-addr) ; not for use by NAT
           (Prot-ICMP protocol)
           (,msg message)
-          (,dest-addr-in dest-addr-in))))
+          (,dest-addr-in dest-addr))
+        rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -943,7 +993,8 @@
         `(,@additional-conditions
           (,src-addr-in dest-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))))
+          (,msg message))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -956,7 +1007,8 @@
           (,dest-addr-in src-addr-out)
           (,src-addr-in dest-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))))
+          (,msg message))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -968,7 +1020,8 @@
         `(,@additional-conditions
           (,dest-addr-in src-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))))
+          (,msg message))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -981,7 +1034,8 @@
           (,dest-addr-in src-addr-in)
           (,src-addr-in dest-addr-out)
           (Prot-ICMP protocol)
-          (,msg message))))
+          (,msg message))
+        'nat))
     ))
 
 ;; extended-ACE-TCP/UDP% : number boolean address protocol port address port
@@ -999,16 +1053,17 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/public (rule hostname interf additional-conditions)
+    (define/public (rule hostname interf additional-conditions rule-type)
       (make-object rule%
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr-in)
+          (,src-addr-in src-addr) ; not for use by NAT
           (,prot protocol)
-          (,src-port-in src-port-in)
-          (,dest-addr-in dest-addr-in)
-          (,dest-port-in dest-port-in))))
+          (,src-port-in src-port)
+          (,dest-addr-in dest-addr)
+          (,dest-port-in dest-port))
+        rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -1021,7 +1076,8 @@
           (,src-addr-in dest-addr-in)
           (,prot protocol)
           (,dest-port-in src-port-in)
-          (,src-port-in dest-port-in))))
+          (,src-port-in dest-port-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted
@@ -1035,7 +1091,8 @@
           (,src-addr-in dest-addr-in)
           (,prot protocol)
           (,dest-port-in src-port-in)
-          (,src-port-in dest-port-in))))
+          (,src-port-in dest-port-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -1048,7 +1105,8 @@
           (,dest-addr-in src-addr-in)
           (,prot protocol)
           (,src-port-in dest-port-in)
-          (,dest-port-in src-port-in))))
+          (,dest-port-in src-port-in))
+        'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE with source and destination inverted,
@@ -1062,7 +1120,8 @@
           (,src-addr-in dest-addr-out)
           (,prot protocol)
           (,src-port-in dest-port-in)
-          (,dest-port-in src-port-in))))
+          (,dest-port-in src-port-in))
+        'nat))
     ))
 
 ;; extended-ACE-TCP/flags% : number boolean address port address port (listof symbol)
@@ -1085,14 +1144,14 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/override (rule hostname interf additional-conditions)   
+    (define/override (rule hostname interf additional-conditions rule-type)   
           
       ; Kludge for now. Used to be just interf.      
       (define interf-flags-name (string->symbol (foldl (λ (flag sofar)
                                                          (string-append sofar (symbol->string flag)))
                                                        (symbol->string interf)
                                                        flags)))      
-      (super rule hostname interf-flags-name (append flag-conditions additional-conditions)))
+      (super rule hostname interf-flags-name (append flag-conditions additional-conditions) rule-type))
     ))
 
 ;; extended-reflexive-ACE-TCP/UDP% : number boolean address protocol port address port symbol
@@ -1114,18 +1173,19 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
-    (define/override (rule hostname interf additional-conditions)
+    (define/override (rule hostname interf additional-conditions rule-type)
       (make-object rule/predicates%
         (name hostname interf)
         (decision)
         (list (connection-predicate))
         `(,@additional-conditions         
-          (,(connection-predicate) src-addr-in src-port-in protocol dest-addr-in dest-port-in)
-          (,src-addr-in src-addr-in)
+          (,(connection-predicate) src-addr src-port protocol dest-addr dest-port)
+          (,src-addr-in src-addr)
           (,prot protocol)
-          (,src-port-in src-port-in)
-          (,dest-addr-in dest-addr-in)
-          (,dest-port-in dest-port-in))))
+          (,src-port-in src-port)
+          (,dest-addr-in dest-addr)
+          (,dest-port-in dest-port))
+        rule-type))
     
     ;; -> symbol
     ;;   Returns the name of the connection predicate for this rule
@@ -1150,9 +1210,10 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rules%
     ;;   Returns a list of rules that represents this ACL
-    (define/public (rules hostname interf additional-conditions)
+    ; Needs a rules-type because it invokes "rule", which isn't just for NAT.
+    (define/public (rules hostname interf additional-conditions rules-type)
       (map (λ (ACE)
-             (send ACE rule hostname interf additional-conditions))
+             (send ACE rule hostname interf additional-conditions rules-type))
            ACEs))
     
     ;; symbol symbol string (listof (listof symbol)) -> rules%
@@ -1231,7 +1292,8 @@
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of the rules that represent the match conditions for this map
-    (define/public (match-rules hostname interf ACLs additional-conditions)
+    ; Needs a rules-type because it calls rules, which isn't just for NAT
+    (define/public (match-rules hostname interf ACLs additional-conditions rules-type)
       (append*
        (map (λ (ACL)
               (send ACL
@@ -1239,7 +1301,8 @@
                     hostname
                     interf
                     `(,@additional-conditions
-                      ,@(match-length-conditions))))
+                      ,@(match-length-conditions))
+                    rules-type))
             (match-ACLs ACLs))))
     
     ;; symbol symbol string (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
@@ -1768,12 +1831,14 @@
            (,to-src-addr-in src-addr-out)
            (= dest-addr-in dest-addr-out)
            (= src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,from-src-addr-in src-addr-in)))))
+           (,from-src-addr-in src-addr-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1788,12 +1853,14 @@
            (,from-src-addr-in dest-addr-out)
            (= src-addr-in src-addr-out)
            (= src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,to-src-addr-in dest-addr-in)))))
+           (,to-src-addr-in dest-addr-in))
+         'nat)))
     ))
 
 ;; static-source-NAT-TCP/UDP% : number boolean address<%> port<%> symbol address<%> port<%>
@@ -1822,13 +1889,15 @@
            (,prot protocol)
            (,from-src-port-in src-port-in)
            (,to-src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
-           (,from-src-port-in src-port-in)))))
+           (,from-src-port-in src-port-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1845,13 +1914,15 @@
            (,to-src-port-in dest-port-in)
            (,from-src-port-in dest-port-out)
            (= src-addr-in src-addr-out)
-           (= src-port-in src-port-out)))
+           (= src-port-in src-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,to-src-addr-in dest-addr-in)
-           (,to-src-port-in dest-port-in)))))
+           (,to-src-port-in dest-port-in))
+         'nat)))
     ))
 
 ;; static-source-NAT-TCP/UDP-interface% : number boolean address<%> port<%> symbol port<%> symbol
@@ -1880,13 +1951,15 @@
            (,prot protocol)
            (,from-src-port-in src-port-in)
            (= src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,from-src-addr-in src-addr-in)
-           (,from-src-port-in src-port-in)))))
+           (,from-src-port-in src-port-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1903,14 +1976,17 @@
            (,from-src-port-in dest-port-in)
            (= dest-port-in dest-port-out)
            (= src-addr-in src-addr-out)
-           (= src-port-in src-port-out)))
+           (= src-port-in src-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) dest-addr-in)
-           (,from-src-port-in dest-port-in)))))
+           (,from-src-port-in dest-port-in))
+         'nat)))
     ))
+
 
 ;; static-destination-NAT-IP% : number boolean address<%> address<%>
 ;;   Represents a static destination translation at the network layer
@@ -1936,12 +2012,14 @@
            (,to-dest-addr-in dest-addr-out)
            (= src-addr-in src-addr-out)
            (= src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,from-dest-addr-in dest-addr-in)))))
+           (,from-dest-addr-in dest-addr-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1956,12 +2034,14 @@
            (,from-dest-addr-in src-addr-out)
            (= dest-addr-in dest-addr-out)
            (= src-port-in src-port-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,to-dest-addr-in src-addr-in)))))
+           (,to-dest-addr-in src-addr-in))
+         'nat)))
     ))
 
 ;; static-destination-NAT-TCP/UDP% : number boolean address<%> port<%> symbol address<%> port<%>
@@ -1990,13 +2070,15 @@
            (,to-dest-port-in dest-port-out)
            (,prot protocol)
            (= src-addr-in src-addr-out)
-           (= src-port-in src-port-out)))
+           (= src-port-in src-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
-           (,from-dest-port-in dest-port-in)))))
+           (,from-dest-port-in dest-port-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -2013,13 +2095,15 @@
            (,from-dest-port-in src-port-out)
            (,prot protocol)
            (= dest-addr-in dest-addr-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,to-dest-addr-in src-addr-in)
-           (,to-dest-port-in src-port-in)))))
+           (,to-dest-port-in src-port-in))
+         'nat)))
     ))
 
 ;; static-destination-NAT-TCP/UDP-interface% : number boolean address<%> port<%> symbol symbol
@@ -2048,13 +2132,15 @@
            (= dest-port-in dest-port-out)
            (,prot protocol)
            (= src-addr-in src-addr-out)
-           (= src-port-in src-port-out)))
+           (= src-port-in src-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,from-dest-addr-in dest-addr-in)
-           (,from-dest-port-in dest-port-in)))))
+           (,from-dest-port-in dest-port-in))
+         'nat)))
     
     ;; symbol symbol (hashtable symbol route-map%) (hashtable symbol ACL%) (hashtable symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -2071,13 +2157,15 @@
            (= src-port-in src-port-out)
            (,prot protocol)
            (= dest-addr-in dest-addr-out)
-           (= dest-port-in dest-port-out)))
+           (= dest-port-in dest-port-out))
+         'nat)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,(hash-ref interfaces interface-ID) src-addr-in)
-           (,from-dest-port-in src-port-in)))))
+           (,from-dest-port-in src-port-in))
+         'nat)))
     ))
 
 ;; static-source-map-NAT% : number boolean host-address% host-address% symbol
@@ -2112,12 +2200,14 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))
+                           (= dest-port-in dest-port-out)))
+                     'nat)
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
                      'drop
-                     `((,from-src-addr-in src-addr-in)))))
+                     `((,from-src-addr-in src-addr-in))
+                     'nat)))
             (flatten (map (λ (m)
                             (send m match-rules hostname interf ACLs additional-conditions))
                           (send (hash-ref route-maps route-map-ID) ordered-maps))))))
@@ -2138,12 +2228,14 @@
                            (,from-src-addr-in dest-addr-out)
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out)))
+                           (= dest-port-in dest-port-out))
+                         'nat)
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
                          'drop
-                         `((,to-src-addr-in dest-addr-in))))
+                         `((,to-src-addr-in dest-addr-in))
+                         'nat))
                   (list
                    (send match-rule
                          augment/replace-decision
@@ -2153,16 +2245,19 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out)))
+                           (= dest-port-in dest-port-out))
+                         'nat)
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
                          'drop
-                         `((,from-src-addr-in dest-addr-in))))))
+                         `((,from-src-addr-in dest-addr-in))
+                         'nat))))
             (flatten (map (λ (m)
                             (send m inverse-match-rules/no-destination hostname interf "" ACLs additional-conditions))
                           (send (hash-ref route-maps route-map-ID) ordered-maps))))))
     ))
+
 
 ;; static-destination-map-NAT% : number boolean host-address% host-address% symbol
 ;;   Represents a static destination route map translation
@@ -2196,12 +2291,14 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))
+                           (= dest-port-in dest-port-out)))
+                     'nat)
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
                      'drop
-                     `((,from-dest-addr-in dest-addr-in)))))
+                     `((,from-dest-addr-in dest-addr-in))
+                     'nat)))
             (flatten (map (λ (m)
                             (send m match-rules hostname interf ACLs additional-conditions))
                           (send (hash-ref route-maps route-map-ID) ordered-maps))))))
@@ -2222,12 +2319,14 @@
                            (,from-dest-addr-in src-addr-out)
                            (= dest-addr-in dest-addr-out)
                            (= src-port-in src-port-out)
-                           (= dest-port-in dest-port-out)))
+                           (= dest-port-in dest-port-out))
+                         'nat)
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
                          'drop
-                         `((,to-dest-addr-in src-addr-in))))
+                         `((,to-dest-addr-in src-addr-in))
+                         'nat))
                   (list
                    (send match-rule
                          augment/replace-decision
@@ -2237,12 +2336,14 @@
                            (= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out)))
+                           (= dest-port-in dest-port-out))
+                         'nat)
                    (send match-rule
                          augment/replace-decision
                          (name hostname "drop")
                          'drop
-                         `((,from-dest-addr-in src-addr-in))))))
+                         `((,from-dest-addr-in src-addr-in))
+                         'nat))))
             (flatten (map (λ (m)
                             (send m inverse-match-rules/no-source hostname interf "" ACLs additional-conditions))
                           (send (hash-ref route-maps route-map-ID) ordered-maps))))))
@@ -2258,7 +2359,8 @@
       (= dest-addr-in dest-addr-out)
       (= src-port-in src-port-out)
       (= dest-port-in dest-port-out)
-      (,hostname hostname))))
+      (,hostname hostname))
+    'nat))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Static Routing
@@ -2303,12 +2405,14 @@
          'route
          `(,@additional-conditions
            (,dest-addr-in dest-addr-in)
-           (,next-hop next-hop)))
+           (,next-hop next-hop))
+         'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in)))))
+           (,dest-addr-in dest-addr-in))
+         'staticroute)))
     ))
 
 ;; static-route-interface% : number address interface
@@ -2334,12 +2438,14 @@
            (= next-hop dest-addr-out)
            (,next-hop exit-interface)
            ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-           (IPAddress next-hop)))
+           (IPAddress next-hop))
+         'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in)))))
+           (,dest-addr-in dest-addr-in))
+         'staticroute)))
     ))
 
 ;; hostname% -> rule%
@@ -2348,7 +2454,8 @@
   (make-object rule%
     (string->symbol (string-append (symbol->string (send hostname name)) "-default-route"))
     'pass
-    `((,hostname hostname))))
+    `((,hostname hostname))
+    'staticroute))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Route Maps
@@ -2540,7 +2647,8 @@
                                        (number->string line-no)))
         'Advertise
         `(,@conditions
-          (,address next-hop))))
+          (,address next-hop))
+        'encrypt))
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2564,7 +2672,8 @@
         (name hostname)
         'encrypt
         `(,@conditions
-          (,address next-hop))))
+          (,address next-hop))
+        'encrypt))
     ))
 
 ;; crypto-map% : (listof symbol) (listof number) host-address%
@@ -3128,12 +3237,14 @@
                                   (send hostname name)
                                   (send interf text)
                                   `((,hostname hostname)
-                                    (,interf entry-interface)))))
+                                    (,interf entry-interface))
+                                  'acl)))
                 (list (if default-ACL-permit
                           (list (make-object rule%
                                   'default-ACE
                                   'permit
-                                  `((,hostname hostname))))
+                                  `((,hostname hostname))
+                                  'acl))
                           '())))))
     
     ;; -> (listof rule%)
@@ -3147,12 +3258,14 @@
                                   (send hostname name)
                                   (send interf text)
                                   `((,hostname hostname)
-                                    (,interf exit-interface)))))
+                                    (,interf exit-interface))
+                                  'acl)))
                 (list (if default-ACL-permit
                           (list (make-object rule%
                                   'default-ACE
                                   'permit
-                                  `((,hostname hostname))))
+                                  `((,hostname hostname))
+                                  'acl))
                           '())))))
     
     ;; symbol -> (listof interface%)
@@ -3234,7 +3347,7 @@
          (map (λ (name-interf)
                 (let [(name (car name-interf))
                       (interf (cdr name-interf))]
-                  (list
+                  (list 
                    (make-object rule%
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
@@ -3247,7 +3360,8 @@
                        (= next-hop dest-addr-out)
                        ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                        (IPAddress next-hop)
-                       (,interf exit-interface)))
+                       (,interf exit-interface))
+                     'localswitching)
                    (make-object rule%
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
@@ -3255,7 +3369,8 @@
                                                     "-drop-p"))
                      'drop
                      `((,hostname hostname)
-                       (,(get-field primary-network interf) dest-addr-in))))))                    
+                       (,(get-field primary-network interf) dest-addr-in))
+                     'localswitching))))                    
               (hash-filter interfaces (λ (name interf)
                                         (get-field primary-address interf))))
          (map (λ (name-interf)
@@ -3274,7 +3389,8 @@
                        (,(get-field secondary-network interf) dest-addr-in)
                        ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
                        (IPAddress next-hop)
-                       (,interf exit-interface)))
+                       (,interf exit-interface))
+                     'localswitching)
                    (make-object rule%
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
@@ -3282,7 +3398,8 @@
                                                     "-drop-s"))
                      'drop
                      `((,hostname hostname)
-                       (,(get-field secondary-network interf) dest-addr-in))))))
+                       (,(get-field secondary-network interf) dest-addr-in))
+                     'localswitching))))
               (hash-filter interfaces (λ (name interf)
                                         (get-field secondary-address interf)))))
         (list (make-default-routing-rule hostname)))))
@@ -3302,7 +3419,8 @@
                   'forward
                   `((,hostname hostname)
                     (,(get-field primary-network interf) next-hop)
-                    (,interf exit-interface)))))
+                    (,interf exit-interface))
+                  'networkswitching)))
             (hash-filter interfaces (λ (name interf)
                                       (get-field primary-address interf))))
        (map (λ (name-interf)
@@ -3316,7 +3434,8 @@
                   'forward
                   `((,hostname hostname)
                     (,(get-field secondary-network interf) next-hop)
-                    (,interf exit-interface)))))
+                    (,interf exit-interface))
+                  'networkswitching)))
             (hash-filter interfaces (λ (name interf)
                                       (get-field secondary-address interf))))))
     
@@ -3604,6 +3723,8 @@
             Port
             Hostname
             
+            LocPacket
+            
             ; Special handling for this particular sort. Since
             ; exit-interface: Interface (i.e. possibly Interf-drop) 
             ; But if we have a PREDICATE ieth0: Interf-real, 
@@ -3657,31 +3778,31 @@
 
                        )
                       
-           ; Formerly variables in every request, now projections of a single PacketDisposition variable.
-;           (Functions 
-;            (psrc-addr-in PacketDisposition IPAddress)
-;            (psrc-addr_ PacketDisposition IPAddress)
-;            (psrc-addr-out PacketDisposition IPAddress)
-;            (pdest-addr-in PacketDisposition IPAddress)
-;            (pdest-addr_ PacketDisposition IPAddress)
-;            (pdest-addr-out PacketDisposition IPAddress)
+           
+           
+           
+           ; Formerly variables in every request, now projections of a single LocPacket variable.
+           (Functions 
+;            (psrc-addr-in LocPacket IPAddress)
+;            (psrc-addr_ LocPacket IPAddress)
+;            (psrc-addr-out LocPacket IPAddress)
+;            (pdest-addr-in LocPacket IPAddress)
+;            (pdest-addr_ LocPacket IPAddress)
+;            (pdest-addr-out LocPacket IPAddress)
 ;            
-;            (psrc-port-in PacketDisposition Port)
-;            (psrc-port_ PacketDisposition Port)
-;            (psrc-port-out PacketDisposition Port)            
-;            (pdest-port-in PacketDisposition Port)
-;            (pdest-port_ PacketDisposition Port)
-;            (pdest-port-out PacketDisposition Port)
+;            (psrc-port-in LocPacket Port)
+;            (psrc-port_ LocPacket Port)
+;            (psrc-port-out LocPacket Port)            
+;            (pdest-port-in LocPacket Port)
+;            (pdest-port_ LocPacket Port)
+;            (pdest-port-out LocPacket Port)
 ;            
-;            (pentry-interface PacketDisposition Interf-real)
-;            (pexit-interface PacketDisposition Interface)
-;            (pnext-hop PacketDisposition IPAddress)
-;            
-;            (phostname PacketDisposition Hostname)
-;            (pprotocol PacketDisposition Protocol-any)
-;            (pmessage PacketDisposition ICMPMessage)
-;            (pflags PacketDisposition TCPFlags)
-;            (plength PacketDisposition Length))
+            (pinterface LocPacket Interface)
+            (phostname LocPacket Hostname)
+            (pprotocol LocPacket Protocol-any)
+            (pmessage LocPacket ICMPMessage)
+            (pflags LocPacket TCPFlags)
+            (plength LocPacket Length))
            )     
     (Axioms
      ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order hostnames))     
@@ -3741,37 +3862,41 @@
                                                           (get-field decision rule))
                                                         rules)))
   
-  (define (any-missing decision-list)
+  (define (any-missing decision-list rule-type)
     (define missing (foldl (lambda (a-decision sofar) (remove a-decision sofar))
                            decision-list
                            decisions-that-appear))
    ; (printf "any-missing: decision-list=~v; decisions-that-appear=~v; missing=~v~n" decision-list decisions-that-appear missing)
     (map (lambda (a-decision) 
-           (define rname (string->symbol (string-append "ruleNever" (symbol->string a-decision))))
-           (make-object rule% rname a-decision '( false ))) 
+           (define rname (string->symbol (string-append "ruleNever" (symbol->string a-decision))))                                              
+           (make-object rule% 
+             rname 
+             a-decision 
+             '( false )
+             rule-type)) 
          missing))
   
   (define extra-rules-needed 
     (cond [(equal? 'InboundACL name)
-           (any-missing acl-decisions)]
+           (any-missing acl-decisions 'acl)]
           [(equal? 'OutboundACL name)
-           (any-missing acl-decisions)]
+           (any-missing acl-decisions 'acl)]
           [(equal? 'InsideNAT name)
-           (any-missing nat-decisions)]
+           (any-missing nat-decisions 'nat)]
           [(equal? 'OutsideNAT name)
-           (any-missing nat-decisions)]
+           (any-missing nat-decisions 'nat)]
           [(equal? 'LocalSwitching name)
-           (any-missing switching-decisions)]
+           (any-missing switching-decisions 'localswitching)]
           [(equal? 'NetworkSwitching name)
-           (any-missing switching-decisions)]
+           (any-missing switching-decisions 'networkswitching)]
           [(equal? 'StaticRoute name)
-           (any-missing route-decisions)]
+           (any-missing route-decisions 'staticroute)]
           [(equal? 'PolicyRoute name)
-           (any-missing route-decisions)]
+           (any-missing route-decisions 'policyroute)]
           [(equal? 'DefaultPolicyRoute name)
-           (any-missing route-decisions)]
+           (any-missing route-decisions 'policyroute)]
           [(equal? 'Encryption name)
-           (any-missing encryption-decisions)]          
+           (any-missing encryption-decisions 'encrypt)]          
           [else 
           empty]))
   
@@ -3781,6 +3906,12 @@
            (Variables                        
             (hostname Hostname)
             (entry-interface Interf-real)
+            
+            (src-addr IPAddress)
+            (dest-addr IPAddress)
+            (src-port Port)
+            (dest-port Port)
+            
             (src-addr-in IPAddress)
             (src-addr-out IPAddress)
             (dest-addr-in IPAddress)

@@ -222,16 +222,21 @@
   ; ACLs are not involved in internal-result, which is concerned with routing.
   (m-let (string-append prefix "internal-result" suffix) 
          vardec-20
-         `(and ([,outsidenat translate] ahostname entry-interface src-addr-in src-addr_
-                                        dest-addr-in dest-addr_ protocol message flags src-port-in src-port_
-                                        dest-port-in dest-port_ length next-hop exit-interface)
-               ([,insidenat translate] ahostname entry-interface src-addr_ src-addr-out
-                                       dest-addr_ dest-addr-out protocol message flags src-port_ src-port-out 
-                                       dest-port_ dest-port-out length next-hop exit-interface)
+         `(and ([,outsidenat translate] ahostname entry-interface 
+                                        src-addr-in dest-addr-in src-port-in dest-port-in 
+                                        protocol
+                                        src-addr_ dest-addr_ src-port_ dest-port_ )
+               
+               ([,insidenat translate] ahostname entry-interface 
+                                       src-addr_ dest-addr_ src-port_ dest-port_                                        
+                                       protocol
+                                       src-addr-out dest-addr-out src-port-out dest-port-out )
+               
+               ;; !!! Proute can send directly to an interface? (hence fwd?) or does it never fire?
                
                ; NAT translation confirmed. Now see if and how the packet is routed.
-               (or ([,localswitching forward] ,@inner-vec)
-                   (and ([,localswitching pass] ,@inner-vec)
+               (or ([,localswitching forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
+                   (and ([,localswitching pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
                         (or ([,policyroute forward] ,@inner-vec)
                             (and ([,policyroute route] ,@inner-vec)
                                  ([,networkswitching forward] ,@inner-vec))

@@ -43,7 +43,7 @@
 (define (compile-configurations root-path filenames default-ACL-permit)
   
   ; Let user errors through; catch all other errors and give a "friendly" error message.
-  (with-handlers ([(lambda (e) (and (exn:fail? e) (not (exn:fail:user? e))))
+  (with-handlers ([(lambda (e) (and #f (exn:fail? e) (not (exn:fail:user? e))))
                    (lambda (e) (raise-user-error (format "Unrecoverable error parsing IOS configurations. Please report this error to the Margrave maintainers. The internal error was: ~a.~n" e)))])
     (let* [(configurations (map (λ (filename)                                
                                   (parse-IOS (open-input-file (make-path root-path filename)
