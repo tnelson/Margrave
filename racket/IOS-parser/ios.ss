@@ -507,31 +507,56 @@
             ;   (and then networkswitching must be consulted)
             
             ;;;;;;;;;;;;;;;;
-            ; routing: packet ---> next-hop.
+            ; routing: packet ---> next-hop or exit-interface.
             ; types are from cisco language constructs
-            [(equal? rule-type 'defaultpolicyroute) 
+                        
+            ; Static routes are decided on the basis of the destination address only.
+            [(and (equal? rule-type 'staticroute) 
+                  (equal? decision 'route))
+             '(hostname dest-addr next-hop)]
+            [(and (equal? rule-type 'staticroute) 
+                  (equal? decision 'forward))
+             '(hostname dest-addr exit-interface)]
+            [(and (equal? rule-type 'staticroute) 
+                  (or (equal? decision 'drop)
+                      (equal? decision 'pass)))
+             '(hostname dest-addr)]
+                        
+            ; Policy routes, however, need more:
+            [(and (or (equal? rule-type 'defaultpolicyroute)
+                      (equal? rule-type 'policyroute))
+                  (equal? decision 'route))
              '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
-            [(equal? rule-type 'policyroute) 
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
-            [(equal? rule-type 'staticroute) 
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
+            [(and (or (equal? rule-type 'defaultpolicyroute)
+                      (equal? rule-type 'policyroute))
+                  (equal? decision 'forward))
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol exit-interface)]
+            [(and (or (equal? rule-type 'defaultpolicyroute)
+                      (equal? rule-type 'policyroute))
+                  (or (equal? decision 'drop)
+                      (equal? decision 'pass)))
+             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol)]
+            
             
             ;;;;;;;;;;;;;;;;
             ; switching: next-hop, packet ---> exit-interface
             ; Local: next-hop is the destination (OUT, not necessarily IN?)
             ;    ^^^ This means that the localswitching policy is applied before any routing.
             ; Network: next-hop is just an address. 
-            [(equal? rule-type 'networkswitching) 
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol 
-                        next-hop ; next-hop was decided by routing, and informs exit choice
-                        exit-interface)]
             
-            ;; note no next-hop here, since LS applies before routing.
-            [(equal? rule-type 'localswitching) 
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol 
-                        exit-interface)] 
-            
-            [(error (format "Unknown rule type: ~a." rule-type))]))
+            [(and (or (equal? rule-type 'networkswitching) 
+                      (equal? rule-type 'localswitching))
+                  (equal? decision 'forward))
+             '(hostname next-hop exit-interface)]                        
+            [(and (or (equal? rule-type 'networkswitching) 
+                      (equal? rule-type 'localswitching))
+                  (or (equal? decision 'drop)
+                      (equal? decision 'pass)))
+             '(hostname next-hop)]                        
+                        
+            [(error (format "Unknown rule type: ~a with decision: ~a." rule-type decision))]))
+    
+    (printf "rule ~a with ~a~n" rule-type decision)
     
     ;; -> (listof any)
     ;;   Returns a symbol for this rule
@@ -2404,15 +2429,15 @@
          (name hostname "route")
          'route
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in)
+           (,dest-addr-in dest-addr)
            (,next-hop next-hop))
-         'staticroute)
+         'staticroute-route)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in))
-         'staticroute)))
+           (,dest-addr-in dest-addr))
+         'staticroute-drop)))
     ))
 
 ;; static-route-interface% : number address interface
@@ -2433,29 +2458,25 @@
          (name hostname "route")
          'forward
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in)
-           ; -TN added next-hop restriction below
-           (= next-hop dest-addr-out)
-           (,next-hop exit-interface)
-           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-           (IPAddress next-hop))
-         'staticroute)
+           (,dest-addr-in dest-addr)
+           (,next-hop exit-interface))
+         'staticroute-forward)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr-in))
-         'staticroute)))
+           (,dest-addr-in dest-addr))
+         'staticroute-drop)))
     ))
 
 ;; hostname% -> rule%
 ;;   Returns a default routing rule
-(define (make-default-routing-rule hostname)
+(define (make-default-routing-rule hostname rule-type)
   (make-object rule%
     (string->symbol (string-append (symbol->string (send hostname name)) "-default-route"))
     'pass
     `((,hostname hostname))
-    'staticroute))
+    rule-type))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Route Maps
@@ -3402,7 +3423,7 @@
                      'localswitching))))
               (hash-filter interfaces (λ (name interf)
                                         (get-field secondary-address interf)))))
-        (list (make-default-routing-rule hostname)))))
+        (list (make-default-routing-rule hostname 'localswitching)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of forwarding rules for adjacent networks
@@ -3451,7 +3472,7 @@
                       (send hostname name)
                       `((,hostname hostname))))
               static-routes))
-        (list (make-default-routing-rule hostname)))))
+        (list (make-default-routing-rule hostname 'staticroute)))))
     
     ;; symbol (hash-table abstract-map%) -> (listof route-map%)
     ;;   Returns a list of maps with the given tag ordered by priority
@@ -3476,7 +3497,7 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list (make-default-routing-rule hostname)))))
+        (list (make-default-routing-rule hostname 'policyroute)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the default policy-based routing rules (i.e., those that
@@ -3496,7 +3517,7 @@
                                   `((,hostname hostname)
                                     (,interf entry-interface))))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
-        (list (make-default-routing-rule hostname)))))
+        (list (make-default-routing-rule hostname 'defaultpolicyroute)))))
     
     ;; -> (listof rule%)
     ;;   Returns a list of the encryption rules
@@ -3855,7 +3876,7 @@
   (define acl-decisions '(permit deny drop))
   (define nat-decisions '(translate))
   (define route-decisions '(forward route pass drop))
-  (define switching-decisions '(forward route pass drop))
+  (define switching-decisions '(forward pass drop))
   (define encryption-decisions '(encrypt))
   
   (define decisions-that-appear (remove-duplicates (map (λ (rule)

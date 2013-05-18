@@ -23,7 +23,8 @@
 ; Others provided via provide/contract
 (provide load-ios-policies
          vardec-20
-         vardec-16)
+         vardec-16
+         )
 
 ; Routed Packets query for IOS parser
 ; tn april 2010
@@ -232,24 +233,25 @@
                                        protocol
                                        src-addr-out dest-addr-out src-port-out dest-port-out )
                
-               ;; !!! Proute can send directly to an interface? (hence fwd?) or does it never fire?
+               ; Routing can either go to a gateway (route) or an interface (forward)                           
                
                ; NAT translation confirmed. Now see if and how the packet is routed.
-               (or ([,localswitching forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
-                   (and ([,localswitching pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
-                        (or ([,policyroute forward] ,@inner-vec)
-                            (and ([,policyroute route] ,@inner-vec)
-                                 ([,networkswitching forward] ,@inner-vec))
-                            (and ([,policyroute pass] ,@inner-vec)
-                                 (or ([,staticroute forward] ,@inner-vec)
-                                     (and ([,staticroute route] ,@inner-vec)
-                                          ([,networkswitching forward] ,@inner-vec))
-                                     (and ([,staticroute pass] ,@inner-vec)
-                                          (or ([,defaultpolicyroute forward] ,@inner-vec)
-                                              (and ([,defaultpolicyroute forward] ,@inner-vec)
-                                                   ([,networkswitching forward] ,@inner-vec))
+               
+               (or ([,localswitching forward] ahostname dest-addr_ exit-interface)
+                   (and ([,localswitching pass] ahostname dest-addr_)
+                        (or ([,policyroute forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
+                            (and ([,policyroute route] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                                 ([,networkswitching forward] ahostname dest-addr_ exit-interface))
+                            (and ([,policyroute pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol)
+                                 (or ([,staticroute forward] ahostname dest-addr_ exit-interface)
+                                     (and ([,staticroute route] ahostname dest-addr_ next-hop)
+                                          ([,networkswitching forward] ahostname dest-addr_ exit-interface))
+                                     (and ([,staticroute pass] ahostname dest-addr_)
+                                          (or ([,defaultpolicyroute forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
+                                              (and ([,defaultpolicyroute route] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                                                   ([,networkswitching forward] ahostname dest-addr_ exit-interface))
                                               ; Final option: Packet is dropped.
-                                              (and ([,defaultpolicyroute pass] ,@inner-vec)
+                                              (and ([,defaultpolicyroute pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol)
                                                    (= next-hop dest-addr-out)
                                                    (Interf-drop exit-interface)))))))))))
   
@@ -418,20 +420,25 @@
   ;; include all the nonsensical scenarios...
   ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
   
+  ;;;;;;;;; ^^^^ REVISE THIS: is this restriction still needed?
   
-  (define aclinvec '(ahostname entry-interface src-addr-in src-addr-in
-                               dest-addr-in dest-addr-in protocol message flags src-port-in src-port-in
-                               dest-port-in dest-port-in length next-hop exit-interface))
   
-  (define acloutvec '(ahostname entry-interface src-addr-out src-addr-out
-                                dest-addr-out dest-addr-out protocol message flags src-port-out
-                                src-port-out dest-port-out dest-port-out length next-hop
-                                exit-interface))
+  (define aclinvec '(ahostname entry-interface src-addr-in dest-addr-in  ;message flags 
+                               src-port-in dest-port-in protocol)) ; length next-hop exit-interface))
+  
+  (define acloutvec '(ahostname entry-interface src-addr-out dest-addr-out  ;message flags 
+                               src-port-out dest-port-out protocol)) ; length next-hop exit-interface))
+  
     
-  (m-let (string-append prefix "passes-firewall" suffix) 
-         vardec-16
+  ; TODO: icmp, message, etc.
+  ; TODO: FLAAAAAAAAGS
+  
+  (m-let (string-append prefix "result" suffix) 
+         '(ahostname 
+           entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol
+           exit-interface src-addr-out dest-addr-out src-port-out dest-port-out)
          `(and (not (Interf-drop exit-interface))
-               ([,inboundacl permit] ,@aclinvec)
+               ([,inboundacl permit] ,@aclinvec )
                ([,outboundacl permit] ,@acloutvec)))
   
   ; end
