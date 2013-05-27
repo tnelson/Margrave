@@ -434,9 +434,10 @@
   ; TODO: FLAAAAAAAAGS
   
   (m-let (string-append prefix "result" suffix) 
-         '(ahostname 
-           entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol
-           exit-interface src-addr-out dest-addr-out src-port-out dest-port-out)
+         ;'(ahostname
+         ;  entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol
+         ;  exit-interface src-addr-out dest-addr-out src-port-out dest-port-out)
+         vardec-16
          `(and (not (Interf-drop exit-interface))
                ([,inboundacl permit] ,@aclinvec )
                ([,outboundacl permit] ,@acloutvec)))

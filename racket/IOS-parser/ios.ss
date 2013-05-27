@@ -556,7 +556,7 @@
                         
             [(error (format "Unknown rule type: ~a with decision: ~a." rule-type decision))]))
     
-    (printf "rule ~a with ~a~n" rule-type decision)
+   ;(printf "rule ~a with ~a~n" rule-type decision)
     
     ;; -> (listof any)
     ;;   Returns a symbol for this rule
@@ -1235,10 +1235,12 @@
     
     ;; symbol symbol (listof (listof symbol)) -> rules%
     ;;   Returns a list of rules that represents this ACL
-    ; Needs a rules-type because it invokes "rule", which isn't just for NAT.
-    (define/public (rules hostname interf additional-conditions rules-type)
+    ; No rule type; just keep existing type
+    (define/public (rules hostname interf additional-conditions [rule-type #f])
       (map (λ (ACE)
-             (send ACE rule hostname interf additional-conditions rules-type))
+             (if rule-type
+                 (send ACE rule hostname interf additional-conditions rule-type)
+                 (send ACE rule hostname interf additional-conditions (get-field rule-type ACE))))
            ACEs))
     
     ;; symbol symbol string (listof (listof symbol)) -> rules%
@@ -1316,9 +1318,8 @@
            match-lengths))
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
-    ;;   Returns a list of the rules that represent the match conditions for this map
-    ; Needs a rules-type because it calls rules, which isn't just for NAT
-    (define/public (match-rules hostname interf ACLs additional-conditions rules-type)
+    ;;   Returns a list of the rules that represent the match conditions for this map    
+    (define/public (match-rules hostname interf ACLs additional-conditions)
       (append*
        (map (λ (ACL)
               (send ACL
@@ -1326,8 +1327,7 @@
                     hostname
                     interf
                     `(,@additional-conditions
-                      ,@(match-length-conditions))
-                    rules-type))
+                      ,@(match-length-conditions)))) ; no rules-type passed. use native type
             (match-ACLs ACLs))))
     
     ;; symbol symbol string (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
@@ -2431,13 +2431,13 @@
          `(,@additional-conditions
            (,dest-addr-in dest-addr)
            (,next-hop next-hop))
-         'staticroute-route)
+         'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,dest-addr-in dest-addr))
-         'staticroute-drop)))
+         'staticroute)))
     ))
 
 ;; static-route-interface% : number address interface
@@ -2460,13 +2460,13 @@
          `(,@additional-conditions
            (,dest-addr-in dest-addr)
            (,next-hop exit-interface))
-         'staticroute-forward)
+         'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
            (,dest-addr-in dest-addr))
-         'staticroute-drop)))
+         'staticroute)))
     ))
 
 ;; hostname% -> rule%
