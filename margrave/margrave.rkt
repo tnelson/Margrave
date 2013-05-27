@@ -70,7 +70,9 @@
 ; that there is no intermediate shell between Racket and Java.
 ; So we can place the java engine under the control of the current
 ; custodian: (Valid params are 'interrupt, 'kill, and #f.)
-(current-subprocess-custodian-mode 'interrupt)
+; Windows needs 'kill in later versions of Racket. 
+; 'interrupt will leave the engine process running.
+(current-subprocess-custodian-mode 'kill)
 
 ; Are we in windows or Unix/OSX?
 (define windows? (equal? 'windows (system-path-convention-type)))
