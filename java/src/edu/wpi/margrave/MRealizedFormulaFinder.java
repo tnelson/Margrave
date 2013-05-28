@@ -430,7 +430,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				for(String c : cases.keySet())
 					for(List<MTerm> args : cases.get(c))
 						result.put(caseToString(c, args), new HashSet<String>());
-			}
+			}			
+			
 			return result;			
 		}
 		/////////////////////////////////////////////////////////////
@@ -739,11 +740,15 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 				try
 				{
-					remGoals = solver.addClause(new VecInt(goalClause));
+					// If the goal is size=1, don't add to the const set					
 					if(candidateGoals.size() == 1)
 					{
 						for(int lit : candidateGoals)
 							potentialGoalUnit.add(lit);
+					}
+					else
+					{
+						remGoals = solver.addClause(new VecInt(goalClause));
 					}
 						
 				}			

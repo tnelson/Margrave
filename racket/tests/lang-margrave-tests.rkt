@@ -77,20 +77,22 @@ SHOW Q5 include conf1.permit(s,a,r), conf1.deny(s,a,r),
             conf1.paperassigned_applies(s,a,r),
             conf1.paperconflict_applies(s,a,r);
 
-SHOW REALIZED Q5 conf1.permit(s, a, r);
-SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
+//SHOW REALIZED Q5 conf1.permit(s, a, r);
+//SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
 
-SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r)
-  FOR CASES conf1.papernoconflict_applies(s,a,r),
-            conf1.paperassigned_applies(s,a,r),
-            conf1.paperconflict_applies(s,a,r);
+//SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r)
+//  FOR CASES conf1.papernoconflict_applies(s,a,r),
+//            conf1.paperassigned_applies(s,a,r),
+//            conf1.paperconflict_applies(s,a,r);
 
 
 // Testing show unrealized: 
-let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r);
+let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) 
+//;
+  debug 3;
 
 // s/b deny
-SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
+//SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
 
 
 // Remember: scope is limited in Q6. So deny can never fire (which means EVERYTHING is unrealized w/r/t it).
@@ -98,23 +100,27 @@ SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
 // HMM. Bug? Deny rule matches, but doesn't apply?
 // also: permit in deny and deny in permit?
 
-SHOW UNREALIZED Q6
-              conf1.permit(s, a, r), 
-              conf1.deny(s, a, r), 
-              conf1.papernoconflict_applies(s,a,r),
-              conf1.paperassigned_applies(s,a,r),
-              conf1.paperconflict_applies(s,a,r)
-            FOR CASES conf1.permit(s, a, r), 
-                      conf1.deny(s, a, r);
+//SHOW UNREALIZED Q6
+//              conf1.permit(s, a, r), 
+//              conf1.deny(s, a, r), 
+//              conf1.papernoconflict_applies(s,a,r),
+ //             conf1.paperassigned_applies(s,a,r),
+  //            conf1.paperconflict_applies(s,a,r)
+   //         FOR CASES conf1.permit(s, a, r), 
+    //                  conf1.deny(s, a, r);
 
                       
 SHOW REALIZED Q6
               conf1.permit(s, a, r), 
-              conf1.deny(s, a, r), 
-              conf1.papernoconflict_applies(s,a,r),
-              conf1.paperassigned_applies(s,a,r),
-              conf1.paperconflict_applies(s,a,r)
-            FOR CASES conf1.permit(s, a, r), 
-                      conf1.deny(s, a, r);
+              conf1.deny(s, a, r),
+              conf1.paperassigned_applies(s,a,r)
+            FOR CASES conf1.permit(s, a, r);
                       
+                      
+                      // without rule-candidates: { conf1.permit(s, a, r) -> (conf1.permit(s, a, r)), }
+                      // with { conf1.permit(s, a, r) -> (conf1.deny(s, a, r) conf1.paperassigned_applies(s, a, r) conf1.permit(s, a, r)), }
+//let Qbug[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) and conf1.paperconflict_applies(s,a,r);                       
+          
+//show Qbug;
+
 /////////////////////////////////////////////////////////
