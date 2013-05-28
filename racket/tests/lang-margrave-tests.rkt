@@ -68,11 +68,14 @@ COUNT Q4;
 
 /////////////////////////////////////////////////////////
 // Testing show realized: create a query that matches everything:
-let Q5[s: Subject, a: Action, r: Resource] be 
-true
+// (also test include, but remember it's a SHOW option now!
+let Q5[s: Subject, a: Action, r: Resource] be Paper(r) and ReadPaper(a)
 under conf1;
 
-SHOW Q5;
+SHOW Q5 include conf1.permit(s,a,r), conf1.deny(s,a,r), 
+            conf1.papernoconflict_applies(s,a,r),
+            conf1.paperassigned_applies(s,a,r),
+            conf1.paperconflict_applies(s,a,r);
 
 SHOW REALIZED Q5 conf1.permit(s, a, r);
 SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
