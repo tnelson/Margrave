@@ -608,17 +608,15 @@
     [else (raise-syntax-error 'Policy "Invalid combination type. Must be (fa ...) or (over ...)" #f #f (list comb))]))
 
 (define-syntax (Policy stx)
-  (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
-    [(_ uses a-vocab-or-thy-name clauses ... )
-     
-     (let ()
-       (unless (identifier? #'a-vocab-or-thy-name)
+  
+  (define (policy-helper vname clause-list)    
+       (unless (identifier? vname)
          (raise-syntax-error 'Policy (format "Expected a theory or vocabulary name for the policy to use, got: ~a"
-                                             (syntax->datum #'a-vocab-or-thy-name)) #f #f (list #'a-vocab-or-thy-name)))                          
+                                             (syntax->datum vname)) #f #f (list #'a-vocab-or-thy-name)))                          
        
        ;(printf "In POLICY macro phase +1. done getting clauses. vocab was: ~v~n" (syntax->datum #'a-vocab-or-thy-name))              
        
-       (define my-theory-name-sym (syntax->datum #'a-vocab-or-thy-name))     
+       (define my-theory-name-sym (syntax->datum vname))     
        (define my-theory-name-str (->string my-theory-name-sym)) 
        
        (define clause-table (partition* (lambda (stx) (syntax-case stx [Target Rules = :- RComb PComb Children Variables]
@@ -627,7 +625,7 @@
                                                         [(Rules rule ...) 'rules]
                                                         [(RComb comb ...) 'rcomb] 
                                                         [_ 'all-other]))                                        
-                                        (syntax->list #'(clauses ...))
+                                        (syntax->list clause-list)
                                         #:init-keys '(variables target rules rcomb all-other)))
        
        ;(printf "Policy Clause list: ~a~n" (syntax->list #'(clauses ...)))
@@ -716,20 +714,25 @@
                ;(printf "the-rules: ~v~n" the-rules)
                
                (define (handle-rule a-rule)
+                 (define (rule-helper rulename decision rvars fmlas)
+                   ; (printf "Creating Rule: ~v with conditions: ~v~n" #'rulename (syntax->list #'(fmla0 fmla ...)))
+                   ;(printf "Head variables: ~v~n" (map syntax->datum (syntax->list #'(rvar ...))))
+                   ; Add implicit 'and if needed before desugaring:
+                   (define bodyfmlas (syntax->list fmlas))
+                   (define bodyfmla (if (> (length bodyfmlas) 1) 
+                                        `(and ,@bodyfmlas)
+                                        (first bodyfmlas)))
+                   (m-rule (->string rulename)
+                           (->string decision)
+                           (map syntax->datum (syntax->list rvars))
+                           bodyfmla))
+                 
                  (syntax-case a-rule [= :-]
+                   ; two versions: one with the :- and =, and one without.
                    [(rulename = (decision rvar ...) :- fmla0 fmla ...)
-                    (begin
-                     ; (printf "Creating Rule: ~v with conditions: ~v~n" #'rulename (syntax->list #'(fmla0 fmla ...)))
-                      ;(printf "Head variables: ~v~n" (map syntax->datum (syntax->list #'(rvar ...))))
-                      ; Add implicit 'and if needed before desugaring:
-                      (define bodyfmlas (syntax->list #'(fmla0 fmla ...)))
-                      (define bodyfmla (if (> (length bodyfmlas) 1) 
-                                           `(and ,@bodyfmlas)
-                                           (first bodyfmlas)))
-                      (m-rule (->string #'rulename)
-                              (->string #'decision)
-                              (map syntax->datum (syntax->list #'(rvar ...)))
-                               bodyfmla))]
+                    (rule-helper #'rulename #'decision #'(rvar ...) #'(fmla0 fmla ...))]
+                   [(rulename (decision rvar ...) fmla0 fmla ...)
+                    (rule-helper #'rulename #'decision #'(rvar ...) #'(fmla0 fmla ...))]
                    [_ (raise-syntax-error 'Policy "Rule form did not have the expected shape." #f #f (list a-rule))]))
                
                (map handle-rule the-rules))))                                  
@@ -864,9 +867,14 @@
                        'my-comb-list ; [rcomb any/c]
                        'my-target ; [target m-formula?]
                        idbs-hash ;  [idbs (hash/c string? (listof string?))]
-                       )))))]
-    
-    
+                       )))))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (syntax-case stx [Target Rules = :- uses RComb Policy Variables]
+    [(_ (uses a-vocab-or-thy-name) clauses ...)
+     (policy-helper #'a-vocab-or-thy-name #'(clauses ...))]
+    [(_ uses a-vocab-or-thy-name clauses ... )
+     (policy-helper #'a-vocab-or-thy-name #'(clauses ...))]                  
     
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
                              #f #f (list stx))]

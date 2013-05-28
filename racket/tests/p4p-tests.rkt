@@ -1,11 +1,13 @@
 #lang s-exp "../policy-p4p.rkt"
 
-define( foo(n), n)
+; uses(vname): done
+; rules without :- or =: done
 
-foo(1)
+; things to fix:
+; *** should be able to load via #lang margrave automatically, from standalone file!
+Policy( uses(myvoc),
+        Variables(s(Subject), a(Action)),        
+        Rules(rule1(permit(s, a), true)),
+        RComb(fa(permit, deny)))
 
-foo(2)
 
-Policy( uses, myvoc,
-            Variables(s(Subject), a(Action)),
-            Rules())
