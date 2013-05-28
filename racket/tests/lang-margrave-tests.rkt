@@ -33,20 +33,23 @@ SHOW Q1;
 SHOW ALL Q1;
 
 // IMPLIES
-let Q3[s: Subject, a: Action, r: Resource] be conf1.permit(s, a, r) AND
-(subject(s) IMPLIES NOT subject(s));
+// and ISA 
+// and ISA sugar
+let Q3[s: Subject, a: Action, r: Resource] be 
+  conf1.permit(s, a, r) AND
+  ((ISA s: Subject (true) AND ISA s: Subject ) IMPLIES NOT Subject(s));
 
 // expect: unsat
 IS POSS? Q3;
 
 // IFF
-let Q4[s: Subject, a: Action, r: Resource] be conf1.permit(s, a, r) AND
-(subject(s) IFF NOT subject(s));
+let Q4[s: Subject, a: Action, r: Resource] be 
+conf1.permit(s, a, r) IFF NOT conf1.permit(s, a, r);
 
 // expect: unsat
 IS POSS? Q4;
 
-INFO LAST;
+INFO Q4;
 
 // basic request vector sugar
 //explore conf1:permit(<conf1:req>);

@@ -450,7 +450,20 @@ Margrave did not understand the condition or options given around \"~a\"."
                         [(FALSE) (build-so (list 'FALSE-CONDITION) 1 1)]
                                          
                         [(condition-term EQUALS condition-term) (build-so (list 'EQUALS $1 $3) 1 3)]
-                        [(ISA <lowercase-id> COLON <capitalized-id> LPAREN condition-formula RPAREN) (build-so (list 'ISA $2 $4 $6) 1 7)]
+                        [(ISA variable-term COLON <capitalized-id> LPAREN condition-formula RPAREN) 
+                         (build-so (list 'ISA $2 $4 $6) 1 7)]
+                        
+                        ; ISA sugar
+                        [(ISA variable-term COLON <capitalized-id>) 
+                         (build-so (list 'ISA $2 $4 (build-so (list 'TRUE-CONDITION) 1 4)) 1 4)]
+                        
+                        ; more ISA sugar
+                        [(<capitalized-id> LPAREN variable-term RPAREN)
+                         (begin
+                           (define varstring (second (syntax->datum $3)))
+                           (display (format "COMPILER WARNING: Implicit cast converted from predicate form to ISA: ~v ISA ~v ~n" varstring $1))
+                           (build-so (list 'ISA $3 $1 (build-so (list 'TRUE-CONDITION) 1 4)) 1 4))]
+                        
                         )   
         
         (atomic-formula-list

@@ -365,7 +365,7 @@
                  ; Environment change happened in _the caller_: create-policy-loader
                  
                  ; (3) resulting lambda will just return polname. Give something nicer.
-                 (list (string-append "Policy " polname " loaded.")))))
+                 (list (string-append "Policy " polname " loaded.\n")))))
 
 (define (helper-syn->xml syn)
   (define interns (syntax-e syn))
@@ -454,9 +454,10 @@
      `(xml-make-equals-formula ,term1-xml ,term2-xml)]
     
     [(equal? first-datum 'ISA)
-     (define the-var (syntax->string (second interns)))
+     (define the-var (helper-syn->xml (second interns))) 
      (define the-sort (syntax->string (third interns)))
-     `(xml-make-isa-formula ,the-var ,the-sort)]
+     (define the-fmla (helper-syn->xml (fourth interns)))
+     `(xml-make-isa-formula ,the-var ,the-sort ,the-fmla)]
     
     [(equal? first-datum 'CONDITION)
      (helper-syn->xml (second interns))]      
