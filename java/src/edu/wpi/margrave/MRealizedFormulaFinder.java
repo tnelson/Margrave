@@ -307,7 +307,60 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		return result.toString() + ">";
 	}
 	
+	public Map<String, Set<String>> getUnrealizedFormulas(Map<String, Set<List<MTerm>>> candidates, 
+			Map<String, Set<List<MTerm>>> cases)
+	{			
+		Map<String, Set<String>> invresult = new HashMap<String, Set<String>>();
+		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
+		
+		invresult = getRealizedFormulas(candidates, cases);
+		
+		MCommunicator.writeToLog("Entered getUnrealizedFormulas with args:\n"+candidates+"\n"+cases);
+		MCommunicator.writeToLog("Realized returned: "+invresult);
+		
+		// The ones that don't appear in invresult need to appear in result.
+		
+		if(cases.keySet().isEmpty())
+		{
+			handleUnrealizedCase("", candidates, invresult, result);
+		}
+		
+		for(String caseRel : cases.keySet())
+		{
+			for(List<MTerm> caseArgs : cases.get(caseRel))
+			{
+				String caseString = caseToString(caseRel, caseArgs);
+				handleUnrealizedCase(caseString, candidates, invresult, result);														
+			}			
+		}
+		
+		return result;
+	}
 	
+	
+	private void handleUnrealizedCase(String caseString, Map<String, Set<List<MTerm>>> candidates,
+			Map<String, Set<String>> invresult, Map<String, Set<String>> result) 
+	{
+		result.put(caseString, new HashSet<String>());
+		
+		MCommunicator.writeToLog("Handling unrealized case:"+caseString);
+		
+		for(String candRel : candidates.keySet())
+		{
+			for(List<MTerm> candArgs : candidates.get(candRel))
+			{
+				String candString = caseToString(candRel, candArgs);
+				if(!invresult.containsKey(caseString) || !invresult.get(caseString).contains(candString))
+				{
+					result.get(caseString).add(candString);
+					MCommunicator.writeToLog("Added: "+candString);
+				}
+				
+			}		
+		}
+		
+	}
+
 	public Map<String, Set<String>> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates, 
 			Map<String, Set<List<MTerm>>> cases)
 	{			

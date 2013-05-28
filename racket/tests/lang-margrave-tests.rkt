@@ -85,15 +85,36 @@ SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r)
             conf1.paperassigned_applies(s,a,r),
             conf1.paperconflict_applies(s,a,r);
 
-// FOR CASES
-
 
 // Testing show unrealized: 
 let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r);
 
-// TODO: not yet connected in implementation. is just complement of realized?
-// do the sugar in java.
-
+// s/b deny
 SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
 
+
+// Remember: scope is limited in Q6. So deny can never fire (which means EVERYTHING is unrealized w/r/t it).
+//           In a permit, all of the rules (including the deny rule) can 
+// HMM. Bug? Deny rule matches, but doesn't apply?
+// also: permit in deny and deny in permit?
+
+SHOW UNREALIZED Q6
+              conf1.permit(s, a, r), 
+              conf1.deny(s, a, r), 
+              conf1.papernoconflict_applies(s,a,r),
+              conf1.paperassigned_applies(s,a,r),
+              conf1.paperconflict_applies(s,a,r)
+            FOR CASES conf1.permit(s, a, r), 
+                      conf1.deny(s, a, r);
+
+                      
+SHOW REALIZED Q6
+              conf1.permit(s, a, r), 
+              conf1.deny(s, a, r), 
+              conf1.papernoconflict_applies(s,a,r),
+              conf1.paperassigned_applies(s,a,r),
+              conf1.paperconflict_applies(s,a,r)
+            FOR CASES conf1.permit(s, a, r), 
+                      conf1.deny(s, a, r);
+                      
 /////////////////////////////////////////////////////////

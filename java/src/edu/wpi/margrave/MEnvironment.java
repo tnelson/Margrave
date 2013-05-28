@@ -1037,20 +1037,14 @@ public class MEnvironment
 		MPreparedQueryContext aResult = getQueryResult(id);
 		if(aResult == null)
 			return errorResponse(sUnknown, sResultID, id);
-				
-		// XXX no more placeholders. to be removed. 
-		// If tupled, will have indexing. Translate (using the original vocab)
-		//if(aResult.forQuery.tupled)
-		//{
-		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, rlist);
-		//	MExploreCondition.resolveMapPlaceholders(aResult.forQuery.internalTupledQuery.vocab, clist);
-		//}
-		
-		Map<String, Set<String>> outsets = new HashMap<String, Set<String>>();
+						
+		Map<String, Set<String>> outsets = new HashMap<String, Set<String>>();		
 		try
 		{
-			// TODO
-			//outsets = aResult.getUnrealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
+			// UNrealized is just the complement of realized.
+			// Caveat: this is only testing up to bounds! May not be fully safe, even with bounds checking.			
+						
+			outsets = aResult.getRealizedFormulaFinder().getUnrealizedFormulas(rlist, clist);
 			
 			if(outsets.size() == 1 && outsets.containsKey(""))				
 				return setResponse(outsets.get(""));
