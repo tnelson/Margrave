@@ -205,7 +205,7 @@
        (define the-child-policies
          (let ()    
            (define the-children-clause (first the-children-clauses))
-           (rest (syntax-e the-children-clause)))) 
+           (rest (syntax->list the-children-clause)))) 
        
        ;(printf "In policyset macro phase +1. number of children gotten:~v~n" (length the-child-policies))
        
@@ -217,7 +217,7 @@
              empty
              (let ()               
                (define the-target-clause (first the-target-clauses))
-               (define the-targets (rest (syntax-e the-target-clause)))
+               (define the-targets (rest (syntax->list the-target-clause)))
                (when (> (length the-targets) 1)
                  (raise-syntax-error 'PolicySet "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
                (when (< (length the-targets) 1)
@@ -359,7 +359,7 @@
        ; (Vocab ...)
        ; will expand to (m-vocabulary ...)
        (define the-vocab-syntax #'myvocab)                           
-       (define the-axioms-clauses (syntax-e #'(myaxioms ...)))                     
+       (define the-axioms-clauses (syntax->list #'(myaxioms ...)))                     
        
        (with-syntax ([theory-name (->string #'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
@@ -414,7 +414,7 @@
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        
        (define the-types-clause (first the-types-clauses))
-       (define the-types (rest (syntax-e the-types-clause)))
+       (define the-types (rest (syntax->list the-types-clause)))
        
        ; Returns a pair (name cmd)
        (define (handle-type a-type)              
@@ -423,7 +423,7 @@
            [(t > subt ...) (and (capitalized-id-syn? #'t)
                                 (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
                            (m-type (symbol->string (syntax->datum #'t))
-                                   (map (compose symbol->string syntax->datum) (syntax-e #'(subt ...))))] 
+                                   (map (compose symbol->string syntax->datum) (syntax->list #'(subt ...))))] 
            [(t > subt ...) (not 
                             (and (capitalized-id-syn? #'t)
                                  (all-are-syn? #'(subt ...) capitalized-id-syn?)))
@@ -489,7 +489,7 @@
              empty
              (let ()
                (define the-predicates-clause (first the-predicates-clauses))
-               (define the-predicates (rest (syntax-e the-predicates-clause)))                                        
+               (define the-predicates (rest (syntax->list the-predicates-clause)))                                        
                
                (define (handle-predicate pred)
                  ; No colon. Just (predname A B C)
@@ -517,7 +517,7 @@
              empty
              (let ()
                (define the-constants-clause (first the-constants-clauses))
-               (define the-constants (rest (syntax-e the-constants-clause)))                                
+               (define the-constants (rest (syntax->list the-constants-clause)))                                
                
                (define (handle-constant const)
                  ; No colon. Just ('a A)
@@ -549,7 +549,7 @@
              empty
              (let ()
                (define the-functions-clause (first the-functions-clauses))
-               (define the-functions (rest (syntax-e the-functions-clause)))                                
+               (define the-functions (rest (syntax->list the-functions-clause)))                                
                
                (define (handle-function func)
                  ; No colon. Just (f A B)
@@ -656,7 +656,7 @@
              empty
              (let ()    
                (define the-variables-clause (first the-variables-clauses))
-               (define the-variables (rest (syntax-e the-variables-clause)))
+               (define the-variables (rest (syntax->list the-variables-clause)))
                
                (define (handle-variable a-var-dec)
                  (syntax-case a-var-dec []
@@ -691,7 +691,7 @@
              'true
              (let ()               
                (define the-target-clause (first the-target-clauses))
-               (define the-targets (rest (syntax-e the-target-clause)))
+               (define the-targets (rest (syntax->list the-target-clause)))
                (when (> (length the-targets) 1)
                  (raise-syntax-error 'Policy "Only one target formula can be given, but had more than one." #f #f (list the-target-clause)))
                (when (< (length the-targets) 1)
@@ -711,7 +711,7 @@
              empty
              (let ()    
                (define the-rules-clause (first the-rules-clauses))
-               (define the-rules (rest (syntax-e the-rules-clause)))
+               (define the-rules (rest (syntax->list the-rules-clause)))
                
                ;(printf "the-rules: ~v~n" the-rules)
                
@@ -870,12 +870,12 @@
     
     [(_) (raise-syntax-error 'Policy "Empty policy specification not allowed." 
                              #f #f (list stx))]
-    [(_ x) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses." 
+    [(_ uses) (raise-syntax-error 'Policy "Saw uses keyword, but no name following." 
                                #f #f (list stx))]
-    [(_ x y) (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (e.g. Policy mypolicy uses myvocabulary ...)" 
+    [(_ x) (raise-syntax-error 'Policy "Policy must supply the name of the vocabulary it uses. (e.g. Policy uses myvocabulary ...)" 
                                  #f #f (list stx))]
     [(_ x0 x1 x ...) (and (not (equal? (syntax->datum #'x0) 'uses))
                           (not (equal? (syntax->datum #'x1) 'uses)))
-                     (raise-syntax-error 'Policy "Policy must supply both its name and the name of the vocabulary it uses. (The uses keyword may be missing between policy and vocabulary name.)" 
+                     (raise-syntax-error 'Policy "Invalid policy specification." 
                                          #f #f (list stx))]))
 

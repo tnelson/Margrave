@@ -498,9 +498,8 @@
   [(or/c document? element?) . -> . string?]
   (define response-element (maybe-document->element xml-response))
   (define string-element (get-child-element response-element 'string))
-  ; Use ~a to avoid "" around the string
-  (format "~a~n" (get-attribute-value string-element 'value)))
-
+  ; Don't insert ~n, because the results of this func are passed to (e.g.) string->number
+  (get-attribute-value string-element 'value))
 
 ; element -> string
 (define (pretty-print-boolean-xml element)

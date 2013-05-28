@@ -259,7 +259,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 ; Test that IDBs can refer to other IDBs in a policy, so long as the rules are stratifiable.
 (m-load-policy "p2tiers" "idbs-refer-to-idbs.p")
-(m-let "Qtiers1" '([s Subject] [a Action] [r Resource]) '([p2tiers permit] s a r))
+(m-let "Qtiers1" '([s Subject] [a Action] [r Resource]) '([p2tiers permit] s a r) #:debug 3)
 (let ([c (m-count-scenarios "Qtiers1")])
   (check-true (and c (> c 0))))
 
