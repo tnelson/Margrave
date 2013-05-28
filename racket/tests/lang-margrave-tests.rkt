@@ -68,7 +68,6 @@ COUNT Q4;
 
 /////////////////////////////////////////////////////////
 // Testing show realized: create a query that matches everything:
-
 let Q5[s: Subject, a: Action, r: Resource] be 
 true
 under conf1;
@@ -77,5 +76,21 @@ SHOW Q5;
 
 SHOW REALIZED Q5 conf1.permit(s, a, r);
 SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
+
+SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r)
+  FOR CASES conf1.papernoconflict_applies(s,a,r),
+            conf1.paperassigned_applies(s,a,r),
+            conf1.paperconflict_applies(s,a,r);
+
+// FOR CASES
+
+
+// Testing show unrealized: 
+let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r);
+
+// TODO: not yet connected in implementation. is just complement of realized?
+// do the sugar in java.
+
+SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
 
 /////////////////////////////////////////////////////////
