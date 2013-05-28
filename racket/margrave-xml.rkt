@@ -375,8 +375,10 @@
   ; ^ End of internal func. to handle scenarios
   
   ; Is this input scenario or an unsatisfiable response?
-  (cond [(m-scenario? a-response) (internal-process-scenario a-response)]
-        [else (internal-process-unsat a-response)]))
+  (cond [(m-scenario? a-response) 
+         (internal-process-scenario a-response)]
+        [else 
+         (internal-process-unsat a-response)]))
 
 (define (success->policy-sexpr response)
   (define polelement (get-child-element (maybe-document->element response) 'POLICY))
@@ -457,34 +459,37 @@
 ;Pass this function an xml Document with a MARGRAVE-RESPONSE root element
 ; document? or element? or string? -> string?
 (define (response->string the-response)
-  (cond [(false? the-response)
-         "Engine stopped!"]
-        
-        [(document? the-response)
-         (response->string (document-element the-response))]
-        
-        [(element? the-response)
-         (let* ([type (get-attribute-value the-response 'type)])
-           ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
-           (cond [(equal? type "model") (m-scenario->string (xml->scenario the-response))] 
-                 [(equal? type "sysinfo") (pretty-print-sys-info-xml the-response)]
-                 [(equal? type "collection-info") (pretty-print-collection-info-xml the-response)]
-                 [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml the-response)]
-                 [(equal? type "error") (pretty-print-error-xml the-response)]
-                 [(equal? type "exception") (pretty-print-exception-xml the-response)]
-                 [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
-                 [(equal? type "unsat") (m-scenario->string (xml->scenario the-response))]
-                 [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
-                 ; [(equal? type "string") (pretty-print-string-xml the-response)]
-                 [(equal? type "string") (xml-string-response->string the-response)]
-                 [(equal? type "set") (pretty-print-set-xml the-response)]
-                 [(equal? type "list") (pretty-print-list-xml the-response)]
-                 [(equal? type "map") (pretty-print-map-xml the-response)]
-                 [(equal? type "success") "Success\n"]))]
-        
-        [(string? the-response) the-response]
-        
-        [else the-response]))
+  (define result 
+    (cond [(false? the-response)
+           "Engine stopped!"]
+          
+          [(document? the-response)
+           (response->string (document-element the-response))]
+          
+          [(element? the-response)
+           (let* ([type (get-attribute-value the-response 'type)])
+             ;Debugging: (display (xexpr->string (xml->xexpr (document-element response-doc))))
+             (cond [(equal? type "model") (m-scenario->string (xml->scenario the-response))] 
+                   [(equal? type "sysinfo") (pretty-print-sys-info-xml the-response)]
+                   [(equal? type "collection-info") (pretty-print-collection-info-xml the-response)]
+                   [(equal? type "vocabulary-info") (pretty-print-vocab-info-xml the-response)]
+                   [(equal? type "error") (pretty-print-error-xml the-response)]
+                   [(equal? type "exception") (pretty-print-exception-xml the-response)]
+                   [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
+                   [(equal? type "unsat") (m-scenario->string (xml->scenario the-response))]
+                   [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
+                   ; [(equal? type "string") (pretty-print-string-xml the-response)]
+                   [(equal? type "string") (xml-string-response->string the-response)]
+                   [(equal? type "set") (pretty-print-set-xml the-response)]
+                   [(equal? type "list") (pretty-print-list-xml the-response)]
+                   [(equal? type "map") (pretty-print-map-xml the-response)]
+                   [(equal? type "success") "Success!\n"]))]
+          
+          [(string? the-response) the-response]
+          
+          [else the-response]))
+  ; space here to add post-formatting if desired
+  result)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; xml-string-response
@@ -493,7 +498,8 @@
   [(or/c document? element?) . -> . string?]
   (define response-element (maybe-document->element xml-response))
   (define string-element (get-child-element response-element 'string))
-  (get-attribute-value string-element 'value))
+  ; Use ~a to avoid "" around the string
+  (format "~a~n" (get-attribute-value string-element 'value)))
 
 
 ; element -> string

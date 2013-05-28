@@ -325,7 +325,7 @@
                   (helper-func)
                   (let ([result (get-output-string string-buffer)])
                     (if (equal? result "")
-                        "---> NO RESULTS <---"
+                        "---> NO RESULTS <---\n"
                         result))))))
 
 ; GET ALL returns a generator for all the models

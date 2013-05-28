@@ -66,9 +66,16 @@ INFO Q4;
 COUNT Q4;
 
 
+/////////////////////////////////////////////////////////
+// Testing show realized: create a query that matches everything:
 
+let Q5[s: Subject, a: Action, r: Resource] be 
+true
+under conf1;
 
-// TODO: realized (later in doc?)
+SHOW Q5;
 
-// TODO: rest of syntax
+SHOW REALIZED Q5 conf1.permit(s, a, r);
+SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
 
+/////////////////////////////////////////////////////////
