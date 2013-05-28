@@ -373,7 +373,7 @@ public class MCommunicator
 				writeToLog("In Info");
 				String idString = getInfoId(margraveCommandNode);
 				writeToLog("\nPast getting id info");
-				if (idString != null) {
+				if (idString != null && idString.length() > 0) {
 					theResponse = MEnvironment.printInfo(idString); 
 				}
 				else {
@@ -1021,7 +1021,15 @@ public class MCommunicator
 	}
 
 	private static String getInfoId(Node n) {
-		return getAttributeOfChildNodeOrNode(n, "INFO", "id");
+		// Return "" if id field is null
+		try
+		{
+			return getAttributeOfChildNodeOrNode(n, "INFO", "id");
+		}
+		catch(MCommunicatorException e)
+		{
+			return "";
+		}
 	}
 
 	//Helper functions for specific parts of commands

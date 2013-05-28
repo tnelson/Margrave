@@ -9,6 +9,8 @@
 // Initial basic tests for syntax coverage
 // ***************************************
 
+// Remember that Margrave is case-sensitive!
+
 info;
 
 //info doesntexist;
@@ -21,6 +23,9 @@ info;
 // EXPLORE + UNDER + AND + NOT
 let Q1[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
 UNDER conf1;
+
+info conf1;
+info Q1;
 
 // more than one UNDER
 let Q2[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
