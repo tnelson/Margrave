@@ -16,7 +16,7 @@
 (provide (except-out (all-from-out racket) #%module-begin)
          (rename-out [top-level #%module-begin])
          add sub mult div numeq
-         Policy Vocab)
+         Policy Vocab Theory)
 
 (define add +)
 (define sub -)
