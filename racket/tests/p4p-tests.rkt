@@ -2,7 +2,9 @@
 
 ; uses(vname): done
 ; rules without :- or =: done
+; type decls without >: done
 ; Note: constants can now be signified by $. Single-quote is deprecated.
+; Note: if > is omitted, C(D) means that C is a supersort of D.
 
 ; things to fix:
 ; *** should be able to load via #lang margrave automatically, from standalone file!
@@ -17,19 +19,21 @@ Policy( uses(myvoc),
 ; *** terribad error message if R or Q are capitalized. why? because contract violation.
 ;     the macros expect a lowercase id for func/pred.
 
-; *** types with > will be problematic, need alternative
-
 ;; *** terribad error message if disjoint(sort, sort).
+
+; *** any leftover danger from the full p4p language that should be removed?
+; *** more tests!
 
 Theory(myvoc,
        Vocab(myvoc, 
              Types(A, B, C(D, E), E(F), Subject, Action),
              Predicates( r(Subject, Action), q(Subject), q2(Subject)),
-             Constants( $c(A) ), 
+             Constants( $c(C), $d(D) ), 
              Functions( f(A, B),
                         g(B, C))
             ),
        Axioms( disjoint(q, q2),
                singleton(A),
                abstract(C),
-               formula(true)))
+               formula(true),
+               formula(=($c, $d))))
