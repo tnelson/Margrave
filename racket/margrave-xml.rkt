@@ -1477,7 +1477,7 @@
              (empty? terms)) ; only one term!             
         (xml-make-isa-formula (m-term->xexpr term0) dbname (xml-make-true-condition))]
        [(valid-sort? dbname) 
-        (margrave-error "Atomic formulas (S t), where S is a sort name, must contain only a single term t." sexpr)]
+        (margrave-error "Margrave uses capital letters for sort symbols. Perhaps you meant this to be a relation (lowercase)?" sexpr)]
        
        [else (xml-make-atomic-formula (list dbname)
                                       (map m-term->xexpr (cons term0 terms)))])]

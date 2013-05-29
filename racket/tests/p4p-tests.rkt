@@ -16,11 +16,6 @@ Policy( uses(myvoc),
         RComb(fa(permit, deny )))
 
 
-; *** terribad error message if R or Q are capitalized. why? because contract violation.
-;     the macros expect a lowercase id for func/pred.
-
-;; *** terribad error message if disjoint(sort, sort).
-
 ; *** any leftover danger from the full p4p language that should be removed?
 ; *** more tests!
 
@@ -33,6 +28,7 @@ Theory(myvoc,
                         g(B, C))
             ),
        Axioms( disjoint(q, q2),
+               ;disjoint(A,B),
                singleton(A),
                abstract(C),
                formula(true),

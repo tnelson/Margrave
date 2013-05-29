@@ -361,6 +361,10 @@
        (define the-vocab-syntax #'myvocab)                           
        (define the-axioms-clauses (syntax->list #'(myaxioms ...)))                     
        
+       ; test for validity of axioms, give friendly error if not valid
+       (for-each (lambda (cl) (m-axiom->xexpr cl))
+        the-axioms-clauses)
+       
        (with-syntax ([theory-name (->string #'theoryname)]                     
                      [the-vocab-syntax the-vocab-syntax]                     
                      [the-axioms-list the-axioms-clauses])                                               
@@ -542,7 +546,7 @@
                    ;[('cname crel) (not (lower-id-syn? (syntax cname)))
                    ;                        (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
                    [(cname crel) 
-                    (cond [(substring (->string #'cname) 0 1)
+                    (cond [(equal? (substring (->string #'cname) 0 1) "$")
                            (m-constant (syntax->string #'cname)
                                        (syntax->string #'crel))]
                           [else (raise-syntax-error
@@ -740,6 +744,9 @@
                    (define bodyfmla (if (> (length bodyfmlas) 1) 
                                         `(and ,@bodyfmlas)
                                         (first bodyfmlas)))
+                   ; Try converting the fmla to xexpr. This will force-test validity and give a better error:
+                   (m-formula->xexpr bodyfmla)
+                   
                    (m-rule (->string rulename)
                            (->string decision)
                            (map syntax->datum (syntax->list rvars))
@@ -874,7 +881,7 @@
              (define vardec-hash (assemble-struct-hash disassembled-vardec-hash))             
              (define rules-hash (assemble-struct-hash disassembled-rules-hash))             
                
-             (define (grant-theory-path t vp)
+             (define (grant-theory-path t vp)               
                (m-theory (m-theory-name t) (or vp (string->path ".")) (m-theory-vocab t) (m-theory-axioms t)))                          
              
              (m-policy local-policy-id ; [id string?]                                             
