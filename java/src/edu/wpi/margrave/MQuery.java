@@ -258,11 +258,15 @@ public class MQuery extends MIDBCollection
 			if(t instanceof MFunctionTerm)
 			{
 				MFunction theFunc = vocab.functions.get(((MFunctionTerm) t).funcName);
+				if(theFunc == null)
+					throw new MGEUnknownIdentifier("Function named "+t+" was unknown in the vocabulary.");
 				termTypes.put(expr, theFunc.result.rel);
 			}
 			else if(t instanceof MConstantTerm)
 			{
 				MConstant theConst = vocab.constants.get(((MConstantTerm) t).constName);
+				if(theConst == null)
+					throw new MGEUnknownIdentifier("Constant named "+t+" was unknown in the vocabulary.");
 				termTypes.put(expr, theConst.type.get(0).rel);
 			}
 		}

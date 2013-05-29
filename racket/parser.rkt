@@ -417,7 +417,7 @@ Margrave did not understand the condition or options given around \"~a\"."
         ;**************************************************
         ; terms
         (variable-term [(<lowercase-id>) (build-so (list 'VARIABLE-TERM $1) 1 1)])
-        (constant-term [(<quoted-id>) (build-so (list 'CONSTANT-TERM $1) 1 1)])
+        (constant-term [(<constant-id>) (build-so (list 'CONSTANT-TERM $1) 1 1)])
         (function-term [(<lowercase-id> LPAREN condition-term-list RPAREN) (build-so (list 'FUNCTION-TERM $1 $3) 1 4)])
         
         (condition-term-list

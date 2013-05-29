@@ -443,7 +443,7 @@
 
      `(xml-make-function-term ,func-name (list ,@sub-term-xml))]
     
-    [(equal? first-datum 'CONSTANT-TERM)
+    [(equal? first-datum 'CONSTANT-TERM)     
      `(xml-make-constant-term ,(symbol->string (syntax->datum (second interns))))]
     [(equal? first-datum 'VARIABLE-TERM)
      `(xml-make-variable-term ,(symbol->string (syntax->datum (second interns))))]

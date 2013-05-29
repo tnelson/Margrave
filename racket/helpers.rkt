@@ -371,6 +371,7 @@
                   sym-or-syn))
   (match sym
     [`(quote ,(? valid-function? sym)) #t]
+    [c (equal? "$" (substring (->string c) 0 1))]
     [else #f]))
 
 ; Predicate symbols are the same as function symbols.

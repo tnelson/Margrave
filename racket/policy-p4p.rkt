@@ -258,7 +258,7 @@
              (let-values ([(an-arg arg-rest) (extract-one-expression
                                               (syntax (something other-things ...))
                                               icheck)])
-               ;(printf "~v: ~v~n" arg-stream (cons an-arg (arg-helper arg-rest icheck)))
+               ;(printf "arg-helper: ~v: ~v ~v~n" arg-stream an-arg arg-rest)
                (cons an-arg (arg-helper arg-rest icheck)))]
             [_
              (raise-syntax-error 'process-app "argument not preceded by comma" arg-stream)])))
@@ -268,9 +268,7 @@
           (if (stx-null? arg-stream)
               empty
               (let-values ([(first-arg arg-rest) (extract-one-expression arg-stream icheck)])
-                ;(printf "~v : ~v~n~n" 
-                ;        arg-stream
-                ;        (cons first-arg (arg-helper arg-rest icheck)))
+               ; (printf "process-args: ~v : ~v ~v~n~n" arg-stream first-arg arg-rest )
                 (cons first-arg (arg-helper arg-rest icheck))))
           (raise-syntax-error 'application "not a proper argument list" arg-stream)))
     
@@ -281,8 +279,7 @@
         (values ;(syntax (#%app fun args ...))
          ; TN: Just produce the sexpression, not function application.
          (syntax (fun args ...))                
-         rest-stream)))    
-    (printf "se: ~v~n" (syntax-e out1))
+         rest-stream)))        
     (values out1 out2))
 
   (define (process-const const-expr const-rest icheck)
@@ -363,8 +360,12 @@
            (begin
              (icheck (stx-car sexp-stream))
              (process-test: sexp-stream (check-indent SLGC (stx-car sexp-stream))))]
+          
+          
           [(quote e)
            (process-const (syntax e) (stx-cdr sexp-stream) icheck)]
+          
+          
           [(e ...)  ;; Function position is itself a non-identifier expression
            (let ([paren (syntax-property (stx-car sexp-stream) 'paren-shape)])
              (and paren (char=? paren #\{)))

@@ -527,9 +527,15 @@
                                            (m-constant (syntax->string #'cname)
                                                        (syntax->string #'crel))] 
                    
-                   [('cname crel) (not (lower-id-syn? (syntax cname)))
-                                           (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
-                   [(cname crel) (raise-syntax-error `Vocab "Invalid constant name. Constant names must be preceded with a single quote. For instance: (Constant 'c A)" #f #f (list const) )]
+                   ;[('cname crel) (not (lower-id-syn? (syntax cname)))
+                   ;                        (raise-syntax-error `Vocab err-invalid-constant #f #f (list const) )]
+                   [(cname crel) 
+                    (cond [(substring (->string #'cname) 0 1)
+                           (m-constant (syntax->string #'cname)
+                                       (syntax->string #'crel))]
+                          [else (raise-syntax-error
+                                 `Vocab
+                                 "Invalid constant name. Constant names must be preceded with a $ symbol. For instance: (Constant $c A)" #f #f (list const) )])]
                    
                    [_ (raise-syntax-error 'Vocab err-invalid-constant #f #f (list const) )]))
                

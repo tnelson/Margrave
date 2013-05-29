@@ -20,8 +20,9 @@ info;
 #LOAD POLICY conf2 = "*MARGRAVE*/tests/conference2.p";
 //#load policy emptyconf = "./emptyconference.p";
 
-// EXPLORE + UNDER + AND + NOT
+// EXPLORE + UNDER + AND + NOT + constant
 let Q1[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
+OR NOT ($margravepaper = $margravepaper)
 UNDER conf1;
 
 info conf1;

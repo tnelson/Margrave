@@ -12,8 +12,9 @@
                 ; Author and reviewer can overlap when declared as predicates
                 (author Subject)
                 (reviewer Subject))
-               
-               (Constants ('margravepaper Paper))
+
+	 ; Test $ sigil
+               (Constants ($margravepaper Paper))
                (Functions (techreportfor Paper TechReport)))
         (Axioms 
          ;(abstract Subject)

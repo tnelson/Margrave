@@ -68,8 +68,8 @@
    <lowercase-id>
    ; capitalized id
    <capitalized-id>
-   ; quoted-id
-   <quoted-id>
+   ; for constants. used to be <quoted-id>
+   <constant-id>
    ; natural
    <natural>
    ; comment
@@ -221,9 +221,13 @@
     (token-<capitalized-id> (string->symbol lexeme))]
    
    ; Quoted ids (trim off the quote)
+   ; or $ids (DO NOT TRIM)
    [(:: "'" (:+ (:or lex:letter lex:digit lex:allowed-non-alphanum)))
-    (token-<quoted-id> (string->symbol (substring lexeme 1)))]
+    (token-<constant-id> (string->symbol (substring lexeme 1)))]
    
+   [(:: "$" (:+ (:or lex:letter lex:digit lex:allowed-non-alphanum)))
+    (token-<constant-id> (string->symbol lexeme))]
+
    ; Identifiers enclosed in double quotes
    ; Can contain symbols. Used for filenames
    ; allow escaping the double-quote via \"   

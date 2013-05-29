@@ -1412,8 +1412,10 @@
          (syntax-list-quasi ,(? valid-function? funcid) ,@(list (? m-term->xexpr terms) ...)))
      (xml-make-function-term (->string funcid) 
                              (map m-term->xexpr terms))]
-    ; Will be '(quote constid). Grab SECOND in that pair.
-    [(? valid-constant? cid) (xml-make-constant-term (->string (extract-constant-id sexpr)))]
+    ; Will be '(quote constid). Grab SECOND in that pair (unless new form constant with $)
+    ; extract-constant-id will take this into account
+    [(? valid-constant? cid) 
+       (xml-make-constant-term (->string (extract-constant-id sexpr)))]
     [(? valid-variable? vid) (xml-make-variable-term (->string sexpr))]
     [else (margrave-error "Incorrect term expression" sexpr)]))    
 
