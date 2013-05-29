@@ -430,6 +430,18 @@
                            (raise-syntax-error
                             'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
            
+           ; allow omission of >
+           [(t subt ...) (and (capitalized-id-syn? #'t)
+                                (all-are-syn? #'(subt ...) capitalized-id-syn?))                                
+                           (m-type (symbol->string (syntax->datum #'t))
+                                   (map (compose symbol->string syntax->datum) (syntax->list #'(subt ...))))]
+           
+            [(t subt ...) (not 
+                           (and (capitalized-id-syn? #'t)
+                                (all-are-syn? #'(subt ...) capitalized-id-syn?)))
+                          (raise-syntax-error
+                           'Vocab err-invalid-type-decl-case #f #f (list a-type)) ] 
+           
            ; T (check for this AFTER the subtype declarations above, or the final "t" will match them.)
            [t (capitalized-id-syn? #'t)
               (m-type (symbol->string (syntax->datum #'t)) empty)]             

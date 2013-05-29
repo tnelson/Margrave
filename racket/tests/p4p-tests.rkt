@@ -23,7 +23,7 @@ Policy( uses(myvoc),
 
 Theory(myvoc,
        Vocab(myvoc, 
-             Types(A, B, C(>, D), Subject, Action),
+             Types(A, B, C(D, E), E(F), Subject, Action),
              Predicates( r(Subject, Action), q(Subject), q2(Subject)),
              Constants( $c(A) ), 
              Functions( f(A, B),
