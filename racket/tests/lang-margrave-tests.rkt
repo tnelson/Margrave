@@ -125,3 +125,7 @@ SHOW REALIZED Q6
 //show Qbug;
 
 /////////////////////////////////////////////////////////
+
+// Test p4p policies in #lang margrave
+
+#load policy p4p1 = "p4p-policy.p";

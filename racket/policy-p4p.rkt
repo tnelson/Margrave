@@ -14,21 +14,27 @@
          (only-in test-engine/scheme-tests run-tests display-results))
 
 (provide (except-out (all-from-out racket) #%module-begin)
-         (rename-out [top-level #%module-begin])
-         add sub mult div numeq
-         Policy Vocab Theory)
+        ; (rename-out [top-level #%module-begin])        
+         (for-syntax process-sexp-stream)
+         )
+         ;Policy Vocab Theory)
 
-(define add +)
-(define sub -)
-(define mult *)
-(define div /)
-(define numeq =)
 
 ; Provide the Policy form
-(require "margrave-policy-vocab.rkt")
+;(require "margrave-policy-vocab.rkt")
 
 (define-for-syntax (process-sexp-stream sexp-stream)
     
+  ;(printf "Stream: ~v~n" sexp-stream)
+  
+  ; thanks to Jens Axel Søgaard (via google)
+  ; thread: [racket] racket's syntax-case and read-syntax usage
+  ; for use by syntax-case*
+  (define (symbolic-identifier=? stx1 stx2)
+    (and (identifier? stx1)
+         (identifier? stx2)
+         (symbol=? (syntax->datum stx1) (syntax->datum stx2))))
+  
   ; Those that can't be at the beginning of an expression 
   (define non-expr-keywords '(else: elseif: deffun: defstruct: defvar:))
   (define expr-keywords '(fun: in: if: do: let: let*: letrec:))
@@ -90,7 +96,7 @@
         [(v other-things ...)
          (raise-syntax-error 'not-an-identifier "expected to find one" #'v)]))
     (define (process-rest sexp-stream)
-      (syntax-case sexp-stream (unquote)
+      (syntax-case* sexp-stream (unquote) symbolic-identifier=?
         [()
          empty]
         [((unquote id) other-things ...)
@@ -114,7 +120,7 @@
     (define sub-icheck (check-indent SLGC (stx-car outer-sexp-stream)))
     (define (process-bindings sexp-stream so-far)
       (define (rest-of-bindings sexp-stream so-far)
-        (syntax-case sexp-stream (in: =)
+        (syntax-case* sexp-stream (in: =) symbolic-identifier=?
           [(in: rest-stream ...)
            (begin
              (icheck (stx-car sexp-stream))
@@ -242,7 +248,7 @@
            [_
             (raise-syntax-error 'test: "expected to find =? followed by an expression" test-rest-stream)]))]
       [_
-       (raise-syntax-error 'test: "malformed use" sexp-stream)]))
+       (raise-syntax-error 'test: "malformed use" sexp-stream)]))    
   
   ;; NOTE: Assumes first arg has been taken care of.
   ;; NOTE: Assumes function position's indentation has already been checked.
@@ -253,13 +259,27 @@
     (define (arg-helper arg-stream icheck)
       (if (stx-null? arg-stream)
           empty
-          (syntax-case arg-stream (unquote)
+          (syntax-case* arg-stream (unquote) symbolic-identifier=?
             [((unquote something) other-things ...)
              (let-values ([(an-arg arg-rest) (extract-one-expression
                                               (syntax (something other-things ...))
                                               icheck)])
                ;(printf "arg-helper: ~v: ~v ~v~n" arg-stream an-arg arg-rest)
                (cons an-arg (arg-helper arg-rest icheck)))]
+            [((x y) other-things ...)
+             (printf "~v ~v ~v ~v~n"
+                     (identifier-binding #'x -1) 
+                     (identifier-binding #'x 0)
+                     (identifier-binding #'x 1)
+                     (identifier-binding #'x 2))
+             (raise-syntax-error 'process-app (format "namespace/phase failure on ~v. ~v ~v ~v ~v"
+                                                      #'(x y)
+                                                      (free-identifier=? #'x #'unquote)
+                                                      (free-identifier=? #'x #'unquote 0 1)
+                                                      (free-identifier=? #'x #'unquote 1 0)
+                                                      (list (identifier-binding #'x) (identifier-binding #'unquote))
+                                                      ) arg-stream)]
+            
             [_
              (raise-syntax-error 'process-app "argument not preceded by comma" arg-stream)])))
     
@@ -304,7 +324,7 @@
   (define (process-expr-sequence sexp-sub-stream icheck)
     (define process-first extract-one-expression)
     (define (process-not-first sexp-stream)
-      (syntax-case sexp-stream (unquote)
+      (syntax-case* sexp-stream (unquote) symbolic-identifier=?
         [() (values empty sexp-stream)]
         [((unquote stuff) other-stuff ...)
          (extract-one-expression #'(stuff other-stuff ...) icheck)]
@@ -322,7 +342,7 @@
   (define (extract-one-expression sexp-stream icheck)
     (if (stx-null? sexp-stream)
         (raise-syntax-error 'looking-for-expression "program ended prematurely")
-        (syntax-case (stx-car sexp-stream) (fun: if: do: and: or: quote let: let*: letrec: test:)
+        (syntax-case* (stx-car sexp-stream) (fun: if: do: and: or: quote let: let*: letrec: test:) symbolic-identifier=?
 
           [let:
            (begin
@@ -387,7 +407,7 @@
              (if (or (number? v) (string? v) (boolean? v)) ;; missing a few!
                  (process-const (stx-car sexp-stream) (stx-cdr sexp-stream) icheck)
                  (if (symbol? v)
-                     (syntax-case (stx-cdr sexp-stream) (unquote)
+                     (syntax-case* (stx-cdr sexp-stream) (unquote) symbolic-identifier=?
                        ;; This line cost me from 2:30am to 1:30pm.
                        ;; When we're looking at the x subexpression of f(x, y) -- which the reader 
                        ;; turns into f(x (unquote y)) -- this is indistinguishable
@@ -494,7 +514,7 @@
     (define (parse-compound-sig something) 'nothing)
 
     (define (parse-sig sub-stream)
-      (syntax-case sub-stream (-> unquote)
+      (syntax-case* sub-stream (-> unquote) symbolic-identifier=?
         [{sig-name}
          (identifier? #'sig-name)
          #'sig-name]
@@ -587,30 +607,28 @@
                       (extract-one-definition/expression sexp-stream icheck)])
           (handle-stream rest-of-sexp-stream (cons first-thing past-objects) icheck))))
   
-  (handle-stream sexp-stream empty TOP-I)  )
+  ;(handle-stream sexp-stream empty TOP-I)  )
+  (handle-stream sexp-stream empty DUMMY-ICHECK)  )
 
+;(define (top-level body-exprs)
 (define-syntax (top-level body-exprs)
   (syntax-case body-exprs () ;; _ is %module-begin
     [(_ bodies ...)
-     (begin
+     (begin       
        (define bodies-stx #'(bodies ...))
+       (printf "bodies-stx: ~v~n" bodies-stx)
        ;(printf "~v~n" bodies-stx)
-       (define bodies-list (syntax->list bodies-stx))
-       
-       ; DONT NEED TO DO THIS (SEE HEADER)
-       ; Force insertion of 
-       ;(define sexp-stream (append (list (syntax/loc (first bodies-list) require)
-       ;                                  (syntax/loc (first bodies-list) ("../margrave-policy-vocab.rkt"))) 
-       ;                            bodies-list))
-       (define sexp-stream bodies-list)
-       ;(printf "~v~n" sexp-stream)
-  
-     
+       (define sexp-stream (syntax->list bodies-stx))              
+       (printf "sexp-stream: ~v~n" sexp-stream)
        (with-syntax
            ([(processed-bodies ...)
              (process-sexp-stream sexp-stream)])
        ;(syntax (#%module-begin processed-bodies ... (run-tests) (display-results))))]))
        ; TN: Just produce the (Policy ...) for processing by our macros
+         (printf "processed-bodies: ~v~n" #'(processed-bodies ...))
          (define result-syntax (syntax (#%module-begin  processed-bodies ...)))
+         
          (printf "Result stx: ~v~n" result-syntax)
+         
          result-syntax))]))
+

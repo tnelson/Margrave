@@ -15,7 +15,8 @@
 ;    You should have received a copy of the GNU Lesser General Public License
 ;    along with Margrave.  If not, see <http://www.gnu.org/licenses/>.
 
-#lang racket/base
+
+#lang racket
 
 (require
  racket/match
@@ -38,6 +39,10 @@
              racket/string
              racket/base
              racket/contract))
+
+(require (for-template "policy-p4p.rkt")         
+         "policy-p4p.rkt"
+         )
 
 (provide evaluate-policy 
                   
@@ -95,10 +100,31 @@
   (parameterize ([read-case-sensitive #t])            
     (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
     (port-count-lines! file-port)    
-    (define the-policy-syntax (read-syntax fn file-port))   
-        
+           
+    (define pre-policy-syntax (read-syntax fn file-port))                   
+    
+    ; !!! only first 2. enough?
+    (define (read-all-syntax name pt)      
+      (list (read-syntax name pt) (read-syntax name pt)))
+         
+    ; p4p returns a list (suitable for filling a module)
+    (define (load-and-translate-p4p name port)
+      (define full-sexp-stream (read-all-syntax name port))
+      (first (process-sexp-stream full-sexp-stream)))
+    
+    ; Handle P4P policy syntax:
+    (define the-policy-syntax
+      (cond [(equal? 'Policy (syntax->datum pre-policy-syntax))
+             (file-position file-port 0)
+             (load-and-translate-p4p fn file-port)]
+            [else
+             pre-policy-syntax]))
+    
+    ;(printf "pol syn: ~v~n" the-policy-syntax)
+    
     ; Don't convert to datum before evaluating, or the Policy macro loses location info
-    (define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))           
+    ;(define the-policy-func (eval the-policy-syntax margrave-policy-vocab-namespace))           
+    (define the-policy-func (eval (syntax->datum the-policy-syntax) margrave-policy-vocab-namespace))           
     
     (define the-policy-instance (the-policy-func fn policy-id src-syntax))        
     (close-input-port file-port)        
@@ -811,8 +837,8 @@
        ; need ,(list (xml-make-command ...
        ; so do `(list ,@( ...))
        ; (The vocab command list doesn't have unquoting since everything is known about the vocab at compile time)
-       ; (create must come first; prepare last)              
-       
+       ; (create must come first; prepare last)                         
+    
        ;(printf "~v~n" #`(hash #,@(apply append (map (lambda (ele) (list (m-rule-name ele) `',(disassemble-transparent-struct ele))) (hash-values rules-hash)))))
        ;(printf "~v~n" #`(hash #,@(apply append (map (lambda (ele) (list (m-vardec-name ele) `',(disassemble-transparent-struct ele))) (hash-values vardec-hash)))))
        
@@ -838,7 +864,7 @@
            ; Don't quote the lambda. Un-necessary (and would force evaluate-policy to double-eval)
            (lambda (local-policy-filename local-policy-id src-syntax [thy/maybe #f])                                                                         
              (define s-VOCAB-EXTENSION ".v")                          
-             
+                          
              (define vocab-file-name 
                (string-append (string-downcase (symbol->string 'my-theory-name)) s-VOCAB-EXTENSION))
              
