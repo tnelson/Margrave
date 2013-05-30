@@ -210,6 +210,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Set<int[]> clauseSet = new HashSet<int[]>();
 
 		MCommunicator.writeToLog("\n  makeClauseSetFor: "+predname+" "+args);
+		MCommunicator.writeToLog("\n  PRE startherewrapper="+startHereWrapper+" newQVarsIntroduced="+newQVarsIntroduced);
 		
 		// Produce a set of clauses that says R(t_1, ..., t_n) holds. 
 		// Must cover each potential binding for the interior terms, though!
@@ -233,7 +234,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	throw new MInternalNoBoundsException();
         }
         
-		MCommunicator.writeToLog("\nRelation "+r+" has "+s.size()+" primary variables.");
+		MCommunicator.writeToLog("\n\nRelation "+r+" has "+s.size()+" primary variables.");
+		if(fromContext.forQuery.debug_verbosity > 2)
+			MCommunicator.writeToLog("\n--> "+s);
         
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
@@ -293,9 +296,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         
         startHereWrapper.set(0, q);
          
+		MCommunicator.writeToLog("\n  POST startherewrapper="+startHereWrapper+" newQVarsIntroduced="+newQVarsIntroduced);
+
+        
         if(fromContext.forQuery.debug_verbosity > 2)
         {
-        	MCommunicator.writeToLog("\n  makeClauseSetFor returning "+clauseSet.size()+" clauses: "+stringifyArrays(clauseSet));
+        	MCommunicator.writeToLog("\n\nmakeClauseSetFor returning "+clauseSet.size()+" clauses: "+stringifyArrays(clauseSet));
         }
         return Collections.unmodifiableSet(clauseSet);        
 	}
@@ -478,14 +484,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	for(String aCandidateRel : candidates.keySet())        	
         	{
         		for(List<MTerm> candidateargs : candidates.get(aCandidateRel))
-        		{   
+        		{        			
+        			
         			Set<Integer> newQVarsIntroduced = new HashSet<Integer>();
         			
         			try
         			{
         				Set<int[]> candidateClauseSet = makeClauseSetFor(theBounds, theTranslation, aCandidateRel, candidateargs, 
         						startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);
-        				candidateClauseSets.put(Collections.unmodifiableSet(newQVarsIntroduced), candidateClauseSet);          
+        				candidateClauseSets.put(Collections.unmodifiableSet(newQVarsIntroduced), candidateClauseSet);  
+        				
         				candidateGoalSet.addAll(newQVarsIntroduced);
         			}
         			catch(MInternalNoBoundsException e)
@@ -613,7 +621,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{
 			if(fromContext.forQuery.debug_verbosity > 2)
 			{
-				MCommunicator.writeToLog("\n  Will assume unit clause: "+Arrays.toString(aClause));
+				MCommunicator.writeToLog("\n  Will assume unit clause: "+aClause[0]);
 			}
 			
 			toAssume.add(aClause[0]);
@@ -632,7 +640,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
 	{
 		Set<String> result = new HashSet<String>();
-		boolean issat = false;
 		
 		Set<Integer> unitClausesToAssumeCases = new HashSet<Integer>();	
 		
@@ -713,17 +720,28 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars is now: "+solver.nVars()+"; class was "+solver.getClass().toString());
 		
+		boolean issat = false;
+		
 		// Loop while there are still goals
 		do
 		{	
 			if(fromContext.forQuery.debug_verbosity > 2)
 			{
-				MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: "+candidateClauseSets);
+				MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: ");
+				for(Set<Integer> key : candidateClauseSets.keySet())
+				{
+					MCommunicator.writeToLog("\n\n      "+key+" -> ");
+					for(int[] val : candidateClauseSets.get(key))
+					{
+						MCommunicator.writeToLog(Arrays.toString(val));
+					}
+				}
 				MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
 			}
 					
 				
 			List<Integer> potentialGoalUnit = new ArrayList<Integer>();
+						
 			
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
@@ -795,7 +813,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				// This is extremely verbose...
 				if(fromContext.forQuery.debug_verbosity > 2)
 					debugPrintClauses(solver);
-				
+								
 				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
 				MCommunicator.writeToLog("\nResult was: "+issat);
 			}
@@ -845,7 +863,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		//org.sat4j.minisat.core.Solver<?> theSolver = (org.sat4j.minisat.core.Solver<?>) solver;
 		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
 
-		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+" clauses. They are:");
+		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+"/"+solver.nConstraints()+" clauses. They are:");
+		
+		
 		
 		try
 		{
@@ -900,7 +920,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{						
 			if(fromContext.forQuery.debug_verbosity > 2)
 			{
-				MCommunicator.writeToLog("\n  checking variable "+iVar);
+				MCommunicator.writeToLog("\n  checking variable "+iVar+": "+theSolver.model(iVar));
 			}
 			
 			// theSolver.model: Provide the truth value of a specific variable in the model.
@@ -909,6 +929,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				if(fromContext.forQuery.debug_verbosity > 2)
 				{
 					MCommunicator.writeToLog("\n  var true in the model: "+iVar);
+					
+					for(int iitemp=1;iitemp<iVar;iitemp++)
+					{
+						MCommunicator.writeToLog("\n "+iitemp+" -> "+theSolver.model(iitemp));
+					}
 				}
 				
 				String predname = intermVarToPred.get(iVar);
@@ -934,7 +959,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					
 							if(fromContext.forQuery.debug_verbosity > 2)
 							{
-								MEnvironment.writeToLog("\n--- Removing clauses: "+intArrayCollectionToString(clausesForQ)+"\n");
+								MEnvironment.writeToLog("\n--- Removing clauses for var="+iVar+"\n: "+intArrayCollectionToString(clausesForQ)+"\n");
 								MEnvironment.writeToLog("\n--- Removing goal variables: "+qVars+"\n");
 							}
 							
@@ -943,14 +968,17 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 							{
 								if(toRemoveCandidates.containsKey(aClause))
 								{
-									theSolver.removeConstr(toRemoveCandidates.get(aClause));
-									toRemoveCandidates.remove(aClause); // no longer needs removal at end
+									// remove nothing until the end of this case.
+									//boolean x = theSolver.removeConstr(toRemoveCandidates.get(aClause));
+									//MEnvironment.writeToLog("\nRemoving: "+Arrays.toString(aClause)+" --> "+toRemoveCandidates.get(aClause)+"; "+x);
+									//toRemoveCandidates.remove(aClause); // no longer needs removal at end
+									
 								}
 								else
 								{
 									// aClause should be unit; remove the first literal
 									assert(aClause.length == 1);
-									unitClausesToAssumeCandidates.remove(aClause[0]);																											
+									//unitClausesToAssumeCandidates.remove(aClause[0]);																											
 								}
 							}
 							

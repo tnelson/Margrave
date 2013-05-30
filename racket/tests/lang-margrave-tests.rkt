@@ -89,8 +89,8 @@ SHOW Q5 include conf1.permit(s,a,r), conf1.deny(s,a,r),
 
 // Testing show unrealized: 
 let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) 
-//;
-  debug 3;
+;
+//  debug 3;
 
 // s/b deny
 //SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
@@ -111,13 +111,16 @@ let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r)
     //                  conf1.deny(s, a, r);
 
                       
-SHOW REALIZED Q6
-              conf1.permit(s, a, r), 
+SHOW REALIZED Q5
               conf1.deny(s, a, r),
+              conf1.permit(s, a, r),               
               conf1.paperassigned_applies(s,a,r)
-            FOR CASES conf1.permit(s, a, r);
+              FOR CASES conf1.permit(s, a, r), conf1.paperassigned_applies(s,a,r),
+              conf1.deny(s,a,r), conf1.paperconflict_applies(s,a,r), conf1.papernoconflict_applies(s,a,r);
                       
-                      
+            // happens regardless of whether permit is in the query. (q5 and q6 both display problem)          
+            
+            
                       // without rule-candidates: { conf1.permit(s, a, r) -> (conf1.permit(s, a, r)), }
                       // with { conf1.permit(s, a, r) -> (conf1.deny(s, a, r) conf1.paperassigned_applies(s, a, r) conf1.permit(s, a, r)), }
 //let Qbug[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) and conf1.paperconflict_applies(s,a,r);                       
@@ -128,4 +131,4 @@ SHOW REALIZED Q6
 
 // Test p4p policies in #lang margrave
 
-#load policy p4p1 = "p4p-policy.p";
+//#load policy p4p1 = "p4p-policy.p";
