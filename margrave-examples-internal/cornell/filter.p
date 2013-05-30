@@ -8,6 +8,7 @@ Policy( uses(filter),
                  sp(Port),      dp(Port)),
 
        ; A rule has a name, a decision, and some conditions.
+       ; rulename( decision-fmla, condition, ...)
       
         Rules(
        ; Log whenever a packet is denied:
@@ -17,13 +18,24 @@ Policy( uses(filter),
           rule2(deny(sa, sp, da, dp), ip10-1-1-2(sa), ip10-1-20-20(da)),
        
        ; Packets from other workstations to the server should be allowed.
-          rule3(permit(sa, sp, da, dp), ip10-1-1-x(sa), ip10-1-20-20(da))
+          rule3(permit(sa, sp, da, dp), ip10-1-1-x(sa), ip10-1-20-20(da)),
 
+       ; Web packets from workstations are always denied.
+          rule4(deny(sa, sp, da, dp), ip10-1-1-x(sa), port80(dp)),
+
+       ;all 2 accept
+       ;web 1 accept
+       ;web 2 deny
+       
+       ; workstations can access the server on port 80.
+       rule7(permit(sa, sp, da, dp),
+             ip10-1-1-x(sa), port80(dp), ip10-1-20-20(da))
 
        ; TODO: more rules
        
              ),
 
+       ; Permit vs. deny conflicts are resolved by rule ordering.
        ; Because "log" is not listed here, it is free to apply
        ; regardless of permit or deny.
         RComb(fa(permit, deny)))

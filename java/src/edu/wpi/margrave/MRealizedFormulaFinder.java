@@ -71,8 +71,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// Note that containsIDB is not the correct method to call, here. 
 			//if(!fromContext.forQuery.containsIDB(key)) <--- not this.
 			if(!fromContext.forQuery.myIDBCollectionsContainWithDot(key))
-				throw new MUserException("Could not show realized formula involving IDB relation "+key+" since the query had no knowledge of that relation.\n"+
-						"The query knew about the following IDB relations: "+fromContext.forQuery.getmyIDBCollectionsIDBs());
+				throw new MUserException("Could not show realized formula involving relation "+key+" since the query had no knowledge of that relation.\n"+
+						"The query knew about the following IDB relations: "+fromContext.forQuery.getmyIDBCollectionsIDBs()+
+						"\nand the following EDB relations+sorts:"+fromContext.forQuery.vocab.predicates.keySet()+",\n"+
+						fromContext.forQuery.vocab.sorts.keySet());
 			
 			// Validate arities in which we are using the relation.
 			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithDot(key);

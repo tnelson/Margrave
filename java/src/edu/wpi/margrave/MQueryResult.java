@@ -615,26 +615,28 @@ public abstract class MQueryResult
 					// What temporary variables did the policy refer to?
 					// (Order doesn't really matter here, since it's all flat universal quantifiers)
 					// Some confusion in naming if someone sees the formula, but not really a difference.
-					Set<Variable> freeVars = idbFormula.accept(freeVarCollector);
+					//Set<Variable> freeVars = idbFormula.accept(freeVarCollector);
 									
 					// What is the arity of the relation?
-					int idbArity = freeVars.size();					
+					//int idbArity = freeVars.size();					
 					
 					// Zero arity means either always true or always false... 
 					// Would be nice to support but KodKod doesn't allow nullary relations
-					if(idbArity < 1)
-					{
-						// Get around it by using the full arity of the LHS relation:
-						idbArity = idbs.varOrderings.get(idbname).size();
-						freeVars = new HashSet<Variable>(); // adding is unsupported in prior instance
-						for(Variable v : idbs.varOrderings.get(idbname))
-							freeVars.add(v);
-					}				
+					//if(idbArity < 1)
+					//{
+					//	// Get around it by using the full arity of the LHS relation:
+					//	idbArity = idbs.varOrderings.get(idbname).size();
+					//	freeVars = new HashSet<Variable>(); // adding is unsupported in prior instance
+					//	for(Variable v : idbs.varOrderings.get(idbname))
+					//		freeVars.add(v);
+					//}				
 					
 					// TODO some of that up there is not needed in this new bounding function. TN 12/11
 					
+					int idbDeclaredArity = idbs.varOrderings.get(idbname).size();
+					List<Variable> idbVars = idbs.varOrderings.get(idbname);
 					boolean first = true;
-					TupleSet thisIDBUpperBound = factory.allOf(idbArity); // dummy value															
+					TupleSet thisIDBUpperBound = factory.allOf(idbDeclaredArity); // dummy value															
 					
 					// Bound the IDB relation based on the upper bounds of its component sorts
 					for(Variable v : idbs.varOrderings.get(idbname))
@@ -664,10 +666,13 @@ public abstract class MQueryResult
 					
 					
 					
-					// Create a temporary relation 
-					Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);		
+					// Create a temporary relation
+					// do not use idbArity: that's the number of free vars. 
+					// may have stuff that doesn't get referred to. standardize the arg as a request.
+					//Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbArity);		
+					Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname, idbDeclaredArity);
 					
-					MCommunicator.writeToLog("\n***** "+therel+" "+idbArity+" "+idbs.varOrderings.get(idbname));
+					MCommunicator.writeToLog("\n***** "+therel+" made room for "+idbDeclaredArity+" vars : "+idbVars);
 					
 					// And bound it.
 					MCommunicator.writeToLog("\nBounding "+therel+" above by: "+thisIDBUpperBound);
@@ -676,16 +681,18 @@ public abstract class MQueryResult
 					///////////////////////////////////////////////////////
 					// Get proper ordering of freeVars
 					
-					List<String> actualVarNameOrder = new ArrayList<String>(idbArity);												
-					List<Variable> expectedVars = idbs.varOrderings.get(idbname);
-					for(Variable v : expectedVars)
+					List<String> actualVarNameOrder = new ArrayList<String>(idbDeclaredArity);												
+					//List<Variable> expectedVars = idbs.varOrderings.get(idbname);
+					for(Variable v : idbVars)
 					{
+						// source of incredible UI confusion commented out. 
+						
 						// Does this expected variable actually appear, free, in the IDB?
-						if(freeVars.contains(v))
+						//if(freeVars.contains(v))
 							actualVarNameOrder.add(v.name());
 					}
-					if(idbArity != actualVarNameOrder.size())
-						throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
+					//if(idbArity != actualVarNameOrder.size())
+					//	throw new MGEUnknownIdentifier("Arity of IDB formula did not match expected: "+idbs.name + ": "+idbname);
 					Expression tup = MFormulaManager.makeExprTuple(actualVarNameOrder);										
 					
 					////////////////////////////////////////////////////////////
@@ -695,7 +702,7 @@ public abstract class MQueryResult
 					// Restrict the IDB Formulas to use the proper types for their free variables.
 					// TODO: when we fix bounds, this will no longer be necessary
 					Set<Formula> properTypes = new HashSet<Formula>();					
-					for(Variable var : freeVars)
+					for(Variable var : idbVars)
 					{ 	
 						// Do I know a sort for this variable?						
 						
@@ -713,7 +720,7 @@ public abstract class MQueryResult
 									
 					// Order doesn't matter
 					String prettyVarTuple = "";
-					for(Variable var : freeVars)
+					for(Variable var : idbVars)
 					{
 						if(prettyVarTuple.length() > 0 )
 							prettyVarTuple = var.name()+" "+prettyVarTuple;

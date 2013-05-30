@@ -6,8 +6,8 @@ Theory(filter,
        
        Vocab(filter, 
              Types(IPAddress, Port),
-             Predicates( whitelist(IPAddress), 
-                         blacklist(IPAddress),
+             Predicates(; whitelist(IPAddress), 
+                        ; blacklist(IPAddress),
 
 			 ; A couple of workstations 
                          ip10-1-1-1(IPAddress),
@@ -17,7 +17,10 @@ Theory(filter,
                          ip10-1-1-x(IPAddress),
 			 
 			 ; and a server.
-                         ip10-1-20-20(IPAddress))
+                         ip10-1-20-20(IPAddress),
+
+			 ; and some ports
+			 port80(Port), port25(Port))
             ),
 
        ; subset(child, parent). 
@@ -25,4 +28,6 @@ Theory(filter,
                subset(ip10-1-1-2, ip10-1-1-x),
                atmostone(ip10-1-1-1),
                atmostone(ip10-1-1-2),
-               atmostone(ip10-1-20-20)))
+               atmostone(ip10-1-20-20),
+               atmostone(port80),
+               atmostone(port25)))
