@@ -82,6 +82,12 @@
 
 ;****************************************************************
 
+; p4p returns a list (suitable for filling a module)
+(define (load-and-translate-p4p name pt)
+  (define full-sexp-stream (list (read-syntax name pt) (read-syntax name pt)))
+  (first (process-sexp-stream full-sexp-stream)))
+
+
 ; policy-file-name policy-id [optional syntax] -> list
 ; The order of the children in their lists respects dependency: children-of-children appear before children, etc.
 (define (evaluate-policy raw-fn 
@@ -102,14 +108,10 @@
     (port-count-lines! file-port)    
            
     (define pre-policy-syntax (read-syntax fn file-port))                   
-    
-    ; !!! only first 2. enough?
-    (define (read-all-syntax name pt)      
-      (list (read-syntax name pt) (read-syntax name pt)))
-         
+                 
     ; p4p returns a list (suitable for filling a module)
-    (define (load-and-translate-p4p name port)
-      (define full-sexp-stream (read-all-syntax name port))
+    (define (load-and-translate-p4p name pt)
+      (define full-sexp-stream (list (read-syntax name pt) (read-syntax name pt)))
       (first (process-sexp-stream full-sexp-stream)))
     
     ; Handle P4P policy syntax:
@@ -891,7 +893,21 @@
                             vocab-path
                           (lambda (in-port) 
                             (port-count-lines! in-port)
-                            (define the-vocab-syntax (read-syntax vocab-path in-port))  ; (Vocab ...)                    
+                            
+                            (define pre-vocab-syntax (read-syntax vocab-path in-port))                   
+                            
+                            (define first-datum (syntax->datum pre-vocab-syntax))
+                            
+                            ; Handle P4P vocab syntax:
+                            (define the-vocab-syntax
+                              (cond [(or (equal? 'Theory first-datum)
+                                         (equal? 'Vocab first-datum))
+                                     (file-position in-port 0)
+                                     (load-and-translate-p4p vocab-path in-port)]
+                                    [else
+                                     pre-vocab-syntax]))
+                            
+                            
                             ; Keep as syntax here, so the PolicyVocab macro gets the right location info
                             ; margrave-policy-vocab-namespace is provided to the module that evaluates the code we're generating here
                             (eval the-vocab-syntax margrave-policy-vocab-namespace))))

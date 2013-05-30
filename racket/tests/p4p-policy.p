@@ -1,4 +1,4 @@
-Policy( uses(myvoc),
+Policy( uses(p4p-vocab),
         Variables(s(Subject), a(Action)),        
         Rules( rule1(log(s, a), true),
                rule2(deny(s, a), r(s, a), not(q(s))) 
