@@ -21,7 +21,7 @@ Policy( uses(filter),
           rule3(permit(sa, sp, da, dp), ip10-1-1-x(sa), ip10-1-20-20(da)),
 
        ; Web packets from workstations are always denied.
-          rule4(deny(sa, sp, da, dp), ip10-1-1-x(sa), port80(dp)),
+          rule4(deny(sa, sp, da, dp), ip10-1-1-x(sa), =(dp,$port80)),
 
        ;all 2 accept
        ;web 1 accept
@@ -29,7 +29,7 @@ Policy( uses(filter),
        
        ; workstations can access the server on port 80.
        rule7(permit(sa, sp, da, dp),
-             ip10-1-1-x(sa), port80(dp), ip10-1-20-20(da))
+             ip10-1-1-x(sa), =(dp, $port80), ip10-1-20-20(da))
 
        ; TODO: more rules
        

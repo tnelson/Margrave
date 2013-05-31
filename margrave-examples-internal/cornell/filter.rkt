@@ -8,7 +8,7 @@ let q1[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be
   //not ip10-1-1-1(sa) and ip10-1-1-x(sa)
   //under filter;
   
-  filter.permit(sa, sp, da, dp) and port80(dp);
+  filter.permit(sa, sp, da, dp) and dp=$port80;
   
 show q1;
 show q1;
