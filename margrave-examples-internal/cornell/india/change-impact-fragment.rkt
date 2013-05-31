@@ -1,6 +1,21 @@
 #lang margrave
 
-LOAD POLICY filter = "filter.p";
+// Two routers on the network. One does NAT and filtering.
+// The other just does filtering.
+LOAD POLICY aclfw1 = "inboundacl_fw1.p";
+LOAD POLICY aclfw2 = "inboundacl_fw2.p";
+LOAD POLICY natfw2 = "inboundnat_fw2.p";
+
+// A first fix!
+LOAD POLICY aclfw1b = "inboundacl_fw1_new.p";
+LOAD POLICY aclfw2b = "inboundacl_fw2_new.p";
+
+// A real fix:
+
+LOAD POLICY aclfw1c = "inboundacl_fw1_fixed.p";
+LOAD POLICY aclfw2c = "inboundacl_fw2_fixed.p";
+
+// !!! TODO insert diagnosis portion for handout
 
 ///////////////////////////////////////////////////
 // Basic query: What WWW traffic is passed by the filter?

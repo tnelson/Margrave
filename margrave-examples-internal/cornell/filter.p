@@ -23,19 +23,13 @@ Policy( uses(filter),
        ; Web packets from workstations are always denied.
           rule4(deny(sa, sp, da, dp), ip10-1-1-x(sa), =(dp,$port80)),
 
-       ;all 2 accept
-       ;web 1 accept
-       ;web 2 deny
-       
        ; workstations can access the server on port 80.
-       rule7(permit(sa, sp, da, dp),
-             ip10-1-1-x(sa), =(dp, $port80), ip10-1-20-20(da))
+          rule5(permit(sa, sp, da, dp),
+                ip10-1-1-x(sa), =(dp, $port80), ip10-1-20-20(da))
 
-       ; TODO: more rules
-       
-             ),
+       ),
 
        ; Permit vs. deny conflicts are resolved by rule ordering.
        ; Because "log" is not listed here, it is free to apply
-       ; regardless of permit or deny.
+       ; regardless of permit or deny---just like in iptables!
         RComb(fa(permit, deny)))
