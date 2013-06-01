@@ -371,7 +371,9 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(LET any-id LSQBRACK RSQBRACK BE condition-formula explore-modifiers-list) 
           (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 $7) 1 7)]
          [(COMPARE any-id EQUALS any-id any-id)
-          (build-so (list 'COMPARE $2 $4 $5) 1 5)]
+          (build-so (list 'COMPARE $2 $4 $5 empty) 1 5)]
+         [(COMPARE any-id EQUALS any-id any-id LPAREN raw-id-list RPAREN)
+          (build-so (list 'COMPARE $2 $4 $5 $7) 1 8)]
          )
                        
                         
@@ -419,6 +421,10 @@ Margrave did not understand the condition or options given around \"~a\"."
         (variable-term [(<lowercase-id>) (build-so (list 'VARIABLE-TERM $1) 1 1)])
         (constant-term [(<constant-id>) (build-so (list 'CONSTANT-TERM $1) 1 1)])
         (function-term [(<lowercase-id> LPAREN condition-term-list RPAREN) (build-so (list 'FUNCTION-TERM $1 $3) 1 4)])
+        
+        (raw-id-list
+         [(any-id) (list $1)]
+         [(raw-id-list COMMA any-id) (append $1 (list $3))])
         
         (condition-term-list
          [(condition-term) (list $1)]

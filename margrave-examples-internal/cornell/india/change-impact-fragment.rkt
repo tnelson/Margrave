@@ -9,6 +9,13 @@ LOAD POLICY natfw2 = "inboundnat_fw2.p";
 // A first fix!
 LOAD POLICY aclfw1fix = "inboundacl_fw1_new.p";
 
+// The COMPARE command sets up a change-impact query over a SINGLE POLICY.
+// Without giving a variable vector, it will name the variables v0, ...
+COMPARE diff = aclfw1 aclfw1fix (interf, ipsrc, ipdest, portsrc, portdest, pro);
+
+
+// todo more. link with compare
+
 ///////////////////////////////////////////////////
 // *************************************************
 // We changed FW1's ACL to try to fix the bug. Let's see

@@ -159,7 +159,7 @@
    
    ; commands
    
-;   [(lex-ci "compare") (token-COMPARE)] 
+   [(lex-ci "compare") (token-COMPARE)] 
 
    [(lex-ci "realized") (token-REALIZED)] 
    [(lex-ci "unrealized") (token-UNREALIZED)] 

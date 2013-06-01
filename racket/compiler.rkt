@@ -215,22 +215,18 @@
              `(list ,@query-options)))  syn)] 
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
-   ; [(equal? first-datum 'COMPARE)
-   ;  ; Sugar for a LET that does change-impact
-   ;  ; Produce xexpr for the let, not special compare xexpr.
-   ;  (define query-id (second interns))
-   ;  (define pol-id-1 (third interns))
-   ;  (define pol-id-2 (fourth interns))
-   ;  
-   ;  (make-single-wrapper 
-   ;   `(xml-make-compare-command
-   ;     ,(helper-syn->xml (second interns))
-   ;     ,(helper-syn->xml (third interns))
-   ;     
-   ;     ;            ;List of modifiers could be empty, but use (list instead of '( since we may have funcs to evaluate inside
-   ;     (list ,@(if (empty? (rest (rest (rest interns))))
-   ;                 empty
-   ;                 (map helper-syn->xml (syntax-e (fourth interns)))))) syn)]
+    [(equal? first-datum 'COMPARE)
+     ; Sugar for a LET that does change-impact
+     ; Produce xexpr for the let, not special compare xexpr.
+     (define query-id (second interns))
+     (define pol-id-1 (third interns))
+     (define pol-id-2 (fourth interns))
+             
+     (define optional-var-vector (syntax->datum (fifth interns)))
+          
+     ; no send-and-receive; that's in the call already
+      `(lambda () (m-policy-difference-query (->string ',query-id) (->string ',pol-id-1) (->string',pol-id-2)
+                                             #:variables ',optional-var-vector))]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;   
     ; id, list, optional for-cases list

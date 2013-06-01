@@ -909,6 +909,7 @@
   
   ; MUST HAVE: the same decisions; 
   ;            the same request vector across all decisions.
+    
   
   (unless (equal-unordered? decstrings1 decstrings2)
     (error (format "To use m-policy-different-query, the policies must have identical decision-sets." )))
