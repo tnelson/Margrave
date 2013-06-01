@@ -7,7 +7,7 @@ LOAD POLICY aclfw2 = "inboundacl_fw2.p";
 LOAD POLICY natfw2 = "inboundnat_fw2.p";
 
 // A first fix!
-//LOAD POLICY aclfw1b = "inboundacl_fw1_new.p";
+LOAD POLICY aclfw1fix = "inboundacl_fw1_new.p";
 
 ///////////////////////////////////////////////////
 // *************************************************
@@ -29,10 +29,10 @@ natfw2.translate($fw2int, ipsrc, ipdest, portsrc, portdest, pro, tempnatsrc) and
   
 // Gain or loss of access vs. new ACL
 ((not aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
-  aclfw1b.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)) 
+  aclfw1fix.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)) 
   OR
  (aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
-  not aclfw1b.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)));
+  not aclfw1fix.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)));
 
 SHOW q1;
                                                                            
@@ -43,7 +43,7 @@ SHOW q1;
 // "Non-managers cannot access the web."
 
 // The second fix:
-//LOAD POLICY aclfw2b = "inboundacl_fw2_new.p";
+LOAD POLICY aclfw2fix = "inboundacl_fw2_new.p";
 
 ///////////////////////////////////////////////////
 // Do the two changes pass both properties? 
@@ -54,11 +54,11 @@ let nonmanager[ipsrc: IPAddress, ipdest: IPAddress,
 
 	// someone other than the manager, accessing an external website         
 	 OutsideIPs(ipdest) and                            
-         not $manager=ipsrc and
+         not $managerpc=ipsrc and
 	// is allowed through
-         aclfw2new.accept($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp)
-         natfw2.translate($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp, tempnatsrc)
-         aclfw1new.accept($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp);
+         aclfw2fix.accept($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp) and
+         natfw2.translate($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp, tempnatsrc) and
+         aclfw1fix.accept($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp);
 
 let managerblocked[ipsrc: IPAddress, ipdest: IPAddress,
             portsrc: Port, 
@@ -66,14 +66,14 @@ let managerblocked[ipsrc: IPAddress, ipdest: IPAddress,
 
 	// the manager, accessing an external website       
 	 OutsideIPs(ipdest) and                            
-         $manager=ipsrc and
+         $managerpc=ipsrc and
 	// is blocked. either by:
    	(
           // denial at internal FW2 ACL
-          aclfw2new.deny($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp))           
-	OR
-          // or denial at external FW1 ACL after NAT          
+          aclfw2fix.deny($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp)           
+	or
+          // denial at external FW1 ACL after NAT          
            (natfw2.translate($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp, tempnatsrc) and
-           aclfw1new.deny($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp)));
-	)
+           aclfw1fix.deny($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp))
+	);
 

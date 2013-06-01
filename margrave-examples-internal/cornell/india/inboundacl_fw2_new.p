@@ -12,35 +12,39 @@
 ;               portdest=80, protocol=tcp**  
 ;6 -> otherwise, DENY
 
-(Policy uses talkfirewallpolicy
-        (Variables
-         (interf Interface)
-         (ipsrc IPAddress)
-         (ipdest IPAddress)
-         (portsrc Port)
-         (portdest Port)
-         (pro Protocol))
-        (Rules
+Policy( uses(talkfirewallpolicy),
+        Variables(
+         interf(Interface),
+         ipsrc(IPAddress),
+         ipdest(IPAddress),
+         portsrc(Port),
+         portdest(Port),
+         pro(Protocol)),
+                          
+        Rules(
+        
+         Rule1( deny(interf, ipsrc, ipdest, portsrc, portdest, pro),
+                =($fw2dmz, interf)),
+
+         Rule2( deny(interf, ipsrc, ipdest, portsrc, portdest, pro),
+                =($fw2int, interf), =($mailserver, ipdest),
+                =($port25, portdest), =($tcp, pro), =($contractorpc, ipsrc)),
+
+         Rule3( accept(interf, ipsrc, ipdest, portsrc, portdest, pro),         
+                =($fw2int, interf), =($mailserver, ipdest),
+                =($port25, portdest), =($tcp, pro)),
+
+         Rule4( accept(interf, ipsrc, ipdest, portsrc, portdest, pro),
+                =($fw2int, interf), =($port80, portdest),
+                =($tcp, pro), =($managerpc, ipsrc)),                                                   
+          
+         Rule5( accept(interf, ipsrc, ipdest, portsrc, portdest, pro),
+                =($fw2int, interf), =($port80, portdest),
+                =($tcp, pro), =($webserver, ipdest)),   
+                                                   
+         Rule6( deny(interf, ipsrc, ipdest, portsrc, portdest, pro),
+                true)
+        ),
          
-         (Rule1 = (deny interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw2dmz interf))
-
-         (Rule2 = (deny interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw2int interf) (= 'mailserver ipdest) (= 'port25 portdest) (= 'tcp pro) (= 'contractorpc ipsrc))
-
-         (Rule3 = (accept interf ipsrc ipdest portsrc portdest pro) :-         
-                (= 'fw2int interf) (= 'mailserver ipdest) (= 'port25 portdest) (= 'tcp pro))
-
-
-         (Rule4 = (accept interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw2int interf) (= 'port80 portdest) (= 'tcp pro) (= 'managerpc ipsrc))
-
-         (Rule5 = (accept interf ipsrc ipdest portsrc portdest pro) :-
-                (= 'fw2int interf) (= 'port80 portdest) (= 'tcp pro) (= 'webserver ipdest))
-
-         (Rule6 = (deny interf ipsrc ipdest portsrc portdest pro) :-
-                true) )
-
         ; Firewall policy: first rule applicable takes effect.
-        (RComb (fa accept deny)))
-
+        RComb( fa(accept, deny)))

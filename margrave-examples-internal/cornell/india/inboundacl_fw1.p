@@ -40,7 +40,7 @@ Policy( uses(talkfirewallpolicy),
 
 
          ; Bug in context of this network:
-         ; employeePC packet will already have been subjected to NAT by FW2.
+         ; managerPC packet will already have been subjected to NAT by FW2.
          rule6( accept(interf, ipsrc, ipdest, portsrc, portdest, pro),
                 =($fw1dmz, interf), =($managerpc, ipsrc),
                 =($port80, portdest), OutsideIPs(ipdest), =($tcp, pro)),
