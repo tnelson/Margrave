@@ -7,71 +7,73 @@ LOAD POLICY aclfw2 = "inboundacl_fw2.p";
 LOAD POLICY natfw2 = "inboundnat_fw2.p";
 
 // A first fix!
-LOAD POLICY aclfw1b = "inboundacl_fw1_new.p";
-LOAD POLICY aclfw2b = "inboundacl_fw2_new.p";
-
-// A real fix:
-
-LOAD POLICY aclfw1c = "inboundacl_fw1_fixed.p";
-LOAD POLICY aclfw2c = "inboundacl_fw2_fixed.p";
-
-// !!! TODO insert diagnosis portion for handout
+//LOAD POLICY aclfw1b = "inboundacl_fw1_new.p";
 
 ///////////////////////////////////////////////////
-// Basic query: What WWW traffic is passed by the filter?
-let q1[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  filter.permit(sa, sp, da, dp) and dp=$port80
-  and not sa = da; // ignore silly examples
+// *************************************************
+// We changed FW1's ACL to try to fix the bug. Let's see
+// how that changes the behavior of outgoing packets!
+// (Note: we did not change FW2. So we only consider changes to FW1.)
+// Look for unexpected consequences (outside manager's PC)
+// *************************************************
+let q1[ipsrc: IPAddress, ipdest: IPAddress,
+       portsrc: Port, portdest: Port, pro: Protocol, 
+       tempnatsrc: IPAddress] be 
 
-// Get a scenario 
-show q1;
+// Packet isn't from manager's PC.
+not $managerpc = ipsrc and
 
-// Can see WHY permitted:
-show q1 
-  include filter.rule3_applies(sa, sp, da, dp),
-          filter.rule5_applies(sa, sp, da, dp);
+// Internal FW passes the packet and translates its source to tempnatsrc.                                                 
+aclfw2.accept($fw2int, ipsrc, ipdest, portsrc, portdest, pro) and
+natfw2.translate($fw2int, ipsrc, ipdest, portsrc, portdest, pro, tempnatsrc) and
+  
+// Gain or loss of access vs. new ACL
+((not aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
+  aclfw1b.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)) 
+  OR
+ (aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
+  not aclfw1b.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)));
 
+SHOW q1;
+                                                                           
+///////////////////////////////////////////////////
+// Change-impact has possibly led us to another property. Before we just had
+// "The manager must be able to access to web."
+// but now (depending on organizational goals) we may have:
+// "Non-managers cannot access the web."
+
+// The second fix:
+//LOAD POLICY aclfw2b = "inboundacl_fw2_new.p";
 
 ///////////////////////////////////////////////////
-// Is any of that traffic allowed by an unexpected rule?
-// (That is: a rule other than the two permit rules.)
-let q2[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  q1(sa, da, sp, dp) and 
-  not ( filter.rule3_applies(sa, sp, da, dp) or 
-        filter.rule5_applies(sa, sp, da, dp));
-                                             
-is poss? q2;                                           
- 
-///////////////////////////////////////////////////
-// Aggregation of scenario results:
-// What addresses can initiate web requests?
-show realized q1 ip10-1-1-1(sa), ip10-1-1-2(sa), ip10-1-20-20(sa);
+// Do the two changes pass both properties? 
 
-///////////////////////////////////////////////////
-// What rules NEVER fire? (Indicate bugs, bad design, or good engineering!)
-// careful to not limit to just permit: create a new query that's always true
+let nonmanager[ipsrc: IPAddress, ipdest: IPAddress,
+            portsrc: Port, 
+            tempnatsrc: IPAddress] be 
 
-let q3[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  true
-  under filter; // gives vocabulary context when no policy references in body
+	// someone other than the manager, accessing an external website         
+	 OutsideIPs(ipdest) and                            
+         not $manager=ipsrc and
+	// is allowed through
+         aclfw2new.accept($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp)
+         natfw2.translate($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp, tempnatsrc)
+         aclfw1new.accept($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp);
 
-show unrealized q3
-  filter.rule1_applies(sa, sp, da, dp),
-  filter.rule2_applies(sa, sp, da, dp),
-  filter.rule3_applies(sa, sp, da, dp),
-  filter.rule4_applies(sa, sp, da, dp),
-  filter.rule5_applies(sa, sp, da, dp);
+let managerblocked[ipsrc: IPAddress, ipdest: IPAddress,
+            portsrc: Port, 
+            tempnatsrc: IPAddress] be 
 
-///////////////////////////////////////////////////
-// Why does this rule never fire? 
-// (that is, what rules contribute to it being overshadowed?)
-let q4[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  filter.rule5_matches(sa, sp, da, dp);
-
-show realized q4 
-  filter.rule1_applies(sa, sp, da, dp),
-  filter.rule2_applies(sa, sp, da, dp),
-  filter.rule3_applies(sa, sp, da, dp),
-  filter.rule4_applies(sa, sp, da, dp);
-
+	// the manager, accessing an external website       
+	 OutsideIPs(ipdest) and                            
+         $manager=ipsrc and
+	// is blocked. either by:
+   	(
+          // denial at internal FW2 ACL
+          aclfw2new.deny($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp))           
+	OR
+          // or denial at external FW1 ACL after NAT          
+           (natfw2.translate($fw2int, ipsrc, ipdest, portsrc, $port80, $tcp, tempnatsrc) and
+           aclfw1new.deny($fw1dmz, tempnatsrc, ipdest, portsrc, $port80, $tcp)));
+	)
 
