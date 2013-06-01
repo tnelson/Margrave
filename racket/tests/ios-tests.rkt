@@ -17,7 +17,7 @@
 
 ; Test the 3 functions provided.
 
-(parse-and-load-ios "config1.txt" "IOS" "test" "1")
+(parse-and-load-ios "config1.txt" "IOS" "test" "0")
 
 (check-not-exn (lambda () 
                  (parse-and-load-ios "config1.txt" "IOS" "test" "1")))

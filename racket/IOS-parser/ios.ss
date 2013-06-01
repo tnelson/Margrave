@@ -538,6 +538,13 @@
              '(hostname entry-interface src-addr dest-addr src-port dest-port protocol)]
             
             
+            [(and (or (equal? rule-type 'defaultpolicyroute)
+                      (equal? rule-type 'policyroute))
+                  (or (equal? decision 'accept)
+                      (equal? decision 'permit)))
+             '(TEST)]
+            
+            
             ;;;;;;;;;;;;;;;;
             ; switching: next-hop, packet ---> exit-interface
             ; Local: next-hop is the destination (OUT, not necessarily IN?)
@@ -554,7 +561,8 @@
                       (equal? decision 'pass)))
              '(hostname next-hop)]                        
                         
-            [(error (format "Unknown rule type: ~a with decision: ~a." rule-type decision))]))
+            [(error (format "Unknown rule type: ~a with decision: ~a. Name ~v. Conditions: ~v."
+                            rule-type decision name conditions))]))
     
    ;(printf "rule ~a with ~a~n" rule-type decision)
     
@@ -1236,11 +1244,9 @@
     ;; symbol symbol (listof (listof symbol)) -> rules%
     ;;   Returns a list of rules that represents this ACL
     ; No rule type; just keep existing type
-    (define/public (rules hostname interf additional-conditions [rule-type #f])
-      (map (λ (ACE)
-             (if rule-type
-                 (send ACE rule hostname interf additional-conditions rule-type)
-                 (send ACE rule hostname interf additional-conditions (get-field rule-type ACE))))
+    (define/public (rules hostname interf additional-conditions rule-type)
+      (map (λ (ACE)                          
+             (send ACE rule hostname interf additional-conditions rule-type))
            ACEs))
     
     ;; symbol symbol string (listof (listof symbol)) -> rules%
@@ -1319,7 +1325,7 @@
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of the rules that represent the match conditions for this map    
-    (define/public (match-rules hostname interf ACLs additional-conditions)
+    (define/public (match-rules hostname interf ACLs additional-conditions rule-type)
       (append*
        (map (λ (ACL)
               (send ACL
@@ -1327,7 +1333,8 @@
                     hostname
                     interf
                     `(,@additional-conditions
-                      ,@(match-length-conditions)))) ; no rules-type passed. use native type
+                      ,@(match-length-conditions))
+                    rule-type)) ; no rules-type passed. use native type
             (match-ACLs ACLs))))
     
     ;; symbol symbol string (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
@@ -2531,13 +2538,13 @@
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of the routing rules that this map contains
-    (define/public (routing-rules hostname interf ACLs additional-conditions)
-      (send next-hop rules (match-rules hostname interf ACLs additional-conditions)))
+    (define/public (routing-rules hostname interf ACLs additional-conditions rule-type)
+      (send next-hop rules (match-rules hostname interf ACLs additional-conditions rule-type) rule-type))
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
     ;;   Returns a list of the default routing rules that this map contains
     (define/public (default-routing-rules hostname interf ACLs additional-conditions)
-      (send default-next-hop rules (match-rules hostname interf ACLs additional-conditions)))
+      (send default-next-hop rules (match-rules hostname interf ACLs additional-conditions 'defaultpolicyroute)))
     ))
 
 ;; next-hop-gateway% : number address boolean
@@ -2549,7 +2556,7 @@
     
     ;; (listof rule%) -> (listof rule%)
     ;;   Returns a list of the rules for this set action
-    (define/public (rules match-rules)
+    (define/public (rules match-rules rule-type)
       (append
        (map (λ (match-rule)
               (list
@@ -2559,12 +2566,14 @@
                      (if (eqv? (get-field decision match-rule) 'permit)
                          'route
                          'pass)
-                     `((,next-hop next-hop)))
+                     `((,next-hop next-hop))
+                     rule-type)
                (send match-rule
                      augment/replace-decision
                      (name "drop" match-rule)
                      'drop
-                     '())))
+                     '()
+                     rule-type)))
             match-rules)))
     
     ;; symbol rule% -> symbol
@@ -2603,12 +2612,14 @@
                            (IPAddress next-hop))
                          `((,next-hop exit-interface)
                            ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                           (IPAddress next-hop))))
+                           (IPAddress next-hop)))
+                     'policyroute)
                (send match-rule
                      augment/replace-decision
                      (name "drop" match-rule)
                      'drop
-                     '())))
+                     '()
+                     'policyroute)))
             match-rules)))
     
     ;; suffix rule% -> symbol
@@ -2634,7 +2645,8 @@
                    (string->symbol (string-append (symbol->string (get-field name match-rule))
                                                   "-default-route"))
                    'pass
-                   `(true)))
+                   `(true)
+                   'policyroute))
            match-rules))
     ))
 
@@ -2734,7 +2746,7 @@
                                                   "-encrypt"))
                    'encrypt
                    '()))
-           (match-rules ACLs additional-conditions)))
+           (match-rules ACLs additional-conditions 'encrypt)))
     
     ;; host-address% -> crypto-map%
     ;;   Sets the tunnel endpoint for this map
@@ -3495,7 +3507,9 @@
                                   (send interf text)
                                   ACLs
                                   `((,hostname hostname)
-                                    (,interf entry-interface))))
+                                    (,interf entry-interface))
+                                  'policyroute
+                                 ))
                           (get-ordered-maps (get-field policy-route-map-ID interf) route-maps)))))
         (list (make-default-routing-rule hostname 'policyroute)))))
     
