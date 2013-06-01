@@ -5,9 +5,9 @@ Theory(talkfirewallpolicy,
                 $employeepc(InternalIPs),
                 $managerpc(InternalIPs),
                 $contractorpc(InternalIPs),
-                $webserver(InternalIPs),
-                $mailserver(InternalIPs),
-                $fw2static(InternalIPs),        
+                $webserver(DMZIPs),
+                $mailserver(DMZIPs),
+                $fw2static(IPAddress),        
                 
                 $port21(Port), 
                 $port23(Port),
@@ -25,7 +25,7 @@ Theory(talkfirewallpolicy,
                 $fw1ext(Interface)),
                
                Types(
-                IPAddress(InternalIPs, OutsideIPs, BlacklistedIPs),        
+                IPAddress(InternalIPs, OutsideIPs, DMZIPs, BlacklistedIPs),        
                 Port(OtherPorts),
                 Protocol,              
                 Interface)

@@ -13,8 +13,12 @@ LOAD POLICY aclfw1fix = "inboundacl_fw1_new.p";
 // Without giving a variable vector, it will name the variables v0, ...
 COMPARE diff = aclfw1 aclfw1fix (interf, ipsrc, ipdest, portsrc, portdest, pro);
 
+// the query "diff" now describes scenarios where the old and new acl #1 disagree:
 
-// todo more. link with compare
+show diff;
+
+// But this doesn't take NAT into account! Moreover, the scenario involves the 
+// manager's PC. Let's get a bit more involved:
 
 ///////////////////////////////////////////////////
 // *************************************************
@@ -23,25 +27,25 @@ COMPARE diff = aclfw1 aclfw1fix (interf, ipsrc, ipdest, portsrc, portdest, pro);
 // (Note: we did not change FW2. So we only consider changes to FW1.)
 // Look for unexpected consequences (outside manager's PC)
 // *************************************************
-let q1[ipsrc: IPAddress, ipdest: IPAddress,
+let fullci[ipsrc: IPAddress, ipdest: IPAddress,
        portsrc: Port, portdest: Port, pro: Protocol, 
        tempnatsrc: IPAddress] be 
 
-// Packet isn't from manager's PC.
+// Packet isn't from manager's PC, but somewhere internal
 not $managerpc = ipsrc and
+InternalIPs(ipsrc) and
+// destination is somewhere outside
+OutsideIPs(ipdest) and
 
 // Internal FW passes the packet and translates its source to tempnatsrc.                                                 
 aclfw2.accept($fw2int, ipsrc, ipdest, portsrc, portdest, pro) and
 natfw2.translate($fw2int, ipsrc, ipdest, portsrc, portdest, pro, tempnatsrc) and
-  
-// Gain or loss of access vs. new ACL
-((not aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
-  aclfw1fix.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)) 
-  OR
- (aclfw1.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro) and 
-  not aclfw1fix.accept($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro)));
 
-SHOW q1;
+diff($fw1dmz, tempnatsrc, ipdest, portsrc, portdest, pro);
+
+// Notice the re-use of the "diff" query above. Less pain.
+
+SHOW fullci;
                                                                            
 ///////////////////////////////////////////////////
 // Change-impact has possibly led us to another property. Before we just had
@@ -54,6 +58,7 @@ LOAD POLICY aclfw2fix = "inboundacl_fw2_new.p";
 
 ///////////////////////////////////////////////////
 // Do the two changes pass both properties? 
+// One query for each property:
 
 let nonmanager[ipsrc: IPAddress, ipdest: IPAddress,
             portsrc: Port, 
