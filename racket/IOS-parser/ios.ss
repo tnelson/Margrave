@@ -492,7 +492,7 @@
     
     (define arg-variable-list 
       (cond [(equal? rule-type 'acl) ; both inbound and outbound 
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol)]
+             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol)]
             
             [(equal? rule-type 'nat) ; inside and outside 
              '(hostname entry-interface 
@@ -513,36 +513,36 @@
             ; Static routes are decided on the basis of the destination address only.
             [(and (equal? rule-type 'staticroute) 
                   (equal? decision 'route))
-             '(hostname dest-addr next-hop)]
+             '(hostname dest-addr-in next-hop)]
             [(and (equal? rule-type 'staticroute) 
                   (equal? decision 'forward))
-             '(hostname dest-addr exit-interface)]
+             '(hostname dest-addr-in exit-interface)]
             [(and (equal? rule-type 'staticroute) 
                   (or (equal? decision 'drop)
                       (equal? decision 'pass)))
-             '(hostname dest-addr)]
+             '(hostname dest-addr-in)]
                         
             ; Policy routes, however, need more:
             [(and (or (equal? rule-type 'defaultpolicyroute)
                       (equal? rule-type 'policyroute))
                   (equal? decision 'route))
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol next-hop)]
+             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol next-hop)]
             [(and (or (equal? rule-type 'defaultpolicyroute)
                       (equal? rule-type 'policyroute))
                   (equal? decision 'forward))
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol exit-interface)]
+             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol exit-interface)]
             [(and (or (equal? rule-type 'defaultpolicyroute)
                       (equal? rule-type 'policyroute))
                   (or (equal? decision 'drop)
                       (equal? decision 'pass)))
-             '(hostname entry-interface src-addr dest-addr src-port dest-port protocol)]
+             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol)]
             
             
             [(and (or (equal? rule-type 'defaultpolicyroute)
                       (equal? rule-type 'policyroute))
                   (or (equal? decision 'accept)
                       (equal? decision 'permit)))
-             '(TEST)]
+             (error "wrong decision")]
             
             
             ;;;;;;;;;;;;;;;;
@@ -872,7 +872,7 @@
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr)) ; not for use by nat
+          (,src-addr-in src-addr-in))
         rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -939,8 +939,8 @@
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr) ;; not for use by nat
-          (,dest-addr-in dest-addr))
+          (,src-addr-in src-addr-in) 
+          (,dest-addr-in dest-addr-in))
         rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1010,10 +1010,10 @@
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr) ; not for use by NAT
+          (,src-addr-in src-addr-in)
           (Prot-ICMP protocol)
           (,msg message)
-          (,dest-addr-in dest-addr))
+          (,dest-addr-in dest-addr-in))
         rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1091,11 +1091,11 @@
         (name hostname interf)
         (decision)
         `(,@additional-conditions
-          (,src-addr-in src-addr) ; not for use by NAT
+          (,src-addr-in src-addr-in) 
           (,prot protocol)
-          (,src-port-in src-port)
-          (,dest-addr-in dest-addr)
-          (,dest-port-in dest-port))
+          (,src-port-in src-port-in)
+          (,dest-addr-in dest-addr-in)
+          (,dest-port-in dest-port-in))
         rule-type))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1212,12 +1212,12 @@
         (decision)
         (list (connection-predicate))
         `(,@additional-conditions         
-          (,(connection-predicate) src-addr src-port protocol dest-addr dest-port)
-          (,src-addr-in src-addr)
+          (,(connection-predicate) src-addr-in src-port-in protocol dest-addr-in dest-port-in)
+          (,src-addr-in src-addr-in)
           (,prot protocol)
-          (,src-port-in src-port)
-          (,dest-addr-in dest-addr)
-          (,dest-port-in dest-port))
+          (,src-port-in src-port-in)
+          (,dest-addr-in dest-addr-in)
+          (,dest-port-in dest-port-in))
         rule-type))
     
     ;; -> symbol
@@ -2443,14 +2443,14 @@
          (name hostname "route")
          'route
          `(,@additional-conditions
-           (,dest-addr-in dest-addr)
+           (,dest-addr-in dest-addr-in)
            (,next-hop next-hop))
          'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr))
+           (,dest-addr-in dest-addr-in))
          'staticroute)))
     ))
 
@@ -2472,14 +2472,14 @@
          (name hostname "route")
          'forward
          `(,@additional-conditions
-           (,dest-addr-in dest-addr)
+           (,dest-addr-in dest-addr-in)
            (,next-hop exit-interface))
          'staticroute)
        (make-object rule%
          (name hostname "drop")
          'drop
          `(,@additional-conditions
-           (,dest-addr-in dest-addr))
+           (,dest-addr-in dest-addr-in))
          'staticroute)))
     ))
 
@@ -3948,12 +3948,7 @@
            (Variables                        
             (hostname Hostname)
             (entry-interface Interf-real)
-            
-            (src-addr IPAddress)
-            (dest-addr IPAddress)
-            (src-port Port)
-            (dest-port Port)
-            
+                        
             (src-addr-in IPAddress)
             (src-addr-out IPAddress)
             (dest-addr-in IPAddress)

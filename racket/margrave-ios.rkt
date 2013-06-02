@@ -215,6 +215,7 @@
   (define inner-vec '(ahostname entry-interface src-addr_ src-addr_
                                 dest-addr_ dest-addr_ protocol message flags src-port_ src-port_
                                 dest-port_ dest-port_ length next-hop exit-interface))
+      
   
   ; ACLs are not involved in internal-result, which is concerned with routing.
   (m-let (string-append prefix "internal-result" suffix) 
@@ -224,6 +225,8 @@
                                         protocol
                                         src-addr_ dest-addr_ src-port_ dest-port_ )
                
+           
+           
                ([,insidenat translate] ahostname entry-interface 
                                        src-addr_ dest-addr_ src-port_ dest-port_                                        
                                        protocol
@@ -252,7 +255,7 @@
                                                    (Interf-drop exit-interface)))))))))))
   
   
-
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Int-dropped: Just check for NOT interf-drop(exit-interface).
   ; Need to use an UNDER clause since there are no policies appearing.
@@ -304,8 +307,7 @@
          vardec-16
          `(and (not (Interf-drop exit-interface))
                ([,inboundacl permit] ,@aclinvec )
-               ([,outboundacl permit] ,@acloutvec)))
-  
+               ([,outboundacl permit] ,@acloutvec)))  
   ; end
   )
 
