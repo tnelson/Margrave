@@ -31,7 +31,7 @@
 (define-empty-tokens empty-terminals
   (    
    ; delimiters, constant signifier
-   DOT QUOTESYMBOL COLON                      
+   DOT EMPTYQUOTES COLON                      
        
        ; logical connectives, parens, equality, etc. and fmla context control
        LET BE LSQBRACK RSQBRACK
@@ -198,8 +198,7 @@
    [(lex-ci "policy") (token-POLICY)]    
    [(lex-ci "xacml") (token-XACML)] 
    [(lex-ci "sqs") (token-SQS)] 
-   [(lex-ci "ios") (token-IOS)]
-   [(lex-ci "xacml") (token-XACML)]     
+   [(lex-ci "ios") (token-IOS)]      
    
    [(lex-ci "with") (token-WITH)]   
    [(lex-ci "in") (token-IN)]   
@@ -207,6 +206,8 @@
    [(lex-ci "tupling") (token-TUPLING)] 
    [(lex-ci "debug") (token-DEBUG)] 
    [(lex-ci "ceiling") (token-CEILING)] 
+   
+   [(:: #\" #\" ) (token-EMPTYQUOTES)] 
    
    ; Natural nums
    [(:: lex:digit (:* lex:digit)) 

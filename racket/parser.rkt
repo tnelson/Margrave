@@ -291,13 +291,22 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(LOAD IOS any-id) (build-so (list 'LOAD-IOS $3) 1 3)]     
          
          ; With prefix and suffix
+         ; account for emptyquotes
          [(LOAD IOS any-id WITH any-id any-id) (build-so (list 'LOAD-IOS-WITH $3 $5 $6) 1 6)]
+         [(LOAD IOS any-id WITH EMPTYQUOTES any-id) (build-so (list 'LOAD-IOS-WITH $3 "" $6) 1 6)]
+         [(LOAD IOS any-id WITH any-id EMPTYQUOTES) (build-so (list 'LOAD-IOS-WITH $3 $5 "") 1 6)]
          
          ; Multiple configs at once:
          [(LOAD IOS list-of-filenames IN any-id) 
           (build-so (list 'LOAD-MULT-IOS $3 (->string $5)) 1 5)]
+         ; account for emptyquotes
          [(LOAD IOS list-of-filenames IN any-id WITH any-id any-id) 
           (build-so (list 'LOAD-MULT-IOS-WITH $3 (->string $5) $7 $8) 1 8)]    
+         [(LOAD IOS list-of-filenames IN any-id WITH EMPTYQUOTES any-id) 
+          (build-so (list 'LOAD-MULT-IOS-WITH $3 (->string $5) "" $8) 1 8)]    
+         [(LOAD IOS list-of-filenames IN any-id WITH any-id EMPTYQUOTES) 
+          (build-so (list 'LOAD-MULT-IOS-WITH $3 (->string $5) $7 "") 1 8)]    
+         
          
          ; XACML configuration
          [(LOAD XACML <capitalized-id> EQUALS any-id) (build-so (list 'LOAD-XACML $3) 1 3)]
