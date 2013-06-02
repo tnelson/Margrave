@@ -31,7 +31,8 @@
 (define-empty-tokens empty-terminals
   (    
    ; delimiters, constant signifier
-   DOT EMPTYQUOTES COLON                      
+   ;DOT 
+   EMPTYQUOTES COLON                      
        
        ; logical connectives, parens, equality, etc. and fmla context control
        LET BE LSQBRACK RSQBRACK
@@ -80,7 +81,8 @@
   [lex:uppercase-letter (:/ #\A #\Z)]
   [lex:lowercase-letter (:/ #\a #\z)]
   [lex:digit (:/ #\0 #\9)]
-  [lex:allowed-non-alphanum (:or #\_ #\- )]
+  ; allow these in identifiers:
+  [lex:allowed-non-alphanum (:or #\_ #\- #\. #\/)]
   [lex:whitespace (:or #\newline #\return #\tab #\space #\vtab)]
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
   
@@ -130,7 +132,7 @@
    [(eof) (token-EOF)]
    
    [":" (token-COLON)] 
-   ["." (token-DOT)] 
+  ; ["." (token-DOT)] 
    [";" (token-SEMICOLON)] 
    ["(" (token-LPAREN)] 
    [")" (token-RPAREN)] 

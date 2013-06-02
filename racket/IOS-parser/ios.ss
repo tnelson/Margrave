@@ -74,6 +74,13 @@
 (provide policy)
 (provide vocabulary)
 (provide TCP-flags)
+(provide string-capitalize)
+
+; Like upcase, but leave later caps intact
+(define (string-capitalize str)
+  (define len (string-length str))
+  (cond [(equal? 0 len)]
+        [else (string-append (string-upcase (substring str 0 1)) (substring str 1 len))]))
 
 ;; (hashtable any any) (any any -> boolean) -> (listof (any any))
 ;;   Returns a list of (key, value) pairs from a hashtable that
@@ -668,7 +675,7 @@
     ;; -> symbol
     ;;   Returns the name for this interface
     (define/public (text)
-      (string->symbol (string-titlecase (symbol->string name))))
+      (string->symbol (string-capitalize (symbol->string name))))
     
     ;; -> boolean
     ;;   Returns whether this interface<%> represents a single interface

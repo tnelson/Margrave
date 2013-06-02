@@ -218,7 +218,8 @@ Margrave did not understand the condition or options given around \"~a\"."
               (nonassoc ISA)
               (nonassoc COLON)
               (nonassoc EQUALS)
-              (nonassoc DOT))
+              ;(nonassoc DOT)
+              )
        
        ; Uncomment this to help diagnose any reduce/reduce errors that come up after parser revisions.
        ;(debug "parser-debug.txt")
@@ -450,8 +451,8 @@ Margrave did not understand the condition or options given around \"~a\"."
                  
         ; Must end with a lowercase ID
         (complex-predicate
-         [(any-id DOT <lowercase-id>) (list $1 $3)]
-         [(any-id DOT complex-predicate) (append (list $1) $3)])
+         [(any-id COLON <lowercase-id>) (list $1 $3)]
+         [(any-id COLON complex-predicate) (append (list $1) $3)])
         
         (atomic-formula [(<lowercase-id> LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
