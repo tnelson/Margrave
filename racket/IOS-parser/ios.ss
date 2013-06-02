@@ -1487,17 +1487,20 @@
                          `((= src-addr-in src-addr-out)
                            (= src-port-in src-port-out)
                            (= dest-addr-in dest-addr-out)
-                           (= dest-port-in dest-port-out))))
+                           (= dest-port-in dest-port-out)))
+                     'nat)
                (send match-rule
                      augment/replace-decision
                      (name hostname "drop")
                      'drop
-                     '())))
+                     '()
+                     'nat)))
             (send (hash-ref ACLs ACL-ID)
                   rules
                   hostname
                   interf
-                  additional-conditions))))
+                  additional-conditions
+                  'nat))))
     
     ;; symbol symbol (hash-table symbol route-map%) (hash-table symbol ACL%) (hash-table symbol interface%)
     ;; (listof (listof symbol)) -> (listof rule%)
@@ -1522,7 +1525,8 @@
                              (= src-port-in src-port-out)
                              ,(if overload
                                   `(Port dest-port-in)
-                                  `(= dest-port-in dest-port-out)))))
+                                  `(= dest-port-in dest-port-out)))
+                           'nat))
                     (list
                      (send match-rule
                            augment/replace-decision
@@ -1531,12 +1535,14 @@
                            `((= src-addr-in src-addr-out)
                              (= src-port-in src-port-out)
                              (= dest-addr-in dest-addr-out)
-                             (= dest-port-in dest-port-out)))
+                             (= dest-port-in dest-port-out))
+                           'nat)
                      (send match-rule
                            augment/replace-decision
                            (name hostname "drop")
                            'drop
-                           `()))))
+                           `()
+                           'nat))))
               match-rules)
          (map (λ (match-rule)
                 (send match-rule
@@ -1546,7 +1552,8 @@
                       `((,(get-field primary-address (hash-ref interfaces interface-ID)) dest-addr-in)
                         ,(if overload
                              `(Port dest-port-in)
-                             `(= dest-port-in dest-port-out)))))
+                             `(= dest-port-in dest-port-out)))
+                      'nat))
               (filter (λ (match-rule)
                         (eqv? (get-field decision match-rule) 'permit))
                       match-rules)))))
