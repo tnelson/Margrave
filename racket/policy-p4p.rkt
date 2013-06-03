@@ -9,6 +9,8 @@
 
 
 (require (for-syntax racket syntax/stx))
+(require syntax/readerr)
+(require rackunit)
 
 (require (only-in lang/htdp-advanced check-expect : signature predicate)
          (only-in test-engine/scheme-tests run-tests display-results))
@@ -16,7 +18,8 @@
 (provide (except-out (all-from-out racket) #%module-begin)
         ; (rename-out [top-level #%module-begin])        
          (for-syntax process-sexp-stream)
-         )
+         :-readtable
+         )         
          ;Policy Vocab Theory)
 
 
@@ -24,7 +27,8 @@
 ;(require "margrave-policy-vocab.rkt")
 
 (define-for-syntax (process-sexp-stream sexp-stream)
-    
+   
+  
   ;(printf "Stream: ~v~n" sexp-stream)
   
   ; thanks to Jens Axel Søgaard (via google)
@@ -33,7 +37,11 @@
   (define (symbolic-identifier=? stx1 stx2)
     (and (identifier? stx1)
          (identifier? stx2)
-         (symbol=? (syntax->datum stx1) (syntax->datum stx2))))
+         (or (symbol=? (syntax->datum stx1) (syntax->datum stx2))
+             (and (symbol=? (syntax->datum stx1) 'unquote)
+                  (symbol=? (syntax->datum stx2) ':-))
+             (and (symbol=? (syntax->datum stx2) 'unquote)
+                  (symbol=? (syntax->datum stx1) ':-)))))
   
   ; Those that can't be at the beginning of an expression 
   (define non-expr-keywords '(else: elseif: deffun: defstruct: defvar:))
@@ -96,7 +104,7 @@
         [(v other-things ...)
          (raise-syntax-error 'not-an-identifier "expected to find one" #'v)]))
     (define (process-rest sexp-stream)
-      (syntax-case* sexp-stream (unquote) symbolic-identifier=?
+      (syntax-case* sexp-stream (unquote :-) symbolic-identifier=?
         [()
          empty]
         [((unquote id) other-things ...)
@@ -259,7 +267,7 @@
     (define (arg-helper arg-stream icheck)
       (if (stx-null? arg-stream)
           empty
-          (syntax-case* arg-stream (unquote) symbolic-identifier=?
+          (syntax-case* arg-stream (unquote :-) symbolic-identifier=?
             [((unquote something) other-things ...)
              (let-values ([(an-arg arg-rest) (extract-one-expression
                                               (syntax (something other-things ...))
@@ -267,11 +275,7 @@
                ;(printf "arg-helper: ~v: ~v ~v~n" arg-stream an-arg arg-rest)
                (cons an-arg (arg-helper arg-rest icheck)))]
             [((x y) other-things ...)
-             (printf "~v ~v ~v ~v~n"
-                     (identifier-binding #'x -1) 
-                     (identifier-binding #'x 0)
-                     (identifier-binding #'x 1)
-                     (identifier-binding #'x 2))
+             (printf "~v ~v ~v ~n" #'x #'y #'(other-things ...))
              (raise-syntax-error 'process-app (format "namespace/phase failure on ~v. ~v ~v ~v ~v"
                                                       #'(x y)
                                                       (free-identifier=? #'x #'unquote)
@@ -324,7 +328,7 @@
   (define (process-expr-sequence sexp-sub-stream icheck)
     (define process-first extract-one-expression)
     (define (process-not-first sexp-stream)
-      (syntax-case* sexp-stream (unquote) symbolic-identifier=?
+      (syntax-case* sexp-stream (unquote :-) symbolic-identifier=?
         [() (values empty sexp-stream)]
         [((unquote stuff) other-stuff ...)
          (extract-one-expression #'(stuff other-stuff ...) icheck)]
@@ -407,7 +411,7 @@
              (if (or (number? v) (string? v) (boolean? v)) ;; missing a few!
                  (process-const (stx-car sexp-stream) (stx-cdr sexp-stream) icheck)
                  (if (symbol? v)
-                     (syntax-case* (stx-cdr sexp-stream) (unquote) symbolic-identifier=?
+                     (syntax-case* (stx-cdr sexp-stream) (unquote :-) symbolic-identifier=?
                        ;; This line cost me from 2:30am to 1:30pm.
                        ;; When we're looking at the x subexpression of f(x, y) -- which the reader 
                        ;; turns into f(x (unquote y)) -- this is indistinguishable
@@ -514,7 +518,7 @@
     (define (parse-compound-sig something) 'nothing)
 
     (define (parse-sig sub-stream)
-      (syntax-case* sub-stream (-> unquote) symbolic-identifier=?
+      (syntax-case* sub-stream (-> unquote :-) symbolic-identifier=?
         [{sig-name}
          (identifier? #'sig-name)
          #'sig-name]
@@ -632,3 +636,37 @@
          
          result-syntax))]))
 
+
+; p4p depends on the default reader. Thus, we cannot make :- equate to ,
+; unless we slightly change the default reader:
+
+(define parse-colon
+    (case-lambda
+     [(ch port)
+      ; ‘read' mode
+      (define n (read-char port))
+      (unless (equal? #\- n)
+        (error "colon must be followed by dash"))
+      ; not enough just to insert 'unquote here. need to enclose the rest in a list:
+      (list 'unquote (read/recursive port #f :-readtable))]
+     [(ch port src line col pos)
+      ; ‘read-syntax' mode
+      (define n (read-char port))
+      (unless (equal? #\- n)
+        (raise-read-error
+                 "colon must be followed by dash" 
+                 src line col pos 1))
+      (datum->syntax #f 
+                     (list 'unquote (read-syntax/recursive src port #f :-readtable))
+                     (list src line col pos 1)
+                     )]))
+(define :-readtable
+    (make-readtable (current-readtable) #\: 'terminating-macro parse-colon))
+
+(define test0 (open-input-string "z,(x,y)"))
+(define result0 (parameterize ([current-readtable :-readtable])
+  (list (read-syntax "test0" test0) (read-syntax "test0" test0))))
+(define test (open-input-string "z:-(x:-y)"))
+(define result (parameterize ([current-readtable :-readtable])
+  (list (read-syntax "test" test) (read-syntax "test" test))))
+(check-true (equal? (syntax->datum result0) (syntax->datum result)))

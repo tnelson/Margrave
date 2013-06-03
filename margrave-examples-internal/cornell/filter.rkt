@@ -5,7 +5,7 @@ LOAD POLICY filter = "filter.p";
 ///////////////////////////////////////////////////
 // Basic query: What WWW traffic is passed by the filter?
 let q1[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  filter.permit(sa, sp, da, dp) and dp=$port80
+  filter:permit(sa, sp, da, dp) and dp=$port80
   and not sa = da; // ignore silly examples
 
 // Get a scenario 
@@ -13,8 +13,8 @@ show q1;
 
 // Can see WHY permitted:
 show q1 
-  include filter.rule3_applies(sa, sp, da, dp),
-          filter.rule5_applies(sa, sp, da, dp);
+  include filter:rule3_applies(sa, sp, da, dp),
+          filter:rule5_applies(sa, sp, da, dp);
 
 
 ///////////////////////////////////////////////////
@@ -22,8 +22,8 @@ show q1
 // (That is: a rule other than the two permit rules.)
 let q2[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
   q1(sa, da, sp, dp) and 
-  not ( filter.rule3_applies(sa, sp, da, dp) or 
-        filter.rule5_applies(sa, sp, da, dp));
+  not ( filter:rule3_applies(sa, sp, da, dp) or 
+        filter:rule5_applies(sa, sp, da, dp));
                                              
 is poss? q2;                                           
  
@@ -41,22 +41,22 @@ let q3[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be
   under filter; // gives vocabulary context when no policy references in body
 
 show unrealized q3
-  filter.rule1_applies(sa, sp, da, dp),
-  filter.rule2_applies(sa, sp, da, dp),
-  filter.rule3_applies(sa, sp, da, dp),
-  filter.rule4_applies(sa, sp, da, dp),
-  filter.rule5_applies(sa, sp, da, dp);
+  filter:rule1_applies(sa, sp, da, dp),
+  filter:rule2_applies(sa, sp, da, dp),
+  filter:rule3_applies(sa, sp, da, dp),
+  filter:rule4_applies(sa, sp, da, dp),
+  filter:rule5_applies(sa, sp, da, dp);
 
 ///////////////////////////////////////////////////
 // Why does this rule never fire? 
 // (that is, what rules contribute to it being overshadowed?)
 let q4[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be 
-  filter.rule5_matches(sa, sp, da, dp);
+  filter:rule5_matches(sa, sp, da, dp);
 
 show realized q4 
-  filter.rule1_applies(sa, sp, da, dp),
-  filter.rule2_applies(sa, sp, da, dp),
-  filter.rule3_applies(sa, sp, da, dp),
-  filter.rule4_applies(sa, sp, da, dp);
+  filter:rule1_applies(sa, sp, da, dp),
+  filter:rule2_applies(sa, sp, da, dp),
+  filter:rule3_applies(sa, sp, da, dp),
+  filter:rule4_applies(sa, sp, da, dp);
 
 

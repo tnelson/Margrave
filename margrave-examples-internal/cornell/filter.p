@@ -12,10 +12,10 @@ Policy( uses(filter),
       
         Rules(
        ; Log whenever a packet is denied:
-          rule1(log(sa, sp, da, dp), deny(sa, sp, da, dp)),
+       rule1(log(sa, sp, da, dp) :- deny(sa, sp, da, dp)),
 
        ; Packets from workstation 2 to the server should be denied.
-          rule2(deny(sa, sp, da, dp), ip10-1-1-2(sa), ip10-1-20-20(da)),
+       rule2(deny(sa, sp, da, dp) : ip10-1-1-2(sa), ip10-1-20-20(da)),
        
        ; Packets from other workstations to the server should be allowed.
           rule3(permit(sa, sp, da, dp), ip10-1-1-x(sa), ip10-1-20-20(da)),
