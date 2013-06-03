@@ -477,7 +477,8 @@ Margrave did not understand the condition or options given around \"~a\"."
                         [(<capitalized-id> LPAREN variable-term RPAREN)
                          (begin
                            (define varstring (second (syntax->datum $3)))
-                           (display (format "COMPILER WARNING: Implicit cast converted from predicate form to ISA: ~v ISA ~v ~n" varstring $1))
+                           ; Way too spammy. Why was this here?
+                           ;(display (format "COMPILER WARNING: Implicit cast converted from predicate form to ISA: ~v ISA ~v ~n" varstring $1))
                            (build-so (list 'ISA $3 $1 (build-so (list 'TRUE-CONDITION) 1 4)) 1 4))]
                         
                         )   
