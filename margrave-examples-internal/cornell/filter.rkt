@@ -25,7 +25,7 @@ let q2[sa: IPAddress, da: IPAddress, sp: Port, dp: Port] be
   not ( filter:rule3_applies(sa, sp, da, dp) or 
         filter:rule5_applies(sa, sp, da, dp));
                                              
-is poss? q2;                                           
+poss? q2;                                           
  
 ///////////////////////////////////////////////////
 // Aggregation of scenario results:

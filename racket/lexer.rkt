@@ -171,7 +171,7 @@
 
    [(lex-ci "show") (token-SHOW)] 
    [(lex-ci "all") (token-ALL)] 
-   [(lex-ci "is poss?") (token-ISPOSSQ)] 
+   [(lex-ci "poss?") (token-ISPOSSQ)] 
    
    [(lex-ci "reset") (token-RESET)]  
 

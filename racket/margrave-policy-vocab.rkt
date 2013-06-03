@@ -103,8 +103,7 @@
   ; (3) the command syntax that started evaluation (for nice error highlighting)
   
   ; Policy ID needs to be known at compile time, not runtime, since it's used by the command XML
-  (parameterize ([read-case-sensitive #t]
-                 [current-readtable :-readtable])            
+  (parameterize ([read-case-sensitive #t])            
     (define file-port (open-input-file/exists fn src-syntax (format "Could not find the policy file: ~a~n" fn)))
     (port-count-lines! file-port)    
            
@@ -118,8 +117,9 @@
     ; Handle P4P policy syntax:
     (define the-policy-syntax
       (cond [(equal? 'Policy (syntax->datum pre-policy-syntax))
-             (file-position file-port 0)             
-             (load-and-translate-p4p fn file-port)]
+             (file-position file-port 0) 
+             (parameterize ([current-readtable :-readtable])
+               (load-and-translate-p4p fn file-port))]
             [else
              pre-policy-syntax]))
     
