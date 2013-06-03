@@ -73,8 +73,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			if(!fromContext.forQuery.myIDBCollectionsContainWithDot(key))
 				throw new MUserException("Could not show realized formula involving relation "+key+" since the query had no knowledge of that relation.\n"+
 						"The query knew about the following IDB relations: "+fromContext.forQuery.getmyIDBCollectionsIDBs()+
-						"\nand the following EDB relations+sorts:"+fromContext.forQuery.vocab.predicates.keySet()+",\n"+
-						fromContext.forQuery.vocab.sorts.keySet());
+						"\nand the following EDB relations+sorts+constants:\n"+fromContext.forQuery.vocab.predicates.keySet()+","+
+						fromContext.forQuery.vocab.sorts.keySet()+","+fromContext.forQuery.vocab.constants.keySet()+
+						"\nComplex terms (i.e., terms using functions) and equality between variables are not supported.");
 			
 			// Validate arities in which we are using the relation.
 			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithDot(key);
@@ -375,6 +376,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
 		
 		/////////////////////////////////////////////////////////////
+		// First re-write equalities that can be written. E.g.
+		// $c=x becomes $c(x).
+		rewriteEqualities(candidates);
+		rewriteEqualities(cases);
+		
+		/////////////////////////////////////////////////////////////
 		// Are any relations mentioned in candidates/cases missing from the bounds?
 		// (This occurs for IDB relations.)
 		Set<String> missingRels = findMissingRelations(candidates); 
@@ -579,6 +586,43 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 
         
         return result;
+	}
+
+	private void rewriteEqualities(Map<String, Set<List<MTerm>>> things) {
+		if(!things.containsKey("="))
+			return;		
+				
+		for(List<MTerm> aVector : things.get("="))
+		{
+			 assert(aVector.size() == 2);
+			 MTerm a = aVector.get(0);
+			 MTerm b = aVector.get(1);
+			 if(a instanceof MFunctionTerm || a instanceof MFunctionTerm)
+				 throw new MUserException("Unsupported show-realized formula; cannot use complex terms: "+a.toString()+"="+b.toString());
+			 
+			 if(b instanceof MVariableTerm)
+			 {
+				 if(!things.containsKey(a.toString()))
+					 things.put(a.toString(), new HashSet<List<MTerm>>());
+				 
+				 List<MTerm> newList = new ArrayList<MTerm>(1);
+				 newList.add(b);
+				 things.get(a.toString()).add(newList);
+				 MCommunicator.writeToLog("Converting to "+a.toString()+" -- "+newList);
+			 }
+			 else if(a instanceof MVariableTerm)
+			 {
+				 if(!things.containsKey(b.toString()))
+					 things.put(b.toString(), new HashSet<List<MTerm>>());
+				 
+				 List<MTerm> newList = new ArrayList<MTerm>(1);
+				 newList.add(a);
+				 things.get(b.toString()).add(newList);
+				 MCommunicator.writeToLog("Converting to "+a.toString()+" -- "+newList);
+			 }			 
+		}
+		
+		things.remove("=");
 	}
 
 	void handleClause (ISolver solver, int[] aClause, Set<IConstr> toRemove, Set<Integer> toAssume)

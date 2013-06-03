@@ -60,3 +60,4 @@ show realized q4
   filter:rule4_applies(sa, sp, da, dp);
 
 
+show realized q4 sa=$ip10-1-1-1;

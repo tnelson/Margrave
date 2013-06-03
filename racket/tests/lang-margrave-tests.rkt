@@ -34,7 +34,7 @@ UNDER conf1, conf2;
 
 // IS POSSIBLE? + SHOW ONE + SHOW ALL
 // expect: unsat
-IS POSS? Q1;
+POSS? Q1;
 SHOW Q1;
 SHOW ALL Q1;
 
@@ -42,19 +42,18 @@ SHOW ALL Q1;
 // and ISA 
 // and ISA sugar
 let Q3[s: Subject, a: Action, r: Resource] be 
-  conf1.permit(s, a, r) AND
+  conf1:permit(s, a, r) AND
   ((ISA s: Subject (true) AND ISA s: Subject ) IMPLIES NOT Subject(s));
 
 // expect: unsat
-IS POSS? Q3;
+POSS? Q3;
 
 // IFF
 let Q4[s: Subject, a: Action, r: Resource] be 
-conf1.permit(s, a, r) IFF NOT conf1.permit(s, a, r);
+conf1:permit(s, a, r) IFF NOT conf1:permit(s, a, r);
 
 // expect: unsat
-IS POSS? Q4;
-
+POSS? Q4;
 INFO Q4;
 
 // basic request vector sugar
@@ -73,62 +72,48 @@ COUNT Q4;
 let Q5[s: Subject, a: Action, r: Resource] be Paper(r) and ReadPaper(a)
 under conf1;
 
-SHOW Q5 include conf1.permit(s,a,r), conf1.deny(s,a,r), 
-            conf1.papernoconflict_applies(s,a,r),
-            conf1.paperassigned_applies(s,a,r),
-            conf1.paperconflict_applies(s,a,r);
+SHOW Q5 include conf1:permit(s,a,r), conf1:deny(s,a,r), 
+            conf1:papernoconflict_applies(s,a,r),
+            conf1:paperassigned_applies(s,a,r),
+            conf1:paperconflict_applies(s,a,r);
 
-//SHOW REALIZED Q5 conf1.permit(s, a, r);
-//SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r);
+SHOW REALIZED Q5 conf1:permit(s, a, r);
+SHOW REALIZED Q5 conf1:permit(s, a, r), conf1:deny(s, a, r);
 
-//SHOW REALIZED Q5 conf1.permit(s, a, r), conf1.deny(s, a, r)
-//  FOR CASES conf1.papernoconflict_applies(s,a,r),
-//            conf1.paperassigned_applies(s,a,r),
-//            conf1.paperconflict_applies(s,a,r);
+SHOW REALIZED Q5 conf1:permit(s, a, r), conf1:deny(s, a, r)
+  FOR CASES conf1:papernoconflict_applies(s,a,r),
+            conf1:paperassigned_applies(s,a,r),
+            conf1:paperconflict_applies(s,a,r);
 
 
 // Testing show unrealized: 
-let Q6[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) 
-;
-//  debug 3;
-
-// s/b deny
-//SHOW UNREALIZED Q6 conf1.permit(s, a, r), conf1.deny(s, a, r);
+let Q6[s: Subject, a: Action, r: Resource] be conf1:permit(s,a,r) ;
 
 
-// Remember: scope is limited in Q6. So deny can never fire (which means EVERYTHING is unrealized w/r/t it).
-//           In a permit, all of the rules (including the deny rule) can 
-// HMM. Bug? Deny rule matches, but doesn't apply?
-// also: permit in deny and deny in permit?
+SHOW UNREALIZED Q6 conf1:permit(s, a, r), conf1:deny(s, a, r);
 
-//SHOW UNREALIZED Q6
-//              conf1.permit(s, a, r), 
-//              conf1.deny(s, a, r), 
-//              conf1.papernoconflict_applies(s,a,r),
- //             conf1.paperassigned_applies(s,a,r),
-  //            conf1.paperconflict_applies(s,a,r)
-   //         FOR CASES conf1.permit(s, a, r), 
-    //                  conf1.deny(s, a, r);
-
+SHOW UNREALIZED Q6
+              conf1:permit(s, a, r), 
+              conf1:deny(s, a, r), 
+              conf1:papernoconflict_applies(s,a,r),
+              conf1:paperassigned_applies(s,a,r),
+              conf1:paperconflict_applies(s,a,r)
+            FOR CASES conf1:permit(s, a, r), 
+                      conf1:deny(s, a, r);
                       
 SHOW REALIZED Q5
-              conf1.deny(s, a, r),
-              conf1.permit(s, a, r),               
-              conf1.paperassigned_applies(s,a,r)
-              FOR CASES conf1.permit(s, a, r), conf1.paperassigned_applies(s,a,r),
-              conf1.deny(s,a,r), conf1.paperconflict_applies(s,a,r), conf1.papernoconflict_applies(s,a,r);
-                      
-            // happens regardless of whether permit is in the query. (q5 and q6 both display problem)          
-            
-            
-                      // without rule-candidates: { conf1.permit(s, a, r) -> (conf1.permit(s, a, r)), }
-                      // with { conf1.permit(s, a, r) -> (conf1.deny(s, a, r) conf1.paperassigned_applies(s, a, r) conf1.permit(s, a, r)), }
-//let Qbug[s: Subject, a: Action, r: Resource] be conf1.permit(s,a,r) and conf1.paperconflict_applies(s,a,r);                       
-          
-//show Qbug;
+              conf1:deny(s, a, r),
+              conf1:permit(s, a, r),               
+              conf1:paperassigned_applies(s,a,r)
+              FOR CASES conf1:permit(s, a, r), conf1:paperassigned_applies(s,a,r),
+              conf1:deny(s,a,r), conf1:paperconflict_applies(s,a,r), conf1:papernoconflict_applies(s,a,r);
+                                  
 
+// Show realized for constant=variable
+SHOW REALIZED Q5 $margravepaper=r;
+              
 /////////////////////////////////////////////////////////
 
 // Test p4p policies in #lang margrave
 
-//#load policy p4p1 = "p4p-policy.p";
+#load policy p4p1 = "p4p-policy.p";
