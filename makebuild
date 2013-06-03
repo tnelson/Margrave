@@ -16,6 +16,7 @@ echo Copying files for build...
 mkdir ${MARGRAVE_PROJECT_ROOT}/build-temp
 cd ${MARGRAVE_PROJECT_ROOT}/build-temp
 mkdir margrave
+mkdir margrave/IOS-parser
 mkdir margrave/lib
 mkdir margrave/tests
 mkdir margrave/examples
@@ -24,7 +25,11 @@ mkdir margrave/licenses
 mkdir margrave/lang
 
 
+# The main Racket source for Margrave
 cp ${MARGRAVE_PROJECT_ROOT}/racket/*.rkt margrave
+
+# The IOS parser was originally scheme, hence the .ss extension
+cp ${MARGRAVE_PROJECT_ROOT}/racket/IOS-parser/*.ss margrave/IOS-parser
 
 cp ${MARGRAVE_PROJECT_ROOT}/licenses/* margrave/licenses
 
