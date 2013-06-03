@@ -669,4 +669,4 @@
 (define test (open-input-string "z:-(x:-y)"))
 (define result (parameterize ([current-readtable :-readtable])
   (list (read-syntax "test" test) (read-syntax "test" test))))
-(check-true (equal? (syntax->datum result0) (syntax->datum result)))
+(check-true (equal? (map syntax->datum result0) (map syntax->datum result)))
