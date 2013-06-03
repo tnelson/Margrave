@@ -248,6 +248,8 @@
     (define atoms-with-names 
       (foldl (lambda (e sofar) 
                ; Remove Skolem prefix
+               ; warning: margrave's syntax uses $ to prefix constants, not variables.
+               ; but kodkod prefixes skolem rels with $. those are variables.
                (define cxname (cond [(equal? "$" (string-take (m-relation-name e) 1))
                                      (string-drop (m-relation-name e) 1)]
                                     [else (m-relation-name e)]))
@@ -263,6 +265,11 @@
              (append 
               (m-scenario-skolems a-scenario)
               const-relations)))  
+    
+    (define (is-unbound-by-variable? the-atom)
+      (andmap (lambda (skrel)                     
+                     (not (equal? the-atom (first (first (m-relation-tuples skrel))))))
+                   (m-scenario-skolems a-scenario)))
     
     ; Atoms that have no name after that will just be printed in their raw form. E.g. "Subject#1"    
     (define atom-names (foldl (lambda (a sofar)
@@ -306,12 +313,16 @@
     ; What atoms should be omitted?They must be
     ; (1) denoted by a constant
     ; (2) in only one sort (which must be the sort they were declared in!)
+    ; (3) NOT be denoted by a variable. (var bindings should be emphasized, not hidden)
     (define omit-atoms    
       (foldl (lambda (rel sofar)
                (define the-atom (first (first (m-relation-tuples rel))))
-               (define the-atom-sorts (hash-ref atom-sorts the-atom))
-               (cond [(equal? (set-count the-atom-sorts) 1) (set-union sofar (set the-atom))]
-                     [else sofar]))
+               (define the-atom-sorts (hash-ref atom-sorts the-atom))               
+               (cond [(and (equal? (set-count the-atom-sorts) 1) 
+                           (is-unbound-by-variable? the-atom))
+                      (set-union sofar (set the-atom))]
+                     [else 
+                      sofar]))
              (set )
              const-relations))
     
