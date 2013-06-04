@@ -81,6 +81,10 @@
   (define len (string-length str))
   (cond [(equal? 0 len)]
         [else (string-append (string-upcase (substring str 0 1)) (substring str 1 len))]))
+(define (string-uncapitalize str)
+  (define len (string-length str))
+  (cond [(equal? 0 len)]
+        [else (string-append (string-downcase (substring str 0 1)) (substring str 1 len))]))
 
 ;; (hashtable any any) (any any -> boolean) -> (listof (any any))
 ;;   Returns a list of (key, value) pairs from a hashtable that
@@ -498,8 +502,11 @@
     ;    src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface))          
     
     (define arg-variable-list 
-      (cond [(equal? rule-type 'acl) ; both inbound and outbound 
+      (cond [(equal? rule-type 'acl) ; inbound uses entry
              '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol paf)]
+            
+            [(equal? rule-type 'outacl) ; outbound uses exit
+             '(hostname exit-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol paf)]
             
             [(equal? rule-type 'nat) ; inside and outside 
              '(hostname entry-interface 
@@ -675,7 +682,7 @@
     ;; -> symbol
     ;;   Returns the name for this interface
     (define/public (text)
-      (string->symbol (string-capitalize (symbol->string name))))
+      (string->symbol (string-uncapitalize (symbol->string name))))
     
     ;; -> boolean
     ;;   Returns whether this interface<%> represents a single interface
@@ -2625,13 +2632,9 @@
                          'pass)
                      (if (eqv? (get-field decision match-rule) 'permit)
                          `((,next-hop exit-interface)
-                           ; -TN added next-hop restriction and this if statement
-                           (= next-hop dest-addr-out)
-                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                           (IPAddress next-hop))
-                         `((,next-hop exit-interface)
-                           ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                           (IPAddress next-hop)))
+                           ; dest-addr-in is the middle-of-router address in the context of this policy
+                           (= next-hop dest-addr-in))
+                         `((,next-hop exit-interface)))
                      'policyroute)
                (send match-rule
                      augment/replace-decision
@@ -3311,13 +3314,13 @@
                                   (send interf text)
                                   `((,hostname hostname)
                                     (,interf exit-interface))
-                                  'acl)))
+                                  'outacl)))
                 (list (if default-ACL-permit
                           (list (make-object rule%
                                   'default-ACE
                                   'permit
                                   `((,hostname hostname))
-                                  'acl))
+                                  'outacl))
                           '())))))
     
     ;; symbol -> (listof interface%)
@@ -3408,10 +3411,8 @@
                      'forward
                      `((,hostname hostname)
                        (,(get-field primary-network interf) dest-addr-in)
-                       ; -TN added next-hop restriction below
-                       (= next-hop dest-addr-out)
-                       ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                       (IPAddress next-hop)
+                       ; dest-addr-in is the middle-of-router address in the context of this policy
+                       (= next-hop dest-addr-in)            
                        (,interf exit-interface))
                      'localswitching)
                    (make-object rule%
@@ -3436,11 +3437,9 @@
                                                     "-secondary"))
                      'forward
                      `((,hostname hostname)
-                       ; -TN added next-hop restriction below
-                       (= next-hop dest-addr-out)
+                       ; dest-addr-in is the middle-of-router address in the context of this policy
+                       (= next-hop dest-addr-in)
                        (,(get-field secondary-network interf) dest-addr-in)
-                       ; -TN Changed ip-n/a to IPAddress. Probably can be removed entirely.
-                       (IPAddress next-hop)
                        (,interf exit-interface))
                      'localswitching)
                    (make-object rule%
@@ -3787,8 +3786,9 @@
             ; But if we have a PREDICATE ieth0: Interf-real, 
             ; (ieth0 exit-interface) is not well sorted. 
             ; Whereas if Ieth0 is a type, (Ieth0 exit-interface) downcasts automatically.
-            (Interface > Interf-drop Interf-real)                        
-            (Interf-real > ,@real-interfaces)
+            ;(Interface > Interf-drop Interf-real)                        
+            ;(Interf-real > ,@real-interfaces)
+            Interface
             Protocol-any                                     
             )            
            
@@ -3802,7 +3802,11 @@
                                                                rules))))                                             
                        
                        ,@(map (lambda (name) `(,name Hostname)) hostnames)
-                                              
+                                             
+                       (interf-drop Interface)                       
+                       ,@(map (lambda (name) `(,name Interface))  
+                              real-interfaces)
+                       
                        (icmp-echo PayloadAndFlags) ; all were ICMPMessage
                        (icmp-echo-reply PayloadAndFlags)
                        (icmp-time-exceeded PayloadAndFlags)
@@ -3836,12 +3840,12 @@
      ;(abstract ICMPMessage)
      ;(abstract Protocol-any)
           
-     ;,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order real-interfaces))     
+     ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order (cons 'interf-drop real-interfaces)))     
      ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order length-children))
      
      (atmostone-all Hostname)     
-     (atmostone-all Interf-real)
-     (atmostone Interf-drop)
+     ;(atmostone-all interf-real)
+     (atmostone interf-drop)
      (atmostone-all Protocol-any)
      (atmostone icmp-echo)
      (atmostone icmp-echo-reply)
@@ -3925,7 +3929,7 @@
            ; However, for now, just list all the possibilities.
            (Variables                        
             (hostname Hostname)
-            (entry-interface Interf-real)
+            (entry-interface Interface)
                         
             (src-addr-in IPAddress)
             (src-addr-out IPAddress)

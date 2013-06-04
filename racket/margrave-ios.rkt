@@ -121,7 +121,7 @@
 ; 14 variables exposing modification of packet and exit interface,
 ; hiding internal addresses used between in/out nat, next-hop.
 (define vardec-internal '([ahostname Hostname]
-                          [entry Interface] ; Interf-real?
+                          [entry Interface]
                           [sa IPAddress]
                           [da IPAddress]
                           [sp Port]
@@ -133,44 +133,6 @@
                           [da2 IPAddress]
                           [sp2 Port]
                           [dp2 Port]))
-
-  #|(define vardec-20 '([ahostname Hostname]
-                      [entry-interface Interf-real]
-                      [src-addr-in IPAddress]
-                      [src-addr_ IPAddress]
-                      [src-addr-out IPAddress]
-                      [dest-addr-in IPAddress]
-                      [dest-addr_ IPAddress]
-                      [dest-addr-out IPAddress]
-                      [protocol Protocol-any]
-                      [message ICMPMessage]
-                      [flags TCPFlags]
-                      [src-port-in Port]
-                      [src-port_ Port]
-                      [src-port-out Port]
-                      [dest-port-in Port]
-                      [dest-port_ Port]
-                      [dest-port-out Port] 
-                      [length Length]
-                      [next-hop IPAddress]
-                      [exit-interface Interface]))
-  (define vardec-16 '([ahostname Hostname]
-                      [entry-interface Interf-real]
-                      [src-addr-in IPAddress]
-                      [src-addr-out IPAddress]
-                      [dest-addr-in IPAddress]
-                      [dest-addr-out IPAddress]
-                      [protocol Protocol-any]
-                      [message ICMPMessage]
-                      [flags TCPFlags]
-                      [src-port-in Port]
-                      [src-port-out Port]
-                      [dest-port-in Port]
-                      [dest-port-out Port] 
-                      [length Length]
-                      [next-hop IPAddress]
-                      [exit-interface Interface]))
-|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -226,12 +188,7 @@
   (define networkswitching (string->symbol (string-append prefix "NetworkSwitching" suffix)))
   (define encryption (string->symbol (string-append prefix "Encryption" suffix)))
  
-  
-  ;(define inner-vec '(ahostname entry-interface src-addr_ src-addr_
-  ;                              dest-addr_ dest-addr_ protocol message flags src-port_ src-port_
-  ;                              dest-port_ dest-port_ length next-hop exit-interface))
-      
-  
+    
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; ACLs are not involved in internal-result, which is concerned with routing, switching and NAT.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,8 +231,8 @@
                                                    ([,networkswitching forward] ahostname dest-addr_ exit))
                                               ; Final option: Packet is dropped.
                                               (and ([,defaultpolicyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol)
-                                                   (= next-hop dest-addr-out)
-                                                   (Interf-drop exit))))))))))))))))
+                                                   (= next-hop dest-addr_)
+                                                   (interf-drop exit))))))))))))))))
   
   
   
@@ -315,14 +272,14 @@
   ; paf contains what were once separate: message, flags, length.
   ; next-hop is only represented inside internal-result
   
-  (define aclinvec '(ahostname entry sa da sp dp protocol paf))  
-  (define acloutvec '(ahostname entry sa2 da2 sp2 dp2 protocol paf)) 
-      
-  (m-let (string-append prefix "result" suffix)          
-         vardec-internal
-         `(and (not (Interf-drop exit))
-               ([,inboundacl permit] ,@aclinvec )
-               ([,outboundacl permit] ,@acloutvec)))  
+  ;(define aclinvec '(ahostname entry sa da sp dp protocol paf))  
+  ;(define acloutvec '(ahostname exit sa2 da2 sp2 dp2 protocol paf)) 
+  ;    
+  ;(m-let (string-append prefix "result" suffix)          
+  ;       vardec-internal
+  ;       `(and (not (Interf-drop exit))
+  ;             ([,inboundacl permit] ,@aclinvec )
+  ;             ([,outboundacl permit] ,@acloutvec)))  
   ; end
   )
 
