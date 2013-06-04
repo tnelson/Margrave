@@ -204,35 +204,36 @@
                          
            (and ([,outsidenat translate] ahostname entry 
                                         sa da sp dp protocol
-                                        src-addr_ dest-addr_ src-port_ dest-port_ )
+                                        src-addr_ dest-addr_ src-port_ dest-port_)
                
            
            
                ([,insidenat translate] ahostname entry 
                                        src-addr_ dest-addr_ src-port_ dest-port_ protocol
-                                       sa2 da2 sp2 dp2 )
+                                       sa2 da2 sp2 dp2)
                               
                ; NAT translation confirmed. Now see if and how the packet is routed.
                ; Routing can either go to a gateway (route) or an interface (forward)   
                ; Local routing just checks if the destination is a local interface.
-
+                        
                (or ([,localswitching forward] ahostname dest-addr_ exit)
-                   (and ([,localswitching pass] ahostname dest-addr_)
-                        (or ([,policyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol exit)
-                            (and ([,policyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                   (and ([,localswitching pass] ahostname dest-addr_ exit))
+                   
+                        (or ([,policyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
+                            (and ([,policyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                  ([,networkswitching forward] ahostname dest-addr_ exit))
-                            (and ([,policyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol)
-                                 (or ([,staticroute forward] ahostname dest-addr_ exit)
-                                     (and ([,staticroute route] ahostname dest-addr_ next-hop)
+                            (and ([,policyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
+                                 (or ([,staticroute forward] ahostname dest-addr_ next-hop exit)
+                                     (and ([,staticroute route] ahostname dest-addr_ next-hop exit)
                                           ([,networkswitching forward] ahostname dest-addr_ exit))
-                                     (and ([,staticroute pass] ahostname dest-addr_)
-                                          (or ([,defaultpolicyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol exit)
-                                              (and ([,defaultpolicyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                                     (and ([,staticroute pass] ahostname dest-addr_ next-hop exit)
+                                          (or ([,defaultpolicyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
+                                              (and ([,defaultpolicyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                                    ([,networkswitching forward] ahostname dest-addr_ exit))
                                               ; Final option: Packet is dropped.
-                                              (and ([,defaultpolicyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol)
+                                              (and ([,defaultpolicyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                                    (= next-hop dest-addr_)
-                                                   (interf-drop exit))))))))))))))))
+                                                   (interf-drop exit)))))))))))))))
   
   
   
@@ -272,14 +273,14 @@
   ; paf contains what were once separate: message, flags, length.
   ; next-hop is only represented inside internal-result
   
-  ;(define aclinvec '(ahostname entry sa da sp dp protocol paf))  
-  ;(define acloutvec '(ahostname exit sa2 da2 sp2 dp2 protocol paf)) 
-  ;    
-  ;(m-let (string-append prefix "result" suffix)          
-  ;       vardec-internal
-  ;       `(and (not (Interf-drop exit))
-  ;             ([,inboundacl permit] ,@aclinvec )
-  ;             ([,outboundacl permit] ,@acloutvec)))  
+  (define aclinvec '(ahostname entry sa da sp dp protocol paf))  
+  (define acloutvec '(ahostname exit sa2 da2 sp2 dp2 protocol paf)) 
+      
+  (m-let (string-append prefix "passes-firewall" suffix)          
+         vardec-internal
+         `(and (not (interf-drop exit))
+               ([,inboundacl permit] ,@aclinvec )
+               ([,outboundacl permit] ,@acloutvec)))  
   ; end
   )
 

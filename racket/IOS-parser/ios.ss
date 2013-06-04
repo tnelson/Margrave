@@ -501,6 +501,12 @@
     ;    protocol message flags
     ;    src-port-in src-port-out dest-port-in dest-port-out length next-hop exit-interface))          
     
+    
+    ;; IMPORTANT
+    ;; DO NOT attempt to have individual policies with different request vectors.
+    ;; This is unsafe because of rule combination. If I reference decision X, which is
+    ; overridden by decision Y, Y's vector appears in the expression X.notapplies.
+    
     (define arg-variable-list 
       (cond [(equal? rule-type 'acl) ; inbound uses entry
              '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol paf)]
@@ -525,31 +531,38 @@
             ; types are from cisco language constructs
                         
             ; Static routes are decided on the basis of the destination address only.
-            [(and (equal? rule-type 'staticroute) 
-                  (equal? decision 'route))
-             '(hostname dest-addr-in next-hop)]
-            [(and (equal? rule-type 'staticroute) 
-                  (equal? decision 'forward))
-             '(hostname dest-addr-in exit-interface)]
-            [(and (equal? rule-type 'staticroute) 
-                  (or (equal? decision 'drop)
-                      (equal? decision 'pass)))
-             '(hostname dest-addr-in)]
+             [(equal? rule-type 'staticroute)
+              '(hostname dest-addr-in next-hop exit-interface)]
+             
+            ;[(and (equal? rule-type 'staticroute) 
+            ;      (equal? decision 'route))
+            ; '(hostname dest-addr-in next-hop)]
+            ;[(and (equal? rule-type 'staticroute) 
+            ;      (equal? decision 'forward))
+            ; '(hostname dest-addr-in exit-interface)]
+            ;[(and (equal? rule-type 'staticroute) 
+            ;      (or (equal? decision 'drop)
+            ;          (equal? decision 'pass)))
+            ; '(hostname dest-addr-in)]
                         
             ; Policy routes, however, need more:
-            [(and (or (equal? rule-type 'defaultpolicyroute)
-                      (equal? rule-type 'policyroute))
-                  (equal? decision 'route))
-             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol next-hop)]
-            [(and (or (equal? rule-type 'defaultpolicyroute)
-                      (equal? rule-type 'policyroute))
-                  (equal? decision 'forward))
-             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol exit-interface)]
-            [(and (or (equal? rule-type 'defaultpolicyroute)
-                      (equal? rule-type 'policyroute))
-                  (or (equal? decision 'drop)
-                      (equal? decision 'pass)))
-             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol)]
+             [(or (equal? rule-type 'defaultpolicyroute)
+                  (equal? rule-type 'policyroute))
+              '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol next-hop exit-interface)]
+             
+            ;[(and (or (equal? rule-type 'defaultpolicyroute)
+            ;          (equal? rule-type 'policyroute))
+            ;      (equal? decision 'route))
+            ; '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol next-hop)]
+            ;[(and (or (equal? rule-type 'defaultpolicyroute)
+            ;          (equal? rule-type 'policyroute))
+            ;      (equal? decision 'forward))
+            ; '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol exit-interface)]
+            ;[(and (or (equal? rule-type 'defaultpolicyroute)
+            ;          (equal? rule-type 'policyroute))
+            ;      (or (equal? decision 'drop)
+            ;          (equal? decision 'pass)))
+            ; '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol)]
             
             
             [(and (or (equal? rule-type 'defaultpolicyroute)
@@ -565,15 +578,19 @@
             ;    ^^^ This means that the localswitching policy is applied before any routing.
             ; Network: next-hop is just an address. 
             
-            [(and (or (equal? rule-type 'networkswitching) 
-                      (equal? rule-type 'localswitching))
-                  (equal? decision 'forward))
-             '(hostname next-hop exit-interface)]                        
-            [(and (or (equal? rule-type 'networkswitching) 
-                      (equal? rule-type 'localswitching))
-                  (or (equal? decision 'drop)
-                      (equal? decision 'pass)))
-             '(hostname next-hop)]                        
+            [(or (equal? rule-type 'networkswitching) 
+                 (equal? rule-type 'localswitching))
+             '(hostname next-hop exit-interface)] 
+            
+;            [(and (or (equal? rule-type 'networkswitching) 
+;                      (equal? rule-type 'localswitching))
+;                  (equal? decision 'forward))
+;             '(hostname next-hop exit-interface)]                        
+;            [(and (or (equal? rule-type 'networkswitching) 
+;                      (equal? rule-type 'localswitching))
+;                  (or (equal? decision 'drop)
+;                      (equal? decision 'pass)))
+;             '(hostname next-hop)]                        
                         
             [(error (format "Unknown rule type: ~a with decision: ~a. Name ~v. Conditions: ~v."
                             rule-type decision name conditions))]))
@@ -3410,11 +3427,13 @@
                                                     "-primary"))
                      'forward
                      `((,hostname hostname)
-                       (,(get-field primary-network interf) dest-addr-in)
-                       ; dest-addr-in is the middle-of-router address in the context of this policy
-                       (= next-hop dest-addr-in)            
+                       (,(get-field primary-network interf) next-hop)
+                       ; dest-addr-in is the middle-of-router address in the context of this policy                                   
                        (,interf exit-interface))
                      'localswitching)
+                   
+                   ; these drop rules are to make sure that mismatched interfaces
+                   ; when dest addresses match dont make it to pass. must only be forwarded.
                    (make-object rule%
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
@@ -3422,10 +3441,11 @@
                                                     "-drop-p"))
                      'drop
                      `((,hostname hostname)
-                       (,(get-field primary-network interf) dest-addr-in))
+                       (,(get-field primary-network interf) next-hop))
                      'localswitching))))                    
               (hash-filter interfaces (λ (name interf)
                                         (get-field primary-address interf))))
+         
          (map (λ (name-interf)
                 (let [(name (car name-interf))
                       (interf (cdr name-interf))]
@@ -3438,10 +3458,12 @@
                      'forward
                      `((,hostname hostname)
                        ; dest-addr-in is the middle-of-router address in the context of this policy
-                       (= next-hop dest-addr-in)
-                       (,(get-field secondary-network interf) dest-addr-in)
+                       ;(= next-hop dest-addr-in)
+                       ;(,(get-field secondary-network interf) dest-addr-in)
+                       (,(get-field secondary-network interf) next-hop)
                        (,interf exit-interface))
                      'localswitching)
+                   
                    (make-object rule%
                      (string->symbol (string-append (symbol->string (send hostname name))
                                                     "-"
@@ -3449,8 +3471,9 @@
                                                     "-drop-s"))
                      'drop
                      `((,hostname hostname)
-                       (,(get-field secondary-network interf) dest-addr-in))
-                     'localswitching))))
+                       (,(get-field secondary-network interf) next-hop))
+                     'localswitching)
+                   )))
               (hash-filter interfaces (λ (name interf)
                                         (get-field secondary-address interf)))))
         (list (make-default-routing-rule hostname 'localswitching)))))

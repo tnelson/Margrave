@@ -1358,7 +1358,8 @@ public class MQuery extends MIDBCollection
 		for (Variable v : freeVarsUnsorted)
 		{
 			if (!publish.contains(v.name()))			
-				throw new MGEUnknownIdentifier("The query formula had a free variable "+v.name()+" that was not declared or typed.");
+				throw new MGEUnknownIdentifier("MQuery engine: The query formula had a free variable "+v.name()+" that was not declared or typed."+
+			"\nThis may be caused by a policy having decisions with different input vectors that are related via a rule-combinator.");
 		}
 
 		//MEnvironment.writeErrLine("Temp debug info: "+qryFormula);
