@@ -73,7 +73,7 @@
    <constant-id>
    ; natural
    <natural>
-   ; comment
+   ; conf1:
    <comment>))
 
 (define-lex-abbrevs
@@ -87,7 +87,11 @@
   [lex:nswhitespace (:or #\newline #\return #\tab #\vtab)]
   
   ; The last line of a file may be a comment. Greedy matching will match the entire line up to the end.
-  [lex:comment (:: #\/ #\/ (:* (char-complement (:or #\newline #\return))))])
+  [lex:comment (:or 
+                (:: #\/ #\/ (:* (char-complement (:or #\newline #\return))))
+                ; #lang margrave doesn't have arbitrary strings, etc. so this should be safe?
+                ; (The Lexers documentation page suggested this use of any-string.)
+                (:: "/*" (complement (:: any-string "*/" any-string)) "*/"))])
 
 
 ; *************************************************

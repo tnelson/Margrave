@@ -239,6 +239,8 @@
                                  (number->string (m-scenario-size a-scenario))
                                  " ******************\n") buffer)
     
+    ; This is REALLY important now that we're using $ as a prefix for constants, where
+    ; kodkod is using it as a prefix for skolem.
     (define const-relations (filter (lambda (rel) (equal? 'constant (m-relation-reltype rel))) (m-scenario-relations a-scenario)))
     (define non-const-relations (filter (lambda (rel) (not (equal? 'constant (m-relation-reltype rel)))) (m-scenario-relations a-scenario)))
     (define ordered-non-const-relations (sort non-const-relations
@@ -250,7 +252,9 @@
                ; Remove Skolem prefix
                ; warning: margrave's syntax uses $ to prefix constants, not variables.
                ; but kodkod prefixes skolem rels with $. those are variables.
-               (define cxname (cond [(equal? "$" (string-take (m-relation-name e) 1))
+               (define cxname (cond [(and 
+                                      (member? e (m-scenario-skolems a-scenario))
+                                      (equal? "$" (string-take (m-relation-name e) 1)))
                                      (string-drop (m-relation-name e) 1)]
                                     [else (m-relation-name e)]))
                ; Error if malformed relation
@@ -338,10 +342,22 @@
         (define ordered-list-of-sorts (sort (set->list set-of-sorts) string<=?))
         (write-string (string-join ordered-list-of-sorts ", ") buffer)
         (write-string "\n" buffer)))
-    ; sort alphabetically by displayed name, not actual atom string:
+    ; sort alphabetically by displayed name, not actual atom string:    
     (for-each print-atom-sorts (sort (hash-keys atom-sorts) 
-                                     (lambda (a1 a2) (string<=? (hash-ref atom-names a1)
-                                                                (hash-ref atom-names a2)))))
+                                     ; sorting function. last resort is string comparison.
+                                     ; first, VARS > ELSE:
+                                     (lambda (a1 a2) 
+                                       ;(printf "~v ~v ~v ~v ~n" a1 a2 (hash-ref atom-names a1) (hash-ref atom-names a2))
+                                       (cond [(and (not (is-unbound-by-variable? a1))
+                                                   (is-unbound-by-variable? a2))
+                                              #t]
+                                             [(and (not (is-unbound-by-variable? a2))
+                                                   (is-unbound-by-variable? a1))
+                                              #f]
+                                             [else 
+                                              (string<=? 
+                                               (hash-ref atom-names a1)
+                                               (hash-ref atom-names a2))]))))
     (unless (set-empty? omit-atoms)
       (define named-omit-atoms (map (lambda (a) (hash-ref atom-names a))
                                     (set->list omit-atoms)))
