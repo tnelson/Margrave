@@ -499,7 +499,7 @@
     
     (define arg-variable-list 
       (cond [(equal? rule-type 'acl) ; both inbound and outbound 
-             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol)]
+             '(hostname entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol paf)]
             
             [(equal? rule-type 'nat) ; inside and outside 
              '(hostname entry-interface 
@@ -1010,6 +1010,11 @@
     (inherit name)
     (inherit extended-name)
     
+    
+    ;; NOTE ON ICMP MESSAGES
+    ; These are now modeled in the PayloadAndFlags variable (paf). 
+    ; condenses arity of our predicates nicely. (3->1)
+    
     ;; symbol symbol (listof (listof symbol)) -> rule%
     ;;   Returns a rule that represents this ACE
     (define/public (rule hostname interf additional-conditions rule-type)
@@ -1019,7 +1024,7 @@
         `(,@additional-conditions
           (,src-addr-in src-addr-in)
           (Prot-ICMP protocol)
-          (,msg message)
+          (,msg paf)
           (,dest-addr-in dest-addr-in))
         rule-type))
     
@@ -1033,7 +1038,7 @@
         `(,@additional-conditions
           (,src-addr-in dest-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))
+          (,msg paf))
         'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1047,7 +1052,7 @@
           (,dest-addr-in src-addr-out)
           (,src-addr-in dest-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))
+          (,msg paf))
         'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1060,7 +1065,7 @@
         `(,@additional-conditions
           (,dest-addr-in src-addr-in)
           (Prot-ICMP protocol)
-          (,msg message))
+          (,msg paf))
         'nat))
     
     ;; symbol symbol string (listof (listof symbol)) -> rule%
@@ -1074,7 +1079,7 @@
           (,dest-addr-in src-addr-in)
           (,src-addr-in dest-addr-out)
           (Prot-ICMP protocol)
-          (,msg message))
+          (,msg paf))
         'nat))
     ))
 
@@ -1179,7 +1184,7 @@
     (inherit-field dest-port-in)      
     
     (define flag-conditions (map (λ (flag)
-                                   `(,flag flags))
+                                   `(,flag paf))
                                  flags))
     
     ;; symbol symbol (listof (listof symbol)) -> rule%
@@ -1327,7 +1332,7 @@
     ;;   Returns a list of length conditions used in match conditions for this map
     (define (match-length-conditions)
       (map (λ (length)
-             `((,length length)))
+             `((,length paf)))
            match-lengths))
     
     ;; symbol symbol (hashtable symbol ACL%) (listof (listof symbol)) -> (listof rule%)
@@ -3772,7 +3777,10 @@
             Port
             Hostname
             
-            LocPacket
+            PayloadAndFlags
+            ;ICMPMessage            
+            ;TCPFlags            
+            ;Length
             
             ; Special handling for this particular sort. Since
             ; exit-interface: Interface (i.e. possibly Interf-drop) 
@@ -3782,20 +3790,7 @@
             (Interface > Interf-drop Interf-real)                        
             (Interf-real > ,@real-interfaces)
             Protocol-any                                     
-            ICMPMessage            
-            TCPFlags            
-            Length)
-           
-           ;(Decisions
-           ; Permit
-           ; Deny
-           ; Translate
-           ; Route
-           ; Forward
-           ; Drop
-           ; Pass
-           ; Advertise
-           ; Encrypt)
+            )            
            
            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
            ; Predicates instead of constants for hostnames, etc. for efficiency. 
@@ -3804,54 +3799,28 @@
                               (remove-duplicates (flatten (map (λ (rule)
                                                                  (send rule extract-predicates))
                                          
-                                                               rules))))                      
-                       
+                                                               rules))))                                             
                        
                        ,@(map (lambda (name) `(,name Hostname)) hostnames)
-                       
-                       (icmp-echo ICMPMessage)
-                       (icmp-echo-reply ICMPMessage)
-                       (icmp-time-exceeded ICMPMessage)
-                       (icmp-unreachable ICMPMessage)
+                                              
+                       (icmp-echo PayloadAndFlags) ; all were ICMPMessage
+                       (icmp-echo-reply PayloadAndFlags)
+                       (icmp-time-exceeded PayloadAndFlags)
+                       (icmp-unreachable PayloadAndFlags)
                        
                        (prot-ICMP Protocol-any)
                        (prot-TCP Protocol-any)
                        (prot-UDP Protocol-any)
                                              
-                       ,@(map (lambda (name) `(,name TCPFlags)) 
+                       ,@(map (lambda (name) `(,name PayloadAndFlags)) ; was TCPFlags 
                               TCP-flags)
-                       ,@(map (lambda (name) `(,name Length)) length-children)
+                       ,@(map (lambda (name) `(,name PayloadAndFlags)) ; was Length
+                              length-children)
                         
                        ,@(apply append (map (lambda (tchild) (make-tp-preds tchild 'IPAddress)) (tree-children types-tree)))
                        ,@ports-decls                                                              
 
-                       )
-                      
-           
-           
-           
-           ; Formerly variables in every request, now projections of a single LocPacket variable.
-           (Functions 
-;            (psrc-addr-in LocPacket IPAddress)
-;            (psrc-addr_ LocPacket IPAddress)
-;            (psrc-addr-out LocPacket IPAddress)
-;            (pdest-addr-in LocPacket IPAddress)
-;            (pdest-addr_ LocPacket IPAddress)
-;            (pdest-addr-out LocPacket IPAddress)
-;            
-;            (psrc-port-in LocPacket Port)
-;            (psrc-port_ LocPacket Port)
-;            (psrc-port-out LocPacket Port)            
-;            (pdest-port-in LocPacket Port)
-;            (pdest-port_ LocPacket Port)
-;            (pdest-port-out LocPacket Port)
-;            
-            (pinterface LocPacket Interface)
-            (phostname LocPacket Hostname)
-            (pprotocol LocPacket Protocol-any)
-            (pmessage LocPacket ICMPMessage)
-            (pflags LocPacket TCPFlags)
-            (plength LocPacket Length))
+                       )                                                       
            )     
     (Axioms
      ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order hostnames))     
@@ -3861,11 +3830,11 @@
      (disjoint prot-TCP prot-UDP)
      (disjoint prot-TCP prot-ICMP)
      (disjoint prot-UDP prot-ICMP)
-     ;(abstract Hostname)
-     (abstract Interface)
+     
+     (abstract Interface) ; every interface is either real or drop
      ;(abstract Interf-real)
      ;(abstract ICMPMessage)
-    ; (abstract Protocol-any)
+     ;(abstract Protocol-any)
           
      ;,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order real-interfaces))     
      ,@(map (lambda (pr) `(disjoint ,(first pr) ,(second pr))) (get-noneq-pairs-no-order length-children))
@@ -3876,7 +3845,7 @@
      (atmostone-all Protocol-any)
      (atmostone icmp-echo)
      (atmostone icmp-echo-reply)
-     (atmostone-all Length)
+     ;(atmostone-all Length)
      
      ,@(constraints (value-tree rules address<%> (make-object network-address% '0.0.0.0 '0.0.0.0 #f)))     
      ,@(constraints (value-tree rules port<%> (make-object port-range% 0 65535)))
@@ -3886,9 +3855,11 @@
      (nonempty IPAddress)
      (nonempty Protocol-any)
      (nonempty Port)
-     (nonempty ICMPMessage)
-     (nonempty TCPFlags)
-     (nonempty Length))))
+     ;(nonempty ICMPMessage)
+     ;(nonempty TCPFlags)
+     ;(nonempty Length)
+     (nonempty PayloadAndFlags)
+     )))
 
 ; TN removed NONE, not needed
 (define TCP-flags '(fSYN fACK fFIN fPSH fURG fRST))
@@ -3961,13 +3932,18 @@
             (dest-addr-in IPAddress)
             (dest-addr-out IPAddress)
             (protocol Protocol-any)
-            (message ICMPMessage)
-            (flags TCPFlags)
+            
+            (paf PayloadAndFlags)
+            
+            ;(message ICMPMessage)
+            ;(length Length)            
+            ;(flags TCPFlags)
+            
             (src-port-in Port)
             (src-port-out Port)
             (dest-port-in Port)
             (dest-port-out Port)
-            (length Length)
+            
             (next-hop IPAddress)
             (exit-interface Interface))           
            (Rules

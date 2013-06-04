@@ -22,8 +22,7 @@
 
 ; Others provided via provide/contract
 (provide load-ios-policies
-         vardec-20
-         vardec-16         
+         vardec-internal
          )
 
 
@@ -119,7 +118,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (define vardec-20 '([ahostname Hostname]
+; 14 variables exposing modification of packet and exit interface,
+; hiding internal addresses used between in/out nat, next-hop.
+(define vardec-internal '([ahostname Hostname]
+                          [entry Interface] ; Interf-real?
+                          [sa IPAddress]
+                          [da IPAddress]
+                          [sp Port]
+                          [dp Port]
+                          [protocol Protocol-any]
+                          [paf PayloadAndFlags]                          
+                          [exit Interface]
+                          [sa2 IPAddress]
+                          [da2 IPAddress]
+                          [sp2 Port]
+                          [dp2 Port]))
+
+  #|(define vardec-20 '([ahostname Hostname]
                       [entry-interface Interf-real]
                       [src-addr-in IPAddress]
                       [src-addr_ IPAddress]
@@ -155,7 +170,7 @@
                       [length Length]
                       [next-hop IPAddress]
                       [exit-interface Interface]))
-
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -212,47 +227,55 @@
   (define encryption (string->symbol (string-append prefix "Encryption" suffix)))
  
   
-  (define inner-vec '(ahostname entry-interface src-addr_ src-addr_
-                                dest-addr_ dest-addr_ protocol message flags src-port_ src-port_
-                                dest-port_ dest-port_ length next-hop exit-interface))
+  ;(define inner-vec '(ahostname entry-interface src-addr_ src-addr_
+  ;                              dest-addr_ dest-addr_ protocol message flags src-port_ src-port_
+  ;                              dest-port_ dest-port_ length next-hop exit-interface))
       
   
-  ; ACLs are not involved in internal-result, which is concerned with routing.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; ACLs are not involved in internal-result, which is concerned with routing, switching and NAT.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
   (m-let (string-append prefix "internal-result" suffix) 
-         vardec-20
-         `(and ([,outsidenat translate] ahostname entry-interface 
-                                        src-addr-in dest-addr-in src-port-in dest-port-in 
-                                        protocol
+         vardec-internal
+         
+         `(exists src-addr_ IPAddress
+            (exists dest-addr_ IPAddress
+              (exists src-port_ Port
+               (exists dest-port_ Port
+                 (exists next-hop IPAddress
+                         
+           (and ([,outsidenat translate] ahostname entry 
+                                        sa da sp dp protocol
                                         src-addr_ dest-addr_ src-port_ dest-port_ )
                
            
            
-               ([,insidenat translate] ahostname entry-interface 
-                                       src-addr_ dest-addr_ src-port_ dest-port_                                        
-                                       protocol
-                                       src-addr-out dest-addr-out src-port-out dest-port-out )
-               
-               ; Routing can either go to a gateway (route) or an interface (forward)                           
-               
+               ([,insidenat translate] ahostname entry 
+                                       src-addr_ dest-addr_ src-port_ dest-port_ protocol
+                                       sa2 da2 sp2 dp2 )
+                              
                ; NAT translation confirmed. Now see if and how the packet is routed.
-               
-               (or ([,localswitching forward] ahostname dest-addr_ exit-interface)
+               ; Routing can either go to a gateway (route) or an interface (forward)   
+               ; Local routing just checks if the destination is a local interface.
+
+               (or ([,localswitching forward] ahostname dest-addr_ exit)
                    (and ([,localswitching pass] ahostname dest-addr_)
-                        (or ([,policyroute forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
-                            (and ([,policyroute route] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
-                                 ([,networkswitching forward] ahostname dest-addr_ exit-interface))
-                            (and ([,policyroute pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol)
-                                 (or ([,staticroute forward] ahostname dest-addr_ exit-interface)
+                        (or ([,policyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol exit)
+                            (and ([,policyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                                 ([,networkswitching forward] ahostname dest-addr_ exit))
+                            (and ([,policyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol)
+                                 (or ([,staticroute forward] ahostname dest-addr_ exit)
                                      (and ([,staticroute route] ahostname dest-addr_ next-hop)
-                                          ([,networkswitching forward] ahostname dest-addr_ exit-interface))
+                                          ([,networkswitching forward] ahostname dest-addr_ exit))
                                      (and ([,staticroute pass] ahostname dest-addr_)
-                                          (or ([,defaultpolicyroute forward] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol exit-interface)
-                                              (and ([,defaultpolicyroute route] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
-                                                   ([,networkswitching forward] ahostname dest-addr_ exit-interface))
+                                          (or ([,defaultpolicyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol exit)
+                                              (and ([,defaultpolicyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop)
+                                                   ([,networkswitching forward] ahostname dest-addr_ exit))
                                               ; Final option: Packet is dropped.
-                                              (and ([,defaultpolicyroute pass] ahostname entry-interface src-addr_ dest-addr_ src-port_ dest-port_ protocol)
+                                              (and ([,defaultpolicyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol)
                                                    (= next-hop dest-addr-out)
-                                                   (Interf-drop exit-interface)))))))))))
+                                                   (Interf-drop exit))))))))))))))))
   
   
   
@@ -288,24 +311,16 @@
   ; Therefore, this query doesn't have the full arity of internal-result. (No src-addr_ etc.)
   
   ;;;;;;;;; ^^^^ REVISE THIS: is this restriction still needed?
-  
-  
-  (define aclinvec '(ahostname entry-interface src-addr-in dest-addr-in  ;message flags 
-                               src-port-in dest-port-in protocol)) ; length next-hop exit-interface))
-  
-  (define acloutvec '(ahostname entry-interface src-addr-out dest-addr-out  ;message flags 
-                               src-port-out dest-port-out protocol)) ; length next-hop exit-interface))
-  
     
-  ; TODO: icmp, message, etc.
-  ; TODO: FLAAAAAAAAGS
+  ; paf contains what were once separate: message, flags, length.
+  ; next-hop is only represented inside internal-result
   
-  (m-let (string-append prefix "result" suffix) 
-         ;'(ahostname
-         ;  entry-interface src-addr-in dest-addr-in src-port-in dest-port-in protocol
-         ;  exit-interface src-addr-out dest-addr-out src-port-out dest-port-out)
-         vardec-16
-         `(and (not (Interf-drop exit-interface))
+  (define aclinvec '(ahostname entry sa da sp dp protocol paf))  
+  (define acloutvec '(ahostname entry sa2 da2 sp2 dp2 protocol paf)) 
+      
+  (m-let (string-append prefix "result" suffix)          
+         vardec-internal
+         `(and (not (Interf-drop exit))
                ([,inboundacl permit] ,@aclinvec )
                ([,outboundacl permit] ,@acloutvec)))  
   ; end
