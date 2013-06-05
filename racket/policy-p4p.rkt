@@ -264,11 +264,11 @@
   (define (process-app fun-expr arg-descr rest-stream icheck)
     ;; NOTE: arg-helper doesn't return the rest of the stream.  
     ;;       See explanation for process-expr-sequence.
-    (define (arg-helper arg-stream icheck)
+    (define (arg-helper arg-stream icheck)          
       (if (stx-null? arg-stream)
           empty
-          (syntax-case* arg-stream (unquote :-) symbolic-identifier=?
-            [((unquote something) other-things ...)
+          (syntax-case* arg-stream (unquote :-) symbolic-identifier=?            
+            [((unquote something) other-things ...)             
              (let-values ([(an-arg arg-rest) (extract-one-expression
                                               (syntax (something other-things ...))
                                               icheck)])
@@ -343,7 +343,7 @@
                       (let-values ([(one-exp rest-sub-stream) (process-not-first sexp-stream)])
                         (cons one-exp (loop rest-sub-stream)))))))))
 
-  (define (extract-one-expression sexp-stream icheck)
+  (define (extract-one-expression sexp-stream icheck)    
     (if (stx-null? sexp-stream)
         (raise-syntax-error 'looking-for-expression "program ended prematurely")
         (syntax-case* (stx-car sexp-stream) (fun: if: do: and: or: quote let: let*: letrec: test:) symbolic-identifier=?
@@ -390,11 +390,11 @@
            (process-const (syntax e) (stx-cdr sexp-stream) icheck)]
           
           
-          [(e ...)  ;; Function position is itself a non-identifier expression
-           (let ([paren (syntax-property (stx-car sexp-stream) 'paren-shape)])
+          [(e ...)  ;; Function position is itself a non-identifier expression           
+           (let ([paren (syntax-property (stx-car sexp-stream) 'paren-shape)])             
              (and paren (char=? paren #\{)))
            (let-values ([(fun-expr better-be-empty)
-                         (extract-one-expression (syntax (e ...)) icheck)])
+                         (extract-one-expression (syntax (e ...)) icheck)])             
              (if (not (stx-null? better-be-empty))
                  (raise-syntax-error 'application "too many terms" better-be-empty)
                  (if (and (stx-pair? (stx-cdr sexp-stream))
@@ -402,12 +402,12 @@
                      (process-app fun-expr (stx-car (stx-cdr sexp-stream)) (stx-cdr (stx-cdr sexp-stream)) 
                                          (check-indent SLGC (stx-car sexp-stream)))
                      (raise-syntax-error 'application "not beginning with arguments" (stx-car (stx-cdr sexp-stream))))))]
-          [maybe-kwd
+          [maybe-kwd           
            (and (identifier? (syntax maybe-kwd))
-                (member (syntax->datum (syntax maybe-kwd)) non-expr-keywords))
+                (member (syntax->datum (syntax maybe-kwd)) non-expr-keywords))        
            (raise-syntax-error 'keyword "found one in expression position" (syntax maybe-kwd))]
           [app-or-val
-           (let ([v (syntax->datum (syntax app-or-val))])
+           (let ([v (syntax->datum (syntax app-or-val))])                             
              (if (or (number? v) (string? v) (boolean? v)) ;; missing a few!
                  (process-const (stx-car sexp-stream) (stx-cdr sexp-stream) icheck)
                  (if (symbol? v)
@@ -428,7 +428,15 @@
                        [_
                         ;; identifier case!
                         (process-const (stx-car sexp-stream) (stx-cdr sexp-stream) icheck)])
-                     (raise-syntax-error 'application "not beginning with arguments" (stx-car (stx-cdr sexp-stream))))))])))
+                     ; if not a symbol...
+                     ; this is probably buggy in the original p4p too. stx-car was being passed a '() 
+                     ; which caused it to throw an error. print-reader-abbreviations is used
+                     ; so we can inject a "(a,b)" instead of a "(a (unquote b))".
+                     (if (stx-null? (stx-cdr sexp-stream))
+                         (parameterize ([print-reader-abbreviations #t])
+                           (raise-syntax-error 'application (format "missing an identifier before parens in ~s" (car (syntax->datum sexp-stream))) sexp-stream)) 
+                         (raise-syntax-error 'application "not beginning with arguments"                                          
+                                             (stx-car (stx-cdr sexp-stream)))))))])))
 
   (define (process-deffun: sexp-stream icheck)
     (syntax-case sexp-stream (=)
@@ -670,3 +678,8 @@
 (define result (parameterize ([current-readtable :-readtable])
   (list (read-syntax "test" test) (read-syntax "test" test))))
 (check-true (equal? (map syntax->datum result0) (map syntax->datum result)))
+
+;(begin-for-syntax
+;  (define bug (open-input-string "a(b, c, (d, e))"))    
+;  (process-sexp-stream (list (read-syntax "test" bug) (read-syntax "test" bug))))
+  

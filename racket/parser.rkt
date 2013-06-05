@@ -31,8 +31,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helpers
 
+(define (get-reversed-tokens-so-far-no-eof)
+  (filter (lambda (t) (not (equal? 'EOF t)))
+          (reverse (map position-token-token token-history))))
+
 (define (started-with token-list)  
-  (define rev-tokens (reverse (map position-token-token token-history)))  
+  (define rev-tokens (get-reversed-tokens-so-far-no-eof))  
   (and (>= (length rev-tokens) (length token-list))
        (equal? token-list (take rev-tokens (length token-list)))))
 
@@ -162,22 +166,25 @@
                         ; "Please enter a valid Margrave command."]
                                                                      
                         [(started-with '(LOAD IOS))
-                         "To load an IOS configuration, use #LOAD IOS <file name>. Other options are given in the documentation."]
-                                                
-                        [(started-with-identifier/ci 'LOAD)
-                         "The #LOAD directive must be prefixed by a # symbol."]
+                         "To load an IOS configuration, use LOAD IOS <file name>;. Other options are given in the documentation."]
+                        
+                        [(or (started-with '(ISPOSSQ)))
+                         "To find out whether a query is satisfiable, use POSS? <query name>;"]                        
+                        
+                        ;[(started-with-identifier/ci 'LOAD)
+                        ; "The #LOAD directive must be prefixed by a # symbol."]
                         
                         [(started-with '(LOAD POLICY))
-                         "To load a .p policy file, use #LOAD POLICY <desired name> = <file name>"]
+                         "To load a .p policy file, use LOAD POLICY <desired name> = <file name>;"]
                         
                         [(started-with '(LOAD XACML))
-                         "To load an XACML policy file, use #LOAD XACML <desired name> = <file name>"]
+                         "To load an XACML policy file, use LOAD XACML <desired name> = <file name>;"]
                         
                         [(started-with '(LOAD SQS))
-                         "To load an Amazon SQS policy file, use #LOAD SQS <desired name> = <file name>"]
+                         "To load an Amazon SQS policy file, use LOAD SQS <desired name> = <file name>;"]
                         
                         [(started-with '(LOAD))
-                         "Load what? (#LOAD POLICY to load a .p file, #LOAD IOS to load a Cisco IOS configuration, etc.)" ]
+                         "Load what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)" ]
                         
                         [(started-with '(LET))
                          (format "To bind a formula context, use LET <name>[<variable-declarations>] BE <condition>. 
@@ -188,6 +195,7 @@ Margrave did not understand the condition or options given around \"~a\"."
                         
                                                 
                         ; Last resort
+                        ;[else (format "Margrave did not understand that command. Started with: ~a" (get-reversed-tokens-so-far-no-eof))]))
                         [else (format "Margrave did not understand that command.")]))
                        
                 (set! token-history empty)

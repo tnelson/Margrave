@@ -30,6 +30,12 @@
 
 (provide parse-IOS)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define disable-command-warnings #t)
+(define disable-keyword-warnings #t)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;; port boolean -> IOS-config%
 (define (parse-IOS input default-ACL-permit)
   (port-count-lines! input)
@@ -54,7 +60,8 @@
       [(||) (parse-IOS-details input config)] ; blank line, move on
       
       ; Warning only, not a fatal error
-      [else (printf "WARNING: Ignoring unsupported command: ~a. Moving on...~n" (first line-tokens))
+      [else (unless disable-command-warnings
+              (printf "WARNING: Ignoring unsupported command: ~a. Moving on...~n" (first line-tokens)))
             (parse-IOS-details input config)])))
 
 ;; string -> (listof any)
@@ -87,20 +94,25 @@
 ; Do not want to error out if we see an unsupported command. Instead, ignore the line and warn the user.
 
 (define (warning-unsupported line token allowed-tokens)
-  (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected keywords among: ~a. Got ~a. Moving to next line...~n" line allowed-tokens token))
+  (unless disable-keyword-warnings
+    (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected keywords among: ~a. Got ~a. Moving to next line...~n" line allowed-tokens token)))
 
 (define (warning-unsupported/single-address line token)
-   (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected a single address. Got ~a. Moving to next line...~n" line token))
+  (unless disable-keyword-warnings
+    (printf "WARNING: Ignoring unexpected keyword on line ~a. The parser expected a single address. Got ~a. Moving to next line...~n" line token)))
 
 (define (warning-unsupported/if-not no-condition line token allowed-tokens)
-   (printf "WARNING: Ignoring unexpected keyword on line ~a. Did not have ~a, so expected keywords among: ~a. Got ~a. Moving to next line...~n" line no-condition allowed-tokens token))
+  (unless disable-keyword-warnings 
+    (printf "WARNING: Ignoring unexpected keyword on line ~a. Did not have ~a, so expected keywords among: ~a. Got ~a. Moving to next line...~n" line no-condition allowed-tokens token)))
 
 (define (warning-unsupported/terminate-with-comment line token)
-  (printf "WARNING: Ignoring unsupported keyword: ~a on line ~a. Moving to next line...~n" token line )
-  (printf "  (We currently require multi-line constructs to be terminated with a ! on its own line. That may be the problem.)~n"))
+  (unless disable-keyword-warnings
+    (printf "WARNING: Ignoring unsupported keyword: ~a on line ~a. Moving to next line...~n" token line )
+    (printf "  (We currently require multi-line constructs to be terminated with a ! on its own line. That may be the problem.)~n")))
 
 (define (warning-unsupported/tcp line not-tcp-protocol)
- (printf "WARNING: Line ~a used a command that expected protocol tcp. Got ~a.~n" line not-tcp-protocol))
+  (unless disable-keyword-warnings
+    (printf "WARNING: Line ~a used a command that expected protocol tcp. Got ~a.~n" line not-tcp-protocol)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Access Control Lists

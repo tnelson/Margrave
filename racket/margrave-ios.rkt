@@ -53,7 +53,8 @@
       (parse-and-load-ios fn-file fn-path prefix suffix))
   
   (string-append "Success: loaded IOS configuration at: " 
-                 the-filename))
+                 the-filename
+                 "\n"))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -114,7 +115,8 @@
   (load-ios-policies dirpath prefix suffix)
   
   (string-append "Success: loaded IOS configurations in: " 
-                 dirpath))
+                 dirpath
+                 "\n"))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
