@@ -101,25 +101,28 @@
 ;****************************************************************
 ;;Pretty Printing returned XML
 
+
+  
+(define (xml->statistics ele)
+  (define computed-max (get-attribute-value ele 'computed-max-size))
+  (define user-provided-max (get-attribute-value ele 'user-max-size))
+  (define used-max (get-attribute-value ele 'max-size))
+  (define computed-max-num (string->number computed-max))
+  (define user-provided-max-num (string->number user-provided-max))
+  (define used-max-num (string->number used-max))
+  (define warnings-element (get-child-element ele 'WARNINGS))
+  (define used-element (get-child-element ele 'USED))    
+  (define warnings (xml-set-element->list warnings-element))
+  (define used (flatten-singleton-string-lists-in-map (xml-map-element->map used-element)))    
+  (m-statistics computed-max-num user-provided-max-num used-max-num warnings used))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; xml->scenario consumes an xml element and produces an m-scenario 
 ; struct OR an m-unsat struct. If the XML given did not contain
 ; the proper sort of reply, this function returns #f.
 (define/contract (xml->scenario xml-response)
   (element? . -> . (or/c m-unsat? m-scenario?))
-  
-  (define (handle-statistics ele)
-    (define computed-max (get-attribute-value ele 'computed-max-size))
-    (define user-provided-max (get-attribute-value ele 'user-max-size))
-    (define used-max (get-attribute-value ele 'max-size))
-    (define computed-max-num (string->number computed-max))
-    (define user-provided-max-num (string->number user-provided-max))
-    (define used-max-num (string->number used-max))
-    (define warnings-element (get-child-element ele 'WARNINGS))
-    (define used-element (get-child-element ele 'USED))    
-    (define warnings (xml-set-element->list warnings-element))
-    (define used (flatten-singleton-string-lists-in-map (xml-map-element->map used-element)))    
-    (m-statistics computed-max-num user-provided-max-num used-max-num warnings used))
   
   ; Is this the right type of response?
   (define response-type (get-response-type xml-response))    
@@ -133,7 +136,7 @@
          ; Unsatisfiable response!
          (define statistics-element (get-child-element xml-response 'STATISTICS))         
          (define query-id (get-attribute-value statistics-element 'query-id))
-         (m-unsat (handle-statistics statistics-element) query-id)]
+         (m-unsat (xml->statistics statistics-element) query-id)]
         [else
          ; Satisfiable!           
          (define relation-elements (get-child-elements model-element 'RELATION))
@@ -186,7 +189,7 @@
                      the-sorts
                      the-skolems
                      the-others
-                     (handle-statistics statistics-element) 
+                     (xml->statistics statistics-element) 
                      (map handle-annotation annotation-elements)
                      query-id)]))
 
@@ -203,41 +206,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; m-scenario->string
 ; Consume an m-scenario and pretty-print it. 
-(define/contract (m-scenario->string a-response #:brief [brief #f])
+(define/contract (m-scenario->string a-response #:brief [brief #t])
   [->* ((or/c m-unsat? m-scenario?))
        (#:brief boolean?)
        string?]
   
   (define buffer (open-output-string)) 
     
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (print-statistics statistics)
-    (unless (empty? (m-statistics-warnings statistics))   
-      (cond [brief (write-string "*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.\n" buffer)]
-            [else
-             (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
-             (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
-                       (sort (m-statistics-warnings statistics)
-                             string<=?))
-             (write-string "Used these upper-bounds on sort sizes:\n" buffer)
-             (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)])))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   (define/contract (internal-process-unsat an-unsat)
     [m-unsat? . -> . string?]
     ; Preamble
     (write-string "************** NO MORE SOLUTIONS FOUND! ****************\n" buffer)
-    (print-statistics (m-unsat-statistics an-unsat))
-    (write-string "********************************************************\n" buffer)
+    (write-string (print-statistics-struct (m-unsat-statistics an-unsat)) buffer)
+    ;(write-string "********************************************************\n" buffer)
     (get-output-string buffer))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;
   (define/contract (internal-process-scenario a-scenario)
     [m-scenario? . -> . string?]        
     ; Preamble
-    (write-string (string-append "********* SOLUTION FOUND at size = " 
+    (write-string (string-append " --***--  SOLUTION FOUND at size = " 
                                  (number->string (m-scenario-size a-scenario))
-                                 " ******************\n") buffer)
+                                 ".  --***--\n") buffer)
     
     ; This is REALLY important now that we're using $ as a prefix for constants, where
     ; kodkod is using it as a prefix for skolem.
@@ -358,7 +350,7 @@
                                               (string<=? 
                                                (hash-ref atom-names a1)
                                                (hash-ref atom-names a2))]))))
-    (unless (set-empty? omit-atoms)
+    (unless (or brief (set-empty? omit-atoms))
       (define named-omit-atoms (map (lambda (a) (hash-ref atom-names a))
                                     (set->list omit-atoms)))
       (define sorted-named-omit-atoms (sort named-omit-atoms string<=?))
@@ -366,7 +358,7 @@
       (write-string "----------------------------------------\n" buffer)
       (write-string (format "Omitted sorts for atoms denoted by constants that did not appear outside their native type:~n~a~n" pretty-omit-atoms) buffer))
     
-    (write-string "----------------------------------------\n" buffer)
+    (write-string "-----------------------------------------------\n" buffer)
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Print non-sort, non-constant relation membership information for atoms  
@@ -384,7 +376,8 @@
       (write-string " }\n" buffer))
     (for-each print-relation ordered-non-const-relations)
     
-    (write-string "----------------------------------------\n" buffer)
+    (unless (empty? ordered-non-const-relations)
+      (write-string "-----------------------------------------------\n" buffer))
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; End the scenario with annotations and statistics
@@ -395,9 +388,9 @@
                 annotations))
     
     ; Call this even if in brief mode. Print a one-line warning if no completeness guarantee.
-    (print-statistics (m-scenario-statistics a-scenario))
+    (write-string (print-statistics-struct (m-scenario-statistics a-scenario)) buffer)
     
-    (write-string "********************************************************\n\n" buffer)        
+    ;(write-string "********************************************************\n\n" buffer)        
     (get-output-string buffer))
   ; ^ End of internal func. to handle scenarios
   
@@ -455,30 +448,23 @@
 
 (define (get-pc-data elem)
   (pcdata-string (first (element-content elem))))
+  
+(define (print-statistics-struct statistics #:brief [brief #t])
+  (define buffer (open-output-string))
+  
+  (unless (empty? (m-statistics-warnings statistics))   
+    (cond [brief (write-string "*** WARNING!*** Margrave may not be able to guarantee completeness. Details omitted due to #:brief mode.\n" buffer)]
+          [else
+           (write-string "WARNING: Margrave may not be able to guarantee completeness:\n" buffer)            
+           (for-each (lambda (warn) (write-string (string-append warn "\n") buffer))
+                     (sort (m-statistics-warnings statistics)
+                           string<=?))
+           (write-string "Used these upper-bounds on sort sizes:\n" buffer)
+           (write-string (pretty-print-hashtable (m-statistics-used statistics)) buffer)]))
+  (get-output-string buffer))
 
 (define (print-statistics stat-element) 
-  (define string-buffer (open-output-string))
-  (define (write s)
-    (write-string s string-buffer))
-  
-  (define computed-max (get-attribute-value stat-element 'computed-max-size))
-  (define user-provided-max (get-attribute-value stat-element 'user-max-size))
-  (define used-max (get-attribute-value stat-element 'max-size))
-  (define computed-max-num (string->number computed-max))
-  (define user-provided-max-num (string->number user-provided-max))
-  (define used-max-num (string->number used-max))
-  (define warnings-element (get-child-element stat-element 'WARNINGS))
-  (define used-element (get-child-element stat-element 'USED))
-  
-  (when (element-has-children-named warnings-element 'ITEM)    
-    (write "WARNING: Margrave may not be able to guarantee completeness:\n")            
-    (write (format "~a~n" (xml-set-element->list warnings-element))))
-  
-  (define used-hashtable (xml-map-element->map used-element))
-  (write "Used these upper-bounds on sort sizes:\n")
-  (write (pretty-print-hashtable used-hashtable))
-  
-  (get-output-string string-buffer))
+  (print-statistics-struct (xml->statistics stat-element)))
 
 
 ;************ Pretty Print Info *******************
