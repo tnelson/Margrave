@@ -580,7 +580,7 @@ public abstract class MQueryResult
 		// (E.g. because we want to show realized on an IDB.)
 		// ****************************************
 				
-		if(fromContext.forQuery.getIDBNamesToOutput().size() > 0)
+		if(fromContext.forQuery.getIDBNamesToAxiomatize().size() > 0)
 		{						
 			// Re-use cached work whenever possible.
 			FreeVariableCollectionV freeVarCollector = new FreeVariableCollectionV();
@@ -600,7 +600,7 @@ public abstract class MQueryResult
 					//MEnvironment.errorStream.println(idbs.name+MEnvironment.sIDBSeparator+idbname);																	
 					
 					// Is this an idb to be published? If not, skip it.
-					if(!fromContext.forQuery.getIDBNamesToOutput().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
+					if(!fromContext.forQuery.getIDBNamesToAxiomatize().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
 					{						
 						continue;
 					}

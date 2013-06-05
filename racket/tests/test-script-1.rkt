@@ -71,7 +71,13 @@
 ; Prior queries + #:include in show
 (define sQ7 (m-get-scenario "Q7" #:include '(([mypol1 permit] s a r))))
 (check-true (and (m-scenario? sQ7)))
-                 
+
+(m-let "Q7a" '([s1 Subject] [a1 Action] [r1 Resource]
+              [s2 Subject] [a2 Action] [r2 Resource]) 
+       '(and ([mypol1 permit] s1 a1 r1)
+             ([mypol1 deny] s2 a2 r2)))
+; Test that include is not just checking for any exists vector, and using the right vars:
+(define tQ7 (m-get-scenario "Q7a" #:include '(([mypol1 permit] s1 a1 r1) ([mypol1 deny] s1 a1 r1) ([mypol1 deny] s2 a2 r2))))
 
 
 ; function in query + #:include; lower level sort as type for free var.

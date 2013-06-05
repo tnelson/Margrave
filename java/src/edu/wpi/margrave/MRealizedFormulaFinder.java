@@ -90,7 +90,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// Force axiomatization of this relation. Since the check of myIDBCollectionsContainWithDot passed above,
 			// this IDB _does_ exist and the query can axiomatize it. But only add if the query doesn't know it needs
 			// to axiomatize! Otherwise we will loop forever.
-			if(!fromContext.forQuery.idbsToAddInFormula.contains(key))
+			if(!fromContext.forQuery.getIDBNamesToAxiomatize().contains(key))
 				missingRels.add(key);
 		}
 		
@@ -394,7 +394,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			MQuery newQuery = new MQuery(fromContext.forQuery);			
 			
 			newQuery.addIDBsToForceAxiomatization(missingRels);			
-			MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.idbsToAddInFormula);
+			MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.getIDBNamesToAxiomatize());
 
 			// If the axiomatization fails, this will loop forever...
 			MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 						

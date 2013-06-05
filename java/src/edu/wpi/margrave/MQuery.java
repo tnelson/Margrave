@@ -94,12 +94,9 @@ public class MQuery extends MIDBCollection
 	 */
 	public int debug_verbosity = 0;
 
-
-	// For tupled queries. Need to know which tuple indexing to use for a given
-	// IDB. Setting function will confirm that it is a valid list of numbers, and
-	// that the arity matches the desired IDB name.
-	protected Set<String> idbsToAddInFormula = new HashSet<String>();
-
+	// IDBs *TO BE AXIOMATIZED*. Meaning they will get added to the query formula itself,
+	// in all their high-arity splendor. 
+	private Set<String> idbsToAddInFormula = new HashSet<String>();
 
 	// The default default is SAT4j, for compatibility.
 	// For performance (or if using large queries, for which SAT4j can run out
@@ -182,11 +179,6 @@ public class MQuery extends MIDBCollection
 		myIDBCollections = new HashMap<String, MIDBCollection>(previous.myIDBCollections);
 		
 		localCeilings = new HashMap<String, Integer>(previous.localCeilings);
-	}
-
-	public Set<String> getIDBNamesToOutput()
-	{
-		return idbsToAddInFormula;
 	}
 
 	public void useMiniSAT() {
@@ -485,12 +477,6 @@ public class MQuery extends MIDBCollection
 			return -1;
 		return myIDBCollections.get(arr[0]).varOrderings.get(arr[1]).size();
 		
-	}
-
-
-	public void removeIDBFromAxiomatization(String idbname)
-	{		
-		idbsToAddInFormula.remove(idbname);
 	}
 
 	/**
@@ -1197,8 +1183,7 @@ public class MQuery extends MIDBCollection
 			MExploreCondition mpc,
 			List<String> publish,
 			Map<String, String> sortsForPublish,
-			Map<String, Set<List<MTerm>>> includeMap,
-			Boolean bTupling, Integer iDebugLevel, Map<String, Integer> localCeilings)
+			Integer iDebugLevel, Map<String, Integer> localCeilings)
 			throws MUserException
 			{
 
@@ -1218,12 +1203,6 @@ public class MQuery extends MIDBCollection
 
 		MCommunicator.writeToLog("ENTERING CREATION OF QUERY:");
 		MCommunicator.writeToLog("Fmla: "+mpc.fmla);
-		MCommunicator.writeToLog("Idb out map: "+includeMap.toString());
-		MCommunicator.writeToLog("tup: "+bTupling);
-
-		// includeMap is always indexed now. INCLUDE no longer takes relation names, but requires
-		// atomic fmlas, same as SHOW REALIZED.
-		// TODO: include should be part of SHOW, not EXPLORE.
 
 		// **********************************************************
 		// (1) Assemble a combined vocabulary
@@ -1277,14 +1256,7 @@ public class MQuery extends MIDBCollection
 		// first, bind placeholders properly
 		// E.g. (A=x) will be converted to A(x) if A is a lone/one sort
 		//mpc.resolvePlaceholders(uber);
-		
-		// Turn A=x into A(x) -- if able. The func changes the map given.
-		//MExploreCondition.resolveMapPlaceholders(uber, includeMap);
-		
-		// !!! XXX this should go
-		// include formulas need to be well-formed, so they figure into sort inference
-		//mpc.inferFromInclude(uber, includeMap);
-		
+				
 		Formula qryFormula = mpc.fmla;
 
 		// !!! XXX this should go, use given vector of vars instead?
@@ -1423,4 +1395,14 @@ public class MQuery extends MIDBCollection
 			addIDBToForceAxiomatization(s);
 	}
 
+	public Set<String> getIDBNamesToAxiomatize()
+	{
+		return idbsToAddInFormula;
+	}
+
+	public void removeIDBFromAxiomatization(String idbname)
+	{		
+		idbsToAddInFormula.remove(idbname);
+	}
+	
 }

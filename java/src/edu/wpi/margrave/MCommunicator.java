@@ -836,11 +836,6 @@ public class MCommunicator
 				Node debugNode = getDebugNode(n);
 				Node ceilingsNode = getCeilingsNode(n);
 
-				// Now called INCLUDE, and 
-				// used to alert tupling that there are EDB indexings it needs
-				// to include, even if they don't appear.
-				//Node includeNode = getIncludeNode(n);
-
 				if (underNode != null)
 				{ 
 					under = namesToIDBCollections(getUnderList(n));
@@ -861,13 +856,6 @@ public class MCommunicator
 					}
 
 				}
-				//if (includeNode != null) {
-				//	List<Node> idbChildNodes = getElementChildren(includeNode);	        						
-				//	idbOut = atomicFormulasToHashmap(idbChildNodes);
-				//}
-				//if (tuplingNode != null) { //For now if the node exists just set tupling to true
-				//	tupling = true;
-				//}
 				if (debugNode != null) {
 					debugLevel = Integer.parseInt(getDebugLevel(debugNode));
 				}
@@ -902,7 +890,7 @@ public class MCommunicator
 						exploreCondition.addSeenIDBCollections(under), 
 						publ,
 						publSorts,
-						idbOut, tupling, debugLevel, ceilingMap);
+						debugLevel, ceilingMap);
 
 
 				writeToLog("AT END OF EXPLORE");

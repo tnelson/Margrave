@@ -630,6 +630,8 @@ public class MEnvironment
 	static Document getNextModel(String id, HashMap<String, Set<List<MTerm>>> includeMap)
 	throws MBaseException
 	{		
+		MEnvironment.writeToLog("GET-NEXT-MODEL: "+id+". include: "+includeMap+"\n");
+		
 		// Do we have a result for this num?
 		if(!envQueryResults.containsKey(id))
 			return errorResponse(sUnknown, sResultID, id);
@@ -640,6 +642,11 @@ public class MEnvironment
 		{
 			// Return next model in the iterator.
 			MPreparedQueryContext result = getQueryResult(id);
+			
+			// DO NOT CALL the query's addIDBsToForceAxiomatization here.
+			// it will force the relation to be included in the calculation of the model
+			// (like show realized) rather than just letting the evaluator do its magic.
+			// Call this instead
 			result.setInclude(includeMap);
 			
 			try
@@ -707,6 +714,7 @@ public class MEnvironment
 				// Compile the query and get the result.
 				MPreparedQueryContext qryResult = qry.runQuery();
 				
+				// The "result" here is a compiled query, NOT a scenario.
 				envQueryResults.put(qry.name, qryResult);
 				return resultHandleResponse(qry.name);
 												

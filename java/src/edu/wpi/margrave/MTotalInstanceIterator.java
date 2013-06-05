@@ -30,6 +30,7 @@ import kodkod.ast.Decls;
 import kodkod.ast.Formula;
 import kodkod.ast.Relation;
 import kodkod.ast.Variable;
+import kodkod.engine.CapacityExceededException;
 import kodkod.engine.Evaluator;
 import kodkod.engine.Solution;
 import kodkod.engine.Solver;
@@ -287,9 +288,19 @@ abstract class MInstanceIterator extends MQueryResult
 				// (This way is far more structured than, say, a string annotation.) 
 				MCommunicator.writeToLog("\n\n Checking INCLUDE for "+relName+args);						
 								
-				// What does this tuple map to in the model?
+				// What does this tuple map to in the model?				
 				TupleFactory factory = result.getFacts().universe().factory();
-				Tuple theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));		
+				
+				Tuple theTuple;
+				
+				try
+				{
+					theTuple = factory.tuple(termsToAtoms(args, result.getFacts()));
+				}
+				catch(CapacityExceededException e)
+				{
+					throw new MUserException("Margrave could not INCLUDE "+relName+"("+args+"). Kodkod tried to assign tuples with a number that was too high: "+e.getLocalizedMessage());
+				}
 				
 				// Running set of tuples (ONLY TUPLES OF INTEREST) in the IDB
 				TupleSet tuplesInIDB = factory.noneOf(args.size());
@@ -403,6 +414,10 @@ abstract class MInstanceIterator extends MQueryResult
 		{
 			Relation skolemVRelation = getVariableRelationFromModel(model, v.name());
 			
+			// What this does is:
+			// for each free variable v in the idb formula, find what SKOLEM RELATION $v is used to
+			// hold its binding in the model. Then quantify v as a member of $v.
+			// This effectively binds the value of the term into the new formula.
 			Decls theDecl = MFormulaManager.makeOneOfDecl(v, skolemVRelation);
 			newFmla = MFormulaManager.makeExists(newFmla, theDecl);
 		}
