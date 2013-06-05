@@ -175,6 +175,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// This will NOT be available via MFormulaManager, since Kodkod adds it internally. 
 		Relation skRel = getRelationFromBounds(theBounds, "$"+varname);
 		IntSet propVars = theTranslation.primaryVariables(skRel);
+		if(propVars == null)
+		{
+			throw new MUserException("Invalid variable name: "+varname+"; are you sure that it was listed in the query's declarations?");
+		}
+		
 		int theVar = propVars.min();
 		
 		//MCommunicator.writeToLog("\ngetPropVariableForVariable: skRel="+skRel);	
