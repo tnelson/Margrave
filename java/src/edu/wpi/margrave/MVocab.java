@@ -1454,7 +1454,8 @@ public class MVocab {
 		for (String fname : other.functions.keySet())
 			uber.functions.put(fname, other.functions.get(fname));
 		
-		// Constraints
+		// Constraints	
+		
 		for (String con : axioms.setsSingleton) {
 			if (shared.contains(con))
 				if (!other.axioms.setsSingleton.contains(con))
@@ -1530,6 +1531,16 @@ public class MVocab {
 			assert(con.size() == 2);
 			uber.axioms.addConstraintConstantsNeq(con.get(0), con.get(1));
 		}
+		
+		for (List<String> con : axioms.setsSubset) {
+			assert(con.size() == 2);
+			uber.axioms.addConstraintSubset(con.get(0), con.get(1));
+		}
+		for (List<String> con : other.axioms.setsSubset) {
+			assert(con.size() == 2);
+			uber.axioms.addConstraintSubset(con.get(0), con.get(1));
+		}
+
 		
 		for (String con : axioms.setsConstantsCover) 
 			uber.axioms.addConstraintConstantsCover(con);		
