@@ -216,20 +216,29 @@
                ; Routing can either go to a gateway (route) or an interface (forward)   
                ; Local routing just checks if the destination is a local interface.
                         
-               (or ([,localswitching forward] ahostname dest-addr_ exit)
+               ; First option: localswitching sends immediately, because the destination is attached.
+               ; In this case next-hop isn't strictly needed, so we set it equal to destination to avoid confusion.
+               
+               ; Other options use networkswitching and one of the routing policies.
+               ; The routing policies will fix next-hop.
+               
+               ; !!! TN: I am concerned about that places that (= next-hop dest-addr-in) still appears in the ios.ss file.
+               ; If odd behavior occurs with switching, examine that first.
+               (or (and (= next-hop dest-addr_) 
+                        ([,localswitching forward] ahostname dest-addr_ exit))
                    (and ([,localswitching pass] ahostname dest-addr_ exit))
                    
                         (or ([,policyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                             (and ([,policyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
-                                 ([,networkswitching forward] ahostname dest-addr_ exit))
+                                 ([,networkswitching forward] ahostname next-hop exit))
                             (and ([,policyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                  (or ([,staticroute forward] ahostname dest-addr_ next-hop exit)
                                      (and ([,staticroute route] ahostname dest-addr_ next-hop exit)
-                                          ([,networkswitching forward] ahostname dest-addr_ exit))
+                                          ([,networkswitching forward] ahostname next-hop exit))
                                      (and ([,staticroute pass] ahostname dest-addr_ next-hop exit)
                                           (or ([,defaultpolicyroute forward] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                               (and ([,defaultpolicyroute route] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
-                                                   ([,networkswitching forward] ahostname dest-addr_ exit))
+                                                   ([,networkswitching forward] ahostname next-hop exit))
                                               ; Final option: Packet is dropped.
                                               (and ([,defaultpolicyroute pass] ahostname entry src-addr_ dest-addr_ src-port_ dest-port_ protocol next-hop exit)
                                                    (= next-hop dest-addr_)
