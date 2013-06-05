@@ -434,7 +434,7 @@ public class MCommunicator
 				// Target fmla
 				Node targetNode = getChildNode(margraveCommandNode, "TARGET"); 							
 				assert(targetNode != null);
-				MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
+				MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild(), null);
 				Formula target = targetCondition.fmla;
 
 				theResponse = MEnvironment.setPolicyTarget(pname, target);
@@ -625,7 +625,7 @@ public class MCommunicator
 						// Target fmla        					
 						Node targetNode = getChildNode(ruleNode, "TARGET");
 						assert(targetNode != null);
-						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild());
+						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild(), null);
 						Formula target = targetCondition.fmla;
 
 						// condition is used exclusively for XACML, so it's ignored here.
@@ -720,7 +720,7 @@ public class MCommunicator
 			if(constraintType.equalsIgnoreCase("FORMULA"))
 			{
 				return MEnvironment.addConstraintFormula(vname, 
-						exploreHelper(constraintNode.getFirstChild()).fmla);
+						exploreHelper(constraintNode.getFirstChild(), null).fmla);
 			}
 
 
@@ -816,10 +816,6 @@ public class MCommunicator
 					// Don't allow ID re-use.
 					return MEnvironment.errorResponse(MEnvironment.sQuery, MEnvironment.sFailure, "The query identifier "+queryID+" is already in use.");
 				}
-
-				exploreCondition = exploreHelper(n.getFirstChild().getFirstChild()); 
-				if (exploreCondition == null)
-					throw new MCommunicatorException("Explore condition is null!");
 				
 				MQuery result = null;
 
@@ -827,8 +823,6 @@ public class MCommunicator
 				List<MIDBCollection> under = new LinkedList<MIDBCollection>();
 				List<String> publ = new ArrayList<String>();
 				Map<String, String> publSorts = new HashMap<String, String>();
-				HashMap<String, Set<List<MTerm>>> idbOut = new HashMap<String, Set<List<MTerm>>>();
-				Boolean tupling = false;
 				Integer debugLevel = 0;
 
 				Node underNode = getUnderNode(n);
@@ -884,6 +878,13 @@ public class MCommunicator
 					}
 				}
 
+				// Finally extract the explore condition. Do last because need to gather
+				// info from the other nodes (list of published vars).
+				exploreCondition = exploreHelper(n.getFirstChild().getFirstChild(), new ArrayList<String>(publ));
+				if (exploreCondition == null)
+					throw new MCommunicatorException("Explore condition is null!");
+
+				
 				// Exception will be thrown and caught by caller to return an EXCEPTION element.
 				result = MQuery.createFromExplore(
 						queryID,
@@ -952,7 +953,7 @@ public class MCommunicator
 			else if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
 			{
 				List<String> relNamePieces = getRelationNameFromAtomicFmla(childNode);
-				List<MTerm> terms = getTermsFromAtomicFmla(childNode);
+				List<MTerm> terms = getTermsFromAtomicFmla(childNode, null);
 
 				String relName = "";
 				for(int ii=0; ii < relNamePieces.size();ii++)
@@ -975,9 +976,9 @@ public class MCommunicator
 				String relName = getAttributeOfChildNodeOrNode(childNode, "ISA", "sort");
 
 				// ISA has a special TERM sub-node. The first (and only) child of that is the variable-term, function-term, etc.
-				MTerm theTerm = termHelper(getChildNode(childNode, "TERM").getFirstChild());				
+				MTerm theTerm = termHelper(getChildNode(childNode, "TERM").getFirstChild(), null);				
 				// ISA has a special FORMULA sub-node. The first (and only) child of that is the actual formula.
-				MExploreCondition cond = exploreHelper(getChildNode(childNode, "FORMULA").getFirstChild());
+				MExploreCondition cond = exploreHelper(getChildNode(childNode, "FORMULA").getFirstChild(), null);
 
 				if(theTerm == null || cond == null || !cond.fmla.equals(Formula.TRUE))
 				{
@@ -993,7 +994,7 @@ public class MCommunicator
 			}
 			else if(childNode.getNodeName().equalsIgnoreCase("EQUALS"))
 			{
-				List<MTerm> terms = getTermsFromEqualsFmla(childNode);
+				List<MTerm> terms = getTermsFromEqualsFmla(childNode, null);
 
 				if(!hashMap.containsKey("="))
 					hashMap.put("=", new HashSet<List<MTerm>>());
@@ -1276,7 +1277,8 @@ public class MCommunicator
 	}
 
 	//Expects the node one down from condition node
-	private static MExploreCondition exploreHelper(Node n) throws MUserException, MGEManagerException, MGEUnknownIdentifier
+	private static MExploreCondition exploreHelper(Node n, List<String> bound) 
+			throws MUserException, MGEManagerException, MGEUnknownIdentifier
 	{
 		assert(n != null);
 
@@ -1294,12 +1296,12 @@ public class MCommunicator
 		if (name.equalsIgnoreCase("AND"))
 		{        		        	
 			assert(getElementChildren(n).size() == 2);
-			return exploreHelper(childNodes.get(0)).and(exploreHelper(childNodes.get(1)));
+			return exploreHelper(childNodes.get(0), bound).and(exploreHelper(childNodes.get(1), bound));
 		}
 		else if (name.equalsIgnoreCase("OR")) 
 		{
 			assert(getElementChildren(n).size() == 2);
-			return exploreHelper(childNodes.get(0)).or(exploreHelper(childNodes.get(1)));
+			return exploreHelper(childNodes.get(0), bound).or(exploreHelper(childNodes.get(1), bound));
 		}
 		else if (name.equalsIgnoreCase("IMPLIES"))
 		{
@@ -1308,8 +1310,8 @@ public class MCommunicator
 			Node consequent = getChildNode(n, "CONS");
 
 			// The children of these nodes are the formulas in ante/cons position.
-			MExploreCondition antecedentFmla = exploreHelper(antecedent.getFirstChild());
-			MExploreCondition consequentFmla = exploreHelper(consequent.getFirstChild());
+			MExploreCondition antecedentFmla = exploreHelper(antecedent.getFirstChild(), bound);
+			MExploreCondition consequentFmla = exploreHelper(consequent.getFirstChild(), bound);
 
 			return antecedentFmla.implies(consequentFmla);
 		}
@@ -1329,9 +1331,9 @@ public class MCommunicator
 			if(internalFmlaWrapNode == null)
 				internalFmlaC = new MExploreCondition(true);
 			else        			
-				internalFmlaC = exploreHelper(internalFmlaWrapNode.getFirstChild());
+				internalFmlaC = exploreHelper(internalFmlaWrapNode.getFirstChild(), bound);
 
-			MTerm theTerm = termHelper(internalTermWrapNode.getFirstChild());        		
+			MTerm theTerm = termHelper(internalTermWrapNode.getFirstChild(), bound);        			
 			newFmlaC = internalFmlaC.isaSubstitution(theTerm.expr, theRel);        		
 
 			writeToLog("\nFormula helper (ISA) got "+theTerm+" : "+theRel+" | "+internalFmlaC);
@@ -1345,14 +1347,14 @@ public class MCommunicator
 		}
 		else if(name.equalsIgnoreCase("EQUALS"))
 		{        		
-			return handleEqualsFormula(n);        		
+			return handleEqualsFormula(n, bound);        		
 		}
 		else if (name.equalsIgnoreCase("IFF")) {
 			assert(getElementChildren(n).size() == 2);
-			return exploreHelper(n.getFirstChild()).iff(exploreHelper(n.getChildNodes().item(1)));
+			return exploreHelper(n.getFirstChild(), bound).iff(exploreHelper(n.getChildNodes().item(1), bound));
 		}
 		else if (name.equalsIgnoreCase("NOT")) {
-			return exploreHelper(n.getFirstChild()).not();
+			return exploreHelper(n.getFirstChild(), bound).not();
 		}
 		else if(name.equalsIgnoreCase("EXISTS"))
 		{
@@ -1362,7 +1364,10 @@ public class MCommunicator
 			Variable theVar = MFormulaManager.makeVariable(theVarName);
 			Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
 
-			return exploreHelper(n.getFirstChild()).exists(theVar, theSort);
+			List<String> newbound = new ArrayList<String>(bound);
+			newbound.add(theVarName);
+			
+			return exploreHelper(n.getFirstChild(), newbound).exists(theVar, theSort);
 		}
 		else if(name.equalsIgnoreCase("FORALL"))
 		{
@@ -1372,11 +1377,14 @@ public class MCommunicator
 			Variable theVar = MFormulaManager.makeVariable(theVarName);
 			Relation theSort = MFormulaManager.makeRelation(theSortName, 1);
 
-			return exploreHelper(n.getFirstChild()).forall(theVar, theSort);
+			List<String> newbound = new ArrayList<String>(bound);
+			newbound.add(theVarName);
+			
+			return exploreHelper(n.getFirstChild(), newbound).forall(theVar, theSort);
 		}
 		else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
 		{        		
-			return handleAtomicFormula(n);
+			return handleAtomicFormula(n, bound);
 		}
 		else if(name.equalsIgnoreCase("TRUE"))
 		{
@@ -1390,10 +1398,10 @@ public class MCommunicator
 		throw new MUserException("exploreHelper was unable to match node type: "+name);
 	}
 
-	private static MExploreCondition handleEqualsFormula(Node n) {
+	private static MExploreCondition handleEqualsFormula(Node n, List<String> bound) {
 		// Comes in with 2 TERMS now instead of 2 maybe-variables.    
 
-		List<MTerm> terms = getTermsFromEqualsFmla(n);
+		List<MTerm> terms = getTermsFromEqualsFmla(n, bound);
 		MTerm term1 = terms.get(0);
 		MTerm term2 = terms.get(1);
 
@@ -1403,22 +1411,22 @@ public class MCommunicator
 		return new MExploreCondition(fmla, term1, term2, true);
 	}
 
-	private static List<MTerm> getTermsFromEqualsFmla(Node n)
+	private static List<MTerm> getTermsFromEqualsFmla(Node n, List<String> bound)
 	{
 		List<Node> childNodes = getElementChildren(n);
 
 		List<MTerm> terms = new ArrayList<MTerm>(2);
 
-		terms.add(termHelper(childNodes.get(0)));
-		terms.add(termHelper(childNodes.get(1)));
+		terms.add(termHelper(childNodes.get(0), bound));
+		terms.add(termHelper(childNodes.get(1), bound));
 		return terms;			
 	}
 
-	private static MExploreCondition handleAtomicFormula(Node n)
+	private static MExploreCondition handleAtomicFormula(Node n, List<String> bound)
 	{
 
 		List<String> relationNameComponents = getRelationNameFromAtomicFmla(n);
-		List<MTerm> terms = getTermsFromAtomicFmla(n);
+		List<MTerm> terms = getTermsFromAtomicFmla(n, bound);
 
 		/////////////////////////////////////////////////////
 
@@ -1503,24 +1511,24 @@ public class MCommunicator
 		return new MExploreCondition(idbf, pol, relationName, terms);
 	}
 
-	private static List<MTerm> getTermsFromNode(Node termsNode)		
+	private static List<MTerm> getTermsFromNode(Node termsNode, List<String> bound)		
 	{
 		List<Node> termsNodeComponents = getElementChildren(termsNode);   
 		List<MTerm> terms = new ArrayList<MTerm>();
 		for(Node theNode : termsNodeComponents)
 		{
-			MTerm theTerm = termHelper(theNode); 				
+			MTerm theTerm = termHelper(theNode, bound); 				
 			//String nameStr = getNodeAttribute(theNode, "ID", "id");
 			terms.add(theTerm);
 		}
 		return terms;	
 	}
 
-	private static List<MTerm> getTermsFromAtomicFmla(Node n) {
+	private static List<MTerm> getTermsFromAtomicFmla(Node n, List<String> bound) {
 		/////////////////////////////////////////////////////
 		// Terms			
 		Node termsNode = getChildNode(n, "TERMS");
-		return getTermsFromNode(termsNode);			
+		return getTermsFromNode(termsNode, bound);			
 	}
 
 	private static List<String> getRelationNameFromAtomicFmla(Node n) {
@@ -1540,7 +1548,7 @@ public class MCommunicator
 
 
 
-	private static MTerm termHelper(Node n) 
+	private static MTerm termHelper(Node n, List<String> bound) 
 	{
 		List<Node> childNodes = getElementChildren(n);
 
@@ -1560,7 +1568,7 @@ public class MCommunicator
 			List<MTerm> subTerms = new ArrayList<MTerm>();
 			for(Node aNode : childNodes)
 			{
-				MTerm aChildTerm = termHelper(aNode);
+				MTerm aChildTerm = termHelper(aNode, bound);
 				subTerms.add(aChildTerm);
 			}
 
@@ -1574,6 +1582,12 @@ public class MCommunicator
 		else if (name.equalsIgnoreCase("VARIABLE-TERM"))
 		{
 			String varName = getAttributeOfChildNodeOrNode(n, "VARIABLE-TERM", "id");
+			
+			// If unbound, error! (null means: don't do the check)
+			if(bound != null && !bound.contains(varName))
+			{
+				throw new MUserException("Variable named "+varName+" occured in the query formula, but was not bound in the query's variable list or by a quantifier.");
+			}
 			return new MVariableTerm(varName);     
 		}
 		else
