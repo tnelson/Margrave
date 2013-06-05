@@ -671,8 +671,9 @@
   (let* ((string-buffer (open-output-string))
          (result-element (get-child-element element 'result-handle)))
     (begin 
-      ; Omit result handle since only zero is ever returned (for the moment).
-      (write-string (string-append "Query created successfully.\n") string-buffer) ;Result handle was: " (get-pc-data result-element) "\n") string-buffer)
+      (define result-id (get-pc-data result-element))
+      ; Used to have a numeric ID for result handle. Now pass back the query id.
+      (write-string (format "Query created successfully: ~a.\n" result-id) string-buffer)      
       ; debug
       ;(display (get-output-string string-buffer))
       (get-output-string string-buffer))))

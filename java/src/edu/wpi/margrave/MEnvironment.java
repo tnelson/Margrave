@@ -708,7 +708,7 @@ public class MEnvironment
 				MPreparedQueryContext qryResult = qry.runQuery();
 				
 				envQueryResults.put(qry.name, qryResult);
-				return resultHandleResponse(0);
+				return resultHandleResponse(qry.name);
 												
 			}  // end: a query
 		catch(Exception e)
@@ -1947,12 +1947,12 @@ public class MEnvironment
 		return errorResponse("unsupported operation", "", "");
 	}
 	
-	private static Document resultHandleResponse(Integer id)
+	private static Document resultHandleResponse(String id)
 	{			
 		Document xmldoc = makeInitialResponse("explore-result");
 		if(xmldoc == null) return null; // be safe (but bottle up exceptions)		
 		Element handleElement = xmldoc.createElementNS(null, "RESULT-HANDLE");
-		handleElement.appendChild(xmldoc.createTextNode(id.toString()));
+		handleElement.appendChild(xmldoc.createTextNode(id));
 		xmldoc.getDocumentElement().appendChild(handleElement);		
 		return xmldoc;
 	}
