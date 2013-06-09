@@ -37,6 +37,11 @@ cp ${MARGRAVE_PROJECT_ROOT}/java/lib/*.jar margrave/lib
 
 cp ${MARGRAVE_PROJECT_ROOT}/racket/lang/*.rkt margrave/lang
 
+# Odd behavior: raco setup looks in the module root for the css.
+cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.css margrave
+cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.css margrave/scribblings
+cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.png margrave/scribblings
+cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.rkt margrave/scribblings
 cp ${MARGRAVE_PROJECT_ROOT}/racket/scribblings/*.scrbl margrave/scribblings
 
 cp ${MARGRAVE_PROJECT_ROOT}/racket/tests/*.rkt margrave/tests
@@ -96,7 +101,7 @@ cp ${MJLIB}/*.jar ${MARGRAVE_PROJECT_ROOT}/racket/lib
 echo Creating PLT archive for distribution
 # Need to CD to appropriate folder again:
 cd ${MARGRAVE_PROJECT_ROOT}/build-temp
-raco pack --replace --at-plt testbuild.plt margrave
+raco pack --replace --at-plt ++setup margrave testbuild.plt margrave 
 
 ##############################
 echo "Don't forget to insert safety checks. Did compilation complete ok? etc."

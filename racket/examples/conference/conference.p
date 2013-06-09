@@ -1,8 +1,8 @@
 (Policy uses conference
         (Variables 
-         (Variable s Subject)
-         (Variable a Action)
-         (Variable r Resource))
+         (s Subject)
+         (a Action)
+         (r Resource))
         
         (Rules 
          ; "During the review phase, reviewer r may submit a review for paper p if r is assigned to p."

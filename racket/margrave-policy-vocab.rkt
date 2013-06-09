@@ -721,7 +721,7 @@
                     (not (lower-id-syn? #'lowid))
                     (raise-syntax-error 'Policy "Invalid variable declaration; the variable's name must begin with a lowercase letter." #f #f (list a-var-dec))]
                    
-                   [_ (raise-syntax-error 'Policy "Invalid variable declaration. Expected (Variable varname Typename)" #f #f (list a-var-dec))]))
+                   [_ (raise-syntax-error 'Policy "Invalid variable declaration. Expected (varname Typename)" #f #f (list a-var-dec))]))
                
                (map handle-variable the-variables))))
               

@@ -1,7 +1,7 @@
 (Policy uses AbadiBinder
         (Variables 
-         (Variable p Person)
-         (Variable d Door))
+         (p Person)
+         (d Door))
         (Rules    
           ; Propagation of context
           (AliceTrustsBob = (canOpen p d) :- (Bob.canOpen p d))
