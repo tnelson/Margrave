@@ -1392,17 +1392,46 @@ public class MQuery extends MIDBCollection
 			// Is this declared?
 			if(!sortsForPublish.containsKey(v.name()))
 			{						
-				Set<MVariableVectorAssertion> inferences = mpc.inferredSorts.get(v);
+				Set<Expression> inferences = mpc.inferredSorts.get(v);
+
+				// If no inferences, just use UNIV.
+				//if(inferences.size() < 1)
+				//	throw new MUserException("Margrave could not infer a type for variable "+v+", which did not appear in the LET[...] clause. ");
 				
-				if(inferences.size() > 1)
-					throw new MUserException("Variable "+v+" was inferred to have multiple types: "+inferences);
+				MCommunicator.writeToLog("\nBinding free variable "+v);
+				MCommunicator.writeToLog("\nInfs were "+inferences);
 				
-				String inferredSort = "";
-				for(MVariableVectorAssertion inf : inferences)
-					inferredSort = inf.sortExpression.toString();
-						
-						
-				Expression theSort = uber.getSort(inferredSort).rel;
+				Expression inferredSort = null;
+				for(Expression ass : inferences)
+				{			
+					// first time
+					if(inferredSort == null) {
+						inferredSort = ass;
+						MCommunicator.writeToLog("\nStarted with: "+inferredSort);
+					}
+									
+					else if(uber.isSubOrSubOf(inferredSort.toString(), ass.toString())) {
+						// more general: generalize
+						MCommunicator.writeToLog("\nGeneralizing "+inferredSort+" to "+ass);
+						inferredSort = ass;
+					}
+					else if(uber.isSubOrSubOf(ass.toString(), inferredSort.toString())) {
+						// less general or same: ignore.
+						MCommunicator.writeToLog("\nIgnoring "+inferredSort+" to "+ass);
+					}
+					else {
+						// incomparable
+						throw new MUserException("Variable "+v+" was inferred to have incompatable types: "+inferences);
+					}					
+				}
+				
+				// Had nothing to assert. Possibly just used by equals:
+				Expression theSort;
+				if(inferredSort == null)
+					theSort = Expression.UNIV;
+				else
+					theSort = uber.getSort(inferredSort.toString()).rel;
+				
 				Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
 				result = MFormulaManager.makeExists(result, d);
 				MCommunicator.writeToLog("\nIMPLICITLY BOUND "+v+" via "+d);

@@ -114,8 +114,8 @@ class MExploreCondition
 	
 	// These are assertions that must hold for the formula to be well-formed, and thus
 	// are not subject to propagation. 
-	HashMap<Variable, Set<MVariableVectorAssertion>> inferredSorts = 
-		new HashMap<Variable, Set<MVariableVectorAssertion>>();
+	HashMap<Variable, Set<Expression>> inferredSorts = 
+		new HashMap<Variable, Set<Expression>>();
 	
 	// Terms seen
 	Map<Expression, MTerm> termMap = new HashMap<Expression, MTerm>();
@@ -134,7 +134,7 @@ class MExploreCondition
 		for(Variable v : thisVar)
 		{
 			if(!inferredSorts.containsKey(v))
-				inferredSorts.put(v, new HashSet<MVariableVectorAssertion>());
+				inferredSorts.put(v, new HashSet<Expression>());
 		}
 			
 	}
@@ -174,10 +174,27 @@ class MExploreCondition
 	MExploreCondition(Formula f, Relation made, List<MTerm> vec)
 	{
 		fmla = f;
-		madeEDBs.add(made);
+		madeEDBs.add(made);			
 		
+ 
+		
+		int ii=0;
 		for(MTerm t : vec)
+		{
 			termMap.put(t.expr, t);
+			if(t instanceof MVariableTerm)
+			{				
+				Variable v = (Variable)((MVariableTerm)t).expr;
+				
+				if(!inferredSorts.containsKey(v))
+					inferredSorts.put(v, new HashSet<Expression>());
+
+				// TODO: infer for edbs
+				MCommunicator.writeToLog("\n Saw in EDB: variable "+v);
+			}
+			
+			ii++;			
+		}
 		//MCommunicator.writeToLog("\n(new condition edb) TERMS: "+terms);		
 	}
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
@@ -196,10 +213,14 @@ class MExploreCondition
 				Variable v = (Variable)((MVariableTerm)t).expr;
 				
 				if(!inferredSorts.containsKey(v))
-					inferredSorts.put(v, new HashSet<MVariableVectorAssertion>());
+					inferredSorts.put(v, new HashSet<Expression>());
 				
-				MCommunicator.writeToLog("\n INFERRING variable "+v+" has sort "+pol.varSorts.get(v));
-				inferredSorts.get(v).add(new MVariableVectorAssertion(true, pol.varSorts.get(v)));
+				// NOT THIS. this is pre subs!
+				//Expression inferredSort = pol.varSorts.get(v);
+				Expression inferredSort = pol.varSorts.get(pol.varOrderings.get(idbname).get(ii));
+				
+				MCommunicator.writeToLog("\n INFERRING variable "+v+" has sort "+inferredSort);
+				inferredSorts.get(v).add(inferredSort);
 			}
 			ii++;
 		}
@@ -300,6 +321,8 @@ class MExploreCondition
 			// No and/or involved, just negate
 			negateAll(assertAtomicNecessary.get(varvector));						
 		}
+		
+		// inferences remain
 	}
 	
 	private void negateAll(Set<MVariableVectorAssertion> asserts)
@@ -383,17 +406,19 @@ class MExploreCondition
 
 			if(oth.assertNecessary.containsKey(varvector))
 				assertNecessary.get(varvector).retainAll(oth.assertNecessary.get(varvector));
-			
-			// always preserved
-			// store by individual, not by vector
-			for(Variable v : varvector)
-			{
-				if(oth.inferredSorts.containsKey(v))
-					inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
-			}
-			
+						
 			assertAtomicNecessary.get(varvector).clear();
 		}
+		
+		// always preserved
+		for(Variable v : oth.inferredSorts.keySet())
+		{			
+			if(!inferredSorts.containsKey(v))
+				inferredSorts.put(v, new HashSet<Expression>());
+			
+			inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
+		}
+		
 	}
 	
 	private void doAssertAnd(MExploreCondition oth)
@@ -411,19 +436,21 @@ class MExploreCondition
 				assertNecessary.get(varvector).addAll(oth.assertAtomicNecessary.get(varvector));
 
 			if(oth.assertSufficient.containsKey(varvector))
-				assertSufficient.get(varvector).retainAll(oth.assertSufficient.get(varvector));
-			
-			// always preserved
-			// store by individual, not by vector
-			for(Variable v : varvector)
-			{
-				if(oth.inferredSorts.containsKey(v))
-					inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
-			}
-
+				assertSufficient.get(varvector).retainAll(oth.assertSufficient.get(varvector));			
 			
 			assertAtomicNecessary.get(varvector).clear();
 		}		
+		
+		// always preserved
+		for(Variable v : oth.inferredSorts.keySet())
+		{			
+			if(!inferredSorts.containsKey(v))
+				inferredSorts.put(v, new HashSet<Expression>());
+			
+			inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
+		}
+
+		
 	}
 	
 	MExploreCondition implies(MExploreCondition oth)	
@@ -448,9 +475,20 @@ class MExploreCondition
 		seenIDBCollections.addAll(oth.seenIDBCollections);	
 		madeEDBs.addAll(oth.madeEDBs);	
 		termMap.putAll(oth.termMap);
+				
 		
 		// No assertions survive.
 		clearAssertions();
+		
+		// always preserved
+		for(Variable v : oth.inferredSorts.keySet())
+		{			
+			if(!inferredSorts.containsKey(v))
+				inferredSorts.put(v, new HashSet<Expression>());
+			
+			inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
+		}
+		
 		//MCommunicator.writeToLog("\n(iff) TERMS: "+terms);		
 		return this;
 	}

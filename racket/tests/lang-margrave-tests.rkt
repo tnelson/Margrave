@@ -122,7 +122,7 @@ SHOW REALIZED q5 $margravepaper=r;
 /////////////////////////////////////////////////////////
 
 // Test that Margrave implicitly binds:
-let q7[] be conf1:permit(s,a,r) ;
+let q7[] be conf1:permit(s,a,r);
 
 let q8[] be q7() and not q7();
 
@@ -130,3 +130,7 @@ let q8[] be q7() and not q7();
 show q7;
 
 show q8;
+
+let q9[] be conflicted(s,r) under conf1;
+
+//let q9[] be conf1:permit(s,a,r) and conf1:permit(r,a,s);
