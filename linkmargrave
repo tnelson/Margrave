@@ -1,1 +1,2 @@
 raco link -n margrave racket
+raco link -l
