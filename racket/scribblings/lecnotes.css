@@ -1,0 +1,19 @@
+.summaryblock { 
+  background-color: lightgray
+} 
+
+.assumption { 
+  background-color: lightgreen
+} 
+
+.todo { 
+  color: red
+ }
+
+.note { 
+  color: blue
+ }
+
+.exercise { 
+  background-color: yellow
+} 
