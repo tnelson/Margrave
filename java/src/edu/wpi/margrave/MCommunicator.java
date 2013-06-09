@@ -883,7 +883,7 @@ public class MCommunicator
 				exploreCondition = exploreHelper(n.getFirstChild().getFirstChild(), new ArrayList<String>(publ));
 				if (exploreCondition == null)
 					throw new MCommunicatorException("Explore condition is null!");
-
+								
 				
 				// Exception will be thrown and caught by caller to return an EXCEPTION element.
 				result = MQuery.createFromExplore(
@@ -1583,11 +1583,16 @@ public class MCommunicator
 		{
 			String varName = getAttributeOfChildNodeOrNode(n, "VARIABLE-TERM", "id");
 			
+			// Removed this check on June 9 2013 - TN
+			// After talking with SK, we want a SQL style "project" for the declared vector.
+			// Thus, if a variable is not declared, we simply need to implicitly bind it via exists
+			// at the top of the formula
+			
 			// If unbound, error! (null means: don't do the check)
-			if(bound != null && !bound.contains(varName))
-			{
-				throw new MUserException("Variable named "+varName+" occured in the query formula, but was not bound in the query's variable list or by a quantifier.");
-			}
+			//if(bound != null && !bound.contains(varName))
+			//{
+			//	throw new MUserException("Variable named "+varName+" occured in the query formula, but was not bound in the query's variable list or by a quantifier.");
+			//}
 			return new MVariableTerm(varName);     
 		}
 		else

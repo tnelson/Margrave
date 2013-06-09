@@ -446,6 +446,7 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (condition-term-list
          [(condition-term) (list $1)]
+         [() empty]
          [(condition-term-list COMMA condition-term) (append $1 (list $3))])
         
         ; a term is a variable, a constant, or a function called on multiple sub-terms
@@ -464,6 +465,8 @@ Margrave did not understand the condition or options given around \"~a\"."
         
         (atomic-formula [(<lowercase-id> LPAREN condition-term-list RPAREN) 
                          (build-so (list 'ATOMIC-FORMULA $1 (append (list 'TERM-LIST) $3)) 1 4)]
+                        
+                        ; note that condition-term-list can now be empty: facilitates nullary prior query access.
                         
                         ; prevent s/r conflict by making this an explicit production here.
                         ; (issue caused by fact that (f)unctions and (p)redicates have same lexical category at the moment)

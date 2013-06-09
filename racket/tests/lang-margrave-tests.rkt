@@ -117,3 +117,16 @@ SHOW REALIZED Q5 $margravepaper=r;
 // Test p4p policies in #lang margrave
 
 #load policy p4p1 = "p4p-policy.p";
+
+
+/////////////////////////////////////////////////////////
+
+// Test that Margrave implicitly binds:
+let q7[] be conf1:permit(s,a,r) ;
+
+let q8[] be q7() and not q7();
+
+// And that there are no variables shown for s/a/r.
+show q7;
+
+show q8;

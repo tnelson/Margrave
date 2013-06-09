@@ -1257,7 +1257,7 @@ public class MQuery extends MIDBCollection
 		// E.g. (A=x) will be converted to A(x) if A is a lone/one sort
 		//mpc.resolvePlaceholders(uber);
 				
-		Formula qryFormula = mpc.fmla;
+		//Formula qryFormula = mpc.fmla;
 
 		// !!! XXX this should go, use given vector of vars instead?
 		// mpc has given us a bunch of assertions. Now we need to
@@ -1265,7 +1265,9 @@ public class MQuery extends MIDBCollection
 		// signatures of the predicates
 		// (b) resolve them.
 		//Map<Variable, Expression> freeVars = new HashMap<Variable, Expression>();
-		//handleSortAssertions(uber, mpc, freeVars);
+		
+		// Implicitly bind via "exists" variables that we inferred a type for, but that aren't in sortsforpblsh
+		Formula qryFormula = handleSortAssertions(uber, mpc, sortsForPublish);
 		
 		if(iDebugLevel >= 3)
 		{
@@ -1273,6 +1275,7 @@ public class MQuery extends MIDBCollection
 			MEnvironment.outWriter.println("DEBUG: MPC made EDBs: "+mpc.madeEDBs);
 			MEnvironment.outWriter.println("DEBUG: MPC saw IDB Collections: "+mpc.seenIDBCollections);
 			MEnvironment.outWriter.println("DEBUG: MPC terms: "+mpc.termMap);
+			MEnvironment.outWriter.println("DEBUG: MPC inferences: "+mpc.inferredSorts);
 		}
 		
 		Set<Variable> freeVarsUnsorted = qryFormula.accept(new FreeVariableCollectionV());		
@@ -1376,6 +1379,37 @@ public class MQuery extends MIDBCollection
 		// MEnvironment.writeErrLine("\nQuery with vector: "+result.varOrdering+" sorts: "+result.varSorts);
 
 
+		return result;
+	}
+
+	// Implicitly bind via "exists" variables that we inferred a type for, but that aren't in sortsforpblsh
+	private static Formula handleSortAssertions(MVocab uber,
+			MExploreCondition mpc, Map<String, String> sortsForPublish) {
+		Formula result = mpc.fmla;
+		
+		for(Variable v : mpc.inferredSorts.keySet())
+		{
+			// Is this declared?
+			if(!sortsForPublish.containsKey(v.name()))
+			{						
+				Set<MVariableVectorAssertion> inferences = mpc.inferredSorts.get(v);
+				
+				if(inferences.size() > 1)
+					throw new MUserException("Variable "+v+" was inferred to have multiple types: "+inferences);
+				
+				String inferredSort = "";
+				for(MVariableVectorAssertion inf : inferences)
+					inferredSort = inf.sortExpression.toString();
+						
+						
+				Expression theSort = uber.getSort(inferredSort).rel;
+				Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
+				result = MFormulaManager.makeExists(result, d);
+				MCommunicator.writeToLog("\nIMPLICITLY BOUND "+v+" via "+d);
+			}
+		}
+		
+		
 		return result;
 	}
 

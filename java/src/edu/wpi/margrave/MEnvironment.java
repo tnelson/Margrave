@@ -114,15 +114,14 @@ class MExploreCondition
 	
 	// These are assertions that must hold for the formula to be well-formed, and thus
 	// are not subject to propagation. 
-	HashMap<List<Variable>, Set<MVariableVectorAssertion>> inferredSorts = 
-		new HashMap<List<Variable>, Set<MVariableVectorAssertion>>();
+	HashMap<Variable, Set<MVariableVectorAssertion>> inferredSorts = 
+		new HashMap<Variable, Set<MVariableVectorAssertion>>();
 	
 	// Terms seen
 	Map<Expression, MTerm> termMap = new HashMap<Expression, MTerm>();
 		
 	// **************************************************************	
-	
-	
+		
 	void initAssertionsForVectorIfNeeded(List<Variable> thisVar)
 	{
 		if(!assertAtomicNecessary.containsKey(thisVar))
@@ -131,8 +130,13 @@ class MExploreCondition
 			assertNecessary.put(thisVar, new HashSet<MVariableVectorAssertion>());
 		if(!assertSufficient.containsKey(thisVar))
 			assertSufficient.put(thisVar, new HashSet<MVariableVectorAssertion>());
-		if(!inferredSorts.containsKey(thisVar))
-			inferredSorts.put(thisVar, new HashSet<MVariableVectorAssertion>());
+		// store by individual, not by vector
+		for(Variable v : thisVar)
+		{
+			if(!inferredSorts.containsKey(v))
+				inferredSorts.put(v, new HashSet<MVariableVectorAssertion>());
+		}
+			
 	}
 	
 	MExploreCondition(boolean b)
@@ -174,16 +178,36 @@ class MExploreCondition
 		
 		for(MTerm t : vec)
 			termMap.put(t.expr, t);
-		//MCommunicator.writeToLog("\n(new condition edb) TERMS: "+terms);
+		//MCommunicator.writeToLog("\n(new condition edb) TERMS: "+terms);		
 	}
 	MExploreCondition(Formula f, MIDBCollection pol, String idbname, List<MTerm> vec)
 	{
 		fmla = f;
 		seenIDBCollections.add(pol);
+			
 		
+		int ii = 0;
 		for(MTerm t : vec)
+		{
 			termMap.put(t.expr, t);
+			
+			if(t instanceof MVariableTerm)
+			{				
+				Variable v = (Variable)((MVariableTerm)t).expr;
+				
+				if(!inferredSorts.containsKey(v))
+					inferredSorts.put(v, new HashSet<MVariableVectorAssertion>());
+				
+				MCommunicator.writeToLog("\n INFERRING variable "+v+" has sort "+pol.varSorts.get(v));
+				inferredSorts.get(v).add(new MVariableVectorAssertion(true, pol.varSorts.get(v)));
+			}
+			ii++;
+		}
 		//MCommunicator.writeToLog("\n(new condition idb) TERMS: "+terms);
+		
+		// Infer for these variables if able:
+		
+		 
 	}
 	MExploreCondition(Formula f, Relation madeSort)
 	{
@@ -357,8 +381,12 @@ class MExploreCondition
 				assertNecessary.get(varvector).retainAll(oth.assertNecessary.get(varvector));
 			
 			// always preserved
-			if(oth.inferredSorts.containsKey(varvector))
-				inferredSorts.get(varvector).addAll(oth.inferredSorts.get(varvector));
+			// store by individual, not by vector
+			for(Variable v : varvector)
+			{
+				if(oth.inferredSorts.containsKey(v))
+					inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
+			}
 			
 			assertAtomicNecessary.get(varvector).clear();
 		}
@@ -382,8 +410,12 @@ class MExploreCondition
 				assertSufficient.get(varvector).retainAll(oth.assertSufficient.get(varvector));
 			
 			// always preserved
-			if(oth.inferredSorts.containsKey(varvector))
-				inferredSorts.get(varvector).addAll(oth.inferredSorts.get(varvector));
+			// store by individual, not by vector
+			for(Variable v : varvector)
+			{
+				if(oth.inferredSorts.containsKey(v))
+					inferredSorts.get(v).addAll(oth.inferredSorts.get(v));
+			}
 
 			
 			assertAtomicNecessary.get(varvector).clear();
@@ -2130,6 +2162,21 @@ public class MEnvironment
 			}
 			else
 			{
+				// Limit output of Skolem variable relations to those needed by the query.
+				if(r.name().startsWith("$") && !theVocab.constants.containsKey(r.name()))
+				{
+					List<Variable> publishedVarOrder = mQueryResult.forQuery.varOrderings.get(mQueryResult.forQuery.name);
+					String trimmedName = r.name().substring(1, r.name().length());
+					Variable theVar = MFormulaManager.makeVariable(trimmedName);
+					if(!publishedVarOrder.contains(theVar))
+					{
+						MCommunicator.writeToLog("\nNot publishing implicit skolem variable: "+r.name());
+						continue;
+					}
+					else
+						MCommunicator.writeToLog("\nPublishing skolem variable: "+r.name());
+				}
+				
 				relationElement.setAttribute("type", "predicate");
 			}
 			
