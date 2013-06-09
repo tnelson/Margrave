@@ -133,4 +133,6 @@ show q8;
 
 let q9[] be conflicted(s,r) under conf1;
 
+let q10[x: Subject] be conf1:deny(x, y, z) and conflicted(x,z);
+
 //let q9[] be conf1:permit(s,a,r) and conf1:permit(r,a,s);
