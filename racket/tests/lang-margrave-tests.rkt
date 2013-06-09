@@ -21,40 +21,40 @@ info;
 //#load policy emptyconf = "./emptyconference.p";
 
 // EXPLORE + UNDER + AND + NOT + constant
-let Q1[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
+let q1[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
 OR NOT ($margravepaper = $margravepaper)
 UNDER conf1;
 
 info conf1;
-info Q1;
+info q1;
 
 // more than one UNDER
-let Q2[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
+let q2[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
 UNDER conf1, conf2;
 
 // IS POSSIBLE? + SHOW ONE + SHOW ALL
 // expect: unsat
-POSS? Q1;
-SHOW Q1;
-SHOW ALL Q1;
+POSS? q1;
+SHOW q1;
+SHOW ALL q1;
 
 // IMPLIES
 // and ISA 
 // and ISA sugar
-let Q3[s: Subject, a: Action, r: Resource] be 
+let q3[s: Subject, a: Action, r: Resource] be 
   conf1:permit(s, a, r) AND
   ((ISA s: Subject (true) AND ISA s: Subject ) IMPLIES NOT Subject(s));
 
 // expect: unsat
-POSS? Q3;
+POSS? q3;
 
 // IFF
-let Q4[s: Subject, a: Action, r: Resource] be 
+let q4[s: Subject, a: Action, r: Resource] be 
 conf1:permit(s, a, r) IFF NOT conf1:permit(s, a, r);
 
 // expect: unsat
-POSS? Q4;
-INFO Q4;
+POSS? q4;
+INFO q4;
 
 // basic request vector sugar
 //explore conf1:permit(<conf1:req>);
@@ -63,36 +63,36 @@ INFO Q4;
 // last ID, info saved query
 //info last;
 
-COUNT Q4;
+COUNT q4;
 
 
 /////////////////////////////////////////////////////////
 // Testing show realized: create a query that matches everything:
 // (also test include, but remember it's a SHOW option now!
-let Q5[s: Subject, a: Action, r: Resource] be Paper(r) and ReadPaper(a)
+let q5[s: Subject, a: Action, r: Resource] be Paper(r) and ReadPaper(a)
 under conf1;
 
-SHOW Q5 include conf1:permit(s,a,r), conf1:deny(s,a,r), 
+SHOW q5 include conf1:permit(s,a,r), conf1:deny(s,a,r), 
             conf1:papernoconflict_applies(s,a,r),
             conf1:paperassigned_applies(s,a,r),
             conf1:paperconflict_applies(s,a,r);
 
-SHOW REALIZED Q5 conf1:permit(s, a, r);
-SHOW REALIZED Q5 conf1:permit(s, a, r), conf1:deny(s, a, r);
+SHOW REALIZED q5 conf1:permit(s, a, r);
+SHOW REALIZED q5 conf1:permit(s, a, r), conf1:deny(s, a, r);
 
-SHOW REALIZED Q5 conf1:permit(s, a, r), conf1:deny(s, a, r)
+SHOW REALIZED q5 conf1:permit(s, a, r), conf1:deny(s, a, r)
   FOR CASES conf1:papernoconflict_applies(s,a,r),
             conf1:paperassigned_applies(s,a,r),
             conf1:paperconflict_applies(s,a,r);
 
 
 // Testing show unrealized: 
-let Q6[s: Subject, a: Action, r: Resource] be conf1:permit(s,a,r) ;
+let q6[s: Subject, a: Action, r: Resource] be conf1:permit(s,a,r) ;
 
 
-SHOW UNREALIZED Q6 conf1:permit(s, a, r), conf1:deny(s, a, r);
+SHOW UNREALIZED q6 conf1:permit(s, a, r), conf1:deny(s, a, r);
 
-SHOW UNREALIZED Q6
+SHOW UNREALIZED q6
               conf1:permit(s, a, r), 
               conf1:deny(s, a, r), 
               conf1:papernoconflict_applies(s,a,r),
@@ -101,7 +101,7 @@ SHOW UNREALIZED Q6
             FOR CASES conf1:permit(s, a, r), 
                       conf1:deny(s, a, r);
                       
-SHOW REALIZED Q5
+SHOW REALIZED q5
               conf1:deny(s, a, r),
               conf1:permit(s, a, r),               
               conf1:paperassigned_applies(s,a,r)
@@ -110,7 +110,7 @@ SHOW REALIZED Q5
                                   
 
 // Show realized for constant=variable
-SHOW REALIZED Q5 $margravepaper=r;
+SHOW REALIZED q5 $margravepaper=r;
               
 /////////////////////////////////////////////////////////
 

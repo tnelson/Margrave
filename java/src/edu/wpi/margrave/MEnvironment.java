@@ -221,6 +221,10 @@ class MExploreCondition
 		// If so, encode via sort-as-predicate so FormulaSigInfo can extract the correct information.
 		// TODO: Later on, change extraction process to include the below.
 		
+		// ***WARNING***
+		// DO NOT infer variable sorts from these!
+		
+		
 		if(fmla.equals(Formula.TRUE))
 		{
 			fmla = MFormulaManager.makeAtom(expr, r);

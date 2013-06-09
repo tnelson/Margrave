@@ -188,6 +188,7 @@
                         
                         [(started-with '(LET))
                          (format "To bind a formula context, use LET <name>[<variable-declarations>] BE <condition>. 
+The query <name> must begin with a lowercase letter.
 Margrave did not understand the condition or options given around \"~a\"." 
                                  (if token-value
                                      token-value
@@ -379,18 +380,18 @@ Margrave did not understand the condition or options given around \"~a\"."
          [(variable-term COLON <capitalized-id>) (build-so (list 'VARIABLE-DECL $1 $3) 1 3)])
         
         (m-bind-fmla
-         [(LET any-id LSQBRACK typed-variable-list RSQBRACK BE condition-formula) 
+         [(LET <lowercase-id> LSQBRACK typed-variable-list RSQBRACK BE condition-formula) 
           (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 empty) 1 7)]
-         [(LET any-id LSQBRACK typed-variable-list RSQBRACK BE condition-formula explore-modifiers-list) 
+         [(LET <lowercase-id> LSQBRACK typed-variable-list RSQBRACK BE condition-formula explore-modifiers-list) 
           (build-so (list 'EXPLORE $2 (append (list 'TERM-LIST) $4) $7 $8) 1 8)]
          ; production for no free vars
-         [(LET any-id LSQBRACK RSQBRACK BE condition-formula) 
+         [(LET <lowercase-id> LSQBRACK RSQBRACK BE condition-formula) 
           (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 empty) 1 6)]
-         [(LET any-id LSQBRACK RSQBRACK BE condition-formula explore-modifiers-list) 
+         [(LET <lowercase-id> LSQBRACK RSQBRACK BE condition-formula explore-modifiers-list) 
           (build-so (list 'EXPLORE $2 (list 'TERM-LIST) $6 $7) 1 7)]
-         [(COMPARE any-id EQUALS any-id any-id)
+         [(COMPARE <lowercase-id> EQUALS any-id any-id)
           (build-so (list 'COMPARE $2 $4 $5 empty) 1 5)]
-         [(COMPARE any-id EQUALS any-id any-id LPAREN raw-id-list RPAREN)
+         [(COMPARE <lowercase-id> EQUALS any-id any-id LPAREN raw-id-list RPAREN)
           (build-so (list 'COMPARE $2 $4 $5 $7) 1 8)]
          )
                        
