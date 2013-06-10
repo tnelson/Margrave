@@ -462,6 +462,9 @@
     [(equal? first-datum 'TRUE-CONDITION)
      '(xml-make-true-condition)]
     
+    [(equal? first-datum 'FALSE-CONDITION)
+     '(xml-make-false-condition)]
+    
     [(equal? first-datum 'TUPLING)
      `(xml-make-tupling)]
     [(equal? first-datum 'CEILINGS)
@@ -508,7 +511,7 @@
      ; List instead of quote since there's evaluation to be done inside
      `(xml-make-include (list ,@(map helper-syn->xml (rest interns))))]
     [else
-     (printf "UNEXPECTED SYMBOL: ~a ~a ~n" first-intern first-datum)]))
+     (printf "UNEXPECTED SYMBOL IN QUERY FORMULA: ~a ~a ~n" first-intern first-datum)]))
 
 ; ***************************************************************************************
 ; Access the compiler and parser through these functions ONLY!
