@@ -53,7 +53,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}	
 	}
 	
-	private Set<String> findMissingRelations(
+	/*private Set<String> findMissingRelations(
 			Map<String, Set<List<MTerm>>> idbsNeeded)
 	{ 
 		Set<String> missingRels = new HashSet<String>();
@@ -95,7 +95,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}
 		
 		return missingRels;
-	}
+	}*/
 	
 
 	public Set<String> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates) throws MUserException
@@ -389,17 +389,17 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		/////////////////////////////////////////////////////////////
 		// Are any relations mentioned in candidates/cases missing from the bounds?
 		// (This occurs for IDB relations.)
-		Set<String> missingRels = findMissingRelations(candidates); 
-		missingRels.addAll(findMissingRelations(cases));
+		//Set<String> missingRels = findMissingRelations(candidates); 
+		//missingRels.addAll(findMissingRelations(cases));
 
-		if(missingRels.size() > 0)
+		if(fromContext.forQuery.realizedIndexing.size() < 1)
 		{
-			MCommunicator.writeToLog("\nSR: adding missing IDBs and re-running the query before finding realized fmlas...");
-			MCommunicator.writeToLog("\nMissing: "+missingRels);
-			MQuery newQuery = new MQuery(fromContext.forQuery);			
+			MQuery newQuery = new MQuery(fromContext.forQuery);	
+			Map<String, Set<List<MTerm>>> combined = new HashMap<String, Set<List<MTerm>>>(candidates);
+			combined.putAll(cases);
 			
-			newQuery.addIDBsToForceAxiomatization(missingRels);			
-			MCommunicator.writeToLog("\nNew query will axiomatize: "+newQuery.getIDBNamesToAxiomatize());
+			newQuery.realizedIndexing = combined;
+			MCommunicator.writeToLog("\nNew query will create helpers for "+combined);
 
 			// If the axiomatization fails, this will loop forever...
 			MRealizedFormulaFinder newFinder = newQuery.runQuery().getRealizedFormulaFinder(); 						
@@ -434,25 +434,23 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		if(nonTrivialTranslation == null || nonTrivialBounds == null)
 		{			
-			/*if(trivialTrue.contains(atSize))
+			if(trivialTrue)
 			{
-				// Trivially true --> all candidates can be realized at this size		
-				for(String c : cases)
-					result.put(c, new HashSet<String>(candidates));
+				// Trivially true --> don't know whether any individual candidate would work
+				// and can't. this is a problem with SR.
+				throw new MUserException("Show realized failed: original query was trivially true, and so the SAT-solver did not give Margrave anything to work with. Try adding further restrictions.");
 			}
-			else*/
-			// TODO above not safe [tn: why??? answer: because of cases. candidates by themselves would be fine, but may have contradiction
-			// between case and candidate]
-			if(trivialFalse)
+			else if(trivialFalse)
 			{
 				// Trivially false --> no candidates can be realized at this size,
 				// regardless of case.
 				for(String c : cases.keySet())
 					for(List<MTerm> args : cases.get(c))
 						result.put(caseToString(c, args), new HashSet<String>());
+				return result;
 			}			
 			
-			return result;			
+			throw new MUserException("Show realized failed: unknown problem. Kodkod returned no translation, but the query was not trivially true or false. ");		
 		}
 		/////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////

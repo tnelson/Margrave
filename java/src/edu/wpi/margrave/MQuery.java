@@ -44,8 +44,15 @@ public class MQuery extends MIDBCollection
 	 * KodKod Formula object which encodes the query. This formula is NOT
 	 * quantifier-free. As of 8/09, this formula no longer includes axioms: just
 	 * the user query.
+	 * 
+	 * This formula may contain quantifiers, but query variables are left unquantified.
 	 */
 	protected Formula myQueryFormula;
+	
+	/**
+	 * Decls for the quantifiers of query variables. Assemble at last minute.
+	 */
+	List<Decl> qDecls;
 
 	/**
 	 * This map contains the policies and views this query runs with respect to.
@@ -94,9 +101,8 @@ public class MQuery extends MIDBCollection
 	 */
 	public int debug_verbosity = 0;
 
-	// IDBs *TO BE AXIOMATIZED*. Meaning they will get added to the query formula itself,
-	// in all their high-arity splendor. 
-	private Set<String> idbsToAddInFormula = new HashSet<String>();
+	// indexing for special show-realized relations:
+	Map<String, Set<List<MTerm>>> realizedIndexing = new HashMap<String, Set<List<MTerm>>>();
 
 	// The default default is SAT4j, for compatibility.
 	// For performance (or if using large queries, for which SAT4j can run out
@@ -129,10 +135,12 @@ public class MQuery extends MIDBCollection
 	}
 
 
-	protected MQuery(MVocab uber, Formula nFormula,
+	protected MQuery(MVocab uber, Formula nFormula, List<Decl> qDecls,
 			Set<MIDBCollection> idbcollections) {
 		vocab = uber;
 		init(nFormula);
+		
+		this.qDecls = qDecls;
 
 		myIDBCollections = new HashMap<String, MIDBCollection>();
 		for (MIDBCollection p : idbcollections)
@@ -160,10 +168,10 @@ public class MQuery extends MIDBCollection
 		name = previous.name;
 		queryID = previous.queryID;
 		
-		for(String anIDB : previous.idbsToAddInFormula)
-		{
-			idbsToAddInFormula.add(anIDB);
-		}
+		//for(String anIDB : previous.idbsToAddInFormula)
+		//{
+		//	idbsToAddInFormula.add(anIDB);
+		//}
 		
 		for(String s : previous.varOrderings.keySet())
 		{
@@ -391,8 +399,17 @@ public class MQuery extends MIDBCollection
 		PrenexCheckV pren = new PrenexCheckV();
 		boolean prenexExistential = myQueryFormula.accept(pren);			
 		// Run FormulaSigInfo, counting sort ceilings
+		// don't include the bounds with no effect on size. but DO include
+		// the quantifiers!
+		
+		Formula testFormula = MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction);
+		for(Decl d : qDecls)
+		{
+			testFormula = MFormulaManager.makeExists(testFormula, d);
+		}
+		
 		FormulaSigInfo herbrandBounds = getHerbrandUniverseCeilingFor(
-				MFormulaManager.makeAnd(myQueryFormula, queryAxiomsConjunction),
+				testFormula,
 				prenexExistential);				
 		///////////////////////////////////////
 		
@@ -1308,7 +1325,8 @@ public class MQuery extends MIDBCollection
 		MCommunicator.writeToLog("\nfreeVars = "+freeVarsUnsorted+"\n");
 		MCommunicator.writeToLog("\n\n");
 		
-		// FIRST: Published vars (vars declared free in the query statement)
+		//  Published vars (vars declared free in the query statement)
+		List<Decl> qDecls = new ArrayList<Decl>();
 		for (String vname : publish)
 		{
 			Variable v = MFormulaManager.makeVariable(vname);
@@ -1316,7 +1334,9 @@ public class MQuery extends MIDBCollection
 			
 			Expression theSort = uber.getSort(sortsForPublish.get(vname)).rel;
 			Decl d = MFormulaManager.makeOneOfDecl(v, theSort);
-			qryFormula = MFormulaManager.makeExists(qryFormula, d);
+			qDecls.add(d);
+			// Don't pre-quantify anymore.
+			//qryFormula = MFormulaManager.makeExists(qryFormula, d);
 			prefixVarOrder.add(v.name());
 		}
 
@@ -1344,7 +1364,7 @@ public class MQuery extends MIDBCollection
 		Collections.reverse(prefixVarOrder);
 
 		MQuery result;
-		result = new MQuery(uber, qryFormula, mpc.seenIDBCollections);	
+		result = new MQuery(uber, qryFormula, qDecls, mpc.seenIDBCollections);	
 
 		result.debug_verbosity = iDebugLevel;
 
@@ -1445,27 +1465,6 @@ public class MQuery extends MIDBCollection
 	public String getQueryID()
 	{
 		return queryID; 					
-	}
-	
-	public void addIDBToForceAxiomatization(String idbname)
-	{
-		idbsToAddInFormula.add(idbname);	
-	}	
-	
-	public void addIDBsToForceAxiomatization(Collection<String> idbnames)
-	{
-		for(String s : idbnames)
-			addIDBToForceAxiomatization(s);
-	}
-
-	public Set<String> getIDBNamesToAxiomatize()
-	{
-		return idbsToAddInFormula;
-	}
-
-	public void removeIDBFromAxiomatization(String idbname)
-	{		
-		idbsToAddInFormula.remove(idbname);
 	}
 	
 }
