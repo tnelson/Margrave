@@ -165,10 +165,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	public void linkPropositions(Bounds theBounds, Translation theTranslation, 
 			Map<String, Set<List<MTerm>>> toLink, Set<Integer> varList,
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
-			// populate intermVar maps
+			// populate intermVar maps and fill toLink with the involved primary variables
 	throws MInternalNoBoundsException
 	{
-		
 		for(String relname: toLink.keySet())
 		{
 			// Can't trust MFormulaManager here, since Kodkod adds relations itself:
@@ -190,78 +189,21 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			for(List<MTerm> args : toLink.get(relname))
 			{		
 				// populate varlist and
-				
+
+	        	Tuple thisTuple = getTupleForPropVariable(theBounds, theTranslation, s, r, aVar);        	                       	        
+	        	int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii));        		        		        		
+
 				varList.add(q);
 				intermVarToPred.put(q, relname);
 	        	intermVarToArgs.put(q, args);  
 				
 				
 			} // end loop per arg vector
-		} // end loop per relation
-        		
-       
-  
-        
-    	// Start with which integer as q_1?
-        int q = startHereWrapper.get(0);
-        
-        // CLAUSES:
-        // for each p_i meaning R(a_1, ..., a_n)
-		// q_i <-> t_1(a_1) and ... and t_n(a_n) and p_i 
-        IntIterator it = s.iterator();
-        while(it.hasNext())
-        {
-        	int aVar = it.next();        	
-        	
-        	// This is a primary variable signifying R(a_1, ..., a_n)
-        	// Issue a set of clauses that signify R(t_1, ..., t_n). The t's are the hard part.
-
-        	// (a_1, ..., a_n)
-        	Tuple thisTuple = getTupleForPropVariable(theBounds, theTranslation, s, r, aVar);        	                       	        
-        	
-    		/////////////////////////////////////////////////////////       	        	
-        	// * For each i <=n, issue (!q or t_i(a_i))
-        	for(int ii=0;ii<thisTuple.arity();ii++)
-        	{        		
-        		// proposition for t_i(a_i)
-        		int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii));        		        		        		
-        		
-        		int[] thisClause = new int[2];
-        		thisClause[0] = -1 * q;
-        		thisClause[1] = tiai;
-        		clauseSet.add(thisClause);
-        	}
-        	
-    		/////////////////////////////////////////////////////////        	
-        	// * issue (!q or aVar) where aVar is R(...)
-        	int[] thisClause = new int[2];
-    		thisClause[0] = -1 * q;
-    		thisClause[1] = aVar;
-    		clauseSet.add(thisClause);
-
-    		/////////////////////////////////////////////////////////
-        	// * issue (!t_1(a_1) or ... or !t_n(a_n) or !aVar or q)
-    		thisClause = new int[thisTuple.arity()+2];
-    		for(int ii=0;ii<thisTuple.arity();ii++)
-        	{
-    			int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii)); 
-    			thisClause[ii] = -1 * tiai;
-        	}
-    		thisClause[thisTuple.arity()] = -1 * aVar;
-    		thisClause[thisTuple.arity()+1] = q;
-    		clauseSet.add(thisClause);
-    		
-        
-        	intermVarToPred.put(q, predname);
-        	intermVarToArgs.put(q, args);   
-        	newQVarsIntroduced.add(q);
-        	q++;        
-        }
-        
-        return Collections.unmodifiableSet(clauseSet);
-
+		} // end loop per relation    		
+	}
+	
 	String stringifyArrays(Set<int[]> arrs)
-	{
+	{	
 		StringBuffer result = new StringBuffer("< ");
 		for(int[] arr : arrs)
 			result.append(" " + Arrays.toString(arr));
@@ -642,10 +584,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				
 				//////////////////////////////////
 				// Re-construct unit clause set each iteration
-				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCases.size() +
+				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCase.size() +
 				                                       potentialGoalUnit.size()];
 				ii = 0;	
-				for(int lit : unitClausesToAssumeCases)
+				for(int lit : unitClausesToAssumeCase)
 				{
 					unitClausesToAssumeArr[ii] = lit;
 					ii++;
@@ -656,14 +598,14 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 											
 				//assumps - a set of literals (represented by usual non null integers in Dimacs format). 								
 				
-				if(fromContext.forQuery.debug_verbosity > 2)
+				if(fromContext.forQuery.debug_verbosity > 0)
 				{
 					MCommunicator.writeToLog("Calling sat-solver with assumptions: "+Arrays.toString(unitClausesToAssumeArr));
 				}
 				
 				// This is extremely verbose...
-				if(fromContext.forQuery.debug_verbosity > 2)
-					debugPrintClauses(solver);
+				//if(fromContext.forQuery.debug_verbosity > 2)
+				//	debugPrintClauses(solver);
 								
 				issat = solver.isSatisfiable(new VecInt(unitClausesToAssumeArr));
 				MCommunicator.writeToLog("\nResult was: "+issat);
@@ -704,9 +646,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		org.sat4j.minisat.core.Solver theSolver = (org.sat4j.minisat.core.Solver) solver;
 
 		MCommunicator.writeToLog("\n  There are "+theSolver.nConstraints()+"/"+solver.nConstraints()+" clauses. They are:");
-		
-		
-		
+
 		try
 		{
 			for(int ii=0;ii<theSolver.nConstraints();ii++)
