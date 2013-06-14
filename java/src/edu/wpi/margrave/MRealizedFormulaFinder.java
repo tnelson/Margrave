@@ -52,51 +52,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			return originalPreds.get(singleString)+originalIndexing.get(singleString);
 		}	
 	}
-	
-	/*private Set<String> findMissingRelations(
-			Map<String, Set<List<MTerm>>> idbsNeeded)
-	{ 
-		Set<String> missingRels = new HashSet<String>();
-				
-		for(String key : idbsNeeded.keySet())
-		{					
-			// If this is an EDB, pass on
-			if(fromContext.forQuery.vocab.predicates.containsKey(key) ||
-			   fromContext.forQuery.vocab.isSort(key) ||
-			   fromContext.forQuery.vocab.constants.containsKey(key) ||
-			   fromContext.forQuery.vocab.functions.containsKey(key))
-				continue;
-			
-			// If this isn't an IDB in the query, error
-			// Note that containsIDB is not the correct method to call, here. 
-			//if(!fromContext.forQuery.containsIDB(key)) <--- not this.
-			if(!fromContext.forQuery.myIDBCollectionsContainWithDot(key))
-				throw new MUserException("Could not show realized formula involving relation "+key+" since the query had no knowledge of that relation.\n"+
-						"The query knew about the following IDB relations: "+fromContext.forQuery.getmyIDBCollectionsIDBs()+
-						"\nand the following EDB relations+sorts+constants:\n"+fromContext.forQuery.vocab.predicates.keySet()+","+
-						fromContext.forQuery.vocab.sorts.keySet()+","+fromContext.forQuery.vocab.constants.keySet()+
-						"\nComplex terms (i.e., terms using functions) and equality between variables are not supported.");
-			
-			// Validate arities in which we are using the relation.
-			int arity = fromContext.forQuery.myIDBCollectionsHaveArityForWithDot(key);
-			
-			for(List<MTerm> args : idbsNeeded.get(key))
-			{
-				if(arity != args.size())
-					throw new MUserException("Could not show realized formula "+key+args+" since the that relation has different arity="+arity);							
-				
-			}
-								
-			// Force axiomatization of this relation. Since the check of myIDBCollectionsContainWithDot passed above,
-			// this IDB _does_ exist and the query can axiomatize it. But only add if the query doesn't know it needs
-			// to axiomatize! Otherwise we will loop forever.
-			if(!fromContext.forQuery.getIDBNamesToAxiomatize().contains(key))
-				missingRels.add(key);
-		}
-		
-		return missingRels;
-	}*/
-	
 
 	public Set<String> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates) throws MUserException
 	{
@@ -207,42 +162,45 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 	
 	
-	public Set<int[]> makeClauseSetFor(Bounds theBounds, Translation theTranslation, 
-			String predname, List<MTerm> args, List<Integer> startHereWrapper,
-			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs,
-			Set<Integer> newQVarsIntroduced)
+	public void linkPropositions(Bounds theBounds, Translation theTranslation, 
+			Map<String, Set<List<MTerm>>> toLink, Set<Integer> varList,
+			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
+			// populate intermVar maps
 	throws MInternalNoBoundsException
 	{
-		Set<int[]> clauseSet = new HashSet<int[]>();
-
-		MCommunicator.writeToLog("\n  makeClauseSetFor: "+predname+" "+args);
-		MCommunicator.writeToLog("\n  PRE startherewrapper="+startHereWrapper+" newQVarsIntroduced="+newQVarsIntroduced);
 		
-		// Produce a set of clauses that says R(t_1, ..., t_n) holds. 
-		// Must cover each potential binding for the interior terms, though!
-		
-		// Many valid p_i's means potentially intractable number of clauses.
-		        
-		// Can't trust MFormulaManager here, since Kodkod adds relations itself:
-        Relation r = getRelationFromBounds(theBounds, predname);        
-        if(fromContext.forQuery.debug_verbosity > 2)
-        {
-        	MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
-        }
-        
-    	
-		IntSet s = theTranslation.primaryVariables(r);
+		for(String relname: toLink.keySet())
+		{
+			// Can't trust MFormulaManager here, since Kodkod adds relations itself:
+			Relation r = getRelationFromBounds(theBounds, relname);        
+			if(fromContext.forQuery.debug_verbosity > 0)
+			{
+				MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
+			}
+			
+			IntSet s = theTranslation.primaryVariables(r);
+			
+			if(s == null)
+		    {
+		      	// Will have null if no tuples allocated to the relation. (If the relation's upper bound is empty.)
+		      	// If the tuple is empty, this candidate or case is impossible.
+		      	throw new MInternalNoBoundsException();
+		    }
+			
+			for(List<MTerm> args : toLink.get(relname))
+			{		
+				// populate varlist and
+				
+				varList.add(q);
+				intermVarToPred.put(q, relname);
+	        	intermVarToArgs.put(q, args);  
+				
+				
+			} // end loop per arg vector
+		} // end loop per relation
         		
-        if(s == null)
-        {
-        	// Will have null if no tuples allocated to the relation. (If the relation's upper bound is empty.)
-        	// If the tuple is empty, this candidate or case is impossible.
-        	throw new MInternalNoBoundsException();
-        }
-        
-		MCommunicator.writeToLog("\n\nRelation "+r+" has "+s.size()+" primary variables.");
-		if(fromContext.forQuery.debug_verbosity > 2)
-			MCommunicator.writeToLog("\n--> "+s);
+       
+  
         
     	// Start with which integer as q_1?
         int q = startHereWrapper.get(0);
@@ -300,17 +258,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         	q++;        
         }
         
-        startHereWrapper.set(0, q);
-         
-		MCommunicator.writeToLog("\n  POST startherewrapper="+startHereWrapper+" newQVarsIntroduced="+newQVarsIntroduced);
-
-        
-        if(fromContext.forQuery.debug_verbosity > 2)
-        {
-        	MCommunicator.writeToLog("\n\nmakeClauseSetFor returning "+clauseSet.size()+" clauses: "+stringifyArrays(clauseSet));
-        }
-        return Collections.unmodifiableSet(clauseSet);        
-	}
+        return Collections.unmodifiableSet(clauseSet);
 
 	String stringifyArrays(Set<int[]> arrs)
 	{
@@ -476,44 +424,12 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				result.put(caseToString(c, args), new HashSet<String>());
 		}
         
-        List<Integer> startHereWrapper = new ArrayList<Integer>(1);
-        startHereWrapper.add(theTranslation.cnf().numberOfVariables()+1);
 		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
 		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
-        Set<Integer> candidateGoalSet = new HashSet<Integer>();
         
         try
         {        	
         	ISolver realSolver = theSolver.getEquivalentSAT4j();
-                	
-        	
-        	//////////////////////////////////////////////////////////
-        	// Map the intermediate variables that indicate this candidate ---> the clauses used by them
-        	// This way we know the candidate -> clauses mapping.
-        	Map<Set<Integer>, Set<int[]>> candidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>();        	
-        	for(String aCandidateRel : candidates.keySet())        	
-        	{
-        		for(List<MTerm> candidateargs : candidates.get(aCandidateRel))
-        		{        			
-        			
-        			Set<Integer> newQVarsIntroduced = new HashSet<Integer>();
-        			
-        			try
-        			{
-        				Set<int[]> candidateClauseSet = makeClauseSetFor(theBounds, theTranslation, aCandidateRel, candidateargs, 
-        						startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);
-        				candidateClauseSets.put(Collections.unmodifiableSet(newQVarsIntroduced), candidateClauseSet);  
-        				
-        				candidateGoalSet.addAll(newQVarsIntroduced);
-        			}
-        			catch(MInternalNoBoundsException e)
-        			{
-        				// aCandidateRel has no tuples allocated to it (empty upper bound). So this
-        				// To reflect this, the candidate's clause set must contain the empty clause.
-        				MCommunicator.writeToLog("\nMInternalNoBoundsException caught. Not registering a clause set for this candidate.");  
-        			}
-        		}
-        	}
             
         	//////////////////////////////////////////////////////////        	        	        	
         	for(String aCaseRel : cases.keySet())        	
@@ -525,57 +441,13 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
         			MCommunicator.writeToLog("\n-------------------------------------------------\n");
         			MCommunicator.writeToLog("\n\n\n  Handling aCase="+aCase+ ". aCaseRel="+aCaseRel+" caseargs="+caseargs);
         			MCommunicator.writeToLog("\n-------------------------------------------------\n");
-        			
-                	// Fresh todo list for each case.
-        			// Deep enough copy
-        			Map<Set<Integer>, Set<int[]>> freshCandidateClauseSets = new HashMap<Set<Integer>, Set<int[]>>();
-        			for(Map.Entry<Set<Integer>, Set<int[]>> e : candidateClauseSets.entrySet())
-        				freshCandidateClauseSets.put(e.getKey(), new HashSet<int[]>(e.getValue()));
-        			
-        			// This is deep enough since Integers are immutable
-        			Set<Integer> freshCandidateGoals = new HashSet<Integer>(candidateGoalSet);
-        			
-            		Set<int[]> caseClauseSet = new HashSet<int[]>();            		
-            		Set<Integer> caseGoals;
-            		
-            		// We use "" as the null case. This occurs when the user asks for realized formulas
-            		// _without_ listing any cases.
-            		try
-            		{
-            			if(aCaseRel.length() > 0)        
-            			{
-            				Set<Integer> newQVarsIntroduced = new HashSet<Integer>();
-            				caseClauseSet = makeClauseSetFor(theBounds, theTranslation, aCaseRel, caseargs, 
-            						startHereWrapper, intermVarToPred, intermVarToArgs, newQVarsIntroduced);      
-            				caseGoals = newQVarsIntroduced;
-            			}
-            			else
-            			{
-            			//  	So only one case to check, with no clauses.
-            				MCommunicator.writeToLog("\nThere were no cases given, so preparing the empty case.");
-            				caseGoals = null;
-            			}
-            			
-            			if(fromContext.forQuery.debug_verbosity > 2)
-            			{
-            				MCommunicator.writeToLog("\n-------------------------------------------------\n");            		            	
-            			}
-            			
-                		if(fromContext.forQuery.debug_verbosity > 1)
-                			MEnvironment.writeOutLine("DEBUG: POPULATED case "+aCase+" with clause: "+caseClauseSet+
-                					". SAT4j Constraint count = "+realSolver.nConstraints());
-                	        	            		
-                		result.put(aCase, 
-                				internalRealized(realSolver, 
-                						candidates, caseClauseSet, freshCandidateClauseSets, 
-                						freshCandidateGoals, caseGoals,
-                						theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
-            			
-            		}
-            		catch(MInternalNoBoundsException e)
-            		{
-            			MCommunicator.writeToLog("\nMInternalNoBoundsException caught. Ignoring this case.");      
-            		}
+     	
+              		result.put(aCase, 
+                			internalRealized(realSolver, 
+                			candidates, aCaseRel, caseargs,
+                			theBounds, theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
+	
+        
         		} // end for each tuple
         		
         	} // end for each case rel
@@ -586,7 +458,6 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// Trivially false --> no (more) candidates can be realized at this size
 			return result;
 		}
-
         
         return result;
 	}
@@ -680,116 +551,56 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 
 	}
 	
-	Set<String> internalRealized(ISolver solver, Map<String, Set<List<MTerm>>> candidates,
-			Set<int[]> caseClauseSet, Map<Set<Integer>, Set<int[]>> candidateClauseSets,
-			Set<Integer> candidateGoals, Set<Integer> caseGoals,
-			Translation theTranslation, int numPrimaryVariables, 
-			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
-	{
+
+	private Set<String> internalRealized(ISolver solver,
+			Map<String, Set<List<MTerm>>> candidates, String aCaseRel,
+			List<MTerm> caseargs, Bounds theBounds, Translation theTranslation,
+			int numPrimaryVariables, Map<Integer, String> intermVarToPred,
+			Map<Integer, List<MTerm>> intermVarToArgs) {
+
 		Set<String> result = new HashSet<String>();
 		
-		Set<Integer> unitClausesToAssumeCases = new HashSet<Integer>();	
+		// TODO will need to convert to new helper relations from "real" relations
 		
-		MCommunicator.writeToLog("\ninternalRealized. Case clauses: "+stringifyArrays(caseClauseSet));
-		
-		int firstQ = Collections.min(intermVarToArgs.keySet());
-		int lastQ = Collections.max(intermVarToArgs.keySet());
-		
-		// Make sure the solver has space for our new variables.
-		solver.newVar(lastQ);		
+		// Case is fixed. ONE unit clause (once we find the right var).
+		// Candidates are a set. one var each. So one clause (removed if not unit)
 		
 		///////////////////////////////////////////
-		// Add the CASE. 
-		Set<IConstr> toRemoveCase = new HashSet<IConstr>();
-		try
-		{
-			// Case clause sets
-			for(int[] aClause : caseClauseSet)
-			{
-				handleClause(solver, aClause, toRemoveCase, unitClausesToAssumeCases);		
-			}
-			
-			// case goals (if any case)
-			if(caseGoals != null)
-			{
-				int[] caseGoalClause = new int[caseGoals.size()];
-				int ii =0;
-				for(int lit : caseGoals)
-				{
-					caseGoalClause[ii] = lit;;
-					ii++;
-				}
-				handleClause(solver, caseGoalClause, toRemoveCase, unitClausesToAssumeCases);
-			}
-
-		}
-		catch(ContradictionException e)
-		{
-			// No more
-			return result;
-		}
+		// find the var for this case
+		Set<Integer> unitClausesToAssumeCase = new HashSet<Integer>();	
 		
-					
-		// as of 2.3.0, default sat4j was
-		// return newMiniLearningHeapRsatExpSimpBiere();	
+		Map<String, Set<List<MTerm>>> singleCase = new HashMap<String, Set<List<MTerm>>>();
+		Set<List<MTerm>> val = new HashSet<List<MTerm>>();
+		val.add(caseargs);
+		singleCase.put(aCaseRel, val);
+		
+		linkPropositions(theBounds, theTranslation, 
+				singleCase, unitClausesToAssumeCase,
+				intermVarToPred, intermVarToArgs);
+		
+		///////////////////////////////////////////	
+		// find the vars for these candidates
+		Set<Integer> remainingCandidates = new HashSet<Integer>();
+		
+		linkPropositions(theBounds, theTranslation, 
+				candidates, remainingCandidates,
+				intermVarToPred, intermVarToArgs);
 		
 		// We can remove non-unit clauses.
-		Map<int[], IConstr> toRemoveCandidate = new HashMap<int[], IConstr>();
-		Set<Integer> unitClausesToAssumeCandidates = new HashSet<Integer>();
-		
-		
-		// this will propagate, e.g. if we have 1 [F] 2 [F] 3 [?] will make 3 [T]
-		// don't call it! just noting that the function is separate + accessible 
-		// theSolver.propagate();									
-		
-		try
-		{
-			for(Set<int[]> aSet : candidateClauseSets.values())
-			{		
-				for(int[] aClause : aSet)
-				{
-					handleClause(solver, aClause, toRemoveCandidate, unitClausesToAssumeCandidates);
-				}
-			}
-			
-			
-		}
-		catch(ContradictionException e)
-		{
-			// No more
-			for(IConstr rem : toRemoveCandidate.values())
-				solver.removeConstr(rem);
-			for(IConstr rem : toRemoveCase)
-				solver.removeConstr(rem);	
-			return result;
-		}	
-		
+		IConstr toRemoveGoal = null;
 				
-		MCommunicator.writeToLog("\n  firstQ: "+firstQ+"; lastQ: "+lastQ+"; num of vars is now: "+solver.nVars()+"; class was "+solver.getClass().toString());
-		
 		boolean issat = false;
 		
 		// Loop while there are still goals
 		do
 		{	
-			if(fromContext.forQuery.debug_verbosity > 2)
+			if(fromContext.forQuery.debug_verbosity > 0)
 			{
-				MCommunicator.writeToLog("\n  internalPopulated core loop. these clauses remain: ");
-				for(Set<Integer> key : candidateClauseSets.keySet())
-				{
-					MCommunicator.writeToLog("\n\n      "+key+" -> ");
-					for(int[] val : candidateClauseSets.get(key))
-					{
-						MCommunicator.writeToLog(Arrays.toString(val));
-					}
-				}
-				MCommunicator.writeToLog("\n  before calling sat-solver, result was: "+result);
+				MCommunicator.writeToLog("\n  internalPopulated core loop. these candidate goals remain: "+remainingCandidates);
 			}
-					
-				
-			List<Integer> potentialGoalUnit = new ArrayList<Integer>();
 						
-			
+			List<Integer> potentialGoalUnit = new ArrayList<Integer>();
+								
 			//MEnvironment.errorStream.println("~~~~ Calling SAT Solver ");
 			final long startSolve = System.currentTimeMillis();
 			IConstr remGoals = null;
@@ -797,9 +608,10 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			{			
 				//////////////////////////////////
 				// New Goals clause each iteration
-				int[] goalClause = new int[candidateGoals.size()];
+				// Add it!
+				int[] goalClause = new int[remainingCandidates.size()];
 				int ii = 0;
-				for(int lit : candidateGoals)
+				for(int lit : remainingCandidates)
 				{
 					goalClause[ii] = lit;
 					ii++;
@@ -808,39 +620,31 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				try
 				{
 					// If the goal is size=1, don't add to the const set					
-					if(candidateGoals.size() == 1)
+					if(remainingCandidates.size() == 1)
 					{
-						for(int lit : candidateGoals)
+						for(int lit : remainingCandidates)
 							potentialGoalUnit.add(lit);
 					}
 					else
 					{
-						remGoals = solver.addClause(new VecInt(goalClause));
+						toRemoveGoal = solver.addClause(new VecInt(goalClause));
 					}
 						
 				}			
 				catch(ContradictionException e)
 				{
-					// No more
-					for(IConstr rem : toRemoveCandidate.values())
-						solver.removeConstr(rem);
-					for(IConstr rem : toRemoveCase)
-						solver.removeConstr(rem);	
+					// No more candidates are possible
+					if(toRemoveGoal != null)
+						solver.removeConstr(toRemoveGoal);	
 					return result;
 				}	
 								
 				
 				//////////////////////////////////
 				// Re-construct unit clause set each iteration
-				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCandidates.size() + 
-				                                       unitClausesToAssumeCases.size() +
+				int[] unitClausesToAssumeArr = new int[unitClausesToAssumeCases.size() +
 				                                       potentialGoalUnit.size()];
-				ii = 0;
-				for(int lit : unitClausesToAssumeCandidates)
-				{
-					unitClausesToAssumeArr[ii] = lit;
-					ii++;
-				}	
+				ii = 0;	
 				for(int lit : unitClausesToAssumeCases)
 				{
 					unitClausesToAssumeArr[ii] = lit;
@@ -876,27 +680,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			// Satisfiable? Then we have goals to remove and results to add.
 			if(issat)
 				addRealizedToListAndTrimGoals(solver, theTranslation, candidates, 
-						firstQ, lastQ, 
-						intermVarToPred, intermVarToArgs, result, candidateClauseSets, candidateGoals,
-						unitClausesToAssumeCandidates, toRemoveCandidate);
+						intermVarToPred, intermVarToArgs, result, remainingCandidates);
 			
 			// Remove the "used" goals disjunction in preparation for the new one.
 			if(remGoals != null)
 				solver.removeConstr(remGoals);
 									
-		} while(issat && candidateGoals.size() > 0);
+		} while(issat && remainingCandidates.size() > 0);
         
 		// Fall through should mean that we found everything.
-		
-		// preserve state for next case
-		// required: addRealizedToListAndTrimGoals removed from toRemoveCandidate map
-		for(IConstr rem : toRemoveCandidate.values())
-			solver.removeConstr(rem);
-		
-		// remove current case
-		for(IConstr rem : toRemoveCase)
-			solver.removeConstr(rem);
-		
+		// No more cleanup necessary!
         return result;
 	}
 	

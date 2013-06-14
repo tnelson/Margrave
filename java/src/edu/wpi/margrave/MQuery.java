@@ -162,6 +162,8 @@ public class MQuery extends MIDBCollection
 		vocab = previous.vocab;
 		init(previous.myQueryFormula);
 
+		qDecls = previous.qDecls;
+		
 		debug_verbosity = previous.debug_verbosity;
 		mySATFactory = previous.mySATFactory;
 		mySB = previous.mySB;		
