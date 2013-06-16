@@ -66,7 +66,7 @@ abstract class MFatalException extends MBaseException
 
 // ------------------------------------------------------------------
 
-class MInternalNoBoundsException extends Exception
+class MInternalNoBoundsException extends MUserException
 {
 	private static final long serialVersionUID = 100; 
 	

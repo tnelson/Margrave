@@ -1404,6 +1404,11 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
+	public static String makeSRHelper(String collName, String idbName, List<MTerm> args)
+	{
+		return collName+MEnvironment.sIDBSeparator+idbName+args;
+	}
+	
 	// Implicitly bind via "exists" variables that we inferred a type for, but that aren't in sortsforpblsh
 	private static Formula handleSortAssertions(MVocab uber,
 			MExploreCondition mpc, Map<String, String> sortsForPublish) {

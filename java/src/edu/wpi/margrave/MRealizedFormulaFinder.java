@@ -162,44 +162,39 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	}
 	
 	
-	public void linkPropositions(Bounds theBounds, Translation theTranslation, 
-			Map<String, Set<List<MTerm>>> toLink, Set<Integer> varList,
-			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs)
+	public int linkPropositions(Bounds theBounds, Translation theTranslation, 
+			String helperName, Collection<Integer> varList)		
 			// populate intermVar maps and fill toLink with the involved primary variables
 	throws MInternalNoBoundsException
 	{
-		for(String relname: toLink.keySet())
+		// Can't trust MFormulaManager here, since Kodkod adds relations itself:
+		Relation r = getRelationFromBounds(theBounds, helperName);        
+		if(fromContext.forQuery.debug_verbosity > 0)
 		{
-			// Can't trust MFormulaManager here, since Kodkod adds relations itself:
-			Relation r = getRelationFromBounds(theBounds, relname);        
-			if(fromContext.forQuery.debug_verbosity > 0)
-			{
-				MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
-			}
+			MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
+		}
 			
-			IntSet s = theTranslation.primaryVariables(r);
+		// The range of primary variables assigned to relation r.
+		IntSet s = theTranslation.primaryVariables(r);
 			
-			if(s == null)
-		    {
-		      	// Will have null if no tuples allocated to the relation. (If the relation's upper bound is empty.)
-		      	// If the tuple is empty, this candidate or case is impossible.
-		      	throw new MInternalNoBoundsException();
-		    }
+		// We have manipulated the bounds so that only one such variable is assigned, since
+		// helperrelation was bounded above by just the new helper atom. But check for buggy cases:
 			
-			for(List<MTerm> args : toLink.get(relname))
-			{		
-				// populate varlist and
-
-	        	Tuple thisTuple = getTupleForPropVariable(theBounds, theTranslation, s, r, aVar);        	                       	        
-	        	int tiai = getPropVariableForVariable(theBounds, theTranslation, args.get(ii), thisTuple.atom(ii));        		        		        		
-
-				varList.add(q);
-				intermVarToPred.put(q, relname);
-	        	intermVarToArgs.put(q, args);  
-				
-				
-			} // end loop per arg vector
-		} // end loop per relation    		
+		if(s == null)
+	    {
+	      	// Will have null if no tuples allocated to the relation. (If the relation's upper bound is empty.)
+	      	// If the tuple is empty, this candidate or case is impossible.
+	      	throw new MInternalNoBoundsException();
+	    }
+			
+		if(s.size() != 1)
+		{
+			throw new MUserException("SHOW REALIZED construction failure. Helper relation "+r+" had multiple propositions: "+s);
+		}
+			
+		int theVar = s.min();
+		varList.add(theVar); // should be only one element
+		return theVar;
 	}
 	
 	String stringifyArrays(Set<int[]> arrs)
@@ -267,6 +262,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 
 	public Map<String, Set<String>> getRealizedFormulas(Map<String, Set<List<MTerm>>> candidates, 
 			Map<String, Set<List<MTerm>>> cases)
+			throws MInternalNoBoundsException
 	{			
 		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
 		
@@ -364,10 +360,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				result.put(c, new HashSet<String>());
 			for(List<MTerm> args : cases.get(c))
 				result.put(caseToString(c, args), new HashSet<String>());
-		}
-        
-		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
-		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
+		}       
         
         try
         {        	
@@ -387,7 +380,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
               		result.put(aCase, 
                 			internalRealized(realSolver, 
                 			candidates, aCaseRel, caseargs,
-                			theBounds, theTranslation, numPrimaryVariables, intermVarToPred, intermVarToArgs));
+                			theBounds, theTranslation, numPrimaryVariables)); 
 	
         
         		} // end for each tuple
@@ -497,37 +490,54 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	private Set<String> internalRealized(ISolver solver,
 			Map<String, Set<List<MTerm>>> candidates, String aCaseRel,
 			List<MTerm> caseargs, Bounds theBounds, Translation theTranslation,
-			int numPrimaryVariables, Map<Integer, String> intermVarToPred,
-			Map<Integer, List<MTerm>> intermVarToArgs) {
+			int numPrimaryVariables)
+			throws MInternalNoBoundsException
+	{
 
 		Set<String> result = new HashSet<String>();
 		
-		// TODO will need to convert to new helper relations from "real" relations
+		// Printing helpers
+		Map<Integer, String> intermVarToPred = new HashMap<Integer, String>();
+		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
+		
+		// Convert from real relation+arg pair to appropriate helper relation:
+		String caseHelperName = MQuery.makeSRHelper("", aCaseRel, caseargs);
+		
+		MCommunicator.writeToLog("\nInternal Realized. CaseHelperName="+caseHelperName+" for "+aCaseRel+" "+caseargs);
 		
 		// Case is fixed. ONE unit clause (once we find the right var).
 		// Candidates are a set. one var each. So one clause (removed if not unit)
 		
 		///////////////////////////////////////////
 		// find the var for this case
-		Set<Integer> unitClausesToAssumeCase = new HashSet<Integer>();	
+		List<Integer> unitClausesToAssumeCase = new ArrayList<Integer>();	
 		
 		Map<String, Set<List<MTerm>>> singleCase = new HashMap<String, Set<List<MTerm>>>();
 		Set<List<MTerm>> val = new HashSet<List<MTerm>>();
 		val.add(caseargs);
 		singleCase.put(aCaseRel, val);
 		
-		linkPropositions(theBounds, theTranslation, 
-				singleCase, unitClausesToAssumeCase,
-				intermVarToPred, intermVarToArgs);
+		// Get the propositional variable for the case. From singleCase ---> unitClausesToAssumeCase
+		int theVar = linkPropositions(theBounds, theTranslation, 
+				caseHelperName, unitClausesToAssumeCase);
+		intermVarToPred.put(theVar, aCaseRel);
+		intermVarToArgs.put(theVar, caseargs);
 		
 		///////////////////////////////////////////	
-		// find the vars for these candidates
+		// Get the propositional variables for ALL candidates. 
 		Set<Integer> remainingCandidates = new HashSet<Integer>();
 		
-		linkPropositions(theBounds, theTranslation, 
-				candidates, remainingCandidates,
-				intermVarToPred, intermVarToArgs);
-		
+		for(String cRelName : candidates.keySet())
+		{
+			for(List<MTerm> cArg: candidates.get(cRelName))
+			{
+				String candHelperName = MQuery.makeSRHelper("", cRelName, cArg);
+				theVar = linkPropositions(theBounds, theTranslation, 
+						candHelperName, remainingCandidates);
+				intermVarToPred.put(theVar, cRelName);
+				intermVarToArgs.put(theVar, cArg);
+			}
+		}
 		// We can remove non-unit clauses.
 		IConstr toRemoveGoal = null;
 				
@@ -675,20 +685,16 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		
 		return buff.toString();
 	}
-	
-
+		
 	protected void addRealizedToListAndTrimGoals(ISolver theSolver, Translation trans, 
-			Map<String, Set<List<MTerm>>> candidates, int firstQ, int lastQ, 
+			Map<String, Set<List<MTerm>>> candidates,
 			Map<Integer, String> intermVarToPred, Map<Integer, List<MTerm>> intermVarToArgs, 
-			Set<String> result, 
-			Map<Set<Integer>, Set<int[]>> candidateClauseSets, 
-			Set<Integer> candidateGoals,
-			Set<Integer> unitClausesToAssumeCandidates,
-			Map<int[], IConstr> toRemoveCandidates)
+			Set<String> result, 			
+			Set<Integer> candidateGoals)
 	{
 		// This method needs to do 2 things:
 		// (1) Add caseToString(String predname, List<MTerm> args) to result
-		// (2) Remove clauses
+		// (2) Remove from TO-DO list.
 		
 		if(fromContext.forQuery.debug_verbosity > 2)
 		{
@@ -696,7 +702,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}
 		
 		// For (1) need to go backwards from var to its relation.
-		for(int iVar = firstQ;iVar <= lastQ;iVar++)
+		for(int iVar = 0;iVar < theSolver.nVars();iVar++)
 		{						
 			if(fromContext.forQuery.debug_verbosity > 2)
 			{
@@ -727,45 +733,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 					MEnvironment.writeToLog("\n--- New Realized found: "+fmla+"\n");
 					result.add(fmla);
 				
-					// We can remove all clause sets and goals for this fmla
-					// Each fmla has a unique set of q's used as interm. vars
-					// And this map takes the set of q's to the clauses for it.
-					for(Map.Entry<Set<Integer>, Set<int[]>> entry : candidateClauseSets.entrySet())
-					{
-						Set<Integer> qVars = entry.getKey();						
-						if(qVars.contains(iVar)) // is this for q?
-						{
-							Set<int[]> clausesForQ = entry.getValue();													
-					
-							if(fromContext.forQuery.debug_verbosity > 2)
-							{
-								MEnvironment.writeToLog("\n--- Removing clauses for var="+iVar+"\n: "+intArrayCollectionToString(clausesForQ)+"\n");
-								MEnvironment.writeToLog("\n--- Removing goal variables: "+qVars+"\n");
-							}
-							
-							// remove clause sets (vals)
-							for(int[] aClause : clausesForQ)
-							{
-								if(toRemoveCandidates.containsKey(aClause))
-								{
-									// remove nothing until the end of this case.
-									//boolean x = theSolver.removeConstr(toRemoveCandidates.get(aClause));
-									//MEnvironment.writeToLog("\nRemoving: "+Arrays.toString(aClause)+" --> "+toRemoveCandidates.get(aClause)+"; "+x);
-									//toRemoveCandidates.remove(aClause); // no longer needs removal at end
-									
-								}
-								else
-								{
-									// aClause should be unit; remove the first literal
-									assert(aClause.length == 1);
-									//unitClausesToAssumeCandidates.remove(aClause[0]);																											
-								}
-							}
-							
-							// remove goals (keys)
-							candidateGoals.removeAll(qVars);
-						}
-					}									
+					candidateGoals.remove(iVar);
 					
 				} // end if new result
 				

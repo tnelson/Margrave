@@ -322,6 +322,9 @@
              (set )
              const-relations))
     
+    (printf "omit: ~a~n" omit-atoms)
+    
+    
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; Print sort information for atoms
     ; unless the atom has been flagged for omission.

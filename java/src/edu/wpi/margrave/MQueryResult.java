@@ -622,9 +622,9 @@ public abstract class MQueryResult
 
 						// Create a temporary relation
 						// for EACH SR indexing.		
-						Relation therel =  MFormulaManager.makeRelation(idbs.name+MEnvironment.sIDBSeparator+idbname+args, 1);
-						TupleSet helperset = factory.setOf(srhelper);
-							
+						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(idbs.name, idbname,args), 1);
+						TupleSet helperset = factory.setOf(srhelper);																			
+						
 						// And bound it.
 						MCommunicator.writeToLog("\nBounding "+therel+" above by: "+factory.setOf(helperset));
 						qryBounds.bound(therel, factory.setOf(helperset));										
