@@ -598,32 +598,37 @@ public abstract class MQueryResult
 			MCommunicator.writeToLog("\nThere are SR indexings to apply.");
 			
 			// Decisions, Rule Applicability, etc. (IDBs at policy level)
-			// run through each, checking for indexing for SRs
-			for(MIDBCollection idbs : fromContext.forQuery.myIDBCollections.values())
-			{							
-				// What is this policy publishing?
-			 
-				for(String idbname : idbs.idbKeys())
-				{																						
-					
-					// Is this an idb to be published? If not, skip it.
-					if(!fromContext.forQuery.realizedIndexing.keySet().contains(idbs.name+MEnvironment.sIDBSeparator+idbname))
-					{						
-						continue;
-					}
-					
-					MCommunicator.writeToLog("\nHandling SR for IDB: "+idbname);	
-					Formula idbFormula = idbs.getIDB(idbname);
+			// run through each, checking for indexing for SRs. 
+			// We ALSO need to do the same for constants, though. So loop by need:
+			
+			for(String srRel : fromContext.forQuery.realizedIndexing.keySet())
+			{
 				
-					//int idbDeclaredArity = idbs.varOrderings.get(idbname).size();
-					//List<Variable> idbVars = idbs.varOrderings.get(idbname);
-					
-					for(List<MTerm> args : fromContext.forQuery.realizedIndexing.get(idbs.name+MEnvironment.sIDBSeparator+idbname))
+				String[] relparts = srRel.split(MEnvironment.sIDBSeparator);
+				
+				for(List<MTerm> args : fromContext.forQuery.realizedIndexing.get(srRel))
+				{					
+					if(relparts.length > 1)
 					{
-
+						// idb
+						String collname = relparts[0];
+						String idbname = relparts[1];
+						
+						MIDBCollection idbs = fromContext.forQuery.myIDBCollections.get(collname);
+						if(idbs == null)
+						{
+							throw new MUserException("Unknown policy or saved query: "+collname);
+						}
+						
+						// Get the IDB's formula
+						Formula idbFormula = idbs.getIDB(idbname);
+						
+						// substitute variables
+						idbFormula = idbFormula.accept(visitor);
+						
 						// Create a temporary relation
 						// for EACH SR indexing.		
-						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(idbs.name, idbname,args), 1);
+						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(idbs.name, idbname, args), 1);
 						TupleSet helperset = factory.setOf(srhelper);																			
 						
 						// And bound it.
@@ -637,17 +642,19 @@ public abstract class MQueryResult
 						Formula atom2 = therel.some(); // the only "quantification" needed here
 						Formula atom2a = idbFormula;					
 						Formula imp = MFormulaManager.makeIFF(atom2, atom2a);
-									
-						//idbs.varSorts.get(var)					
-					
+															
 						// May have many idbs, so don't just do .makeAnd over and over.
-						// Save in a set and make one Conjunction NaryFormula.
-					
-						impSet.add(imp);
+						// Save in a set and make one Conjunction NaryFormula.					
+						impSet.add(imp);						
+					}
+					else
+					{
+						// edb
 						
-					} // end for each indexing
-				} // end for each idb in idbset
-			} // end for each idbset						
+						sdfsdf;
+					}																					
+				} // end loop by arg
+			} // end loop by relation												
 			
 			if(fromContext.forQuery.debug_verbosity > 1)
 			{

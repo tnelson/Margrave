@@ -86,20 +86,27 @@ SHOW REALIZED q5 conf1:permit(s, a, r), conf1:deny(s, a, r)
             conf1:paperconflict_applies(s,a,r);
 
 
-// Testing show unrealized: 
-let q6[s: Subject, a: Action, r: Resource] be conf1:permit(s,a,r) ;
+// Testing show unrealized.
+// Also testing that substitution of variables is occuring for Show realized.
+let q6[x: Subject, y: Action, z: Resource] be conf1:permit(x,y,z) ;
 
 
-SHOW UNREALIZED q6 conf1:permit(s, a, r), conf1:deny(s, a, r);
+SHOW UNREALIZED q6 conf1:permit(x,y,z), conf1:deny(x,y,z);
+
+
+
+//// vvv check this well.
+// yes, UNREALIZED on case=deny, where the query requires permit, 
+// has deny as an unrealized.
 
 SHOW UNREALIZED q6
-              conf1:permit(s, a, r), 
-              conf1:deny(s, a, r), 
-              conf1:papernoconflict_applies(s,a,r),
-              conf1:paperassigned_applies(s,a,r),
-              conf1:paperconflict_applies(s,a,r)
-            FOR CASES conf1:permit(s, a, r), 
-                      conf1:deny(s, a, r);
+              conf1:permit(x,y,z), 
+              conf1:deny(x,y,z), 
+              conf1:papernoconflict_applies(x,y,z),
+              conf1:paperassigned_applies(x,y,z),
+              conf1:paperconflict_applies(x,y,z)
+            FOR CASES conf1:permit(x,y,z), 
+                      conf1:deny(x,y,z);
                       
 SHOW REALIZED q5
               conf1:deny(s, a, r),

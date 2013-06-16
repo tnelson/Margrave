@@ -282,6 +282,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		//Set<String> missingRels = findMissingRelations(candidates); 
 		//missingRels.addAll(findMissingRelations(cases));
 
+		// EDBs need to be axiomatized too, since we reduce 
+		// _both idb and edb_ candidates to a 1-var helper relation.
+				
 		if(fromContext.forQuery.realizedIndexing.size() < 1)
 		{
 			MQuery newQuery = new MQuery(fromContext.forQuery);	
