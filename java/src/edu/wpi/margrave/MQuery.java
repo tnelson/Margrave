@@ -1404,10 +1404,16 @@ public class MQuery extends MIDBCollection
 		return result;
 	}
 
+	// Call the second version if the collection name is already added (as inside show realized func)
 	public static String makeSRHelper(String collName, String idbName, List<MTerm> args)
-	{
-		return collName+MEnvironment.sIDBSeparator+idbName+args;
+	{		
+		return collName+MEnvironment.sIDBSeparator+idbName+args;	
 	}
+	public static String makeSRHelper(String idbName, List<MTerm> args)
+	{		
+		return idbName+args;	
+	}
+
 	
 	// Implicitly bind via "exists" variables that we inferred a type for, but that aren't in sortsforpblsh
 	private static Formula handleSortAssertions(MVocab uber,

@@ -549,6 +549,7 @@ public abstract class MQueryResult
 		if(fromContext.forQuery.realizedIndexing.size() > 0)
 		{
 			// this atom isn't in any "real" upper bounds.
+			MCommunicator.writeToLog("\n Preparing for helper relations with atom: "+srhelper);
 			atomSet.add(srhelper);
 		}
 		

@@ -61,6 +61,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	
 	public String caseToString(String predname, List<MTerm> args)	
 	{
+		if(predname == null || args == null)
+			throw new MUserException("Show Realized failed. Bad predicate name: "+predname);
+		
 		if(predname.length() < 1)
 			return "";
 		
@@ -111,8 +114,11 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	Relation getRelationFromBounds(Bounds theBounds, String name)
 	{
 		for(Relation r : theBounds.relations())
+		{
+			//MCommunicator.writeToLog("\nDEBUG: \n"+r.name()+" vs "+name);
 			if(r.name().equals(name))
 				return r;
+		}
 		return null;
 	}
 	
@@ -169,10 +175,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 	{
 		// Can't trust MFormulaManager here, since Kodkod adds relations itself:
 		Relation r = getRelationFromBounds(theBounds, helperName);        
-		if(fromContext.forQuery.debug_verbosity > 0)
-		{
-			MCommunicator.writeToLog("\nRelation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
-		}
+		
+		MCommunicator.writeToLog("\nName = "+helperName+" Relation="+r+". Bounds covered relations: "+theBounds.relations()); // theBounds.toString() doesn't always work here.
 			
 		// The range of primary variables assigned to relation r.
 		IntSet s = theTranslation.primaryVariables(r);
@@ -407,7 +411,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 			 MTerm a = aVector.get(0);
 			 MTerm b = aVector.get(1);
 			 if(a instanceof MFunctionTerm || a instanceof MFunctionTerm)
-				 throw new MUserException("Unsupported show-realized formula; cannot use complex terms: "+a.toString()+"="+b.toString());
+				 throw new MUserException("\nUnsupported show-realized formula; cannot use complex terms: "+a.toString()+"="+b.toString());
 			 
 			 if(b instanceof MVariableTerm)
 			 {
@@ -417,7 +421,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				 List<MTerm> newList = new ArrayList<MTerm>(1);
 				 newList.add(b);
 				 things.get(a.toString()).add(newList);
-				 MCommunicator.writeToLog("Converting to "+a.toString()+" -- "+newList);
+				 MCommunicator.writeToLog("\nConverting to "+a.toString()+" -- "+newList);
 			 }
 			 else if(a instanceof MVariableTerm)
 			 {
@@ -427,7 +431,7 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 				 List<MTerm> newList = new ArrayList<MTerm>(1);
 				 newList.add(a);
 				 things.get(b.toString()).add(newList);
-				 MCommunicator.writeToLog("Converting to "+a.toString()+" -- "+newList);
+				 MCommunicator.writeToLog("\nConverting to "+a.toString()+" -- "+newList);
 			 }			 
 		}
 		
@@ -501,9 +505,9 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		Map<Integer, List<MTerm>> intermVarToArgs = new HashMap<Integer, List<MTerm>>();
 		
 		// Convert from real relation+arg pair to appropriate helper relation:
-		String caseHelperName = MQuery.makeSRHelper("", aCaseRel, caseargs);
+		String caseHelperName = MQuery.makeSRHelper(aCaseRel, caseargs);
 		
-		MCommunicator.writeToLog("\nInternal Realized. CaseHelperName="+caseHelperName+" for "+aCaseRel+" "+caseargs);
+		MCommunicator.writeToLog("\ninternalRealized. CaseHelperName="+caseHelperName+" for "+aCaseRel+" "+caseargs);
 		
 		// Case is fixed. ONE unit clause (once we find the right var).
 		// Candidates are a set. one var each. So one clause (removed if not unit)
@@ -512,16 +516,24 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		// find the var for this case
 		List<Integer> unitClausesToAssumeCase = new ArrayList<Integer>();	
 		
-		Map<String, Set<List<MTerm>>> singleCase = new HashMap<String, Set<List<MTerm>>>();
-		Set<List<MTerm>> val = new HashSet<List<MTerm>>();
-		val.add(caseargs);
-		singleCase.put(aCaseRel, val);
+		int theVar;
 		
-		// Get the propositional variable for the case. From singleCase ---> unitClausesToAssumeCase
-		int theVar = linkPropositions(theBounds, theTranslation, 
-				caseHelperName, unitClausesToAssumeCase);
-		intermVarToPred.put(theVar, aCaseRel);
-		intermVarToArgs.put(theVar, caseargs);
+		// Only attempt to bind the case if there's a case to bind!
+		if(aCaseRel.length() > 0)
+		{
+			MCommunicator.writeToLog("\ninternalRealized finding case variable...");
+			
+			Map<String, Set<List<MTerm>>> singleCase = new HashMap<String, Set<List<MTerm>>>();
+			Set<List<MTerm>> val = new HashSet<List<MTerm>>();
+			val.add(caseargs);
+			singleCase.put(aCaseRel, val);
+		
+			// Get the propositional variable for the case. From singleCase ---> unitClausesToAssumeCase
+			theVar = linkPropositions(theBounds, theTranslation, 
+					caseHelperName, unitClausesToAssumeCase);
+			intermVarToPred.put(theVar, aCaseRel);
+			intermVarToArgs.put(theVar, caseargs);
+		}
 		
 		///////////////////////////////////////////	
 		// Get the propositional variables for ALL candidates. 
@@ -531,7 +543,8 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		{
 			for(List<MTerm> cArg: candidates.get(cRelName))
 			{
-				String candHelperName = MQuery.makeSRHelper("", cRelName, cArg);
+				String candHelperName = MQuery.makeSRHelper(cRelName, cArg);
+				
 				theVar = linkPropositions(theBounds, theTranslation, 
 						candHelperName, remainingCandidates);
 				intermVarToPred.put(theVar, cRelName);
@@ -702,11 +715,14 @@ public class MRealizedFormulaFinder extends MCNFSpyQueryResult
 		}
 		
 		// For (1) need to go backwards from var to its relation.
-		for(int iVar = 0;iVar < theSolver.nVars();iVar++)
-		{						
-			if(fromContext.forQuery.debug_verbosity > 2)
+		for(int iVar = 1;iVar <= theSolver.nVars();iVar++)
+		{		
+			if(!candidateGoals.contains(iVar))
+				continue;
+			
+			if(fromContext.forQuery.debug_verbosity > 0)
 			{
-				MCommunicator.writeToLog("\n  checking variable "+iVar+": "+theSolver.model(iVar));
+				MCommunicator.writeToLog("\n  checking goal variable "+iVar+": "+theSolver.model(iVar));
 			}
 			
 			// theSolver.model: Provide the truth value of a specific variable in the model.
