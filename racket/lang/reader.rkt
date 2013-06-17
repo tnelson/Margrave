@@ -59,11 +59,10 @@
 
 ; **********************************************************
 (define (make-syntax-for-one-func f)
-  (define result-syntax (with-syntax ( [the-func-syntax f])
-                         (strip-context       
-                          #'the-func-syntax)))
-  ;(printf "Making syntax for f=~a~nSyntax is: ~a~n." f result-syntax)
-  result-syntax)
+  (with-syntax ( [the-func-syntax f])
+    (strip-context       
+     #'the-func-syntax)))
+         
   
 (define (parse-helper src in func-list-so-far)
   (if (eof-object? (peek-char in))      
@@ -98,13 +97,19 @@
            
            ; Don't show a #t. Could be confusing in #lang margrave
            (define start-result 
-             (start-margrave-engine #:margrave-params '("-log")))
+             (start-margrave-engine #:margrave-params '("-log")))          
            
            (define (handle-func a-func)          
              (define a-result (a-func))
+             (define to-output (response->string a-result))
              ;(printf "handle-func: ~a ~a~n" a-func a-result)
-             (when (not (void? a-result))
-               (display (response->string a-result)))
+             (when (not (void? a-result))               
+               (display to-output)            
+               ; may only work for \n systems
+               (when (and (string? to-output) 
+                          (not (equal? "\n" (substring to-output (sub1 (string-length to-output))))))
+                 (display "\n")))
+               
              a-result)
            
            ; voids may be inserted as no-ops (see parser)
@@ -112,6 +117,8 @@
            (define margrave-results 
              (filter (lambda (v) (not (void? v)))
                      (map handle-func syntax-func-list)))
+           
+           ; since the last ele is a define, result is void: no dupe output
            ))))
   ; DEBUG  
   ;(printf "Result syntax ~a~n~n" result-syntax) 
@@ -128,11 +135,16 @@
   ; REPL will keep calling this over and over.
   ; Check to make sure there is a character waiting.
   ; If there isn't one, stop looking for one until triggered again.
-  (if (char-ready? in)
-      (begin
-       ; (printf "First 100 characters: ~a~n" (peek-string 100 0 in))
-        (make-syntax-for-one-func (parse-and-compile-port src in)))
-      eof))
+  (if (char-ready? in)        
+      (begin         
+        (with-syntax ([syn (make-syntax-for-one-func (parse-and-compile-port src in))])
+          #'(begin 
+              ; handle-func already defined by executing the main body.
+              ; it will append a \n to the end of the DISPLAYED output if needed
+              (handle-func syn)
+              (void))))
+        eof))
+  
 
 (define (read-m-single in)
   (syntax->datum

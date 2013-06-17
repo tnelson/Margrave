@@ -322,7 +322,7 @@
              (set )
              const-relations))
     
-    (printf "omit: ~a~n" omit-atoms)
+;    (printf "omit: ~a~n" omit-atoms)
     
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -493,8 +493,7 @@
                    [(equal? type "exception") (pretty-print-exception-xml the-response)]
                    [(equal? type "explore-result") (pretty-print-explore-xml the-response)]
                    [(equal? type "unsat") (m-scenario->string (xml->scenario the-response))]
-                   [(equal? type "boolean") (pretty-print-boolean-xml the-response)]
-                   ; [(equal? type "string") (pretty-print-string-xml the-response)]
+                   [(equal? type "boolean") (pretty-print-boolean-xml the-response)]                   
                    [(equal? type "string") (xml-string-response->string the-response)]
                    [(equal? type "set") (pretty-print-set-xml the-response)]
                    [(equal? type "list") (pretty-print-list-xml the-response)]
@@ -515,6 +514,7 @@
   (define response-element (maybe-document->element xml-response))
   (define string-element (get-child-element response-element 'string))
   ; Don't insert ~n, because the results of this func are passed to (e.g.) string->number
+  ; For #lang margrave, we check to see if the output ends in ~n before displaying.
   (get-attribute-value string-element 'value))
 
 ; element -> string
