@@ -578,8 +578,8 @@ public class MEnvironment
 
 	public static final String tempVarPrefix = "_";
 	
-	public static final String sIDBSeparator = ".";
-	public static final String sIDBSeparatorRegExp = "\\.";
+	public static final String sIDBSeparator = ":";
+	public static final String sIDBSeparatorRegExp = ":"; // if we do something else, like dot, may need to escape it
 	
 	// Used in exception output
 	static String lastCommandReceived = "";
@@ -839,7 +839,7 @@ public class MEnvironment
 				Element idbElement = xmldoc.createElementNS(null, "IDB");
 				idbElement.setAttribute("base-name", key);
 				idbElement.setAttribute("is-false", String.valueOf(coll.getIDB(key).equals(Formula.FALSE)));
-				idbElement.appendChild(xmldoc.createTextNode(coll.name+"."+key));
+				idbElement.appendChild(xmldoc.createTextNode(coll.name+MEnvironment.sIDBSeparator+key));
 				idbsElement.appendChild(idbElement);
 			}
 			theElement.appendChild(idbsElement);

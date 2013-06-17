@@ -962,7 +962,7 @@ public class MCommunicator
 					if("".equals(relName))
 						relName += relNamePieces.get(ii);
 					else
-						relName += "."+relNamePieces.get(ii);
+						relName += MEnvironment.sIDBSeparator+relNamePieces.get(ii);
 				}
 
 				if(!hashMap.containsKey(relName))

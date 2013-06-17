@@ -254,7 +254,7 @@ public class SQSReader
 				throw new MGEUnsupportedSQS("Number of keys != 1 as expected: "+obj.toString());			
 			
 			Object inner = jobj.get((String)names.get(0));
-			return handleStatementPAR(inner, varname, parentsortname, theTarget, vocab, prepend+"."+names.get(0));						 
+			return handleStatementPAR(inner, varname, parentsortname, theTarget, vocab, prepend+MEnvironment.sIDBSeparator+names.get(0));						 
 		}
 		
 		// Now if obj is a simple value, we have a predicate name.

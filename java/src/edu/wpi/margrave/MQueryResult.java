@@ -601,15 +601,18 @@ public abstract class MQueryResult
 			// run through each, checking for indexing for SRs. 
 			// We ALSO need to do the same for constants, though. So loop by need:
 			
+			TupleSet helperset = factory.setOf(srhelper);
+			
 			for(String srRel : fromContext.forQuery.realizedIndexing.keySet())
 			{
 				
-				String[] relparts = srRel.split(MEnvironment.sIDBSeparator);
+				String[] relparts = srRel.split(MEnvironment.sIDBSeparatorRegExp);
 				
 				for(List<MTerm> args : fromContext.forQuery.realizedIndexing.get(srRel))
 				{					
 					if(relparts.length > 1)
 					{
+						//////////////////////////////////////////////////////////////////////////
 						// idb
 						String collname = relparts[0];
 						String idbname = relparts[1];
@@ -624,12 +627,15 @@ public abstract class MQueryResult
 						Formula idbFormula = idbs.getIDB(idbname);
 						
 						// substitute variables
-						idbFormula = idbFormula.accept(visitor);
+						List<Expression> rawArgs = new ArrayList<Expression>(args.size());
+						for(MTerm arg : args)
+							rawArgs.add(arg.expr);
+						
+						idbFormula = MEnvironment.performSubstitution(idbname, idbs, idbFormula, rawArgs);
 						
 						// Create a temporary relation
 						// for EACH SR indexing.		
-						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(idbs.name, idbname, args), 1);
-						TupleSet helperset = factory.setOf(srhelper);																			
+						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(idbs.name, idbname, args), 1);																								
 						
 						// And bound it.
 						MCommunicator.writeToLog("\nBounding "+therel+" above by: "+factory.setOf(helperset));
@@ -649,9 +655,49 @@ public abstract class MQueryResult
 					}
 					else
 					{
+						//////////////////////////////////////////////////////////////////////////
 						// edb
 						
-						sdfsdf;
+						// Create a temporary relation
+						// for EACH SR indexing.		
+						Relation therel =  MFormulaManager.makeRelation(MQuery.makeSRHelper(srRel, args), 1);
+								
+						// And bound it.
+						MCommunicator.writeToLog("\nBounding "+therel+" above by: "+factory.setOf(helperset));
+						qryBounds.bound(therel, factory.setOf(helperset));										
+					
+						////////////////////////////////////////////////////////////
+						// The relation holds IF AND ONLY IF its idb formula is true									
+						////////////////////////////////////////////////////////////
+
+						Formula atom2 = therel.some(); // the only "quantification" needed here
+
+						
+						// Make sure that this relation exists in the vocab:
+						if(!fromContext.forQuery.vocab.isSort(srRel) && !fromContext.forQuery.vocab.isPredicate(srRel) &&
+							!fromContext.forQuery.vocab.constants.containsKey(srRel))
+							throw new MUserException("Show Realized error: unknown relation name: "+srRel);						
+						// Make sure that the arity is correct:
+						if((fromContext.forQuery.vocab.isSort(srRel) || fromContext.forQuery.vocab.constants.containsKey(srRel))
+								&& args.size() != 1)
+							throw new MUserException("Show Realized error: "+srRel+" has arity 1, but given terms: "+args);		
+						if(fromContext.forQuery.vocab.isPredicate(srRel) && args.size() != fromContext.forQuery.vocab.predicates.get(srRel).type.size())
+							throw new MUserException("Show Realized error: "+srRel+" has arity "+fromContext.forQuery.vocab.predicates.get(srRel).type.size()+
+									" but given "+args);		
+								
+						
+						
+						// don't have an idbformula. Instead:
+						Expression terms = args.get(0).expr;
+						for(int ii=1;ii < args.size(); ii++)
+							terms = terms.product(args.get(ii).expr);
+						
+						Formula atom2a = terms.in(MFormulaManager.makeRelation(srRel, args.size()));					
+						Formula imp = MFormulaManager.makeIFF(atom2, atom2a);
+															
+						// May have many idbs, so don't just do .makeAnd over and over.
+						// Save in a set and make one Conjunction NaryFormula.					
+						impSet.add(imp);																		
 					}																					
 				} // end loop by arg
 			} // end loop by relation												
