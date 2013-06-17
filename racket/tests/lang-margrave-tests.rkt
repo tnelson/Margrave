@@ -150,3 +150,13 @@ let q10[x: Subject] be conf1:deny(x, y, z) and conflicted(x,z);
 
 // needs testing in interactions, too.
 count q9; count q10;
+
+
+/////////////////////
+// error cases: TODO test cases!
+/////////////////////
+// let qfa[sa: Subject] be false under conf1;
+// let foox[s:] be conflicted(s,r) under conf1;
+// let all[] be conf1:permit(s,a,r);
+
+
