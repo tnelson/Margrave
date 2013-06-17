@@ -1479,5 +1479,27 @@ public class MQuery extends MIDBCollection
 	{
 		return queryID; 					
 	}
+
+	public boolean termIsQuantified(MTerm arg) 
+	{
+		// What variables does arg use? Are they all quantified?
+		
+		for(Variable v : arg.seenVariables)
+		{
+			boolean found = false;
+			for(Decl d : qDecls)
+			{
+				if(d.variable().equals(v))
+				{
+					found = true;
+					break;
+				}
+			}
+			
+			if(!found)
+				return false;
+		}
+		return true;
+	}
 	
 }

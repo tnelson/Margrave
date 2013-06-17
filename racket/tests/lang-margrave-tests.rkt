@@ -118,7 +118,11 @@ SHOW REALIZED q5
 
 // Show realized for constant=variable
 SHOW REALIZED q5 $margravepaper=r;
-              
+
+// show realized for edb predicate
+// latter has a type mismatch, so doesn't appear in result
+SHOW REALIZED q6 assigned(x, z), conflicted(x, y);
+
 /////////////////////////////////////////////////////////
 
 // Test p4p policies in #lang margrave

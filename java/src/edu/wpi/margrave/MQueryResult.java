@@ -610,6 +610,13 @@ public abstract class MQueryResult
 				
 				for(List<MTerm> args : fromContext.forQuery.realizedIndexing.get(srRel))
 				{					
+					// First check that these terms are quantified by the query:
+					for(MTerm arg : args)
+					{
+						if(!fromContext.forQuery.termIsQuantified(arg))
+							throw new MUserException("Show Realized failure: the term "+arg+" was not quantified in the original query. Double-check the variable names used!");
+					}
+					
 					if(relparts.length > 1)
 					{
 						//////////////////////////////////////////////////////////////////////////
@@ -685,8 +692,7 @@ public abstract class MQueryResult
 							throw new MUserException("Show Realized error: "+srRel+" has arity "+fromContext.forQuery.vocab.predicates.get(srRel).type.size()+
 									" but given "+args);		
 								
-						
-						
+												
 						// don't have an idbformula. Instead:
 						Expression terms = args.get(0).expr;
 						for(int ii=1;ii < args.size(); ii++)
