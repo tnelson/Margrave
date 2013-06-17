@@ -40,6 +40,19 @@
   (and (>= (length rev-tokens) (length token-list))
        (equal? token-list (take rev-tokens (length token-list)))))
 
+(define (improper-query-name?)
+  (define rev-tokens (get-reversed-tokens-so-far-no-eof))   
+  (and (started-with '(LET))
+       (>= (length rev-tokens) 2)
+       (or (not (token? (second rev-tokens)))
+           (not (equal? '<lowercase-id> (token-name (second rev-tokens)))))))
+
+(define (improper-var-decls?)
+  (define rev-tokens (get-reversed-tokens-so-far-no-eof)) 
+  (and (started-with '(LET))
+       (not (member? 'BE rev-tokens))
+       ))
+
 (define (started-with-identifier/ci val)  
   (unless (empty? token-history)
     (define the-tok (position-token-token (last token-history)))  
@@ -155,7 +168,7 @@
        ;**************************************************   
        (error (lambda (tok-ok? token-name token-value start-pos end-pos) 
                 ; Token-history is reversed here.
-                ;(printf "History: ~a~n" (map position-token-token token-history))
+                (printf "History: ~a~n" (map position-token-token token-history))
                 
                 ; Can we guess at the kind of command they were trying to use?
                 ; customize an error message depending on history:
@@ -186,13 +199,14 @@
                         [(started-with '(LOAD))
                          "Load what? (LOAD POLICY to load a .p file, LOAD IOS to load a Cisco IOS configuration, etc.)" ]
                         
-                        [(started-with '(LET))
-                         (format "To bind a formula context, use LET <name>[<variable-declarations>] BE <condition>. 
-The query <name> must begin with a lowercase letter.
-Margrave did not understand the condition or options given around \"~a\"." 
-                                 (if token-value
-                                     token-value
-                                     token-name))]
+                        [(improper-query-name?)                         
+                         (format "LET: The query name must begin with a lowercase letter, and must not be a reserved word.~n")]
+                        
+                        [(improper-var-decls?)
+                         (format "LET: Square brackets must contain a comma-separated list of declarations.~nEach declaration should have the form <varname>:<Type>~n")]
+                        
+                        [(started-with '(LET))                         
+                         (format "Usage: LET <name>[<variable-declarations>] BE <condition>.~n")]
                         
                                                 
                         ; Last resort
