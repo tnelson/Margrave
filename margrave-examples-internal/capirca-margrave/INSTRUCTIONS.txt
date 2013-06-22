@@ -1,0 +1,16 @@
+
+(1) Install Java (Java 6 or later)
+
+(2) Install DrRacket
+
+(3) Install the Margrave Racket package [paste]
+
+(4) The capirca-r242-MODIFIED folder contains the standard
+capirca-r242 distribution with two key changes: 
+
+- lib/margrave.py: A (very basic) output module for Margrave's
+  intermediate policy language. [New file]
+
+- lib/aclgen.py: I modified this to always output Margrave policies
+  for whateverf ACLs it runs on. [Existing file, modified]
+
