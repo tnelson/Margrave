@@ -20,6 +20,12 @@ info;
 #LOAD POLICY conf2 = "*MARGRAVE*/tests/conference2.p";
 //#load policy emptyconf = "./emptyconference.p";
 
+let qtrue[s: Subject, a: Action, r: Resource] be true
+UNDER conf1;
+
+let qfalse[s: Subject, a: Action, r: Resource] be false
+UNDER conf1;
+
 // EXPLORE + UNDER + AND + NOT + constant
 let q1[s: Subject, a: Action, r: Resource] be assigned(s, r) AND NOT assigned(s, r) 
 OR NOT ($margravepaper = $margravepaper)
