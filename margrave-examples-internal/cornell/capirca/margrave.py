@@ -194,7 +194,9 @@ class Margrave(aclgenerator.ACLGenerator):
       reqvec = 'sa sp da dp pro opt'
       conditions = self.termConditions(term)
       target.append("(%s = (%s %s) :-\n    %s)\n" % ( name, a, reqvec, " ".join(conditions)))
-
+      if term.logging:
+        target.append("(%s = (log %s) :-\n    %s)\n" % ( name+'-log', reqvec, " ".join(conditions)))
+        print "     *** LOGGING detected: splitting term: "+term.name
     return target
 
   def getaxioms(self):
