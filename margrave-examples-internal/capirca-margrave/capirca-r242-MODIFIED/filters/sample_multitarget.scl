@@ -1,0 +1,20 @@
+application 100 deny-from-bogons protocol ip src-ip 0.0.0.0/8,192.0.0.0/24,192.0.2.0/24,192.18.0.0/15,198.51.100.0/24,203.0.113.0/24,224.0.0.0/3 src-port any dst-ip any dst-port any dscp any
+
+application 200 deny-from-reserved protocol ip src-ip 0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.168.0.0/16,224.0.0.0/3 src-port any dst-ip any dst-port any dscp any
+
+application 300 deny-to-rfc1918 protocol ip src-ip any src-port any dst-ip 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 dst-port any dscp any
+
+application 400 permit-mail-services protocol tcp src-ip any src-port any dst-ip 200.1.1.4/31 dst-port 25,465,587,995 dscp any
+
+application 500 permit-web-services protocol tcp src-ip any src-port any dst-ip 200.1.1.1/32,200.1.1.2/32 dst-port 80,443 dscp any
+
+application 600 permit-tcp-established protocol tcp src-ip any src-port any dst-ip 200.1.1.1/32,200.1.1.2/31,200.1.1.4/31 dst-port any dscp any
+
+application 700 permit-udp-established protocol udp src-ip any src-port 1024-65535 dst-ip 200.1.1.1/32,200.1.1.2/31,200.1.1.4/31 dst-port any dscp any
+
+application 800 default-deny protocol ip src-ip any src-port any dst-ip any dst-port any dscp any
+
+application 900 deny-to-bad-destinations protocol ip src-ip any src-port any dst-ip 0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.18.0.0/15,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/3 dst-port any dscp any
+
+application 1000 default-accept protocol ip src-ip any src-port any dst-ip any dst-port any dscp any
+

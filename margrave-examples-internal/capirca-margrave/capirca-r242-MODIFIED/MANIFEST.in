@@ -1,0 +1,5 @@
+include COPYING
+include filters/.save
+include policies/sample.pol
+include def/NETWORK.net
+include def/SERVICES.svc

@@ -1,0 +1,30 @@
+# Packetfilter allowtointernet Policy
+# Denies all traffic to internal IPs except established tcp replies.
+#
+# $Id: ./filters\sample_packetfilter.pf $
+# $Date: 2013/06/22 $
+# mixed
+
+# term accept-dhcp
+# Optional - allow forwarding of DHCP requests.
+pass quick proto { udp } from { any } to { any } port { 68 67 }
+
+# term accept-to-honestdns
+# Allow name resolution using honestdns.
+pass quick proto { udp } from { any } to { 8.8.4.4/32, 8.8.8.8/32, 2001:4860:4860::8844/128, 2001:4860:4860::8888/128 } port { 53 }
+
+# term deny-to-internal
+# Deny access to rfc1918/internal.
+block return log quick from { any } to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }
+
+# term test-icmp
+pass quick proto { icmp } from { any } to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } icmp-type { 0, 8 }
+
+# term deny-to-specific_hosts
+# Deny access to specified public.
+block drop quick from { any } to { 200.1.1.1/32, 200.1.1.2/32, 200.1.1.4/31 }
+
+# term default-permit
+# Allow what's left.
+pass quick from { any } to { any }
+

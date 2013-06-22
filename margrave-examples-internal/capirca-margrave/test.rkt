@@ -1,11 +1,14 @@
 #lang margrave
 
-load policy cisco = "sample_cisco_lab.p";
-load policy jun = "sample_juniper_loopback.p";
-load policy multi = "sample_multitarget.p";
-load policy filter = "sample_packetfilter.p";
-load policy speedway = "sample_speedway.p";
-load policy srx = "sample_srx.p";
+// This file must reside in the /filters/ folder of Capirca
+// since the below policy file references are relative to the current dir.
+
+load policy cisco = "capirca-r242-MODIFIED/filters/sample_cisco_lab.p";
+load policy jun = "capirca-r242-MODIFIED/filters/sample_juniper_loopback.p";
+load policy multi = "capirca-r242-MODIFIED/filters/sample_multitarget.p";
+load policy filter = "capirca-r242-MODIFIED/filters/sample_packetfilter.p";
+load policy speedway = "capirca-r242-MODIFIED/filters/sample_speedway.p";
+load policy srx = "capirca-r242-MODIFIED/filters/sample_srx.p";
 
 // A cross-policy diff:
 
@@ -22,7 +25,7 @@ show diff include cisco:accept(sa, sp, da, dp, pro, opt), cisco:deny(sa, sp, da,
                   cisco:default-permit_applies(sa, sp, da, dp, pro, opt);
                   
 // aggregate: which cisco rules ever apply in a change-impact scenario?
-// aggregation over large sets of rules will speed up when i get back to a real keyboard...
+// (Yeah, we need syntactic sugar for "check all rules' applicability" 
 show realized diff 
 cisco:accept-to-honestdns_applies(sa, sp, da, dp, pro, opt),
 cisco:accept-tcp-replies_applies(sa, sp, da, dp, pro, opt),
