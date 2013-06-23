@@ -9,17 +9,22 @@ http://www.java.com/en/download/.
 (2) Install DrRacket:
 http://racket-lang.org/download/
 
-(3) Install the Margrave Racket package contained in this zipfile.
+(3) Download and install Python 2 (tested on 2.7.5). (Make sure you
+have v2. Capirca may have trouble running in Python 3.)
+ 
+http://www.python.org/getit/
+
+(4) Install the Margrave Racket package contained in this zipfile.
 
 Open DrRacket (the graphical development environment for Racket)
 and select the File -> Install .plt file menu option. Go to the File
 tab and select margrave-31alpha-062213.plt
 
-(4) Run definate: python capirca-r242-MODIFIED/definate.py
+(5) Run definate: python capirca-r242-MODIFIED/definate.py
 
-(5) Run capirca: python capirca-r242-MODIFIED/aclgen.py 
+(6) Run capirca: python capirca-r242-MODIFIED/aclgen.py 
 
-(6) Load test.rkt in DrRacket and hit run. The script will be shown in
+(7) Load test.rkt in DrRacket and hit run. The script will be shown in
 the top window, and the output will be shown in the bottom window. 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
