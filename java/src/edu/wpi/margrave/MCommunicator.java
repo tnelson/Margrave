@@ -61,13 +61,13 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class MCommunicator 
+public class MCommunicator
 {
 	static final InputStream in = System.in;
 	static final PrintStream out = System.out;
 
 	static String sLogFileName = "margrave-log.txt";
-	static BufferedWriter outLog = null; 
+	static BufferedWriter outLog = null;
 	static FileWriter outLogStream = null;
 
 	static boolean bDoLogging = false;
@@ -80,32 +80,32 @@ public class MCommunicator
 	 */
 	static String makeDetailedError(String str)
 	{
-		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>"+str+"</ERROR></MARGRAVE-RESPONSE>";		
+		return "<MARGRAVE-RESPONSE type=\"fatal-error\"><ERROR>"+str+"</ERROR></MARGRAVE-RESPONSE>";
 	}
 
-	public static void main(String[] args) 
+	public static void main(String[] args)
 	{
-		ArrayList<String> foo = new ArrayList<String>();		
-		
+		ArrayList<String> foo = new ArrayList<String>();
+
 		Set<String> argsSet = new HashSet<String>();
 		for(int ii=0;ii<args.length;ii++)
 		{
 			argsSet.add(args[ii].toLowerCase());
 		}
-		
+
 		if(argsSet.contains("-log"))
 		{
 			// parser is in racket now. instead, require -log switch for logging
 			//MEnvironment.debugParser = true;
 			bDoLogging = true;
-		}					
-		
+		}
+
 		if(argsSet.contains("-min"))
 		{
 			bMinimalModels = true;
 		}
 
-		// Re-direct all System.err input to our custom buffer		
+		// Re-direct all System.err input to our custom buffer
 		// Uses Apache Commons IO for WriterOutputStream.
 		System.setErr(new PrintStream(new WriterOutputStream(MEnvironment.errorWriter), true));
 
@@ -124,21 +124,21 @@ public class MCommunicator
 		{
 			// Block until a command is received, handle it, and then return the result.
 			handleXMLCommand(in);
-		} 
+		}
 
 		// outLog will be closed as it goes out of scope
 	}
 
 	/**
-	 * Places a "success" message on the output buffer. This message 
+	 * Places a "success" message on the output buffer. This message
 	 * lets the caller (Racket) know that it is safe to begin sending
-	 * commands. 
-	 * 
+	 * commands.
+	 *
 	 */
 	public static void sendReadyReply()
 	{
 		Document theResponse = MEnvironment.successResponse();
-		addBuffers(theResponse);    	
+		addBuffers(theResponse);
 		writeToLog("Returning: " + transformXMLToString(theResponse) + "\n");
 		try
 		{
@@ -159,7 +159,7 @@ public class MCommunicator
 	}
 
 	public static void handleXMLCommand(InputStream commandStream)
-	{        	
+	{
 		DocumentBuilder docBuilder = null;
 		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 		try
@@ -172,19 +172,19 @@ public class MCommunicator
 			writeToLog("\nParserConfigurationException at beginning of handleXMLCommand: "+ex.getLocalizedMessage());
 			writeToLog("\nTerminating engine...");
 			System.exit(200);
-		}	
+		}
 
 		// Save this command for use in exception messages
-		//MEnvironment.lastCommandReceived = command.trim();    		
+		//MEnvironment.lastCommandReceived = command.trim();
 
-		Document inputXMLDoc = null;            
+		Document inputXMLDoc = null;
 
 		try {
-			// doc = docBuilder.parse(new InputSource(new StringReader(command)));            	
+			// doc = docBuilder.parse(new InputSource(new StringReader(command)));
 			writeToLog("========================================\n========================================\n");
 			writeToLog("\n"+commandStream.available());
 
-			StringBuffer inputStringBuffer = new StringBuffer();            	
+			StringBuffer inputStringBuffer = new StringBuffer();
 			while(true)
 			{
 				// if available=0; we want to block. But don't want to allocate too much room:
@@ -192,24 +192,24 @@ public class MCommunicator
 				{
 					int b = commandStream.read();
 					inputStringBuffer.append((char) b);
-					//writeToLog("\n(Blocked and then got) character: `"+(char)b+"`"); 
+					//writeToLog("\n(Blocked and then got) character: `"+(char)b+"`");
 				}
 				else
 				{
-					byte[] inputBytes = new byte[commandStream.available()];         
+					byte[] inputBytes = new byte[commandStream.available()];
 					@SuppressWarnings("unused")
-					int bytesRead = commandStream.read(inputBytes);    
+					int bytesRead = commandStream.read(inputBytes);
 					String block = new String(inputBytes);
-					inputStringBuffer.append(block);            		
-					//writeToLog("\n(Didn't block for) String: `"+block+"`");            		         		            			
-				}            		
+					inputStringBuffer.append(block);
+					//writeToLog("\n(Didn't block for) String: `"+block+"`");
+				}
 
 				// Bad kludge. Couldn't get proper XML parse function working, so
 				// did this. Should re-write (preferably with correct XML handling functions!)
 				// The trim() call below is especially egregious... - TN
 
 				String sMargraveCommandEnding = "</MARGRAVE-COMMAND>";
-				String bufferStr = inputStringBuffer.toString();            		
+				String bufferStr = inputStringBuffer.toString();
 				if(bufferStr.trim().endsWith(sMargraveCommandEnding))
 					break;
 			} // end while(true) for kludge
@@ -219,12 +219,12 @@ public class MCommunicator
 
 			inputXMLDoc = docBuilder.parse(new InputSource(new StringReader(cmdString)));
 
-			//doc = docBuilder.parse(commandStream);            	
+			//doc = docBuilder.parse(commandStream);
 			//doc = docBuilder.parse(new InputSource(commandStream));
 			writeToLog((new Date()).toString());
-			writeToLog("\nExecuting command: " + transformXMLToString(inputXMLDoc) + "\n");   					   				            	
-		} // end try 
-		catch (SAXException ex) 
+			writeToLog("\nExecuting command: " + transformXMLToString(inputXMLDoc) + "\n");
+		} // end try
+		catch (SAXException ex)
 		{
 			Logger.getLogger(MCommunicator.class.getName()).log(Level.SEVERE, null, ex);
 			writeToLog("\nSAXException in handleXMLCommand while parsing command stream: "+ex.getLocalizedMessage());
@@ -241,7 +241,7 @@ public class MCommunicator
 		Document theResponse;
 		try
 		{
-			// protect against getFirstChild() call            
+			// protect against getFirstChild() call
 			if(inputXMLDoc != null)
 				theResponse = xmlHelper(inputXMLDoc.getFirstChild(), "");
 			else
@@ -249,8 +249,8 @@ public class MCommunicator
 		}
 		catch(Exception e)
 		{
-			// Construct an exception response;            	
-			theResponse = MEnvironment.exceptionResponse(e);            	
+			// Construct an exception response;
+			theResponse = MEnvironment.exceptionResponse(e);
 		}
 		catch(Throwable e)
 		{
@@ -268,16 +268,16 @@ public class MCommunicator
 			}
 			catch(Throwable f)
 			{
-				// If we can't even warn the client, at least close down the engine. Client will detect EOF.            	
+				// If we can't even warn the client, at least close down the engine. Client will detect EOF.
 				theResponse = null;
 				System.exit(101);
 			}
 
 			// Last resort
-			System.exit(100); 
+			System.exit(100);
 		}
 
-		try 
+		try
 		{
 			addBuffers(theResponse);
 
@@ -298,31 +298,31 @@ public class MCommunicator
 	 */
 	protected static void addBuffers(Document theResponse)
 	{
-		// add in any supplemental or error information                     	
+		// add in any supplemental or error information
 		Element envOutChild = theResponse.createElementNS(null, "EXTRA-OUT");
 		envOutChild.appendChild(theResponse.createTextNode(MEnvironment.outBuffer.toString()));
 		Element envErrChild = theResponse.createElementNS(null, "EXTRA-ERR");
 		envErrChild.appendChild(theResponse.createTextNode(MEnvironment.errorBuffer.toString()));
 
-		// Clear out the "out" and "error" buffers.        	
+		// Clear out the "out" and "error" buffers.
 		MEnvironment.errorBuffer.getBuffer().setLength(0);
-		MEnvironment.outBuffer.getBuffer().setLength(0);        	        	
+		MEnvironment.outBuffer.getBuffer().setLength(0);
 
 		theResponse.getDocumentElement().appendChild(envOutChild);
 		theResponse.getDocumentElement().appendChild(envErrChild);
 	}
 
 
-	/** 
+	/**
 	 * Takes a MARGRAVE-COMMAND node and performs the appropriate action.
-	 * 
+	 *
 	 * @param margraveCommandNode
 	 * @param originalXMLText
 	 * @return
 	 * @throws MBaseException
 	 */
 	private static Document xmlHelper(Node margraveCommandNode, String originalXMLText) throws MBaseException
-	{        	
+	{
 		//List<Node> childNodes = getElementChildren(node);
 
 		writeToLog("\n  In XML Helper...");
@@ -357,27 +357,27 @@ public class MCommunicator
 					catch(NumberFormatException e)
 					{
 						theResponse = MEnvironment.errorResponse(MEnvironment.sNotDocument, "Not an integer", setValue);
-					}        				
+					}
 				}
 				else
 				{
 					theResponse = MEnvironment.errorResponse(MEnvironment.sCommand, MEnvironment.sUnknown, setParameter);
 				}
 
-			}        			
+			}
 			else if (type.equalsIgnoreCase("EXPLORE"))
 			{
-				theResponse = handleExplore(originalXMLText, margraveCommandNode);        			
+				theResponse = handleExplore(originalXMLText, margraveCommandNode);
 			}
 			else if (type.equalsIgnoreCase("INFO")) {
 				writeToLog("In Info");
 				String idString = getInfoId(margraveCommandNode);
 				writeToLog("\nPast getting id info");
 				if (idString != null && idString.length() > 0) {
-					theResponse = MEnvironment.printInfo(idString); 
+					theResponse = MEnvironment.printInfo(idString);
 				}
 				else {
-					theResponse = MEnvironment.printSystemInfo(); 
+					theResponse = MEnvironment.printSystemInfo();
 				}
 				writeToLog("Returning from info");
 			}
@@ -387,12 +387,12 @@ public class MCommunicator
 				String pname = getPolicyName(margraveCommandNode);
 				String vname = getVocabName(margraveCommandNode);
 				theResponse = MEnvironment.createPolicyLeaf(pname, vname);
-			} 
+			}
 			else if (type.equalsIgnoreCase("CREATE POLICY SET")) {
 				String pname = getPolicyName(margraveCommandNode);
 				String vname = getVocabName(margraveCommandNode);
 				theResponse = MEnvironment.createPolicySet(pname, vname);
-			} 
+			}
 			else if (type.equalsIgnoreCase("CREATE VOCABULARY")) {
 				writeToLog("In Create Vocabulary\n");
 				String vname = getVocabName(margraveCommandNode);
@@ -402,9 +402,9 @@ public class MCommunicator
 					writeToLog("The result of create vocabulary was null!!\n");
 				}
 				writeToLog("Finished Create Vocabulary\n");
-			} 
+			}
 			else if (type.equalsIgnoreCase("LOAD XACML POLICY")) {
-				String pname = getPolicyName(margraveCommandNode);        			
+				String pname = getPolicyName(margraveCommandNode);
 				String fileName = getLoadFileName(margraveCommandNode);
 				String schemaFileName = getLoadSchemaFileName(margraveCommandNode);
 				writeToLog("\n Loading policy in file: "+fileName+"; id to use: "+pname);
@@ -420,11 +420,11 @@ public class MCommunicator
 			else if (type.equalsIgnoreCase("PREPARE")) {
 				String pname = getPolicyName(margraveCommandNode);
 				theResponse = MEnvironment.preparePolicy(pname);
-			} 
+			}
 			else if (type.equalsIgnoreCase("DELETE VOCABULARY")) {
 				String vname = getVocabName(margraveCommandNode);
 				theResponse = MEnvironment.deleteVocabulary(vname);
-			} 
+			}
 
 
 
@@ -432,19 +432,19 @@ public class MCommunicator
 				String pname = getPolicyName(margraveCommandNode);
 
 				// Target fmla
-				Node targetNode = getChildNode(margraveCommandNode, "TARGET"); 							
+				Node targetNode = getChildNode(margraveCommandNode, "TARGET");
 				assert(targetNode != null);
 				MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild(), null);
 				Formula target = targetCondition.fmla;
 
 				theResponse = MEnvironment.setPolicyTarget(pname, target);
-			}	
+			}
 			else if (type.equalsIgnoreCase("SET COMBINE FOR POLICY")) {
-				String pname = getPolicyName(margraveCommandNode);        				
+				String pname = getPolicyName(margraveCommandNode);
 				Set<String> rFA = new HashSet<String>();
 				Map<String, Set<String>> rO = new HashMap<String, Set<String>>();
 
-				handleComb(margraveCommandNode, rFA, rO);        				
+				handleComb(margraveCommandNode, rFA, rO);
 				theResponse = MEnvironment.setCombine(pname, rFA, rO);
 			}
 			else if (type.equalsIgnoreCase("QUIT"))
@@ -456,7 +456,7 @@ public class MCommunicator
 			{
 				// "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>"
 				String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "RESET", "id");
-				theResponse = MEnvironment.resetIterator(id);        				
+				theResponse = MEnvironment.resetIterator(id);
 			}
 			else if (type.equalsIgnoreCase("IS-POSSIBLE")) {
 				String id = getAttributeOfChildNodeOrNode(margraveCommandNode, "IS-POSSIBLE", "id");
@@ -480,8 +480,8 @@ public class MCommunicator
 				{
 					writeToLog("\nIn SHOW ONE:");
 
-					Node includeNode = getIncludeNode(showNode);        					
-					List<Node> idbChildNodes = getElementChildren(includeNode);    						
+					Node includeNode = getIncludeNode(showNode);
+					List<Node> idbChildNodes = getElementChildren(includeNode);
 					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
 
 					try
@@ -489,7 +489,7 @@ public class MCommunicator
 						writeToLog("\n  id was: "+id+"; includeMap was: "+includeMap+"; idbChildNodes had this many elements: "+idbChildNodes.size());
 						theResponse = MEnvironment.getFirstModel(id, includeMap);
 					} catch (MBaseException e) {
-						theResponse = MEnvironment.exceptionResponse(e);						
+						theResponse = MEnvironment.exceptionResponse(e);
 					}
 				}
 				else if (showType.equalsIgnoreCase("NEXT"))
@@ -497,7 +497,7 @@ public class MCommunicator
 					writeToLog("\nIn SHOW NEXT:");
 
 					Node includeNode = getIncludeNode(showNode);
-					List<Node> idbChildNodes = getElementChildren(includeNode);          				
+					List<Node> idbChildNodes = getElementChildren(includeNode);
 					HashMap<String, Set<List<MTerm>>> includeMap = atomicFormulasToHashmap(idbChildNodes);
 
 					try
@@ -505,14 +505,14 @@ public class MCommunicator
 						writeToLog("\n  id was: "+id+"; includeMap was: "+includeMap+"; idbChildNodes had this many elements: "+idbChildNodes.size());
 						theResponse = MEnvironment.getNextModel(id, includeMap);
 					} catch (MBaseException e) {
-						theResponse = MEnvironment.exceptionResponse(e);						
+						theResponse = MEnvironment.exceptionResponse(e);
 					}
 				}
 				/*else if (showType.equalsIgnoreCase("CEILING")) {
         				theResponse = MEnvironment.showCeiling(id);
         			}*/
 				else if (showType.equalsIgnoreCase("REALIZED") ||
-						showType.equalsIgnoreCase("UNREALIZED")) 
+						showType.equalsIgnoreCase("UNREALIZED"))
 				{
 					String popId;
 					if (showType.equalsIgnoreCase("REALIZED")) {
@@ -538,7 +538,7 @@ public class MCommunicator
 					{
 						//NodeList forCasesAtomicFormulaNodes = getAtomicFormulaNodesFromList(forCasesNode);
 						List<Node> forCasesAtomicFormulaNodes = getElementChildren(forCasesNode);
-						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);        						
+						forCasesAtomicFormulas = atomicFormulasToHashmap(forCasesAtomicFormulaNodes);
 					}
 
 					//writeToLog(showType+" " + popIdString + " " + atomicFormulas + " --- " + forCasesAtomicFormulas);
@@ -549,7 +549,7 @@ public class MCommunicator
 					}
 					else {
 						theResponse = MEnvironment.showUnrealized(popId, atomicFormulas, forCasesAtomicFormulas);
-					}        					
+					}
 
 				} // end pop/unpop
 
@@ -572,7 +572,7 @@ public class MCommunicator
 			else if (type.equalsIgnoreCase("GET-INFO"))
 			{
 				// n is the margrave-command node.
-				String getType = getGetInfoType(margraveCommandNode); 
+				String getType = getGetInfoType(margraveCommandNode);
 				Node getNode = getChildNode(margraveCommandNode, "GET-INFO");
 				String pname = getPolicyName(getNode);
 				String decname = getDecisionName(getNode);
@@ -593,7 +593,7 @@ public class MCommunicator
 				else if (getType.equalsIgnoreCase("QUALIFIED-RULES")) {
 					theResponse = MEnvironment.getRulesIn(pname, true, decname);
 				}
-			}        			        		
+			}
 
 			//Add Statement
 			else if (type.equalsIgnoreCase("ADD")) {
@@ -610,26 +610,26 @@ public class MCommunicator
 
 					Node secondChildNode = childNode.getNextSibling(); // WORRY Shouldn't be hardcoded in!!
 					if(secondChildNode.getNodeName().equalsIgnoreCase("RULE"))
-					{        					
+					{
 						String rname= getRuleName(margraveCommandNode);
 
 						// WORRY This should be changed to be made more generic, because it assumes too much
 						Node ruleNode = childNode.getNextSibling();
 
 						// Decision
-						String decName = getDecisionType(ruleNode);        						
+						String decName = getDecisionType(ruleNode);
 
-						List<String> varOrdering = new ArrayList<String>();        						
+						List<String> varOrdering = new ArrayList<String>();
 						varOrdering = getListElements(ruleNode, "DECISION-TYPE", "id");
 
-						// Target fmla        					
+						// Target fmla
 						Node targetNode = getChildNode(ruleNode, "TARGET");
 						assert(targetNode != null);
-						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild(), null);
+						MExploreCondition targetCondition = exploreHelper(targetNode.getFirstChild(), new ArrayList<String>());
 						Formula target = targetCondition.fmla;
 
 						// condition is used exclusively for XACML, so it's ignored here.
-						Formula condition = Formula.TRUE;        					        					
+						Formula condition = Formula.TRUE;
 						theResponse = MEnvironment.addRule(pname, rname, decName, varOrdering, target, condition, targetCondition);
 					}
 					else if(secondChildNode.getNodeName().equalsIgnoreCase("VARIABLE-DECLARATION"))
@@ -662,7 +662,7 @@ public class MCommunicator
 		// Finally -- did we assign a proper response? If not, none of the above cases was matched.
 		// _SHOULD_ have elses everywhere. This is just in case.
 		if(theResponse == null)
-			theResponse = MEnvironment.errorResponse(MEnvironment.sFailure, "", 
+			theResponse = MEnvironment.errorResponse(MEnvironment.sFailure, "",
 					"Fatal error: No matching case in java engine. (If you receive this error, please notify the Margrave developers.)");
 
 		return theResponse;
@@ -686,9 +686,9 @@ public class MCommunicator
 		else if (addType.equalsIgnoreCase("SORT-WITH-CHILDREN")) {
 			String sortName = getAttributeOfChildNodeOrNode(margraveCommandNode, "SORT-WITH-CHILDREN", "name");
 
-			List<String> childnames = getListElements(margraveCommandNode, "SORT-WITH-CHILDREN", "name");        						        						
-			return MEnvironment.addSortWithSubs(vname, sortName, childnames);				
-		}        					
+			List<String> childnames = getListElements(margraveCommandNode, "SORT-WITH-CHILDREN", "name");
+			return MEnvironment.addSortWithSubs(vname, sortName, childnames);
+		}
 		else if (addType.equalsIgnoreCase("PREDICATE")) {
 			String sName = getPredicateName(margraveCommandNode);
 			List<String> constr = getRelationsList(margraveCommandNode);
@@ -698,14 +698,14 @@ public class MCommunicator
 
 		else if (addType.equalsIgnoreCase("CONSTANT")) {
 			String sName = getAttributeOfChildNodeOrNode(secondChildNode, "CONSTANT", "name");
-			String sSort = getAttributeOfChildNodeOrNode(secondChildNode, "CONSTANT", "type");     
+			String sSort = getAttributeOfChildNodeOrNode(secondChildNode, "CONSTANT", "type");
 			writeToLog("Adding constant "+sName+" : "+sSort+"\n");
 			return MEnvironment.addConstant(vname, sName, sSort);
 		}
 		else if (addType.equalsIgnoreCase("FUNCTION"))
 		{
-			String sName = getAttributeOfChildNodeOrNode(secondChildNode, "FUNCTION", "name");   
-			List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");        						
+			String sName = getAttributeOfChildNodeOrNode(secondChildNode, "FUNCTION", "name");
+			List<String> constr = getListElements(secondChildNode, "RELATIONS", "name");
 			writeToLog("Adding function "+sName+" : "+constr+"\n");
 			//System.err.println("Adding function "+sName+" : "+constr+"\n");
 			return MEnvironment.addFunction(vname, sName, constr);
@@ -719,8 +719,8 @@ public class MCommunicator
 			// FORMULA is special.
 			if(constraintType.equalsIgnoreCase("FORMULA"))
 			{
-				return MEnvironment.addConstraintFormula(vname, 
-						exploreHelper(constraintNode.getFirstChild(), null).fmla);
+				return MEnvironment.addConstraintFormula(vname,
+						exploreHelper(constraintNode.getFirstChild(), new ArrayList<String>()).fmla);
 			}
 
 
@@ -753,14 +753,14 @@ public class MCommunicator
 				assert(relations.size() == 2);
 				String secondRelation = relations.get(1);
 				return MEnvironment.addConstraintConstantsNeq(vname, firstRelation, secondRelation);
-			}		
+			}
 			else if (constraintType.equalsIgnoreCase("CONSTANTS-COVER")) {
 				return MEnvironment.addConstraintConstantsCover(vname, firstRelation);
 			}
 			else if (constraintType.equalsIgnoreCase("CONSTANTS-NEQ-ALL")) {
 				MCommunicator.writeToLog("\nAdding constraint constants-neq-all: "+firstRelation);
 				return MEnvironment.addConstraintConstantsNeqAll(vname, firstRelation);
-			}				
+			}
 			else if (constraintType.equalsIgnoreCase("ATMOSTONE-ALL")) {
 				return MEnvironment.addConstraintAtMostOneAll(vname, firstRelation);
 			}
@@ -788,14 +788,14 @@ public class MCommunicator
 			else {
 				// Unknown constraint type; throw an exception
 				return MEnvironment.errorResponse(MEnvironment.sUnknown, MEnvironment.sConstraint, constraintType);
-			}        						
+			}
 		}
 		else {
 			return MEnvironment.errorResponse(MEnvironment.sCommand, MEnvironment.sNotExpected, addType);
 		}
 	}
 
-	private static Document handleExplore(String originalXMLText, Node n) 
+	private static Document handleExplore(String originalXMLText, Node n)
 	{
 		MExploreCondition exploreCondition;
 
@@ -803,7 +803,7 @@ public class MCommunicator
 		// need to reset lastResult to -1.
 
 		try
-		{        				        			
+		{
 			n = n.getFirstChild();
 			String name = n.getNodeName();
 			if (name.equalsIgnoreCase("EXPLORE"))
@@ -816,10 +816,10 @@ public class MCommunicator
 					// Don't allow ID re-use.
 					return MEnvironment.errorResponse(MEnvironment.sQuery, MEnvironment.sFailure, "The query identifier "+queryID+" is already in use.");
 				}
-				
+
 				MQuery result = null;
 
-				//Default Values                                     					
+				//Default Values
 				List<MIDBCollection> under = new LinkedList<MIDBCollection>();
 				List<String> publ = new ArrayList<String>();
 				Map<String, String> publSorts = new HashMap<String, String>();
@@ -831,7 +831,7 @@ public class MCommunicator
 				Node ceilingsNode = getCeilingsNode(n);
 
 				if (underNode != null)
-				{ 
+				{
 					under = namesToIDBCollections(getUnderList(n));
 
 				}
@@ -842,7 +842,7 @@ public class MCommunicator
 
 					List<Node> decls = getElementChildren(publishNode);
 					for(Node varDeclNode : decls)
-					{	        							  	        							
+					{
 						String varname = getAttributeOfChildNodeOrNode(varDeclNode, "VARIABLE-DECLARATION", "varname");
 						String vartype = getAttributeOfChildNodeOrNode(varDeclNode, "VARIABLE-DECLARATION", "sort");
 						publ.add(varname);
@@ -855,7 +855,7 @@ public class MCommunicator
 				}
 
 				Map<String, Integer> ceilingMap = new HashMap<String, Integer>();
-				if (ceilingsNode != null) 
+				if (ceilingsNode != null)
 				{
 					List<Node> ceilingNodes = getElementChildren(ceilingsNode);
 
@@ -867,14 +867,14 @@ public class MCommunicator
 						writeToLog("\nCEILING: "+sortname+" is "+ceiling);
 
 						try
-						{		        	        			        				
-							int intValue = Integer.parseInt(ceiling);	        					
+						{
+							int intValue = Integer.parseInt(ceiling);
 							ceilingMap.put(sortname, intValue);
 						}
 						catch(NumberFormatException e)
 						{
 							return MEnvironment.errorResponse(MEnvironment.sNotDocument, "Not an integer", ceiling);
-						}        					        				
+						}
 					}
 				}
 
@@ -883,12 +883,12 @@ public class MCommunicator
 				exploreCondition = exploreHelper(n.getFirstChild().getFirstChild(), new ArrayList<String>(publ));
 				if (exploreCondition == null)
 					throw new MCommunicatorException("Explore condition is null!");
-								
-				
+
+
 				// Exception will be thrown and caught by caller to return an EXCEPTION element.
 				result = MQuery.createFromExplore(
 						queryID,
-						exploreCondition.addSeenIDBCollections(under), 
+						exploreCondition.addSeenIDBCollections(under),
 						publ,
 						publSorts,
 						debugLevel, ceilingMap);
@@ -901,12 +901,12 @@ public class MCommunicator
 
 			throw new MUserException("Internal error: Command promised a query definition but did not provide it.");
 
-		} 
+		}
 		catch(MBaseException e)
 		{
 			MEnvironment.clearLastQuery();
 			throw e;
-		}			
+		}
 	}
 
 	private static void handleComb(Node n, Set<String> rFA, Map<String, Set<String>> rO)
@@ -928,7 +928,7 @@ public class MCommunicator
 					rO.put(under, new HashSet<String>());
 				rO.get(under).addAll(overs);
 			}
-			// else do nothing		
+			// else do nothing
 		}
 
 	}
@@ -950,7 +950,7 @@ public class MCommunicator
 			{
 				// Ignore. This is a special child node for SHOW REALIZED.
 			}
-			else if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA")) 
+			else if(childNode.getNodeName().equalsIgnoreCase("ATOMIC-FORMULA"))
 			{
 				List<String> relNamePieces = getRelationNameFromAtomicFmla(childNode);
 				List<MTerm> terms = getTermsFromAtomicFmla(childNode, null);
@@ -976,7 +976,7 @@ public class MCommunicator
 				String relName = getAttributeOfChildNodeOrNode(childNode, "ISA", "sort");
 
 				// ISA has a special TERM sub-node. The first (and only) child of that is the variable-term, function-term, etc.
-				MTerm theTerm = termHelper(getChildNode(childNode, "TERM").getFirstChild(), null);				
+				MTerm theTerm = termHelper(getChildNode(childNode, "TERM").getFirstChild(), null);
 				// ISA has a special FORMULA sub-node. The first (and only) child of that is the actual formula.
 				MExploreCondition cond = exploreHelper(getChildNode(childNode, "FORMULA").getFirstChild(), null);
 
@@ -1084,7 +1084,7 @@ public class MCommunicator
 		return getChildNode(n, "FORCASES");
 	}
 
-	// <SHOW type="populated" id="0" ... 
+	// <SHOW type="populated" id="0" ...
 	public static String getPopulatedId(Node n) {
 		return getAttributeOfChildNodeOrNode(n, "SHOW", "id");
 	}
@@ -1109,7 +1109,7 @@ public class MCommunicator
 	}
 
 	//ATOMIC FORMULAS
-	public static List<Node> getAtomicFormulaNodesFromList(Node n) 
+	public static List<Node> getAtomicFormulaNodesFromList(Node n)
 	{
 		Node child = getChildNode(n, "ATOMIC-FORMULA-LIST");
 		if(child == null)
@@ -1160,15 +1160,15 @@ public class MCommunicator
 	{
 		// The under node is the "list" node, so need to be passed the EXPLORE node,
 		// not the UNDER node for getListElements to work.
-		List<String> result = getListElements(n, "UNDER", "pname");     
+		List<String> result = getListElements(n, "UNDER", "pname");
 		writeToLog("UNDER LIST: "+result.toString());
 		return result;
 	}
 
-	//Returns the child node of n whose name is nodeName 
+	//Returns the child node of n whose name is nodeName
 	private static Node getChildNode(Node n, String nodeName)
 	{
-		List<Node> childNodes = getChildNodes(n, nodeName);        	        	
+		List<Node> childNodes = getChildNodes(n, nodeName);
 		if(childNodes.size() > 0)
 			return childNodes.get(0);
 		return null; // Didn't find it, error
@@ -1186,14 +1186,14 @@ public class MCommunicator
 				result.add(childNode);
 			}
 		}
-		return result; 
+		return result;
 	}
 
 	/**
 	 * Returns the value of attribute [attributeName] in either
 	 * (1) Node n (if n's name is [nodeName])
 	 * (2) The first child of Node n named [nodeName])
-	 * @param n 
+	 * @param n
 	 * @param nodeName
 	 * @param attributeName
 	 * @return
@@ -1216,17 +1216,17 @@ public class MCommunicator
 				throw new MCommunicatorException("getAttributeofChildNodeorNode: Neither node nor children had name="+nodeName);
 		}
 
-		return getNodeAttribute(targetNode, attributeName);        	        		        	        	
+		return getNodeAttribute(targetNode, attributeName);
 	}
 
 	private static String getNodeAttribute(Node n, String attributeName)
 	{
-		if(n == null) { 
+		if(n == null) {
 			throw new MCommunicatorException("getNodeAttribute called with n=null.");
 		}
 
 		Node attribute = n.getAttributes().getNamedItem(attributeName);
-		if(attribute == null) 
+		if(attribute == null)
 			throw new MCommunicatorException("getNodeAttribute: Node did not have attribute="+attributeName);
 		return attribute.getNodeValue();
 	}
@@ -1235,7 +1235,7 @@ public class MCommunicator
 	private static List<String> getListElements(Node n, String listName, String attributeName)
 	{
 		Node listNode = getChildNode(n, listName);
-		writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");        
+		writeToLog("\nIn getListElements. Node: "+n.getNodeName()+"; listName: "+listName+"; attributeName: "+attributeName+"\n");
 
 		//Return null if we can't find the node
 		if (listNode == null)
@@ -1270,14 +1270,14 @@ public class MCommunicator
 			Node aChild = nlResult.item(ii);
 			//if(aChild.getNodeType() != Node.TEXT_NODE)
 			if(aChild.getNodeType() == Node.ELEMENT_NODE)
-				result.add(aChild);        		
+				result.add(aChild);
 		}
 
 		return result;
 	}
 
 	//Expects the node one down from condition node
-	private static MExploreCondition exploreHelper(Node n, List<String> bound) 
+	private static MExploreCondition exploreHelper(Node n, List<String> bound)
 			throws MUserException, MGEManagerException, MGEUnknownIdentifier
 	{
 		assert(n != null);
@@ -1294,11 +1294,11 @@ public class MCommunicator
 		//	writeToLog("First child node's name: " + childNodes.item(0).getNodeName() + "\n");
 
 		if (name.equalsIgnoreCase("AND"))
-		{        		        	
+		{
 			assert(getElementChildren(n).size() == 2);
 			return exploreHelper(childNodes.get(0), bound).and(exploreHelper(childNodes.get(1), bound));
 		}
-		else if (name.equalsIgnoreCase("OR")) 
+		else if (name.equalsIgnoreCase("OR"))
 		{
 			assert(getElementChildren(n).size() == 2);
 			return exploreHelper(childNodes.get(0), bound).or(exploreHelper(childNodes.get(1), bound));
@@ -1316,8 +1316,8 @@ public class MCommunicator
 			return antecedentFmla.implies(consequentFmla);
 		}
 		else if(name.equalsIgnoreCase("ISA"))
-		{        		        		
-			String typename = getAttributeOfChildNodeOrNode(n, "ISA", "sort");        		        		
+		{
+			String typename = getAttributeOfChildNodeOrNode(n, "ISA", "sort");
 			Relation theRel = MFormulaManager.makeRelation(typename, 1);
 
 			// These may be null
@@ -1330,24 +1330,24 @@ public class MCommunicator
 			// If no fmla passed, this is a sort-as-predicate. Just checking whether the var is in the sort.
 			if(internalFmlaWrapNode == null)
 				internalFmlaC = new MExploreCondition(true);
-			else        			
+			else
 				internalFmlaC = exploreHelper(internalFmlaWrapNode.getFirstChild(), bound);
 
-			MTerm theTerm = termHelper(internalTermWrapNode.getFirstChild(), bound);        			
-			newFmlaC = internalFmlaC.isaSubstitution(theTerm.expr, theRel);        		
+			MTerm theTerm = termHelper(internalTermWrapNode.getFirstChild(), bound);
+			newFmlaC = internalFmlaC.isaSubstitution(theTerm.expr, theRel);
 
 			writeToLog("\nFormula helper (ISA) got "+theTerm+" : "+theRel+" | "+internalFmlaC);
 			writeToLog("\n  Substituted to: "+newFmlaC);
 
-			// The term in the ISA _must_ be added to the context, since it isn't necessarily 
+			// The term in the ISA _must_ be added to the context, since it isn't necessarily
 			// part of the formula condition. (For instance, TRUE isas)
 			newFmlaC.termMap.put(theTerm.expr, theTerm);
 
 			return newFmlaC;
 		}
 		else if(name.equalsIgnoreCase("EQUALS"))
-		{        		
-			return handleEqualsFormula(n, bound);        		
+		{
+			return handleEqualsFormula(n, bound);
 		}
 		else if (name.equalsIgnoreCase("IFF")) {
 			assert(getElementChildren(n).size() == 2);
@@ -1366,7 +1366,7 @@ public class MCommunicator
 
 			List<String> newbound = new ArrayList<String>(bound);
 			newbound.add(theVarName);
-			
+
 			return exploreHelper(n.getFirstChild(), newbound).exists(theVar, theSort);
 		}
 		else if(name.equalsIgnoreCase("FORALL"))
@@ -1379,11 +1379,11 @@ public class MCommunicator
 
 			List<String> newbound = new ArrayList<String>(bound);
 			newbound.add(theVarName);
-			
+
 			return exploreHelper(n.getFirstChild(), newbound).forall(theVar, theSort);
 		}
 		else if (name.equalsIgnoreCase("ATOMIC-FORMULA"))
-		{        		
+		{
 			return handleAtomicFormula(n, bound);
 		}
 		else if(name.equalsIgnoreCase("TRUE"))
@@ -1399,7 +1399,7 @@ public class MCommunicator
 	}
 
 	private static MExploreCondition handleEqualsFormula(Node n, List<String> bound) {
-		// Comes in with 2 TERMS now instead of 2 maybe-variables.    
+		// Comes in with 2 TERMS now instead of 2 maybe-variables.
 
 		List<MTerm> terms = getTermsFromEqualsFmla(n, bound);
 		MTerm term1 = terms.get(0);
@@ -1407,7 +1407,7 @@ public class MCommunicator
 
 		writeToLog("\nexploreHelper: EQUALS: "+term1+" = "+term2+"\n\n");
 
-		Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);			        		        	
+		Formula fmla = MFormulaManager.makeEqAtom(term1.expr, term2.expr);
 		return new MExploreCondition(fmla, term1, term2, true);
 	}
 
@@ -1419,7 +1419,7 @@ public class MCommunicator
 
 		terms.add(termHelper(childNodes.get(0), bound));
 		terms.add(termHelper(childNodes.get(1), bound));
-		return terms;			
+		return terms;
 	}
 
 	private static MExploreCondition handleAtomicFormula(Node n, List<String> bound)
@@ -1443,7 +1443,7 @@ public class MCommunicator
 		String relationName = relationNameComponents.get(relationNameComponents.size() - 1);
 
 		if(relationNameComponents.size() == 1)
-		{        		
+		{
 			MIDBCollection pol = MEnvironment.getPolicyOrView(relationName);
 
 			writeToLog("\n		relationName: " + relationName + "\npol: " + pol + "\n\n");
@@ -1461,7 +1461,7 @@ public class MCommunicator
 
 					// Assemble MExploreCondition object
 					writeToLog("\nNew Explore condition (view): "+idbf);
-					return new MExploreCondition(idbf, pol, relationName, terms);        		
+					return new MExploreCondition(idbf, pol, relationName, terms);
 				}
 			}
 
@@ -1511,32 +1511,32 @@ public class MCommunicator
 		return new MExploreCondition(idbf, pol, relationName, terms);
 	}
 
-	private static List<MTerm> getTermsFromNode(Node termsNode, List<String> bound)		
+	private static List<MTerm> getTermsFromNode(Node termsNode, List<String> bound)
 	{
-		List<Node> termsNodeComponents = getElementChildren(termsNode);   
+		List<Node> termsNodeComponents = getElementChildren(termsNode);
 		List<MTerm> terms = new ArrayList<MTerm>();
 		for(Node theNode : termsNodeComponents)
 		{
-			MTerm theTerm = termHelper(theNode, bound); 				
+			MTerm theTerm = termHelper(theNode, bound);
 			//String nameStr = getNodeAttribute(theNode, "ID", "id");
 			terms.add(theTerm);
 		}
-		return terms;	
+		return terms;
 	}
 
 	private static List<MTerm> getTermsFromAtomicFmla(Node n, List<String> bound) {
 		/////////////////////////////////////////////////////
-		// Terms			
+		// Terms
 		Node termsNode = getChildNode(n, "TERMS");
-		return getTermsFromNode(termsNode, bound);			
+		return getTermsFromNode(termsNode, bound);
 	}
 
 	private static List<String> getRelationNameFromAtomicFmla(Node n) {
 		/////////////////////////////////////////////////////
 		// Relation name
 		Node relationNameNode = getChildNode(n, "RELATION-NAME");
-		List<Node> relationComponents = getElementChildren(relationNameNode);        		        	
-		List<String> relationNameComponents = new ArrayList<String>();        		
+		List<Node> relationComponents = getElementChildren(relationNameNode);
+		List<String> relationNameComponents = new ArrayList<String>();
 		for(Node theNode : relationComponents)
 		{
 			// <ID id=\"P\"/>
@@ -1548,7 +1548,7 @@ public class MCommunicator
 
 
 
-	private static MTerm termHelper(Node n, List<String> bound) 
+	private static MTerm termHelper(Node n, List<String> bound)
 	{
 		List<Node> childNodes = getElementChildren(n);
 
@@ -1573,36 +1573,36 @@ public class MCommunicator
 			}
 
 			return new MFunctionTerm(funcName, subTerms);
-		}	
+		}
 		else if (name.equalsIgnoreCase("CONSTANT-TERM"))
 		{
-			String constName = getAttributeOfChildNodeOrNode(n, "CONSTANT-TERM", "id");     		
+			String constName = getAttributeOfChildNodeOrNode(n, "CONSTANT-TERM", "id");
 			return new MConstantTerm(constName);
 		}
 		else if (name.equalsIgnoreCase("VARIABLE-TERM"))
 		{
 			String varName = getAttributeOfChildNodeOrNode(n, "VARIABLE-TERM", "id");
-			
+
 			// Removed this check on June 9 2013 - TN
 			// After talking with SK, we want a SQL style "project" for the declared vector.
 			// Thus, if a variable is not declared, we simply need to implicitly bind it via exists
 			// at the top of the formula
-			
+
 			// If unbound, error! (null means: don't do the check)
 			//if(bound != null && !bound.contains(varName))
 			//{
 			//	throw new MUserException("Variable named "+varName+" occured in the query formula, but was not bound in the query's variable list or by a quantifier.");
 			//}
-			return new MVariableTerm(varName);     
+			return new MVariableTerm(varName);
 		}
 		else
-		{     		     		
+		{
 			throw new MCommunicatorException("Unsupported term type: "+name);
 		}
 	}
 
 	//Returns a list containing the value of the first attribute of every child node of n
-	protected static List<String> getListChildren(Node n) 
+	protected static List<String> getListChildren(Node n)
 	{
 		List<Node> childNodes = getElementChildren(n);
 		List<String> list = new LinkedList<String>();
@@ -1619,28 +1619,28 @@ public class MCommunicator
 		if(!bDoLogging)
 			return;
 
-		// Wipe the log clean every time the engine runs. 
+		// Wipe the log clean every time the engine runs.
 		try
 		{
 			// This only works if the .class file isn't in a .jar; it's also risky because the place Margrave is
-			// installed may not be writable. 
+			// installed may not be writable.
 
 			//URL absoluteClassPathNameURL = MCommunicator.class.getClass().getResource("/edu/wpi/margrave/MCommunicator.class");
 			//URL absoluteLogFileNameURL = new URL(absoluteClassPathNameURL, sLogFileName);
-			//File logFILE = new File(absoluteLogFileNameURL.getFile());    		    		     		     		 
+			//File logFILE = new File(absoluteLogFileNameURL.getFile());
 			//String absoluteLogFileName = java.net.URLDecoder.decode(logFILE.toString(), "UTF-8");
 
 			// Instead, default to the system's temp file folder:
 			String tempFolder = System.getProperty("java.io.tmpdir");
 			if(!tempFolder.endsWith(File.separator))
 				tempFolder += File.separator;
-			String absoluteLogFileName = tempFolder+sLogFileName; 
+			String absoluteLogFileName = tempFolder+sLogFileName;
 
 			MCommunicator.outLogStream = new FileWriter(absoluteLogFileName);
 			MCommunicator.outLog = new BufferedWriter(outLogStream);
-			MCommunicator.outLog.write("Margrave engine log started at: "+ new Date()+"\n");	   
+			MCommunicator.outLog.write("Margrave engine log started at: "+ new Date()+"\n");
 			MCommunicator.outLog.write("======================================================================\n");
-			MCommunicator.outLog.flush();   
+			MCommunicator.outLog.flush();
 
 			// Log is initialized and open
 		}
@@ -1661,9 +1661,9 @@ public class MCommunicator
 		if(!bDoLogging)
 			return;
 		try
-		{    		
+		{
 			MCommunicator.outLog.write(s);
-			MCommunicator.outLog.flush();    	        	    
+			MCommunicator.outLog.flush();
 		}
 		catch (Exception e)
 		{
@@ -1686,7 +1686,7 @@ public class MCommunicator
 
 			// If this line causes a null pointer exception, there is an empty text element somewhere.
 			// For some reason the transformer can't handle text elements with "" in them.
-			transformer.transform(source, result);			
+			transformer.transform(source, result);
 
 
 			String xmlString = result.getWriter().toString();
@@ -1694,7 +1694,7 @@ public class MCommunicator
 		}
 		catch(Exception e)
 		{
-			// Will hit this if theResponse is null.	
+			// Will hit this if theResponse is null.
 			// don't do this. would go through System.err
 			//e.printStackTrace();
 			return (makeDetailedError(e.getLocalizedMessage()));
@@ -1702,36 +1702,36 @@ public class MCommunicator
 
 	}
 
-	protected static byte[] transformXMLToByteArray(Document theResponse) 
+	protected static byte[] transformXMLToByteArray(Document theResponse)
 	{
-		return transformXMLToString(theResponse).getBytes(); 
+		return transformXMLToString(theResponse).getBytes();
 	}
 
 	protected static Formula performSubstitution(String collectionIdSymbol, MIDBCollection coll, Formula f, List<MTerm> newterms)
 			throws MUserException, MGEUnknownIdentifier
-			{		
+			{
 		// Replace expressions (here, variables) with other expressions
-		// e.g. x becomes f(y, c)		
+		// e.g. x becomes f(y, c)
 
 		List<Expression> newtermsexprs = new ArrayList<Expression>(newterms.size());
 		for(MTerm t : newterms)
 			newtermsexprs.add(t.expr);
 
-		return MEnvironment.performSubstitution(collectionIdSymbol, coll, f, newtermsexprs);	
+		return MEnvironment.performSubstitution(collectionIdSymbol, coll, f, newtermsexprs);
 			}
 
 
 
 	protected static Formula validateDBIdentifier(String objn, String dbn)
 			throws MUserException {
-		
+
 		writeToLog("\nMCommunicator.validateDBIdentifier invoked for: "+objn+", "+dbn);
 
 		// Is objn a policy name? If not, error.
 		MIDBCollection pol = MEnvironment.getPolicyOrView(objn);
 
 		if(pol == null)
-			throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);			   					
+			throw new MGEUnknownIdentifier("Unknown IDB Collection: "+objn);
 
 		writeToLog("\n  Collection found. Self reported name="+pol.name+" ContainsIDB = "+pol.containsIDB(dbn));
 
@@ -1777,7 +1777,7 @@ public class MCommunicator
 		//	String show = "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"ONE\" ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
 		//	String count = "<MARGRAVE-COMMAND type=\"COUNT\"><COUNT ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
 		//	String isposs = "<MARGRAVE-COMMAND type=\"IS-POSSIBLE\"><IS-POSSIBLE ID=\"MyQuery\" /></MARGRAVE-COMMAND> ";
-		/*	String showUnrealizedForCases = 
+		/*	String showUnrealizedForCases =
 "<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"UNREALIZED\" ID=\"Myquery\">"+
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /><VARIABLE-TERM id=\"z\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>"+
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R2\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"z\" /><CONSTANT-TERM id=\"c\" /></TERMS></ATOMIC-FORMULA>" +
@@ -1785,7 +1785,7 @@ public class MCommunicator
 "<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\" /><ID id=\"R3\" /></RELATION-NAME><TERMS><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></FORCASES></SHOW></MARGRAVE-COMMAND> ";
 		 */
 
-		String aQuery = 
+		String aQuery =
 				"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry\"><CONDITION><OR>" +
 						"<ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><CONSTANT-TERM id=\"c\" /><FUNCTION-TERM func=\"f\"><CONSTANT-TERM id=\"c\" /></FUNCTION-TERM></TERMS></ATOMIC-FORMULA>" +
 						"<AND><EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>" +
@@ -1794,9 +1794,9 @@ public class MCommunicator
 						"</AND></OR></CONDITION>" +
 						"<PUBLISH><VARIABLE-DECLARATION sort=\"B\" varname=\"y\" /><VARIABLE-DECLARATION sort=\"C\" varname=\"x\" /></PUBLISH></EXPLORE></MARGRAVE-COMMAND> ";
 
-		// aQuery unsat since publish gives us types of x, y that don't fit the query. 		
+		// aQuery unsat since publish gives us types of x, y that don't fit the query.
 
-		String aQuery2 = 
+		String aQuery2 =
 				"<MARGRAVE-COMMAND type=\"EXPLORE\"><EXPLORE id=\"Myqry2\"><CONDITION>" +
 						"<AND><NOT><ATOMIC-FORMULA><RELATION-NAME><ID id=\"P\"/><ID id=\"permit\"/></RELATION-NAME><TERMS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></TERMS></ATOMIC-FORMULA></NOT>" +
 						"<EQUALS><VARIABLE-TERM id=\"x\" /><VARIABLE-TERM id=\"y\" /></EQUALS>"+
@@ -1808,7 +1808,7 @@ public class MCommunicator
 
 		List<String> creationCommands = new ArrayList<String>();
 
-		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");		
+		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><SORT-WITH-CHILDREN name=\"U\"><SORT name=\"A\" /><SORT name=\"B\" /><SORT name=\"C\" /></SORT-WITH-CHILDREN></MARGRAVE-COMMAND> ");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><PREDICATE name=\"r\" /><RELATIONS><RELATION name=\"A\"/><RELATION name=\"B\"/><RELATION name=\"C\"/><RELATION name=\"C\"/></RELATIONS></MARGRAVE-COMMAND> ");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><CONSTANT name=\"c\" type=\"C\" /></MARGRAVE-COMMAND>");
 		creationCommands.add("<MARGRAVE-COMMAND type=\"ADD\"><VOCAB-IDENTIFIER vname=\"Test1\" /><FUNCTION name=\"f\"><RELATIONS><RELATION name=\"C\" /><RELATION name=\"A\" /></RELATIONS></FUNCTION></MARGRAVE-COMMAND> ");
@@ -1826,8 +1826,8 @@ public class MCommunicator
 		creationCommands.add("<MARGRAVE-COMMAND type=\"SET RCOMBINE FOR POLICY\"><POLICY-IDENTIFIER pname=\"P\" /><COMB-LIST>" +
 				"<FA><ID id=\"permit\" /><ID id=\"deny\" /></FA>" +
 				"<OVERRIDES decision=\"permit\"><ID id=\"callpolice\" /></OVERRIDES>" +
-				"<OVERRIDES decision=\"deny\"><ID id=\"callpolice\" /></OVERRIDES></COMB-LIST></MARGRAVE-COMMAND>"); 
-		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>"); 
+				"<OVERRIDES decision=\"deny\"><ID id=\"callpolice\" /></OVERRIDES></COMB-LIST></MARGRAVE-COMMAND>");
+		creationCommands.add("<MARGRAVE-COMMAND type=\"PREPARE\"><POLICY-IDENTIFIER pname=\"P\" /></MARGRAVE-COMMAND>");
 
 		//creationCommands.add("");
 
@@ -1836,10 +1836,10 @@ public class MCommunicator
 			handleXMLCommand(cmd);
 		}
 
-		String aShow = 
+		String aShow =
 				"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry\" /></MARGRAVE-COMMAND>";
-		String aShow2 = 
-				"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry2\" /></MARGRAVE-COMMAND>";		
+		String aShow2 =
+				"<MARGRAVE-COMMAND type=\"SHOW\"><SHOW type=\"NEXT\" id=\"Myqry2\" /></MARGRAVE-COMMAND>";
 		String aReset = "<MARGRAVE-COMMAND type=\"RESET\"><RESET id=\"Myqry\" /></MARGRAVE-COMMAND>";
 
 		handleXMLCommand(aQuery);
@@ -1856,7 +1856,7 @@ public class MCommunicator
 
 		MEnvironment.debug();
 
-		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");	
+		MEnvironment.writeErrLine("----- End MCommunicator Tests -----");
 	}
 
 }
