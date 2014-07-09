@@ -1,5 +1,5 @@
 #lang margrave
-//MINIMIZE; // This command (no matter where it appears) activates minimization for the entire session.
+// MINIMIZE; // This command (no matter where it appears) activates minimization for the entire session.
 
 LOAD POLICY c1 = "conference1.p";
 LOAD POLICY c2 = "conference2.p";
@@ -13,17 +13,17 @@ show whenpermit;
 
 ///////////////////////////////////////////////////////
 
-// "Show me when the policy permits a readpaper action"
-LET whenconflictedreadpaper[s: Subject, r: Resource] be 
-  exists a: ReadPaper (c1:permit(s,a,r)) and conflicted(s, r);
-show whenconflictedreadpaper;
-
-///////////////////////////////////////////////////////
-
-// "Show me WHY permitted"
+// "Show me WHY permitted" (no conflict, so assigned doesn't matter)
 show whenpermit 
   INCLUDE c1:papernoconflict_applies(s,a,r), 
           c1:paperassigned_applies(s,a,r);
+
+///////////////////////////////////////////////////////
+
+// "Does the policy allow reading papers when conflicted?"
+LET whenconflictedreadpaper[s: Subject, r: Resource] be 
+  exists a: ReadPaper (c1:permit(s,a,r)) and conflicted(s, r);
+poss? whenconflictedreadpaper;
 
 ///////////////////////////////////////////////////////
 
@@ -40,8 +40,8 @@ show realized diff
           c1:paperconflict_applies(s,a,r),
           c2:papernoconflict_applies(s,a,r), 
           c2:paperassigned_applies(s,a,r),
-          c2:catchall_applies(s,a,r);
+          c2:paperconflict_applies(s,a,r);
 
 
 // Before and after minimization turned on
-count whenconflictedreadpaper;
+count diff;

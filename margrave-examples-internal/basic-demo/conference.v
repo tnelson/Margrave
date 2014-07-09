@@ -1,20 +1,19 @@
 (Theory conference
         (Vocab conference
                (Types
-                Subject                            
+                Subject
                 (Action > SubmitPaper ReadPaper SubmitReview)
                 (Resource > Paper Review TechReport))
                (Predicates
-                
+
                 (conflicted Subject Paper)
                 (assigned Subject Paper)
-                
+
                 ; Author and reviewer can overlap when declared as predicates
                 (author Subject)
-                (reviewer Subject))
-
-               (Functions (techreportfor Paper TechReport)))
-        (Axioms 
-         ;(abstract Subject)
-         (abstract Action)
-         (abstract Resource)))        	    	     
+                (reviewer Subject)))
+        (Axioms
+         ; Every Resource is a Paper, a Review, or a TechReport
+         (abstract Resource)
+         ; Similarly for Action
+         (abstract Action)))
