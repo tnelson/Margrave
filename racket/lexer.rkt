@@ -56,6 +56,7 @@
        LOAD POLICY XACML SQS IOS 
        TUPLING DEBUG CEILING 
        QUIT 
+       MINIMIZE
        
        ; end of command
        SEMICOLON EOF ))
@@ -164,6 +165,8 @@
    [(lex-ci "isa") (token-ISA)] 
    
    ; commands
+   
+   [(lex-ci "minimize") (token-MINIMIZE)]
    
    [(lex-ci "compare") (token-COMPARE)] 
 

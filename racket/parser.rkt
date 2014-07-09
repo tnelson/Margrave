@@ -346,6 +346,9 @@
         ;**************************************************
         (m-command         
          
+         ; pre-directives
+         [(MINIMIZE) (build-so (list 'MINIMIZE) 1 1)]
+         
          ; SHOWING models
          [(SHOW ALL any-id show-arg-list) (build-so (list 'SHOWALL $3 $4) 1 4)]         
          [(SHOW any-id show-arg-list) (build-so (list 'SHOW $2 $3) 1 3)]

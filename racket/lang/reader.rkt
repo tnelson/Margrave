@@ -75,10 +75,15 @@
 
 (define (read-syntax-m src in)
   (error-print-source-location #f) ; Don't say "unsaved-editor34228"   
-  
+    
   ; Parse one. Deal with it. Parse the next. Deal with it...  
   ; Built the list in reverse
-  (define func-list (reverse (parse-helper src in empty)))
+  (define pre-func-list (reverse (parse-helper src in empty)))
+  
+  ; pre-directives need to be extracted here. For instance, minimization:
+  (define minlst (if (findf (lambda (x) (equal? (syntax->datum x) '(MINIMIZE)))  pre-func-list) '("-min" "-log") '("-log")))
+  ;(printf "~a~n" pre-func-list)
+  (define func-list (filter (lambda (x) (not (equal? (syntax->datum x) '(MINIMIZE)))) pre-func-list))
   
   ;(printf "Reading: ~a ~a ~n" src in)
   
@@ -87,7 +92,8 @@
     
   (define result-syntax 
     (with-syntax ([syntax-func-list `(list ,@func-list)]
-                  [read-syntax-m-single read-syntax-m-single])
+                  [read-syntax-m-single read-syntax-m-single]
+                  [paramlst `',minlst])
       (strip-context 
        #`( (require margrave/margrave
                     margrave/margrave-ios ; for parse-and-load-ios
@@ -97,7 +103,7 @@
            
            ; Don't show a #t. Could be confusing in #lang margrave
            (define start-result 
-             (start-margrave-engine #:margrave-params '("-log")))          
+             (start-margrave-engine #:margrave-params paramlst))          
            
            (define (handle-func a-func)          
              (define a-result (a-func))

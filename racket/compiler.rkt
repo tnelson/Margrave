@@ -282,6 +282,11 @@
      (make-show-all query-id options syn)]
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+    ; pre-directive to minimize
+    [(equal? first-datum 'MINIMIZE)
+     '(MINIMIZE)]
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+    
     [(equal? first-datum 'INFO)
      (if (empty? (rest interns))
          (make-single-wrapper `(xml-make-info-command) syn)
