@@ -143,10 +143,11 @@
   (string-append ;; gmarceau : string-join
    
    ;For testing, use the .class files instead of the .jar:
+   ;(path->string
+  ;  (build-path home-path
+  ;              "bin"))
+   ; for release, use margrave.jar
    (path->string
-    (build-path home-path
-                "bin"))
-   #;(path->string
       (build-path home-path
                   "bin"
                   "margrave.jar"))
